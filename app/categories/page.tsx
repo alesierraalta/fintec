@@ -1,0 +1,356 @@
+'use client';
+
+import { useState } from 'react';
+import { MainLayout } from '@/components/layout/main-layout';
+import { CategoryForm } from '@/components/forms';
+import { CategoryCard } from '@/components/categories';
+import { Button } from '@/components/ui';
+import { useModal } from '@/hooks';
+import { 
+  Plus, 
+  Filter,
+  Grid3X3,
+  List,
+  Search,
+  TrendingUp,
+  TrendingDown
+} from 'lucide-react';
+
+const mockCategories = [
+  // Income categories
+  {
+    id: '1',
+    name: 'Salario',
+    kind: 'INCOME' as const,
+    color: '#22c55e',
+    icon: 'Banknote',
+    transactionCount: 12,
+    totalAmount: 38400,
+    subcategories: [],
+  },
+  {
+    id: '2',
+    name: 'Freelance',
+    kind: 'INCOME' as const,
+    color: '#3b82f6',
+    icon: 'Laptop',
+    transactionCount: 8,
+    totalAmount: 6000,
+    subcategories: [],
+  },
+  {
+    id: '3',
+    name: 'Inversiones',
+    kind: 'INCOME' as const,
+    color: '#8b5cf6',
+    icon: 'TrendingUp',
+    transactionCount: 4,
+    totalAmount: 1500,
+    subcategories: [
+      { id: '3a', name: 'Dividendos' },
+      { id: '3b', name: 'Ganancias Capital' },
+    ],
+  },
+  
+  // Expense categories
+  {
+    id: '4',
+    name: 'Alimentación',
+    kind: 'EXPENSE' as const,
+    color: '#f59e0b',
+    icon: 'UtensilsCrossed',
+    transactionCount: 45,
+    totalAmount: 2400,
+    subcategories: [
+      { id: '4a', name: 'Supermercado' },
+      { id: '4b', name: 'Restaurantes' },
+      { id: '4c', name: 'Delivery' },
+    ],
+  },
+  {
+    id: '5',
+    name: 'Transporte',
+    kind: 'EXPENSE' as const,
+    color: '#ef4444',
+    icon: 'Car',
+    transactionCount: 28,
+    totalAmount: 800,
+    subcategories: [
+      { id: '5a', name: 'Gasolina' },
+      { id: '5b', name: 'Uber/Taxi' },
+    ],
+  },
+  {
+    id: '6',
+    name: 'Entretenimiento',
+    kind: 'EXPENSE' as const,
+    color: '#f97316',
+    icon: 'Gamepad2',
+    transactionCount: 22,
+    totalAmount: 600,
+    subcategories: [
+      { id: '6a', name: 'Streaming' },
+      { id: '6b', name: 'Cine' },
+      { id: '6c', name: 'Juegos' },
+    ],
+  },
+  {
+    id: '7',
+    name: 'Servicios',
+    kind: 'EXPENSE' as const,
+    color: '#06b6d4',
+    icon: 'Zap',
+    transactionCount: 18,
+    totalAmount: 450,
+    subcategories: [
+      { id: '7a', name: 'Internet' },
+      { id: '7b', name: 'Electricidad' },
+    ],
+  },
+  {
+    id: '8',
+    name: 'Salud',
+    kind: 'EXPENSE' as const,
+    color: '#dc2626',
+    icon: 'Heart',
+    transactionCount: 6,
+    totalAmount: 320,
+    subcategories: [],
+  },
+];
+
+export default function CategoriesPage() {
+  const { isOpen, openModal, closeModal } = useModal();
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const handleNewCategory = () => {
+    setSelectedCategory(null);
+    setParentCategoryId(null);
+    openModal();
+  };
+
+  const handleAddSubcategory = (parentId: string) => {
+    setSelectedCategory(null);
+    setParentCategoryId(parentId);
+    openModal();
+  };
+
+  const handleEditCategory = (category: any) => {
+    setSelectedCategory(category);
+    setParentCategoryId(null);
+    openModal();
+  };
+
+  const handleDeleteCategory = (categoryId: string) => {
+    console.log('Delete category:', categoryId);
+    // Aquí implementarías la lógica de eliminación
+  };
+
+  const handleViewCategory = (categoryId: string) => {
+    console.log('View category:', categoryId);
+    // Aquí podrías navegar a una vista detallada
+  };
+
+  // Filter categories
+  const filteredCategories = mockCategories.filter(category => {
+    const matchesFilter = filter === 'all' || 
+      (filter === 'income' && category.kind === 'INCOME') ||
+      (filter === 'expense' && category.kind === 'EXPENSE');
+    
+    const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesFilter && matchesSearch;
+  });
+
+  // Calculate statistics
+  const incomeCategories = mockCategories.filter(c => c.kind === 'INCOME');
+  const expenseCategories = mockCategories.filter(c => c.kind === 'EXPENSE');
+  const totalIncome = incomeCategories.reduce((sum, c) => sum + c.totalAmount, 0);
+  const totalExpense = expenseCategories.reduce((sum, c) => sum + c.totalAmount, 0);
+
+  return (
+    <MainLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Categorías</h1>
+            <p className="text-gray-400">Organiza tus transacciones por categorías</p>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className="flex bg-gray-800 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-md transition-colors ${
+                  viewMode === 'grid' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-md transition-colors ${
+                  viewMode === 'list' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
+            <Button
+              onClick={handleNewCategory}
+              icon={<Plus className="h-4 w-4" />}
+            >
+              Nueva Categoría
+            </Button>
+          </div>
+        </div>
+
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center space-x-3 mb-2">
+              <TrendingUp className="h-5 w-5 text-green-400" />
+              <h3 className="text-sm font-medium text-gray-400">Categorías de Ingresos</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{incomeCategories.length}</p>
+            <p className="text-sm text-green-400 mt-1">
+              ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })} total
+            </p>
+          </div>
+          
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center space-x-3 mb-2">
+              <TrendingDown className="h-5 w-5 text-red-400" />
+              <h3 className="text-sm font-medium text-gray-400">Categorías de Gastos</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{expenseCategories.length}</p>
+            <p className="text-sm text-red-400 mt-1">
+              ${totalExpense.toLocaleString('en-US', { minimumFractionDigits: 2 })} total
+            </p>
+          </div>
+          
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+            <div className="flex items-center space-x-3 mb-2">
+              <Filter className="h-5 w-5 text-blue-400" />
+              <h3 className="text-sm font-medium text-gray-400">Total Categorías</h3>
+            </div>
+            <p className="text-2xl font-bold text-white">{mockCategories.length}</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {mockCategories.reduce((sum, c) => sum + (c.subcategories?.length || 0), 0)} subcategorías
+            </p>
+          </div>
+        </div>
+
+        {/* Filters and Search */}
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar categorías..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+              />
+            </div>
+
+            {/* Filter buttons */}
+            <div className="flex space-x-2">
+              <button
+                onClick={() => setFilter('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'all' 
+                    ? 'bg-primary-600 text-white' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                Todas ({mockCategories.length})
+              </button>
+              <button
+                onClick={() => setFilter('income')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'income' 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                Ingresos ({incomeCategories.length})
+              </button>
+              <button
+                onClick={() => setFilter('expense')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  filter === 'expense' 
+                    ? 'bg-red-600 text-white' 
+                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                }`}
+              >
+                Gastos ({expenseCategories.length})
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Categories Grid/List */}
+        <div className={
+          viewMode === 'grid' 
+            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+            : 'space-y-4'
+        }>
+          {filteredCategories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              category={category}
+              onEdit={handleEditCategory}
+              onDelete={handleDeleteCategory}
+              onView={handleViewCategory}
+              onAddSubcategory={handleAddSubcategory}
+            />
+          ))}
+        </div>
+
+        {/* Empty state */}
+        {filteredCategories.length === 0 && (
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center">
+            <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Filter className="h-8 w-8 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">
+              No se encontraron categorías
+            </h3>
+            <p className="text-gray-400 mb-4">
+              {searchTerm 
+                ? `No hay categorías que coincidan con "${searchTerm}"`
+                : 'No hay categorías para mostrar con los filtros actuales'
+              }
+            </p>
+            {!searchTerm && (
+              <Button
+                onClick={handleNewCategory}
+                icon={<Plus className="h-4 w-4" />}
+              >
+                Crear Primera Categoría
+              </Button>
+            )}
+          </div>
+        )}
+      </div>
+
+      <CategoryForm
+        isOpen={isOpen}
+        onClose={closeModal}
+        category={selectedCategory}
+        parentCategoryId={parentCategoryId}
+      />
+    </MainLayout>
+  );
+}
