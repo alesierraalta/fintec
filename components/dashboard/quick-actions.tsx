@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ArrowDownLeft, ArrowUpRight, Repeat, Sparkles } from 'lucide-react';
+import { Plus, ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Repeat, Sparkles } from 'lucide-react';
 import { TransactionForm } from '@/components/forms/transaction-form';
 import { TransactionType } from '@/types';
 import { useModal } from '@/hooks';

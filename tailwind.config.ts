@@ -23,7 +23,7 @@ const config: Config = {
           primary: '#000000',    // True black
           secondary: '#0a0a0a',  // Slightly lighter black
           tertiary: '#1a1a1a',   // Card backgrounds
-          elevated: '#252525',   // Modal/elevated surfaces
+          elevated: '#000000',   // Modal/elevated surfaces - changed to true black
         },
         text: {
           primary: '#ffffff',    // Pure white text

@@ -39,6 +39,12 @@ import {
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { CreateTransactionDTO, TransactionType } from '@/types';
+import { TransactionFormSchema, TransactionFormType } from '@/lib/validations/schemas';
+import { dateUtils } from '@/lib/dates/dayjs';
+import { motion } from 'framer-motion';
+import { cardVariants, buttonVariants, fieldVariants } from '@/lib/animations';
+import { useFormShortcuts } from '@/lib/hotkeys';
+import { useNotifications } from '@/lib/store';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -206,7 +212,7 @@ export function DesktopAddTransaction() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-4">
+    <div className="min-h-screen bg-black p-4">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -224,7 +230,7 @@ export function DesktopAddTransaction() {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-32">
           {/* Left Column - Transaction Type & Account */}
           <div className="space-y-6">
             {/* Transaction Type */}
@@ -532,7 +538,7 @@ export function DesktopAddTransaction() {
         </div>
 
         {/* Cancel Button */}
-        <div className="fixed bottom-8 right-48 z-50">
+        <div className="fixed bottom-8 right-60 z-50">
           <button
             onClick={() => router.back()}
             className="px-6 py-4 rounded-xl shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center space-x-3 bg-red-500 hover:bg-red-600 text-white border-2 border-red-400"

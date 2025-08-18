@@ -452,7 +452,7 @@ export function MobileAddTransaction() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black p-4 overflow-y-auto">
+    <div className="min-h-screen bg-black p-4 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button
