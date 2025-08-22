@@ -20,6 +20,7 @@ export const CURRENCIES: Record<string, Currency> = {
   CLP: { code: 'CLP', symbol: '$', name: 'Chilean Peso', decimals: 0 },
   COP: { code: 'COP', symbol: '$', name: 'Colombian Peso', decimals: 0 },
   PEN: { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol', decimals: 2 },
+  VES: { code: 'VES', symbol: 'Bs.', name: 'Venezuelan Bolívar', decimals: 2, requiresBCVRate: true },
 };
 
 export class Money {

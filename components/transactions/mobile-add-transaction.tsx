@@ -268,7 +268,7 @@ export function MobileAddTransaction() {
               Categoría
             </h3>
             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {categories[formData.type]?.map((category) => {
+              {(categories[formData.type as keyof typeof categories] || [])?.map((category) => {
                 const Icon = category.icon;
                 const isSelected = formData.categoryId === category.value;
                 

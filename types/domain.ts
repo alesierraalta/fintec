@@ -35,6 +35,7 @@ export interface Currency {
   symbol: string;
   name: string;
   decimals: number;
+  requiresBCVRate?: boolean; // For currencies that need BCV validation (like VES)
 }
 
 export interface ExchangeRate {

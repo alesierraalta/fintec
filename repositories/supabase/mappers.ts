@@ -64,8 +64,7 @@ export function mapSupabaseAccountToDomain(supabaseAccount: SupabaseAccount): Ac
 }
 
 export function mapDomainAccountToSupabase(account: Partial<Account>): Partial<SupabaseAccount> {
-  return {
-    id: account.id,
+  const result: Partial<SupabaseAccount> = {
     user_id: account.userId,
     name: account.name,
     type: account.type,
@@ -75,6 +74,13 @@ export function mapDomainAccountToSupabase(account: Partial<Account>): Partial<S
     created_at: account.createdAt,
     updated_at: account.updatedAt,
   };
+
+  // Only include id if it's a valid non-empty string
+  if (account.id && account.id.trim() !== '') {
+    result.id = account.id;
+  }
+
+  return result;
 }
 
 // Transaction mappers
@@ -152,7 +158,7 @@ export function mapSupabaseBudgetToDomain(supabaseBudget: SupabaseBudget): Budge
   return {
     id: supabaseBudget.id,
     userId: '', // TODO: Get from context or join
-    name: supabaseBudget.name,
+    // name: supabaseBudget.name, // Budget domain object doesn't have name property
     categoryId: supabaseBudget.category_id,
     monthYYYYMM: supabaseBudget.month_year,
     amountBaseMinor: supabaseBudget.amount_base_minor,
@@ -166,7 +172,7 @@ export function mapSupabaseBudgetToDomain(supabaseBudget: SupabaseBudget): Budge
 export function mapDomainBudgetToSupabase(budget: Partial<Budget>): Partial<SupabaseBudget> {
   return {
     id: budget.id,
-    name: budget.name,
+    // name: budget.name, // Budget domain object doesn't have name property
     category_id: budget.categoryId,
     month_year: budget.monthYYYYMM,
     amount_base_minor: budget.amountBaseMinor,

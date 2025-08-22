@@ -1,14 +1,53 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { TrendingUp, DollarSign, ShoppingCart, Car, Film, Zap, Heart, Package } from 'lucide-react';
-
-// Spending data will be loaded from Supabase database
-const data: any[] = [];
-
-const totalSpending = data.reduce((sum, item) => sum + item.value, 0);
+import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
 
 export function SpendingChart() {
+  const repository = useRepository();
+  const { user } = useAuth();
+  const [data, setData] = useState<any[]>([]);
+  const [totalSpending, setTotalSpending] = useState(0);
+
+  useEffect(() => {
+    const loadSpendingData = async () => {
+      if (!user) return;
+      try {
+        const transactions = await repository.transactions.findAll();
+        const expenses = transactions.filter(t => t.type === 'EXPENSE');
+        const total = expenses.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+        setTotalSpending(total);
+        
+        // Simplificado: solo mostrar el total por ahora
+        if (total > 0) {
+          setData([{
+            name: 'Gastos',
+            value: total,
+            color: '#ef4444',
+            icon: ShoppingCart,
+            percentage: 100
+          }]);
+        }
+      } catch (error) {
+        setData([]);
+        setTotalSpending(0);
+      }
+    };
+    loadSpendingData();
+  }, [user, repository]);
+  if (data.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <Package className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+        <h3 className="font-medium text-text-primary mb-2">Sin gastos registrados</h3>
+        <p className="text-sm text-text-muted">Cuando tengas gastos, aparecerán aquí organizados por categoría.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Header with stats */}

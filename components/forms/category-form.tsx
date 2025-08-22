@@ -6,12 +6,14 @@ import { ColorPicker } from './color-picker';
 import { IconPicker } from './icon-picker';
 import { CategoryKind } from '@/types';
 import { Tag, Folder } from 'lucide-react';
+import { useRepository } from '@/providers/repository-provider';
 
 interface CategoryFormProps {
   isOpen: boolean;
   onClose: () => void;
-  category?: any; // For editing
-  parentCategoryId?: string | null; // For creating subcategories
+  category?: any;
+  parentCategoryId?: string | null;
+  onSave?: () => void;
 }
 
 const categoryKinds = [
@@ -19,188 +21,143 @@ const categoryKinds = [
   { value: 'EXPENSE', label: 'Gasto' },
 ];
 
-// Mock data - in a real app this would come from props or API
-const mockParentCategories = [
-  { value: '', label: 'Sin categoría padre (crear categoría principal)' },
-  { value: '4', label: 'Alimentación' },
-  { value: '5', label: 'Transporte' },
-  { value: '6', label: 'Entretenimiento' },
-  { value: '7', label: 'Servicios' },
-  { value: '8', label: 'Salud' },
-  { value: '1', label: 'Salario' },
-  { value: '2', label: 'Freelance' },
-  { value: '3', label: 'Inversiones' },
-];
-
-export function CategoryForm({ isOpen, onClose, category, parentCategoryId }: CategoryFormProps) {
+export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave }: CategoryFormProps) {
+  const repository = useRepository();
   const [formData, setFormData] = useState({
     name: category?.name || '',
     kind: category?.kind || 'EXPENSE',
     color: category?.color || '#3b82f6',
-    icon: category?.icon || 'MoreHorizontal',
+    icon: category?.icon || 'Tag',
     parentId: category?.parentId || parentCategoryId || '',
   });
-
   const [loading, setLoading] = useState(false);
+  const [parentCategories, setParentCategories] = useState<any[]>([]);
 
-  // Update form data when category or parentCategoryId changes
+  // Load parent categories from database
+  useEffect(() => {
+    const loadParentCategories = async () => {
+      try {
+        const categories = await repository.categories.findAll();
+        const parentOptions = [
+          { value: '', label: 'Sin categoría padre (crear categoría principal)' },
+          ...categories
+            .filter(cat => !cat.parentId) // Only root categories
+            .map(cat => ({ value: cat.id, label: cat.name }))
+        ];
+        setParentCategories(parentOptions);
+      } catch (error) {
+        console.error('Error loading parent categories:', error);
+        setParentCategories([{ value: '', label: 'Sin categoría padre (crear categoría principal)' }]);
+      }
+    };
+
+    if (isOpen) {
+      loadParentCategories();
+    }
+  }, [isOpen, repository]);
+
+  // Update form data when category changes
   useEffect(() => {
     setFormData({
       name: category?.name || '',
       kind: category?.kind || 'EXPENSE',
       color: category?.color || '#3b82f6',
-      icon: category?.icon || 'MoreHorizontal',
+      icon: category?.icon || 'Tag',
       parentId: category?.parentId || parentCategoryId || '',
     });
   }, [category, parentCategoryId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name.trim()) return;
+
     setLoading(true);
     
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Category data:', formData);
-    setLoading(false);
-    onClose();
-    
-    // Reset form
-    if (!category) {
-      setFormData({
-        name: '',
-        kind: 'EXPENSE',
-        color: '#3b82f6',
-        icon: 'MoreHorizontal',
-        parentId: '',
-      });
+    try {
+      if (category) {
+        // Update existing category
+        await repository.categories.update(category.id, {
+          id: category.id,
+          name: formData.name.trim(),
+          kind: formData.kind as CategoryKind,
+          color: formData.color,
+          icon: formData.icon,
+          parentId: formData.parentId || undefined,
+        });
+      } else {
+        // Create new category
+        await repository.categories.create({
+          name: formData.name.trim(),
+          kind: formData.kind as CategoryKind,
+          color: formData.color,
+          icon: formData.icon,
+          parentId: formData.parentId || undefined,
+        });
+      }
+      
+      onSave?.();
+      onClose();
+      
+      // Reset form for new category
+      if (!category) {
+        setFormData({
+          name: '',
+          kind: 'EXPENSE',
+          color: '#3b82f6',
+          icon: 'Tag',
+          parentId: '',
+        });
+      }
+    } catch (error) {
+      console.error('Error saving category:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Get icon component dynamically
-  const getIconComponent = (iconName: string) => {
-    // This is a simplified version - in a real app you'd have a proper icon mapping
-    return iconName;
-  };
-
   return (
-    <Modal
-      open={isOpen}
-      onClose={onClose}
-      title={
-        category 
-          ? 'Editar Categoría' 
-          : parentCategoryId 
-            ? 'Nueva Subcategoría' 
-            : 'Nueva Categoría'
-      }
-      size="lg"
-    >
+    <Modal open={isOpen} onClose={onClose} title={category ? 'Editar Categoría' : 'Nueva Categoría'}>
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Category Name */}
-        <div>
-          <Input
-            label={parentCategoryId ? "Nombre de la Subcategoría" : "Nombre de la Categoría"}
-            placeholder={
-              parentCategoryId 
-                ? "Ej: Supermercado, Restaurantes, Gasolina..." 
-                : "Ej: Alimentación, Transporte, Salario..."
-            }
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            icon={<Tag className="h-4 w-4" />}
-            required
-          />
-        </div>
+        <Input
+          label="Nombre de la categoría"
+          value={formData.name}
+          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          placeholder="Ej: Alimentación, Transporte..."
+          required
+        />
 
-        {/* Category Kind */}
-        <div>
-          <Select
-            label="Tipo de Categoría"
-            value={formData.kind}
-            onChange={(e) => setFormData({ ...formData, kind: e.target.value as CategoryKind })}
-            options={categoryKinds}
-            required
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Los ingresos aumentan tu balance, los gastos lo disminuyen
-          </p>
-        </div>
+        <Select
+          label="Tipo"
+          value={formData.kind}
+          onChange={(e) => setFormData(prev => ({ ...prev, kind: e.target.value }))}
+          options={categoryKinds}
+        />
 
-        {/* Parent Category */}
-        <div>
-          <Select
-            label="Categoría Padre (Opcional)"
-            value={formData.parentId}
-            onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-            options={mockParentCategories}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Crea subcategorías para mejor organización
-          </p>
-        </div>
+        <Select
+          label="Categoría padre"
+          value={formData.parentId}
+          onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+          options={parentCategories}
+        />
 
-        {/* Color Picker */}
         <ColorPicker
-          label="Color de la Categoría"
+          label="Color"
           selectedColor={formData.color}
-          onColorChange={(color) => setFormData({ ...formData, color })}
+          onColorChange={(color) => setFormData(prev => ({ ...prev, color }))}
         />
 
-        {/* Icon Picker */}
         <IconPicker
-          label="Icono de la Categoría"
+          label="Icono"
           selectedIcon={formData.icon}
-          onIconChange={(icon) => setFormData({ ...formData, icon })}
+          onIconChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
         />
 
-        {/* Preview Card */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-          <p className="text-sm text-gray-400 mb-3">Vista previa:</p>
-          <div 
-            className="inline-flex items-center space-x-3 px-4 py-3 rounded-lg border-2 transition-all"
-            style={{ 
-              borderColor: formData.color,
-              backgroundColor: `${formData.color}10`
-            }}
-          >
-            <div 
-              className="p-2 rounded-lg"
-              style={{ backgroundColor: formData.color }}
-            >
-              <Folder className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="text-white font-medium">
-                {formData.name || 'Nombre de la categoría'}
-              </p>
-              <p className="text-sm text-gray-400">
-                {formData.kind === 'INCOME' ? 'Ingreso' : 'Gasto'}
-                {formData.parentId && ' • Subcategoría'}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            disabled={loading}
-          >
+        <div className="flex justify-end space-x-3 pt-4">
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             Cancelar
           </Button>
-          <Button
-            type="submit"
-            loading={loading}
-            icon={<Tag className="h-4 w-4" />}
-          >
-            {loading 
-              ? (category ? 'Actualizando...' : 'Creando...') 
-              : (category ? 'Actualizar Categoría' : 'Crear Categoría')
-            }
+          <Button type="submit" disabled={loading || !formData.name.trim()}>
+            {loading ? 'Guardando...' : (category ? 'Actualizar' : 'Crear')}
           </Button>
         </div>
       </form>

@@ -30,7 +30,7 @@ const transactionTypes = [
   { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'text-blue-500' },
 ];
 
-export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type = 'EXPENSE' }: TransactionFormProps) {
+export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type = TransactionType.EXPENSE }: TransactionFormProps) {
   const repository = useRepository();
   const { user } = useAuth();
   
@@ -136,7 +136,8 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
 
       if (transaction) {
         // Update existing transaction
-        await repository.transactions.update(transaction.id, transactionData);
+        const updateData = { ...transactionData, id: transaction.id };
+        await repository.transactions.update(transaction.id, updateData);
       } else {
         // Create new transaction
         await repository.transactions.create(transactionData);
@@ -173,7 +174,14 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
   }));
 
   const categoryOptions = categories
-    .filter(cat => !formData.type || cat.kind === formData.type)
+    .filter(cat => {
+      if (!formData.type) return true;
+      // Map TransactionType to CategoryKind
+      if (formData.type === 'INCOME') return cat.kind === 'INCOME';
+      if (formData.type === 'EXPENSE') return cat.kind === 'EXPENSE';
+      // TRANSFER types can use either category kind
+      return true;
+    })
     .map(category => ({
       value: category.id,
       label: category.name

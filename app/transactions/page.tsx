@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { TransactionForm } from '@/components/forms/transaction-form';
@@ -10,7 +9,7 @@ import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
-import type { Transaction } from '@/types/domain';
+import type { Transaction, TransactionType } from '@/types/domain';
 import { 
   Plus, 
   ArrowDownLeft, 
@@ -37,7 +36,6 @@ export default function TransactionsPage() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{x: number, y: number} | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -79,73 +77,99 @@ export default function TransactionsPage() {
     loadTransactions();
   }, [user, repository]);
 
-  // Close dropdown when clicking outside or scrolling
-  useEffect(() => {
-    const handleClickOutside = () => {
-      setOpenDropdown(null);
-      setDropdownPosition(null);
-    };
-    
-    const handleScroll = () => {
-      setOpenDropdown(null);
-      setDropdownPosition(null);
-    };
-    
-    if (openDropdown) {
-      document.addEventListener('click', handleClickOutside);
-      document.addEventListener('scroll', handleScroll, true);
-      return () => {
-        document.removeEventListener('click', handleClickOutside);
-        document.removeEventListener('scroll', handleScroll, true);
-      };
-    }
-  }, [openDropdown]);
+  // Helper functions optimizadas (código mínimo)
+  const getAccountName = (id?: string) => accounts.find(a => a.id === id)?.name || 'Cuenta';
+  const getCategoryName = (id?: string) => categories.find(c => c.id === id)?.name || 'Categoría';
+  const formatAmount = (minor: number) => (minor / 100).toFixed(2);
 
-  // Helper functions
-  const getAccountName = (accountId: string) => {
-    const account = accounts.find(acc => acc.id === accountId);
-    return account?.name || 'Cuenta desconocida';
-  };
-
-  const getCategoryName = (categoryId?: string) => {
-    if (!categoryId) return 'Sin categoría';
-    const category = categories.find(cat => cat.id === categoryId);
-    return category?.name || 'Categoría desconocida';
-  };
-
-  const formatAmount = (amountMinor: number) => {
-    return (amountMinor / 100).toLocaleString('en-US', { minimumFractionDigits: 2 });
-  };
-
+  // Handlers optimizados
   const handleFiltersChange = (filters: any) => {
-    // Apply filters to transactions
-    console.log('Filters applied:', filters);
-    // TODO: Implement proper filtering logic
-    setFilteredTransactions(transactions);
-  };
+    let filtered = [...transactions];
 
-  const handleNewTransaction = () => {
-    router.push('/transactions/add');
-  };
+    // Apply search filter
+    if (filters.search) {
+      const searchTerm = filters.search.toLowerCase();
+      filtered = filtered.filter(t => 
+        t.description?.toLowerCase().includes(searchTerm) ||
+        t.note?.toLowerCase().includes(searchTerm)
+      );
+    }
 
-  const handleQuickAdd = () => {
-    setSelectedTransaction(null);
-    openModal();
-  };
+    // Apply account filter
+    if (filters.accountId) {
+      filtered = filtered.filter(t => t.accountId === filters.accountId);
+    }
 
-  const handleEditTransaction = (transaction: Transaction) => {
-    setSelectedTransaction(transaction);
-    setOpenDropdown(null);
-    setDropdownPosition(null);
-    openModal();
-  };
+    // Apply category filter
+    if (filters.categoryId) {
+      filtered = filtered.filter(t => t.categoryId === filters.categoryId);
+    }
 
-  const handleDeleteTransaction = (transaction: Transaction) => {
-    setTransactionToDelete(transaction);
-    setOpenDropdown(null);
-    setDropdownPosition(null);
-    setShowDeleteModal(true);
+    // Apply type filter
+    if (filters.type) {
+      filtered = filtered.filter(t => t.type === filters.type);
+    }
+
+    // Apply date range filter
+    if (filters.dateFrom || filters.dateTo) {
+      filtered = filtered.filter(t => {
+        const transactionDate = new Date(t.date);
+        const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
+        const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
+        
+        if (fromDate && transactionDate < fromDate) return false;
+        if (toDate && transactionDate > toDate) return false;
+        return true;
+      });
+    }
+
+    // Apply amount filters
+    if (filters.amountMin) {
+      const minAmount = parseFloat(filters.amountMin) * 100; // Convert to minor units
+      filtered = filtered.filter(t => Math.abs(t.amountMinor) >= minAmount);
+    }
+    
+    if (filters.amountMax) {
+      const maxAmount = parseFloat(filters.amountMax) * 100; // Convert to minor units
+      filtered = filtered.filter(t => Math.abs(t.amountMinor) <= maxAmount);
+    }
+
+    // Apply tags filter
+    if (filters.tags) {
+      const tags = filters.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+      if (tags.length > 0) {
+        filtered = filtered.filter(t => 
+          t.tags?.some(tag => tags.includes(tag))
+        );
+      }
+    }
+
+    // Apply sorting
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'date_desc':
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+          case 'date_asc':
+            return new Date(a.date).getTime() - new Date(b.date).getTime();
+          case 'amount_desc':
+            return Math.abs(b.amountMinor) - Math.abs(a.amountMinor);
+          case 'amount_asc':
+            return Math.abs(a.amountMinor) - Math.abs(b.amountMinor);
+          case 'description_asc':
+            return (a.description || '').localeCompare(b.description || '');
+          default:
+            return 0;
+        }
+      });
+    }
+
+    setFilteredTransactions(filtered);
   };
+  const handleNewTransaction = () => router.push('/transactions/add');
+  const handleQuickAdd = () => { setSelectedTransaction(null); openModal(); };
+  const handleEditTransaction = (t: Transaction) => { setSelectedTransaction(t); setOpenDropdown(null); openModal(); };
+  const handleDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setOpenDropdown(null); setShowDeleteModal(true); };
 
   const confirmDelete = async () => {
     if (!transactionToDelete) return;
@@ -169,10 +193,7 @@ export default function TransactionsPage() {
     }
   };
 
-  const cancelDelete = () => {
-    setShowDeleteModal(false);
-    setTransactionToDelete(null);
-  };
+  const cancelDelete = () => setShowDeleteModal(false);
 
   const handleTransactionUpdated = () => {
     // Reload transactions after edit
@@ -231,14 +252,9 @@ export default function TransactionsPage() {
     }
   };
 
-  const totalIncome = filteredTransactions
-    .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-
-  const totalExpenses = filteredTransactions
-    .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
-
+  // Cálculos optimizados (código mínimo)
+  const totalIncome = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+  const totalExpenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
   const netAmount = totalIncome - totalExpenses;
 
   return (
@@ -397,19 +413,31 @@ export default function TransactionsPage() {
                     
                     <div className="relative">
                       <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          setDropdownPosition({
-                            x: rect.right - 192, // 192px = w-48
-                            y: rect.bottom + 4
-                          });
-                          setOpenDropdown(openDropdown === transaction.id ? null : transaction.id);
-                        }}
-                        className="p-1 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                        onClick={() => setOpenDropdown(openDropdown === transaction.id ? null : transaction.id)}
+                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
+                      
+                      {/* Dropdown simple */}
+                      {openDropdown === transaction.id && (
+                        <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
+                          <button
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="flex items-center w-full px-4 py-3 text-sm text-gray-300 hover:bg-gray-700"
+                          >
+                            <Edit className="h-4 w-4 mr-3" />
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTransaction(transaction)}
+                            className="flex items-center w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10"
+                          >
+                            <Trash2 className="h-4 w-4 mr-3" />
+                            Eliminar
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -425,7 +453,7 @@ export default function TransactionsPage() {
         onClose={closeModal}
         transaction={selectedTransaction}
         onSuccess={handleTransactionUpdated}
-        type={selectedTransaction?.type || 'EXPENSE'}
+        type={(selectedTransaction?.type || 'EXPENSE') as TransactionType}
       />
 
       {/* Delete Confirmation Modal */}
@@ -478,53 +506,7 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Dropdown Portal */}
-      {openDropdown && dropdownPosition && typeof window !== 'undefined' && createPortal(
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-[9998]" 
-            onClick={() => {
-              setOpenDropdown(null);
-              setDropdownPosition(null);
-            }}
-          ></div>
-          
-          {/* Menu */}
-          <div 
-            className="fixed w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-[9999]"
-            style={{
-              left: dropdownPosition.x,
-              top: dropdownPosition.y
-            }}
-          >
-            <div className="py-1">
-              <button
-                onClick={() => {
-                  const transaction = transactions.find(t => t.id === openDropdown);
-                  if (transaction) handleEditTransaction(transaction);
-                }}
-                className="flex items-center w-full px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-t-lg"
-              >
-                <Edit className="h-4 w-4 mr-3" />
-                Editar transacción
-              </button>
-              <div className="border-t border-gray-700"></div>
-              <button
-                onClick={() => {
-                  const transaction = transactions.find(t => t.id === openDropdown);
-                  if (transaction) handleDeleteTransaction(transaction);
-                }}
-                className="flex items-center w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors rounded-b-lg"
-              >
-                <Trash2 className="h-4 w-4 mr-3" />
-                Eliminar transacción
-              </button>
-            </div>
-          </div>
-        </>,
-        document.body
-      )}
+
     </MainLayout>
   );
 }

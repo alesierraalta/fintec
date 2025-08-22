@@ -1,4 +1,4 @@
-import { CategoriesRepository } from '@/repositories/contracts';
+import { CategoriesRepository, CreateCategoryDTO, UpdateCategoryDTO } from '@/repositories/contracts';
 import { Category, CategoryKind, PaginationParams, PaginatedResult } from '@/types';
 import { supabase } from './client';
 import { 
@@ -115,8 +115,13 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     };
   }
 
-  async create(category: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>): Promise<Category> {
-    const supabaseCategory = mapDomainCategoryToSupabase(category);
+  async create(category: CreateCategoryDTO): Promise<Category> {
+    const supabaseCategory = mapDomainCategoryToSupabase({
+      ...category,
+      active: category.active ?? true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
     const { data, error } = await supabase
       .from('categories')
@@ -131,8 +136,12 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     return mapSupabaseCategoryToDomain(data);
   }
 
-  async update(id: string, updates: Partial<Category>): Promise<Category> {
-    const supabaseUpdates = mapDomainCategoryToSupabase(updates);
+  async update(id: string, updates: UpdateCategoryDTO): Promise<Category> {
+    const { id: updateId, ...updateData } = updates;
+    const supabaseUpdates = mapDomainCategoryToSupabase({
+      ...updateData,
+      updatedAt: new Date().toISOString(),
+    });
 
     const { data, error } = await supabase
       .from('categories')
@@ -197,6 +206,131 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     return mapSupabaseCategoryArrayToDomain(data || []);
+  }
+
+  // Missing methods from CategoriesRepository interface
+  async findByParentId(parentId: string): Promise<Category[]> {
+    return this.findByParent(parentId);
+  }
+
+  async findRootCategories(): Promise<Category[]> {
+    return this.findByParent(null);
+  }
+
+  async findActive(): Promise<Category[]> {
+    return this.findAll(); // findAll already filters by active
+  }
+
+  async findWithSubcategories(id: string): Promise<Category & { subcategories: Category[] }> {
+    const category = await this.findById(id);
+    if (!category) {
+      throw new Error(`Category not found: ${id}`);
+    }
+
+    const subcategories = await this.findByParentId(id);
+    
+    return {
+      ...category,
+      subcategories,
+    };
+  }
+
+  async findCategoryTree(kind?: CategoryKind): Promise<(Category & { subcategories: Category[] })[]> {
+    let rootCategories: Category[];
+    
+    if (kind) {
+      const allCategories = await this.findByKind(kind);
+      rootCategories = allCategories.filter(cat => !cat.parentId);
+    } else {
+      rootCategories = await this.findRootCategories();
+    }
+
+    const results: (Category & { subcategories: Category[] })[] = [];
+    
+    for (const rootCategory of rootCategories) {
+      const subcategories = await this.findByParentId(rootCategory.id);
+      results.push({
+        ...rootCategory,
+        subcategories,
+      });
+    }
+
+    return results;
+  }
+
+  async canDelete(id: string): Promise<boolean> {
+    // Check if category has any transactions
+    const { count, error } = await supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('category_id', id);
+
+    if (error) {
+      throw new Error(`Failed to check category usage: ${error.message}`);
+    }
+
+    // Also check if it has subcategories
+    const subcategories = await this.findByParentId(id);
+    
+    return (count || 0) === 0 && subcategories.length === 0;
+  }
+
+  async getUsageCount(id: string): Promise<number> {
+    const { count, error } = await supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true })
+      .eq('category_id', id);
+
+    if (error) {
+      throw new Error(`Failed to get category usage count: ${error.message}`);
+    }
+
+    return count || 0;
+  }
+
+  async reorderCategories(categoryIds: string[]): Promise<void> {
+    // TODO: Implement category reordering
+    // This would require adding an order/position field to the categories table
+    console.log('Category reordering not implemented', categoryIds);
+  }
+
+  async createDefaultCategories(): Promise<Category[]> {
+    // TODO: Implement default categories creation
+    // This should probably call the init-database API endpoint
+    return [];
+  }
+
+  // Missing BaseRepository methods
+  async findPaginated(params: PaginationParams): Promise<PaginatedResult<Category>> {
+    return this.findWithPagination(params);
+  }
+
+  async createMany(data: CreateCategoryDTO[]): Promise<Category[]> {
+    const results: Category[] = [];
+    
+    for (const categoryData of data) {
+      const result = await this.create(categoryData);
+      results.push(result);
+    }
+    
+    return results;
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    // Soft delete by setting active to false
+    const { error } = await supabase
+      .from('categories')
+      .update({ active: false })
+      .in('id', ids);
+
+    if (error) {
+      throw new Error(`Failed to delete categories: ${error.message}`);
+    }
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const category = await this.findById(id);
+    return category !== null;
   }
 }
 

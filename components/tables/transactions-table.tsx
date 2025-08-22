@@ -131,14 +131,15 @@ export function TransactionsTable({
       {
         accessorKey: 'type',
         header: 'Tipo',
-        cell: ({ getValue }) => {
-          const type = getValue() as TransactionType;
-          const typeConfig = {
+        cell: ({ row }) => {
+          const type = row.original.type as unknown as string;
+          const typeConfig: Record<string, { label: string; color: string; icon: string }> = {
             INCOME: { label: 'Ingreso', color: 'text-green-600 bg-green-50', icon: '💰' },
             EXPENSE: { label: 'Gasto', color: 'text-red-600 bg-red-50', icon: '💸' },
             TRANSFER_OUT: { label: 'Transferencia', color: 'text-blue-600 bg-blue-50', icon: '🔄' },
+            TRANSFER_IN: { label: 'Transferencia', color: 'text-blue-600 bg-blue-50', icon: '🔄' },
           };
-          const config = typeConfig[type];
+          const config = typeConfig[type] || typeConfig.EXPENSE;
           
           return (
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}>
@@ -181,7 +182,7 @@ export function TransactionsTable({
         ),
         cell: ({ getValue, row }) => {
           const amount = getValue() as number;
-          const type = row.original.type;
+          const type = row.original.type as unknown as string;
           const isNegative = type === 'EXPENSE' || type === 'TRANSFER_OUT';
           
           return (
@@ -386,6 +387,7 @@ export function TransactionsTable({
                 type: 'info',
                 title: 'Filtros',
                 message: 'Panel de filtros próximamente',
+                read: false,
               });
             }}
             className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"

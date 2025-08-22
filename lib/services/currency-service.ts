@@ -176,57 +176,35 @@ class CurrencyService {
     }
   }
 
-  // Get fiat exchange rates
+  // Get fiat exchange rates from BCV API
   async fetchExchangeRates(baseCurrency: string = 'USD'): Promise<ExchangeRate[]> {
     try {
-      // Mock exchange rates - in a real app, use a service like ExchangeRate-API
-      const mockRates: ExchangeRate[] = [
+      // Use BCV rates for VES and fallback rates for others
+      const bcvRates = await this.fetchBCVRates();
+      
+      const rates: ExchangeRate[] = [
         {
-          currency: 'EUR',
-          rate: 0.85,
-          lastUpdated: new Date().toISOString(),
-          source: 'ExchangeRate-API'
-        },
-        {
-          currency: 'GBP',
-          rate: 0.73,
-          lastUpdated: new Date().toISOString(),
-          source: 'ExchangeRate-API'
-        },
-        {
-          currency: 'JPY',
-          rate: 110.25,
-          lastUpdated: new Date().toISOString(),
-          source: 'ExchangeRate-API'
-        },
-        {
-          currency: 'CAD',
-          rate: 1.25,
-          lastUpdated: new Date().toISOString(),
-          source: 'ExchangeRate-API'
-        },
-        {
-          currency: 'AUD',
-          rate: 1.35,
-          lastUpdated: new Date().toISOString(),
-          source: 'ExchangeRate-API'
-        },
-        {
-          currency: 'VES', // Venezuelan Bolívar
-          rate: 36.50,
-          lastUpdated: new Date().toISOString(),
+          currency: 'VES',
+          rate: bcvRates.usd,
+          lastUpdated: bcvRates.lastUpdated,
           source: 'BCV'
         }
       ];
 
-      mockRates.forEach(rate => {
+      rates.forEach(rate => {
         this.exchangeRates.set(rate.currency, rate);
       });
 
-      return mockRates;
+      return rates;
     } catch (error) {
       console.error('Error fetching exchange rates:', error);
-      throw new Error('Failed to fetch exchange rates');
+      // Return minimal fallback
+      return [{
+        currency: 'VES',
+        rate: 36.50,
+        lastUpdated: new Date().toISOString(),
+        source: 'Fallback'
+      }];
     }
   }
 

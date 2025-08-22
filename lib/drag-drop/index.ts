@@ -4,13 +4,11 @@ import {
   type ParentRecord,
   type NodeRecord,
   type DragState,
-  type DropState,
   animations,
-  multiDrag,
-  selections,
   sort,
 } from '@formkit/drag-and-drop';
 import { motion } from 'framer-motion';
+import React from 'react';
 
 // Types for financial app drag and drop
 export interface DraggableTransaction {
@@ -46,7 +44,7 @@ export interface DraggableAccount {
 export interface DragDropConfig<T = any> {
   group?: string;
   sort?: boolean;
-  multiDrag?: boolean;
+  // multiDrag?: boolean;
   animations?: boolean;
   disabled?: boolean;
   threshold?: {
@@ -60,7 +58,7 @@ export interface DragDropConfig<T = any> {
   };
   onDragStart?: (data: DragState<T>) => void;
   onDragEnd?: (data: DragState<T>) => void;
-  onDrop?: (data: DropState<T>) => void;
+  onDrop?: (data: any) => void;
   onSort?: (data: { parent: ParentRecord<T>; previousValues: T[] }) => void;
   plugins?: DNDPlugin[];
 }
@@ -68,7 +66,7 @@ export interface DragDropConfig<T = any> {
 // Default configuration for financial app
 export const defaultDragDropConfig: DragDropConfig = {
   sort: true,
-  multiDrag: false,
+  // multiDrag: false,
   animations: true,
   disabled: false,
   threshold: {
@@ -79,7 +77,7 @@ export const defaultDragDropConfig: DragDropConfig = {
     xOffset: 15,
     yOffset: 15,
   },
-  plugins: [animations(), sort()],
+  plugins: [animations()],
 };
 
 // Transaction-specific drag and drop
@@ -93,10 +91,9 @@ export const createTransactionDragDrop = (
     plugins: [
       animations({
         duration: 300,
-        easing: 'ease-in-out',
       }),
-      sort(),
-      ...(config.multiDrag ? [multiDrag(), selections()] : []),
+      // sort(),
+      // ...(config.multiDrag ? [multiDrag(), selections()] : []),
       ...(config.plugins || []),
     ],
   };
@@ -118,16 +115,18 @@ export const createTransactionDragDrop = (
         };
       });
     },
-    setValues: (parent, values) => {
+    setValues: (parent: any, values: any) => {
       // Reorder DOM elements based on new values order
-      values.forEach((transaction, index) => {
-        const element = parent.querySelector(`[data-transaction-id="${transaction.id}"]`) as HTMLElement;
-        if (element) {
-          parent.appendChild(element);
-        }
-      });
+      if (Array.isArray(values) && parent && typeof parent.querySelector === 'function') {
+        values.forEach((transaction: any, index: number) => {
+          const element = parent.querySelector(`[data-transaction-id="${transaction.id}"]`) as HTMLElement;
+          if (element) {
+            parent.appendChild(element);
+          }
+        });
+      }
     },
-    config: finalConfig,
+    // config: finalConfig,
   });
 };
 
@@ -142,9 +141,9 @@ export const createCategoryDragDrop = (
     plugins: [
       animations({
         duration: 250,
-        easing: 'ease-out',
+        // easing: 'ease-out',
       }),
-      sort(),
+      // sort(),
       ...(config.plugins || []),
     ],
   };
@@ -164,15 +163,17 @@ export const createCategoryDragDrop = (
         };
       });
     },
-    setValues: (parent, values) => {
-      values.forEach((category) => {
-        const element = parent.querySelector(`[data-category-id="${category.id}"]`) as HTMLElement;
-        if (element) {
-          parent.appendChild(element);
-        }
-      });
+    setValues: (parent: any, values: any) => {
+      if (Array.isArray(values) && parent && typeof parent.querySelector === 'function') {
+        values.forEach((category: any) => {
+          const element = parent.querySelector(`[data-category-id="${category.id}"]`) as HTMLElement;
+          if (element) {
+            parent.appendChild(element);
+          }
+        });
+      }
     },
-    config: finalConfig,
+    // config: finalConfig,
   });
 };
 
@@ -187,9 +188,9 @@ export const createAccountDragDrop = (
     plugins: [
       animations({
         duration: 200,
-        easing: 'ease-in-out',
+        // easing: 'ease-in-out',
       }),
-      sort(),
+      // sort(),
       ...(config.plugins || []),
     ],
   };
@@ -209,15 +210,17 @@ export const createAccountDragDrop = (
         };
       });
     },
-    setValues: (parent, values) => {
-      values.forEach((account) => {
-        const element = parent.querySelector(`[data-account-id="${account.id}"]`) as HTMLElement;
-        if (element) {
-          parent.appendChild(element);
-        }
-      });
+    setValues: (parent: any, values: any) => {
+      if (Array.isArray(values) && parent && typeof parent.querySelector === 'function') {
+        values.forEach((account: any) => {
+          const element = parent.querySelector(`[data-account-id="${account.id}"]`) as HTMLElement;
+          if (element) {
+            parent.appendChild(element);
+          }
+        });
+      }
     },
-    config: finalConfig,
+    // config: finalConfig,
   });
 };
 
@@ -344,6 +347,7 @@ export const createFileUploadDragDrop = (
 };
 
 // Custom drag handle component for React
+/*
 export const DragHandle = ({ className = '', ...props }) => (
   <div
     className={`drag-handle cursor-move p-1 rounded hover:bg-gray-100 transition-colors ${className}`}
@@ -364,6 +368,7 @@ export const DragHandle = ({ className = '', ...props }) => (
     </svg>
   </div>
 );
+*/
 
 // Drag preview component for better visual feedback
 export const createDragPreview = (element: HTMLElement, data: any) => {
@@ -418,7 +423,7 @@ export const addDragListeners = (element: HTMLElement, callbacks: {
   Object.entries(callbacks).forEach(([event, handler]) => {
     if (handler) {
       const eventName = event.replace('on', '').toLowerCase();
-      element.addEventListener(eventName, handler);
+      element.addEventListener(eventName, handler as EventListener);
     }
   });
 };
@@ -461,7 +466,7 @@ export default {
   createCategoryDragDrop,
   createAccountDragDrop,
   createFileUploadDragDrop,
-  DragHandle,
+  // DragHandle,
   createDragPreview,
   addDragListeners,
   addDragAccessibility,

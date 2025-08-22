@@ -5,6 +5,7 @@ export { LocalCategoriesRepository } from './categories-repository-impl';
 export { LocalBudgetsRepository } from './budgets-repository-impl';
 export { LocalGoalsRepository } from './goals-repository-impl';
 export { LocalExchangeRatesRepository } from './exchange-rates-repository-impl';
+export { LocalNotificationsRepository } from './notifications-repository-impl';
 export { db, FinanceDB } from './db';
 
 // Main repository implementation
@@ -15,6 +16,7 @@ import { LocalCategoriesRepository } from './categories-repository-impl';
 import { LocalBudgetsRepository } from './budgets-repository-impl';
 import { LocalGoalsRepository } from './goals-repository-impl';
 import { LocalExchangeRatesRepository } from './exchange-rates-repository-impl';
+import { LocalNotificationsRepository } from './notifications-repository-impl';
 import { db } from './db';
 
 export class LocalAppRepository implements AppRepository {
@@ -24,6 +26,7 @@ export class LocalAppRepository implements AppRepository {
   public readonly budgets: LocalBudgetsRepository;
   public readonly goals: LocalGoalsRepository;
   public readonly exchangeRates: LocalExchangeRatesRepository;
+  public readonly notifications: LocalNotificationsRepository;
 
   constructor() {
     this.accounts = new LocalAccountsRepository();
@@ -32,6 +35,7 @@ export class LocalAppRepository implements AppRepository {
     this.budgets = new LocalBudgetsRepository();
     this.goals = new LocalGoalsRepository();
     this.exchangeRates = new LocalExchangeRatesRepository();
+    this.notifications = new LocalNotificationsRepository();
   }
 
   async isHealthy(): Promise<boolean> {

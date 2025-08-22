@@ -1,12 +1,28 @@
+import { useState, useEffect } from 'react';
+import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   ArrowDownLeft, ArrowUpRight, Repeat, ShoppingCart, Car, Coffee, 
   Briefcase, CreditCard, Wallet, TrendingUp, Calendar, MapPin
 } from 'lucide-react';
 
-// Transactions will be loaded from Supabase database
-const transactions: any[] = [];
-
 export function RecentTransactions() {
+  const repository = useRepository();
+  const { user } = useAuth();
+  const [transactions, setTransactions] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user) return;
+      try {
+        const allTransactions = await repository.transactions.findAll();
+        setTransactions(allTransactions.slice(0, 5)); // Solo los últimos 5
+      } catch (error) {
+        setTransactions([]);
+      }
+    };
+    loadTransactions();
+  }, [user, repository]);
   const formatAmount = (amount: number) => {
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
       minimumFractionDigits: 2,
@@ -80,12 +96,23 @@ export function RecentTransactions() {
     return Wallet;
   };
 
+  if (transactions.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+        <h3 className="font-medium text-text-primary mb-2">No hay transacciones</h3>
+        <p className="text-sm text-text-muted">Crea tu primera transacción para ver el historial aquí.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 overflow-hidden">
       {transactions.map((transaction, index) => {
-        const typeInfo = getTypeInfo(transaction.type, transaction.amount);
-        const AccountIcon = getAccountIcon(transaction.account);
-        const CategoryIcon = transaction.categoryIcon;
+        const amount = (transaction.amountMinor || 0) / 100;
+        const typeInfo = getTypeInfo(transaction.type, amount);
+        const AccountIcon = getAccountIcon('Cuenta');
+        const CategoryIcon = ShoppingCart;
 
         return (
           <div 
@@ -123,7 +150,7 @@ export function RecentTransactions() {
                   {/* Main description */}
                   <div className="flex items-start space-x-2 mb-1">
                     <h4 className="font-semibold text-text-primary text-base truncate flex-1 min-w-0">
-                      {transaction.description}
+                      {transaction.description || 'Transacción'}
                     </h4>
                     {transaction.pending && (
                       <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full font-medium flex-shrink-0">
@@ -136,7 +163,7 @@ export function RecentTransactions() {
                   <div className="flex items-center space-x-3 mb-2 overflow-hidden">
                     <div className="flex items-center space-x-1 min-w-0 flex-1">
                       <CategoryIcon className="h-3 w-3 text-text-muted flex-shrink-0" />
-                      <span className="text-sm text-text-muted truncate">{transaction.category}</span>
+                      <span className="text-sm text-text-muted truncate">Categoría</span>
                     </div>
                     <span className="text-xs bg-background-tertiary text-text-muted px-2 py-1 rounded-full flex-shrink-0">
                       {typeInfo.label}
@@ -147,11 +174,11 @@ export function RecentTransactions() {
                   <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs text-text-muted overflow-hidden">
                     <div className="flex items-center space-x-1 min-w-0">
                       <AccountIcon className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">{transaction.account}</span>
+                      <span className="truncate">Mi Cuenta</span>
                     </div>
                     <div className="flex items-center space-x-1 min-w-0">
                       <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">{transaction.location}</span>
+                      <span className="truncate">En línea</span>
                     </div>
                   </div>
                 </div>
@@ -160,17 +187,17 @@ export function RecentTransactions() {
               {/* Right side - Amount and time */}
               <div className="text-right ml-2 sm:ml-4 flex-shrink-0">
                 <div className={`text-sm sm:text-lg font-bold ${typeInfo.amountColor} mb-1 truncate`}>
-                  {formatAmount(transaction.amount)}
+                  {formatAmount(amount)}
                 </div>
                 <div className="hidden sm:flex items-center justify-end space-x-1 text-xs text-text-muted">
                   <Calendar className="h-3 w-3" />
-                  <span>{formatDate(transaction.date)}</span>
+                  <span>{formatDate(transaction.date || new Date().toISOString())}</span>
                   <span>•</span>
-                  <span>{transaction.time}</span>
+                  <span>Ahora</span>
                 </div>
                 {/* Mobile simplified date/time */}
                 <div className="sm:hidden text-xs text-text-muted truncate">
-                  {formatDate(transaction.date)}
+                  {formatDate(transaction.date || new Date().toISOString())}
                 </div>
               </div>
             </div>

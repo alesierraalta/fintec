@@ -54,7 +54,7 @@ export const financialTheme = {
     textStyle: {
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSize: 16,
-      fontWeight: '600',
+      fontWeight: 600,
       color: '#111827',
     },
     subtextStyle: {
@@ -168,7 +168,7 @@ export const createIncomeExpenseEChart = (
     left: 'center',
     textStyle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: 600,
       color: '#111827',
     },
   },
@@ -260,7 +260,7 @@ export const createCashFlowEChart = (
     left: 'center',
     textStyle: {
       fontSize: 18,
-      fontWeight: '600',
+      fontWeight: 600,
       color: '#111827',
     },
   },
@@ -361,7 +361,7 @@ export const createExpensesByCategoryEChart = (
       left: 'center',
       textStyle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: 600,
         color: '#111827',
       },
     },
@@ -432,7 +432,6 @@ export const createPortfolioEChart = (
     {
       type: 'category',
       data: dates,
-      scale: true,
       boundaryGap: false,
       axisLine: { onZero: false },
       splitLine: { show: false },
@@ -443,7 +442,7 @@ export const createPortfolioEChart = (
       type: 'category',
       gridIndex: 1,
       data: dates,
-      scale: true,
+
       boundaryGap: false,
       axisLine: { onZero: false },
       axisTick: { show: false },
@@ -455,13 +454,13 @@ export const createPortfolioEChart = (
   ],
   yAxis: [
     {
-      scale: true,
+
       splitArea: {
         show: true,
       },
     },
     {
-      scale: true,
+
       gridIndex: 1,
       splitNumber: 2,
       axisLabel: { show: false },
@@ -528,7 +527,7 @@ export const createSpendingTrendEChart = (
       width: 2,
     },
     itemStyle: {
-      color: financialColors.color[index % financialColors.color.length],
+      color: Object.values(financialColors).filter(v => typeof v === 'string')[index % Object.values(financialColors).filter(v => typeof v === 'string').length],
     },
   }));
 
@@ -648,14 +647,14 @@ export const createBudgetGaugeEChart = (
           borderRadius: 8,
           offsetCenter: [0, '-15%'],
           fontSize: 20,
-          fontWeight: 'bolder',
+          fontWeight: 'bold',
           formatter: (value: number) => {
             return `{value|${value.toFixed(1)}%}\n{name|${spent.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })} / ${budget.toLocaleString('es-ES', { style: 'currency', currency: 'USD' })}}`;
           },
           rich: {
             value: {
               fontSize: 24,
-              fontWeight: 'bolder',
+              fontWeight: 'bold',
               color: percentage > 90 ? financialColors.loss : financialColors.primary,
             },
             name: {

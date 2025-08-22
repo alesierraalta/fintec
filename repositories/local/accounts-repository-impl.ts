@@ -128,7 +128,7 @@ export class LocalAccountsRepository implements AccountsRepository {
   }
 
   async findActive(): Promise<Account[]> {
-    return db.accounts.where('active').equals(true).toArray();
+    return db.accounts.where('active').equals(1).toArray(); // Dexie uses 1 for true
   }
 
   async updateBalance(id: string, newBalance: number): Promise<Account> {
@@ -196,7 +196,7 @@ export class LocalAccountsRepository implements AccountsRepository {
     totalByCurrency: Record<string, number>;
     total: number;
   }> {
-    const accounts = await db.accounts.where('active').equals(true).toArray();
+    const accounts = await db.accounts.where('active').equals(1).toArray(); // Dexie uses 1 for true
 
     const totalByType: Record<AccountType, number> = {
       [AccountType.CASH]: 0,

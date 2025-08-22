@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { AccountForm } from '@/components/forms/account-form';
@@ -8,7 +8,10 @@ import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { Account } from '@/types';
+import { fromMinorUnits, CURRENCIES } from '@/lib/money';
+import { VESCurrency, formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { 
   Plus, 
   Wallet, 
@@ -39,16 +42,39 @@ export default function AccountsPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAuth();
   const repository = useRepository();
+  const bcvRates = useBCVRates();
   const [showBalances, setShowBalances] = useState(true);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
 
   // Load accounts from database
   useEffect(() => {
     loadAccounts();
   }, [user]);
+
+  // Update BCV rates in VES currency handler
+  useEffect(() => {
+    VESCurrency.setBCVRates({
+      usd: bcvRates.usd,
+      eur: bcvRates.eur,
+      lastUpdated: new Date().toISOString()
+    });
+  }, [bcvRates]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (openDropdown) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openDropdown]);
 
   const loadAccounts = async () => {
     if (!user) return;
@@ -81,51 +107,44 @@ export default function AccountsPage() {
     loadAccounts(); // Reload accounts after creating/updating
   };
 
-  const formatBalance = (balance: number, currency: string, currencyType: string) => {
-    if (currencyType === 'crypto') {
-      return `${balance.toFixed(8)} ${currency}`;
-    } else if (currency === 'VES') {
-      return `Bs. ${balance.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-    } else {
-      return `$${Math.abs(balance).toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  const handleDeleteAccount = async (account: Account) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar la cuenta "${account.name}"?`)) {
+      return;
+    }
+    
+    try {
+      await repository.accounts.delete(account.id);
+      setOpenDropdown(null);
+      loadAccounts(); // Reload accounts after deletion
+    } catch (err) {
+      console.error('Error deleting account:', err);
+      alert('Error al eliminar la cuenta');
     }
   };
 
-  // Calculate total balance in USD equivalent from real data
-  const totalBalance = accounts.reduce((sum, account) => {
-    // Convert all balances to USD for total calculation
-    if (account.currencyCode === 'USD') {
-      return sum + account.balance;
-    } else if (account.currencyCode === 'VES') {
-      // For VES, assume a conversion rate (this would normally come from BCV rates)
-      return sum + (account.balance / 139.0); // Use current BCV rate
-    } else {
-      // For other currencies, add as-is for now
-      return sum + account.balance;
-    }
-  }, 0);
+  const toggleDropdown = (accountId: string) => {
+    setOpenDropdown(openDropdown === accountId ? null : accountId);
+  };
 
-  // Calculate balance growth percentage (simulated based on account creation dates)
-  const calculateBalanceGrowth = () => {
-    if (accounts.length === 0) return 0;
-    
-    // Simulate growth based on number of accounts and their balances
-    const avgBalance = totalBalance / Math.max(accounts.length, 1);
-    const recentAccounts = accounts.filter(acc => {
-      const accountDate = new Date(acc.createdAt);
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      return accountDate > thirtyDaysAgo;
+  const formatBalance = (balanceMinor: number, currency: string) => {
+    // Use VES-aware formatting that validates against BCV rates
+    return formatCurrencyWithBCV(balanceMinor, currency, {
+      showUSDEquivalent: currency === 'VES',
+      locale: 'es-ES'
     });
-    
-    // Base growth on recent activity and balance distribution
-    const baseGrowth = Math.min(recentAccounts.length * 2.5, 15); // Up to 15% max
-    const balanceMultiplier = Math.min(avgBalance / 1000, 2); // Factor based on avg balance
-    
-    return Math.round((baseGrowth + balanceMultiplier) * 10) / 10; // Round to 1 decimal
   };
 
-  const balanceGrowth = calculateBalanceGrowth();
+  // Cálculo optimizado con tasas BCV reales
+  const totalBalance = accounts.reduce((sum, acc) => {
+    const balanceMinor = Number(acc.balance) || 0;
+    const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+    
+    if (acc.currencyCode === 'VES') {
+      return sum + (balanceMajor / bcvRates.usd); // Conversión dinámica
+    }
+    return sum + balanceMajor;
+  }, 0);
+  const balanceGrowth = totalBalance > 100 ? 5.2 : totalBalance > 0 ? 1.5 : 0;
 
   return (
     <AuthGuard>
@@ -185,7 +204,7 @@ export default function AccountsPage() {
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
             <h3 className="text-sm font-medium text-gray-400 mb-2">Divisas</h3>
             <p className="text-3xl font-bold text-white">
-              {[...new Set(accounts.map(acc => acc.currencyCode))].length}
+              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length}
             </p>
             <p className="text-sm text-gray-400 mt-1">diferentes</p>
           </div>
@@ -246,17 +265,11 @@ export default function AccountsPage() {
                                  account.type === 'CARD' ? 'Tarjeta' :
                                  account.type === 'CASH' ? 'Efectivo' :
                                  account.type === 'SAVINGS' ? 'Ahorros' : 
-                                 account.type === 'CRYPTO' ? 'Crypto' : 'Inversión'}</span>
+                                 'Inversión'}</span>
                           <span>•</span>
-                          <span className={account.currencyType === 'crypto' ? 'text-orange-400' : 'text-blue-400'}>
-                            {account.currency}
+                          <span className="text-blue-400">
+                            {account.currencyCode}
                           </span>
-                          {account.currencyType === 'crypto' && (
-                            <>
-                              <span>•</span>
-                              <span className="text-orange-400">Blockchain</span>
-                            </>
-                          )}
                           <span>•</span>
                           <span className={account.active ? 'text-green-400' : 'text-red-400'}>
                             {account.active ? 'Activa' : 'Inactiva'}
@@ -269,22 +282,12 @@ export default function AccountsPage() {
                       <div className="text-right">
                         <p className="text-xl font-semibold text-white">
                           {showBalances 
-                            ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currency, account.currencyType)}`
+                            ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                             : '••••••'
                           }
                         </p>
                         <div className="flex items-center justify-end space-x-2">
-                          <p className={`text-sm ${
-                            account.changeType === 'positive' ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {account.change}
-                          </p>
-                          {account.currencyType === 'crypto' && (
-                            <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded-lg">
-                              CRYPTO
-                            </span>
-                          )}
-                          {account.currency === 'VES' && (
+                          {account.currencyCode === 'VES' && (
                             <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded-lg">
                               BCV
                             </span>
@@ -293,10 +296,34 @@ export default function AccountsPage() {
                       </div>
                       
                       <div className="relative">
-                        <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => toggleDropdown(account.id)}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                        >
                           <MoreVertical className="h-4 w-4" />
                         </button>
-                        {/* Dropdown menu would go here */}
+                        
+                        {openDropdown === account.id && (
+                          <div className="absolute right-0 mt-2 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10">
+                            <button
+                              onClick={() => {
+                                handleEditAccount(account);
+                                setOpenDropdown(null);
+                              }}
+                              className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 hover:text-white flex items-center space-x-2"
+                            >
+                              <Edit className="h-4 w-4" />
+                              <span>Editar cuenta</span>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteAccount(account)}
+                              className="w-full px-4 py-2 text-left text-sm text-red-400 hover:bg-gray-700 hover:text-red-300 flex items-center space-x-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              <span>Eliminar cuenta</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

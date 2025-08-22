@@ -110,7 +110,7 @@ export class LocalGoalsRepository implements GoalsRepository {
 
   // Goal-specific methods
   async findActive(): Promise<SavingsGoal[]> {
-    return db.goals.where('active').equals(true).toArray();
+    return db.goals.where('active').equals(1).toArray();
   }
 
   async findByAccountId(accountId: string): Promise<SavingsGoal[]> {
@@ -150,6 +150,7 @@ export class LocalGoalsRepository implements GoalsRepository {
     // For now, we'll just update the current amount
     
     return this.update(goalId, {
+      id: goalId,
       currentBaseMinor: newCurrentAmount,
     });
   }
@@ -163,6 +164,7 @@ export class LocalGoalsRepository implements GoalsRepository {
     const newCurrentAmount = Math.max(0, goal.currentBaseMinor - amountBaseMinor);
     
     return this.update(goalId, {
+      id: goalId,
       currentBaseMinor: newCurrentAmount,
     });
   }
@@ -209,8 +211,7 @@ export class LocalGoalsRepository implements GoalsRepository {
   async updateGoalProgress(): Promise<void> {
     // Update goals based on linked account balances
     const goalsWithAccounts = await db.goals
-      .where('accountId')
-      .notEqual(undefined)
+      .filter(goal => goal.accountId !== undefined)
       .toArray();
 
     for (const goal of goalsWithAccounts) {
@@ -219,6 +220,7 @@ export class LocalGoalsRepository implements GoalsRepository {
       const account = await db.accounts.get(goal.accountId);
       if (account) {
         await this.update(goal.id, {
+          id: goal.id,
           currentBaseMinor: Math.max(0, account.balance),
         });
       }
@@ -280,6 +282,7 @@ export class LocalGoalsRepository implements GoalsRepository {
     }
 
     return this.update(goalId, {
+      id: goalId,
       currentBaseMinor: goal.targetBaseMinor,
       active: false,
     });
@@ -293,7 +296,7 @@ export class LocalGoalsRepository implements GoalsRepository {
       .toArray();
 
     for (const goal of completedGoals) {
-      await this.update(goal.id, { active: false });
+      await this.update(goal.id, { id: goal.id, active: false });
     }
 
     return completedGoals.length;

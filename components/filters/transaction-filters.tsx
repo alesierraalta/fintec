@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input, Select } from '@/components/ui';
+import { PeriodSelector } from './period-selector';
+import { useRepository } from '@/providers/repository-provider';
+import { useAuth } from '@/hooks/use-auth';
+import { TimePeriod, formatDateForAPI } from '@/lib/dates/periods';
 import { 
   Filter, 
   Search, 
-  Calendar,
   DollarSign,
   Tag,
   X,
@@ -16,25 +19,6 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: any) => void;
   className?: string;
 }
-
-const accounts = [
-  { value: '', label: 'Todas las cuentas' },
-  { value: 'acc1', label: 'Cuenta Principal' },
-  { value: 'acc2', label: 'Tarjeta de Crédito' },
-  { value: 'acc3', label: 'Cuenta de Ahorros' },
-  { value: 'acc4', label: 'Efectivo' },
-];
-
-const categories = [
-  { value: '', label: 'Todas las categorías' },
-  { value: 'cat1', label: 'Alimentación' },
-  { value: 'cat2', label: 'Transporte' },
-  { value: 'cat3', label: 'Entretenimiento' },
-  { value: 'cat4', label: 'Servicios' },
-  { value: 'cat5', label: 'Salud' },
-  { value: 'cat6', label: 'Salario' },
-  { value: 'cat7', label: 'Freelance' },
-];
 
 const transactionTypes = [
   { value: '', label: 'Todos los tipos' },
@@ -53,12 +37,17 @@ const sortOptions = [
 ];
 
 export function TransactionFilters({ onFiltersChange, className }: TransactionFiltersProps) {
+  const { user } = useAuth();
+  const repository = useRepository();
   const [isExpanded, setIsExpanded] = useState(false);
+  const [accounts, setAccounts] = useState<any[]>([{ value: '', label: 'Todas las cuentas' }]);
+  const [categories, setCategories] = useState<any[]>([{ value: '', label: 'Todas las categorías' }]);
   const [filters, setFilters] = useState({
     search: '',
     accountId: '',
     categoryId: '',
     type: '',
+    period: '',
     dateFrom: '',
     dateTo: '',
     amountMin: '',
@@ -67,10 +56,60 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     sortBy: 'date_desc',
   });
 
+  // Load accounts and categories from database
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      try {
+        const [userAccounts, allCategories] = await Promise.all([
+          repository.accounts.findByUserId(user.id),
+          repository.categories.findAll()
+        ]);
+
+        setAccounts([
+          { value: '', label: 'Todas las cuentas' },
+          ...userAccounts.map(acc => ({ value: acc.id, label: acc.name }))
+        ]);
+
+        setCategories([
+          { value: '', label: 'Todas las categorías' },
+          ...allCategories.map(cat => ({ value: cat.id, label: cat.name }))
+        ]);
+      } catch (error) {
+        console.error('Error loading filter data:', error);
+      }
+    };
+
+    loadData();
+  }, [user, repository]);
+
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };
     setFilters(newFilters);
     onFiltersChange(newFilters);
+  };
+
+  const handlePeriodChange = (period: TimePeriod | null) => {
+    if (period) {
+      const newFilters = {
+        ...filters,
+        period: period.id,
+        dateFrom: formatDateForAPI(period.startDate),
+        dateTo: formatDateForAPI(period.endDate)
+      };
+      setFilters(newFilters);
+      onFiltersChange(newFilters);
+    } else {
+      const newFilters = {
+        ...filters,
+        period: '',
+        dateFrom: '',
+        dateTo: ''
+      };
+      setFilters(newFilters);
+      onFiltersChange(newFilters);
+    }
   };
 
   const clearFilters = () => {
@@ -79,6 +118,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
       accountId: '',
       categoryId: '',
       type: '',
+      period: '',
       dateFrom: '',
       dateTo: '',
       amountMin: '',
@@ -95,209 +135,151 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
   );
 
   return (
-    <div className={`bg-gray-900 border border-gray-800 rounded-xl ${className}`}>
+    <div className={`bg-background-elevated border border-border-primary rounded-xl overflow-hidden ${className}`}>
       {/* Header */}
-      <div className="p-4 border-b border-gray-800">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
-          <div className="flex items-center space-x-3 min-w-0">
-            <Filter className="h-5 w-5 text-gray-400 flex-shrink-0" />
-            <h3 className="text-lg font-semibold text-white truncate">Filtros</h3>
-            {hasActiveFilters && (
-              <span className="px-2 py-1 bg-primary-600 text-white text-xs rounded-full flex-shrink-0">
-                Activos
-              </span>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            {hasActiveFilters && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearFilters}
-                icon={<X className="h-4 w-4" />}
-                className="flex-shrink-0"
-              >
-                <span className="hidden sm:inline">Limpiar</span>
-                <span className="sm:hidden">Clear</span>
-              </Button>
-            )}
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center space-x-3">
+          <Filter className="h-5 w-5 text-text-secondary" />
+          <h3 className="font-medium text-text-primary">Filtros</h3>
+          {hasActiveFilters && (
+            <span className="px-2 py-1 bg-accent-primary text-background-primary text-xs rounded-full">
+              Activos
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          {hasActiveFilters && (
             <Button
-              variant="ghost"
+              variant="secondary"
               size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex-shrink-0"
+              onClick={clearFilters}
+              className="text-xs"
             >
-              {isExpanded ? 'Contraer' : 'Expandir'}
+              <X className="h-3 w-3 mr-1" />
+              Limpiar
             </Button>
-          </div>
+          )}
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? 'Ocultar' : 'Mostrar'} Filtros
+          </Button>
         </div>
       </div>
 
-      {/* Quick Search */}
-      <div className="p-4 border-b border-gray-800">
-        <Input
-          placeholder="Buscar transacciones..."
-          value={filters.search}
-          onChange={(e) => handleFilterChange('search', e.target.value)}
-          icon={<Search className="h-4 w-4" />}
+      {/* Quick Filters */}
+      <div className="px-4 pb-4 flex flex-wrap gap-2">
+        <PeriodSelector
+          selectedPeriod={filters.period}
+          onPeriodChange={handlePeriodChange}
+        />
+        
+        <Select
+          value={filters.type}
+          onChange={(e) => handleFilterChange('type', e.target.value)}
+          options={transactionTypes}
+          placeholder="Tipo"
+          className="min-w-[120px]"
+        />
+        
+        <Select
+          value={filters.sortBy}
+          onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+          options={sortOptions}
+          className="min-w-[160px]"
         />
       </div>
 
-      {/* Basic Filters */}
-      <div className="p-4 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <Select
-            label="Cuenta"
-            value={filters.accountId}
-            onChange={(e) => handleFilterChange('accountId', e.target.value)}
-            options={accounts}
-          />
-          <Select
-            label="Categoría"
-            value={filters.categoryId}
-            onChange={(e) => handleFilterChange('categoryId', e.target.value)}
-            options={categories}
-          />
-          <Select
-            label="Tipo"
-            value={filters.type}
-            onChange={(e) => handleFilterChange('type', e.target.value)}
-            options={transactionTypes}
-          />
-        </div>
-
-        <div className="w-full sm:w-auto">
-          <Select
-            label="Ordenar por"
-            value={filters.sortBy}
-            onChange={(e) => handleFilterChange('sortBy', e.target.value)}
-            options={sortOptions}
-          />
-        </div>
-      </div>
-
-      {/* Advanced Filters */}
+      {/* Expanded Filters */}
       {isExpanded && (
-        <div className="p-4 border-t border-gray-800 space-y-4">
-          {/* Date Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Rango de Fechas
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input
-                type="date"
-                placeholder="Fecha desde"
-                value={filters.dateFrom}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-              <Input
-                type="date"
-                placeholder="Fecha hasta"
-                value={filters.dateTo}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-                icon={<Calendar className="h-4 w-4" />}
-              />
-            </div>
+        <div className="border-t border-border-primary p-4 space-y-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Input
+              placeholder="Buscar por descripción o nota..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Account and Category */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Cuenta"
+              value={filters.accountId}
+              onChange={(e) => handleFilterChange('accountId', e.target.value)}
+              options={accounts}
+            />
+            
+            <Select
+              label="Categoría"
+              value={filters.categoryId}
+              onChange={(e) => handleFilterChange('categoryId', e.target.value)}
+              options={categories}
+            />
           </div>
 
           {/* Amount Range */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Rango de Montos
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
               <Input
+                label="Monto mínimo"
                 type="number"
-                step="0.01"
-                placeholder="Monto mínimo"
+                placeholder="0.00"
                 value={filters.amountMin}
                 onChange={(e) => handleFilterChange('amountMin', e.target.value)}
-                icon={<DollarSign className="h-4 w-4" />}
+                className="pl-10"
               />
+            </div>
+            
+            <div className="relative">
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
               <Input
+                label="Monto máximo"
                 type="number"
-                step="0.01"
-                placeholder="Monto máximo"
+                placeholder="0.00"
                 value={filters.amountMax}
                 onChange={(e) => handleFilterChange('amountMax', e.target.value)}
-                icon={<DollarSign className="h-4 w-4" />}
+                className="pl-10"
               />
             </div>
           </div>
 
+          {/* Custom Date Range (when no period selected) */}
+          {!filters.period && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Fecha desde"
+                type="date"
+                value={filters.dateFrom}
+                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+              />
+              
+              <Input
+                label="Fecha hasta"
+                type="date"
+                value={filters.dateTo}
+                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+              />
+            </div>
+          )}
+
           {/* Tags */}
-          <div>
+          <div className="relative">
+            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
             <Input
               label="Etiquetas"
-              placeholder="Ej: urgente, recurrente"
+              placeholder="etiqueta1, etiqueta2..."
               value={filters.tags}
               onChange={(e) => handleFilterChange('tags', e.target.value)}
-              icon={<Tag className="h-4 w-4" />}
+              className="pl-10"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Separa las etiquetas con comas
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Active Filters Display */}
-      {hasActiveFilters && (
-        <div className="p-4 border-t border-gray-800">
-          <div className="flex flex-wrap gap-2 overflow-hidden">
-            {Object.entries(filters).map(([key, value]) => {
-              if (!value || key === 'sortBy') return null;
-              
-              let label = '';
-              switch (key) {
-                case 'search':
-                  label = `Buscar: "${value}"`;
-                  break;
-                case 'accountId':
-                  label = `Cuenta: ${accounts.find(a => a.value === value)?.label}`;
-                  break;
-                case 'categoryId':
-                  label = `Categoría: ${categories.find(c => c.value === value)?.label}`;
-                  break;
-                case 'type':
-                  label = `Tipo: ${transactionTypes.find(t => t.value === value)?.label}`;
-                  break;
-                case 'dateFrom':
-                  label = `Desde: ${value}`;
-                  break;
-                case 'dateTo':
-                  label = `Hasta: ${value}`;
-                  break;
-                case 'amountMin':
-                  label = `Min: $${value}`;
-                  break;
-                case 'amountMax':
-                  label = `Max: $${value}`;
-                  break;
-                case 'tags':
-                  label = `Tags: ${value}`;
-                  break;
-                default:
-                  return null;
-              }
-
-              return (
-                <span
-                  key={key}
-                  className="inline-flex items-center px-3 py-1 bg-primary-600/20 text-primary-400 text-sm rounded-full max-w-full"
-                >
-                  <span className="truncate">{label}</span>
-                  <button
-                    onClick={() => handleFilterChange(key, '')}
-                    className="ml-2 hover:text-primary-300 flex-shrink-0"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </span>
-              );
-            })}
           </div>
         </div>
       )}

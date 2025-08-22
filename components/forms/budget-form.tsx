@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { Modal, Button, Input, Select } from '@/components/ui';
 import { X, DollarSign } from 'lucide-react';
 import type { Budget, Category } from '@/types';
+import { CategoryKind } from '@/types';
 
 const budgetSchema = z.object({
   categoryId: z.string().min(1, 'La categoría es requerida'),
@@ -25,12 +26,12 @@ interface BudgetFormProps {
 
 // Mock categories for the form
 const mockCategories: Category[] = [
-  { id: '1', name: 'Alimentación', kind: 'EXPENSE', color: '#10b981', icon: 'UtensilsCrossed' },
-  { id: '2', name: 'Transporte', kind: 'EXPENSE', color: '#f59e0b', icon: 'Car' },
-  { id: '3', name: 'Entretenimiento', kind: 'EXPENSE', color: '#8b5cf6', icon: 'Gamepad2' },
-  { id: '4', name: 'Salud', kind: 'EXPENSE', color: '#ef4444', icon: 'Heart' },
-  { id: '5', name: 'Educación', kind: 'EXPENSE', color: '#3b82f6', icon: 'GraduationCap' },
-  { id: '6', name: 'Hogar', kind: 'EXPENSE', color: '#06b6d4', icon: 'Home' },
+  { id: '1', name: 'Alimentación', kind: CategoryKind.EXPENSE, color: '#10b981', icon: 'UtensilsCrossed', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '2', name: 'Transporte', kind: CategoryKind.EXPENSE, color: '#f59e0b', icon: 'Car', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '3', name: 'Entretenimiento', kind: CategoryKind.EXPENSE, color: '#8b5cf6', icon: 'Gamepad2', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '4', name: 'Salud', kind: CategoryKind.EXPENSE, color: '#ef4444', icon: 'Heart', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '5', name: 'Educación', kind: CategoryKind.EXPENSE, color: '#3b82f6', icon: 'GraduationCap', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '6', name: 'Hogar', kind: CategoryKind.EXPENSE, color: '#06b6d4', icon: 'Home', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
 ];
 
 export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps) {
@@ -119,7 +120,7 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
   const selectedCategory = mockCategories.find(cat => cat.id === watch('categoryId'));
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
+    <Modal open={isOpen} onClose={handleClose}>
       <div className="bg-gray-900 rounded-lg shadow-xl w-full max-w-md mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
@@ -145,14 +146,15 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
               {...register('categoryId')}
               error={errors.categoryId?.message}
               className="w-full"
-            >
-              <option value="">Seleccionar categoría</option>
-              {mockCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </Select>
+              placeholder="Seleccionar categoría"
+              options={[
+                { value: "", label: "Seleccionar categoría" },
+                ...mockCategories.map((category) => ({
+                  value: category.id,
+                  label: category.name
+                }))
+              ]}
+            />
           </div>
 
           {/* Month Selection */}
@@ -164,14 +166,12 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
               {...register('monthYYYYMM')}
               error={errors.monthYYYYMM?.message}
               className="w-full"
-            >
-              <option value="">Seleccionar mes</option>
-              {monthOptions.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </Select>
+              placeholder="Seleccionar mes"
+              options={[
+                { value: "", label: "Seleccionar mes" },
+                ...monthOptions
+              ]}
+            />
           </div>
 
           {/* Amount */}
@@ -224,7 +224,7 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleClose}
               disabled={isLoading}
             >

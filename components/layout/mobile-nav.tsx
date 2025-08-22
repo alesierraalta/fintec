@@ -68,10 +68,7 @@ export function MobileNav() {
           {/* Quick Add Button - iOS-like floating action */}
           <button 
             className="flex flex-col items-center px-1 py-3 rounded-2xl transition-all duration-200 min-w-0 flex-1 mx-0.5 relative active:scale-95"
-            onClick={() => {
-              console.log('Mobile nav button clicked - navigating to /transactions/add');
-              router.push('/transactions/add');
-            }}
+            onClick={() => router.push('/transactions/add')}
           >
             <div className="absolute inset-0 bg-gradient-to-t from-accent-primary to-accent-secondary rounded-2xl shadow-lg" />
             <Plus className="h-6 w-6 mb-1 text-background-primary relative z-10 drop-shadow-sm" />

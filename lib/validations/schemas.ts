@@ -127,7 +127,7 @@ export const CategoryFormSchema = z.object({
 });
 
 // Budget Schema
-export const BudgetSchema = z.object({
+const BudgetBaseSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1, 'Budget name is required').max(100, 'Name too long'),
   categoryId: z.string().uuid(),
@@ -138,6 +138,22 @@ export const BudgetSchema = z.object({
   isActive: z.boolean().default(true),
   createdAt: z.string().datetime().optional(),
   updatedAt: z.string().datetime().optional(),
+});
+
+export const BudgetSchema = BudgetBaseSchema.refine((data) => {
+  if (data.endDate && data.startDate) {
+    return new Date(data.endDate) > new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: 'End date must be after start date',
+  path: ['endDate'],
+});
+
+export const CreateBudgetSchema = BudgetBaseSchema.omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 }).refine((data) => {
   if (data.endDate && data.startDate) {
     return new Date(data.endDate) > new Date(data.startDate);
@@ -148,14 +164,16 @@ export const BudgetSchema = z.object({
   path: ['endDate'],
 });
 
-export const CreateBudgetSchema = BudgetSchema.omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const UpdateBudgetSchema = BudgetSchema.partial().extend({
+export const UpdateBudgetSchema = BudgetBaseSchema.partial().extend({
   id: z.string().uuid(),
+}).refine((data) => {
+  if (data.endDate && data.startDate) {
+    return new Date(data.endDate) > new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: 'End date must be after start date',
+  path: ['endDate'],
 });
 
 // Budget Form Schema

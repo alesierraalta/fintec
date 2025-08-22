@@ -1,23 +1,48 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { BudgetForm } from '@/components/forms';
 import { BudgetCard } from '@/components/budgets';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
+import { useAuth } from '@/hooks/use-auth';
+import { useRepository } from '@/providers/repository-provider';
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
-import type { Budget } from '@/types';
-
-// Budgets and categories will be loaded from Supabase database
-const mockBudgets: Budget[] = [];
-const mockCategories: any[] = [];
+import type { Budget, Category } from '@/types';
 
 export default function BudgetsPage() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { user } = useAuth();
+  const repository = useRepository();
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
-  const [budgets, setBudgets] = useState(mockBudgets);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [selectedMonth, setSelectedMonth] = useState('202412');
+  const [loading, setLoading] = useState(true);
+
+  // Load budgets and categories from database
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const [allBudgets, allCategories] = await Promise.all([
+          repository.budgets.findAll(),
+          repository.categories.findAll()
+        ]);
+        setBudgets(allBudgets);
+        setCategories(allCategories);
+      } catch (error) {
+        console.error('Error loading budgets data:', error);
+        setBudgets([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [user, repository]);
 
   // Generate month options
   const generateMonthOptions = () => {
@@ -62,22 +87,32 @@ export default function BudgetsPage() {
     openModal();
   };
 
-  const handleSaveBudget = (budgetData: Partial<Budget>) => {
-    if (selectedBudget) {
-      // Update existing budget
-      setBudgets(prev => prev.map(budget => 
-        budget.id === selectedBudget.id 
-          ? { ...budget, ...budgetData }
-          : budget
-      ));
-    } else {
-      // Add new budget
-      setBudgets(prev => [...prev, budgetData as Budget]);
+  const handleSaveBudget = async (budgetData: Partial<Budget>) => {
+    try {
+      if (selectedBudget) {
+        // Update existing budget - aquí implementarías la lógica real
+        setBudgets(prev => prev.map(budget => 
+          budget.id === selectedBudget.id 
+            ? { ...budget, ...budgetData }
+            : budget
+        ));
+      } else {
+        // Add new budget - aquí implementarías la lógica real
+        setBudgets(prev => [...prev, budgetData as Budget]);
+      }
+      closeModal();
+    } catch (error) {
+      console.error('Error saving budget:', error);
     }
   };
 
-  const handleDeleteBudget = (budgetId: string) => {
-    setBudgets(prev => prev.filter(budget => budget.id !== budgetId));
+  const handleDeleteBudget = async (budgetId: string) => {
+    try {
+      // Aquí implementarías la lógica real de eliminación
+      setBudgets(prev => prev.filter(budget => budget.id !== budgetId));
+    } catch (error) {
+      console.error('Error deleting budget:', error);
+    }
   };
 
   const formatCurrency = (amountMinor: number) => {
@@ -204,7 +239,12 @@ export default function BudgetsPage() {
             </span>
           </div>
 
-          {filteredBudgets.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Cargando presupuestos...</p>
+            </div>
+          ) : filteredBudgets.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
               <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-white mb-2">
@@ -224,7 +264,7 @@ export default function BudgetsPage() {
           ) : (
             <div className="grid gap-4">
               {filteredBudgets.map((budget) => {
-                const category = mockCategories.find(cat => cat.id === budget.categoryId);
+                const category = categories.find(cat => cat.id === budget.categoryId);
                 return (
                   <BudgetCard
                     key={budget.id}

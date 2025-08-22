@@ -47,66 +47,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return mapSupabaseTransactionToDomain(data);
   }
 
-  async findByAccountId(accountId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('account_id', accountId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
 
-    if (error) {
-      throw new Error(`Failed to fetch transactions by account: ${error.message}`);
-    }
 
-    return mapSupabaseTransactionArrayToDomain(data || []);
-  }
 
-  async findByCategoryId(categoryId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('category_id', categoryId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch transactions by category: ${error.message}`);
-    }
-
-    return mapSupabaseTransactionArrayToDomain(data || []);
-  }
-
-  async findByType(type: TransactionType): Promise<Transaction[]> {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('type', type)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch transactions by type: ${error.message}`);
-    }
-
-    return mapSupabaseTransactionArrayToDomain(data || []);
-  }
-
-  async findByDateRange(startDate: string, endDate: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      throw new Error(`Failed to fetch transactions by date range: ${error.message}`);
-    }
-
-    return mapSupabaseTransactionArrayToDomain(data || []);
-  }
 
   async findWithFilters(filters: TransactionFilters): Promise<Transaction[]> {
     let query = supabase.from('transactions').select('*');
@@ -346,5 +289,371 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       income: totals.income,
       expense: totals.expense,
     }));
+  }
+
+  // Missing methods from TransactionsRepository interface - basic implementations
+  async findByFilters(filters: TransactionFilters, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    // Use existing findWithFilters and add pagination
+    const transactions = await this.findWithFilters(filters);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findByAccountId(accountId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('account_id', accountId)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions by account: ${error.message}`);
+    }
+
+    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findByCategoryId(categoryId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('category_id', categoryId)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions by category: ${error.message}`);
+    }
+
+    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findByType(type: TransactionType, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('type', type)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions by type: ${error.message}`);
+    }
+
+    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findByDateRange(startDate: string, endDate: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions by date range: ${error.message}`);
+    }
+
+    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findByTransferId(transferId: string): Promise<Transaction[]> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('transfer_id', transferId);
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions by transfer ID: ${error.message}`);
+    }
+
+    return mapSupabaseTransactionArrayToDomain(data || []);
+  }
+
+  async search(query: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .or(`description.ilike.%${query}%,note.ilike.%${query}%`)
+      .order('date', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to search transactions: ${error.message}`);
+    }
+
+    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    
+    if (!pagination) {
+      return {
+        data: transactions,
+        total: transactions.length,
+        page: 1,
+        limit: transactions.length,
+        totalPages: 1,
+      };
+    }
+
+    const { page = 1, limit = 10 } = pagination;
+    const offset = (page - 1) * limit;
+    const paginatedItems = transactions.slice(offset, offset + limit);
+    
+    return {
+      data: paginatedItems,
+      total: transactions.length,
+      page,
+      limit,
+      totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async getTotalByType(type: TransactionType, startDate?: string, endDate?: string): Promise<number> {
+    let query = supabase
+      .from('transactions')
+      .select('amount_base_minor')
+      .eq('type', type);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to get total by type: ${error.message}`);
+    }
+
+    return (data || []).reduce((total, transaction) => total + transaction.amount_base_minor, 0);
+  }
+
+  async getTotalByCategory(categoryId: string, startDate?: string, endDate?: string): Promise<number> {
+    return this.getTotalByCategoryId(categoryId, startDate, endDate);
+  }
+
+  async getTotalByAccount(accountId: string, startDate?: string, endDate?: string): Promise<number> {
+    let query = supabase
+      .from('transactions')
+      .select('amount_base_minor, type')
+      .eq('account_id', accountId);
+
+    if (startDate) {
+      query = query.gte('date', startDate);
+    }
+
+    if (endDate) {
+      query = query.lte('date', endDate);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to get total by account: ${error.message}`);
+    }
+
+    return (data || []).reduce((total, transaction) => {
+      const amount = transaction.amount_base_minor;
+      if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
+        return total + amount;
+      } else {
+        return total - amount;
+      }
+    }, 0);
+  }
+
+  // Stub implementations for remaining complex methods
+  async getMonthlyReport(year: number, month: number): Promise<any> {
+    // TODO: Implement proper monthly report
+    return {
+      year,
+      month,
+      income: 0,
+      expense: 0,
+      balance: 0,
+      transactions: [],
+    };
+  }
+
+  async getMonthlyReports(startMonth: string, endMonth: string): Promise<any[]> {
+    // TODO: Implement proper monthly reports
+    return [];
+  }
+
+  async getCashFlowData(startDate: string, endDate: string, groupBy: 'day' | 'week' | 'month'): Promise<any[]> {
+    // TODO: Implement proper cash flow data
+    return [];
+  }
+
+  async getCategoryBreakdown(startDate: string, endDate: string, type?: TransactionType): Promise<any[]> {
+    // TODO: Implement proper category breakdown
+    return [];
+  }
+
+  async getAccountBreakdown(startDate: string, endDate: string, type?: TransactionType): Promise<any[]> {
+    // TODO: Implement proper account breakdown
+    return [];
+  }
+
+  async createTransfer(fromTransaction: CreateTransactionDTO, toTransaction: CreateTransactionDTO): Promise<any> {
+    // TODO: Implement proper transfer creation
+    const transferId = crypto.randomUUID();
+        const from = await this.create({ ...fromTransaction, transferId } as any); 
+    const to = await this.create({ ...toTransaction, transferId } as any);
+    
+    return {
+      fromTransaction: from,
+      toTransaction: to,
+      transferId,
+    };
+  }
+
+  async exportToCSV(filters?: TransactionFilters): Promise<string> {
+    // TODO: Implement proper CSV export
+    return 'CSV export not implemented';
+  }
+
+  // Missing BaseRepository methods
+  async findPaginated(params: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    return this.findWithPagination(params);
+  }
+
+  async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
+    const results: Transaction[] = [];
+    
+    for (const transactionData of data) {
+      const result = await this.create(transactionData);
+      results.push(result);
+    }
+    
+    return results;
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .in('id', ids);
+
+    if (error) {
+      throw new Error(`Failed to delete transactions: ${error.message}`);
+    }
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const transaction = await this.findById(id);
+    return transaction !== null;
   }
 }

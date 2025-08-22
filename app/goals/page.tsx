@@ -21,7 +21,7 @@ import type { SavingsGoal } from '@/types';
 
 // Goals and accounts will be loaded from Supabase database
 const mockGoals: SavingsGoal[] = [];
-const []: any[] = [];
+const mockAccounts: any[] = [];
 
 export default function GoalsPage() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -294,7 +294,7 @@ export default function GoalsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredGoals.map((goal) => {
-                const account = [].find(acc => acc.id === goal.accountId);
+                const account = mockAccounts.find(acc => acc.id === goal.accountId);
                 return (
                   <GoalCard
                     key={goal.id}

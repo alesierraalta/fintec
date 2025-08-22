@@ -15,6 +15,7 @@ import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
 import { BalancePreview } from './balance-preview';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 
 
 
@@ -80,14 +81,12 @@ export function MobileTransfer() {
     return <Wallet className="h-5 w-5 text-blue-500" />;
   };
 
-  const formatBalance = (balance: number, currencyCode: string) => {
-    if (currencyCode === 'BTC') {
-      return `${balance.toFixed(8)} ${currencyCode}`;
-    }
-    if (currencyCode === 'VES') {
-      return `Bs. ${balance.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-    }
-    return `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${currencyCode}`;
+  const formatBalance = (balanceMinor: number, currencyCode: string) => {
+    // Use VES-aware formatting that handles minor units properly
+    return formatCurrencyWithBCV(balanceMinor, currencyCode, {
+      showUSDEquivalent: currencyCode === 'VES',
+      locale: 'es-ES'
+    });
   };
 
   const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
@@ -269,7 +268,7 @@ export function MobileTransfer() {
               />
             </div>
             <p className="text-sm text-text-muted">
-              Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+              Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
             </p>
           </div>
 
@@ -330,10 +329,10 @@ export function MobileTransfer() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-text-muted">
-                        {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+                        {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                       </p>
                       <p className="font-bold text-red-400 text-sm">
-                        → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+                        → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currencyCode) : '--'}
                       </p>
                     </div>
                   </div>

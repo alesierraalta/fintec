@@ -12,6 +12,7 @@ export interface CreateGoalDTO {
 
 export interface UpdateGoalDTO extends Partial<CreateGoalDTO> {
   id: string;
+  currentBaseMinor?: number;
 }
 
 export interface GoalWithProgress extends SavingsGoal {

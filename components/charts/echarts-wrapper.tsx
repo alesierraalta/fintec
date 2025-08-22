@@ -106,6 +106,7 @@ const EChartsWrapper = forwardRef<EChartsWrapperRef, EChartsWrapperProps>(({
             type: 'info',
             title: `${params.seriesName}`,
             message: `${params.name}: ${value}`,
+            read: false,
           });
         }
       });
@@ -119,6 +120,7 @@ const EChartsWrapper = forwardRef<EChartsWrapperRef, EChartsWrapperProps>(({
         type: 'error',
         title: 'Error en gráfico',
         message: 'No se pudo cargar el gráfico',
+        read: false,
       });
     }
 

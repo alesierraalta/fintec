@@ -16,7 +16,8 @@ import {
   Wallet,
   Plus,
   DollarSign,
-  BarChart3
+  BarChart3,
+  Shield
 } from 'lucide-react';
 
 const navigation = [
@@ -28,6 +29,7 @@ const navigation = [
   { name: 'Presupuestos', href: '/budgets', icon: CreditCard },
   { name: 'Metas', href: '/goals', icon: Target },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
+  { name: 'Respaldos', href: '/backups', icon: Shield },
   { name: 'Ajustes', href: '/settings', icon: Settings },
 ];
 
@@ -65,11 +67,7 @@ export function Sidebar() {
       {!isMinimized && (
         <div className="p-4">
           <button 
-            onClick={() => {
-              console.log('Sidebar button clicked - navigating to /transactions/add');
-              alert('Sidebar button clicked!');
-              window.location.href = '/transactions/add';
-            }}
+            onClick={() => window.location.href = '/transactions/add'}
             className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg"
             style={{ zIndex: 9999 }}
           >
@@ -83,10 +81,7 @@ export function Sidebar() {
       {isMinimized && (
         <div className="p-2">
           <button 
-            onClick={() => {
-              console.log('Minimized sidebar button clicked - navigating to /transactions/add');
-              window.location.href = '/transactions/add';
-            }}
+            onClick={() => window.location.href = '/transactions/add'}
             className="w-full h-12 rounded-xl bg-accent-primary hover:bg-accent-primary/90 text-background-primary hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center shadow-lg"
             title="Agregar Transacción"
           >

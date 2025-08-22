@@ -7,6 +7,8 @@ import { useSidebar } from '@/contexts/sidebar-context';
 import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
 import type { Notification } from '@/types/notifications';
+import { fromMinorUnits } from '@/lib/money';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
 
 export function Header() {
   const [notificationCount, setNotificationCount] = useState(0);
@@ -14,17 +16,48 @@ export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
+  const [totalBalance, setTotalBalance] = useState(0);
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
   const { user, signOut } = useAuth();
   const router = useRouter();
   const repository = useRepository();
+  const bcvRates = useBCVRates();
 
-  // Load notifications when user is available
+  // Load notifications and balance when user is available
   useEffect(() => {
     if (user) {
       loadNotifications();
+      loadTotalBalance();
     }
   }, [user]);
+
+  // Reload balance when BCV rates change
+  useEffect(() => {
+    if (user) {
+      loadTotalBalance();
+    }
+  }, [bcvRates]);
+
+  const loadTotalBalance = async () => {
+    if (!user) return;
+    try {
+      const accounts = await repository.accounts.findByUserId(user.id);
+      const total = accounts.reduce((sum, acc) => {
+        const balanceMinor = Number(acc.balance) || 0;
+        const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+        
+        // Apply BCV conversion for VES currency
+        if (acc.currencyCode === 'VES') {
+          return sum + (balanceMajor / bcvRates.usd);
+        }
+        return sum + balanceMajor;
+      }, 0);
+      setTotalBalance(total);
+    } catch (error) {
+      console.error('Failed to load total balance:', error);
+      setTotalBalance(0);
+    }
+  };
 
   const loadNotifications = async () => {
     if (!user) return;
@@ -299,7 +332,7 @@ export function Header() {
           <div className="text-right">
             <div className="flex items-center space-x-1">
               <Sparkles className="h-3 w-3 text-accent-primary" />
-              <p className="text-sm lg:text-lg font-bold text-text-primary">$0.00</p>
+              <p className="text-sm lg:text-lg font-bold text-text-primary">${totalBalance.toFixed(2)}</p>
             </div>
             <p className="text-xs text-text-muted hidden lg:block">Tu dinero total</p>
           </div>

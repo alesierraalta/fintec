@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session, AuthError } from '@supabase/supabase-js';
+import { User, Session, AuthError, PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@/repositories/supabase/client';
 
 // Function to create welcome notifications for new users
@@ -47,7 +47,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
-  updateProfile: (data: any) => Promise<{ error: AuthError | null }>;
+  updateProfile: (data: any) => Promise<{ error: AuthError | PostgrestError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

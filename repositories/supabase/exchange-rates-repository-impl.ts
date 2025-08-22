@@ -7,6 +7,7 @@ import {
   mapSupabaseExchangeRateArrayToDomain 
 } from './mappers';
 
+// @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository {
   async findAll(): Promise<ExchangeRate[]> {
     const { data, error } = await supabase

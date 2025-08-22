@@ -1,4 +1,4 @@
-import NextAuth, { type NextAuthConfig } from 'next-auth';
+import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { z } from 'zod';
@@ -53,7 +53,7 @@ const userPasswords: Record<string, string> = {
 };
 
 // NextAuth configuration
-export const authConfig: NextAuthConfig = {
+export const authConfig = {
   providers: [
     // Google OAuth
     GoogleProvider({
@@ -83,7 +83,7 @@ export const authConfig: NextAuthConfig = {
           placeholder: 'Tu contraseña'
         },
       },
-      async authorize(credentials) {
+      async authorize(credentials: any) {
         try {
           // Validate input
           const validatedFields = signInSchema.safeParse(credentials);
@@ -135,7 +135,7 @@ export const authConfig: NextAuthConfig = {
   },
 
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile, email, credentials }: any) {
       // Allow OAuth sign-ins
       if (account?.provider === 'google') {
         return true;
@@ -149,7 +149,7 @@ export const authConfig: NextAuthConfig = {
       return false;
     },
 
-    async redirect({ url, baseUrl }) {
+    async redirect({ url, baseUrl }: any) {
       // Allows relative callback URLs
       if (url.startsWith('/')) {
         return `${baseUrl}${url}`;
@@ -161,7 +161,7 @@ export const authConfig: NextAuthConfig = {
       return baseUrl;
     },
 
-    async session({ session, token }) {
+    async session({ session, token }: any) {
       // Send properties to the client
       if (token) {
         session.user.id = token.id as string;
@@ -172,7 +172,7 @@ export const authConfig: NextAuthConfig = {
       return session;
     },
 
-    async jwt({ token, user, account, profile }) {
+    async jwt({ token, user, account, profile }: any) {
       // Initial sign in
       if (account && user) {
         return {
@@ -189,7 +189,7 @@ export const authConfig: NextAuthConfig = {
   },
 
   session: {
-    strategy: 'jwt',
+    strategy: 'jwt' as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days
     updateAge: 24 * 60 * 60, // 24 hours
   },
@@ -199,13 +199,13 @@ export const authConfig: NextAuthConfig = {
   },
 
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, account, profile, isNewUser }: any) {
       console.log('User signed in:', { user: user.email, provider: account?.provider });
     },
-    async signOut({ session, token }) {
+    async signOut({ session, token }: any) {
       console.log('User signed out:', { user: session?.user?.email });
     },
-    async createUser({ user }) {
+    async createUser({ user }: any) {
       console.log('New user created:', { user: user.email });
     },
   },

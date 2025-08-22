@@ -15,7 +15,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
   }
 
   async findAll(): Promise<Budget[]> {
-    return db.budgets.orderBy('monthYear').reverse().toArray();
+    return db.budgets.orderBy('monthYYYYMM').reverse().toArray();
   }
 
   async create(data: CreateBudgetDTO): Promise<Budget> {
@@ -27,11 +27,11 @@ export class LocalBudgetsRepository implements BudgetsRepository {
 
     const budget: Budget = {
       id: generateId('budget'),
-      name: data.name,
+      userId: 'current-user', // TODO: Get from auth context
       categoryId: data.categoryId,
-      monthYear: data.monthYear,
+      monthYYYYMM: data.monthYear.replace('-', ''), // Convert YYYY-MM to YYYYMM
       amountBaseMinor: data.amountBaseMinor,
-      spentBaseMinor: 0, // Will be calculated
+      spentMinor: 0, // Will be calculated
       active: data.active ?? true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -78,7 +78,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
   }
 
   async findPaginated(params: PaginationParams): Promise<PaginatedResult<Budget>> {
-    const { page, limit, sortBy = 'monthYear', sortOrder = 'desc' } = params;
+    const { page, limit, sortBy = 'monthYYYYMM', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
 
     let query = db.budgets.orderBy(sortBy as keyof Budget);
@@ -108,7 +108,9 @@ export class LocalBudgetsRepository implements BudgetsRepository {
 
   // Budget-specific methods
   async findByMonthYear(monthYear: string): Promise<Budget[]> {
-    return db.budgets.where('monthYear').equals(monthYear).toArray();
+    // Convert YYYY-MM to YYYYMM for database query
+    const monthYYYYMM = monthYear.replace('-', '');
+    return db.budgets.where('monthYYYYMM').equals(monthYYYYMM).toArray();
   }
 
   async findByCategoryId(categoryId: string): Promise<Budget[]> {
@@ -116,7 +118,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
   }
 
   async findActive(): Promise<Budget[]> {
-    return db.budgets.where('active').equals(true).toArray();
+    return db.budgets.where('active').equals(1).toArray();
   }
 
   async getBudgetWithProgress(id: string): Promise<BudgetWithProgress | null> {
@@ -125,7 +127,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
       return null;
     }
 
-    const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYear);
+    const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYYYYMM);
     const remainingBaseMinor = budget.amountBaseMinor - spentBaseMinor;
     const percentageUsed = budget.amountBaseMinor > 0 ? (spentBaseMinor / budget.amountBaseMinor) * 100 : 0;
     const isOverBudget = spentBaseMinor > budget.amountBaseMinor;
@@ -144,7 +146,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
     const budgetsWithProgress: BudgetWithProgress[] = [];
 
     for (const budget of budgets) {
-      const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYear);
+      const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYYYYMM);
       const remainingBaseMinor = budget.amountBaseMinor - spentBaseMinor;
       const percentageUsed = budget.amountBaseMinor > 0 ? (spentBaseMinor / budget.amountBaseMinor) * 100 : 0;
       const isOverBudget = spentBaseMinor > budget.amountBaseMinor;
@@ -256,7 +258,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
   async copyBudgetsToNextMonth(fromMonthYear: string, toMonthYear: string): Promise<Budget[]> {
     const sourceBudgets = await this.findByMonthYear(fromMonthYear);
     const newBudgets: CreateBudgetDTO[] = sourceBudgets.map(budget => ({
-      name: budget.name,
+      name: `Budget ${budget.categoryId} - ${toMonthYear}`,
       categoryId: budget.categoryId,
       monthYear: toMonthYear,
       amountBaseMinor: budget.amountBaseMinor,
@@ -266,12 +268,12 @@ export class LocalBudgetsRepository implements BudgetsRepository {
     return this.createMany(newBudgets);
   }
 
-  async budgetExists(categoryId: string, monthYear: string): Promise<boolean> {
+    async budgetExists(categoryId: string, monthYear: string): Promise<boolean> {
     const budget = await db.budgets
       .where('categoryId').equals(categoryId)
-      .and(b => b.monthYear === monthYear)
+      .and(b => b.monthYYYYMM === monthYear.replace('-', ''))
       .first();
-    
+
     return budget !== undefined;
   }
 
@@ -292,7 +294,7 @@ export class LocalBudgetsRepository implements BudgetsRepository {
     const budgetsWithProgress: BudgetWithProgress[] = [];
 
     for (const budget of budgets) {
-      const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYear);
+      const spentBaseMinor = await this.calculateSpentAmount(budget.categoryId, budget.monthYYYYMM);
       const remainingBaseMinor = budget.amountBaseMinor - spentBaseMinor;
       const percentageUsed = budget.amountBaseMinor > 0 ? (spentBaseMinor / budget.amountBaseMinor) * 100 : 0;
       const isOverBudget = spentBaseMinor > budget.amountBaseMinor;

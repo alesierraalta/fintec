@@ -12,15 +12,16 @@ interface RepositoryProviderProps {
 }
 
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
-  // Use Supabase by default - credentials are configured in client.ts
+  // Temporarily use Local repository while Supabase implementation is being completed
   let repository: AppRepository;
   
   try {
-    // Always use Supabase repository as it has fallback credentials
-    repository = new SupabaseAppRepository();
-    console.log('Using Supabase repository with configured database');
+    // Use Local repository for now - Supabase implementation needs completion
+    repository = new LocalAppRepository();
+    console.log('Using Local repository (Supabase implementation in progress)');
   } catch (error) {
-    console.warn('Failed to initialize Supabase repository, using local fallback:', error);
+    console.warn('Failed to initialize Local repository:', error);
+    // Fallback - this should not happen but keeping for safety
     repository = new LocalAppRepository();
   }
 

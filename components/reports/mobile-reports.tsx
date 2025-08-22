@@ -1,162 +1,166 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/use-auth';
+import { useRepository } from '@/providers/repository-provider';
 import { 
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
   PieChart,
   BarChart3,
   Target,
-  CreditCard,
   Wallet,
   ArrowUpRight,
   ArrowDownRight,
-  Filter,
   Download,
-  RefreshCw
+  RefreshCw,
+  CreditCard
 } from 'lucide-react';
 
-// Mock data for reports
-const monthlyData = [
-  { month: 'Ene', income: 5000, expenses: 3500, savings: 1500 },
-  { month: 'Feb', income: 5200, expenses: 3800, savings: 1400 },
-  { month: 'Mar', income: 4800, expenses: 3200, savings: 1600 },
-  { month: 'Abr', income: 5500, expenses: 4100, savings: 1400 },
-  { month: 'May', income: 5300, expenses: 3900, savings: 1400 },
-  { month: 'Jun', income: 5700, expenses: 4200, savings: 1500 },
-];
-
-const categoryData = [
-  { category: 'Comida', amount: 1200, percentage: 30, color: 'bg-red-500' },
-  { category: 'Transporte', amount: 800, percentage: 20, color: 'bg-blue-500' },
-  { category: 'Entretenimiento', amount: 600, percentage: 15, color: 'bg-purple-500' },
-  { category: 'Servicios', amount: 500, percentage: 12.5, color: 'bg-yellow-500' },
-  { category: 'Compras', amount: 400, percentage: 10, color: 'bg-green-500' },
-  { category: 'Otros', amount: 500, percentage: 12.5, color: 'bg-gray-500' },
-];
-
 export function MobileReports() {
+  const { user } = useAuth();
+  const repository = useRepository();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedTab, setSelectedTab] = useState('overview');
-
-  const tabs = [
-    { id: 'overview', label: 'Resumen', icon: BarChart3 },
-    { id: 'categories', label: 'Categorías', icon: PieChart },
-    { id: 'trends', label: 'Tendencias', icon: TrendingUp },
-  ];
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const periods = [
     { id: 'week', label: 'Semana' },
     { id: 'month', label: 'Mes' },
     { id: 'quarter', label: 'Trimestre' },
-    { id: 'year', label: 'Año' },
+    { id: 'year', label: 'Año' }
   ];
 
-  const renderOverview = () => (
-    <div className="space-y-4">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+  const tabs = [
+    { id: 'overview', label: 'Resumen', icon: PieChart },
+    { id: 'categories', label: 'Categorías', icon: BarChart3 },
+    { id: 'trends', label: 'Tendencias', icon: Target }
+  ];
+
+  // Load reports data from database
+  useEffect(() => {
+    const loadReportsData = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const [transactionsData, categoriesData] = await Promise.all([
+          repository.transactions.findAll(),
+          repository.categories.findAll()
+        ]);
+        setTransactions(transactionsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error loading reports data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReportsData();
+  }, [user, repository]);
+
+  const getPeriodStartDate = (period: string): Date => {
+    const now = new Date();
+    switch (period) {
+      case 'week':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case 'month':
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+      case 'quarter':
+        return new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      case 'year':
+        return new Date(now.getFullYear(), 0, 1);
+      default:
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+  };
+
+  const filteredTransactions = (() => {
+    const start = getPeriodStartDate(selectedPeriod);
+    return transactions.filter(t => new Date(t.date) >= start);
+  })();
+
+  const totalIncome = filteredTransactions.filter(t => t.amountMinor > 0).reduce((s, t) => s + (t.amountMinor / 100), 0);
+  const totalExpenses = filteredTransactions.filter(t => t.amountMinor < 0).reduce((s, t) => s + Math.abs(t.amountMinor / 100), 0);
+
+  const categoryTotals = (() => {
+    const map: Record<string, number> = {};
+    filteredTransactions.filter(t => t.amountMinor < 0).forEach(t => {
+      const key = t.categoryId || 'uncategorized';
+      map[key] = (map[key] || 0) + Math.abs(t.amountMinor / 100);
+    });
+    const total = Object.values(map).reduce((s, v) => s + v, 0);
+    const idToName: Record<string, string> = {};
+    categories.forEach(c => { idToName[c.id] = c.name; });
+    return Object.entries(map).map(([id, amount], idx) => ({
+      category: idToName[id] || 'Sin categoría',
+      amount: amount,
+      percentage: total > 0 ? Math.round((amount / total) * 100) : 0,
+      color: ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500'][idx % 5]
+    })).sort((a, b) => b.amount - a.amount);
+  })();
+
+  const renderOverview = () => {
+    return (
+      <div className="space-y-4">
+        {/* Summary Cards */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-text-muted">Ingresos</span>
               <ArrowUpRight className="h-4 w-4 text-green-500" />
             </div>
-            <span className="text-xs text-green-500 font-medium">+12%</span>
+            <p className="text-xl font-bold text-text-primary">${totalIncome.toFixed(2)}</p>
+            <p className="text-xs text-green-500">+12% vs mes anterior</p>
           </div>
-          <p className="text-sm text-text-muted">Ingresos</p>
-          <p className="text-xl font-bold text-text-primary">$5,300</p>
-        </div>
-
-        <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-lg bg-red-500/20 flex items-center justify-center">
+          
+          <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-text-muted">Gastos</span>
               <ArrowDownRight className="h-4 w-4 text-red-500" />
             </div>
-            <span className="text-xs text-red-500 font-medium">+8%</span>
+            <p className="text-xl font-bold text-text-primary">${totalExpenses.toFixed(2)}</p>
+            <p className="text-xs text-red-500">+5% vs mes anterior</p>
           </div>
-          <p className="text-sm text-text-muted">Gastos</p>
-          <p className="text-xl font-bold text-text-primary">$3,900</p>
         </div>
 
+        {/* Net Balance */}
         <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
           <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <Target className="h-4 w-4 text-blue-500" />
-            </div>
-            <span className="text-xs text-blue-500 font-medium">+5%</span>
+            <span className="text-sm text-text-muted">Balance Neto</span>
+            <Wallet className="h-4 w-4 text-text-muted" />
           </div>
-          <p className="text-sm text-text-muted">Ahorros</p>
-          <p className="text-xl font-bold text-text-primary">$1,400</p>
+          <p className="text-2xl font-bold text-text-primary">
+            ${(totalIncome - totalExpenses).toFixed(2)}
+          </p>
+          <p className={`text-xs ${totalIncome > totalExpenses ? 'text-green-500' : 'text-red-500'}`}>
+            {totalIncome > totalExpenses ? 'Superávit' : 'Déficit'} este período
+          </p>
         </div>
 
+        {/* Quick Stats */}
         <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-          <div className="flex items-center justify-between mb-2">
-            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <Wallet className="h-4 w-4 text-purple-500" />
+          <h3 className="text-lg font-semibold text-text-primary mb-3">Estadísticas Rápidas</h3>
+          <div className="space-y-3">
+            <div className="flex justify-between">
+              <span className="text-sm text-text-muted">Transacciones</span>
+              <span className="text-sm font-medium text-text-primary">{filteredTransactions.length}</span>
             </div>
-            <span className="text-xs text-purple-500 font-medium">73%</span>
-          </div>
-          <p className="text-sm text-text-muted">Tasa Ahorro</p>
-          <p className="text-xl font-bold text-text-primary">26%</p>
-        </div>
-      </div>
-
-      {/* Monthly Chart */}
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Flujo Mensual</h3>
-        <div className="space-y-3">
-          {monthlyData.slice(-3).map((data, index) => (
-            <div key={data.month} className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-lg bg-accent-primary/20 flex items-center justify-center">
-                  <span className="text-sm font-semibold text-accent-primary">{data.month}</span>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-primary">{data.month} 2024</p>
-                  <p className="text-xs text-text-muted">Balance: ${data.income - data.expenses}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center space-x-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                  <span className="text-xs text-text-muted">${data.income}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500"></div>
-                  <span className="text-xs text-text-muted">${data.expenses}</span>
-                </div>
-              </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-text-muted">Promedio por día</span>
+              <span className="text-sm font-medium text-text-primary">
+                ${(totalExpenses / Math.max(1, Math.ceil((new Date().getTime() - getPeriodStartDate(selectedPeriod).getTime()) / (24 * 60 * 60 * 1000)))).toFixed(2)}
+              </span>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Estadísticas Rápidas</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Promedio diario de gastos</span>
-            <span className="font-semibold text-text-primary">$126</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Mayor gasto del mes</span>
-            <span className="font-semibold text-text-primary">$450</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Días sin gastos</span>
-            <span className="font-semibold text-text-primary">3</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Meta de ahorro</span>
-            <span className="font-semibold text-accent-primary">85%</span>
+            <div className="flex justify-between">
+              <span className="text-sm text-text-muted">Categorías activas</span>
+              <span className="text-sm font-medium text-text-primary">{categoryTotals.length}</span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderCategories = () => (
     <div className="space-y-4">
@@ -164,7 +168,7 @@ export function MobileReports() {
       <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
         <h3 className="text-lg font-semibold text-text-primary mb-4">Gastos por Categoría</h3>
         <div className="space-y-3">
-          {categoryData.map((category) => (
+          {categoryTotals.map((category) => (
             <div key={category.category} className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -172,14 +176,14 @@ export function MobileReports() {
                   <span className="text-sm font-medium text-text-primary">{category.category}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-text-primary">${category.amount}</p>
+                  <p className="text-sm font-semibold text-text-primary">${category.amount.toFixed(2)}</p>
                   <p className="text-xs text-text-muted">{category.percentage}%</p>
                 </div>
               </div>
               <div className="w-full bg-background-primary rounded-full h-2">
                 <div 
                   className={`h-2 rounded-full ${category.color}`}
-                  style={{ width: `${category.percentage * 2}%` }}
+                  style={{ width: `${Math.min(category.percentage, 100)}%` }}
                 ></div>
               </div>
             </div>
@@ -191,44 +195,28 @@ export function MobileReports() {
       <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
         <h3 className="text-lg font-semibold text-text-primary mb-4">Mayores Gastos</h3>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-background-primary rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
-                <CreditCard className="h-5 w-5 text-red-500" />
+          {filteredTransactions
+            .filter(t => t.amountMinor < 0)
+            .sort((a, b) => a.amountMinor - b.amountMinor)
+            .slice(0, 3)
+            .map((transaction, index) => (
+              <div key={transaction.id} className="flex items-center justify-between p-3 bg-background-primary rounded-xl">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-lg bg-red-500/20 flex items-center justify-center">
+                    <CreditCard className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">{transaction.description}</p>
+                    <p className="text-xs text-text-muted">
+                      {new Date(transaction.date).toLocaleDateString('es-ES')}
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm font-semibold text-text-primary">
+                  ${Math.abs(transaction.amountMinor / 100).toFixed(2)}
+                </span>
               </div>
-              <div>
-                <p className="text-sm font-medium text-text-primary">Supermercado</p>
-                <p className="text-xs text-text-muted">15 May • Comida</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-text-primary">$450</span>
-          </div>
-          
-          <div className="flex items-center justify-between p-3 bg-background-primary rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center">
-                <Wallet className="h-5 w-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-primary">Gasolina</p>
-                <p className="text-xs text-text-muted">12 May • Transporte</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-text-primary">$120</span>
-          </div>
-          
-          <div className="flex items-center justify-between p-3 bg-background-primary rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-                <Target className="h-5 w-5 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-text-primary">Netflix</p>
-                <p className="text-xs text-text-muted">10 May • Entretenimiento</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-text-primary">$15</span>
-          </div>
+            ))}
         </div>
       </div>
     </div>
@@ -236,72 +224,9 @@ export function MobileReports() {
 
   const renderTrends = () => (
     <div className="space-y-4">
-      {/* Trend Analysis */}
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Análisis de Tendencias</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-xl border border-green-500/20">
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm font-medium text-text-primary">Ahorros</p>
-                <p className="text-xs text-green-600">Tendencia positiva</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-green-600">+15%</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-            <div className="flex items-center space-x-3">
-              <TrendingDown className="h-5 w-5 text-red-500" />
-              <div>
-                <p className="text-sm font-medium text-text-primary">Gastos Variables</p>
-                <p className="text-xs text-red-600">Incremento notable</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-red-600">+22%</span>
-          </div>
-
-          <div className="flex items-center justify-between p-3 bg-blue-500/10 rounded-xl border border-blue-500/20">
-            <div className="flex items-center space-x-3">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium text-text-primary">Ingresos</p>
-                <p className="text-xs text-blue-600">Crecimiento estable</p>
-              </div>
-            </div>
-            <span className="text-sm font-semibold text-blue-600">+8%</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Predictions */}
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">Proyecciones</h3>
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Balance fin de mes</span>
-            <span className="font-semibold text-green-600">+$1,450</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Ahorro mensual estimado</span>
-            <span className="font-semibold text-text-primary">$1,380</span>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-text-muted">Gasto promedio diario</span>
-            <span className="font-semibold text-text-primary">$125</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recommendations */}
-      <div className="bg-accent-primary/10 rounded-2xl p-4 border border-accent-primary/20">
-        <h3 className="text-lg font-semibold text-text-primary mb-4">💡 Recomendaciones</h3>
-        <div className="space-y-2">
-          <p className="text-sm text-text-secondary">• Considera reducir gastos en entretenimiento para aumentar tus ahorros</p>
-          <p className="text-sm text-text-secondary">• Tu gasto en comida está 15% por encima del promedio</p>
-          <p className="text-sm text-text-secondary">• ¡Excelente! Estás cumpliendo tu meta de ahorro mensual</p>
-        </div>
+      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary text-center">
+        <h3 className="text-lg font-semibold text-text-primary mb-2">Tendencias</h3>
+        <p className="text-text-muted text-sm">Próximamente disponible</p>
       </div>
     </div>
   );
@@ -319,41 +244,50 @@ export function MobileReports() {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-accent-primary/10 to-accent-secondary/10 rounded-3xl p-6 border border-accent-primary/20">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-text-primary">Reportes Financieros</h1>
-            <p className="text-sm text-text-secondary">Análisis detallado de tus finanzas 📊</p>
-          </div>
-          <div className="flex space-x-2">
-            <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
-              <RefreshCw className="h-4 w-4 text-text-primary" />
-            </button>
-            <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
-              <Download className="h-4 w-4 text-text-primary" />
-            </button>
-          </div>
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Cargando reportes...</p>
         </div>
+      </div>
+    );
+  }
 
-        {/* Period Selector */}
-        <div className="flex space-x-2">
-          {periods.map((period) => (
-            <button
-              key={period.id}
-              onClick={() => setSelectedPeriod(period.id)}
-              className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                selectedPeriod === period.id
-                  ? 'bg-accent-primary text-background-primary'
-                  : 'bg-background-elevated text-text-secondary hover:text-text-primary'
-              }`}
-            >
-              {period.label}
-            </button>
-          ))}
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Reportes</h1>
+          <p className="text-sm text-text-muted">Análisis de tus finanzas</p>
         </div>
+        <div className="flex space-x-2">
+          <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
+            <RefreshCw className="h-4 w-4 text-text-primary" />
+          </button>
+          <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
+            <Download className="h-4 w-4 text-text-primary" />
+          </button>
+        </div>
+      </div>
+
+      {/* Period Selector */}
+      <div className="flex space-x-2">
+        {periods.map((period) => (
+          <button
+            key={period.id}
+            onClick={() => setSelectedPeriod(period.id)}
+            className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
+              selectedPeriod === period.id
+                ? 'bg-accent-primary text-background-primary'
+                : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+            }`}
+          >
+            {period.label}
+          </button>
+        ))}
       </div>
 
       {/* Tabs */}
@@ -382,3 +316,4 @@ export function MobileReports() {
     </div>
   );
 }
+

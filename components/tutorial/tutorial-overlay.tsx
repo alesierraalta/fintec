@@ -184,7 +184,7 @@ export function TutorialOverlay() {
           {/* Actions */}
           <div className="flex items-center justify-between">
             {!isFirstStep && (
-              <Button variant="outline" size="sm" onClick={previousStep}>
+              <Button variant="secondary" size="sm" onClick={previousStep}>
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Anterior
               </Button>

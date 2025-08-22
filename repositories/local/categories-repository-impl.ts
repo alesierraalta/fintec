@@ -124,11 +124,11 @@ export class LocalCategoriesRepository implements CategoriesRepository {
   }
 
   async findRootCategories(): Promise<Category[]> {
-    return db.categories.where('parentId').equals(undefined).toArray();
+    return db.categories.filter(category => !category.parentId).toArray();
   }
 
   async findActive(): Promise<Category[]> {
-    return db.categories.where('active').equals(true).toArray();
+    return db.categories.where('active').equals(1).toArray();
   }
 
   async findWithSubcategories(id: string): Promise<Category & { subcategories: Category[] }> {
@@ -145,9 +145,9 @@ export class LocalCategoriesRepository implements CategoriesRepository {
     };
   }
 
-  async findCategoryTree(kind?: CategoryKind): Promise<(Category & { subcategories: Category[] })[]> {
-    const rootCategories = kind 
-      ? await db.categories.where('parentId').equals(undefined).and(cat => cat.kind === kind).toArray()
+    async findCategoryTree(kind?: CategoryKind): Promise<(Category & { subcategories: Category[] })[]> {
+    const rootCategories = kind
+      ? await db.categories.filter(cat => !cat.parentId && cat.kind === kind).toArray()
       : await this.findRootCategories();
 
     const tree: (Category & { subcategories: Category[] })[] = [];

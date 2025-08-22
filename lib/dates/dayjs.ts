@@ -6,8 +6,10 @@ import duration from 'dayjs/plugin/duration';
 import calendar from 'dayjs/plugin/calendar';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import weekOfYear from 'dayjs/plugin/weekOfYear';
+import quarterOfYear from 'dayjs/plugin/quarterOfYear';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import isBetween from 'dayjs/plugin/isBetween';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 import 'dayjs/locale/es'; // Spanish locale
 
@@ -19,8 +21,10 @@ dayjs.extend(duration);
 dayjs.extend(calendar);
 dayjs.extend(updateLocale);
 dayjs.extend(weekOfYear);
+dayjs.extend(quarterOfYear);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
+dayjs.extend(isBetween);
 dayjs.extend(customParseFormat);
 
 // Set default locale to Spanish
@@ -169,7 +173,7 @@ export const dateUtils = {
   getTimezone: () => dayjs.tz.guess(),
 
   // Duration
-  duration: (time: number, unit?: dayjs.DurationUnitType) => dayjs.duration(time, unit),
+  duration: (time: number, unit?: any) => dayjs.duration(time, unit),
   getDaysBetween: (start: dayjs.ConfigType, end: dayjs.ConfigType) => 
     dayjs(end).diff(dayjs(start), 'day'),
   getMonthsBetween: (start: dayjs.ConfigType, end: dayjs.ConfigType) => 

@@ -9,6 +9,7 @@ import {
   Transfer,
   User,
   RecurringRule,
+  CategoryKind,
 } from '@/types';
 
 // Dexie database schema
@@ -81,21 +82,21 @@ export class FinanceDB extends Dexie {
   private async seedDefaultCategories(): Promise<void> {
     const defaultCategories: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>[] = [
       // Income categories
-      { name: 'Salario', kind: 'INCOME', color: '#22c55e', icon: 'Banknote', parentId: undefined, active: true },
-      { name: 'Freelance', kind: 'INCOME', color: '#3b82f6', icon: 'Laptop', parentId: undefined, active: true },
-      { name: 'Inversiones', kind: 'INCOME', color: '#8b5cf6', icon: 'TrendingUp', parentId: undefined, active: true },
-      { name: 'Otros Ingresos', kind: 'INCOME', color: '#06b6d4', icon: 'Plus', parentId: undefined, active: true },
+      { name: 'Salario', kind: CategoryKind.INCOME, color: '#22c55e', icon: 'Banknote', parentId: undefined, active: true },
+      { name: 'Freelance', kind: CategoryKind.INCOME, color: '#3b82f6', icon: 'Laptop', parentId: undefined, active: true },
+      { name: 'Inversiones', kind: CategoryKind.INCOME, color: '#8b5cf6', icon: 'TrendingUp', parentId: undefined, active: true },
+      { name: 'Otros Ingresos', kind: CategoryKind.INCOME, color: '#06b6d4', icon: 'Plus', parentId: undefined, active: true },
 
       // Expense categories
-      { name: 'Alimentación', kind: 'EXPENSE', color: '#f59e0b', icon: 'UtensilsCrossed', parentId: undefined, active: true },
-      { name: 'Transporte', kind: 'EXPENSE', color: '#ef4444', icon: 'Car', parentId: undefined, active: true },
-      { name: 'Vivienda', kind: 'EXPENSE', color: '#8b5cf6', icon: 'Home', parentId: undefined, active: true },
-      { name: 'Servicios', kind: 'EXPENSE', color: '#06b6d4', icon: 'Zap', parentId: undefined, active: true },
-      { name: 'Entretenimiento', kind: 'EXPENSE', color: '#f97316', icon: 'Gamepad2', parentId: undefined, active: true },
-      { name: 'Salud', kind: 'EXPENSE', color: '#dc2626', icon: 'Heart', parentId: undefined, active: true },
-      { name: 'Educación', kind: 'EXPENSE', color: '#7c3aed', icon: 'GraduationCap', parentId: undefined, active: true },
-      { name: 'Compras', kind: 'EXPENSE', color: '#db2777', icon: 'ShoppingBag', parentId: undefined, active: true },
-      { name: 'Otros Gastos', kind: 'EXPENSE', color: '#6b7280', icon: 'MoreHorizontal', parentId: undefined, active: true },
+      { name: 'Alimentación', kind: CategoryKind.EXPENSE, color: '#f59e0b', icon: 'UtensilsCrossed', parentId: undefined, active: true },
+      { name: 'Transporte', kind: CategoryKind.EXPENSE, color: '#ef4444', icon: 'Car', parentId: undefined, active: true },
+      { name: 'Vivienda', kind: CategoryKind.EXPENSE, color: '#8b5cf6', icon: 'Home', parentId: undefined, active: true },
+      { name: 'Servicios', kind: CategoryKind.EXPENSE, color: '#06b6d4', icon: 'Zap', parentId: undefined, active: true },
+      { name: 'Entretenimiento', kind: CategoryKind.EXPENSE, color: '#f97316', icon: 'Gamepad2', parentId: undefined, active: true },
+      { name: 'Salud', kind: CategoryKind.EXPENSE, color: '#dc2626', icon: 'Heart', parentId: undefined, active: true },
+      { name: 'Educación', kind: CategoryKind.EXPENSE, color: '#7c3aed', icon: 'GraduationCap', parentId: undefined, active: true },
+      { name: 'Compras', kind: CategoryKind.EXPENSE, color: '#db2777', icon: 'ShoppingBag', parentId: undefined, active: true },
+      { name: 'Otros Gastos', kind: CategoryKind.EXPENSE, color: '#6b7280', icon: 'MoreHorizontal', parentId: undefined, active: true },
     ];
 
     const categoriesToInsert: Category[] = defaultCategories.map((cat, index) => ({

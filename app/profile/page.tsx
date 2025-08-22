@@ -92,7 +92,7 @@ function ProfileContent() {
               {!isEditing && (
                 <Button
                   onClick={() => setIsEditing(true)}
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                 >
                   Editar
@@ -207,7 +207,7 @@ function ProfileContent() {
                 <div className="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="secondary"
                     onClick={() => {
                       setIsEditing(false);
                       setMessage(null);

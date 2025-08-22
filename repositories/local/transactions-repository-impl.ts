@@ -162,7 +162,7 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     }
 
     if (filters.categoryIds?.length) {
-      query = query.filter(t => t.categoryId && filters.categoryIds!.includes(t.categoryId));
+      query = query.filter(t => t.categoryId ? filters.categoryIds!.includes(t.categoryId) : false);
     }
 
     if (filters.types?.length) {
@@ -192,14 +192,14 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
       query = query.filter(t =>
-        (t.description?.toLowerCase().includes(searchTerm)) ||
-        (t.note?.toLowerCase().includes(searchTerm))
+        (t.description?.toLowerCase().includes(searchTerm) || false) ||
+        (t.note?.toLowerCase().includes(searchTerm) || false)
       );
     }
 
     if (filters.tags?.length) {
       query = query.filter(t =>
-        t.tags?.some(tag => filters.tags!.includes(tag))
+        t.tags?.some(tag => filters.tags!.includes(tag)) || false
       );
     }
 

@@ -26,7 +26,7 @@ interface GoalFormProps {
 }
 
 // Mock accounts for the form
-const [] = [
+const mockAccounts = [
   { id: '1', name: 'Cuenta de Ahorros', type: 'BANK' },
   { id: '2', name: 'Efectivo', type: 'CASH' },
   { id: '3', name: 'Cuenta Corriente', type: 'BANK' },
@@ -99,7 +99,7 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
     onClose();
   };
 
-  const selectedAccount = [].find(acc => acc.id === watch('accountId'));
+  const selectedAccount = mockAccounts.find(acc => acc.id === watch('accountId'));
   const targetAmount = watch('targetBaseMinor');
 
   // Calculate estimated monthly savings needed
@@ -122,7 +122,7 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose}>
+    <Modal open={isOpen} onClose={handleClose}>
       <div className="bg-gray-900 rounded-lg shadow-xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
@@ -228,14 +228,15 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
               {...register('accountId')}
               error={errors.accountId?.message}
               className="w-full"
-            >
-              <option value="">Sin cuenta específica</option>
-              {[].map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.name} ({account.type})
-                </option>
-              ))}
-            </Select>
+              placeholder="Sin cuenta específica"
+              options={[
+                { value: "", label: "Sin cuenta específica" },
+                ...mockAccounts.map((account) => ({
+                  value: account.id,
+                  label: `${account.name} (${account.type})`
+                }))
+              ]}
+            />
             <p className="text-xs text-gray-500 mt-1">
               Opcional: Vincula tu meta a una cuenta específica
             </p>
@@ -252,21 +253,27 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
                   <span className="text-white font-medium">{formatCurrency(targetAmount / 100)}</span>
                 </div>
                 
+                {(() => {
+                  const targetDate = watch('targetDate');
+                  return targetDate && (
+                    <>
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">Fecha límite:</span>
+                        <span className="text-white">
+                          {new Date(targetDate).toLocaleDateString('es-ES')}
+                        </span>
+                      </div>
+                    </>
+                  );
+                })()}
+                    
                 {watch('targetDate') && (
-                  <>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Fecha límite:</span>
-                      <span className="text-white">
-                        {new Date(watch('targetDate')).toLocaleDateString('es-ES')}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Ahorro mensual sugerido:</span>
-                      <span className="text-blue-400 font-medium">
-                        {formatCurrency(getMonthlyTarget())}
-                      </span>
-                    </div>
-                  </>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Ahorro mensual sugerido:</span>
+                    <span className="text-blue-400 font-medium">
+                      {formatCurrency(getMonthlyTarget())}
+                    </span>
+                  </div>
                 )}
                 
                 {selectedAccount && (
@@ -283,7 +290,7 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               onClick={handleClose}
               disabled={isLoading}
             >

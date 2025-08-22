@@ -47,19 +47,14 @@ const actions = [
 export function QuickActions() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
-  const [selectedTransactionType, setSelectedTransactionType] = useState<TransactionType>('EXPENSE');
+  const [selectedTransactionType, setSelectedTransactionType] = useState<TransactionType>(TransactionType.EXPENSE);
 
   const handleActionClick = (action: typeof actions[0]) => {
-    console.log('Quick action clicked:', action.name, action.action);
     if (action.action === 'navigate' && action.route) {
-      console.log('Navigating to:', action.route);
       router.push(action.route);
     } else if (action.action === 'modal' && action.type) {
-      console.log('Opening modal for type:', action.type);
       setSelectedTransactionType(action.type);
       openModal();
-    } else {
-      console.log(`Action: ${action.name}`);
     }
   };
 

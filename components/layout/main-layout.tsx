@@ -10,6 +10,7 @@ import { TransactionForm } from '@/components/forms/transaction-form';
 import { useModal } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
+import { TransactionType } from '@/types';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -87,11 +88,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       {shouldShowFloatingButton && (
         <div className="fixed bottom-6 right-6 z-40">
           <button
-            onClick={() => {
-              console.log('Floating button clicked - navigating to /transactions/add');
-              alert('Button clicked! Navigating...');
-              window.location.href = '/transactions/add';
-            }}
+            onClick={() => window.location.href = '/transactions/add'}
             className="w-14 h-14 rounded-full shadow-2xl bg-red-600 hover:bg-red-700 text-white hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center"
             title="Agregar transacción"
             style={{ zIndex: 9999 }}
@@ -105,7 +102,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <TransactionForm
         isOpen={isModalOpen}
         onClose={closeModal}
-        type="EXPENSE"
+        type={TransactionType.EXPENSE}
       />
     </div>
   );

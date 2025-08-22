@@ -16,6 +16,7 @@ import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { BalancePreview } from './balance-preview';
 import type { Account } from '@/types/domain';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 
 
 
@@ -81,14 +82,12 @@ export function DesktopTransfer() {
     return <Wallet className="h-6 w-6 text-blue-500" />;
   };
 
-  const formatBalance = (balance: number, currencyCode: string) => {
-    if (currencyCode === 'BTC') {
-      return `${balance.toFixed(8)} ${currencyCode}`;
-    }
-    if (currencyCode === 'VES') {
-      return `Bs. ${balance.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
-    }
-    return `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${currencyCode}`;
+  const formatBalance = (balanceMinor: number, currencyCode: string) => {
+    // Use VES-aware formatting that handles minor units properly
+    return formatCurrencyWithBCV(balanceMinor, currencyCode, {
+      showUSDEquivalent: currencyCode === 'VES',
+      locale: 'es-ES'
+    });
   };
 
   const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
@@ -289,7 +288,7 @@ export function DesktopTransfer() {
                     />
                   </div>
                   <p className="text-sm text-text-muted">
-                    Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+                    Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                   </p>
                 </div>
 
@@ -335,7 +334,7 @@ export function DesktopTransfer() {
                     <span className="text-text-muted">Desde:</span>
                     <div className="text-right">
                       <p className="text-text-primary font-semibold">{getFromAccount()?.name}</p>
-                      <p className="text-sm text-text-muted">{getFromAccount()?.currency}</p>
+                      <p className="text-sm text-text-muted">{getFromAccount()?.currencyCode}</p>
                     </div>
                   </div>
                   
@@ -347,7 +346,7 @@ export function DesktopTransfer() {
                     <span className="text-text-muted">Hacia:</span>
                     <div className="text-right">
                       <p className="text-text-primary font-semibold">{getToAccount()?.name}</p>
-                      <p className="text-sm text-text-muted">{getToAccount()?.currency}</p>
+                      <p className="text-sm text-text-muted">{getToAccount()?.currencyCode}</p>
                     </div>
                   </div>
                 </div>
@@ -359,7 +358,7 @@ export function DesktopTransfer() {
                     <span className="text-2xl font-bold text-text-primary">${transferData.amount.toFixed(2)}</span>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm text-text-muted">{getFromAccount()?.currency}</p>
+                    <p className="text-sm text-text-muted">{getFromAccount()?.currencyCode}</p>
                   </div>
                 </div>
 
@@ -375,10 +374,10 @@ export function DesktopTransfer() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-text-muted">
-                          {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+                          {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                         </p>
                         <p className="font-bold text-red-400">
-                          → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currency, getFromAccount()!.currencyType) : '--'}
+                          → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currencyCode) : '--'}
                         </p>
                       </div>
                     </div>
@@ -391,10 +390,10 @@ export function DesktopTransfer() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-text-muted">
-                          {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currency, getToAccount()!.currencyType) : '--'}
+                          {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currencyCode) : '--'}
                         </p>
                         <p className="font-bold text-green-400">
-                          → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currency, getToAccount()!.currencyType) : '--'}
+                          → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currencyCode) : '--'}
                         </p>
                       </div>
                     </div>

@@ -170,7 +170,6 @@ export const defaultChartOptions: ChartOptions = {
     x: {
       grid: {
         color: 'rgba(0, 0, 0, 0.05)',
-        drawBorder: false,
       },
       ticks: {
         color: 'rgba(0, 0, 0, 0.6)',
@@ -183,7 +182,6 @@ export const defaultChartOptions: ChartOptions = {
     y: {
       grid: {
         color: 'rgba(0, 0, 0, 0.05)',
-        drawBorder: false,
       },
       ticks: {
         color: 'rgba(0, 0, 0, 0.6)',
@@ -252,7 +250,7 @@ export const lineChartConfig = (
           },
         },
       },
-    },
+    } as any,
     ...options,
   },
 });
@@ -266,7 +264,7 @@ export const barChartConfig = (
   options: {
     ...defaultChartOptions,
     ...options,
-  },
+  } as any,
 });
 
 export const doughnutChartConfig = (

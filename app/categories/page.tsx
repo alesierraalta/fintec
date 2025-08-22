@@ -1,11 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
+import { useAuth } from '@/hooks/use-auth';
+import { useRepository } from '@/providers/repository-provider';
+import type { Category } from '@/types';
 import { 
   Plus, 
   Filter,
@@ -16,16 +19,35 @@ import {
   TrendingDown
 } from 'lucide-react';
 
-// Categories will be loaded from Supabase database
-const mockCategories: any[] = [];
-
 export default function CategoriesPage() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { user } = useAuth();
+  const repository = useRepository();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load categories from database
+  useEffect(() => {
+    const loadCategories = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        const allCategories = await repository.categories.findAll();
+        setCategories(allCategories);
+      } catch (error) {
+        console.error('Error loading categories:', error);
+        setCategories([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadCategories();
+  }, [user, repository]);
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -50,13 +72,28 @@ export default function CategoriesPage() {
     // Aquí implementarías la lógica de eliminación
   };
 
+  const handleCategorySaved = () => {
+    closeModal();
+    // Reload categories after creating/updating
+    const loadCategories = async () => {
+      if (!user) return;
+      try {
+        const allCategories = await repository.categories.findAll();
+        setCategories(allCategories);
+      } catch (error) {
+        console.error('Error reloading categories:', error);
+      }
+    };
+    loadCategories();
+  };
+
   const handleViewCategory = (categoryId: string) => {
     console.log('View category:', categoryId);
     // Aquí podrías navegar a una vista detallada
   };
 
   // Filter categories
-  const filteredCategories = mockCategories.filter(category => {
+  const filteredCategories = categories.filter(category => {
     const matchesFilter = filter === 'all' || 
       (filter === 'income' && category.kind === 'INCOME') ||
       (filter === 'expense' && category.kind === 'EXPENSE');
@@ -66,11 +103,9 @@ export default function CategoriesPage() {
     return matchesFilter && matchesSearch;
   });
 
-  // Calculate statistics
-  const incomeCategories = mockCategories.filter(c => c.kind === 'INCOME');
-  const expenseCategories = mockCategories.filter(c => c.kind === 'EXPENSE');
-  const totalIncome = incomeCategories.reduce((sum, c) => sum + c.totalAmount, 0);
-  const totalExpense = expenseCategories.reduce((sum, c) => sum + c.totalAmount, 0);
+  // Calculate statistics (optimized with minimal code)
+  const incomeCategories = categories.filter(c => c.kind === 'INCOME');
+  const expenseCategories = categories.filter(c => c.kind === 'EXPENSE');
 
   return (
     <MainLayout>
@@ -122,7 +157,7 @@ export default function CategoriesPage() {
             </div>
             <p className="text-2xl font-bold text-white">{incomeCategories.length}</p>
             <p className="text-sm text-green-400 mt-1">
-              ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })} total
+              Activas
             </p>
           </div>
           
@@ -133,7 +168,7 @@ export default function CategoriesPage() {
             </div>
             <p className="text-2xl font-bold text-white">{expenseCategories.length}</p>
             <p className="text-sm text-red-400 mt-1">
-              ${totalExpense.toLocaleString('en-US', { minimumFractionDigits: 2 })} total
+              Activas
             </p>
           </div>
           
@@ -142,9 +177,9 @@ export default function CategoriesPage() {
               <Filter className="h-5 w-5 text-blue-400" />
               <h3 className="text-sm font-medium text-gray-400">Total Categorías</h3>
             </div>
-            <p className="text-2xl font-bold text-white">{mockCategories.length}</p>
+            <p className="text-2xl font-bold text-white">{categories.length}</p>
             <p className="text-sm text-gray-400 mt-1">
-              {mockCategories.reduce((sum, c) => sum + (c.subcategories?.length || 0), 0)} subcategorías
+              Disponibles
             </p>
           </div>
         </div>
@@ -174,7 +209,7 @@ export default function CategoriesPage() {
                     : 'bg-gray-800 text-gray-400 hover:text-white'
                 }`}
               >
-                Todas ({mockCategories.length})
+                Todas ({categories.length})
               </button>
               <button
                 onClick={() => setFilter('income')}
@@ -200,23 +235,31 @@ export default function CategoriesPage() {
           </div>
         </div>
 
-        {/* Categories Grid/List */}
-        <div className={
-          viewMode === 'grid' 
-            ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-            : 'space-y-4'
-        }>
-          {filteredCategories.map((category) => (
-            <CategoryCard
-              key={category.id}
-              category={category}
-              onEdit={handleEditCategory}
-              onDelete={handleDeleteCategory}
-              onView={handleViewCategory}
-              onAddSubcategory={handleAddSubcategory}
-            />
-          ))}
-        </div>
+        {/* Loading state */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <p className="text-gray-400">Cargando categorías...</p>
+          </div>
+        ) : (
+          /* Categories Grid/List */
+          <div className={
+            viewMode === 'grid' 
+              ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+              : 'space-y-4'
+          }>
+            {filteredCategories.map((category) => (
+              <CategoryCard
+                key={category.id}
+                category={category}
+                onEdit={handleEditCategory}
+                onDelete={handleDeleteCategory}
+                onView={handleViewCategory}
+                onAddSubcategory={handleAddSubcategory}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Empty state */}
         {filteredCategories.length === 0 && (
@@ -247,7 +290,7 @@ export default function CategoriesPage() {
 
       <CategoryForm
         isOpen={isOpen}
-        onClose={closeModal}
+        onClose={handleCategorySaved}
         category={selectedCategory}
         parentCategoryId={parentCategoryId}
       />

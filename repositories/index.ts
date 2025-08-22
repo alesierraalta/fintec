@@ -14,12 +14,13 @@ import { SupabaseAppRepository } from './supabase';
 
 export type RepositoryType = 'local' | 'supabase';
 
-export function createRepository(type: RepositoryType = 'supabase'): AppRepository {
+export function createRepository(type: RepositoryType = 'local'): AppRepository {
   switch (type) {
     case 'local':
       return new LocalAppRepository();
     case 'supabase':
-      return new SupabaseAppRepository();
+      // TODO: Complete Supabase implementation
+      throw new Error('Supabase repository implementation is not complete yet');
     default:
       throw new Error(`Unknown repository type: ${type}`);
   }
@@ -30,8 +31,8 @@ let repositoryInstance: AppRepository | null = null;
 
 export function getRepository(): AppRepository {
   if (!repositoryInstance) {
-    // Using Supabase as the default repository
-    repositoryInstance = createRepository('supabase');
+    // Using Local as the default repository while Supabase is being implemented
+    repositoryInstance = createRepository('local');
   }
   return repositoryInstance;
 }

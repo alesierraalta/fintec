@@ -41,11 +41,13 @@ export function fromMinorUnits(amountMinor: number, decimals = 2): number {
 export function formatDate(date: string | Date, format: 'short' | 'medium' | 'long' = 'medium'): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  const options: Intl.DateTimeFormatOptions = {
-    short: { day: '2-digit', month: '2-digit', year: 'numeric' },
-    medium: { day: '2-digit', month: 'short', year: 'numeric' },
-    long: { day: '2-digit', month: 'long', year: 'numeric' },
-  }[format];
+  const formatOptions = {
+    short: { day: '2-digit', month: '2-digit', year: 'numeric' } as const,
+    medium: { day: '2-digit', month: 'short', year: 'numeric' } as const,
+    long: { day: '2-digit', month: 'long', year: 'numeric' } as const,
+  };
+  
+  const options: Intl.DateTimeFormatOptions = formatOptions[format];
 
   return new Intl.DateTimeFormat('es-ES', options).format(dateObj);
 }

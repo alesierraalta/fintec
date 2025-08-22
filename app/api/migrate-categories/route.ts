@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabase } from '@/repositories/supabase/client';
 
 // Default categories from the transaction forms
 const defaultCategories = {

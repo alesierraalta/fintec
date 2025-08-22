@@ -1,10 +1,14 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { StatCard } from './stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { SpendingChart } from './spending-chart';
 import { AccountsOverview } from './accounts-overview';
+import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
+import { fromMinorUnits } from '@/lib/money';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -16,6 +20,53 @@ import {
 } from 'lucide-react';
 
 export function DesktopDashboard() {
+  const repository = useRepository();
+  const { user } = useAuth();
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(0);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      try {
+        // Cargar balance total
+        const accounts = await repository.accounts.findByUserId(user.id);
+        const total = accounts.reduce((sum, acc) => {
+          const balanceMinor = Number(acc.balance) || 0;
+          const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+          return sum + balanceMajor;
+        }, 0);
+        setTotalBalance(total);
+
+        // Cargar transacciones del mes
+        const transactions = await repository.transactions.findAll();
+        const thisMonth = new Date().getMonth();
+        const thisYear = new Date().getFullYear();
+        
+        const monthTransactions = transactions.filter(t => {
+          const date = new Date(t.date);
+          return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
+        });
+
+        const income = monthTransactions
+          .filter(t => t.type === 'INCOME')
+          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+        
+        const expenses = monthTransactions
+          .filter(t => t.type === 'EXPENSE')
+          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+
+        setMonthlyIncome(income);
+        setMonthlyExpenses(expenses);
+      } catch (error) {
+        setTotalBalance(0);
+        setMonthlyIncome(0);
+        setMonthlyExpenses(0);
+      }
+    };
+    loadData();
+  }, [user, repository]);
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Welcome Header - More casual and friendly */}
@@ -36,7 +87,7 @@ export function DesktopDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tutorial="stats-grid">
         <StatCard
           title="💰 Dinero Total"
-          value="$0.00"
+          value={`$${totalBalance.toFixed(2)}`}
           change="0%"
           changeType="positive"
           icon={Sparkles}
@@ -44,7 +95,7 @@ export function DesktopDashboard() {
         />
         <StatCard
           title="📈 Este Mes"
-          value="$0.00"
+          value={`$${monthlyIncome.toFixed(2)}`}
           change="0%"
           changeType="positive"
           icon={TrendingUp}
@@ -52,7 +103,7 @@ export function DesktopDashboard() {
         />
         <StatCard
           title="📉 Gastos"
-          value="$0.00"
+          value={`$${monthlyExpenses.toFixed(2)}`}
           change="0%"
           changeType="positive"
           icon={TrendingDown}

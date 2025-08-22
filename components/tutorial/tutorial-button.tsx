@@ -111,7 +111,7 @@ export function TutorialButton({ tutorial, variant = 'floating', className = '' 
   return (
     <Button
       onClick={handleStart}
-      variant="outline"
+      variant="secondary"
       size="sm"
       className={`text-accent-primary border-accent-primary/20 hover:bg-accent-primary/10 hover:border-accent-primary/40 ${className}`}
     >

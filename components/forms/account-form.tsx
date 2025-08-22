@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { AccountType, Account } from '@/types';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
+import { Money, toMinorUnits, fromMinorUnits, CURRENCIES } from '@/lib/money';
 import { 
   Wallet, 
   CreditCard, 
@@ -79,11 +80,30 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
     name: account?.name || '',
     type: account?.type || 'BANK',
     currencyCode: account?.currencyCode || 'USD',
-    balance: account?.balance?.toString() || '',
+    balance: account?.balance ? fromMinorUnits(account.balance, account.currencyCode || 'USD').toString() : '',
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Update form data when account prop changes
+  useEffect(() => {
+    if (account) {
+      setFormData({
+        name: account.name || '',
+        type: account.type || 'BANK',
+        currencyCode: account.currencyCode || 'USD',
+        balance: account.balance ? fromMinorUnits(account.balance, account.currencyCode || 'USD').toString() : '',
+      });
+    } else {
+      setFormData({
+        name: '',
+        type: 'BANK',
+        currencyCode: 'USD',
+        balance: '',
+      });
+    }
+  }, [account]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,11 +121,15 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
         throw new Error('El nombre de la cuenta es requerido');
       }
 
+      // Convert balance from decimal to minor units (cents)
+      const balanceDecimal = parseFloat(formData.balance) || 0;
+      const balanceMinor = toMinorUnits(balanceDecimal, formData.currencyCode);
+
       const accountData = {
         name: formData.name.trim(),
         type: formData.type as AccountType,
         currencyCode: formData.currencyCode,
-        balance: parseFloat(formData.balance) || 0,
+        balance: balanceMinor,
         active: true,
         userId: user.id,
         createdAt: new Date().toISOString(),
@@ -114,7 +138,8 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
 
       if (account) {
         // Update existing account
-        await repository.accounts.update(account.id, accountData);
+        const updateData = { ...accountData, id: account.id };
+        await repository.accounts.update(account.id, updateData);
         console.log('Account updated successfully');
       } else {
         // Create new account
@@ -225,7 +250,7 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
             placeholder="0.00"
             value={formData.balance}
             onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<span className="text-gray-400 text-sm">{CURRENCIES[formData.currencyCode]?.symbol || formData.currencyCode}</span>}
           />
           <p className="text-xs text-gray-500 mt-1">
             Ingresa el balance actual de esta cuenta (opcional)
@@ -243,7 +268,7 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
               </p>
               <p className="text-sm text-gray-400">
                 {selectedType?.label} • {formData.currencyCode}
-                {formData.balance && ` • $${formData.balance}`}
+                {formData.balance && ` • ${CURRENCIES[formData.currencyCode]?.symbol || formData.currencyCode}${parseFloat(formData.balance).toFixed(2)}`}
               </p>
             </div>
           </div>

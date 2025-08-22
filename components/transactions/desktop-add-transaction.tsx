@@ -69,6 +69,7 @@ export function DesktopAddTransaction() {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [error, setError] = useState<string>('');
   const [formData, setFormData] = useState({
     type: '' as TransactionType | '',
     accountId: '',
@@ -121,7 +122,11 @@ export function DesktopAddTransaction() {
 
   // Helper function to get categories by type
   const getCategoriesByType = (type: TransactionType) => {
-    return categories.filter(cat => cat.kind === type);
+    // Map TransactionType to CategoryKind
+    if (type === 'INCOME') return categories.filter(cat => cat.kind === 'INCOME');
+    if (type === 'EXPENSE') return categories.filter(cat => cat.kind === 'EXPENSE');
+    // TRANSFER types can use either category kind
+    return categories;
   };
 
   // Initialize date on client side
@@ -161,7 +166,7 @@ export function DesktopAddTransaction() {
     // Validate required fields
     if (!formData.type) {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Campo requerido',
         message: 'Por favor selecciona un tipo de transacción'
@@ -170,7 +175,7 @@ export function DesktopAddTransaction() {
     }
     if (!formData.accountId) {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Campo requerido',
         message: 'Por favor selecciona una cuenta'
@@ -179,7 +184,7 @@ export function DesktopAddTransaction() {
     }
     if (!formData.categoryId) {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Campo requerido',
         message: 'Por favor selecciona una categoría'
@@ -188,7 +193,7 @@ export function DesktopAddTransaction() {
     }
     if (!formData.amount || formData.amount.trim() === '') {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Campo requerido',
         message: 'Por favor ingresa un monto'
@@ -199,7 +204,7 @@ export function DesktopAddTransaction() {
     const amount = parseFloat(formData.amount.replace(/[,$]/g, ''));
     if (isNaN(amount) || amount <= 0) {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Monto inválido',
         message: 'Por favor ingresa un monto válido mayor a 0'
@@ -209,7 +214,7 @@ export function DesktopAddTransaction() {
     
     if (!formData.description || formData.description.trim() === '') {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Campo requerido',
         message: 'Por favor ingresa una descripción'
@@ -219,7 +224,7 @@ export function DesktopAddTransaction() {
 
     if (!user) {
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Error de autenticación',
         message: 'Usuario no autenticado'
@@ -254,7 +259,7 @@ export function DesktopAddTransaction() {
       
       // Success notification
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'success',
         title: '¡Transacción creada!',
         message: `Transacción de ${currencyCode === 'VES' ? 'Bs.' : '$'}${amount.toLocaleString()} guardada exitosamente`
@@ -268,7 +273,7 @@ export function DesktopAddTransaction() {
         });
         
         addNotification({
-          id: (Date.now() + 1).toString(),
+          read: false,
           type: 'info',
           title: 'Transacción recurrente',
           message: `Se repetirá cada ${
@@ -302,7 +307,7 @@ export function DesktopAddTransaction() {
       }
       
       addNotification({
-        id: Date.now().toString(),
+        read: false,
         type: 'error',
         title: 'Error al guardar',
         message: errorMessage
@@ -425,10 +430,10 @@ export function DesktopAddTransaction() {
                             isSelected ? 'bg-white/20' : 'bg-white/10'
                           }`}>
                             <span className="text-xl">
-                              {account.type === 'BANK' ? '🏦' : 
-                               account.type === 'CREDIT_CARD' ? '💳' : 
-                               account.type === 'CASH' ? '💵' : 
-                               account.type === 'INVESTMENT' ? '📈' : '💰'}
+                                                             {account.type === 'BANK' ? '🏦' :
+                                account.type === 'CARD' ? '💳' :
+                                account.type === 'CASH' ? '💵' :
+                                account.type === 'INVESTMENT' ? '📈' : '💰'}
                             </span>
                           </div>
                           <div className="text-left flex-1">

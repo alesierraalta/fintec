@@ -13,7 +13,8 @@ import {
   ArrowUpDown,
   Calculator
 } from 'lucide-react';
-import { currencyService, BCVRates } from '@/lib/services/currency-service';
+import { currencyService } from '@/lib/services/currency-service';
+import type { BCVRates } from '@/lib/services/currency-service';
 import { BCVTrend } from '@/lib/services/bcv-history-service';
 
 export function BCVRates() {

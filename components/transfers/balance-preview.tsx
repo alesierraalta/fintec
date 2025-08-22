@@ -7,16 +7,14 @@ interface Account {
   id: string;
   name: string;
   balance: number;
-  currency: string;
-  currencyType: 'fiat' | 'crypto';
-  icon: string;
+  currencyCode: string;
 }
 
 interface BalancePreviewProps {
   fromAccount: Account;
   toAccount: Account;
   transferAmount: number;
-  formatBalance: (balance: number, currency: string, currencyType: 'fiat' | 'crypto') => string;
+  formatBalance: (balanceMinor: number, currencyCode: string) => string;
   isMobile?: boolean;
   size?: 'default' | 'compact';
 }
@@ -29,8 +27,8 @@ export function BalancePreview({
   isMobile = false,
   size = 'default'
 }: BalancePreviewProps) {
-  const getAccountIcon = (iconName: string, currencyType: 'fiat' | 'crypto') => {
-    if (iconName === 'bitcoin' || currencyType === 'crypto') {
+  const getAccountIcon = (currencyCode: string) => {
+    if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
       return <Bitcoin className="h-5 w-5 text-orange-500" />;
     }
     return <Wallet className="h-5 w-5 text-blue-500" />;
@@ -63,7 +61,7 @@ export function BalancePreview({
               : 'bg-background-secondary border-border-secondary'
           }`}>
             <div className="flex items-center space-x-2 mb-2">
-              {getAccountIcon(fromAccount.icon, fromAccount.currencyType)}
+              {getAccountIcon(fromAccount.currencyCode)}
               <div>
                 <p className="font-medium text-text-primary text-xs">{fromAccount.name}</p>
                 <p className="text-xs text-text-muted">Origen</p>
@@ -72,12 +70,12 @@ export function BalancePreview({
             
             <div className="space-y-1">
               <p className="text-xs text-text-muted">
-                {formatBalance(fromAccount.balance, fromAccount.currency, fromAccount.currencyType)}
+                {formatBalance(fromAccount.balance, fromAccount.currencyCode)}
               </p>
               <div className="flex items-center space-x-1">
                 <ArrowRight className="h-3 w-3 text-text-muted" />
                 <p className={`text-xs font-bold ${hasInsufficientFunds && transferAmount > 0 ? 'text-red-400' : 'text-orange-400'}`}>
-                  {formatBalance(newFromBalance, fromAccount.currency, fromAccount.currencyType)}
+                  {formatBalance(newFromBalance, fromAccount.currencyCode)}
                 </p>
               </div>
             </div>
@@ -86,7 +84,7 @@ export function BalancePreview({
           {/* To Account - Compact */}
           <div className="p-3 rounded-lg border bg-green-500/10 border-green-500/20">
             <div className="flex items-center space-x-2 mb-2">
-              {getAccountIcon(toAccount.icon, toAccount.currencyType)}
+              {getAccountIcon(toAccount.currencyCode)}
               <div>
                 <p className="font-medium text-text-primary text-xs">{toAccount.name}</p>
                 <p className="text-xs text-text-muted">Destino</p>
@@ -95,12 +93,12 @@ export function BalancePreview({
             
             <div className="space-y-1">
               <p className="text-xs text-text-muted">
-                {formatBalance(toAccount.balance, toAccount.currency, toAccount.currencyType)}
+                {formatBalance(toAccount.balance, toAccount.currencyCode)}
               </p>
               <div className="flex items-center space-x-1">
                 <ArrowRight className="h-3 w-3 text-text-muted" />
                 <p className="text-xs font-bold text-green-400">
-                  {formatBalance(newToBalance, toAccount.currency, toAccount.currencyType)}
+                  {formatBalance(newToBalance, toAccount.currencyCode)}
                 </p>
               </div>
             </div>
@@ -133,7 +131,7 @@ export function BalancePreview({
           }`}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
-                {getAccountIcon(fromAccount.icon, fromAccount.currencyType)}
+                {getAccountIcon(fromAccount.currencyCode)}
                 <div>
                   <p className="font-medium text-text-primary text-sm">{fromAccount.name}</p>
                   <p className="text-xs text-text-muted">Cuenta origen</p>
@@ -145,7 +143,7 @@ export function BalancePreview({
               <div className="text-left">
                 <p className="text-sm text-text-muted">Actual</p>
                 <p className="font-semibold text-text-primary">
-                  {formatBalance(fromAccount.balance, fromAccount.currency, fromAccount.currencyType)}
+                  {formatBalance(fromAccount.balance, fromAccount.currencyCode)}
                 </p>
               </div>
               
@@ -154,7 +152,7 @@ export function BalancePreview({
               <div className="text-right">
                 <p className="text-sm text-text-muted">Después</p>
                 <p className={`font-bold ${hasInsufficientFunds && transferAmount > 0 ? 'text-red-400' : 'text-orange-400'}`}>
-                  {formatBalance(newFromBalance, fromAccount.currency, fromAccount.currencyType)}
+                  {formatBalance(newFromBalance, fromAccount.currencyCode)}
                 </p>
               </div>
             </div>
@@ -164,7 +162,7 @@ export function BalancePreview({
           <div className="p-4 rounded-xl border-2 bg-green-500/5 border-green-500/20">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
-                {getAccountIcon(toAccount.icon, toAccount.currencyType)}
+                {getAccountIcon(toAccount.currencyCode)}
                 <div>
                   <p className="font-medium text-text-primary text-sm">{toAccount.name}</p>
                   <p className="text-xs text-text-muted">Cuenta destino</p>
@@ -176,7 +174,7 @@ export function BalancePreview({
               <div className="text-left">
                 <p className="text-sm text-text-muted">Actual</p>
                 <p className="font-semibold text-text-primary">
-                  {formatBalance(toAccount.balance, toAccount.currency, toAccount.currencyType)}
+                  {formatBalance(toAccount.balance, toAccount.currencyCode)}
                 </p>
               </div>
               
@@ -185,7 +183,7 @@ export function BalancePreview({
               <div className="text-right">
                 <p className="text-sm text-text-muted">Después</p>
                 <p className="font-bold text-green-400">
-                  {formatBalance(newToBalance, toAccount.currency, toAccount.currencyType)}
+                  {formatBalance(newToBalance, toAccount.currencyCode)}
                 </p>
               </div>
             </div>
@@ -217,7 +215,7 @@ export function BalancePreview({
             : 'bg-background-secondary border-border-secondary'
         }`}>
           <div className="flex items-center space-x-4 mb-6">
-            {getAccountIcon(fromAccount.icon, fromAccount.currencyType)}
+            {getAccountIcon(fromAccount.currencyCode)}
             <div>
               <p className="font-semibold text-text-primary text-lg">{fromAccount.name}</p>
               <p className="text-text-muted">Cuenta origen</p>
@@ -228,7 +226,7 @@ export function BalancePreview({
             <div className="text-center">
               <p className="text-text-muted mb-2">Saldo actual</p>
               <p className="text-2xl font-bold text-text-primary">
-                {formatBalance(fromAccount.balance, fromAccount.currency, fromAccount.currencyType)}
+                {formatBalance(fromAccount.balance, fromAccount.currencyCode)}
               </p>
             </div>
             
@@ -239,7 +237,7 @@ export function BalancePreview({
             <div className="text-center">
               <p className="text-text-muted mb-2">Saldo después</p>
               <p className={`text-2xl font-bold ${hasInsufficientFunds && transferAmount > 0 ? 'text-red-400' : 'text-orange-400'}`}>
-                {formatBalance(newFromBalance, fromAccount.currency, fromAccount.currencyType)}
+                {formatBalance(newFromBalance, fromAccount.currencyCode)}
               </p>
             </div>
           </div>
@@ -248,7 +246,7 @@ export function BalancePreview({
         {/* To Account */}
         <div className="p-6 rounded-2xl border-2 bg-green-500/10 border-green-500/20">
           <div className="flex items-center space-x-4 mb-6">
-            {getAccountIcon(toAccount.icon, toAccount.currencyType)}
+            {getAccountIcon(toAccount.currencyCode)}
             <div>
               <p className="font-semibold text-text-primary text-lg">{toAccount.name}</p>
               <p className="text-text-muted">Cuenta destino</p>
@@ -259,7 +257,7 @@ export function BalancePreview({
             <div className="text-center">
               <p className="text-text-muted mb-2">Saldo actual</p>
               <p className="text-2xl font-bold text-text-primary">
-                {formatBalance(toAccount.balance, toAccount.currency, toAccount.currencyType)}
+                {formatBalance(toAccount.balance, toAccount.currencyCode)}
               </p>
             </div>
             
@@ -270,7 +268,7 @@ export function BalancePreview({
             <div className="text-center">
               <p className="text-text-muted mb-2">Saldo después</p>
               <p className="text-2xl font-bold text-green-400">
-                {formatBalance(newToBalance, toAccount.currency, toAccount.currencyType)}
+                {formatBalance(newToBalance, toAccount.currencyCode)}
               </p>
             </div>
           </div>
