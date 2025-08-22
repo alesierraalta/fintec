@@ -19,89 +19,9 @@ import {
 } from 'lucide-react';
 import type { SavingsGoal } from '@/types';
 
-// Mock goals data
-const mockGoals: SavingsGoal[] = [
-  {
-    id: '1',
-    name: 'Casa Nueva',
-    description: 'Ahorrar para el enganche de una casa',
-    targetBaseMinor: 5000000, // $50,000.00
-    currentBaseMinor: 1250000, // $12,500.00
-    targetDate: '2025-12-31',
-    accountId: '1',
-    active: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-12-01T00:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Fondo de Emergencia',
-    description: 'Equivalente a 6 meses de gastos',
-    targetBaseMinor: 3000000, // $30,000.00
-    currentBaseMinor: 2700000, // $27,000.00
-    targetDate: '2024-12-31',
-    accountId: '1',
-    active: true,
-    createdAt: '2024-01-01T00:00:00Z',
-    updatedAt: '2024-12-01T00:00:00Z',
-  },
-  {
-    id: '3',
-    name: 'Vacaciones Europa',
-    description: 'Viaje de 2 semanas por Europa',
-    targetBaseMinor: 800000, // $8,000.00
-    currentBaseMinor: 320000, // $3,200.00
-    targetDate: '2025-06-15',
-    accountId: '2',
-    active: true,
-    createdAt: '2024-03-01T00:00:00Z',
-    updatedAt: '2024-12-01T00:00:00Z',
-  },
-  {
-    id: '4',
-    name: 'Auto Nuevo',
-    description: 'Reemplazar el auto actual',
-    targetBaseMinor: 2500000, // $25,000.00
-    currentBaseMinor: 450000, // $4,500.00
-    targetDate: '2025-08-01',
-    accountId: '3',
-    active: true,
-    createdAt: '2024-02-01T00:00:00Z',
-    updatedAt: '2024-12-01T00:00:00Z',
-  },
-  {
-    id: '5',
-    name: 'Laptop Nueva',
-    description: 'MacBook Pro para trabajo',
-    targetBaseMinor: 300000, // $3,000.00
-    currentBaseMinor: 300000, // $3,000.00
-    targetDate: '2024-11-30',
-    accountId: '2',
-    active: true,
-    createdAt: '2024-09-01T00:00:00Z',
-    updatedAt: '2024-11-30T00:00:00Z',
-  },
-  {
-    id: '6',
-    name: 'Curso de Especialización',
-    description: 'MBA en finanzas',
-    targetBaseMinor: 1500000, // $15,000.00
-    currentBaseMinor: 200000, // $2,000.00
-    targetDate: '2026-01-15',
-    accountId: '4',
-    active: true,
-    createdAt: '2024-06-01T00:00:00Z',
-    updatedAt: '2024-12-01T00:00:00Z',
-  },
-];
-
-// Mock accounts for display
-const mockAccounts = [
-  { id: '1', name: 'Cuenta de Ahorros', type: 'BANK' },
-  { id: '2', name: 'Efectivo', type: 'CASH' },
-  { id: '3', name: 'Cuenta Corriente', type: 'BANK' },
-  { id: '4', name: 'Inversiones', type: 'INVESTMENT' },
-];
+// Goals and accounts will be loaded from Supabase database
+const mockGoals: SavingsGoal[] = [];
+const []: any[] = [];
 
 export default function GoalsPage() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -374,7 +294,7 @@ export default function GoalsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredGoals.map((goal) => {
-                const account = mockAccounts.find(acc => acc.id === goal.accountId);
+                const account = [].find(acc => acc.id === goal.accountId);
                 return (
                   <GoalCard
                     key={goal.id}

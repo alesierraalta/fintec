@@ -26,7 +26,7 @@ interface GoalFormProps {
 }
 
 // Mock accounts for the form
-const mockAccounts = [
+const [] = [
   { id: '1', name: 'Cuenta de Ahorros', type: 'BANK' },
   { id: '2', name: 'Efectivo', type: 'CASH' },
   { id: '3', name: 'Cuenta Corriente', type: 'BANK' },
@@ -99,7 +99,7 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
     onClose();
   };
 
-  const selectedAccount = mockAccounts.find(acc => acc.id === watch('accountId'));
+  const selectedAccount = [].find(acc => acc.id === watch('accountId'));
   const targetAmount = watch('targetBaseMinor');
 
   // Calculate estimated monthly savings needed
@@ -230,7 +230,7 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
               className="w-full"
             >
               <option value="">Sin cuenta específica</option>
-              {mockAccounts.map((account) => (
+              {[].map((account) => (
                 <option key={account.id} value={account.id}>
                   {account.name} ({account.type})
                 </option>

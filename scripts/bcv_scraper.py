@@ -42,7 +42,7 @@ def scrape_bcv_rates():
         page_text = soup.get_text()
         
         # Look for numeric patterns that could be exchange rates (wider range now)
-        # Updated patterns to catch larger numbers like 135.6399
+        # Updated patterns to catch larger numbers with decimals like 162.53 or 135,6399
         numeric_patterns = re.findall(r'\d{1,3}[,.]?\d{1,8}', page_text)
         potential_rates = []
         for pattern in numeric_patterns:
@@ -53,9 +53,10 @@ def scrape_bcv_rates():
             except ValueError:
                 continue
         
-        # Look for specific patterns like "USD:135.6399" or "EUR:158.05574987"
-        usd_pattern = re.search(r'USD[:\s]*([0-9]+\.?[0-9]*)', page_text, re.I)
-        eur_pattern = re.search(r'EUR[:\s]*([0-9]+\.?[0-9]*)', page_text, re.I)
+        # Look for specific patterns like "USD:135.6399" or "EUR:162.53"
+        # More comprehensive patterns to capture decimals
+        usd_pattern = re.search(r'USD[:\s]*([0-9]+[,.]?[0-9]{1,4})', page_text, re.I)
+        eur_pattern = re.search(r'EUR[:\s]*([0-9]+[,.]?[0-9]{1,4})', page_text, re.I)
         
         # Try different selectors and patterns to find exchange rates
         rates = {}
@@ -67,24 +68,24 @@ def scrape_bcv_rates():
             parent = element.parent or element
             text = parent.get_text()
             
-            # Look for USD rate
-            usd_match = re.search(r'(?:USD|Dólar)[^\d]*(\d{1,3}(?:[,.]?\d{1,3})*(?:[,.]?\d{2})?)', text, re.I)
+            # Look for USD rate with better decimal capture
+            usd_match = re.search(r'(?:USD|Dólar)[^\d]*(\d{1,3}[,.]?\d{1,4})', text, re.I)
             if usd_match and 'usd' not in rates:
                 rate_str = usd_match.group(1).replace(',', '.')
                 try:
                     rate = float(rate_str)
-                    if 10 <= rate <= 100:  # Reasonable range for USD/VES
+                    if 100 <= rate <= 200:  # Updated range for current USD/VES
                         rates['usd'] = rate
                 except ValueError:
                     pass
             
-            # Look for EUR rate
-            eur_match = re.search(r'(?:EUR|Euro)[^\d]*(\d{1,3}(?:[,.]?\d{1,3})*(?:[,.]?\d{2})?)', text, re.I)
+            # Look for EUR rate with better decimal capture
+            eur_match = re.search(r'(?:EUR|Euro)[^\d]*(\d{1,3}[,.]?\d{1,4})', text, re.I)
             if eur_match and 'eur' not in rates:
                 rate_str = eur_match.group(1).replace(',', '.')
                 try:
                     rate = float(rate_str)
-                    if 10 <= rate <= 100:  # Reasonable range for EUR/VES
+                    if 150 <= rate <= 200:  # Updated range for current EUR/VES
                         rates['eur'] = rate
                 except ValueError:
                     pass
@@ -100,24 +101,24 @@ def scrape_bcv_rates():
                         cell_text = cell.get_text().strip()
                         if re.search(r'USD|Dólar', cell_text, re.I) and i + 1 < len(cells):
                             next_cell = cells[i + 1].get_text().strip()
-                            rate_match = re.search(r'(\d{1,3}(?:[,.]?\d{1,3})*(?:[,.]?\d{2})?)', next_cell)
+                            rate_match = re.search(r'(\d{1,3}[,.]?\d{1,4})', next_cell)
                             if rate_match and 'usd' not in rates:
                                 rate_str = rate_match.group(1).replace(',', '.')
                                 try:
                                     rate = float(rate_str)
-                                    if 10 <= rate <= 100:
+                                    if 100 <= rate <= 200:  # Updated range
                                         rates['usd'] = rate
                                 except ValueError:
                                     pass
                         
                         elif re.search(r'EUR|Euro', cell_text, re.I) and i + 1 < len(cells):
                             next_cell = cells[i + 1].get_text().strip()
-                            rate_match = re.search(r'(\d{1,3}(?:[,.]?\d{1,3})*(?:[,.]?\d{2})?)', next_cell)
+                            rate_match = re.search(r'(\d{1,3}[,.]?\d{1,4})', next_cell)
                             if rate_match and 'eur' not in rates:
                                 rate_str = rate_match.group(1).replace(',', '.')
                                 try:
                                     rate = float(rate_str)
-                                    if 10 <= rate <= 100:
+                                    if 150 <= rate <= 200:  # Updated range
                                         rates['eur'] = rate
                                 except ValueError:
                                     pass
@@ -126,13 +127,13 @@ def scrape_bcv_rates():
         if not rates:
             page_text = soup.get_text()
             
-            # More aggressive search patterns
+            # More aggressive search patterns with better decimal support
             usd_patterns = [
-                r'USD[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'Dólar[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'US\$[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'(\d{1,2}[,.]?\d{2})[^\d]*USD',
-                r'(\d{1,2}[,.]?\d{2})[^\d]*Dólar'
+                r'USD[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'Dólar[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'US\$[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'(\d{2,3}[,.]?\d{1,4})[^\d]*USD',
+                r'(\d{2,3}[,.]?\d{1,4})[^\d]*Dólar'
             ]
             
             for pattern in usd_patterns:
@@ -141,18 +142,18 @@ def scrape_bcv_rates():
                     rate_str = match.group(1).replace(',', '.')
                     try:
                         rate = float(rate_str)
-                        if 10 <= rate <= 100:
+                        if 100 <= rate <= 200:  # Updated range
                             rates['usd'] = rate
                             break
                     except ValueError:
                         pass
             
             eur_patterns = [
-                r'EUR[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'Euro[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'€[^\d]*(\d{1,2}[,.]?\d{2})',
-                r'(\d{1,2}[,.]?\d{2})[^\d]*EUR',
-                r'(\d{1,2}[,.]?\d{2})[^\d]*Euro'
+                r'EUR[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'Euro[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'€[^\d]*(\d{2,3}[,.]?\d{1,4})',
+                r'(\d{2,3}[,.]?\d{1,4})[^\d]*EUR',
+                r'(\d{2,3}[,.]?\d{1,4})[^\d]*Euro'
             ]
             
             for pattern in eur_patterns:
@@ -161,7 +162,7 @@ def scrape_bcv_rates():
                     rate_str = match.group(1).replace(',', '.')
                     try:
                         rate = float(rate_str)
-                        if 10 <= rate <= 100:
+                        if 150 <= rate <= 200:  # Updated range
                             rates['eur'] = rate
                             break
                     except ValueError:
@@ -170,16 +171,18 @@ def scrape_bcv_rates():
         # First, try to use the specific USD and EUR patterns found
         if usd_pattern:
             try:
-                usd_rate = float(usd_pattern.group(1))
-                if 50 <= usd_rate <= 200:  # Reasonable range for current USD/VES
+                usd_rate_str = usd_pattern.group(1).replace(',', '.')
+                usd_rate = float(usd_rate_str)
+                if 100 <= usd_rate <= 200:  # Reasonable range for current USD/VES
                     rates['usd'] = usd_rate
             except (ValueError, AttributeError):
                 pass
         
         if eur_pattern:
             try:
-                eur_rate = float(eur_pattern.group(1))
-                if 100 <= eur_rate <= 300:  # Reasonable range for current EUR/VES
+                eur_rate_str = eur_pattern.group(1).replace(',', '.')
+                eur_rate = float(eur_rate_str)
+                if 150 <= eur_rate <= 200:  # Reasonable range for current EUR/VES
                     rates['eur'] = eur_rate
             except (ValueError, AttributeError):
                 pass
@@ -193,18 +196,18 @@ def scrape_bcv_rates():
         
         if 'eur' not in rates and potential_rates:
             # EUR is typically higher than USD, look for rates in range (updated)
-            eur_candidates = [rate for rate in potential_rates if 130 <= rate <= 200 and rate != rates.get('usd')]
+            eur_candidates = [rate for rate in potential_rates if 150 <= rate <= 200 and rate != rates.get('usd')]
             if eur_candidates:
                 rates['eur'] = eur_candidates[0]  # Use the first candidate
             elif rates.get('usd'):
-                # Estimate EUR as ~1.15x USD rate
-                rates['eur'] = round(rates['usd'] * 1.15, 2)
+                # Estimate EUR as ~1.17x USD rate (more accurate current ratio)
+                rates['eur'] = round(rates['usd'] * 1.17, 2)
         
         # Set defaults if still not found (updated to reflect current rates)
         if 'usd' not in rates:
-            rates['usd'] = 135.64  # Updated fallback based on user data
+            rates['usd'] = 139.00  # Updated fallback based on current data
         if 'eur' not in rates:
-            rates['eur'] = 158.06  # Updated fallback based on user data
+            rates['eur'] = 162.53  # Updated fallback based on user input
         
         result = {
             'success': True,
@@ -223,8 +226,8 @@ def scrape_bcv_rates():
             'success': False,
             'error': f'Network error: {str(e)}',
             'data': {
-                'usd': 135.64,
-                'eur': 158.06,
+                'usd': 139.00,
+                'eur': 162.53,
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'BCV (fallback - network error)'
             }
@@ -234,8 +237,8 @@ def scrape_bcv_rates():
             'success': False,
             'error': f'Parsing error: {str(e)}',
             'data': {
-                'usd': 135.64,
-                'eur': 158.06,
+                'usd': 139.00,
+                'eur': 162.53,
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'BCV (fallback - parsing error)'
             }

@@ -1,20 +1,91 @@
 'use client';
 
-import { Bell, Search, Sparkles, Heart, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Bell, Search, Sparkles, Heart, Menu, X, User, LogOut } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
+import { useAuth } from '@/hooks/use-auth';
+import { useRepository } from '@/providers/repository-provider';
+import type { Notification } from '@/types/notifications';
 
 export function Header() {
-  const [notifications, setNotifications] = useState(2);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  const repository = useRepository();
 
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
-    // Mark notifications as read when opened
-    if (!showNotifications && notifications > 0) {
-      setTimeout(() => setNotifications(0), 1000);
+  // Load notifications when user is available
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
     }
+  }, [user]);
+
+  const loadNotifications = async () => {
+    if (!user) return;
+    
+    try {
+      setLoadingNotifications(true);
+      const [unreadNotifications, count] = await Promise.all([
+        repository.notifications.findUnreadByUserId(user.id),
+        repository.notifications.countUnreadByUserId(user.id)
+      ]);
+      
+      setNotifications(unreadNotifications);
+      setNotificationCount(count);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  };
+
+  const handleNotificationClick = async () => {
+    if (!showNotifications) {
+      // Load latest notifications when opening
+      await loadNotifications();
+    }
+    setShowNotifications(!showNotifications);
+  };
+
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      await repository.notifications.markAsRead(notificationId);
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+      );
+      setNotificationCount(prev => Math.max(0, prev - 1));
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      await repository.notifications.markAllAsRead(user.id);
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotificationCount(0);
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
+  };
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/auth/login');
+  };
+
+  const handleProfile = () => {
+    router.push('/profile');
+    setShowUserMenu(false);
   };
 
   if (isMobile) {
@@ -41,9 +112,9 @@ export function Header() {
               className="relative p-2 text-text-muted hover:text-accent-primary rounded-xl transition-all duration-200"
             >
               <Bell className="h-5 w-5" />
-              {notifications > 0 && (
+              {notificationCount > 0 && (
                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-accent-warm text-xs font-bold text-background-primary rounded-full flex items-center justify-center shadow-lg">
-                  {notifications}
+                  {notificationCount}
                 </span>
               )}
             </button>
@@ -55,16 +126,48 @@ export function Header() {
                   <div className="p-4">
                     <h4 className="font-semibold text-text-primary mb-3">Notificaciones</h4>
                     
-                    {notifications > 0 ? (
+                    {loadingNotifications ? (
+                      <div className="text-center py-6">
+                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-sm text-text-muted">Cargando notificaciones...</p>
+                      </div>
+                    ) : notifications.length > 0 ? (
                       <div className="space-y-3">
-                        <div className="p-3 bg-background-tertiary rounded-xl">
-                          <p className="text-sm font-medium text-text-primary">¡Bienvenido a Cashew!</p>
-                          <p className="text-xs text-text-muted mt-1">Tu aplicación de finanzas personales está lista para usar.</p>
-                        </div>
-                        <div className="p-3 bg-background-tertiary rounded-xl">
-                          <p className="text-sm font-medium text-text-primary">Tutorial disponible</p>
-                          <p className="text-xs text-text-muted mt-1">Aprende a usar todas las funciones con nuestro tutorial interactivo.</p>
-                        </div>
+                        {notifications.slice(0, 5).map((notification) => (
+                          <div 
+                            key={notification.id}
+                            className={`p-3 rounded-xl cursor-pointer transition-colors ${
+                              notification.is_read 
+                                ? 'bg-background-tertiary' 
+                                : 'bg-blue-50 border border-blue-200'
+                            }`}
+                            onClick={() => markNotificationAsRead(notification.id)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-text-primary">{notification.title}</p>
+                                <p className="text-xs text-text-muted mt-1">{notification.message}</p>
+                                <p className="text-xs text-text-muted mt-1">
+                                  {new Date(notification.created_at).toLocaleDateString('es-ES', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              {!notification.is_read && (
+                                <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 ml-2" />
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {notificationCount > 0 && (
+                          <button
+                            onClick={markAllAsRead}
+                            className="w-full text-center text-xs text-blue-600 hover:text-blue-700 py-2"
+                          >
+                            Marcar todas como leídas
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center py-6">
@@ -121,9 +224,9 @@ export function Header() {
             className="relative p-2 lg:p-3 text-text-muted hover:text-accent-primary hover:bg-background-tertiary rounded-xl lg:rounded-2xl transition-all duration-200 hover:scale-105"
           >
             <Bell className="h-5 w-5" />
-            {notifications > 0 && (
+            {notificationCount > 0 && (
               <span className="absolute -top-1 -right-1 h-5 w-5 bg-accent-warm text-xs font-bold text-background-primary rounded-full flex items-center justify-center shadow-lg">
-                {notifications}
+                {notificationCount}
               </span>
             )}
           </button>
@@ -135,16 +238,48 @@ export function Header() {
                 <div className="p-4">
                   <h4 className="font-semibold text-text-primary mb-3">Notificaciones</h4>
                   
-                  {notifications > 0 ? (
+                  {loadingNotifications ? (
+                    <div className="text-center py-6">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                      <p className="text-sm text-text-muted">Cargando notificaciones...</p>
+                    </div>
+                  ) : notifications.length > 0 ? (
                     <div className="space-y-3">
-                      <div className="p-3 bg-background-tertiary rounded-xl">
-                        <p className="text-sm font-medium text-text-primary">¡Bienvenido a Cashew!</p>
-                        <p className="text-xs text-text-muted mt-1">Tu aplicación de finanzas personales está lista para usar.</p>
-                      </div>
-                      <div className="p-3 bg-background-tertiary rounded-xl">
-                        <p className="text-sm font-medium text-text-primary">Tutorial disponible</p>
-                        <p className="text-xs text-text-muted mt-1">Aprende a usar todas las funciones con nuestro tutorial interactivo.</p>
-                      </div>
+                      {notifications.slice(0, 5).map((notification) => (
+                        <div 
+                          key={notification.id}
+                          className={`p-3 rounded-xl cursor-pointer transition-colors ${
+                            notification.is_read 
+                              ? 'bg-background-tertiary' 
+                              : 'bg-blue-50 border border-blue-200'
+                          }`}
+                          onClick={() => markNotificationAsRead(notification.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-text-primary">{notification.title}</p>
+                              <p className="text-xs text-text-muted mt-1">{notification.message}</p>
+                              <p className="text-xs text-text-muted mt-1">
+                                {new Date(notification.created_at).toLocaleDateString('es-ES', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                            {!notification.is_read && (
+                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 ml-2" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {notificationCount > 0 && (
+                        <button
+                          onClick={markAllAsRead}
+                          className="w-full text-center text-xs text-blue-600 hover:text-blue-700 py-2"
+                        >
+                          Marcar todas como leídas
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="text-center py-6">
@@ -164,21 +299,66 @@ export function Header() {
           <div className="text-right">
             <div className="flex items-center space-x-1">
               <Sparkles className="h-3 w-3 text-accent-primary" />
-              <p className="text-sm lg:text-lg font-bold text-text-primary">$12,450.50</p>
+              <p className="text-sm lg:text-lg font-bold text-text-primary">$0.00</p>
             </div>
             <p className="text-xs text-text-muted hidden lg:block">Tu dinero total</p>
           </div>
         </div>
 
         {/* Profile - iOS-like */}
-        <div className="flex items-center space-x-2 lg:space-x-3 bg-background-tertiary rounded-xl lg:rounded-2xl p-2 border border-border-primary hover:bg-background-elevated transition-all duration-200 cursor-pointer">
-          <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-            <Heart className="h-4 w-4 lg:h-5 lg:w-5 text-background-primary" />
+        <div className="relative">
+          <div 
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center space-x-2 lg:space-x-3 bg-background-tertiary rounded-xl lg:rounded-2xl p-2 border border-border-primary hover:bg-background-elevated transition-all duration-200 cursor-pointer"
+          >
+            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
+              <User className="h-4 w-4 lg:h-5 lg:w-5 text-background-primary" />
+            </div>
+            <div className="hidden lg:block text-left">
+              <p className="text-sm font-semibold text-text-primary">
+                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'}
+              </p>
+              <p className="text-xs text-text-muted">Ver perfil</p>
+            </div>
           </div>
-          <div className="hidden lg:block text-left">
-            <p className="text-sm font-semibold text-text-primary">Mi Perfil</p>
-            <p className="text-xs text-text-muted">Ver configuración</p>
-          </div>
+
+          {/* User Menu Dropdown */}
+          {showUserMenu && (
+            <>
+              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {user?.user_metadata?.full_name || 'Usuario'}
+                      </p>
+                      <p className="text-sm text-gray-500">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="py-2">
+                  <button
+                    onClick={handleProfile}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>Mi Perfil</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </div>
+              </div>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+            </>
+          )}
         </div>
       </div>
     </header>

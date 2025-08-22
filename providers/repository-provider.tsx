@@ -12,17 +12,13 @@ interface RepositoryProviderProps {
 }
 
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
-  // Use Supabase by default, fallback to local if environment variables are missing
+  // Use Supabase by default - credentials are configured in client.ts
   let repository: AppRepository;
   
   try {
-    // Check if Supabase environment variables are available
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      repository = new SupabaseAppRepository();
-    } else {
-      console.warn('Supabase environment variables not found, using local repository');
-      repository = new LocalAppRepository();
-    }
+    // Always use Supabase repository as it has fallback credentials
+    repository = new SupabaseAppRepository();
+    console.log('Using Supabase repository with configured database');
   } catch (error) {
     console.warn('Failed to initialize Supabase repository, using local fallback:', error);
     repository = new LocalAppRepository();

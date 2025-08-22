@@ -1,39 +1,7 @@
 import { CreditCard, Wallet, Banknote, TrendingUp } from 'lucide-react';
 
-const accounts = [
-  {
-    name: 'Cuenta Principal',
-    type: 'Banco',
-    balance: '$8,450.50',
-    change: '+2.5%',
-    changeType: 'positive' as const,
-    icon: Banknote,
-  },
-  {
-    name: 'Tarjeta de Crédito',
-    type: 'Crédito',
-    balance: '-$1,250.00',
-    change: '+15.2%',
-    changeType: 'negative' as const,
-    icon: CreditCard,
-  },
-  {
-    name: 'Cuenta Ahorros',
-    type: 'Ahorros',
-    balance: '$5,200.00',
-    change: '+8.1%',
-    changeType: 'positive' as const,
-    icon: TrendingUp,
-  },
-  {
-    name: 'Efectivo',
-    type: 'Efectivo',
-    balance: '$300.00',
-    change: '-12.0%',
-    changeType: 'negative' as const,
-    icon: Wallet,
-  },
-];
+// Accounts will be loaded from Supabase database
+const accounts: any[] = [];
 
 export function AccountsOverview() {
   return (
@@ -72,7 +40,7 @@ export function AccountsOverview() {
       <div className="mt-4 pt-4 border-t border-border-primary">
         <div className="flex justify-between items-center">
           <span className="text-sm text-text-muted">Balance Total</span>
-          <span className="text-lg font-bold text-text-primary">$12,700.50</span>
+          <span className="text-lg font-bold text-text-primary">$0.00</span>
         </div>
       </div>
     </div>

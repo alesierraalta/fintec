@@ -329,7 +329,7 @@ export const useAppStore = create<AppState & AppActions>()(
           }),
       })),
       {
-        name: 'fintek-app-store',
+        name: 'fintec-app-store',
         partialize: (state) => ({
           user: state.user,
           isAuthenticated: state.isAuthenticated,
@@ -342,7 +342,7 @@ export const useAppStore = create<AppState & AppActions>()(
       }
     ),
     {
-      name: 'fintek-app-store',
+      name: 'fintec-app-store',
     }
   )
 );

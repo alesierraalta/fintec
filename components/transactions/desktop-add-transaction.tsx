@@ -38,6 +38,7 @@ import {
   PiggyBank
 } from 'lucide-react';
 import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
 import { CreateTransactionDTO, TransactionType } from '@/types';
 import { TransactionFormSchema, TransactionFormType } from '@/lib/validations/schemas';
 import { dateUtils } from '@/lib/dates/dayjs';
@@ -45,6 +46,7 @@ import { motion } from 'framer-motion';
 import { cardVariants, buttonVariants, fieldVariants } from '@/lib/animations';
 import { useFormShortcuts } from '@/lib/hotkeys';
 import { useNotifications } from '@/lib/store';
+import type { Category, Account } from '@/types/domain';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -53,52 +55,20 @@ const transactionTypes = [
   { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'from-blue-500 to-cyan-600', emoji: '🔄' },
 ];
 
-const accounts = [
-  { value: 'acc1', label: 'Cuenta Principal', icon: Wallet, color: 'from-blue-500 to-indigo-600', balance: 2500.00, cardType: 'Debit' },
-  { value: 'acc2', label: 'Tarjeta de Crédito', icon: CreditCard, color: 'from-purple-500 to-violet-600', balance: -850.00, cardType: 'Credit' },
-  { value: 'acc3', label: 'Ahorros', icon: PiggyBank, color: 'from-green-500 to-emerald-600', balance: 5200.00, cardType: 'Savings' },
-  { value: 'acc4', label: 'Efectivo', icon: Building2, color: 'from-yellow-500 to-orange-600', balance: 150.00, cardType: 'Cash' },
-];
+// Accounts are now loaded from database
 
-const categories = {
-  EXPENSE: [
-    { value: 'food', label: 'Comida', icon: Utensils, color: 'from-orange-400 to-red-500' },
-    { value: 'transport', label: 'Transporte', icon: Car, color: 'from-blue-400 to-cyan-500' },
-    { value: 'shopping', label: 'Compras', icon: ShoppingBag, color: 'from-pink-400 to-rose-500' },
-    { value: 'entertainment', label: 'Entretenimiento', icon: Music, color: 'from-purple-400 to-indigo-500' },
-    { value: 'health', label: 'Salud', icon: Stethoscope, color: 'from-green-400 to-emerald-500' },
-    { value: 'home', label: 'Hogar', icon: Home, color: 'from-yellow-400 to-orange-500' },
-    { value: 'education', label: 'Educación', icon: Book, color: 'from-indigo-400 to-purple-500' },
-    { value: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'from-red-400 to-pink-500' },
-    { value: 'travel', label: 'Viajes', icon: Plane, color: 'from-cyan-400 to-blue-500' },
-    { value: 'tech', label: 'Tecnología', icon: Smartphone, color: 'from-gray-400 to-slate-500' },
-    { value: 'subscriptions', label: 'Suscripciones', icon: Calendar, color: 'from-violet-400 to-purple-500' },
-    { value: 'loans', label: 'Préstamos', icon: Banknote, color: 'from-red-500 to-rose-600' },
-    { value: 'insurance', label: 'Seguros', icon: Heart, color: 'from-blue-500 to-indigo-600' },
-    { value: 'utilities', label: 'Servicios', icon: Zap, color: 'from-yellow-500 to-orange-600' },
-    { value: 'rent', label: 'Alquiler', icon: Building2, color: 'from-gray-500 to-slate-600' },
-    { value: 'taxes', label: 'Impuestos', icon: Receipt, color: 'from-red-600 to-rose-700' },
-  ],
-  INCOME: [
-    { value: 'salary', label: 'Salario', icon: Briefcase, color: 'from-green-400 to-emerald-500' },
-    { value: 'freelance', label: 'Freelance', icon: Coffee, color: 'from-blue-400 to-indigo-500' },
-    { value: 'investment', label: 'Inversiones', icon: TrendingUp, color: 'from-purple-400 to-indigo-500' },
-    { value: 'bonus', label: 'Bonos', icon: Gift, color: 'from-yellow-400 to-orange-500' },
-    { value: 'rental', label: 'Alquiler', icon: Home, color: 'from-green-500 to-emerald-600' },
-    { value: 'business', label: 'Negocio', icon: Building2, color: 'from-blue-500 to-cyan-600' },
-    { value: 'other', label: 'Otros', icon: Star, color: 'from-pink-400 to-rose-500' },
-  ],
-  TRANSFER_OUT: [
-    { value: 'transfer', label: 'Transferencia', icon: Repeat, color: 'from-blue-400 to-indigo-500' },
-    { value: 'savings', label: 'Ahorros', icon: PiggyBank, color: 'from-green-400 to-emerald-500' },
-    { value: 'investment', label: 'Inversión', icon: TrendingUp, color: 'from-purple-400 to-indigo-500' },
-  ]
-};
+// Categories are now loaded from database
 
 export function DesktopAddTransaction() {
   const router = useRouter();
   const repository = useRepository();
+  const { user } = useAuth();
+  const { addNotification } = useNotifications();
   
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [formData, setFormData] = useState({
     type: '' as TransactionType | '',
     accountId: '',
@@ -116,6 +86,44 @@ export function DesktopAddTransaction() {
   const [animateSuccess, setAnimateSuccess] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('0');
 
+  // Load categories and accounts from database
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        setError('Usuario no autenticado');
+        setLoadingCategories(false);
+        setLoadingAccounts(false);
+        return;
+      }
+
+      try {
+        // Load categories
+        setLoadingCategories(true);
+        const allCategories = await repository.categories.findAll();
+        setCategories(allCategories.filter(cat => cat.active));
+        setLoadingCategories(false);
+
+        // Load user accounts
+        setLoadingAccounts(true);
+        const userAccounts = await repository.accounts.findByUserId(user.id);
+        setAccounts(userAccounts.filter(acc => acc.active));
+        setLoadingAccounts(false);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setError('Error al cargar los datos');
+        setLoadingCategories(false);
+        setLoadingAccounts(false);
+      }
+    };
+
+    loadData();
+  }, [repository, user]);
+
+  // Helper function to get categories by type
+  const getCategoriesByType = (type: TransactionType) => {
+    return categories.filter(cat => cat.kind === type);
+  };
+
   // Initialize date on client side
   useEffect(() => {
     setFormData(prev => ({
@@ -131,46 +139,126 @@ export function DesktopAddTransaction() {
     } else if (value === '=') {
       try {
         const result = eval(calculatorValue);
-        setCalculatorValue(result.toString());
-        setFormData({ ...formData, amount: result.toString() });
+        const resultStr = result.toString();
+        setCalculatorValue(resultStr);
+        setFormData({ ...formData, amount: resultStr });
       } catch {
         setCalculatorValue('Error');
+        setFormData({ ...formData, amount: '' });
       }
     } else if (value === '⌫') {
       const newValue = calculatorValue.length > 1 ? calculatorValue.slice(0, -1) : '0';
       setCalculatorValue(newValue);
       setFormData({ ...formData, amount: newValue === '0' ? '' : newValue });
     } else {
-      setCalculatorValue(prev => prev === '0' ? value : prev + value);
+      const newValue = calculatorValue === '0' ? value : calculatorValue + value;
+      setCalculatorValue(newValue);
+      setFormData({ ...formData, amount: newValue });
     }
   };
 
   const handleSubmit = async () => {
-    if (!formData.amount) {
-      alert('Por favor ingresa un monto');
+    // Validate required fields
+    if (!formData.type) {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Por favor selecciona un tipo de transacción'
+      });
       return;
     }
-    if (!formData.description) {
-      alert('Por favor ingresa una descripción');
+    if (!formData.accountId) {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Por favor selecciona una cuenta'
+      });
+      return;
+    }
+    if (!formData.categoryId) {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Por favor selecciona una categoría'
+      });
+      return;
+    }
+    if (!formData.amount || formData.amount.trim() === '') {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Por favor ingresa un monto'
+      });
+      return;
+    }
+    
+    const amount = parseFloat(formData.amount.replace(/[,$]/g, ''));
+    if (isNaN(amount) || amount <= 0) {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Monto inválido',
+        message: 'Por favor ingresa un monto válido mayor a 0'
+      });
+      return;
+    }
+    
+    if (!formData.description || formData.description.trim() === '') {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Por favor ingresa una descripción'
+      });
+      return;
+    }
+
+    if (!user) {
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Error de autenticación',
+        message: 'Usuario no autenticado'
+      });
       return;
     }
 
     setLoading(true);
     
     try {
+      // Get selected account to determine currency
+      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+      const currencyCode = selectedAccount?.currencyCode || 'USD';
+
       const transactionData: CreateTransactionDTO = {
-        type: (formData.type as TransactionType) || 'EXPENSE',
-        accountId: formData.accountId || 'acc1',
-        categoryId: formData.categoryId || 'food',
-        currencyCode: 'USD',
-        amountMinor: Math.round(parseFloat(formData.amount) * 100),
+        type: formData.type as TransactionType,
+        accountId: formData.accountId,
+        categoryId: formData.categoryId,
+        currencyCode: currencyCode,
+        amountMinor: Math.round(amount * 100),
         date: formData.date || new Date().toISOString().split('T')[0],
-        description: formData.description,
-        note: formData.note || undefined,
+        description: formData.description.trim(),
+        note: formData.note?.trim() || undefined,
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
       };
 
-      await repository.transactions.create(transactionData);
+      console.log('📝 Attempting to create transaction:', transactionData);
+      
+      const createdTransaction = await repository.transactions.create(transactionData);
+      
+      console.log('✅ Transaction created successfully:', createdTransaction);
+      
+      // Success notification
+      addNotification({
+        id: Date.now().toString(),
+        type: 'success',
+        title: '¡Transacción creada!',
+        message: `Transacción de ${currencyCode === 'VES' ? 'Bs.' : '$'}${amount.toLocaleString()} guardada exitosamente`
+      });
       
       if (formData.isRecurring) {
         console.log('Creating recurring rule:', {
@@ -179,10 +267,15 @@ export function DesktopAddTransaction() {
           transactionTemplate: transactionData
         });
         
-        alert(`¡Transacción recurrente creada! Se repetirá cada ${
-          formData.frequency === 'weekly' ? 'semana' :
-          formData.frequency === 'monthly' ? 'mes' : 'año'
-        }${formData.endDate ? ` hasta ${formData.endDate}` : ' indefinidamente'}.`);
+        addNotification({
+          id: (Date.now() + 1).toString(),
+          type: 'info',
+          title: 'Transacción recurrente',
+          message: `Se repetirá cada ${
+            formData.frequency === 'weekly' ? 'semana' :
+            formData.frequency === 'monthly' ? 'mes' : 'año'
+          }${formData.endDate ? ` hasta ${formData.endDate}` : ' indefinidamente'}`
+        });
       }
       
       setAnimateSuccess(true);
@@ -190,8 +283,30 @@ export function DesktopAddTransaction() {
         router.push('/transactions');
       }, 2000);
     } catch (error) {
-      console.error('Error saving transaction:', error);
-      alert('Error al guardar la transacción. Por favor intenta de nuevo.');
+      console.error('❌ Error saving transaction:', error);
+      
+      // More detailed error message
+      let errorMessage = 'No se pudo guardar la transacción. Por favor intenta de nuevo.';
+      
+      if (error instanceof Error) {
+        console.error('Error details:', error.message);
+        if (error.message.includes('row-level security')) {
+          errorMessage = 'Error de permisos. Verifica que estés autenticado correctamente.';
+        } else if (error.message.includes('foreign key')) {
+          errorMessage = 'Error en los datos. Verifica que la cuenta y categoría sean válidas.';
+        } else if (error.message.includes('not-null')) {
+          errorMessage = 'Faltan campos requeridos en la transacción.';
+        } else {
+          errorMessage = `Error: ${error.message}`;
+        }
+      }
+      
+      addNotification({
+        id: Date.now().toString(),
+        type: 'error',
+        title: 'Error al guardar',
+        message: errorMessage
+      });
     } finally {
       setLoading(false);
     }
@@ -281,33 +396,50 @@ export function DesktopAddTransaction() {
                   Cuenta
                 </h3>
                 <div className="space-y-3">
-                  {accounts.map((account) => {
-                    const Icon = account.icon;
-                    const isSelected = formData.accountId === account.value;
+                  {loadingAccounts ? (
+                    <div className="col-span-full text-center text-gray-400">
+                      Cargando cuentas...
+                    </div>
+                  ) : accounts.length === 0 ? (
+                    <div className="col-span-full text-center text-gray-400">
+                      No tienes cuentas disponibles. <br />
+                      <span className="text-sm">Crea una cuenta primero en la sección de Cuentas.</span>
+                    </div>
+                  ) : accounts.map((account) => {
+                    const isSelected = formData.accountId === account.id;
                     
                     return (
                       <button
-                        key={account.value}
+                        key={account.id}
                         type="button"
-                        onClick={() => setFormData({ ...formData, accountId: account.value })}
+                        onClick={() => setFormData({ ...formData, accountId: account.id })}
                         className={`w-full p-4 rounded-xl transition-all duration-300 transform ${
                           isSelected
-                            ? `bg-gradient-to-r ${account.color} shadow-xl border-0`
+                            ? 'shadow-xl border-0'
                             : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
                         }`}
+                        style={isSelected ? { backgroundColor: '#10b981' } : {}}
                       >
                         <div className="flex items-center space-x-3">
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                             isSelected ? 'bg-white/20' : 'bg-white/10'
                           }`}>
-                            <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-300'}`} />
+                            <span className="text-xl">
+                              {account.type === 'BANK' ? '🏦' : 
+                               account.type === 'CREDIT_CARD' ? '💳' : 
+                               account.type === 'CASH' ? '💵' : 
+                               account.type === 'INVESTMENT' ? '📈' : '💰'}
+                            </span>
                           </div>
                           <div className="text-left flex-1">
                             <p className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                              {account.label}
+                              {account.name}
                             </p>
                             <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
-                              ${Math.abs(account.balance).toLocaleString()}
+                              {account.currencyCode === 'VES' 
+                                ? `Bs. ${Math.abs(account.balance).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
+                                : `$${Math.abs(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
+                              }
                             </p>
                           </div>
                         </div>
@@ -329,17 +461,20 @@ export function DesktopAddTransaction() {
                   Categoría
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
-                  {categories[formData.type]?.map((category) => {
-                    const Icon = category.icon;
-                    const isSelected = formData.categoryId === category.value;
+                  {loadingCategories ? (
+                    <div className="col-span-full text-center text-gray-400">
+                      Cargando categorías...
+                    </div>
+                  ) : getCategoriesByType(formData.type as TransactionType)?.map((category) => {
+                    const isSelected = formData.categoryId === category.id;
                     
                     return (
                       <button
-                        key={category.value}
+                        key={category.id}
                         type="button"
                         onClick={() => {
-                          const newData = { ...formData, categoryId: category.value };
-                          if (category.value === 'subscriptions') {
+                          const newData = { ...formData, categoryId: category.id };
+                          if (category.name === 'Suscripciones') {
                             newData.isRecurring = true;
                             newData.frequency = 'monthly';
                           }
@@ -347,20 +482,45 @@ export function DesktopAddTransaction() {
                         }}
                         className={`relative p-3 rounded-xl transition-all duration-300 ${
                           isSelected
-                            ? `bg-gradient-to-r ${category.color} shadow-xl border-0`
+                            ? 'shadow-xl border-0'
                             : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
                         }`}
+                        style={isSelected ? { backgroundColor: category.color } : {}}
                       >
                         <div className="flex flex-col items-center space-y-2">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                             isSelected ? 'bg-white/20' : 'bg-white/10'
                           }`}>
-                            <Icon className={`h-4 w-4 ${isSelected ? 'text-white' : 'text-gray-300'}`} />
+                            <span className="text-lg">
+                              {category.icon === 'Utensils' ? '🍽️' : 
+                               category.icon === 'Car' ? '🚗' : 
+                               category.icon === 'ShoppingBag' ? '🛍️' : 
+                               category.icon === 'Music' ? '🎵' : 
+                               category.icon === 'Stethoscope' ? '🩺' : 
+                               category.icon === 'Home' ? '🏠' : 
+                               category.icon === 'Book' ? '📚' : 
+                               category.icon === 'Dumbbell' ? '🏋️' : 
+                               category.icon === 'Plane' ? '✈️' : 
+                               category.icon === 'Smartphone' ? '📱' : 
+                               category.icon === 'Calendar' ? '📅' : 
+                               category.icon === 'Banknote' ? '💵' : 
+                               category.icon === 'Heart' ? '❤️' : 
+                               category.icon === 'Zap' ? '⚡' : 
+                               category.icon === 'Building2' ? '🏢' : 
+                               category.icon === 'Receipt' ? '🧾' : 
+                               category.icon === 'Briefcase' ? '💼' : 
+                               category.icon === 'Coffee' ? '☕' : 
+                               category.icon === 'TrendingUp' ? '📈' : 
+                               category.icon === 'Gift' ? '🎁' : 
+                               category.icon === 'Star' ? '⭐' : 
+                               category.icon === 'Repeat' ? '🔄' : 
+                               category.icon === 'PiggyBank' ? '🐷' : '💰'}
+                            </span>
                           </div>
                           <span className={`text-xs font-medium text-center ${
                             isSelected ? 'text-white' : 'text-gray-300'
                           }`}>
-                            {category.label}
+                            {category.name}
                           </span>
                         </div>
                       </button>
@@ -566,12 +726,12 @@ export function DesktopAddTransaction() {
               )}
               {formData.accountId && (
                 <p className="text-gray-300">
-                  Cuenta: <span className="text-white">{accounts.find(a => a.value === formData.accountId)?.label}</span>
+                  Cuenta: <span className="text-white">{accounts.find(a => a.id === formData.accountId)?.name}</span>
                 </p>
               )}
               {formData.categoryId && (
                 <p className="text-gray-300">
-                  Categoría: <span className="text-white">{categories[formData.type]?.find(c => c.value === formData.categoryId)?.label}</span>
+                  Categoría: <span className="text-white">{getCategoriesByType(formData.type as TransactionType)?.find(c => c.id === formData.categoryId)?.name}</span>
                 </p>
               )}
               {formData.description && (

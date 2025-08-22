@@ -15,8 +15,8 @@ export async function GET() {
         success: false,
         error: result.error || 'Python scraper failed',
         data: {
-          usd: 36.50,
-          eur: 39.80,
+          usd: 139.00,
+          eur: 162.53,
           lastUpdated: new Date().toISOString(),
           source: 'BCV (fallback - scraper failed)'
         },
@@ -31,8 +31,8 @@ export async function GET() {
       success: false,
       error: 'Failed to run BCV scraper',
       data: {
-        usd: 36.50,
-        eur: 39.80,
+        usd: 139.00,
+        eur: 162.53,
         lastUpdated: new Date().toISOString(),
         source: 'BCV (fallback - system error)'
       },

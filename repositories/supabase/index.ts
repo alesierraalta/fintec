@@ -7,6 +7,7 @@ export { SupabaseCategoriesRepository } from './categories-repository-impl';
 export { SupabaseBudgetsRepository } from './budgets-repository-impl';
 export { SupabaseGoalsRepository } from './goals-repository-impl';
 export { SupabaseExchangeRatesRepository } from './exchange-rates-repository-impl';
+export { SupabaseNotificationsRepository } from './notifications-repository-impl';
 
 export * from './types';
 export * from './mappers';
@@ -20,7 +21,8 @@ import {
   SupabaseCategoriesRepository,
   SupabaseBudgetsRepository,
   SupabaseGoalsRepository,
-  SupabaseExchangeRatesRepository
+  SupabaseExchangeRatesRepository,
+  SupabaseNotificationsRepository
 } from './';
 
 export class SupabaseAppRepository implements AppRepository {
@@ -30,6 +32,7 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly budgets: SupabaseBudgetsRepository;
   public readonly goals: SupabaseGoalsRepository;
   public readonly exchangeRates: SupabaseExchangeRatesRepository;
+  public readonly notifications: SupabaseNotificationsRepository;
 
   constructor() {
     this.accounts = new SupabaseAccountsRepository();
@@ -38,6 +41,7 @@ export class SupabaseAppRepository implements AppRepository {
     this.budgets = new SupabaseBudgetsRepository();
     this.goals = new SupabaseGoalsRepository();
     this.exchangeRates = new SupabaseExchangeRatesRepository();
+    this.notifications = new SupabaseNotificationsRepository();
   }
 
   async isHealthy(): Promise<boolean> {

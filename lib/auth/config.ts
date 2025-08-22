@@ -39,7 +39,7 @@ const users: User[] = [
   {
     id: '1',
     name: 'Usuario Demo',
-    email: 'demo@fintek.com',
+    email: 'demo@fintec.com',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=face',
     emailVerified: new Date(),
     createdAt: new Date(),
@@ -49,7 +49,7 @@ const users: User[] = [
 
 // Mock password storage (in real app, use database with hashed passwords)
 const userPasswords: Record<string, string> = {
-  'demo@fintek.com': '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5m4xOlkOG2', // 'demo123'
+  'demo@fintec.com': '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj5m4xOlkOG2', // 'demo123'
 };
 
 // NextAuth configuration

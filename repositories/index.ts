@@ -14,7 +14,7 @@ import { SupabaseAppRepository } from './supabase';
 
 export type RepositoryType = 'local' | 'supabase';
 
-export function createRepository(type: RepositoryType = 'local'): AppRepository {
+export function createRepository(type: RepositoryType = 'supabase'): AppRepository {
   switch (type) {
     case 'local':
       return new LocalAppRepository();
@@ -30,8 +30,8 @@ let repositoryInstance: AppRepository | null = null;
 
 export function getRepository(): AppRepository {
   if (!repositoryInstance) {
-    // TODO: Change to 'supabase' when ready to migrate
-    repositoryInstance = createRepository('local');
+    // Using Supabase as the default repository
+    repositoryInstance = createRepository('supabase');
   }
   return repositoryInstance;
 }

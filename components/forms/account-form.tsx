@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
-import { AccountType } from '@/types';
+import { AccountType, Account } from '@/types';
+import { useRepository } from '@/providers/repository-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   Wallet, 
   CreditCard, 
@@ -15,7 +17,8 @@ import {
 interface AccountFormProps {
   isOpen: boolean;
   onClose: () => void;
-  account?: any; // For editing
+  onSuccess?: () => void; // Callback after successful save
+  account?: Account | null; // For editing
 }
 
 const accountTypes = [
@@ -59,6 +62,7 @@ const accountTypes = [
 const currencies = [
   { value: 'USD', label: 'USD - Dólar Americano' },
   { value: 'EUR', label: 'EUR - Euro' },
+  { value: 'VES', label: 'VES - Bolívar Venezolano' },
   { value: 'GBP', label: 'GBP - Libra Esterlina' },
   { value: 'JPY', label: 'JPY - Yen Japonés' },
   { value: 'CAD', label: 'CAD - Dólar Canadiense' },
@@ -67,35 +71,73 @@ const currencies = [
   { value: 'BRL', label: 'BRL - Real Brasileño' },
 ];
 
-export function AccountForm({ isOpen, onClose, account }: AccountFormProps) {
+export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountFormProps) {
+  const { user } = useAuth();
+  const repository = useRepository();
+  
   const [formData, setFormData] = useState({
     name: account?.name || '',
     type: account?.type || 'BANK',
     currencyCode: account?.currencyCode || 'USD',
-    balance: account?.balance || '',
+    balance: account?.balance?.toString() || '',
   });
 
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      setError('Usuario no autenticado');
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Account data:', formData);
-    setLoading(false);
-    onClose();
-    
-    // Reset form
-    if (!account) {
+    try {
+      // Validate form data
+      if (!formData.name.trim()) {
+        throw new Error('El nombre de la cuenta es requerido');
+      }
+
+      const accountData = {
+        name: formData.name.trim(),
+        type: formData.type as AccountType,
+        currencyCode: formData.currencyCode,
+        balance: parseFloat(formData.balance) || 0,
+        active: true,
+        userId: user.id,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (account) {
+        // Update existing account
+        await repository.accounts.update(account.id, accountData);
+        console.log('Account updated successfully');
+      } else {
+        // Create new account
+        await repository.accounts.create(accountData);
+        console.log('Account created successfully');
+      }
+
+      // Reset form and close modal
       setFormData({
         name: '',
         type: 'BANK',
         currencyCode: 'USD',
         balance: '',
       });
+      
+      onClose();
+      onSuccess?.(); // Notify parent to reload accounts
+      
+    } catch (err) {
+      console.error('Error saving account:', err);
+      setError(err instanceof Error ? err.message : 'Error al guardar la cuenta');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,6 +151,13 @@ export function AccountForm({ isOpen, onClose, account }: AccountFormProps) {
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+            <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+
         {/* Account Name */}
         <div>
           <Input

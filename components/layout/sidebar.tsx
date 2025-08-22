@@ -54,7 +54,7 @@ export function Sidebar() {
           </div>
           {!isMinimized && (
             <div className="hidden sm:block">
-              <span className="text-xl font-bold text-text-primary tracking-tight">Fintek</span>
+              <span className="text-xl font-bold text-text-primary tracking-tight">FinTec</span>
               <p className="text-xs text-text-muted -mt-1">Finanzas inteligentes</p>
             </div>
           )}
@@ -134,7 +134,7 @@ export function Sidebar() {
           </div>
           {!isMinimized && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-text-primary truncate">¡Fintek! 💼</p>
+              <p className="text-sm font-semibold text-text-primary truncate">¡FinTec! 💼</p>
               <p className="text-xs text-text-muted truncate">Finanzas inteligentes</p>
             </div>
           )}

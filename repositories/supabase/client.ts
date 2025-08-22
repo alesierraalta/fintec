@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://lssnujnctuchowgrspvk.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxzc251am5jdHVjaG93Z3JzcHZrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUzNjIyOTQsImV4cCI6MjA3MDkzODI5NH0.C0_RjPLk5TvNaXp50Ir-hJpZniQs4E_wrlbmED-xMLM';
 
 if (!supabaseUrl) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
@@ -20,105 +20,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 });
 
-// Legacy mock client for development (remove when fully migrated)
-export const mockSupabase = {
-  // Auth methods
-  auth: {
-    signUp: async (credentials: { email: string; password: string }) => {
-      console.log('TODO: Implement Supabase signUp', credentials);
-      throw new Error('Supabase not implemented yet');
-    },
-    
-    signInWithPassword: async (credentials: { email: string; password: string }) => {
-      console.log('TODO: Implement Supabase signInWithPassword', credentials);
-      throw new Error('Supabase not implemented yet');
-    },
-    
-    signOut: async () => {
-      console.log('TODO: Implement Supabase signOut');
-      throw new Error('Supabase not implemented yet');
-    },
-    
-    getUser: async () => {
-      console.log('TODO: Implement Supabase getUser');
-      throw new Error('Supabase not implemented yet');
-    },
-    
-    onAuthStateChange: (callback: (event: string, session: any) => void) => {
-      console.log('TODO: Implement Supabase onAuthStateChange', callback);
-      return { data: { subscription: { unsubscribe: () => {} } } };
-    },
-  },
-
-  // Database methods
-  from: (table: string) => ({
-    select: (columns?: string) => ({
-      eq: (column: string, value: any) => ({
-        single: async () => {
-          console.log(`TODO: Implement Supabase SELECT from ${table} WHERE ${column} = ${value}`);
-          throw new Error('Supabase not implemented yet');
-        },
-        limit: (count: number) => ({
-          range: (from: number, to: number) => ({
-            order: (column: string, options?: { ascending?: boolean }) => ({
-              then: async (callback: (result: any) => void) => {
-                console.log(`TODO: Implement Supabase query on ${table}`);
-                throw new Error('Supabase not implemented yet');
-              }
-            })
-          })
-        })
-      }),
-      order: (column: string, options?: { ascending?: boolean }) => ({
-        then: async (callback: (result: any) => void) => {
-          console.log(`TODO: Implement Supabase query on ${table}`);
-          throw new Error('Supabase not implemented yet');
-        }
-      }),
-      then: async (callback: (result: any) => void) => {
-        console.log(`TODO: Implement Supabase SELECT from ${table}`);
-        throw new Error('Supabase not implemented yet');
-      }
-    }),
-    
-    insert: (data: any) => ({
-      select: () => ({
-        single: async () => {
-          console.log(`TODO: Implement Supabase INSERT into ${table}`, data);
-          throw new Error('Supabase not implemented yet');
-        }
-      })
-    }),
-    
-    update: (data: any) => ({
-      eq: (column: string, value: any) => ({
-        select: () => ({
-          single: async () => {
-            console.log(`TODO: Implement Supabase UPDATE ${table} SET ... WHERE ${column} = ${value}`, data);
-            throw new Error('Supabase not implemented yet');
-          }
-        })
-      })
-    }),
-    
-    delete: () => ({
-      eq: (column: string, value: any) => ({
-        then: async (callback: (result: any) => void) => {
-          console.log(`TODO: Implement Supabase DELETE from ${table} WHERE ${column} = ${value}`);
-          throw new Error('Supabase not implemented yet');
-        }
-      })
-    }),
-  }),
-
-  // RPC methods for custom functions
-  rpc: (functionName: string, params?: any) => ({
-    then: async (callback: (result: any) => void) => {
-      console.log(`TODO: Implement Supabase RPC ${functionName}`, params);
-      throw new Error('Supabase not implemented yet');
-    }
-  }),
-};
+// Mock client removed - using real Supabase client above
 
 // Environment variables check (for when Supabase is implemented)
 export function validateSupabaseConfig(): boolean {

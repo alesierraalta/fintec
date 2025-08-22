@@ -3,14 +3,8 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { TrendingUp, DollarSign, ShoppingCart, Car, Film, Zap, Heart, Package } from 'lucide-react';
 
-const data = [
-  { name: 'Alimentación', value: 1200, color: '#ef4444', icon: ShoppingCart, percentage: 35.3 },
-  { name: 'Transporte', value: 800, color: '#f97316', icon: Car, percentage: 23.5 },
-  { name: 'Entretenimiento', value: 600, color: '#eab308', icon: Film, percentage: 17.6 },
-  { name: 'Servicios', value: 400, color: '#22c55e', icon: Zap, percentage: 11.8 },
-  { name: 'Salud', value: 300, color: '#3b82f6', icon: Heart, percentage: 8.8 },
-  { name: 'Otros', value: 200, color: '#8b5cf6', icon: Package, percentage: 5.9 },
-];
+// Spending data will be loaded from Supabase database
+const data: any[] = [];
 
 const totalSpending = data.reduce((sum, item) => sum + item.value, 0);
 
@@ -110,7 +104,7 @@ export function SpendingChart() {
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border-primary">
         <div className="text-center">
-          <p className="text-lg font-bold text-success">+15.2%</p>
+          <p className="text-lg font-bold text-success">0%</p>
           <p className="text-xs text-text-muted">vs mes anterior</p>
         </div>
         <div className="text-center">
@@ -118,7 +112,7 @@ export function SpendingChart() {
           <p className="text-xs text-text-muted">Categorías</p>
         </div>
         <div className="text-center">
-          <p className="text-lg font-bold text-accent-primary">$3,400</p>
+          <p className="text-lg font-bold text-accent-primary">$0</p>
           <p className="text-xs text-text-muted">Promedio</p>
         </div>
       </div>

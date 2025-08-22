@@ -36,32 +36,32 @@ export function DesktopDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" data-tutorial="stats-grid">
         <StatCard
           title="💰 Dinero Total"
-          value="$12,450.50"
-          change="+2.5%"
+          value="$0.00"
+          change="0%"
           changeType="positive"
           icon={Sparkles}
           description="En todas tus cuentas"
         />
         <StatCard
           title="📈 Este Mes"
-          value="$3,240.00"
-          change="+12.3%"
+          value="$0.00"
+          change="0%"
           changeType="positive"
           icon={TrendingUp}
           description="Ingresos totales"
         />
         <StatCard
           title="📉 Gastos"
-          value="$1,890.75"
-          change="-8.1%"
-          changeType="negative"
+          value="$0.00"
+          change="0%"
+          changeType="positive"
           icon={TrendingDown}
-          description="Menos que el mes pasado"
+          description="Gastos del mes"
         />
         <StatCard
           title="🎯 Metas"
-          value="73%"
-          change="+15.2%"
+          value="0%"
+          change="0%"
           changeType="positive"
           icon={Target}
           description="Progreso promedio"
@@ -119,7 +119,7 @@ export function DesktopDashboard() {
             </div>
             <p className="text-text-secondary leading-relaxed">
               ¡Excelente progreso! Tus finanzas están mejorando consistentemente. 
-              Fintek te ayuda a tomar decisiones más inteligentes. 📈
+              FinTec te ayuda a tomar decisiones más inteligentes. 📈
             </p>
             <div className="mt-4 flex items-center space-x-2 text-sm text-accent-primary">
               <Sparkles className="h-4 w-4" />
@@ -137,38 +137,13 @@ export function DesktopDashboard() {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Example goals - these would come from data */}
+          {/* Goals will be loaded from Supabase database */}
           <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-text-primary">Vacaciones 2024</h3>
-              <span className="text-sm text-accent-primary font-medium">67%</span>
+            <div className="text-center py-8">
+              <Target className="h-12 w-12 text-text-muted mx-auto mb-3" />
+              <h3 className="font-medium text-text-primary mb-2">Sin metas creadas</h3>
+              <p className="text-sm text-text-muted mb-4">Crea tu primera meta de ahorro para empezar a alcanzar tus objetivos financieros.</p>
             </div>
-            <div className="w-full bg-background-tertiary rounded-full h-2 mb-2">
-              <div className="bg-gradient-to-r from-accent-primary to-accent-secondary h-2 rounded-full" style={{ width: '67%' }}></div>
-            </div>
-            <p className="text-sm text-text-muted">$2,010 de $3,000</p>
-          </div>
-
-          <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-text-primary">Fondo Emergencia</h3>
-              <span className="text-sm text-accent-primary font-medium">45%</span>
-            </div>
-            <div className="w-full bg-background-tertiary rounded-full h-2 mb-2">
-              <div className="bg-gradient-to-r from-accent-primary to-accent-secondary h-2 rounded-full" style={{ width: '45%' }}></div>
-            </div>
-            <p className="text-sm text-text-muted">$2,250 de $5,000</p>
-          </div>
-
-          <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-medium text-text-primary">Nueva Laptop</h3>
-              <span className="text-sm text-accent-primary font-medium">89%</span>
-            </div>
-            <div className="w-full bg-background-tertiary rounded-full h-2 mb-2">
-              <div className="bg-gradient-to-r from-accent-primary to-accent-secondary h-2 rounded-full" style={{ width: '89%' }}></div>
-            </div>
-            <p className="text-sm text-text-muted">$890 de $1,000</p>
           </div>
         </div>
       </div>

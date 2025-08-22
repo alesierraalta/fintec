@@ -52,33 +52,33 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async create(data: CreateAccountDTO): Promise<Account> {
-    // TODO: Implement Supabase insert
-    console.log('TODO: Implement SupabaseAccountsRepository.create', data);
-    throw new Error('Supabase implementation not ready yet');
-    
-    /*
-    const { data: user } = await supabase.auth.getUser();
-    if (!user.user) {
-      throw new Error('User not authenticated');
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const accountData = {
+        ...mapDomainAccountToSupabase(data as Account),
+        user_id: user.user.id,
+      };
+
+      const { data: insertedData, error } = await supabase
+        .from('accounts')
+        .insert(accountData)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error creating account:', error);
+        throw new Error(`Failed to create account: ${error.message}`);
+      }
+
+      return mapSupabaseAccountToDomain(insertedData);
+    } catch (error) {
+      console.error('Error in create:', error);
+      throw error;
     }
-
-    const accountData = {
-      ...mapDomainAccountToSupabase(data as Account),
-      user_id: user.user.id,
-    };
-
-    const { data: insertedData, error } = await supabase
-      .from('accounts')
-      .insert(accountData)
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create account: ${error.message}`);
-    }
-
-    return mapSupabaseAccountToDomain(insertedData);
-    */
   }
 
   async update(id: string, data: UpdateAccountDTO): Promise<Account> {
@@ -256,9 +256,23 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   // Account-specific methods
   async findByUserId(userId: string): Promise<Account[]> {
-    // TODO: Implement user-specific query
-    console.log('TODO: Implement SupabaseAccountsRepository.findByUserId', userId);
-    throw new Error('Supabase implementation not ready yet');
+    try {
+      const { data, error } = await supabase
+        .from('accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching accounts by user ID:', error);
+        throw new Error(`Failed to fetch accounts: ${error.message}`);
+      }
+      
+      return mapSupabaseAccountArrayToDomain(data || []);
+    } catch (error) {
+      console.error('Error in findByUserId:', error);
+      throw error;
+    }
   }
 
   async findByType(type: AccountType): Promise<Account[]> {

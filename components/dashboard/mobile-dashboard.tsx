@@ -21,7 +21,7 @@ export function MobileDashboard() {
             <TrendingUp className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-text-primary">¡Bienvenido a Fintek!</h2>
+            <h2 className="text-xl font-bold text-text-primary">¡Bienvenido a FinTec!</h2>
             <p className="text-sm text-text-secondary">Tu centro financiero 📊</p>
           </div>
         </div>
@@ -34,10 +34,10 @@ export function MobileDashboard() {
       <div className="bg-background-elevated rounded-3xl p-6 border border-border-primary shadow-lg">
         <div className="text-center">
           <p className="text-sm text-text-muted mb-2">Balance Total</p>
-          <h1 className="text-3xl font-bold text-text-primary mb-1">$12,450.50</h1>
+          <h1 className="text-3xl font-bold text-text-primary mb-1">$0.00</h1>
           <div className="flex items-center justify-center space-x-1">
             <TrendingUp className="h-4 w-4 text-accent-primary" />
-            <span className="text-sm text-accent-primary font-medium">+2.5% este mes</span>
+            <span className="text-sm text-accent-primary font-medium">0% este mes</span>
           </div>
         </div>
       </div>
@@ -49,8 +49,8 @@ export function MobileDashboard() {
             <TrendingUp className="h-5 w-5 text-green-400" />
             <span className="text-xs font-medium text-text-muted">Ingresos</span>
           </div>
-          <p className="text-lg font-bold text-text-primary">$3,240</p>
-          <p className="text-xs text-green-400">+12.3%</p>
+          <p className="text-lg font-bold text-text-primary">$0</p>
+          <p className="text-xs text-green-400">0%</p>
         </div>
         
         <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary">
@@ -58,8 +58,8 @@ export function MobileDashboard() {
             <TrendingDown className="h-5 w-5 text-red-400" />
             <span className="text-xs font-medium text-text-muted">Gastos</span>
           </div>
-          <p className="text-lg font-bold text-text-primary">$1,890</p>
-          <p className="text-xs text-red-400">-8.1%</p>
+          <p className="text-lg font-bold text-text-primary">$0</p>
+          <p className="text-xs text-red-400">0%</p>
         </div>
       </div>
 

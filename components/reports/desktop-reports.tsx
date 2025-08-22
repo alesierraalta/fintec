@@ -25,31 +25,12 @@ import {
 } from 'lucide-react';
 
 // Mock data for reports
-const monthlyData = [
-  { month: 'Ene', income: 5000, expenses: 3500, savings: 1500 },
-  { month: 'Feb', income: 5200, expenses: 3800, savings: 1400 },
-  { month: 'Mar', income: 4800, expenses: 3200, savings: 1600 },
-  { month: 'Abr', income: 5500, expenses: 4100, savings: 1400 },
-  { month: 'May', income: 5300, expenses: 3900, savings: 1400 },
-  { month: 'Jun', income: 5700, expenses: 4200, savings: 1500 },
-];
+// Monthly data and category data will be loaded from Supabase database
+const monthlyData: any[] = [];
+const categoryData: any[] = [];
 
-const categoryData = [
-  { category: 'Comida', amount: 1200, percentage: 30, color: 'from-red-400 to-red-600', icon: Coffee },
-  { category: 'Transporte', amount: 800, percentage: 20, color: 'from-blue-400 to-blue-600', icon: Car },
-  { category: 'Entretenimiento', amount: 600, percentage: 15, color: 'from-purple-400 to-purple-600', icon: Gamepad2 },
-  { category: 'Servicios', amount: 500, percentage: 12.5, color: 'from-yellow-400 to-yellow-600', icon: Home },
-  { category: 'Compras', amount: 400, percentage: 10, color: 'from-green-400 to-green-600', icon: ShoppingCart },
-  { category: 'Otros', amount: 500, percentage: 12.5, color: 'from-gray-400 to-gray-600', icon: Users },
-];
-
-const recentTransactions = [
-  { id: 1, description: 'Supermercado Central', category: 'Comida', amount: -450, date: '2024-05-15', type: 'expense' },
-  { id: 2, description: 'Salario Mayo', category: 'Salario', amount: 5300, date: '2024-05-01', type: 'income' },
-  { id: 3, description: 'Gasolina Shell', category: 'Transporte', amount: -120, date: '2024-05-12', type: 'expense' },
-  { id: 4, description: 'Netflix Suscripción', category: 'Entretenimiento', amount: -15, date: '2024-05-10', type: 'expense' },
-  { id: 5, description: 'Freelance Proyecto', category: 'Freelance', amount: 800, date: '2024-05-08', type: 'income' },
-];
+// Recent transactions will be loaded from Supabase database
+const recentTransactions: any[] = [];
 
 export function DesktopReports() {
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -326,12 +307,14 @@ export function DesktopReports() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-400">Ratio de Gastos</span>
-                  <span className="text-sm font-semibold text-yellow-400">73%</span>
+                  <span className="text-sm font-semibold text-yellow-400">
+                    {totalIncome > 0 ? Math.round((totalExpenses / totalIncome) * 100) : 0}%
+                  </span>
                 </div>
                 <div className="w-full bg-black/20 rounded-full h-3">
                   <div 
                     className="h-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500"
-                    style={{ width: '73%' }}
+                    style={{ width: `${totalIncome > 0 ? Math.min((totalExpenses / totalIncome) * 100, 100) : 0}%` }}
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Recomendado: &lt;70%</p>
@@ -341,12 +324,12 @@ export function DesktopReports() {
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-400">Fondo de Emergencia</span>
-                  <span className="text-sm font-semibold text-blue-400">2.1 meses</span>
+                  <span className="text-sm font-semibold text-blue-400">0 meses</span>
                 </div>
                 <div className="w-full bg-black/20 rounded-full h-3">
                   <div 
                     className="h-3 rounded-full bg-gradient-to-r from-blue-400 to-cyan-500"
-                    style={{ width: '35%' }}
+                    style={{ width: '0%' }}
                   />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">Meta: 6 meses</p>
@@ -356,9 +339,9 @@ export function DesktopReports() {
               <div className="bg-gradient-to-r from-blue-500/10 to-purple-600/10 rounded-xl p-4 border border-blue-500/20">
                 <h4 className="text-sm font-semibold text-white mb-2">💡 Recomendaciones</h4>
                 <ul className="text-xs text-gray-300 space-y-1">
-                  <li>• Incrementa tu fondo de emergencia</li>
-                  <li>• Reduce gastos en entretenimiento</li>
-                  <li>• Considera inversiones a largo plazo</li>
+                  <li>• Comienza creando tus cuentas</li>
+                  <li>• Registra tus primeras transacciones</li>
+                  <li>• Establece metas de ahorro</li>
                 </ul>
               </div>
             </div>

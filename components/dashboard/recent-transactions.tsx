@@ -3,86 +3,8 @@ import {
   Briefcase, CreditCard, Wallet, TrendingUp, Calendar, MapPin
 } from 'lucide-react';
 
-const transactions = [
-  {
-    id: 1,
-    type: 'income',
-    description: 'Salario Mensual 💰',
-    category: 'Trabajo',
-    amount: 3200.00,
-    date: '2024-01-15',
-    time: '09:00',
-    account: 'Banco Principal',
-    categoryIcon: Briefcase,
-    location: 'Empresa ABC',
-    pending: false,
-  },
-  {
-    id: 2,
-    type: 'expense',
-    description: 'Supermercado Walmart',
-    category: 'Alimentación',
-    amount: -85.50,
-    date: '2024-01-14',
-    time: '18:30',
-    account: 'Tarjeta Débito',
-    categoryIcon: ShoppingCart,
-    location: 'Centro Comercial',
-    pending: false,
-  },
-  {
-    id: 3,
-    type: 'transfer',
-    description: 'Ahorro para Vacaciones',
-    category: 'Ahorro',
-    amount: -500.00,
-    date: '2024-01-13',
-    time: '14:15',
-    account: 'Banco → Ahorros',
-    categoryIcon: Repeat,
-    location: 'App Bancaria',
-    pending: false,
-  },
-  {
-    id: 4,
-    type: 'expense',
-    description: 'Gasolina Shell',
-    category: 'Transporte',
-    amount: -45.00,
-    date: '2024-01-12',
-    time: '16:45',
-    account: 'Tarjeta Crédito',
-    categoryIcon: Car,
-    location: 'Estación Shell',
-    pending: false,
-  },
-  {
-    id: 5,
-    type: 'income',
-    description: 'Proyecto Freelance ✨',
-    category: 'Trabajo Extra',
-    amount: 750.00,
-    date: '2024-01-11',
-    time: '20:00',
-    account: 'Cuenta PayPal',
-    categoryIcon: TrendingUp,
-    location: 'Cliente Remoto',
-    pending: false,
-  },
-  {
-    id: 6,
-    type: 'expense',
-    description: 'Café Starbucks ☕',
-    category: 'Entretenimiento',
-    amount: -12.50,
-    date: '2024-01-11',
-    time: '08:30',
-    account: 'Tarjeta Débito',
-    categoryIcon: Coffee,
-    location: 'Plaza Central',
-    pending: true,
-  },
-];
+// Transactions will be loaded from Supabase database
+const transactions: any[] = [];
 
 export function RecentTransactions() {
   const formatAmount = (amount: number) => {

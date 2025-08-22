@@ -43,85 +43,18 @@ import {
 } from '@/lib/animations';
 import { formatCurrency } from '@/lib/echarts';
 
-// Mock financial data
+// Financial data will be loaded from Supabase database
 const mockFinancialData = {
-  currentBalance: 15750.50,
-  monthlyIncome: 5200.00,
-  monthlyExpenses: 3850.75,
-  monthlySavings: 1349.25,
-  
-  // Chart data
-  incomeExpenseData: {
-    categories: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-    income: [5000, 5200, 4800, 5400, 5200, 5600],
-    expenses: [3800, 3950, 4100, 3700, 3850, 3900],
-  },
-  
-  cashFlowData: {
-    dates: ['2024-01-01', '2024-02-01', '2024-03-01', '2024-04-01', '2024-05-01', '2024-06-01'],
-    balances: [12500, 13750, 13450, 15150, 15500, 15750],
-  },
-  
-  expensesByCategory: {
-    categories: ['Alimentación', 'Transporte', 'Entretenimiento', 'Servicios', 'Salud', 'Otros'],
-    amounts: [1200, 680, 420, 850, 350, 350],
-  },
-  
-  spendingTrend: {
-    months: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-    categories: ['Alimentación', 'Transporte', 'Entretenimiento'],
-    data: {
-      'Alimentación': [1100, 1150, 1300, 1050, 1200, 1250],
-      'Transporte': [650, 700, 750, 600, 680, 720],
-      'Entretenimiento': [400, 450, 500, 350, 420, 480],
-    },
-  },
-  
-  budgets: [
-    { category: 'Alimentación', spent: 1200, budget: 1500 },
-    { category: 'Transporte', spent: 680, budget: 800 },
-    { category: 'Entretenimiento', spent: 420, budget: 500 },
-    { category: 'Servicios', spent: 850, budget: 900 },
-  ],
-  
-  transactions: [
-    {
-      id: '1',
-      type: 'EXPENSE' as const,
-      accountId: 'acc1',
-      categoryId: 'cat1',
-      amount: 89.50,
-      description: 'Supermercado Walmart',
-      date: dateUtils.today().format('YYYY-MM-DD'),
-      account: { name: 'Tarjeta Débito', type: 'Debit' },
-      category: { name: 'Alimentación', color: '#ef4444', icon: '🛒' },
-      createdAt: dateUtils.now().toISOString(),
-    },
-    {
-      id: '2',
-      type: 'INCOME' as const,
-      accountId: 'acc2',
-      categoryId: 'cat2',
-      amount: 5200.00,
-      description: 'Salario Mensual',
-      date: dateUtils.today().format('YYYY-MM-DD'),
-      account: { name: 'Cuenta Nómina', type: 'Checking' },
-      category: { name: 'Salario', color: '#10b981', icon: '💼' },
-      createdAt: dateUtils.now().toISOString(),
-    },
-    {
-      id: '3',
-      type: 'EXPENSE' as const,
-      accountId: 'acc1',
-      categoryId: 'cat3',
-      amount: 45.00,
-      description: 'Gasolina Shell',
-      date: dateUtils.yesterday().format('YYYY-MM-DD'),
-      account: { name: 'Tarjeta Crédito', type: 'Credit' },
-      category: { name: 'Transporte', color: '#3b82f6', icon: '⛽' },
-      createdAt: dateUtils.yesterday().toISOString(),
-    },
-  ],
+  currentBalance: 0,
+  monthlyIncome: 0,
+  monthlyExpenses: 0,
+  monthlySavings: 0,
+  incomeExpenseData: { categories: [], income: [], expenses: [] },
+  cashFlowData: { dates: [], balances: [] },
+  expensesByCategory: { categories: [], amounts: [] },
+  spendingTrend: { months: [], categories: [], data: {} },
+  budgets: [],
+  transactions: [],
 };
 
 interface AdvancedFinancialDashboardProps {

@@ -1,4 +1,4 @@
-# 💼 Fintek
+# 💼 FinTec
 
 Una plataforma moderna e inteligente de gestión de finanzas personales construida con Next.js 14, TypeScript y TailwindCSS.
 
@@ -40,7 +40,7 @@ Una plataforma moderna e inteligente de gestión de finanzas personales construi
 1. **Clonar el repositorio**
    ```bash
    git clone <repository-url>
-   cd Fintek
+   cd FinTec
    ```
 
 2. **Instalar dependencias**
@@ -85,7 +85,7 @@ npm run clean        # Limpiar cache
 ## 🏗️ Arquitectura del Proyecto
 
 ```
-Fintek/
+FinTec/
 ├── app/                    # App Router pages
 │   ├── globals.css        # Estilos globales
 │   ├── layout.tsx         # Layout principal

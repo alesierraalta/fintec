@@ -12,16 +12,11 @@ import {
   Bitcoin
 } from 'lucide-react';
 import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
+import type { Account } from '@/types/domain';
 import { BalancePreview } from './balance-preview';
 
-interface Account {
-  id: string;
-  name: string;
-  balance: number;
-  currency: string;
-  currencyType: 'fiat' | 'crypto';
-  icon: string;
-}
+
 
 interface TransferData {
   fromAccountId: string;
@@ -33,10 +28,13 @@ interface TransferData {
 
 export function MobileTransfer() {
   const router = useRouter();
-  const { accountRepository } = useRepository();
+  const repository = useRepository();
+  const { user } = useAuth();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [transferData, setTransferData] = useState<TransferData>({
     fromAccountId: '',
     toAccountId: '',
@@ -45,65 +43,51 @@ export function MobileTransfer() {
     date: ''
   });
 
-  // Mock accounts - replace with real data
-  const mockAccounts: Account[] = [
-    {
-      id: '1',
-      name: 'Cuenta Principal',
-      balance: 15420.50,
-      currency: 'USD',
-      currencyType: 'fiat',
-      icon: 'wallet'
-    },
-    {
-      id: '2',
-      name: 'Ahorros',
-      balance: 8750.25,
-      currency: 'USD',
-      currencyType: 'fiat',
-      icon: 'wallet'
-    },
-    {
-      id: '3',
-      name: 'Bolívares',
-      balance: 2450000.00,
-      currency: 'VES',
-      currencyType: 'fiat',
-      icon: 'wallet'
-    },
-    {
-      id: '4',
-      name: 'Bitcoin',
-      balance: 0.05432100,
-      currency: 'BTC',
-      currencyType: 'crypto',
-      icon: 'bitcoin'
-    }
-  ];
-
   useEffect(() => {
-    setAccounts(mockAccounts);
+    const loadAccounts = async () => {
+      if (!user) {
+        setError('Usuario no autenticado');
+        setLoadingAccounts(false);
+        return;
+      }
+
+      try {
+        setLoadingAccounts(true);
+        setError(null);
+        const userAccounts = await repository.accounts.findByUserId(user.id);
+        setAccounts(userAccounts.filter(account => account.active));
+      } catch (err) {
+        console.error('Error loading accounts for transfers:', err);
+        setError('Error al cargar las cuentas');
+        setAccounts([]);
+      } finally {
+        setLoadingAccounts(false);
+      }
+    };
+
+    loadAccounts();
+    
     setTransferData(prev => ({
       ...prev,
       date: new Date().toISOString().split('T')[0]
     }));
-  }, []);
+  }, [user, repository]);
 
-  const getAccountIcon = (iconName: string, currencyType: 'fiat' | 'crypto') => {
-    if (iconName === 'bitcoin' || currencyType === 'crypto') {
+  const getAccountIcon = (currencyCode: string) => {
+    if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
       return <Bitcoin className="h-5 w-5 text-orange-500" />;
     }
     return <Wallet className="h-5 w-5 text-blue-500" />;
   };
 
-  const formatBalance = (balance: number, currency: string, currencyType: 'fiat' | 'crypto') => {
-    if (currencyType === 'crypto') {
-      return `${balance.toFixed(8)} ${currency}`;
+  const formatBalance = (balance: number, currencyCode: string) => {
+    if (currencyCode === 'BTC') {
+      return `${balance.toFixed(8)} ${currencyCode}`;
     }
-    if (currency === 'VES') {
+    if (currencyCode === 'VES') {
       return `Bs. ${balance.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`;
     }
-    return `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${currency}`;
+    return `$${balance.toLocaleString('en-US', { minimumFractionDigits: 2 })} ${currencyCode}`;
   };
 
   const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
@@ -173,7 +157,19 @@ export function MobileTransfer() {
         <div className="space-y-3">
           <label className="text-sm font-medium text-text-secondary">Cuenta Origen</label>
           <div className="space-y-2">
-            {accounts.map((account) => (
+            {loadingAccounts ? (
+              <div className="p-4 rounded-2xl border-2 border-border-primary bg-background-elevated">
+                <p className="text-text-muted text-center text-sm">Cargando cuentas...</p>
+              </div>
+            ) : error ? (
+              <div className="p-4 rounded-2xl border-2 border-red-500 bg-red-500/10">
+                <p className="text-red-500 text-center text-sm">{error}</p>
+              </div>
+            ) : accounts.length === 0 ? (
+              <div className="p-4 rounded-2xl border-2 border-border-primary bg-background-elevated">
+                <p className="text-text-muted text-center text-sm">No tienes cuentas disponibles</p>
+              </div>
+            ) : accounts.map((account) => (
               <button
                 key={`from-${account.id}`}
                 onClick={() => setTransferData(prev => ({ ...prev, fromAccountId: account.id }))}
@@ -186,15 +182,15 @@ export function MobileTransfer() {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    {getAccountIcon(account.icon, account.currencyType)}
+                    {getAccountIcon(account.currencyCode)}
                     <div className="text-left">
                       <p className="font-medium text-text-primary">{account.name}</p>
-                      <p className="text-sm text-text-muted">{account.currency}</p>
+                      <p className="text-sm text-text-muted">{account.currencyCode}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-text-primary">
-                      {formatBalance(account.balance, account.currency, account.currencyType)}
+                      {formatBalance(account.balance, account.currencyCode)}
                     </p>
                   </div>
                 </div>
@@ -229,20 +225,20 @@ export function MobileTransfer() {
                         : 'border-border-primary bg-background-elevated hover:border-border-secondary'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        {getAccountIcon(account.icon, account.currencyType)}
-                        <div className="text-left">
-                          <p className="font-medium text-text-primary">{account.name}</p>
-                          <p className="text-sm text-text-muted">{account.currency}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-text-primary">
-                          {formatBalance(account.balance, account.currency, account.currencyType)}
-                        </p>
-                      </div>
+                                    <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {getAccountIcon(account.currencyCode)}
+                    <div className="text-left">
+                      <p className="font-medium text-text-primary">{account.name}</p>
+                      <p className="text-sm text-text-muted">{account.currencyCode}</p>
                     </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold text-text-primary">
+                      {formatBalance(account.balance, account.currencyCode)}
+                    </p>
+                  </div>
+                </div>
                   </button>
                 ))}
             </div>
@@ -352,10 +348,10 @@ export function MobileTransfer() {
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-text-muted">
-                        {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currency, getToAccount()!.currencyType) : '--'}
+                        {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currencyCode) : '--'}
                       </p>
                       <p className="font-bold text-green-400 text-sm">
-                        → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currency, getToAccount()!.currencyType) : '--'}
+                        → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currencyCode) : '--'}
                       </p>
                     </div>
                   </div>

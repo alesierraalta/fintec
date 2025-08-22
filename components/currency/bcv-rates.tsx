@@ -9,7 +9,9 @@ import {
   Euro,
   Clock,
   ExternalLink,
-  Minus
+  Minus,
+  ArrowUpDown,
+  Calculator
 } from 'lucide-react';
 import { currencyService, BCVRates } from '@/lib/services/currency-service';
 import { BCVTrend } from '@/lib/services/bcv-history-service';
@@ -21,6 +23,12 @@ export function BCVRates() {
   const [error, setError] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
   const [trends, setTrends] = useState<{ usd: BCVTrend; eur: BCVTrend } | null>(null);
+  
+  // Currency converter state
+  const [showConverter, setShowConverter] = useState(false);
+  const [amount, setAmount] = useState<string>('1');
+  const [fromCurrency, setFromCurrency] = useState<'VES' | 'USD' | 'EUR'>('USD');
+  const [toCurrency, setToCurrency] = useState<'VES' | 'USD' | 'EUR'>('VES');
 
   const fetchRates = async () => {
     setLoading(true);
@@ -82,6 +90,48 @@ export function BCVRates() {
     }
   };
 
+  const convertCurrency = () => {
+    if (!rates || !amount || isNaN(parseFloat(amount))) return 0;
+    
+    const numAmount = parseFloat(amount);
+    
+    if (fromCurrency === toCurrency) return numAmount;
+    
+    // Convert to VES first if needed
+    let vesAmount = numAmount;
+    if (fromCurrency === 'USD') {
+      vesAmount = numAmount * rates.usd;
+    } else if (fromCurrency === 'EUR') {
+      vesAmount = numAmount * rates.eur;
+    }
+    
+    // Convert from VES to target currency
+    if (toCurrency === 'VES') {
+      return vesAmount;
+    } else if (toCurrency === 'USD') {
+      return vesAmount / rates.usd;
+    } else if (toCurrency === 'EUR') {
+      return vesAmount / rates.eur;
+    }
+    
+    return 0;
+  };
+
+  const swapCurrencies = () => {
+    const temp = fromCurrency;
+    setFromCurrency(toCurrency);
+    setToCurrency(temp);
+  };
+
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'VES': return 'Bs.';
+      default: return '';
+    }
+  };
+
   if (!rates) {
     return (
       <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary animate-pulse">
@@ -105,6 +155,13 @@ export function BCVRates() {
         </div>
         
         <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setShowConverter(!showConverter)}
+            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors"
+            title="Convertidor de Monedas"
+          >
+            <Calculator className="h-4 w-4 text-text-primary" />
+          </button>
           <button
             onClick={fetchRates}
             disabled={loading}
@@ -160,6 +217,85 @@ export function BCVRates() {
           <p className="text-xs text-text-muted">por 1 EUR</p>
         </div>
       </div>
+
+      {/* Currency Converter */}
+      {showConverter && (
+        <div className="bg-background-elevated/50 rounded-xl p-4 border border-border-primary/50 mb-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Calculator className="h-4 w-4 text-accent-primary" />
+            <h4 className="font-medium text-text-primary">Conversión Rápida</h4>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Amount Input */}
+            <div>
+              <label className="block text-sm font-medium text-text-muted mb-2">Cantidad</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="Ingresa el monto"
+                className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+              />
+            </div>
+            
+            {/* From Currency */}
+            <div className="grid grid-cols-5 gap-2 items-center">
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-text-muted mb-2">De</label>
+                <select
+                  value={fromCurrency}
+                  onChange={(e) => setFromCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
+                  className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+                >
+                  <option value="USD">USD - Dólar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="VES">VES - Bolívar</option>
+                </select>
+              </div>
+              
+              <div className="flex justify-center">
+                <button
+                  onClick={swapCurrencies}
+                  className="p-2 rounded-lg bg-accent-primary/20 hover:bg-accent-primary/30 transition-colors"
+                  title="Intercambiar monedas"
+                >
+                  <ArrowUpDown className="h-4 w-4 text-accent-primary" />
+                </button>
+              </div>
+              
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-text-muted mb-2">A</label>
+                <select
+                  value={toCurrency}
+                  onChange={(e) => setToCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
+                  className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+                >
+                  <option value="USD">USD - Dólar</option>
+                  <option value="EUR">EUR - Euro</option>
+                  <option value="VES">VES - Bolívar</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Result */}
+            <div className="bg-accent-primary/10 rounded-lg p-3 border border-accent-primary/20">
+              <div className="text-center">
+                <p className="text-sm text-text-muted mb-1">Resultado</p>
+                <p className="text-2xl font-bold text-accent-primary">
+                  {getCurrencySymbol(toCurrency)} {convertCurrency().toLocaleString('es-VE', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
+                </p>
+                <p className="text-xs text-text-muted mt-1">
+                  {amount} {fromCurrency} = {convertCurrency().toFixed(2)} {toCurrency}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between text-xs text-text-muted">
         <div className="flex items-center space-x-2">

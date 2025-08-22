@@ -39,53 +39,16 @@ import {
 import { TransactionFormSchema } from '@/lib/validations/schemas';
 import { createFileUploadDragDrop } from '@/lib/drag-drop';
 
-// Mock data
-const mockTransactions = [
-  {
-    id: '1',
-    type: 'EXPENSE' as const,
-    accountId: 'acc1',
-    categoryId: 'cat1',
-    amount: 45.99,
-    description: 'Supermercado',
-    date: dateUtils.today().format('YYYY-MM-DD'),
-    account: { name: 'Tarjeta Principal', type: 'Credit' },
-    category: { name: 'Comida', color: '#ef4444', icon: '🍔' },
-    createdAt: dateUtils.now().toISOString(),
-  },
-  {
-    id: '2',
-    type: 'INCOME' as const,
-    accountId: 'acc2',
-    categoryId: 'cat2',
-    amount: 2500.00,
-    description: 'Salario',
-    date: dateUtils.today().format('YYYY-MM-DD'),
-    account: { name: 'Cuenta Nómina', type: 'Checking' },
-    category: { name: 'Salario', color: '#10b981', icon: '💰' },
-    createdAt: dateUtils.now().toISOString(),
-  },
-  {
-    id: '3',
-    type: 'TRANSFER_OUT' as const,
-    accountId: 'acc1',
-    categoryId: 'cat3',
-    amount: 500.00,
-    description: 'Transferencia a Ahorros',
-    date: dateUtils.yesterday().format('YYYY-MM-DD'),
-    account: { name: 'Tarjeta Principal', type: 'Credit' },
-    category: { name: 'Ahorros', color: '#3b82f6', icon: '💳' },
-    createdAt: dateUtils.yesterday().toISOString(),
-  },
-];
+// Data will be loaded from Supabase database
+const mockTransactions: any[] = [];
 
 const chartData = {
-  periods: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun'],
-  income: [2500, 2600, 2400, 2700, 2500, 2800],
-  expenses: [1800, 1900, 2100, 1700, 1950, 1850],
-  balances: [700, 1400, 700, 1700, 1250, 2200],
-  categories: ['Comida', 'Transporte', 'Entretenimiento', 'Servicios', 'Otros'],
-  categoryAmounts: [450, 280, 150, 320, 180],
+  periods: [],
+  income: [],
+  expenses: [],
+  balances: [],
+  categories: [],
+  categoryAmounts: [],
 };
 
 interface EnhancedDashboardProps {

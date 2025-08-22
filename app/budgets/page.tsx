@@ -9,67 +9,9 @@ import { useModal } from '@/hooks';
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
 import type { Budget } from '@/types';
 
-// Mock budget data
-const mockBudgets: Budget[] = [
-  {
-    id: '1',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '1',
-    amountBaseMinor: 80000, // $800.00
-    spentMinor: 65000, // $650.00
-  },
-  {
-    id: '2',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '2',
-    amountBaseMinor: 30000, // $300.00
-    spentMinor: 35000, // $350.00
-  },
-  {
-    id: '3',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '3',
-    amountBaseMinor: 20000, // $200.00
-    spentMinor: 12000, // $120.00
-  },
-  {
-    id: '4',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '4',
-    amountBaseMinor: 15000, // $150.00
-    spentMinor: 8000, // $80.00
-  },
-  {
-    id: '5',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '5',
-    amountBaseMinor: 25000, // $250.00
-    spentMinor: 18000, // $180.00
-  },
-  {
-    id: '6',
-    userId: 'user_1',
-    monthYYYYMM: '202412',
-    categoryId: '6',
-    amountBaseMinor: 40000, // $400.00
-    spentMinor: 32000, // $320.00
-  },
-];
-
-// Mock categories for display
-const mockCategories = [
-  { id: '1', name: 'Alimentación', color: '#10b981', icon: 'UtensilsCrossed' },
-  { id: '2', name: 'Transporte', color: '#f59e0b', icon: 'Car' },
-  { id: '3', name: 'Entretenimiento', color: '#8b5cf6', icon: 'Gamepad2' },
-  { id: '4', name: 'Salud', color: '#ef4444', icon: 'Heart' },
-  { id: '5', name: 'Educación', color: '#3b82f6', icon: 'GraduationCap' },
-  { id: '6', name: 'Hogar', color: '#06b6d4', icon: 'Home' },
-];
+// Budgets and categories will be loaded from Supabase database
+const mockBudgets: Budget[] = [];
+const mockCategories: any[] = [];
 
 export default function BudgetsPage() {
   const { isOpen, openModal, closeModal } = useModal();

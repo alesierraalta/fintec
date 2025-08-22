@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { TransactionType } from '@/types';
+import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
+import type { Transaction, Account, Category } from '@/types/domain';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 
@@ -16,6 +19,8 @@ import {
 interface TransactionFormProps {
   isOpen: boolean;
   onClose: () => void;
+  transaction?: Transaction | null;
+  onSuccess?: () => void;
   type?: TransactionType;
 }
 
@@ -25,68 +30,175 @@ const transactionTypes = [
   { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'text-blue-500' },
 ];
 
-const accounts = [
-  { value: 'acc1', label: 'Cuenta Principal' },
-  { value: 'acc2', label: 'Tarjeta de Crédito' },
-  { value: 'acc3', label: 'Cuenta de Ahorros' },
-  { value: 'acc4', label: 'Efectivo' },
-];
-
-const categories = [
-  { value: 'cat1', label: 'Alimentación' },
-  { value: 'cat2', label: 'Transporte' },
-  { value: 'cat3', label: 'Entretenimiento' },
-  { value: 'cat4', label: 'Servicios' },
-  { value: 'cat5', label: 'Salud' },
-  { value: 'cat6', label: 'Salario' },
-  { value: 'cat7', label: 'Freelance' },
-];
-
-export function TransactionForm({ isOpen, onClose, type = 'EXPENSE' }: TransactionFormProps) {
+export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type = 'EXPENSE' }: TransactionFormProps) {
+  const repository = useRepository();
+  const { user } = useAuth();
+  
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
   const [formData, setFormData] = useState({
-    type: type,
-    accountId: '',
-    categoryId: '',
-    amount: '',
-    description: '',
-    date: new Date().toISOString().split('T')[0],
-    note: '',
-    tags: '',
+    type: transaction?.type || type,
+    accountId: transaction?.accountId || '',
+    categoryId: transaction?.categoryId || '',
+    amount: transaction ? (transaction.amountMinor / 100).toString() : '',
+    description: transaction?.description || '',
+    date: transaction?.date || new Date().toISOString().split('T')[0],
+    note: transaction?.note || '',
+    tags: transaction?.tags?.join(', ') || '',
   });
 
   const [loading, setLoading] = useState(false);
 
+  // Load accounts and categories
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      
+      try {
+        setLoadingData(true);
+        const [userAccounts, allCategories] = await Promise.all([
+          repository.accounts.findByUserId(user.id),
+          repository.categories.findAll()
+        ]);
+        
+        setAccounts(userAccounts.filter(acc => acc.active));
+        setCategories(allCategories.filter(cat => cat.active));
+      } catch (error) {
+        console.error('Error loading form data:', error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (isOpen) {
+      loadData();
+    }
+  }, [isOpen, user, repository]);
+
+  // Update form data when transaction changes
+  useEffect(() => {
+    if (transaction) {
+      setFormData({
+        type: transaction.type,
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId || '',
+        amount: (transaction.amountMinor / 100).toString(),
+        description: transaction.description || '',
+        date: transaction.date,
+        note: transaction.note || '',
+        tags: transaction.tags?.join(', ') || '',
+      });
+    } else {
+      setFormData({
+        type: type,
+        accountId: '',
+        categoryId: '',
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        tags: '',
+      });
+    }
+  }, [transaction, type]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) return;
+    
+    // Basic validation
+    if (!formData.accountId || !formData.categoryId || !formData.amount || !formData.description) {
+      alert('Por favor completa todos los campos requeridos');
+      return;
+    }
+
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Por favor ingresa un monto válido');
+      return;
+    }
+
     setLoading(true);
     
-    // Simular guardado
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Transaction data:', formData);
-    setLoading(false);
-    onClose();
-    
-    // Reset form
-    setFormData({
-      type: type,
-      accountId: '',
-      categoryId: '',
-      amount: '',
-      description: '',
-      date: new Date().toISOString().split('T')[0],
-      note: '',
-      tags: '',
-    });
+    try {
+      const transactionData = {
+        type: formData.type as TransactionType,
+        accountId: formData.accountId,
+        categoryId: formData.categoryId,
+        currencyCode: 'USD', // TODO: Get from selected account
+        amountMinor: Math.round(amount * 100),
+        date: formData.date,
+        description: formData.description.trim(),
+        note: formData.note?.trim() || undefined,
+        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
+      };
+
+      if (transaction) {
+        // Update existing transaction
+        await repository.transactions.update(transaction.id, transactionData);
+      } else {
+        // Create new transaction
+        await repository.transactions.create(transactionData);
+      }
+
+      onSuccess?.();
+      onClose();
+      
+      // Reset form
+      setFormData({
+        type: type,
+        accountId: '',
+        categoryId: '',
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        tags: '',
+      });
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      alert('Error al guardar la transacción');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const selectedType = transactionTypes.find(t => t.value === formData.type);
+
+  // Transform data for Select components
+  const accountOptions = accounts.map(account => ({
+    value: account.id,
+    label: `${account.name} (${account.currencyCode})`
+  }));
+
+  const categoryOptions = categories
+    .filter(cat => !formData.type || cat.kind === formData.type)
+    .map(category => ({
+      value: category.id,
+      label: category.name
+    }));
+
+  if (loadingData) {
+    return (
+      <Modal
+        open={isOpen}
+        onClose={onClose}
+        title="Cargando..."
+        size="md"
+      >
+        <div className="p-8 text-center">
+          <p className="text-gray-400">Cargando datos...</p>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
       open={isOpen}
       onClose={onClose}
-      title="Nueva Transacción"
+      title={transaction ? "Editar Transacción" : "Nueva Transacción"}
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -139,7 +251,7 @@ export function TransactionForm({ isOpen, onClose, type = 'EXPENSE' }: Transacti
             label="Cuenta"
             value={formData.accountId}
             onChange={(e) => setFormData({ ...formData, accountId: e.target.value })}
-            options={accounts}
+            options={accountOptions}
             placeholder="Seleccionar cuenta"
             required
           />
@@ -151,7 +263,7 @@ export function TransactionForm({ isOpen, onClose, type = 'EXPENSE' }: Transacti
             label="Categoría"
             value={formData.categoryId}
             onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-            options={categories}
+            options={categoryOptions}
             placeholder="Seleccionar categoría"
             required
           />

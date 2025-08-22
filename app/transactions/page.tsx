@@ -1,12 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { TransactionForm } from '@/components/forms/transaction-form';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
+import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
+import type { Transaction } from '@/types/domain';
 import { 
   Plus, 
   ArrowDownLeft, 
@@ -19,100 +23,105 @@ import {
   Sparkles
 } from 'lucide-react';
 
-const mockTransactions = [
-  {
-    id: '1',
-    type: 'INCOME',
-    description: 'Salario Mensual',
-    category: 'Trabajo',
-    account: 'Banco Principal',
-    amount: 3200.00,
-    date: '2024-01-15',
-    tags: ['salario', 'mensual'],
-  },
-  {
-    id: '2',
-    type: 'EXPENSE',
-    description: 'Supermercado Central',
-    category: 'Alimentación',
-    account: 'Tarjeta Débito',
-    amount: -85.50,
-    date: '2024-01-14',
-    tags: ['comida', 'semanal'],
-  },
-  {
-    id: '3',
-    type: 'TRANSFER_OUT',
-    description: 'Transferencia a Ahorros',
-    category: 'Transferencia',
-    account: 'Banco Principal → Ahorros',
-    amount: -500.00,
-    date: '2024-01-13',
-    tags: ['ahorro'],
-  },
-  {
-    id: '4',
-    type: 'EXPENSE',
-    description: 'Gasolina Shell',
-    category: 'Transporte',
-    account: 'Tarjeta Crédito',
-    amount: -45.00,
-    date: '2024-01-12',
-    tags: ['combustible'],
-  },
-  {
-    id: '5',
-    type: 'INCOME',
-    description: 'Freelance Proyecto Web',
-    category: 'Trabajo',
-    account: 'Cuenta Freelance',
-    amount: 750.00,
-    date: '2024-01-11',
-    tags: ['freelance', 'web'],
-  },
-  {
-    id: '6',
-    type: 'EXPENSE',
-    description: 'Netflix Suscripción',
-    category: 'Entretenimiento',
-    account: 'Tarjeta Crédito',
-    amount: -15.99,
-    date: '2024-01-10',
-    tags: ['streaming', 'mensual'],
-  },
-  {
-    id: '7',
-    type: 'EXPENSE',
-    description: 'Farmacia San Pablo',
-    category: 'Salud',
-    account: 'Efectivo',
-    amount: -32.50,
-    date: '2024-01-09',
-    tags: ['medicina'],
-  },
-  {
-    id: '8',
-    type: 'INCOME',
-    description: 'Dividendos Acciones',
-    category: 'Inversiones',
-    account: 'Cuenta Inversión',
-    amount: 125.00,
-    date: '2024-01-08',
-    tags: ['dividendos', 'inversión'],
-  },
-];
-
 export default function TransactionsPage() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
-  const [filteredTransactions, setFilteredTransactions] = useState(mockTransactions);
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const repository = useRepository();
+  const { user } = useAuth();
+  
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{x: number, y: number} | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // Load transactions from database
+  useEffect(() => {
+    const loadTransactions = async () => {
+      if (!user) {
+        setError('Usuario no autenticado');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Load all data in parallel
+        const [allTransactions, userAccounts, allCategories] = await Promise.all([
+          repository.transactions.findAll(),
+          repository.accounts.findByUserId(user.id),
+          repository.categories.findAll()
+        ]);
+        
+        setTransactions(allTransactions);
+        setFilteredTransactions(allTransactions);
+        setAccounts(userAccounts);
+        setCategories(allCategories);
+      } catch (err) {
+        console.error('Error loading transactions:', err);
+        setError('Error al cargar las transacciones');
+        setTransactions([]);
+        setFilteredTransactions([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadTransactions();
+  }, [user, repository]);
+
+  // Close dropdown when clicking outside or scrolling
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setOpenDropdown(null);
+      setDropdownPosition(null);
+    };
+    
+    const handleScroll = () => {
+      setOpenDropdown(null);
+      setDropdownPosition(null);
+    };
+    
+    if (openDropdown) {
+      document.addEventListener('click', handleClickOutside);
+      document.addEventListener('scroll', handleScroll, true);
+      return () => {
+        document.removeEventListener('click', handleClickOutside);
+        document.removeEventListener('scroll', handleScroll, true);
+      };
+    }
+  }, [openDropdown]);
+
+  // Helper functions
+  const getAccountName = (accountId: string) => {
+    const account = accounts.find(acc => acc.id === accountId);
+    return account?.name || 'Cuenta desconocida';
+  };
+
+  const getCategoryName = (categoryId?: string) => {
+    if (!categoryId) return 'Sin categoría';
+    const category = categories.find(cat => cat.id === categoryId);
+    return category?.name || 'Categoría desconocida';
+  };
+
+  const formatAmount = (amountMinor: number) => {
+    return (amountMinor / 100).toLocaleString('en-US', { minimumFractionDigits: 2 });
+  };
 
   const handleFiltersChange = (filters: any) => {
-    // Aquí aplicarías los filtros a las transacciones
+    // Apply filters to transactions
     console.log('Filters applied:', filters);
-    // Por ahora, solo mostramos todas las transacciones
-    setFilteredTransactions(mockTransactions);
+    // TODO: Implement proper filtering logic
+    setFilteredTransactions(transactions);
   };
 
   const handleNewTransaction = () => {
@@ -124,9 +133,59 @@ export default function TransactionsPage() {
     openModal();
   };
 
-  const handleEditTransaction = (transaction: any) => {
+  const handleEditTransaction = (transaction: Transaction) => {
     setSelectedTransaction(transaction);
+    setOpenDropdown(null);
+    setDropdownPosition(null);
     openModal();
+  };
+
+  const handleDeleteTransaction = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
+    setOpenDropdown(null);
+    setDropdownPosition(null);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    
+    try {
+      setDeleting(true);
+      await repository.transactions.delete(transactionToDelete.id);
+      
+      // Update local state
+      setTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
+      setFilteredTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
+      
+      // Close modal
+      setShowDeleteModal(false);
+      setTransactionToDelete(null);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      alert('Error al eliminar la transacción');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setTransactionToDelete(null);
+  };
+
+  const handleTransactionUpdated = () => {
+    // Reload transactions after edit
+    const loadTransactions = async () => {
+      try {
+        const allTransactions = await repository.transactions.findAll();
+        setTransactions(allTransactions);
+        setFilteredTransactions(allTransactions);
+      } catch (err) {
+        console.error('Error reloading transactions:', err);
+      }
+    };
+    loadTransactions();
   };
 
   const getIcon = (type: string) => {
@@ -174,11 +233,11 @@ export default function TransactionsPage() {
 
   const totalIncome = filteredTransactions
     .filter(t => t.type === 'INCOME')
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
 
   const totalExpenses = filteredTransactions
     .filter(t => t.type === 'EXPENSE')
-    .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+    .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
 
   const netAmount = totalIncome - totalExpenses;
 
@@ -262,8 +321,24 @@ export default function TransactionsPage() {
             </h3>
           </div>
           
-          <div className="divide-y divide-gray-800">
-            {filteredTransactions.map((transaction) => (
+          <div className="divide-y divide-gray-800 relative">
+            {loading ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-400">Cargando transacciones...</p>
+              </div>
+            ) : error ? (
+              <div className="p-8 text-center">
+                <p className="text-red-400">{error}</p>
+              </div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="p-8 text-center">
+                <p className="text-gray-400 mb-4">No tienes transacciones aún</p>
+                <Button onClick={handleNewTransaction} icon={<Plus className="h-4 w-4" />}>
+                  Crear tu primera transacción
+                </Button>
+              </div>
+            ) : (
+              filteredTransactions.map((transaction) => (
               <div key={transaction.id} className="p-4 sm:p-6 hover:bg-gray-800/50 transition-colors overflow-hidden">
                 <div className="flex items-start justify-between min-w-0">
                   <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
@@ -271,15 +346,15 @@ export default function TransactionsPage() {
                       {getIcon(transaction.type)}
                     </div>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <h4 className="text-base sm:text-lg font-medium text-white truncate mb-1">{transaction.description}</h4>
+                      <h4 className="text-base sm:text-lg font-medium text-white truncate mb-1">{transaction.description || 'Sin descripción'}</h4>
                       
                       {/* Desktop info */}
                       <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-400 overflow-hidden">
                         <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
                         <span className="flex-shrink-0">•</span>
-                        <span className="truncate">{transaction.category}</span>
+                        <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
                         <span className="flex-shrink-0">•</span>
-                        <span className="truncate">{transaction.account}</span>
+                        <span className="truncate">{getAccountName(transaction.accountId)}</span>
                         <span className="flex-shrink-0">•</span>
                         <span className="flex-shrink-0">{transaction.date}</span>
                       </div>
@@ -289,16 +364,16 @@ export default function TransactionsPage() {
                         <div className="flex items-center space-x-2">
                           <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
                           <span>•</span>
-                          <span className="truncate">{transaction.category}</span>
+                          <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="truncate">{transaction.account}</span>
+                          <span className="truncate">{getAccountName(transaction.accountId)}</span>
                           <span>•</span>
                           <span className="flex-shrink-0">{transaction.date}</span>
                         </div>
                       </div>
                       
-                      {transaction.tags.length > 0 && (
+                      {transaction.tags && transaction.tags.length > 0 && (
                         <div className="flex items-center space-x-1 mt-2 overflow-x-auto">
                           {transaction.tags.map((tag) => (
                             <span
@@ -316,20 +391,31 @@ export default function TransactionsPage() {
                   <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
                     <div className="text-right">
                       <p className={`text-sm sm:text-xl font-semibold truncate ${getAmountColor(transaction.type)}`}>
-                        {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}${formatAmount(Math.abs(transaction.amountMinor))}
                       </p>
                     </div>
                     
                     <div className="relative">
-                      <button className="p-1 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setDropdownPosition({
+                            x: rect.right - 192, // 192px = w-48
+                            y: rect.bottom + 4
+                          });
+                          setOpenDropdown(openDropdown === transaction.id ? null : transaction.id);
+                        }}
+                        className="p-1 sm:p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </button>
-                      {/* Dropdown menu would go here */}
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </div>
       </div>
@@ -337,8 +423,108 @@ export default function TransactionsPage() {
       <TransactionForm
         isOpen={isOpen}
         onClose={closeModal}
+        transaction={selectedTransaction}
+        onSuccess={handleTransactionUpdated}
         type={selectedTransaction?.type || 'EXPENSE'}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && transactionToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <Trash2 className="h-5 w-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-white">Eliminar Transacción</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-gray-300 mb-2">
+                ¿Estás seguro de que deseas eliminar esta transacción?
+              </p>
+              <div className="bg-gray-800 rounded-lg p-3">
+                <p className="text-white font-medium">{transactionToDelete.description || 'Sin descripción'}</p>
+                <p className="text-gray-400 text-sm">
+                  {formatAmount(transactionToDelete.amountMinor)} • {transactionToDelete.date}
+                </p>
+              </div>
+              <p className="text-red-400 text-sm mt-2">
+                Esta acción no se puede deshacer.
+              </p>
+            </div>
+            
+            <div className="flex space-x-3">
+              <button
+                onClick={cancelDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
+              >
+                {deleting ? (
+                  <span className="animate-spin">⏳</span>
+                ) : (
+                  'Eliminar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dropdown Portal */}
+      {openDropdown && dropdownPosition && typeof window !== 'undefined' && createPortal(
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-[9998]" 
+            onClick={() => {
+              setOpenDropdown(null);
+              setDropdownPosition(null);
+            }}
+          ></div>
+          
+          {/* Menu */}
+          <div 
+            className="fixed w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-[9999]"
+            style={{
+              left: dropdownPosition.x,
+              top: dropdownPosition.y
+            }}
+          >
+            <div className="py-1">
+              <button
+                onClick={() => {
+                  const transaction = transactions.find(t => t.id === openDropdown);
+                  if (transaction) handleEditTransaction(transaction);
+                }}
+                className="flex items-center w-full px-4 py-3 text-sm text-gray-300 hover:bg-gray-700 hover:text-white transition-colors rounded-t-lg"
+              >
+                <Edit className="h-4 w-4 mr-3" />
+                Editar transacción
+              </button>
+              <div className="border-t border-gray-700"></div>
+              <button
+                onClick={() => {
+                  const transaction = transactions.find(t => t.id === openDropdown);
+                  if (transaction) handleDeleteTransaction(transaction);
+                }}
+                className="flex items-center w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors rounded-b-lg"
+              >
+                <Trash2 className="h-4 w-4 mr-3" />
+                Eliminar transacción
+              </button>
+            </div>
+          </div>
+        </>,
+        document.body
+      )}
     </MainLayout>
   );
 }
