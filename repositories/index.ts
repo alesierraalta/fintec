@@ -31,8 +31,14 @@ let repositoryInstance: AppRepository | null = null;
 
 export function getRepository(): AppRepository {
   if (!repositoryInstance) {
-    // Using Local as the default repository while Supabase is being implemented
-    repositoryInstance = createRepository('local');
+    // Use the same logic as RepositoryProvider: try Supabase first, fallback to Local
+    try {
+      const { SupabaseAppRepository } = require('./supabase');
+      repositoryInstance = new SupabaseAppRepository();
+    } catch (error) {
+      // Fallback to Local if Supabase fails
+      repositoryInstance = createRepository('local');
+    }
   }
   return repositoryInstance;
 }

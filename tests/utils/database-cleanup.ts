@@ -46,9 +46,7 @@ export class DatabaseTestUtils {
       await this.cleanupAccounts();
       // Don't cleanup categories as they're shared
       
-      console.log('✅ All test data cleaned up');
     } catch (error) {
-      console.error('❌ Error during cleanup:', error);
       throw error;
     }
   }
@@ -139,9 +137,7 @@ export class DatabaseTestUtils {
         .in('id', this.testTransactionIds);
 
       if (error) {
-        console.error('Error cleaning up transactions:', error);
       } else {
-        console.log(`🗑️ Cleaned up ${this.testTransactionIds.length} test transactions`);
       }
       this.testTransactionIds = [];
     }
@@ -155,9 +151,7 @@ export class DatabaseTestUtils {
         .in('id', this.testAccountIds);
 
       if (error) {
-        console.error('Error cleaning up accounts:', error);
       } else {
-        console.log(`🗑️ Cleaned up ${this.testAccountIds.length} test accounts`);
       }
       this.testAccountIds = [];
     }
@@ -171,9 +165,7 @@ export class DatabaseTestUtils {
         .in('id', this.testBudgetIds);
 
       if (error) {
-        console.error('Error cleaning up budgets:', error);
       } else {
-        console.log(`🗑️ Cleaned up ${this.testBudgetIds.length} test budgets`);
       }
       this.testBudgetIds = [];
     }
@@ -187,9 +179,7 @@ export class DatabaseTestUtils {
         .in('id', this.testGoalIds);
 
       if (error) {
-        console.error('Error cleaning up goals:', error);
       } else {
-        console.log(`🗑️ Cleaned up ${this.testGoalIds.length} test goals`);
       }
       this.testGoalIds = [];
     }

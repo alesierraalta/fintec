@@ -75,7 +75,6 @@ export class BCVHistoryService {
         });
       }
     } catch (error) {
-      console.error('Error saving BCV rates:', error);
       throw error;
     }
   }
@@ -90,7 +89,6 @@ export class BCVHistoryService {
       
       return record || null;
     } catch (error) {
-      console.error('Error getting rates for date:', error);
       return null;
     }
   }
@@ -127,7 +125,6 @@ export class BCVHistoryService {
         eur: eurTrend
       };
     } catch (error) {
-      console.error('Error calculating trends:', error);
       return null;
     }
   }
@@ -172,7 +169,6 @@ export class BCVHistoryService {
 
       return records.sort((a, b) => a.date.localeCompare(b.date));
     } catch (error) {
-      console.error('Error getting historical rates:', error);
       return [];
     }
   }
@@ -189,7 +185,6 @@ export class BCVHistoryService {
         .below(cutoffDateStr)
         .delete();
     } catch (error) {
-      console.error('Error cleaning old records:', error);
     }
   }
 }

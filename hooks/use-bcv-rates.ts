@@ -21,7 +21,6 @@ export function useBCVRates() {
         }
       } catch (error) {
         // Use fallback rates on error
-        console.error('Error fetching BCV rates:', error);
       }
     };
 

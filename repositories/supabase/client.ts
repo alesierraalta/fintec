@@ -32,7 +32,6 @@ export function validateSupabaseConfig(): boolean {
   const missing = requiredVars.filter(varName => !process.env[varName]);
   
   if (missing.length > 0) {
-    console.warn('Missing Supabase environment variables:', missing);
     return false;
   }
 

@@ -28,15 +28,18 @@ export function StatCard({
       <div className="space-y-4">
         {/* Header with icon */}
         <div className="flex items-center justify-between">
-          <div className="p-3 bg-accent-primary/10 rounded-2xl group-hover:bg-accent-primary/20 transition-colors">
-            <Icon className="h-6 w-6 text-accent-primary" />
+          <div className="p-3 rounded-2xl group-hover:opacity-90 transition-all"
+               style={{ background: 'linear-gradient(135deg, rgba(16, 6, 159, 0.1), rgba(6, 182, 212, 0.1))' }}>
+            <Icon className="h-6 w-6" style={{ color: '#06b6d4' }} />
           </div>
           <div className={cn(
             'text-sm font-semibold px-3 py-1 rounded-full',
-            changeType === 'positive' && 'text-success bg-success/10',
-            changeType === 'negative' && 'text-danger bg-danger/10',
-            changeType === 'neutral' && 'text-info bg-info/10'
-          )}>
+            changeType === 'positive' && 'text-white',
+            changeType === 'negative' && 'text-red-600 bg-red-50',
+            changeType === 'neutral' && 'text-blue-600 bg-blue-50'
+          )}
+          style={changeType === 'positive' ? { background: 'linear-gradient(to right, #4ade80, #10b981)' } : 
+                changeType === 'neutral' ? { background: 'linear-gradient(to right, #06b6d4, #0891b2)' } : {}}>
             {change}
           </div>
         </div>

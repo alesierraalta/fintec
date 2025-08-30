@@ -24,10 +24,19 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async findAll(): Promise<Account[]> {
+    // Get current session to obtain user_id
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session?.user?.id) {
+      // No authenticated user, return empty array
+      return [];
+    }
+
     const { data, error } = await supabase
       .from('accounts')
       .select('*')
       .eq('active', true)
+      .eq('user_id', session.user.id) // Filter by current user
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -38,6 +47,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async findByUserId(userId: string): Promise<Account[]> {
+    // Handle invalid user IDs gracefully
+    if (!userId || userId === 'local-user' || userId === 'undefined' || userId === 'null') {
+      return []; // Return empty array for invalid user IDs
+    }
+    
     const { data, error } = await supabase
       .from('accounts')
       .select('*')

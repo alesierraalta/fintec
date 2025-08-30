@@ -61,13 +61,11 @@ class CurrencyService {
         };
         
         this.bcvRates = rates;
-        console.log('BCV rates fetched successfully:', rates);
         
         // Save rates to history for trend analysis
         try {
           await bcvHistoryService.saveRates(rates.usd, rates.eur, result.data.source || 'BCV');
         } catch (error) {
-          console.error('Error saving rates to history:', error);
         }
         
         return rates;
@@ -81,18 +79,15 @@ class CurrencyService {
           };
           
           this.bcvRates = fallbackRates;
-          console.warn('Using BCV fallback rates:', fallbackRates);
           return fallbackRates;
         }
         
         throw new Error(result.error || 'Unknown error fetching BCV rates');
       }
     } catch (error) {
-      console.error('Error fetching BCV rates:', error);
       
       // Return cached rates if available
       if (this.bcvRates) {
-        console.log('Using cached BCV rates due to fetch error');
         return this.bcvRates;
       }
       
@@ -104,7 +99,6 @@ class CurrencyService {
       };
       
       this.bcvRates = fallbackRates;
-      console.warn('Using hardcoded fallback BCV rates due to all fetch methods failing');
       return fallbackRates;
     }
   }
@@ -171,7 +165,6 @@ class CurrencyService {
 
       return mockPrices;
     } catch (error) {
-      console.error('Error fetching crypto prices:', error);
       throw new Error('Failed to fetch cryptocurrency prices');
     }
   }
@@ -197,7 +190,6 @@ class CurrencyService {
 
       return rates;
     } catch (error) {
-      console.error('Error fetching exchange rates:', error);
       // Return minimal fallback
       return [{
         currency: 'VES',
@@ -234,7 +226,6 @@ class CurrencyService {
     try {
       return await bcvHistoryService.calculateTrends();
     } catch (error) {
-      console.error('Error getting BCV trends:', error);
       return null;
     }
   }

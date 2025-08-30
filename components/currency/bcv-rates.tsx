@@ -51,10 +51,8 @@ export function BCVRates() {
         const trendsData = await currencyService.getBCVTrends();
         setTrends(trendsData);
       } catch (trendError) {
-        console.error('Error fetching trends:', trendError);
       }
     } catch (error) {
-      console.error('Error fetching BCV rates:', error);
       setError('Error al obtener tasas del BCV');
       setIsLive(false);
     } finally {

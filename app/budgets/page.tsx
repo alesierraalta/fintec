@@ -34,7 +34,6 @@ export default function BudgetsPage() {
         setBudgets(allBudgets);
         setCategories(allCategories);
       } catch (error) {
-        console.error('Error loading budgets data:', error);
         setBudgets([]);
         setCategories([]);
       } finally {
@@ -102,7 +101,6 @@ export default function BudgetsPage() {
       }
       closeModal();
     } catch (error) {
-      console.error('Error saving budget:', error);
     }
   };
 
@@ -111,7 +109,6 @@ export default function BudgetsPage() {
       // Aquí implementarías la lógica real de eliminación
       setBudgets(prev => prev.filter(budget => budget.id !== budgetId));
     } catch (error) {
-      console.error('Error deleting budget:', error);
     }
   };
 

@@ -98,7 +98,6 @@ export default function GoalsPage() {
 
   const handleAddMoney = (goalId: string) => {
     // This would typically open a transaction form or modal
-    console.log('Add money to goal:', goalId);
     // For demo purposes, add $100 to the goal
     setGoals(prev => prev.map(goal => 
       goal.id === goalId 

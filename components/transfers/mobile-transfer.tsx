@@ -14,8 +14,8 @@ import {
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
-import { BalancePreview } from './balance-preview';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import { toMinorUnits } from '@/lib/money';
 
 
 
@@ -30,7 +30,7 @@ interface TransferData {
 export function MobileTransfer() {
   const router = useRouter();
   const repository = useRepository();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,11 @@ export function MobileTransfer() {
 
   useEffect(() => {
     const loadAccounts = async () => {
+      // Don't show error while auth is still loading
+      if (authLoading) {
+        return;
+      }
+      
       if (!user) {
         setError('Usuario no autenticado');
         setLoadingAccounts(false);
@@ -58,7 +63,6 @@ export function MobileTransfer() {
         const userAccounts = await repository.accounts.findByUserId(user.id);
         setAccounts(userAccounts.filter(account => account.active));
       } catch (err) {
-        console.error('Error loading accounts for transfers:', err);
         setError('Error al cargar las cuentas');
         setAccounts([]);
       } finally {
@@ -72,7 +76,7 @@ export function MobileTransfer() {
       ...prev,
       date: new Date().toISOString().split('T')[0]
     }));
-  }, [user, repository]);
+  }, [user, authLoading, repository]);
 
   const getAccountIcon = (currencyCode: string) => {
     if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
@@ -96,32 +100,55 @@ export function MobileTransfer() {
     return transferData.fromAccountId && 
            transferData.toAccountId && 
            transferData.fromAccountId !== transferData.toAccountId &&
-           transferData.amount > 0 &&
-           transferData.description.trim();
+           transferData.amount > 0;
   };
 
   const handleTransfer = async () => {
     if (!isFormValid()) {
-      alert('Por favor complete todos los campos');
+      alert('Por favor complete cuenta origen, destino y monto');
       return;
     }
 
     const fromAccount = getFromAccount();
+    const toAccount = getToAccount();
     if (!fromAccount || fromAccount.balance < transferData.amount) {
       alert('Saldo insuficiente en la cuenta origen');
+      return;
+    }
+
+    if (!toAccount) {
+      alert('Error: No se pudo encontrar la cuenta destino');
       return;
     }
 
     setLoading(true);
     
     try {
-      // Here you would implement the actual transfer logic
-      // For now, we'll just show a success message
+      // Call the real API endpoint
+      const response = await fetch('/api/transfers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fromAccountId: transferData.fromAccountId,
+          toAccountId: transferData.toAccountId,
+          amount: transferData.amount,
+          description: transferData.description || `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
+          date: transferData.date,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Error al procesar la transferencia');
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      alert(`Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${toAccount.name}`);
       
-      alert(`Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${getToAccount()?.name}`);
+      // Refresh accounts to show updated balances  
+      // loadAccounts(); // TODO: Implement account refresh
       
       // Reset form
       setTransferData({
@@ -133,8 +160,8 @@ export function MobileTransfer() {
       });
       
     } catch (error) {
-      console.error('Error en transferencia:', error);
-      alert('Error al procesar la transferencia');
+      console.error('Transfer error:', error);
+      alert(`Error al procesar la transferencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -286,16 +313,59 @@ export function MobileTransfer() {
         </div>
       )}
 
-      {/* Balance Preview - Compact version after details */}
-      {transferData.fromAccountId && transferData.toAccountId && transferData.amount > 0 && (
-        <BalancePreview
-          fromAccount={getFromAccount()!}
-          toAccount={getToAccount()!}
-          transferAmount={transferData.amount}
-          formatBalance={formatBalance}
-          isMobile={true}
-          size="compact"
-        />
+      {/* Prominent Transfer Preview - Mobile */}
+      {isFormValid() && (
+        <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-green-500/10 rounded-2xl p-6 border-2 border-blue-200/50 shadow-lg">
+          <div className="text-center mb-4">
+            <h3 className="text-xl font-bold text-gray-800 mb-1">Confirmar Transferencia</h3>
+            <p className="text-sm text-gray-600">Revisa los datos</p>
+          </div>
+          
+          <div className="bg-white/80 rounded-xl p-4 backdrop-blur-sm border border-white/50">
+            <div className="space-y-4">
+              {/* From Account */}
+              <div className="text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl mx-auto flex items-center justify-center shadow-md mb-2">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <p className="text-xs font-medium text-blue-600 uppercase tracking-wide mb-1">Cuenta Origen</p>
+                <p className="font-bold text-gray-800">{getFromAccount()?.name}</p>
+                <p className="text-xl font-black text-blue-700">
+                  -{formatBalance(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'VES'), getFromAccount()?.currencyCode || 'VES')}
+                </p>
+              </div>
+
+              {/* Arrow */}
+              <div className="text-center">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-green-500 rounded-full mx-auto flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              </div>
+
+              {/* To Account */}
+              <div className="text-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl mx-auto flex items-center justify-center shadow-md mb-2">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <p className="text-xs font-medium text-green-600 uppercase tracking-wide mb-1">Cuenta Destino</p>
+                <p className="font-bold text-gray-800">{getToAccount()?.name}</p>
+                <p className="text-xl font-black text-green-700">
+                  +{formatBalance(toMinorUnits(transferData.amount, getToAccount()?.currencyCode || 'VES'), getToAccount()?.currencyCode || 'VES')}
+                </p>
+              </div>
+
+              {transferData.description && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600 text-center">
+                    <span className="font-medium">Descripción:</span> {transferData.description}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Transfer Summary */}

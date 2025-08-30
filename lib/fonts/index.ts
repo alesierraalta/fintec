@@ -352,13 +352,11 @@ export const fontOptimization = {
   display: 'swap', // Use font-display: swap for better performance
 };
 
-export default {
+const fontConfiguration = {
   fontConfig,
   fontFamilies,
   typography,
   textStyles,
-  responsiveTextStyles,
-  typographyCSSVars,
-  generateTextStyleCSS,
-  fontOptimization,
 };
+
+export default fontConfiguration;

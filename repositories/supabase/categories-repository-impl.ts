@@ -291,7 +291,6 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   async reorderCategories(categoryIds: string[]): Promise<void> {
     // TODO: Implement category reordering
     // This would require adding an order/position field to the categories table
-    console.log('Category reordering not implemented', categoryIds);
   }
 
   async createDefaultCategories(): Promise<Category[]> {

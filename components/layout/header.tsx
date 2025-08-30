@@ -54,7 +54,6 @@ export function Header() {
       }, 0);
       setTotalBalance(total);
     } catch (error) {
-      console.error('Failed to load total balance:', error);
       setTotalBalance(0);
     }
   };
@@ -72,7 +71,6 @@ export function Header() {
       setNotifications(unreadNotifications);
       setNotificationCount(count);
     } catch (error) {
-      console.error('Failed to load notifications:', error);
     } finally {
       setLoadingNotifications(false);
     }
@@ -95,7 +93,6 @@ export function Header() {
       );
       setNotificationCount(prev => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Failed to mark notification as read:', error);
     }
   };
 
@@ -107,7 +104,6 @@ export function Header() {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setNotificationCount(0);
     } catch (error) {
-      console.error('Failed to mark all notifications as read:', error);
     }
   };
 

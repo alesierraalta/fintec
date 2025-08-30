@@ -15,14 +15,12 @@ test.describe('Complete E2E Financial App Test', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    console.log('✅ Step 1: Application loaded successfully');
     
     // 2. Navigate to accounts page
     await page.goto('/accounts');
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL(/.*accounts/);
     
-    console.log('✅ Step 2: Navigated to accounts page');
     
     // 3. Check database connection by verifying categories
     await page.goto('/categories');
@@ -36,7 +34,6 @@ test.describe('Complete E2E Financial App Test', () => {
                                pageContent.includes('category');
     expect(hasCategoryContent).toBeTruthy();
     
-    console.log('✅ Step 3: Database connection verified - categories loaded');
     
     // 4. Test navigation to all main sections
     const sections = [
@@ -56,7 +53,6 @@ test.describe('Complete E2E Financial App Test', () => {
       const content = await page.textContent('body');
       expect(content.length).toBeGreaterThan(100);
       
-      console.log(`✅ Step 4.${sections.indexOf(section) + 1}: ${section.name} page loaded`);
     }
     
     // 5. Test responsive design
@@ -74,7 +70,6 @@ test.describe('Complete E2E Financial App Test', () => {
       const isVisible = await page.locator('body').isVisible();
       expect(isVisible).toBeTruthy();
       
-      console.log(`✅ Step 5.${viewports.indexOf(viewport) + 1}: ${viewport.name} responsive design works`);
     }
     
     // Reset to desktop for remaining tests
@@ -95,7 +90,6 @@ test.describe('Complete E2E Financial App Test', () => {
     const accountContent = await page.textContent('body');
     expect(accountContent).toContain('E2E Test Account');
     
-    console.log('✅ Step 6: Test data creation and display verified');
     
     // 7. Test transaction creation
     const categories = await dbUtils.getTestCategories();
@@ -117,7 +111,6 @@ test.describe('Complete E2E Financial App Test', () => {
       const transactionContent = await page.textContent('body');
       expect(transactionContent).toContain('E2E Test Income');
       
-      console.log('✅ Step 7: Transaction creation and display verified');
     }
     
     // 8. Test dashboard with data
@@ -134,7 +127,6 @@ test.describe('Complete E2E Financial App Test', () => {
                              dashboardContent.includes('E2E Test Account');
     expect(hasFinancialData).toBeTruthy();
     
-    console.log('✅ Step 8: Dashboard with financial data verified');
     
     // 9. Test error handling - try to access non-existent page
     await page.goto('/non-existent-page');
@@ -148,16 +140,13 @@ test.describe('Complete E2E Financial App Test', () => {
                                    errorContent.length > 100; // Some content loaded
     expect(hasProperErrorHandling).toBeTruthy();
     
-    console.log('✅ Step 9: Error handling verified');
     
     // 10. Final verification - return to dashboard
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await expect(page).toHaveURL('/');
     
-    console.log('✅ Step 10: Final verification - returned to dashboard');
     
-    console.log('🎉 Complete E2E test passed successfully!');
   });
 
   test('should verify database integration end-to-end', async ({ page }) => {
@@ -166,7 +155,6 @@ test.describe('Complete E2E Financial App Test', () => {
     // 1. Verify categories exist (READ)
     const categories = await dbUtils.getTestCategories();
     expect(categories.length).toBeGreaterThan(0);
-    console.log(`✅ Database READ: Found ${categories.length} categories`);
     
     // 2. Create test account (CREATE)
     const testAccount = await dbUtils.createTestAccount({
@@ -176,7 +164,6 @@ test.describe('Complete E2E Financial App Test', () => {
       balance: 1000000 // $10,000.00
     });
     expect(testAccount.id).toBeDefined();
-    console.log('✅ Database CREATE: Test account created');
     
     // 3. Create test transaction (CREATE)
     const incomeCategory = categories.find(cat => cat.kind === 'INCOME');
@@ -189,7 +176,6 @@ test.describe('Complete E2E Financial App Test', () => {
         description: 'Database Integration Income'
       });
       expect(testTransaction.id).toBeDefined();
-      console.log('✅ Database CREATE: Test transaction created');
     }
     
     // 4. Verify data appears in UI (READ through UI)
@@ -199,7 +185,6 @@ test.describe('Complete E2E Financial App Test', () => {
     
     const accountsContent = await page.textContent('body');
     expect(accountsContent).toContain('Database Integration Test');
-    console.log('✅ UI READ: Account data displayed correctly');
     
     await page.goto('/transactions');
     await page.waitForLoadState('networkidle');
@@ -207,7 +192,6 @@ test.describe('Complete E2E Financial App Test', () => {
     
     const transactionsContent = await page.textContent('body');
     expect(transactionsContent).toContain('Database Integration Income');
-    console.log('✅ UI READ: Transaction data displayed correctly');
     
     // 5. Test data persistence by refreshing
     await page.reload();
@@ -216,9 +200,7 @@ test.describe('Complete E2E Financial App Test', () => {
     
     const refreshedContent = await page.textContent('body');
     expect(refreshedContent).toContain('Database Integration Income');
-    console.log('✅ Data PERSISTENCE: Data persists after page refresh');
     
-    console.log('🎉 Database integration test completed successfully!');
   });
 });
 

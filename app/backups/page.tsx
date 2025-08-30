@@ -71,7 +71,6 @@ export default function BackupsPage() {
 
       alert('¡Backup exportado exitosamente!');
     } catch (error) {
-      console.error('Error exporting backup:', error);
       alert('Error al exportar el backup. Por favor, inténtalo de nuevo.');
     } finally {
       setLoading(false);
@@ -103,7 +102,6 @@ export default function BackupsPage() {
       // Clear the input
       event.target.value = '';
     } catch (error) {
-      console.error('Error importing backup:', error);
       alert('Error al importar el backup. Verifica que el archivo sea válido.');
     } finally {
       setImportLoading(false);

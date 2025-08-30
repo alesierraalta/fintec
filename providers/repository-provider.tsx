@@ -12,16 +12,14 @@ interface RepositoryProviderProps {
 }
 
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
-  // Temporarily use Local repository while Supabase implementation is being completed
+  // Switch to Supabase repository - categories have been set up in database
   let repository: AppRepository;
   
   try {
-    // Use Local repository for now - Supabase implementation needs completion
-    repository = new LocalAppRepository();
-    console.log('Using Local repository (Supabase implementation in progress)');
+    // Use Supabase repository now - categories and RLS policies are configured
+    repository = new SupabaseAppRepository();
   } catch (error) {
-    console.warn('Failed to initialize Local repository:', error);
-    // Fallback - this should not happen but keeping for safety
+    // Fallback to Local repository if Supabase fails
     repository = new LocalAppRepository();
   }
 

@@ -119,7 +119,6 @@ export const authConfig = {
             image: user.avatar,
           };
         } catch (error) {
-          console.error('Auth error:', error);
           return null;
         }
       },
@@ -200,13 +199,10 @@ export const authConfig = {
 
   events: {
     async signIn({ user, account, profile, isNewUser }: any) {
-      console.log('User signed in:', { user: user.email, provider: account?.provider });
     },
     async signOut({ session, token }: any) {
-      console.log('User signed out:', { user: session?.user?.email });
     },
     async createUser({ user }: any) {
-      console.log('New user created:', { user: user.email });
     },
   },
 
@@ -268,7 +264,6 @@ export const registerUser = async (userData: z.infer<typeof signUpSchema>): Prom
 
     return newUser;
   } catch (error) {
-    console.error('Registration error:', error);
     return null;
   }
 };
@@ -277,10 +272,8 @@ export const registerUser = async (userData: z.infer<typeof signUpSchema>): Prom
 export const sendVerificationEmail = async (email: string): Promise<boolean> => {
   try {
     // In real app, send verification email
-    console.log(`Verification email sent to: ${email}`);
     return true;
   } catch (error) {
-    console.error('Email verification error:', error);
     return false;
   }
 };
@@ -289,10 +282,8 @@ export const sendVerificationEmail = async (email: string): Promise<boolean> => 
 export const sendPasswordResetEmail = async (email: string): Promise<boolean> => {
   try {
     // In real app, send password reset email
-    console.log(`Password reset email sent to: ${email}`);
     return true;
   } catch (error) {
-    console.error('Password reset error:', error);
     return false;
   }
 };

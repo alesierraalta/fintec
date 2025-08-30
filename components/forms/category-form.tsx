@@ -46,7 +46,6 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         ];
         setParentCategories(parentOptions);
       } catch (error) {
-        console.error('Error loading parent categories:', error);
         setParentCategories([{ value: '', label: 'Sin categoría padre (crear categoría principal)' }]);
       }
     };
@@ -109,7 +108,6 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
     } catch (error) {
-      console.error('Error saving category:', error);
     } finally {
       setLoading(false);
     }

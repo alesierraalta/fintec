@@ -115,7 +115,6 @@ const EChartsWrapper = forwardRef<EChartsWrapperRef, EChartsWrapperProps>(({
       onChartReady?.(instanceRef.current);
 
     } catch (error) {
-      console.error('Error initializing ECharts:', error);
       addNotification({
         type: 'error',
         title: 'Error en gráfico',
@@ -143,7 +142,6 @@ const EChartsWrapper = forwardRef<EChartsWrapperRef, EChartsWrapperProps>(({
     try {
       instanceRef.current.setOption(option, notMerge, lazyUpdate);
     } catch (error) {
-      console.error('Error updating chart option:', error);
     }
   }, [option, notMerge, lazyUpdate, isReady]);
 

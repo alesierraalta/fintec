@@ -7,6 +7,7 @@ import { AccountsOverview } from './accounts-overview';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { fromMinorUnits } from '@/lib/money';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -18,6 +19,7 @@ import {
 export function MobileDashboard() {
   const repository = useRepository();
   const { user } = useAuth();
+  const bcvRates = useBCVRates();
   const [totalBalance, setTotalBalance] = useState(0);
   const [monthlyIncome, setMonthlyIncome] = useState(0);
   const [monthlyExpenses, setMonthlyExpenses] = useState(0);
@@ -30,6 +32,11 @@ export function MobileDashboard() {
         const total = accounts.reduce((sum, acc) => {
           const balanceMinor = Number(acc.balance) || 0;
           const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+          
+          // Apply BCV conversion for VES currency (same as header)
+          if (acc.currencyCode === 'VES') {
+            return sum + (balanceMajor / bcvRates.usd);
+          }
           return sum + balanceMajor;
         }, 0);
         setTotalBalance(total);

@@ -14,11 +14,9 @@ import {
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
-import { BalancePreview } from './balance-preview';
 import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
-
-
+import { toMinorUnits } from '@/lib/money';
 
 interface TransferData {
   fromAccountId: string;
@@ -31,7 +29,7 @@ interface TransferData {
 export function DesktopTransfer() {
   const router = useRouter();
   const repository = useRepository();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
@@ -47,6 +45,11 @@ export function DesktopTransfer() {
 
   useEffect(() => {
     const loadAccounts = async () => {
+      // Don't show error while auth is still loading
+      if (authLoading) {
+        return;
+      }
+      
       if (!user) {
         setError('Usuario no autenticado');
         setLoadingAccounts(false);
@@ -59,7 +62,6 @@ export function DesktopTransfer() {
         const userAccounts = await repository.accounts.findByUserId(user.id);
         setAccounts(userAccounts.filter(account => account.active));
       } catch (err) {
-        console.error('Error loading accounts for transfers:', err);
         setError('Error al cargar las cuentas');
         setAccounts([]);
       } finally {
@@ -73,7 +75,7 @@ export function DesktopTransfer() {
       ...prev,
       date: new Date().toISOString().split('T')[0]
     }));
-  }, [user, repository]);
+  }, [user, authLoading, repository]);
 
   const getAccountIcon = (currencyCode: string) => {
     if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
@@ -97,32 +99,55 @@ export function DesktopTransfer() {
     return transferData.fromAccountId && 
            transferData.toAccountId && 
            transferData.fromAccountId !== transferData.toAccountId &&
-           transferData.amount > 0 &&
-           transferData.description.trim();
+           transferData.amount > 0;
   };
 
   const handleTransfer = async () => {
     if (!isFormValid()) {
-      alert('Por favor complete todos los campos');
+      alert('Por favor complete cuenta origen, destino y monto');
       return;
     }
 
     const fromAccount = getFromAccount();
+    const toAccount = getToAccount();
     if (!fromAccount || fromAccount.balance < transferData.amount) {
       alert('Saldo insuficiente en la cuenta origen');
+      return;
+    }
+
+    if (!toAccount) {
+      alert('Error: No se pudo encontrar la cuenta destino');
       return;
     }
 
     setLoading(true);
     
     try {
-      // Here you would implement the actual transfer logic
-      // For now, we'll just show a success message
+      // Call the real API endpoint
+      const response = await fetch('/api/transfers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fromAccountId: transferData.fromAccountId,
+          toAccountId: transferData.toAccountId,
+          amount: transferData.amount,
+          description: transferData.description || `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
+          date: transferData.date,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Error al procesar la transferencia');
+      }
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      alert(`Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${toAccount.name}`);
       
-      alert(`Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${getToAccount()?.name}`);
+      // Refresh accounts to show updated balances
+      // loadAccounts(); // TODO: Implement account refresh
       
       // Reset form
       setTransferData({
@@ -134,8 +159,8 @@ export function DesktopTransfer() {
       });
       
     } catch (error) {
-      console.error('Error en transferencia:', error);
-      alert('Error al procesar la transferencia');
+      console.error('Transfer error:', error);
+      alert(`Error al procesar la transferencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }
@@ -149,9 +174,8 @@ export function DesktopTransfer() {
         <p className="text-text-muted">Transfiere dinero entre tus cuentas de forma segura</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column - Account Selection */}
-        <div className="lg:col-span-2 space-y-8">
+      {/* Main Transfer Form */}
+      <div className="space-y-8">
           <div className="bg-background-elevated rounded-3xl p-8 border border-border-primary">
             <h2 className="text-2xl font-semibold text-text-primary mb-6">Seleccionar Cuentas</h2>
             
@@ -183,19 +207,15 @@ export function DesktopTransfer() {
                       }`}
                       disabled={transferData.toAccountId === account.id}
                     >
-                      <div className="flex items-center justify-between">
-                                                  <div className="flex items-center space-x-4">
-                            {getAccountIcon(account.currencyCode)}
-                            <div className="text-left">
-                              <p className="font-semibold text-text-primary text-lg">{account.name}</p>
-                              <p className="text-text-muted">{account.currencyCode}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-text-primary text-lg">
-                              {formatBalance(account.balance, account.currencyCode)}
-                            </p>
-                          </div>
+                      <div className="flex items-center space-x-4">
+                        {getAccountIcon(account.currencyCode)}
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold text-text-primary">{account.name}</p>
+                          <p className="text-text-muted">{formatBalance(account.balance, account.currencyCode)}</p>
+                        </div>
+                        {transferData.fromAccountId === account.id && (
+                          <Check className="h-6 w-6 text-accent-primary" />
+                        )}
                       </div>
                     </button>
                   ))}
@@ -218,58 +238,38 @@ export function DesktopTransfer() {
                     <div className="p-6 rounded-2xl border-2 border-border-primary bg-background-secondary">
                       <p className="text-text-muted text-center">No tienes cuentas disponibles</p>
                     </div>
-                  ) : accounts
-                    .filter(account => account.id !== transferData.fromAccountId)
-                    .map((account) => (
-                      <button
-                        key={`to-${account.id}`}
-                        onClick={() => setTransferData(prev => ({ ...prev, toAccountId: account.id }))}
-                        className={`w-full p-6 rounded-2xl border-2 transition-all ${
-                          transferData.toAccountId === account.id
-                            ? 'border-green-500 bg-green-500/10 shadow-lg shadow-green-500/20'
-                            : 'border-border-primary bg-background-secondary hover:border-border-secondary hover:bg-background-tertiary'
-                        } ${!transferData.fromAccountId ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        disabled={!transferData.fromAccountId}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-4">
-                            {getAccountIcon(account.currencyCode)}
-                            <div className="text-left">
-                              <p className="font-semibold text-text-primary text-lg">{account.name}</p>
-                              <p className="text-text-muted">{account.currencyCode}</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-bold text-text-primary text-lg">
-                              {formatBalance(account.balance, account.currencyCode)}
-                            </p>
-                          </div>
+                  ) : accounts.map((account) => (
+                    <button
+                      key={`to-${account.id}`}
+                      onClick={() => setTransferData(prev => ({ ...prev, toAccountId: account.id }))}
+                      className={`w-full p-6 rounded-2xl border-2 transition-all ${
+                        transferData.toAccountId === account.id
+                          ? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/20'
+                          : 'border-border-primary bg-background-secondary hover:border-border-secondary hover:bg-background-tertiary'
+                      }`}
+                      disabled={transferData.fromAccountId === account.id}
+                    >
+                      <div className="flex items-center space-x-4">
+                        {getAccountIcon(account.currencyCode)}
+                        <div className="flex-1 text-left">
+                          <p className="font-semibold text-text-primary">{account.name}</p>
+                          <p className="text-text-muted">{formatBalance(account.balance, account.currencyCode)}</p>
                         </div>
-                      </button>
-                    ))}
+                        {transferData.toAccountId === account.id && (
+                          <Check className="h-6 w-6 text-accent-primary" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
-
-            {/* Transfer Arrow */}
-            {transferData.fromAccountId && transferData.toAccountId && (
-              <div className="flex justify-center py-8">
-                <div className="p-4 rounded-full bg-gradient-to-r from-accent-primary to-accent-secondary shadow-lg">
-                  <ArrowRightLeft className="h-8 w-8 text-white" />
-                </div>
-              </div>
-            )}
           </div>
 
-
-        </div>
-
-        {/* Right Column - Transfer Details */}
-        <div className="space-y-6">
-          {/* Amount and Description - Only show when accounts are selected */}
+          {/* Amount and Description */}
           {transferData.fromAccountId && transferData.toAccountId && (
             <div className="bg-background-elevated rounded-3xl p-8 border border-border-primary">
-              <h3 className="text-2xl font-semibold text-text-primary mb-6">Detalles de la Transferencia</h3>
+              <h2 className="text-2xl font-semibold text-text-primary mb-6">Detalles de la Transferencia</h2>
               
               <div className="space-y-6">
                 {/* Amount Input */}
@@ -294,7 +294,7 @@ export function DesktopTransfer() {
 
                 {/* Description */}
                 <div className="space-y-4">
-                  <label className="text-lg font-medium text-text-secondary">Descripción</label>
+                  <label className="text-lg font-medium text-text-secondary">Descripción (opcional)</label>
                   <textarea
                     value={transferData.description}
                     onChange={(e) => setTransferData(prev => ({ ...prev, description: e.target.value }))}
@@ -307,109 +307,70 @@ export function DesktopTransfer() {
             </div>
           )}
 
-          {/* Balance Preview - Compact version after details */}
-          {transferData.fromAccountId && transferData.toAccountId && transferData.amount > 0 && (
-            <BalancePreview
-              fromAccount={getFromAccount()!}
-              toAccount={getToAccount()!}
-              transferAmount={transferData.amount}
-              formatBalance={formatBalance}
-              isMobile={false}
-              size="compact"
-            />
-          )}
-
-          {/* Transfer Summary - Only show when form is valid */}
-          {isFormValid() && (
-            <div className="bg-gradient-to-br from-accent-primary/10 to-accent-secondary/10 rounded-3xl p-8 border border-accent-primary/20 backdrop-blur-sm">
-              <h3 className="text-2xl font-semibold text-text-primary mb-6 flex items-center space-x-3">
-                <Send className="h-6 w-6" />
-                <span>Resumen</span>
-              </h3>
-              
-              <div className="space-y-6">
-                {/* Transfer Details */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-text-muted">Desde:</span>
-                    <div className="text-right">
-                      <p className="text-text-primary font-semibold">{getFromAccount()?.name}</p>
-                      <p className="text-sm text-text-muted">{getFromAccount()?.currencyCode}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-center">
-                    <ArrowRightLeft className="h-5 w-5 text-text-muted" />
-                  </div>
-                  
-                  <div className="flex justify-between items-center">
-                    <span className="text-text-muted">Hacia:</span>
-                    <div className="text-right">
-                      <p className="text-text-primary font-semibold">{getToAccount()?.name}</p>
-                      <p className="text-sm text-text-muted">{getToAccount()?.currencyCode}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Amount */}
-                <div className="border-t border-border-primary pt-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-text-muted">Monto:</span>
-                    <span className="text-2xl font-bold text-text-primary">${transferData.amount.toFixed(2)}</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-text-muted">{getFromAccount()?.currencyCode}</p>
-                  </div>
-                </div>
-
-                {/* Balance Changes */}
-                <div className="border-t border-border-primary pt-4">
-                  <h4 className="text-text-primary font-semibold mb-3">Saldos después de la transferencia:</h4>
-                  <div className="space-y-3">
-                    {/* From Account Balance */}
-                    <div className="flex justify-between items-center p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                      <div>
-                        <p className="font-medium text-text-primary">{getFromAccount()?.name}</p>
-                        <p className="text-sm text-text-muted">Cuenta origen</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-text-muted">
-                          {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
-                        </p>
-                        <p className="font-bold text-red-400">
-                          → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currencyCode) : '--'}
-                        </p>
+        {/* Prominent Transfer Preview - Full Width */}
+        {isFormValid() && (
+          <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-green-500/10 rounded-3xl p-8 border-2 border-blue-200/50 shadow-lg shadow-blue-500/10">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">Confirmar Transferencia</h3>
+              <p className="text-gray-600">Revisa los datos antes de continuar</p>
+            </div>
+            
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-white/80 rounded-2xl p-6 backdrop-blur-sm border border-white/50">
+                <div className="flex items-center justify-between">
+                  {/* From Account */}
+                  <div className="flex-1 text-center">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+                        <Wallet className="w-8 h-8 text-white" />
                       </div>
                     </div>
-                    
-                    {/* To Account Balance */}
-                    <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-xl border border-green-500/20">
-                      <div>
-                        <p className="font-medium text-text-primary">{getToAccount()?.name}</p>
-                        <p className="text-sm text-text-muted">Cuenta destino</p>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Cuenta Origen</p>
+                      <p className="font-bold text-gray-800 text-lg">{getFromAccount()?.name}</p>
+                      <p className="text-2xl font-black text-blue-700 drop-shadow-sm">
+                        -{formatBalance(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'VES'), getFromAccount()?.currencyCode || 'VES')}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  <div className="px-6">
+                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                      <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* To Account */}
+                  <div className="flex-1 text-center">
+                    <div className="mb-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+                        <Wallet className="w-8 h-8 text-white" />
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-text-muted">
-                          {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currencyCode) : '--'}
-                        </p>
-                        <p className="font-bold text-green-400">
-                          → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currencyCode) : '--'}
-                        </p>
-                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Cuenta Destino</p>
+                      <p className="font-bold text-gray-800 text-lg">{getToAccount()?.name}</p>
+                      <p className="text-2xl font-black text-green-700 drop-shadow-sm">
+                        +{formatBalance(toMinorUnits(transferData.amount, getToAccount()?.currencyCode || 'VES'), getToAccount()?.currencyCode || 'VES')}
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Description */}
                 {transferData.description && (
-                  <div className="border-t border-border-primary pt-4">
-                    <p className="text-text-muted text-sm mb-2">Descripción:</p>
-                    <p className="text-text-primary">{transferData.description}</p>
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <p className="text-sm text-gray-600 text-center">
+                      <span className="font-medium">Descripción:</span> {transferData.description}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
           {/* Action Buttons - Always visible when form is valid */}
           {isFormValid() && (
@@ -440,6 +401,5 @@ export function DesktopTransfer() {
           )}
         </div>
       </div>
-    </div>
-  );
+    );
 }

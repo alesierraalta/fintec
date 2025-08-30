@@ -58,7 +58,6 @@ export class StaticExchangeRateProvider implements ExchangeRateProvider {
       return baseToUsd * usdToQuote;
     }
 
-    console.warn(`No static rate found for ${baseCurrency}/${quoteCurrency}`);
     return 1; // Fallback
   }
 
@@ -134,7 +133,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
       return rate;
       
     } catch (error) {
-      console.error(`Failed to fetch exchange rate for ${baseCurrency}/${quoteCurrency}:`, error);
       
       // Fallback to static provider
       const fallback = new StaticExchangeRateProvider();
@@ -175,7 +173,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
       return rates;
       
     } catch (error) {
-      console.error(`Failed to fetch exchange rates for ${baseCurrency}:`, error);
       
       // Fallback to individual requests
       const rates: Record<string, number> = {};
@@ -210,7 +207,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
       return currencies;
       
     } catch (error) {
-      console.error('Failed to fetch supported currencies:', error);
       
       // Fallback to static provider
       const fallback = new StaticExchangeRateProvider();
@@ -226,7 +222,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
       });
       return response.ok;
     } catch (error) {
-      console.warn('Exchange rate API not available:', error);
       return false;
     }
   }
@@ -248,7 +243,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
 
       return data;
     } catch (error) {
-      console.warn('Failed to read from cache:', error);
       return null;
     }
   }
@@ -261,7 +255,6 @@ export class HttpExchangeRateProvider implements ExchangeRateProvider {
       };
       localStorage.setItem(`${this.cacheKey}-${key}`, JSON.stringify(cacheData));
     } catch (error) {
-      console.warn('Failed to write to cache:', error);
     }
   }
 }
@@ -288,12 +281,10 @@ export class CompositeExchangeRateProvider implements ExchangeRateProvider {
         const rate = await provider.getRate(baseCurrency, quoteCurrency, date);
         return rate;
       } catch (error) {
-        console.warn(`Provider ${provider.name} failed:`, error);
         continue;
       }
     }
 
-    console.error(`All providers failed for ${baseCurrency}/${quoteCurrency}`);
     return 1; // Final fallback
   }
 
@@ -306,12 +297,10 @@ export class CompositeExchangeRateProvider implements ExchangeRateProvider {
         const rates = await provider.getRates(baseCurrency, quoteCurrencies, date);
         return rates;
       } catch (error) {
-        console.warn(`Provider ${provider.name} failed:`, error);
         continue;
       }
     }
 
-    console.error(`All providers failed for bulk rates`);
     
     // Final fallback: individual requests
     const rates: Record<string, number> = {};
@@ -330,7 +319,6 @@ export class CompositeExchangeRateProvider implements ExchangeRateProvider {
         const currencies = await provider.getSupportedCurrencies();
         return currencies;
       } catch (error) {
-        console.warn(`Provider ${provider.name} failed:`, error);
         continue;
       }
     }

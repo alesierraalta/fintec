@@ -28,53 +28,103 @@ export class FinanceDB extends Dexie {
   constructor() {
     super('FinanceDB');
     
+    // Use only the latest version with all indexes to avoid conflicts
     this.version(1).stores({
       users: 'id, email, baseCurrency, createdAt',
-      accounts: 'id, userId, name, type, currencyCode, balance, active, createdAt',
-      transactions: 'id, type, accountId, categoryId, currencyCode, date, amountMinor, amountBaseMinor, transferId, createdAt',
-      transfers: 'id, fromTransactionId, toTransactionId, createdAt',
-      categories: 'id, name, kind, parentId, active, createdAt',
-      budgets: 'id, categoryId, monthYear, amountBaseMinor, active, createdAt',
-      goals: 'id, name, targetBaseMinor, currentBaseMinor, targetDate, accountId, active, createdAt',
-      exchangeRates: 'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt',
-      recurringRules: 'id, name, frequency, nextRunDate, active, createdAt',
-    });
-
-    // Add indexes for better query performance
-    this.version(2).stores({
-      users: 'id, email, baseCurrency, createdAt',
-      accounts: 'id, userId, name, type, currencyCode, balance, active, createdAt, [type+active], [currencyCode+active]',
+      accounts: 'id, userId, name, type, currencyCode, balance, active, createdAt, [type+active], [currencyCode+active], [userId+active]',
       transactions: 'id, type, accountId, categoryId, currencyCode, date, amountMinor, amountBaseMinor, transferId, createdAt, [accountId+date], [categoryId+date], [type+date], [date+type]',
       transfers: 'id, fromTransactionId, toTransactionId, createdAt',
       categories: 'id, name, kind, parentId, active, createdAt, [kind+active], [parentId+active]',
       budgets: 'id, categoryId, monthYear, amountBaseMinor, active, createdAt, [categoryId+monthYear], [monthYear+active]',
       goals: 'id, name, targetBaseMinor, currentBaseMinor, targetDate, accountId, active, createdAt, [active+targetDate]',
-      exchangeRates: 'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency], date',
+      exchangeRates: 'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency]',
       recurringRules: 'id, name, frequency, nextRunDate, active, createdAt, [active+nextRunDate]',
     });
+  }
 
-    // Migration hooks
-    this.version(2).upgrade(async (tx) => {
-      // Add any data migrations if needed
-      console.log('Upgrading FinanceDB to version 2');
-    });
+  async resetDatabase() {
+    await this.delete();
+    await this.open();
   }
 
   // Initialize database with default data
   async initialize(): Promise<void> {
-    try {
-      await this.open();
-      
-      // Check if we need to seed default data
-      const categoriesCount = await this.categories.count();
-      if (categoriesCount === 0) {
-        await this.seedDefaultCategories();
-      }
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      try {
+        await this.open();
+        
+        // Check if we need to create default categories
+        const categoriesCount = await this.categories.count();
+        if (categoriesCount === 0) {
+          await this.seedDefaultCategories();
+        }
 
-      console.log('FinanceDB initialized successfully');
+        // Check if we need to create default user
+        const usersCount = await this.users.count();
+        if (usersCount === 0) {
+          await this.seedDefaultUser();
+        }
+
+        return;
+      } catch (error) {
+        
+        // Check for specific error types that indicate database corruption or conflicts
+        const isIndexError = error.message?.includes('createIndex') || 
+                           error.message?.includes('already exists') ||
+                           error.message?.includes('ConstraintError') ||
+                           error.name === 'ConstraintError';
+        
+        const isDatabaseClosedError = error.name === 'DatabaseClosedError';
+        
+        if ((isIndexError || isDatabaseClosedError) && retryCount < maxRetries - 1) {
+          try {
+            // Close the database if it's open
+            if (this.isOpen()) {
+              this.close();
+            }
+            
+            // Reset the database
+            await this.resetDatabase();
+            
+            // Wait a bit before retrying
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            retryCount++;
+            continue;
+          } catch (resetError) {
+          }
+        }
+        
+        // If we've exhausted retries or it's not a recoverable error, throw
+        if (retryCount >= maxRetries - 1) {
+          throw error;
+        }
+        
+        retryCount++;
+      }
+    }
+  }
+
+  // Reset database by deleting and recreating it
+  async resetDatabase(): Promise<void> {
+    try {
+      // Close the database first if it's open
+      if (this.isOpen()) {
+        this.close();
+      }
+      
+      // Delete the database
+      await this.delete();
+      
+      // Wait a bit to ensure the deletion is complete
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
     } catch (error) {
-      console.error('Failed to initialize FinanceDB:', error);
-      throw error;
+      // Even if deletion fails, we can try to continue
+      // The next open() call might still work
     }
   }
 
@@ -107,7 +157,19 @@ export class FinanceDB extends Dexie {
     }));
 
     await this.categories.bulkAdd(categoriesToInsert);
-    console.log('Default categories seeded');
+  }
+
+  // Seed default user for local repository
+  private async seedDefaultUser(): Promise<void> {
+    const defaultUser: User = {
+      id: 'local-user',
+      email: 'usuario@local.app',
+      fullName: 'Usuario Local',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.users.add(defaultUser);
   }
 
   // Clear all data
@@ -115,7 +177,6 @@ export class FinanceDB extends Dexie {
     await this.transaction('rw', this.tables, async () => {
       await Promise.all(this.tables.map(table => table.clear()));
     });
-    console.log('All data cleared from FinanceDB');
   }
 
   // Export data for backup
@@ -166,7 +227,6 @@ export class FinanceDB extends Dexie {
       if (data.exchangeRates) await this.exchangeRates.bulkPut(data.exchangeRates);
       if (data.recurringRules) await this.recurringRules.bulkPut(data.recurringRules);
     });
-    console.log('Data imported successfully');
   }
 }
 

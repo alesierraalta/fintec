@@ -101,12 +101,10 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
       };
 
       onSave?.(budgetData);
-      console.log('Budget saved:', budgetData);
       
       reset();
       onClose();
     } catch (error) {
-      console.error('Error saving budget:', error);
     } finally {
       setIsLoading(false);
     }

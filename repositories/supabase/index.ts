@@ -54,7 +54,6 @@ export class SupabaseAppRepository implements AppRepository {
       
       return !error;
     } catch (error) {
-      console.error('Supabase health check failed:', error);
       return false;
     }
   }
@@ -85,16 +84,13 @@ export class SupabaseAppRepository implements AppRepository {
         throw new Error(`Failed to initialize user: ${error.message}`);
       }
 
-      console.log('Supabase repository initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize Supabase repository:', error);
       throw error;
     }
   }
 
   async clear(): Promise<void> {
     // TODO: Implement data clearing (be very careful with this!)
-    console.log('TODO: Implement SupabaseAppRepository.clear');
     throw new Error('Supabase implementation not ready yet');
     
     /*
@@ -110,7 +106,6 @@ export class SupabaseAppRepository implements AppRepository {
     await supabase.from('transactions').delete().eq('user_id', user.id);
     await supabase.from('accounts').delete().eq('user_id', user.id);
     
-    console.log('All user data cleared from Supabase');
     */
   }
 
@@ -136,7 +131,6 @@ export class SupabaseAppRepository implements AppRepository {
         exportedAt: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Failed to export data:', error);
       throw error;
     }
   }
@@ -180,9 +174,7 @@ export class SupabaseAppRepository implements AppRepository {
         }
       }
 
-      console.log('Data import completed successfully');
     } catch (error) {
-      console.error('Failed to import data:', error);
       throw error;
     }
   }

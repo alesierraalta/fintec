@@ -181,9 +181,13 @@ export function TransactionsTable({
           </button>
         ),
         cell: ({ getValue, row }) => {
-          const amount = getValue() as number;
+          const amountMinor = getValue() as number;
+          const currencyCode = row.original.currencyCode || 'USD';
           const type = row.original.type as unknown as string;
           const isNegative = type === 'EXPENSE' || type === 'TRANSFER_OUT';
+          
+          // Convert from minor units (cents) to major units (dollars)
+          const amount = amountMinor / 100;
           
           return (
             <span className={`font-mono font-semibold ${

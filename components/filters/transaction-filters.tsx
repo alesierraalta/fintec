@@ -77,7 +77,6 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
           ...allCategories.map(cat => ({ value: cat.id, label: cat.name }))
         ]);
       } catch (error) {
-        console.error('Error loading filter data:', error);
       }
     };
 

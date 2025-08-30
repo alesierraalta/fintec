@@ -26,7 +26,6 @@ const DEFAULT_CATEGORIES = [
 
 export async function initializeDatabase() {
   try {
-    console.log('🔄 Initializing database...');
     
     const repository = new SupabaseAppRepository();
     
@@ -34,7 +33,6 @@ export async function initializeDatabase() {
     const existingCategories = await repository.categories.findAll();
     
     if (existingCategories.length === 0) {
-      console.log('📝 Creating default categories...');
       
       for (const categoryData of DEFAULT_CATEGORIES) {
         await repository.categories.create({
@@ -43,15 +41,11 @@ export async function initializeDatabase() {
         });
       }
       
-      console.log(`✅ Created ${DEFAULT_CATEGORIES.length} default categories`);
     } else {
-      console.log(`ℹ️ Found ${existingCategories.length} existing categories, skipping creation`);
     }
     
-    console.log('✅ Database initialization complete');
     return true;
   } catch (error) {
-    console.error('❌ Database initialization failed:', error);
     return false;
   }
 }

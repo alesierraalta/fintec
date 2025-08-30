@@ -21,7 +21,6 @@ export default function TestPage() {
         <div className="space-y-4">
           <button
             onClick={() => {
-              console.log('Test button clicked - navigating to /transactions/add');
               router.push('/transactions/add');
             }}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
@@ -31,7 +30,6 @@ export default function TestPage() {
           <br />
           <button
             onClick={() => {
-              console.log('Test button clicked - navigating to /');
               router.push('/');
             }}
             className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold"

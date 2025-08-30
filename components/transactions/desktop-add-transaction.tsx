@@ -110,7 +110,6 @@ export function DesktopAddTransaction() {
         setAccounts(userAccounts.filter(acc => acc.active));
         setLoadingAccounts(false);
       } catch (err) {
-        console.error('Error loading data:', err);
         setError('Error al cargar los datos');
         setLoadingCategories(false);
         setLoadingAccounts(false);
@@ -251,11 +250,9 @@ export function DesktopAddTransaction() {
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
       };
 
-      console.log('📝 Attempting to create transaction:', transactionData);
       
       const createdTransaction = await repository.transactions.create(transactionData);
       
-      console.log('✅ Transaction created successfully:', createdTransaction);
       
       // Success notification
       addNotification({
@@ -266,11 +263,8 @@ export function DesktopAddTransaction() {
       });
       
       if (formData.isRecurring) {
-        console.log('Creating recurring rule:', {
-          frequency: formData.frequency,
-          endDate: formData.endDate,
-          transactionTemplate: transactionData
-        });
+        // TODO: Implement recurring transactions functionality
+        console.log('Recurring transaction feature not implemented yet');
         
         addNotification({
           read: false,
@@ -288,13 +282,11 @@ export function DesktopAddTransaction() {
         router.push('/transactions');
       }, 2000);
     } catch (error) {
-      console.error('❌ Error saving transaction:', error);
       
       // More detailed error message
       let errorMessage = 'No se pudo guardar la transacción. Por favor intenta de nuevo.';
       
       if (error instanceof Error) {
-        console.error('Error details:', error.message);
         if (error.message.includes('row-level security')) {
           errorMessage = 'Error de permisos. Verifica que estés autenticado correctamente.';
         } else if (error.message.includes('foreign key')) {
@@ -442,8 +434,8 @@ export function DesktopAddTransaction() {
                             </p>
                             <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
                               {account.currencyCode === 'VES' 
-                                ? `Bs. ${Math.abs(account.balance).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
-                                : `$${Math.abs(account.balance).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
+                                ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
+                                : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
                               }
                             </p>
                           </div>

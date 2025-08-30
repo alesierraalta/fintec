@@ -170,7 +170,6 @@ export class LocalExchangeRatesRepository implements ExchangeRatesRepository {
     }
 
     // Default to 1 if no rate found (should ideally throw error or fetch from external API)
-    console.warn(`No exchange rate found for ${baseCurrency}/${quoteCurrency} on ${targetDate}`);
     return 1;
   }
 

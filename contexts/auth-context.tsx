@@ -34,9 +34,7 @@ const createWelcomeNotifications = async (userId: string, userName: string) => {
       await supabase.from('notifications').insert([notification]);
     }
 
-    console.log('Welcome notifications created successfully');
   } catch (error) {
-    console.error('Error creating welcome notifications:', error);
   }
 };
 
@@ -45,7 +43,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: AuthError | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   updateProfile: (data: any) => Promise<{ error: AuthError | PostgrestError | null }>;
 }
@@ -55,7 +53,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Cambiar a true para cargar sesión inicial
+
+  // Initialize Supabase auth session only
+  useEffect(() => {
+    // Clear any old local sessions
+    localStorage.removeItem('fintec_session');
+    sessionStorage.removeItem('fintec_session_temp');
+    
+    setLoading(true);
+  }, []);
 
   useEffect(() => {
     // Get initial session
@@ -107,7 +114,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }]);
 
         if (profileError) {
-          console.error('Error creating user profile:', profileError);
         } else {
           // Create welcome notifications
           await createWelcomeNotifications(data.user.id, userData?.full_name || data.user.email?.split('@')[0] || 'Usuario');
@@ -122,14 +128,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      // Use only Supabase Auth - no local fallback
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password
       });
-      return { error };
+
+      if (authData.user && authData.session) {
+        // Create or update user profile in database
+        await supabase
+          .from('users')
+          .upsert({
+            id: authData.user.id,
+            email: authData.user.email,
+            name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0],
+            base_currency: 'USD',
+            updated_at: new Date().toISOString()
+          });
+
+        setUser(authData.user);
+        setSession(authData.session);
+        return { error: null };
+      }
+
+      // Return authentication error
+      return { error: authError || { message: 'Credenciales inválidas' } as AuthError };
     } catch (err) {
       return { error: err as AuthError };
     } finally {
@@ -140,7 +167,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     try {
       setLoading(true);
+      
+      // Clear any remaining local sessions
+      localStorage.removeItem('fintec_session');
+      sessionStorage.removeItem('fintec_session_temp');
+      
       const { error } = await supabase.auth.signOut();
+      
+      // Clear local state
+      setUser(null);
+      setSession(null);
+      
       return { error };
     } catch (err) {
       return { error: err as AuthError };

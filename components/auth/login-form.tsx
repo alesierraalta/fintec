@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { Button, Input } from '@/components/ui';
+import { Input } from '@/components/ui';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -20,6 +20,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +32,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       return;
     }
 
-    const { error } = await signIn(formData.email, formData.password);
+    const { error } = await signIn(formData.email, formData.password, rememberMe);
 
     if (error) {
       setError(
@@ -128,9 +129,27 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             </div>
           </div>
 
-          <Button
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                disabled={loading}
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                Recordar sesión
+              </label>
+            </div>
+          </div>
+
+          <button
             type="submit"
-            className="w-full"
+            className="w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 hover:opacity-90 disabled:opacity-50"
+            style={{ background: 'linear-gradient(to right, #10069f, #455cff)' }}
             disabled={loading}
           >
             {loading ? (
@@ -144,7 +163,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 <span>Iniciar Sesión</span>
               </div>
             )}
-          </Button>
+          </button>
         </form>
 
         <div className="mt-6 text-center">

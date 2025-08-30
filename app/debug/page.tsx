@@ -2,7 +2,6 @@
 
 export default function DebugPage() {
   const handleClick = () => {
-    console.log('Button clicked!');
     alert('Button works!');
     window.location.href = '/transactions/add';
   };

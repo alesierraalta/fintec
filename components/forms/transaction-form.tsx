@@ -65,7 +65,6 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
         setAccounts(userAccounts.filter(acc => acc.active));
         setCategories(allCategories.filter(cat => cat.active));
       } catch (error) {
-        console.error('Error loading form data:', error);
       } finally {
         setLoadingData(false);
       }
@@ -158,7 +157,6 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
         tags: '',
       });
     } catch (error) {
-      console.error('Error saving transaction:', error);
       alert('Error al guardar la transacción');
     } finally {
       setLoading(false);

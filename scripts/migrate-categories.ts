@@ -48,7 +48,6 @@ const defaultCategories = {
 };
 
 async function migrateCategories() {
-  console.log('🚀 Starting category migration...');
 
   try {
     // First, check if categories table exists and is empty
@@ -58,12 +57,10 @@ async function migrateCategories() {
       .limit(1);
 
     if (checkError) {
-      console.error('❌ Error checking existing categories:', checkError);
       return;
     }
 
     if (existingCategories && existingCategories.length > 0) {
-      console.log('⚠️  Categories already exist. Skipping migration.');
       return;
     }
 
@@ -86,7 +83,6 @@ async function migrateCategories() {
       }
     }
 
-    console.log(`📝 Inserting ${categoriesToInsert.length} default categories...`);
 
     // Insert categories
     const { data, error } = await supabase
@@ -95,25 +91,17 @@ async function migrateCategories() {
       .select();
 
     if (error) {
-      console.error('❌ Error inserting categories:', error);
       return;
     }
 
-    console.log(`✅ Successfully migrated ${data.length} categories to database!`);
     
     // Log summary
     const expenseCount = categoriesToInsert.filter(c => c.kind === 'EXPENSE').length;
     const incomeCount = categoriesToInsert.filter(c => c.kind === 'INCOME').length;
     const transferCount = categoriesToInsert.filter(c => c.kind === 'TRANSFER_OUT').length;
     
-    console.log(`📊 Migration Summary:`);
-    console.log(`   • ${expenseCount} EXPENSE categories`);
-    console.log(`   • ${incomeCount} INCOME categories`);
-    console.log(`   • ${transferCount} TRANSFER_OUT categories`);
-    console.log(`   • Total: ${data.length} categories`);
 
   } catch (error) {
-    console.error('💥 Unexpected error during migration:', error);
   }
 }
 
@@ -121,11 +109,9 @@ async function migrateCategories() {
 if (require.main === module) {
   migrateCategories()
     .then(() => {
-      console.log('🎉 Category migration completed!');
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 Migration failed:', error);
       process.exit(1);
     });
 }

@@ -82,7 +82,6 @@ export function CurrencySelector({ selectedCurrency, onCurrencySelect, showBalan
 
         setCurrencies(allCurrencies);
       } catch (error) {
-        console.error('Error fetching currency data:', error);
       } finally {
         setLoading(false);
       }

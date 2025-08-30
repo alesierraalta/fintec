@@ -50,7 +50,6 @@ export function MobileReports() {
         setTransactions(transactionsData);
         setCategories(categoriesData);
       } catch (error) {
-        console.error('Error loading reports data:', error);
       } finally {
         setLoading(false);
       }

@@ -23,7 +23,9 @@ export function RecentTransactions() {
     };
     loadTransactions();
   }, [user, repository]);
-  const formatAmount = (amount: number) => {
+  const formatAmount = (amountMinor: number) => {
+    // Convert from minor units (cents) to major units (dollars)
+    const amount = amountMinor / 100;
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,

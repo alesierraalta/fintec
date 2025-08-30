@@ -13,20 +13,53 @@ export class LocalAccountsRepository implements AccountsRepository {
   }
 
   async create(data: CreateAccountDTO): Promise<Account> {
-    const account: Account = {
-      id: generateId('acc'),
-      userId: 'local-user', // For local storage, we use a fixed user ID
-      name: data.name,
-      type: data.type,
-      currencyCode: data.currencyCode,
-      balance: data.balance || 0,
-      active: data.active ?? true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      
+      const account: Account = {
+        id: generateId('acc'),
+        userId: 'local-user', // For local storage, we use a fixed user ID
+        name: data.name,
+        type: data.type,
+        currencyCode: data.currencyCode,
+        balance: data.balance || 0,
+        active: data.active ?? true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-    await db.accounts.add(account);
-    return account;
+      
+      // Intentar agregar la cuenta a IndexedDB
+      const addResult = await db.accounts.add(account);
+      
+      // Verificar que la cuenta se guardó correctamente
+      const savedAccount = await db.accounts.get(account.id);
+      if (!savedAccount) {
+        throw new Error(`La cuenta con ID ${account.id} no se pudo guardar en IndexedDB`);
+      }
+      
+      
+      // Verificar que el conteo de cuentas aumentó
+      const totalAccounts = await db.accounts.count();
+      
+      return savedAccount;
+      
+    } catch (error) {
+      
+      // Proporcionar errores más específicos
+      if (error instanceof Error) {
+        if (error.name === 'ConstraintError') {
+          throw new Error(`Ya existe una cuenta con el ID generado. Intenta nuevamente.`);
+        } else if (error.name === 'QuotaExceededError') {
+          throw new Error(`No hay suficiente espacio de almacenamiento para crear la cuenta.`);
+        } else if (error.name === 'InvalidStateError') {
+          throw new Error(`La base de datos está en un estado inválido. Intenta recargar la página.`);
+        } else {
+          throw new Error(`Error al crear la cuenta: ${error.message}`);
+        }
+      }
+      
+      throw new Error('Error desconocido al crear la cuenta');
+    }
   }
 
   async update(id: string, data: UpdateAccountDTO): Promise<Account> {

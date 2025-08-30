@@ -50,7 +50,6 @@ export async function POST() {
       });
     }
   } catch (error) {
-    console.error('Database initialization error:', error);
     return NextResponse.json({
       success: false,
       error: 'Failed to initialize database',

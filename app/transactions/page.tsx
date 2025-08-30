@@ -65,7 +65,6 @@ export default function TransactionsPage() {
         setAccounts(userAccounts);
         setCategories(allCategories);
       } catch (err) {
-        console.error('Error loading transactions:', err);
         setError('Error al cargar las transacciones');
         setTransactions([]);
         setFilteredTransactions([]);
@@ -186,7 +185,6 @@ export default function TransactionsPage() {
       setShowDeleteModal(false);
       setTransactionToDelete(null);
     } catch (error) {
-      console.error('Error deleting transaction:', error);
       alert('Error al eliminar la transacción');
     } finally {
       setDeleting(false);
@@ -203,7 +201,6 @@ export default function TransactionsPage() {
         setTransactions(allTransactions);
         setFilteredTransactions(allTransactions);
       } catch (err) {
-        console.error('Error reloading transactions:', err);
       }
     };
     loadTransactions();
@@ -212,12 +209,12 @@ export default function TransactionsPage() {
   const getIcon = (type: string) => {
     switch (type) {
       case 'INCOME':
-        return <ArrowDownLeft className="h-4 w-4 text-green-400" />;
+        return <ArrowDownLeft className="h-4 w-4" style={{ color: '#4ade80' }} />;
       case 'EXPENSE':
-        return <ArrowUpRight className="h-4 w-4 text-red-400" />;
+        return <ArrowUpRight className="h-4 w-4" style={{ color: '#10069f' }} />;
       case 'TRANSFER_OUT':
       case 'TRANSFER_IN':
-        return <Repeat className="h-4 w-4 text-blue-400" />;
+        return <Repeat className="h-4 w-4" style={{ color: '#06b6d4' }} />;
       default:
         return <ArrowUpRight className="h-4 w-4 text-gray-400" />;
     }
@@ -228,10 +225,10 @@ export default function TransactionsPage() {
       case 'INCOME':
         return 'text-green-400';
       case 'EXPENSE':
-        return 'text-red-400';
+        return 'text-blue-600';
       case 'TRANSFER_OUT':
       case 'TRANSFER_IN':
-        return 'text-blue-400';
+        return 'text-cyan-500';
       default:
         return 'text-gray-400';
     }
@@ -260,37 +257,30 @@ export default function TransactionsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2 truncate">Transacciones</h1>
-            <p className="text-gray-400 text-sm sm:text-base">Historial completo de ingresos y gastos</p>
+        {/* Clean Minimal Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <h1 className="text-3xl font-bold text-white">
+              Transacciones
+            </h1>
           </div>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <Button
-              variant="secondary"
-              icon={<Download className="h-4 w-4" />}
-              className="w-full sm:w-auto"
-            >
-              <span className="sm:inline hidden">Exportar CSV</span>
-              <span className="sm:hidden">Exportar</span>
-            </Button>
+          <div className="flex items-center space-x-3">
             <Button
               variant="secondary"
               onClick={handleQuickAdd}
               icon={<Plus className="h-4 w-4" />}
-              className="w-full sm:w-auto"
+              className="hidden sm:flex"
             >
-              <span className="sm:inline hidden">Agregar Rápido</span>
-              <span className="sm:hidden">Rápido</span>
+              Agregar
             </Button>
             <Button
               onClick={handleNewTransaction}
               icon={<Sparkles className="h-4 w-4" />}
-              className="w-full sm:w-auto"
+              style={{ background: 'linear-gradient(to right, #10069f, #455cff)' }}
+              className="text-white border-none hover:opacity-90"
             >
-              <span className="sm:inline hidden">Nueva Transacción</span>
-              <span className="sm:hidden">Nueva</span>
+              Nueva
             </Button>
           </div>
         </div>

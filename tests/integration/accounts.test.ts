@@ -31,7 +31,6 @@ describe('Accounts Integration Tests', () => {
       try {
         await repository.accounts.delete(accountId);
       } catch (error) {
-        console.warn(`Failed to cleanup test account ${accountId}:`, error);
       }
     }
   });
@@ -100,7 +99,6 @@ describe('Accounts Integration Tests', () => {
         );
         
         expect(isExpectedError).toBe(true);
-        console.log(`Expected authentication/RLS error in test: ${errorMessage}`);
       }
     });
 
@@ -165,7 +163,6 @@ describe('Accounts Integration Tests', () => {
           throw error; // Re-throw unexpected errors
         }
         
-        console.log(`Expected database error in test: ${errorMessage}`);
       }
     });
   });

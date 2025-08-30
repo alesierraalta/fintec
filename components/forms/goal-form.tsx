@@ -83,12 +83,10 @@ export function GoalForm({ isOpen, onClose, goal, onSave }: GoalFormProps) {
       };
 
       onSave?.(goalData);
-      console.log('Goal saved:', goalData);
       
       reset();
       onClose();
     } catch (error) {
-      console.error('Error saving goal:', error);
     } finally {
       setIsLoading(false);
     }

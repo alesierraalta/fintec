@@ -57,7 +57,6 @@ export function DesktopReports() {
         setData({ transactions, categories, accounts });
         setFilteredTransactions(transactions);
       } catch (error) {
-        console.error('Error loading data:', error);
         setData({ transactions: [], categories: [], accounts: [] });
         setFilteredTransactions([]);
       } finally {

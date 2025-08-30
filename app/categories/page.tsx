@@ -16,7 +16,20 @@ import {
   List,
   Search,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  ShoppingCart,
+  Home,
+  Car,
+  Coffee,
+  Gamepad2,
+  Heart,
+  PiggyBank,
+  Briefcase,
+  Gift,
+  Plane,
+  CreditCard,
+  Wallet,
+  GraduationCap
 } from 'lucide-react';
 
 export default function CategoriesPage() {
@@ -31,16 +44,33 @@ export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+
+
   // Load categories from database
   useEffect(() => {
     const loadCategories = async () => {
       if (!user) return;
       try {
         setLoading(true);
+        
         const allCategories = await repository.categories.findAll();
+        
         setCategories(allCategories);
+        
+        // If no categories exist, trigger migration
+        if (allCategories.length === 0) {
+          try {
+            const response = await fetch('/api/migrate-categories', { method: 'POST' });
+            const result = await response.json();
+            
+            // Reload categories after migration
+            const newCategories = await repository.categories.findAll();
+            setCategories(newCategories);
+          } catch (migrationError) {
+            setCategories([]);
+          }
+        }
       } catch (error) {
-        console.error('Error loading categories:', error);
         setCategories([]);
       } finally {
         setLoading(false);
@@ -68,7 +98,6 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteCategory = (categoryId: string) => {
-    console.log('Delete category:', categoryId);
     // Aquí implementarías la lógica de eliminación
   };
 
@@ -81,14 +110,12 @@ export default function CategoriesPage() {
         const allCategories = await repository.categories.findAll();
         setCategories(allCategories);
       } catch (error) {
-        console.error('Error reloading categories:', error);
       }
     };
     loadCategories();
   };
 
   const handleViewCategory = (categoryId: string) => {
-    console.log('View category:', categoryId);
     // Aquí podrías navegar a una vista detallada
   };
 

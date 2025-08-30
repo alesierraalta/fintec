@@ -165,7 +165,6 @@ export function MobileAddTransaction() {
       
       router.push('/transactions');
     } catch (error) {
-      console.error('Error saving transaction:', error);
       alert('Error al guardar la transacción. Por favor intenta de nuevo.');
     } finally {
       setLoading(false);
@@ -249,7 +248,7 @@ export function MobileAddTransaction() {
                           {account.label}
                         </p>
                         <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
-                          ${Math.abs(account.balance).toLocaleString()}
+                          ${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                         </p>
                       </div>
                     </div>

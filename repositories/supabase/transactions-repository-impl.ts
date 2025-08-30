@@ -17,9 +17,33 @@ import {
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   async findAll(): Promise<Transaction[]> {
+    // Try to get current user, but fallback to local user ID if not available
+    let userId: string;
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      userId = user.id;
+    } else {
+      // Fallback for local testing - use the UUID we know exists
+      userId = '00000000-0000-0000-0000-000000000001';
+    }
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return []; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
+      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 

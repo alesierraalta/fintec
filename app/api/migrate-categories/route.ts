@@ -39,7 +39,6 @@ const defaultCategories = {
 
 export async function POST() {
   try {
-    console.log('🚀 Starting category migration...');
 
     // Check if categories already exist
     const { data: existingCategories, error: checkError } = await supabase
@@ -48,7 +47,6 @@ export async function POST() {
       .limit(1);
 
     if (checkError) {
-      console.error('Error checking existing categories:', checkError);
       return NextResponse.json(
         { error: 'Failed to check existing categories', details: checkError },
         { status: 500 }
@@ -69,19 +67,17 @@ export async function POST() {
       for (const category of categories) {
         categoriesToInsert.push({
           name: category.label,
-          description: `Categoría predeterminada: ${category.label}`,
           icon: category.icon,
           color: category.color,
           kind: type as 'EXPENSE' | 'INCOME' | 'TRANSFER_OUT',
-          is_default: true,
           active: true,
+          user_id: null, // NULL = global category for all users
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
       }
     }
 
-    console.log(`📝 Inserting ${categoriesToInsert.length} default categories...`);
 
     // Insert categories
     const { data, error } = await supabase
@@ -90,7 +86,6 @@ export async function POST() {
       .select();
 
     if (error) {
-      console.error('Error inserting categories:', error);
       return NextResponse.json(
         { error: 'Failed to insert categories', details: error },
         { status: 500 }
@@ -114,7 +109,6 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error('Unexpected error during migration:', error);
     return NextResponse.json(
       { error: 'Unexpected error during migration', details: error },
       { status: 500 }

@@ -322,7 +322,6 @@ export const createFileUploadDragDrop = (
     });
 
     if (errors.length > 0) {
-      console.warn('File validation errors:', errors);
       // You might want to show these errors to the user
     }
 
@@ -461,14 +460,12 @@ export const addDragAccessibility = (element: HTMLElement, label: string) => {
   });
 };
 
-export default {
+const dragDropConfig = {
   createTransactionDragDrop,
   createCategoryDragDrop,
   createAccountDragDrop,
   createFileUploadDragDrop,
   // DragHandle,
-  createDragPreview,
-  addDragListeners,
-  addDragAccessibility,
-  dragClasses,
 };
+
+export default dragDropConfig;

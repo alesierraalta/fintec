@@ -39,7 +39,6 @@ export function useAutoBackup() {
     try {
       localStorage.setItem('autoBackupSettings', JSON.stringify(settings));
     } catch (error) {
-      console.error('Failed to save auto-backup settings:', error);
     }
   }, []);
 
@@ -76,7 +75,6 @@ export function useAutoBackup() {
         return;
       }
 
-      console.log('Performing automatic backup...');
 
       if (settings.autoDownload) {
         // Download backup file
@@ -112,9 +110,7 @@ export function useAutoBackup() {
         });
       }
 
-      console.log('Automatic backup completed successfully');
     } catch (error) {
-      console.error('Auto backup failed:', error);
       
       // Show error notification if supported
       if ('Notification' in window && Notification.permission === 'granted') {
@@ -132,7 +128,6 @@ export function useAutoBackup() {
       try {
         await Notification.requestPermission();
       } catch (error) {
-        console.error('Failed to request notification permission:', error);
       }
     }
   }, []);

@@ -116,6 +116,7 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
     setError(null);
     
     try {
+      
       // Validate form data
       if (!formData.name.trim()) {
         throw new Error('El nombre de la cuenta es requerido');
@@ -136,15 +137,26 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
         updatedAt: new Date().toISOString(),
       };
 
+
       if (account) {
         // Update existing account
         const updateData = { ...accountData, id: account.id };
-        await repository.accounts.update(account.id, updateData);
-        console.log('Account updated successfully');
+        const updatedAccount = await repository.accounts.update(account.id, updateData);
       } else {
         // Create new account
-        await repository.accounts.create(accountData);
-        console.log('Account created successfully');
+        const createdAccount = await repository.accounts.create(accountData);
+        
+        // Verificar que la cuenta se guardó correctamente
+        if (!createdAccount || !createdAccount.id) {
+          throw new Error('La cuenta se creó pero no se devolvió correctamente');
+        }
+        
+        // Verificar que la cuenta existe en la base de datos
+        const verifyAccount = await repository.accounts.findById(createdAccount.id);
+        if (!verifyAccount) {
+          throw new Error('La cuenta se creó pero no se puede encontrar en la base de datos');
+        }
+        
       }
 
       // Reset form and close modal
@@ -155,12 +167,25 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
         balance: '',
       });
       
-      onClose();
-      onSuccess?.(); // Notify parent to reload accounts
+      onSuccess?.(); // Notify parent to reload accounts FIRST
+      onClose(); // Close modal AFTER success callback
       
     } catch (err) {
-      console.error('Error saving account:', err);
-      setError(err instanceof Error ? err.message : 'Error al guardar la cuenta');
+      
+      // Proporcionar mensajes de error más específicos
+      let errorMessage = 'Error al guardar la cuenta';
+      
+      if (err instanceof Error) {
+        if (err.message.includes('IndexedDB')) {
+          errorMessage = 'Error de base de datos. Intenta recargar la página.';
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = 'Error de conexión. Verifica tu conexión a internet.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

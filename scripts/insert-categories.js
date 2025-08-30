@@ -73,12 +73,11 @@ async function insertCategories() {
       for (const category of categories) {
         categoriesToInsert.push({
           name: category.label,
-          description: `Categoría predeterminada: ${category.label}`,
           icon: category.icon,
           color: category.color,
           kind: type,
-          is_default: true,
           active: true,
+          user_id: null, // NULL = global category for all users
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
