@@ -39,6 +39,7 @@ import {
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
+import { useModal } from '@/hooks';
 import { CreateTransactionDTO, TransactionType } from '@/types';
 import { TransactionFormSchema, TransactionFormType } from '@/lib/validations/schemas';
 import { dateUtils } from '@/lib/dates/dayjs';
@@ -46,6 +47,7 @@ import { motion } from 'framer-motion';
 import { cardVariants, buttonVariants, fieldVariants } from '@/lib/animations';
 import { useFormShortcuts } from '@/lib/hotkeys';
 import { useNotifications } from '@/lib/store';
+import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
 
 // Data constants (same as mobile)
@@ -64,6 +66,7 @@ export function DesktopAddTransaction() {
   const repository = useRepository();
   const { user } = useAuth();
   const { addNotification } = useNotifications();
+  const { isOpen: isCategoryModalOpen, openModal: openCategoryModal, closeModal: closeCategoryModal } = useModal();
   
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -126,6 +129,37 @@ export function DesktopAddTransaction() {
     if (type === 'EXPENSE') return categories.filter(cat => cat.kind === 'EXPENSE');
     // TRANSFER types can use either category kind
     return categories;
+  };
+
+  // Helper function to determine category kind for new category creation
+  const getCategoryKindForTransaction = () => {
+    if (formData.type === 'INCOME') return 'INCOME';
+    if (formData.type === 'EXPENSE') return 'EXPENSE';
+    return 'EXPENSE'; // Default for TRANSFER_OUT
+  };
+
+  // Handle category creation and auto-selection
+  const handleCategorySaved = async (createdCategory?: Category) => {
+    if (!user) return;
+    
+    try {
+      // Reload categories after creating a new one
+      const allCategories = await repository.categories.findAll();
+      setCategories(allCategories.filter(cat => cat.active));
+      
+      // Auto-select the newly created category
+      if (createdCategory) {
+        setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
+      }
+    } catch (error) {
+      console.error('Error reloading categories:', error);
+      addNotification({
+        read: false,
+        type: 'error',
+        title: 'Error',
+        message: 'Error al recargar las categorías'
+      });
+    }
   };
 
   // Initialize date on client side
@@ -211,15 +245,7 @@ export function DesktopAddTransaction() {
       return;
     }
     
-    if (!formData.description || formData.description.trim() === '') {
-      addNotification({
-        read: false,
-        type: 'error',
-        title: 'Campo requerido',
-        message: 'Por favor ingresa una descripción'
-      });
-      return;
-    }
+
 
     if (!user) {
       addNotification({
@@ -253,13 +279,51 @@ export function DesktopAddTransaction() {
       
       const createdTransaction = await repository.transactions.create(transactionData);
       
+      // If recurring is enabled, create recurring transaction
+      if (formData.isRecurring) {
+        try {
+          const recurringData = {
+            name: `${formData.description} - Recurrente`,
+            type: formData.type as TransactionType,
+            accountId: formData.accountId,
+            categoryId: formData.categoryId,
+            currencyCode: currencyCode,
+            amountMinor: Math.round(amount * 100),
+            description: formData.description.trim(),
+            note: formData.note?.trim() || undefined,
+            tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
+            frequency: formData.frequency as any,
+            intervalCount: 1,
+            startDate: calculate_next_execution_date(formData.date, formData.frequency),
+            endDate: formData.endDate || undefined
+          };
+          
+          await repository.recurringTransactions.create(recurringData, user.id);
+          
+          addNotification({
+            read: false,
+            type: 'info',
+            title: 'Transacción recurrente creada',
+            message: `Se creará automáticamente cada ${formData.frequency === 'weekly' ? 'semana' : formData.frequency === 'monthly' ? 'mes' : 'año'}`
+          });
+        } catch (recurringError) {
+          console.error('Error creating recurring transaction:', recurringError);
+          addNotification({
+            read: false,
+            type: 'warning',
+            title: 'Transacción creada',
+            message: 'La transacción se creó pero hubo un error con la recurrencia'
+          });
+        }
+      }
+      
       
       // Success notification
       addNotification({
         read: false,
         type: 'success',
         title: '¡Transacción creada!',
-        message: `Transacción de ${currencyCode === 'VES' ? 'Bs.' : '$'}${amount.toLocaleString()} guardada exitosamente`
+        message: `Transacción de ${currencyCode === 'VES' ? 'Bs.' : '$'}${amount.toLocaleString()} guardada exitosamente${formData.isRecurring ? ' con recurrencia configurada' : ''}`
       });
       
       if (formData.isRecurring) {
@@ -453,10 +517,20 @@ export function DesktopAddTransaction() {
             {/* Category Selection */}
             {formData.type && (
               <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl">
-                <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-                  <Tag className="h-5 w-5 mr-2 text-pink-400" />
-                  Categoría
-                </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-white flex items-center">
+                    <Tag className="h-5 w-5 mr-2 text-pink-400" />
+                    Categoría
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={openCategoryModal}
+                    className="text-xs text-accent-secondary hover:text-blue-300 border border-accent-secondary hover:border-blue-400 bg-accent-secondary/10 hover:bg-accent-secondary/20 px-3 py-2 rounded-lg transition-colors flex items-center space-x-1"
+                  >
+                    <Plus className="h-3 w-3 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Nueva Categoría</span>
+                  </button>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
                   {loadingCategories ? (
                     <div className="col-span-full text-center text-gray-400">
@@ -570,10 +644,10 @@ export function DesktopAddTransaction() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Descripción *</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Descripción (Opcional)</label>
                   <input
                     type="text"
-                    placeholder="¿Para qué fue este gasto?"
+                    placeholder={formData.type === 'INCOME' ? '¿De dónde viene este ingreso?' : formData.type === 'TRANSFER_OUT' ? '¿Para qué es esta transferencia?' : '¿Para qué fue este gasto?'}
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-4 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
@@ -739,6 +813,16 @@ export function DesktopAddTransaction() {
             </div>
           </div>
         )}
+
+        {/* Category Creation Modal */}
+        <CategoryForm
+          isOpen={isCategoryModalOpen}
+          onClose={closeCategoryModal}
+          onSave={handleCategorySaved}
+          category={null}
+          parentCategoryId={null}
+          defaultKind={getCategoryKindForTransaction() as any}
+        />
       </div>
     </div>
   );

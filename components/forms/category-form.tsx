@@ -13,7 +13,8 @@ interface CategoryFormProps {
   onClose: () => void;
   category?: any;
   parentCategoryId?: string | null;
-  onSave?: () => void;
+  onSave?: (createdCategory?: any) => void;
+  defaultKind?: CategoryKind;
 }
 
 const categoryKinds = [
@@ -21,11 +22,11 @@ const categoryKinds = [
   { value: 'EXPENSE', label: 'Gasto' },
 ];
 
-export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave }: CategoryFormProps) {
+export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave, defaultKind }: CategoryFormProps) {
   const repository = useRepository();
   const [formData, setFormData] = useState({
     name: category?.name || '',
-    kind: category?.kind || 'EXPENSE',
+    kind: category?.kind || defaultKind || 'EXPENSE',
     color: category?.color || '#3b82f6',
     icon: category?.icon || 'Tag',
     parentId: category?.parentId || parentCategoryId || '',
@@ -59,12 +60,12 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
   useEffect(() => {
     setFormData({
       name: category?.name || '',
-      kind: category?.kind || 'EXPENSE',
+      kind: category?.kind || defaultKind || 'EXPENSE',
       color: category?.color || '#3b82f6',
       icon: category?.icon || 'Tag',
       parentId: category?.parentId || parentCategoryId || '',
     });
-  }, [category, parentCategoryId]);
+  }, [category, parentCategoryId, defaultKind]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +74,8 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
     setLoading(true);
     
     try {
+      let createdCategory = null;
+      
       if (category) {
         // Update existing category
         await repository.categories.update(category.id, {
@@ -85,7 +88,7 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       } else {
         // Create new category
-        await repository.categories.create({
+        createdCategory = await repository.categories.create({
           name: formData.name.trim(),
           kind: formData.kind as CategoryKind,
           color: formData.color,
@@ -94,14 +97,14 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
       
-      onSave?.();
+      onSave?.(createdCategory);
       onClose();
       
       // Reset form for new category
       if (!category) {
         setFormData({
           name: '',
-          kind: 'EXPENSE',
+          kind: defaultKind || 'EXPENSE',
           color: '#3b82f6',
           icon: 'Tag',
           parentId: '',

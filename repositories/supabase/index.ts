@@ -8,6 +8,7 @@ export { SupabaseBudgetsRepository } from './budgets-repository-impl';
 export { SupabaseGoalsRepository } from './goals-repository-impl';
 export { SupabaseExchangeRatesRepository } from './exchange-rates-repository-impl';
 export { SupabaseNotificationsRepository } from './notifications-repository-impl';
+export { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 
 export * from './types';
 export * from './mappers';
@@ -22,7 +23,8 @@ import {
   SupabaseBudgetsRepository,
   SupabaseGoalsRepository,
   SupabaseExchangeRatesRepository,
-  SupabaseNotificationsRepository
+  SupabaseNotificationsRepository,
+  SupabaseRecurringTransactionsRepository
 } from './';
 
 // @ts-ignore - Incomplete implementation, using LocalAppRepository instead
@@ -34,6 +36,7 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly goals: any; // SupabaseGoalsRepository - incomplete implementation  
   public readonly exchangeRates: any; // SupabaseExchangeRatesRepository - incomplete implementation
   public readonly notifications: any; // SupabaseNotificationsRepository - incomplete implementation
+  public readonly recurringTransactions: SupabaseRecurringTransactionsRepository;
 
   constructor() {
     this.accounts = new SupabaseAccountsRepository();
@@ -43,6 +46,10 @@ export class SupabaseAppRepository implements AppRepository {
     this.goals = new SupabaseGoalsRepository();
     this.exchangeRates = new SupabaseExchangeRatesRepository();
     this.notifications = new SupabaseNotificationsRepository();
+    this.recurringTransactions = new SupabaseRecurringTransactionsRepository();
+    
+    // Set up dependencies
+    this.transactions.setAccountsRepository(this.accounts);
   }
 
   async isHealthy(): Promise<boolean> {

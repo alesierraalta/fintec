@@ -14,19 +14,25 @@ import {
   mapDomainTransactionToSupabase,
   mapSupabaseTransactionArrayToDomain 
 } from './mappers';
+import { AccountsRepository } from '../contracts/accounts-repository';
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
+  private accountsRepository?: AccountsRepository;
+
+  setAccountsRepository(accountsRepository: AccountsRepository) {
+    this.accountsRepository = accountsRepository;
+  }
   async findAll(): Promise<Transaction[]> {
-    // Try to get current user, but fallback to local user ID if not available
-    let userId: string;
-    
+    // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      userId = user.id;
-    } else {
-      // Fallback for local testing - use the UUID we know exists
-      userId = '00000000-0000-0000-0000-000000000001';
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning empty transactions');
+      return [];
     }
+    
+    const userId = user.id;
 
     // Get user's account IDs first
     const { data: accounts } = await supabase
@@ -186,10 +192,47 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to create transaction: ${error.message}`);
     }
 
-    return mapSupabaseTransactionToDomain(data);
+    const createdTransaction = mapSupabaseTransactionToDomain(data);
+
+    // Update account balance based on transaction type
+    if (this.accountsRepository) {
+      try {
+        const balanceAdjustment = this.calculateBalanceAdjustment(transactionData.type, transactionData.amountMinor);
+        await this.accountsRepository.adjustBalance(transactionData.accountId, balanceAdjustment);
+        
+        console.log(`✅ Balance updated for account ${transactionData.accountId}: ${balanceAdjustment > 0 ? '+' : ''}${balanceAdjustment / 100}`);
+      } catch (balanceError) {
+        console.error('❌ Failed to update account balance:', balanceError);
+        // Don't throw here to avoid rolling back the transaction creation
+        // The transaction was created successfully, balance update failed
+      }
+    } else {
+      console.warn('⚠️ AccountsRepository not set, balance not updated');
+    }
+
+    return createdTransaction;
+  }
+
+  private calculateBalanceAdjustment(type: string, amountMinor: number): number {
+    switch (type) {
+      case 'INCOME':
+      case 'TRANSFER_IN':
+        return amountMinor; // Add to balance
+      case 'EXPENSE':
+      case 'TRANSFER_OUT':
+        return -amountMinor; // Subtract from balance
+      default:
+        return 0;
+    }
   }
 
   async update(id: string, updates: UpdateTransactionDTO): Promise<Transaction> {
+    // Get the original transaction to calculate balance difference
+    const originalTransaction = await this.findById(id);
+    if (!originalTransaction) {
+      throw new Error(`Transaction with id ${id} not found`);
+    }
+
     const { id: updateId, ...updateData } = updates;
     const supabaseUpdates = mapDomainTransactionToSupabase({
       ...updateData,
@@ -207,10 +250,32 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to update transaction: ${error.message}`);
     }
 
-    return mapSupabaseTransactionToDomain(data);
+    const updatedTransaction = mapSupabaseTransactionToDomain(data);
+
+    // Update account balance if amount or type changed
+    try {
+      const originalAdjustment = this.calculateBalanceAdjustment(originalTransaction.type, originalTransaction.amountMinor);
+      const newAdjustment = this.calculateBalanceAdjustment(updatedTransaction.type, updatedTransaction.amountMinor);
+      const balanceDifference = newAdjustment - originalAdjustment;
+      
+      if (balanceDifference !== 0 && this.accountsRepository) {
+        await this.accountsRepository.adjustBalance(updatedTransaction.accountId, balanceDifference);
+        console.log(`✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`);
+      }
+    } catch (balanceError) {
+      console.error('❌ Failed to update account balance on transaction update:', balanceError);
+    }
+
+    return updatedTransaction;
   }
 
   async delete(id: string): Promise<void> {
+    // Get the transaction before deleting to reverse the balance change
+    const transaction = await this.findById(id);
+    if (!transaction) {
+      throw new Error(`Transaction with id ${id} not found`);
+    }
+
     const { error } = await supabase
       .from('transactions')
       .delete()
@@ -218,6 +283,18 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     if (error) {
       throw new Error(`Failed to delete transaction: ${error.message}`);
+    }
+
+    // Reverse the balance adjustment
+    if (this.accountsRepository) {
+      try {
+        const originalAdjustment = this.calculateBalanceAdjustment(transaction.type, transaction.amountMinor);
+        const reverseAdjustment = -originalAdjustment;
+        await this.accountsRepository.adjustBalance(transaction.accountId, reverseAdjustment);
+        console.log(`✅ Balance reversed for account ${transaction.accountId}: ${reverseAdjustment > 0 ? '+' : ''}${reverseAdjustment / 100}`);
+      } catch (balanceError) {
+        console.error('❌ Failed to reverse account balance on transaction delete:', balanceError);
+      }
     }
   }
 
@@ -254,10 +331,34 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async getTotalByCategoryId(categoryId: string, dateFrom?: string, dateTo?: string): Promise<number> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning 0 for category total');
+      return 0;
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return 0; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     let query = supabase
       .from('transactions')
       .select('amount_base_minor')
-      .eq('category_id', categoryId);
+      .eq('category_id', categoryId)
+      .in('account_id', accountIds);
 
     if (dateFrom) {
       query = query.gte('date', dateFrom);
@@ -344,6 +445,41 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findByAccountId(accountId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning empty transactions');
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+    
+    const userId = user.id;
+
+    // Verify that the account belongs to the authenticated user
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('user_id', userId)
+      .single();
+
+    if (!account) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      }; // Account doesn't belong to user or doesn't exist
+    }
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
@@ -381,10 +517,46 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findByCategoryId(categoryId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning empty transactions');
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      }; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('category_id', categoryId)
+      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -418,10 +590,46 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findByType(type: TransactionType, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning empty transactions');
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      }; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('type', type)
+      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -455,11 +663,47 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findByDateRange(startDate: string, endDate: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning empty transactions');
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      }; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .gte('date', startDate)
       .lte('date', endDate)
+      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 

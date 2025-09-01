@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
+import { CategoryForm } from '@/components/forms/category-form';
 import { TransactionType } from '@/types';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
+import { useModal } from '@/hooks';
 import type { Transaction, Account, Category } from '@/types/domain';
 import { 
   ArrowDownLeft, 
@@ -13,7 +15,8 @@ import {
   Calendar,
   DollarSign,
   FileText,
-  Tag
+  Tag,
+  Plus
 } from 'lucide-react';
 
 interface TransactionFormProps {
@@ -33,6 +36,7 @@ const transactionTypes = [
 export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type = TransactionType.EXPENSE }: TransactionFormProps) {
   const repository = useRepository();
   const { user } = useAuth();
+  const { isOpen: isCategoryModalOpen, openModal: openCategoryModal, closeModal: closeCategoryModal } = useModal();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -107,7 +111,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
     if (!user) return;
     
     // Basic validation
-    if (!formData.accountId || !formData.categoryId || !formData.amount || !formData.description) {
+    if (!formData.accountId || !formData.categoryId || !formData.amount) {
       alert('Por favor completa todos los campos requeridos');
       return;
     }
@@ -184,6 +188,30 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
       value: category.id,
       label: category.name
     }));
+
+  const handleCategorySaved = async (createdCategory?: Category) => {
+    // Reload categories after creating a new one
+    if (!user) return;
+    
+    try {
+      const allCategories = await repository.categories.findAll();
+      setCategories(allCategories.filter(cat => cat.active));
+      
+      // Auto-select the newly created category
+      if (createdCategory) {
+        setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
+      }
+    } catch (error) {
+      console.error('Error reloading categories:', error);
+    }
+  };
+
+  const getCategoryKindForTransaction = () => {
+    // Map TransactionType to CategoryKind for new category creation
+    if (formData.type === 'INCOME') return 'INCOME';
+    if (formData.type === 'EXPENSE') return 'EXPENSE';
+    return 'EXPENSE'; // Default fallback
+  };
 
   if (loadingData) {
     return (
@@ -265,8 +293,22 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
 
         {/* Category */}
         <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Categoría
+            </label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={openCategoryModal}
+              className="text-xs text-accent-secondary hover:text-blue-300 border-accent-secondary hover:border-blue-400 bg-accent-secondary/10 hover:bg-accent-secondary/20 px-3 py-1.5"
+            >
+              <Plus className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span className="whitespace-nowrap">Nueva Categoría</span>
+            </Button>
+          </div>
           <Select
-            label="Categoría"
             value={formData.categoryId}
             onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
             options={categoryOptions}
@@ -346,6 +388,16 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
           </Button>
         </div>
       </form>
+
+      {/* Category Creation Modal */}
+      <CategoryForm
+        isOpen={isCategoryModalOpen}
+        onClose={closeCategoryModal}
+        onSave={handleCategorySaved}
+        category={null}
+        parentCategoryId={null}
+        defaultKind={getCategoryKindForTransaction() as CategoryKind}
+      />
     </Modal>
   );
 }

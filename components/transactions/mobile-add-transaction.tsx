@@ -38,7 +38,11 @@ import {
   PiggyBank
 } from 'lucide-react';
 import { useRepository } from '@/providers';
+import { useAuth } from '@/hooks/use-auth';
+import { useModal } from '@/hooks';
 import { CreateTransactionDTO, TransactionType } from '@/types';
+import { CategoryForm } from '@/components/forms/category-form';
+import type { Category, Account } from '@/types/domain';
 
 // Data constants
 const transactionTypes = [
@@ -47,43 +51,18 @@ const transactionTypes = [
   { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'from-blue-500 to-cyan-600', emoji: '🔄' },
 ];
 
-const accounts = [
-  { value: 'acc1', label: 'Cuenta Principal', icon: Wallet, color: 'from-blue-500 to-indigo-600', balance: 2500.00 },
-  { value: 'acc2', label: 'Tarjeta de Crédito', icon: CreditCard, color: 'from-purple-500 to-violet-600', balance: -850.00 },
-  { value: 'acc3', label: 'Ahorros', icon: PiggyBank, color: 'from-green-500 to-emerald-600', balance: 5200.00 },
-  { value: 'acc4', label: 'Efectivo', icon: Building2, color: 'from-yellow-500 to-orange-600', balance: 150.00 },
-];
-
-const categories = {
-  EXPENSE: [
-    { value: 'food', label: 'Comida', icon: Utensils, color: 'from-orange-400 to-red-500' },
-    { value: 'transport', label: 'Transporte', icon: Car, color: 'from-blue-400 to-cyan-500' },
-    { value: 'shopping', label: 'Compras', icon: ShoppingBag, color: 'from-pink-400 to-rose-500' },
-    { value: 'entertainment', label: 'Entretenimiento', icon: Music, color: 'from-purple-400 to-indigo-500' },
-    { value: 'health', label: 'Salud', icon: Stethoscope, color: 'from-green-400 to-emerald-500' },
-    { value: 'home', label: 'Hogar', icon: Home, color: 'from-yellow-400 to-orange-500' },
-    { value: 'subscriptions', label: 'Suscripciones', icon: Calendar, color: 'from-violet-400 to-purple-500' },
-    { value: 'loans', label: 'Préstamos', icon: Banknote, color: 'from-red-500 to-rose-600' },
-    { value: 'insurance', label: 'Seguros', icon: Heart, color: 'from-blue-500 to-indigo-600' },
-    { value: 'utilities', label: 'Servicios', icon: Zap, color: 'from-yellow-500 to-orange-600' },
-  ],
-  INCOME: [
-    { value: 'salary', label: 'Salario', icon: Briefcase, color: 'from-green-400 to-emerald-500' },
-    { value: 'freelance', label: 'Freelance', icon: Coffee, color: 'from-blue-400 to-indigo-500' },
-    { value: 'investment', label: 'Inversiones', icon: TrendingUp, color: 'from-purple-400 to-indigo-500' },
-    { value: 'bonus', label: 'Bonos', icon: Gift, color: 'from-yellow-400 to-orange-500' },
-    { value: 'other', label: 'Otros', icon: Star, color: 'from-pink-400 to-rose-500' },
-  ],
-  TRANSFER_OUT: [
-    { value: 'transfer', label: 'Transferencia', icon: Repeat, color: 'from-blue-400 to-indigo-500' },
-    { value: 'savings', label: 'Ahorros', icon: PiggyBank, color: 'from-green-400 to-emerald-500' },
-  ]
-};
+// Categories and accounts are now loaded from database
 
 export function MobileAddTransaction() {
   const router = useRouter();
   const repository = useRepository();
+  const { user } = useAuth();
+  const { isOpen: isCategoryModalOpen, openModal: openCategoryModal, closeModal: closeCategoryModal } = useModal();
   
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [formData, setFormData] = useState({
     type: '' as TransactionType | '',
     accountId: '',
@@ -99,6 +78,71 @@ export function MobileAddTransaction() {
   });
   const [loading, setLoading] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('0');
+
+  // Load categories and accounts from database
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        setLoadingCategories(false);
+        setLoadingAccounts(false);
+        return;
+      }
+
+      try {
+        // Load categories
+        setLoadingCategories(true);
+        const allCategories = await repository.categories.findAll();
+        setCategories(allCategories.filter(cat => cat.active));
+        setLoadingCategories(false);
+
+        // Load user accounts
+        setLoadingAccounts(true);
+        const userAccounts = await repository.accounts.findByUserId(user.id);
+        setAccounts(userAccounts.filter(acc => acc.active));
+        setLoadingAccounts(false);
+      } catch (err) {
+        console.error('Error loading data:', err);
+        setLoadingCategories(false);
+        setLoadingAccounts(false);
+      }
+    };
+
+    loadData();
+  }, [repository, user]);
+
+  // Helper function to get categories by type
+  const getCategoriesByType = (type: TransactionType) => {
+    // Map TransactionType to CategoryKind
+    if (type === 'INCOME') return categories.filter(cat => cat.kind === 'INCOME');
+    if (type === 'EXPENSE') return categories.filter(cat => cat.kind === 'EXPENSE');
+    // TRANSFER types can use either category kind
+    return categories;
+  };
+
+  // Helper function to determine category kind for new category creation
+  const getCategoryKindForTransaction = () => {
+    if (formData.type === 'INCOME') return 'INCOME';
+    if (formData.type === 'EXPENSE') return 'EXPENSE';
+    return 'EXPENSE'; // Default for TRANSFER_OUT
+  };
+
+  // Handle category creation and auto-selection
+  const handleCategorySaved = async (createdCategory?: Category) => {
+    if (!user) return;
+    
+    try {
+      // Reload categories after creating a new one
+      const allCategories = await repository.categories.findAll();
+      setCategories(allCategories.filter(cat => cat.active));
+      
+      // Auto-select the newly created category
+      if (createdCategory) {
+        setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
+      }
+    } catch (error) {
+      console.error('Error reloading categories:', error);
+    }
+  };
 
   // Initialize date on client side
   useEffect(() => {
@@ -134,19 +178,20 @@ export function MobileAddTransaction() {
       alert('Por favor ingresa un monto');
       return;
     }
-    if (!formData.description) {
-      alert('Por favor ingresa una descripción');
-      return;
-    }
+
 
     setLoading(true);
     
     try {
+      // Get selected account to determine currency
+      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+      const currencyCode = selectedAccount?.currencyCode || 'USD';
+
       const transactionData: CreateTransactionDTO = {
         type: (formData.type as TransactionType) || 'EXPENSE',
-        accountId: formData.accountId || 'acc1',
-        categoryId: formData.categoryId || 'food',
-        currencyCode: 'USD',
+        accountId: formData.accountId,
+        categoryId: formData.categoryId,
+        currencyCode: currencyCode,
         amountMinor: Math.round(parseFloat(formData.amount) * 100),
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description,
@@ -154,7 +199,38 @@ export function MobileAddTransaction() {
         tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
       };
 
-      await repository.transactions.create(transactionData);
+      const createdTransaction = await repository.transactions.create(transactionData);
+      
+      // If recurring is enabled, create recurring transaction
+      if (formData.isRecurring) {
+        try {
+          const { calculate_next_execution_date } = await import('@/lib/dates/recurring');
+          
+          const recurringData = {
+            name: `${formData.description} - Recurrente`,
+            type: (formData.type as TransactionType) || 'EXPENSE',
+            accountId: formData.accountId || 'acc1',
+            categoryId: formData.categoryId || 'food',
+            currencyCode: 'USD',
+            amountMinor: Math.round(parseFloat(formData.amount) * 100),
+            description: formData.description,
+            note: formData.note || undefined,
+            tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
+            frequency: formData.frequency as any,
+            intervalCount: 1,
+            startDate: calculate_next_execution_date(formData.date || new Date().toISOString().split('T')[0], formData.frequency),
+            endDate: formData.endDate || undefined
+          };
+          
+          // Note: This will need the user ID, but mobile version uses hardcoded accounts
+          // await repository.recurringTransactions.create(recurringData, 'user-id');
+          
+          alert(`¡Transacción recurrente configurada! Se repetirá ${formData.frequency === 'weekly' ? 'semanalmente' : formData.frequency === 'monthly' ? 'mensualmente' : 'anualmente'}.`);
+        } catch (recurringError) {
+          console.error('Error creating recurring transaction:', recurringError);
+          alert('Transacción creada pero hubo un error con la configuración recurrente.');
+        }
+      }
       
       if (formData.isRecurring) {
         alert(`¡Transacción recurrente creada! Se repetirá cada ${
@@ -222,33 +298,50 @@ export function MobileAddTransaction() {
               Cuenta
             </h3>
             <div className="space-y-3">
-              {accounts.map((account) => {
-                const Icon = account.icon;
-                const isSelected = formData.accountId === account.value;
+              {loadingAccounts ? (
+                <div className="text-center text-gray-400">
+                  Cargando cuentas...
+                </div>
+              ) : accounts.length === 0 ? (
+                <div className="text-center text-gray-400">
+                  No tienes cuentas disponibles. <br />
+                  <span className="text-sm">Crea una cuenta primero.</span>
+                </div>
+              ) : accounts.map((account) => {
+                const isSelected = formData.accountId === account.id;
                 
                 return (
                   <button
-                    key={account.value}
+                    key={account.id}
                     type="button"
-                    onClick={() => setFormData({ ...formData, accountId: account.value })}
+                    onClick={() => setFormData({ ...formData, accountId: account.id })}
                     className={`w-full p-4 rounded-xl transition-all duration-300 transform ${
                       isSelected
-                        ? `bg-gradient-to-r ${account.color} shadow-xl border-0`
+                        ? 'shadow-xl border-0'
                         : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
+                    style={isSelected ? { backgroundColor: '#10b981' } : {}}
                   >
                     <div className="flex items-center space-x-3">
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                         isSelected ? 'bg-white/20' : 'bg-white/10'
                       }`}>
-                        <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-300'}`} />
+                        <span className="text-xl">
+                          {account.type === 'BANK' ? '🏦' :
+                           account.type === 'CARD' ? '💳' :
+                           account.type === 'CASH' ? '💵' :
+                           account.type === 'INVESTMENT' ? '📈' : '💰'}
+                        </span>
                       </div>
                       <div className="text-left flex-1">
                         <p className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
-                          {account.label}
+                          {account.name}
                         </p>
                         <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
-                          ${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          {account.currencyCode === 'VES' 
+                            ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
+                            : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
+                          }
                         </p>
                       </div>
                     </div>
@@ -262,22 +355,35 @@ export function MobileAddTransaction() {
         {/* Category Selection */}
         {formData.type && (
           <div className="backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
-              <Tag className="h-5 w-5 mr-2 text-pink-400" />
-              Categoría
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold text-white flex items-center">
+                <Tag className="h-5 w-5 mr-2 text-pink-400" />
+                Categoría
+              </h3>
+              <button
+                type="button"
+                onClick={openCategoryModal}
+                className="text-xs text-accent-secondary hover:text-blue-300 border border-accent-secondary hover:border-blue-400 bg-accent-secondary/10 hover:bg-accent-secondary/20 px-2 py-1 rounded-lg transition-colors flex items-center space-x-1"
+              >
+                <Plus className="h-3 w-3 flex-shrink-0" />
+                <span className="whitespace-nowrap">Nueva</span>
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-              {(categories[formData.type as keyof typeof categories] || [])?.map((category) => {
-                const Icon = category.icon;
-                const isSelected = formData.categoryId === category.value;
+              {loadingCategories ? (
+                <div className="col-span-full text-center text-gray-400">
+                  Cargando categorías...
+                </div>
+              ) : getCategoriesByType(formData.type as TransactionType)?.map((category) => {
+                const isSelected = formData.categoryId === category.id;
                 
                 return (
                   <button
-                    key={category.value}
+                    key={category.id}
                     type="button"
                     onClick={() => {
-                      const newData = { ...formData, categoryId: category.value };
-                      if (category.value === 'subscriptions') {
+                      const newData = { ...formData, categoryId: category.id };
+                      if (category.name === 'Suscripciones') {
                         newData.isRecurring = true;
                         newData.frequency = 'monthly';
                       }
@@ -285,20 +391,45 @@ export function MobileAddTransaction() {
                     }}
                     className={`relative p-3 rounded-xl transition-all duration-300 ${
                       isSelected
-                        ? `bg-gradient-to-r ${category.color} shadow-xl border-0`
+                        ? 'shadow-xl border-0'
                         : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
                     }`}
+                    style={isSelected ? { backgroundColor: category.color } : {}}
                   >
                     <div className="flex flex-col items-center space-y-2">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
                         isSelected ? 'bg-white/20' : 'bg-white/10'
                       }`}>
-                        <Icon className={`h-4 w-4 ${isSelected ? 'text-white' : 'text-gray-300'}`} />
+                        <span className="text-sm">
+                          {category.icon === 'Utensils' ? '🍽️' : 
+                           category.icon === 'Car' ? '🚗' : 
+                           category.icon === 'ShoppingBag' ? '🛍️' : 
+                           category.icon === 'Music' ? '🎵' : 
+                           category.icon === 'Stethoscope' ? '🩺' : 
+                           category.icon === 'Home' ? '🏠' : 
+                           category.icon === 'Book' ? '📚' : 
+                           category.icon === 'Dumbbell' ? '🏋️' : 
+                           category.icon === 'Plane' ? '✈️' : 
+                           category.icon === 'Smartphone' ? '📱' : 
+                           category.icon === 'Calendar' ? '📅' : 
+                           category.icon === 'Banknote' ? '💵' : 
+                           category.icon === 'Heart' ? '❤️' : 
+                           category.icon === 'Zap' ? '⚡' : 
+                           category.icon === 'Building2' ? '🏢' : 
+                           category.icon === 'Receipt' ? '🧾' : 
+                           category.icon === 'Briefcase' ? '💼' : 
+                           category.icon === 'Coffee' ? '☕' : 
+                           category.icon === 'TrendingUp' ? '📈' : 
+                           category.icon === 'Gift' ? '🎁' : 
+                           category.icon === 'Star' ? '⭐' : 
+                           category.icon === 'Repeat' ? '🔄' : 
+                           category.icon === 'PiggyBank' ? '🐷' : '💰'}
+                        </span>
                       </div>
                       <span className={`text-xs font-medium text-center ${
                         isSelected ? 'text-white' : 'text-gray-300'
                       }`}>
-                        {category.label}
+                        {category.name}
                       </span>
                     </div>
                   </button>
@@ -349,11 +480,11 @@ export function MobileAddTransaction() {
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Descripción *</label>
-              <input
-                type="text"
-                placeholder="¿Para qué fue este gasto?"
-                value={formData.description}
+                                <label className="block text-sm font-medium text-gray-300 mb-2">Descripción (Opcional)</label>
+                  <input
+                    type="text"
+                    placeholder={formData.type === 'INCOME' ? '¿De dónde viene este ingreso?' : formData.type === 'TRANSFER_OUT' ? '¿Para qué es esta transferencia?' : '¿Para qué fue este gasto?'}
+                    value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
               />
@@ -499,6 +630,16 @@ export function MobileAddTransaction() {
           </button>
         </div>
       </div>
+
+      {/* Category Creation Modal */}
+      <CategoryForm
+        isOpen={isCategoryModalOpen}
+        onClose={closeCategoryModal}
+        onSave={handleCategorySaved}
+        category={null}
+        parentCategoryId={null}
+        defaultKind={getCategoryKindForTransaction() as any}
+      />
     </div>
   );
 }

@@ -7,6 +7,7 @@ export * from './budgets-repository';
 export * from './goals-repository';
 export * from './exchange-rates-repository';
 export * from './notifications-repository';
+export * from './recurring-transactions-repository';
 
 // Main repository interface that combines all repositories
 import { AccountsRepository } from './accounts-repository';
@@ -16,6 +17,7 @@ import { BudgetsRepository } from './budgets-repository';
 import { GoalsRepository } from './goals-repository';
 import { ExchangeRatesRepository } from './exchange-rates-repository';
 import { NotificationsRepository } from './notifications-repository';
+import { RecurringTransactionsRepository } from './recurring-transactions-repository';
 import { Repository } from './base-repository';
 
 export interface AppRepository extends Repository {
@@ -26,4 +28,5 @@ export interface AppRepository extends Repository {
   goals: GoalsRepository;
   exchangeRates: ExchangeRatesRepository;
   notifications: NotificationsRepository;
+  recurringTransactions: RecurringTransactionsRepository;
 }

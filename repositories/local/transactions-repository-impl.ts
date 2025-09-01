@@ -304,6 +304,19 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     return result.data.reduce((total, t) => total + Math.abs(t.amountBaseMinor), 0);
   }
 
+  async getTotalByCategoryId(
+    categoryId: string,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<number> {
+    const filters: TransactionFilters = { categoryIds: [categoryId] };
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+
+    const result = await this.findByFilters(filters);
+    return result.data.reduce((total, t) => total + t.amountBaseMinor, 0);
+  }
+
   async getTotalByAccount(
     accountId: string,
     startDate?: string,

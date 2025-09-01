@@ -28,6 +28,7 @@ export interface TransactionsRepository extends BaseRepository<Transaction, Crea
   // Statistics and aggregations
   getTotalByType(type: TransactionType, startDate?: string, endDate?: string): Promise<number>;
   getTotalByCategory(categoryId: string, startDate?: string, endDate?: string): Promise<number>;
+  getTotalByCategoryId(categoryId: string, dateFrom?: string, dateTo?: string): Promise<number>;
   getTotalByAccount(accountId: string, startDate?: string, endDate?: string): Promise<number>;
   
   // Monthly summaries

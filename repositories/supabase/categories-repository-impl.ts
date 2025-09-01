@@ -259,11 +259,35 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async canDelete(id: string): Promise<boolean> {
-    // Check if category has any transactions
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = cannot delete
+      console.warn('No authenticated user - returning false for category deletion check');
+      return false;
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return true; // No accounts = no transactions = can delete
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
+    // Check if category has any transactions from user's accounts
     const { count, error } = await supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
-      .eq('category_id', id);
+      .eq('category_id', id)
+      .in('account_id', accountIds);
 
     if (error) {
       throw new Error(`Failed to check category usage: ${error.message}`);
@@ -276,10 +300,34 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async getUsageCount(id: string): Promise<number> {
+    // Only allow authenticated users - no fallbacks
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      // No user authenticated = no transactions visible
+      console.warn('No authenticated user - returning 0 for category usage count');
+      return 0;
+    }
+    
+    const userId = user.id;
+
+    // Get user's account IDs first
+    const { data: accounts } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (!accounts || accounts.length === 0) {
+      return 0; // No accounts = no transactions
+    }
+
+    const accountIds = accounts.map(acc => acc.id);
+
     const { count, error } = await supabase
       .from('transactions')
       .select('*', { count: 'exact', head: true })
-      .eq('category_id', id);
+      .eq('category_id', id)
+      .in('account_id', accountIds);
 
     if (error) {
       throw new Error(`Failed to get category usage count: ${error.message}`);

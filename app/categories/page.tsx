@@ -29,7 +29,8 @@ import {
   Plane,
   CreditCard,
   Wallet,
-  GraduationCap
+  GraduationCap,
+  RefreshCw
 } from 'lucide-react';
 
 export default function CategoriesPage() {
@@ -46,6 +47,35 @@ export default function CategoriesPage() {
 
 
 
+  // Helper function to enrich categories with transaction statistics
+  const enrichCategoriesWithStats = async (categories: Category[]) => {
+    const enrichedCategories = await Promise.all(
+      categories.map(async (category) => {
+        try {
+          const [transactionCount, totalAmount] = await Promise.all([
+            repository.categories.getUsageCount(category.id),
+            repository.transactions.getTotalByCategoryId(category.id)
+          ]);
+          
+          return {
+            ...category,
+            transactionCount,
+            totalAmount
+          };
+        } catch (error) {
+          console.error(`Error enriching category ${category.id}:`, error);
+          return {
+            ...category,
+            transactionCount: 0,
+            totalAmount: 0
+          };
+        }
+      })
+    );
+    
+    return enrichedCategories;
+  };
+
   // Load categories from database
   useEffect(() => {
     const loadCategories = async () => {
@@ -53,9 +83,7 @@ export default function CategoriesPage() {
       try {
         setLoading(true);
         
-        const allCategories = await repository.categories.findAll();
-        
-        setCategories(allCategories);
+        let allCategories = await repository.categories.findAll();
         
         // If no categories exist, trigger migration
         if (allCategories.length === 0) {
@@ -64,13 +92,19 @@ export default function CategoriesPage() {
             const result = await response.json();
             
             // Reload categories after migration
-            const newCategories = await repository.categories.findAll();
-            setCategories(newCategories);
+            allCategories = await repository.categories.findAll();
           } catch (migrationError) {
             setCategories([]);
+            return;
           }
         }
+
+        // Enrich categories with transaction statistics
+        const enrichedCategories = await enrichCategoriesWithStats(allCategories);
+        setCategories(enrichedCategories);
+        
       } catch (error) {
+        console.error('Error loading categories:', error);
         setCategories([]);
       } finally {
         setLoading(false);
@@ -78,6 +112,19 @@ export default function CategoriesPage() {
     };
     loadCategories();
   }, [user, repository]);
+
+  // Auto-refresh when user navigates back to this page
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user && categories.length > 0) {
+        // Page became visible, refresh statistics
+        handleRefreshStats();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [user, categories.length]);
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -103,13 +150,18 @@ export default function CategoriesPage() {
 
   const handleCategorySaved = () => {
     closeModal();
-    // Reload categories after creating/updating
+    // Reload categories with statistics after creating/updating
     const loadCategories = async () => {
       if (!user) return;
       try {
+        setLoading(true);
         const allCategories = await repository.categories.findAll();
-        setCategories(allCategories);
+        const enrichedCategories = await enrichCategoriesWithStats(allCategories);
+        setCategories(enrichedCategories);
       } catch (error) {
+        console.error('Error reloading categories:', error);
+      } finally {
+        setLoading(false);
       }
     };
     loadCategories();
@@ -117,6 +169,24 @@ export default function CategoriesPage() {
 
   const handleViewCategory = (categoryId: string) => {
     // Aquí podrías navegar a una vista detallada
+  };
+
+  const handleRefreshStats = async () => {
+    if (!user || loading) return;
+    
+    try {
+      setLoading(true);
+      const enrichedCategories = await enrichCategoriesWithStats(categories.map(cat => ({
+        ...cat,
+        transactionCount: undefined,
+        totalAmount: undefined
+      })));
+      setCategories(enrichedCategories);
+    } catch (error) {
+      console.error('Error refreshing category statistics:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Filter categories
@@ -166,6 +236,14 @@ export default function CategoriesPage() {
                 <List className="h-4 w-4" />
               </button>
             </div>
+            <Button
+              onClick={handleRefreshStats}
+              disabled={loading}
+              variant="outline"
+              icon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
+            >
+              Actualizar
+            </Button>
             <Button
               onClick={handleNewCategory}
               icon={<Plus className="h-4 w-4" />}

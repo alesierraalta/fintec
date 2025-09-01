@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { TransactionForm } from '@/components/forms/transaction-form';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
+import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers';
@@ -16,8 +17,6 @@ import {
   ArrowUpRight, 
   Repeat,
   Download,
-  MoreVertical,
-  Edit,
   Trash2,
   Sparkles
 } from 'lucide-react';
@@ -35,7 +34,7 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -167,8 +166,8 @@ export default function TransactionsPage() {
   };
   const handleNewTransaction = () => router.push('/transactions/add');
   const handleQuickAdd = () => { setSelectedTransaction(null); openModal(); };
-  const handleEditTransaction = (t: Transaction) => { setSelectedTransaction(t); setOpenDropdown(null); openModal(); };
-  const handleDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setOpenDropdown(null); setShowDeleteModal(true); };
+  const handleEditTransaction = (t: Transaction) => { setSelectedTransaction(t); openModal(); };
+  const handleDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setShowDeleteModal(true); };
 
   const confirmDelete = async () => {
     if (!transactionToDelete) return;
@@ -194,16 +193,23 @@ export default function TransactionsPage() {
   const cancelDelete = () => setShowDeleteModal(false);
 
   const handleTransactionUpdated = () => {
-    // Reload transactions after edit
-    const loadTransactions = async () => {
+    // Reload transactions AND accounts after transaction changes
+    const loadData = async () => {
       try {
         const allTransactions = await repository.transactions.findAll();
         setTransactions(allTransactions);
         setFilteredTransactions(allTransactions);
+        
+        // CRITICAL FIX: Also reload accounts to refresh balances
+        if (user) {
+          const userAccounts = await repository.accounts.findByUserId(user.id);
+          setAccounts(userAccounts);
+        }
       } catch (err) {
+        console.error('Error reloading data after transaction update:', err);
       }
     };
-    loadTransactions();
+    loadData();
   };
 
   const getIcon = (type: string) => {
@@ -320,7 +326,7 @@ export default function TransactionsPage() {
         />
 
         {/* Transactions List */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-hidden">
+        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-visible">
           <div className="p-6 border-b border-gray-800">
             <h3 className="text-lg font-semibold text-white">
               Todas las Transacciones ({filteredTransactions.length})
@@ -401,34 +407,11 @@ export default function TransactionsPage() {
                       </p>
                     </div>
                     
-                    <div className="relative">
-                      <button 
-                        onClick={() => setOpenDropdown(openDropdown === transaction.id ? null : transaction.id)}
-                        className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded-lg transition-colors"
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </button>
-                      
-                      {/* Dropdown simple */}
-                      {openDropdown === transaction.id && (
-                        <div className="absolute right-0 top-full mt-1 w-48 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50">
-                          <button
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="flex items-center w-full px-4 py-3 text-sm text-gray-300 hover:bg-gray-700"
-                          >
-                            <Edit className="h-4 w-4 mr-3" />
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => handleDeleteTransaction(transaction)}
-                            className="flex items-center w-full px-4 py-3 text-sm text-red-400 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="h-4 w-4 mr-3" />
-                            Eliminar
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    <TransactionActionsDropdown
+                      transaction={transaction}
+                      onEdit={handleEditTransaction}
+                      onDelete={handleDeleteTransaction}
+                    />
                   </div>
                 </div>
               </div>
