@@ -23,9 +23,8 @@ export function RecentTransactions() {
     };
     loadTransactions();
   }, [user, repository]);
-  const formatAmount = (amountMinor: number) => {
-    // Convert from minor units (cents) to major units (dollars)
-    const amount = amountMinor / 100;
+
+  const formatAmount = (amount: number) => {
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -56,167 +55,108 @@ export function RecentTransactions() {
       case 'income':
         return {
           icon: <ArrowDownLeft className="h-4 w-4" />,
-          bgColor: 'bg-success/10',
-          iconColor: 'text-success',
-          borderColor: 'border-success/20',
-          amountColor: 'text-success',
+          iconColor: 'text-green-600',
+          amountColor: 'text-green-600',
+          bgColor: 'bg-green-500/10',
+          borderColor: 'border-green-500/20',
           label: 'Ingreso'
         };
       case 'expense':
         return {
           icon: <ArrowUpRight className="h-4 w-4" />,
-          bgColor: 'bg-danger/10',
-          iconColor: 'text-danger',
-          borderColor: 'border-danger/20',
-          amountColor: 'text-danger',
+          iconColor: 'text-red-600',
+          amountColor: 'text-red-600',
+          bgColor: 'bg-red-500/10',
+          borderColor: 'border-red-500/20',
           label: 'Gasto'
         };
       case 'transfer':
         return {
           icon: <Repeat className="h-4 w-4" />,
-          bgColor: 'bg-info/10',
-          iconColor: 'text-info',
-          borderColor: 'border-info/20',
-          amountColor: 'text-info',
+          iconColor: 'text-blue-600',
+          amountColor: 'text-blue-600',
+          bgColor: 'bg-blue-500/10',
+          borderColor: 'border-blue-500/20',
           label: 'Transferencia'
         };
       default:
         return {
           icon: <ArrowUpRight className="h-4 w-4" />,
-          bgColor: 'bg-text-muted/10',
-          iconColor: 'text-text-muted',
-          borderColor: 'border-text-muted/20',
-          amountColor: 'text-text-muted',
+          iconColor: 'text-muted-foreground',
+          amountColor: 'text-muted-foreground',
+          bgColor: 'bg-muted/10',
+          borderColor: 'border-border/20',
           label: 'Transacción'
         };
     }
   };
 
-  const getAccountIcon = (account: string) => {
-    if (account.includes('Tarjeta')) return CreditCard;
-    if (account.includes('Banco')) return Wallet;
-    return Wallet;
-  };
-
   if (transactions.length === 0) {
     return (
-      <div className="text-center py-8">
-        <TrendingUp className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-        <h3 className="font-medium text-text-primary mb-2">No hay transacciones</h3>
-        <p className="text-sm text-text-muted">Crea tu primera transacción para ver el historial aquí.</p>
+      <div className="text-center py-12">
+        <div className="w-12 h-12 bg-muted/20 rounded-full mx-auto mb-6 flex items-center justify-center backdrop-blur-sm">
+          <Wallet className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <h3 className="text-ios-headline font-medium text-foreground mb-3">Sin movimientos</h3>
+        <p className="text-ios-body text-muted-foreground">Los registros aparecerán aquí</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 overflow-hidden">
+    <div className="space-y-1">
       {transactions.map((transaction, index) => {
         const amount = (transaction.amountMinor || 0) / 100;
         const typeInfo = getTypeInfo(transaction.type, amount);
-        const AccountIcon = getAccountIcon('Cuenta');
-        const CategoryIcon = ShoppingCart;
 
         return (
           <div 
             key={transaction.id} 
-            className={`
-              group relative bg-background-elevated border rounded-2xl p-3 sm:p-4 
-              hover:bg-background-elevated/80 
-              transition-colors duration-200 cursor-pointer overflow-hidden
-              ${typeInfo.borderColor}
-              ${transaction.pending ? 'opacity-75' : ''}
-            `}
+            className="group p-4 hover:bg-muted/20 transition-ios rounded-xl border-b border-border/10 last:border-b-0 backdrop-blur-sm"
           >
-            {/* Pending indicator */}
-            {transaction.pending && (
-              <div className="absolute top-2 right-2">
-                <div className="w-2 h-2 bg-warning rounded-full animate-pulse"></div>
-              </div>
-            )}
-
-            <div className="flex items-start justify-between min-w-0">
+            <div className="flex items-center justify-between">
               {/* Left side - Transaction info */}
-              <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
-                {/* Main transaction icon */}
-                <div className={`
-                  p-2 sm:p-3 rounded-2xl border ${typeInfo.bgColor} ${typeInfo.borderColor}
-                  group-hover:scale-110 transition-transform duration-200 flex-shrink-0
-                `}>
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                {/* iOS-style icon */}
+                <div className={`p-2 rounded-lg ${typeInfo.bgColor} border ${typeInfo.borderColor} backdrop-blur-sm`}>
                   <div className={typeInfo.iconColor}>
                     {typeInfo.icon}
                   </div>
                 </div>
 
                 {/* Transaction details */}
-                <div className="flex-1 min-w-0 overflow-hidden">
-                  {/* Main description */}
-                  <div className="flex items-start space-x-2 mb-1">
-                    <h4 className="font-semibold text-text-primary text-base truncate flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-3 mb-1">
+                    <h4 className="text-ios-body font-medium text-foreground truncate">
                       {transaction.description || 'Transacción'}
                     </h4>
                     {transaction.pending && (
-                      <span className="text-xs bg-warning/20 text-warning px-2 py-1 rounded-full font-medium flex-shrink-0">
+                      <span className="text-ios-caption text-orange-600 bg-orange-500/10 px-2 py-0.5 rounded-full">
                         Pendiente
                       </span>
                     )}
                   </div>
-
-                  {/* Category and type */}
-                  <div className="flex items-center space-x-3 mb-2 overflow-hidden">
-                    <div className="flex items-center space-x-1 min-w-0 flex-1">
-                      <CategoryIcon className="h-3 w-3 text-text-muted flex-shrink-0" />
-                      <span className="text-sm text-text-muted truncate">Categoría</span>
-                    </div>
-                    <span className="text-xs bg-background-tertiary text-text-muted px-2 py-1 rounded-full flex-shrink-0">
-                      {typeInfo.label}
-                    </span>
-                  </div>
-
-                  {/* Account and location info - Mobile optimized */}
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-1 sm:space-y-0 text-xs text-text-muted overflow-hidden">
-                    <div className="flex items-center space-x-1 min-w-0">
-                      <AccountIcon className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">Mi Cuenta</span>
-                    </div>
-                    <div className="flex items-center space-x-1 min-w-0">
-                      <MapPin className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">En línea</span>
-                    </div>
-                  </div>
+                  <p className="text-ios-caption text-muted-foreground">
+                    {typeInfo.label} • {formatDate(transaction.date || new Date().toISOString())}
+                  </p>
                 </div>
               </div>
 
-              {/* Right side - Amount and time */}
-              <div className="text-right ml-2 sm:ml-4 flex-shrink-0">
-                <div className={`text-sm sm:text-lg font-bold ${typeInfo.amountColor} mb-1 truncate`}>
+              {/* Right side - Amount */}
+              <div className="text-right">
+                <div className={`text-ios-body font-semibold ${typeInfo.amountColor}`}>
                   {formatAmount(amount)}
-                </div>
-                <div className="hidden sm:flex items-center justify-end space-x-1 text-xs text-text-muted">
-                  <Calendar className="h-3 w-3" />
-                  <span>{formatDate(transaction.date || new Date().toISOString())}</span>
-                  <span>•</span>
-                  <span>Ahora</span>
-                </div>
-                {/* Mobile simplified date/time */}
-                <div className="sm:hidden text-xs text-text-muted truncate">
-                  {formatDate(transaction.date || new Date().toISOString())}
                 </div>
               </div>
             </div>
-
-            {/* Hover effect indicator */}
-            <div className="absolute inset-0 rounded-2xl bg-accent-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
           </div>
         );
       })}
 
-      {/* View all button */}
-      <div className="pt-4">
-        <button className="w-full p-3 sm:p-4 bg-background-tertiary hover:bg-background-elevated border border-border-primary rounded-2xl transition-all duration-200 hover:scale-[1.02] group">
-          <div className="flex items-center justify-center space-x-2 min-w-0">
-            <TrendingUp className="h-4 w-4 text-accent-primary group-hover:scale-110 transition-transform flex-shrink-0" />
-            <span className="text-text-primary font-medium truncate">Ver todas las transacciones</span>
-          </div>
+      {/* iOS-style view all button */}
+      <div className="pt-6 border-t border-border/10">
+        <button className="w-full p-3 text-center text-ios-body text-primary hover:text-primary/80 font-medium transition-ios bg-primary/5 hover:bg-primary/10 rounded-xl backdrop-blur-sm">
+          Ver todos los movimientos
         </button>
       </div>
     </div>

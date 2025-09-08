@@ -19,25 +19,37 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="mb-2 block text-sm font-medium text-foreground"
           >
             {label}
           </label>
         )}
         <div className="relative">
           {icon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <div className="h-5 w-5 text-gray-400">{icon}</div>
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <div className="h-5 w-5 text-muted-foreground">{icon}</div>
             </div>
           )}
           <input
             type={type}
             id={inputId}
             className={cn(
-              'flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:ring-offset-gray-800 dark:placeholder:text-gray-400 dark:focus-visible:ring-primary-400',
-              icon && 'pl-10',
+              // Base styles with enhanced animations
+              'flex h-12 w-full rounded-xl border-2 border-input/50 bg-background/80 px-4 py-3',
+              'text-sm ring-offset-background file:border-0 file:bg-transparent',
+              'file:text-sm file:font-medium placeholder:text-muted-foreground/70',
+              'focus-glow disabled:cursor-not-allowed disabled:opacity-50',
+              'transition-smooth backdrop-blur-sm',
+              
+              // Glass morphism and elegant styling
+              'glass-light shadow-lg hover:shadow-xl',
+              'hover:border-primary/30 focus:border-primary/60 hover:bg-background/90',
+              'animate-fade-in-up',
+              
+              // Conditional styles
+              error && 'border-destructive/50 focus:border-destructive hover:border-destructive/70 animate-wiggle',
+              icon && 'pl-12',
               suffix && 'pr-12',
-              error && 'border-danger-500 focus-visible:ring-danger-500',
               className
             )}
             ref={ref}
@@ -46,13 +58,13 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {suffix && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-              <div className="text-sm text-gray-500">{suffix}</div>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+              <div className="text-sm text-muted-foreground">{suffix}</div>
             </div>
           )}
         </div>
         {error && (
-          <p id={errorId} className="mt-1 text-sm text-danger-600 dark:text-danger-400">
+          <p id={errorId} className="mt-2 text-sm text-destructive animate-fade-in">
             {error}
           </p>
         )}

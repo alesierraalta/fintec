@@ -136,7 +136,7 @@ export function DesktopReports() {
       </div>
       <h3 className="text-lg font-semibold text-white mb-1">{title}</h3>
       <p className="text-3xl font-bold text-white">{value}</p>
-      <p className="text-sm text-gray-400 mt-2">
+      <p className="text-sm text-neutral-400 dark:text-neutral-500 mt-2">
         {selectedPeriod ? 'Período seleccionado' : 'Todos los datos'}
       </p>
     </div>
@@ -148,7 +148,7 @@ export function DesktopReports() {
         <div className="max-w-7xl mx-auto">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Cargando reportes...</p>
+            <p className="text-neutral-400 dark:text-neutral-500">Cargando reportes...</p>
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@ export function DesktopReports() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-white mb-2">Reportes Financieros</h1>
-            <p className="text-gray-400">Análisis completo de tu situación financiera</p>
+            <p className="text-neutral-400 dark:text-neutral-500">Análisis completo de tu situación financiera</p>
           </div>
           
           <div className="flex items-center space-x-4">
@@ -237,12 +237,12 @@ export function DesktopReports() {
                       </div>
                       <div>
                         <p className="font-medium text-white">{category.name}</p>
-                        <p className="text-sm text-gray-400">0% del total</p>
+                        <p className="text-sm text-neutral-400 dark:text-neutral-500">0% del total</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-white">$0</p>
-                      <p className="text-sm text-gray-400">este mes</p>
+                      <p className="text-sm text-neutral-400 dark:text-neutral-500">este mes</p>
                     </div>
                   </div>
                   
@@ -278,7 +278,7 @@ export function DesktopReports() {
                     </div>
                     <div>
                       <p className="font-medium text-white">{transaction.description}</p>
-                      <div className="flex items-center space-x-2 text-sm text-gray-400">
+                      <div className="flex items-center space-x-2 text-sm text-neutral-400 dark:text-neutral-500">
                         <span>Categoría</span>
                         <span>•</span>
                         <span>{new Date(transaction.date).toLocaleDateString('es-ES')}</span>
@@ -308,7 +308,7 @@ export function DesktopReports() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Tasa de Ahorro</span>
+                <span className="text-sm text-neutral-400 dark:text-neutral-500">Tasa de Ahorro</span>
                 <span className="text-sm font-semibold text-green-400">{currentMetrics.savingsRate.toFixed(1)}%</span>
               </div>
               <div className="w-full bg-black/20 rounded-full h-3">
@@ -317,12 +317,12 @@ export function DesktopReports() {
                   style={{ width: `${Math.min(currentMetrics.savingsRate * 4, 100)}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Meta: 20%</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Meta: 20%</p>
             </div>
 
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-400">Ratio de Gastos</span>
+                <span className="text-sm text-neutral-400 dark:text-neutral-500">Ratio de Gastos</span>
                 <span className="text-sm font-semibold text-yellow-400">
                   {currentMetrics.income > 0 ? Math.round((currentMetrics.expenses / currentMetrics.income) * 100) : 0}%
                 </span>
@@ -333,12 +333,12 @@ export function DesktopReports() {
                   style={{ width: `${currentMetrics.income > 0 ? Math.min((currentMetrics.expenses / currentMetrics.income) * 100, 100) : 0}%` }}
                 />
               </div>
-              <p className="text-xs text-gray-500 mt-1">Recomendado: &lt;70%</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">Recomendado: &lt;70%</p>
             </div>
 
             <div className="bg-gradient-to-r from-blue-500/10 to-purple-600/10 rounded-xl p-4 border border-blue-500/20">
               <h4 className="text-sm font-semibold text-white mb-2">💡 Recomendaciones</h4>
-              <ul className="text-xs text-gray-300 space-y-1">
+              <ul className="text-xs text-neutral-300 dark:text-neutral-400 space-y-1">
                 <li>• Comienza creando tus cuentas</li>
                 <li>• Registra tus primeras transacciones</li>
                 <li>• Establece metas de ahorro</li>

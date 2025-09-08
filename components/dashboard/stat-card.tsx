@@ -20,36 +20,58 @@ export function StatCard({
   description,
   className 
 }: StatCardProps) {
+  const getIconColor = () => {
+    switch (changeType) {
+      case 'positive':
+        return 'text-primary';
+      case 'negative':
+        return 'text-neutral-600 dark:text-neutral-400';
+      default:
+        return 'text-primary';
+    }
+  };
+
+  const getIconBg = () => {
+    switch (changeType) {
+      case 'positive':
+        return 'bg-primary/10 border-primary/20';
+      case 'negative':
+        return 'bg-neutral-500/10 border-neutral-500/20 dark:bg-neutral-400/10 dark:border-neutral-400/20';
+      default:
+        return 'bg-primary/10 border-primary/20';
+    }
+  };
+
   return (
     <div className={cn(
-      'bg-background-tertiary border border-border-primary rounded-3xl p-6 hover:bg-background-elevated transition-all duration-200 hover:scale-105 hover:shadow-lg group cursor-pointer',
+      'bg-card/90 backdrop-blur-xl border border-border/40 rounded-3xl p-6 hover:bg-card transition-ios hover:scale-[1.02] hover:shadow-ios-lg group cursor-pointer shadow-lg',
       className
     )}>
       <div className="space-y-4">
-        {/* Header with icon */}
+        {/* iOS-style Header with icon */}
         <div className="flex items-center justify-between">
-          <div className="p-3 rounded-2xl group-hover:opacity-90 transition-all"
-               style={{ background: 'linear-gradient(135deg, rgba(16, 6, 159, 0.1), rgba(6, 182, 212, 0.1))' }}>
-            <Icon className="h-6 w-6" style={{ color: '#06b6d4' }} />
+          <div className={cn(
+            'p-3 rounded-2xl border backdrop-blur-sm group-hover:scale-105 transition-ios',
+            getIconBg()
+          )}>
+            <Icon className={cn('h-6 w-6', getIconColor())} />
           </div>
           <div className={cn(
-            'text-sm font-semibold px-3 py-1 rounded-full',
-            changeType === 'positive' && 'text-white',
-            changeType === 'negative' && 'text-red-600 bg-red-50',
-            changeType === 'neutral' && 'text-blue-600 bg-blue-50'
-          )}
-          style={changeType === 'positive' ? { background: 'linear-gradient(to right, #4ade80, #10b981)' } : 
-                changeType === 'neutral' ? { background: 'linear-gradient(to right, #06b6d4, #0891b2)' } : {}}>
+            'text-ios-caption font-semibold px-3 py-1.5 rounded-full backdrop-blur-sm transition-ios',
+            changeType === 'positive' && 'text-white bg-gradient-to-r from-primary to-primary/80 shadow-elegant',
+            changeType === 'negative' && 'text-neutral-600 dark:text-neutral-400 bg-neutral-500/10 dark:bg-neutral-400/10 border border-neutral-500/20 dark:border-neutral-400/20',
+            changeType === 'neutral' && 'text-white bg-gradient-to-r from-primary to-primary/80 shadow-elegant'
+          )}>
             {change}
           </div>
         </div>
 
-        {/* Content */}
+        {/* iOS-style Content */}
         <div>
-          <p className="text-sm text-text-muted font-medium mb-1">{title}</p>
-          <p className="text-3xl font-bold text-text-primary tracking-tight">{value}</p>
+          <p className="text-ios-caption text-muted-foreground font-medium mb-1 uppercase tracking-wide">{title}</p>
+          <p className="text-ios-title font-bold text-foreground tracking-tight">{value}</p>
           {description && (
-            <p className="text-xs text-text-muted mt-2">{description}</p>
+            <p className="text-ios-caption text-muted-foreground mt-2">{description}</p>
           )}
         </div>
       </div>

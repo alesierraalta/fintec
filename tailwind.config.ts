@@ -18,44 +18,137 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // True black theme colors (Cashew-inspired)
-        background: {
-          primary: '#000000',    // True black
-          secondary: '#0a0a0a',  // Slightly lighter black
-          tertiary: '#1a1a1a',   // Card backgrounds
-          elevated: '#000000',   // Modal/elevated surfaces - changed to true black
+        // Minimalist Color Palette
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+          950: '#172554',
         },
-        text: {
-          primary: '#ffffff',    // Pure white text
-          secondary: '#a1a1a1',  // Light gray for secondary text
-          muted: '#666666',      // Darker gray for muted text
-          accent: '#4ade80',     // Green accent for positive numbers
+        gray: {
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',
+          500: '#6b7280',
+          600: '#4b5563',
+          700: '#374151',
+          800: '#1f2937',
+          900: '#111827',
+          950: '#030712',
         },
-        // Friendly, casual colors inspired by Cashew
         accent: {
-          primary: '#4ade80',    // Friendly green (main accent)
-          secondary: '#60a5fa',  // Soft blue
-          tertiary: '#a78bfa',   // Gentle purple
-          warm: '#fb7185',       // Warm pink/red
-          orange: '#fb923c',     // Friendly orange
-          yellow: '#fbbf24',     // Warm yellow
+          50: '#fdf4ff',
+          100: '#fae8ff',
+          200: '#f5d0fe',
+          300: '#f0abfc',
+          400: '#e879f9',
+          500: '#d946ef',
+          600: '#c026d3',
+          700: '#a21caf',
+          800: '#86198f',
+          900: '#701a75',
+          950: '#4a044e',
         },
-        // Simplified color system
-        success: '#4ade80',      // Green
-        warning: '#fbbf24',      // Yellow  
-        danger: '#fb7185',       // Pink/red (less harsh than pure red)
-        info: '#60a5fa',         // Blue
-        // Border colors for true black theme
-        border: {
-          primary: '#2a2a2a',    // Subtle borders
-          secondary: '#3a3a3a',  // More visible borders
-          accent: '#4ade80',     // Accent borders
+        success: {
+          50: '#f0fdf4',
+          100: '#dcfce7',
+          200: '#bbf7d0',
+          300: '#86efac',
+          400: '#4ade80',
+          500: '#22c55e',
+          600: '#16a34a',
+          700: '#15803d',
+          800: '#166534',
+          900: '#14532d',
+          950: '#052e16',
         },
+        warning: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: '#fbbf24',
+          500: '#f59e0b',
+          600: '#d97706',
+          700: '#b45309',
+          800: '#92400e',
+          900: '#78350f',
+          950: '#451a03',
+        },
+        error: {
+          50: '#fef2f2',
+          100: '#fee2e2',
+          200: '#fecaca',
+          300: '#fca5a5',
+          400: '#f87171',
+          500: '#ef4444',
+          600: '#dc2626',
+          700: '#b91c1c',
+          800: '#991b1b',
+          900: '#7f1d1d',
+          950: '#450a0a',
+        },
+        // Semantic colors
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        card: 'hsl(var(--card))',
+        'card-foreground': 'hsl(var(--card-foreground))',
+        popover: 'hsl(var(--popover))',
+        'popover-foreground': 'hsl(var(--popover-foreground))',
+        muted: 'hsl(var(--muted))',
+        'muted-foreground': 'hsl(var(--muted-foreground))',
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+      },
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
+      },
+      fontSize: {
+        'display-2xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.05em' }],
+        'display-xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.05em' }],
+        'display-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.025em' }],
+        'display-md': ['3rem', { lineHeight: '1.25', letterSpacing: '-0.025em' }],
+        'display-sm': ['2.25rem', { lineHeight: '1.25', letterSpacing: '0em' }],
+      },
+      letterSpacing: {
+        'tighter': '-0.05em',
+        'tight': '-0.025em',
+        'normal': '0em',
+        'wide': '0.025em',
+        'wider': '0.05em',
+        'widest': '0.1em',
+      },
+      backgroundImage: {
+        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'hero-gradient': 'linear-gradient(135deg, var(--primary-500) 0%, var(--accent-500) 100%)',
+        'card-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+      },
+      boxShadow: {
+        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        'medium': '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        'strong': '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 25px -5px rgba(0, 0, 0, 0.1)',
+        'glow': '0 0 20px rgba(59, 130, 246, 0.15)',
+        'accent-glow': '0 0 20px rgba(168, 85, 247, 0.15)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
         'slide-up': 'slideUp 0.3s ease-out',
-        'scale-in': 'scaleIn 0.2s ease-out',
+        'bounce-gentle': 'bounceGentle 2s infinite',
+        'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'glow': 'glow 2s ease-in-out infinite alternate',
+        'gradient': 'gradient 3s ease infinite',
       },
       keyframes: {
         fadeIn: {
@@ -66,9 +159,21 @@ const config: Config = {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
-        scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
+        bounceGentle: {
+          '0%, 100%': { transform: 'translateY(-5%)' },
+          '50%': { transform: 'translateY(0)' },
+        },
+        pulseSoft: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.8' },
+        },
+        glow: {
+          '0%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)' },
+          '100%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.2)' },
+        },
+        gradient: {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
         },
       },
     },

@@ -8,7 +8,10 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      'rounded-lg border border-gray-200 bg-white text-gray-950 shadow-sm dark:border-gray-800 dark:bg-gray-950 dark:text-gray-50',
+      'rounded-2xl border border-border/50 bg-card/80 text-card-foreground',
+      'glass-card backdrop-blur-xl shadow-2xl hover:shadow-3xl',
+      'animate-fade-in-up hover-lift transition-smooth',
+      'hover:border-primary/20 hover:bg-card/90',
       className
     )}
     {...props}
@@ -22,7 +25,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex flex-col space-y-1.5 p-6', className)}
+    className={cn('flex flex-col space-y-2 p-6 pb-4', className)}
     {...props}
   />
 ));
@@ -35,7 +38,7 @@ const CardTitle = React.forwardRef<
   <h3
     ref={ref}
     className={cn(
-      'text-2xl font-semibold leading-none tracking-tight',
+      'text-xl font-semibold leading-tight tracking-tight text-foreground',
       className
     )}
     {...props}
@@ -49,7 +52,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-gray-500 dark:text-gray-400', className)}
+    className={cn('text-sm text-muted-foreground leading-relaxed', className)}
     {...props}
   />
 ));
@@ -59,7 +62,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn('p-6 pt-0', className)} {...props} />
+  <div ref={ref} className={cn('px-6 pb-6', className)} {...props} />
 ));
 CardContent.displayName = 'CardContent';
 
@@ -69,7 +72,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center p-6 pt-0', className)}
+    className={cn('flex items-center justify-between px-6 py-4 border-t border-border/50 bg-muted/20 rounded-b-2xl', className)}
     {...props}
   />
 ));

@@ -120,17 +120,17 @@ export function Header() {
   if (isMobile) {
     // Mobile App Header - Native-like
     return (
-      <header className="h-14 bg-background-primary flex items-center justify-between px-4 border-b border-border-primary/50">
+      <header className="h-16 bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 border-b border-border/30">
         {/* Left - Profile/Menu */}
         <div className="flex items-center">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-            <Heart className="h-4 w-4 text-background-primary" />
+          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios">
+            <Heart className="h-4 w-4 text-primary-foreground" />
           </div>
         </div>
 
         {/* Center - App Title */}
         <div className="flex-1 text-center">
-          <h1 className="text-lg font-bold text-text-primary tracking-tight">Cashew</h1>
+          <h1 className="text-ios-headline text-foreground">Cashew</h1>
         </div>
 
         {/* Right - Notifications */}
@@ -138,11 +138,11 @@ export function Header() {
           <div className="relative">
             <button 
               onClick={handleNotificationClick}
-              className="relative p-2 text-text-muted hover:text-accent-primary rounded-xl transition-all duration-200"
+              className="relative p-2 text-muted-foreground hover:text-primary rounded-xl transition-ios hover:bg-muted/50"
             >
               <Bell className="h-5 w-5" />
               {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-accent-warm text-xs font-bold text-background-primary rounded-full flex items-center justify-center shadow-lg">
+                <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-xs font-bold text-destructive-foreground rounded-full flex items-center justify-center shadow-ios">
                   {notificationCount}
                 </span>
               )}
@@ -151,32 +151,32 @@ export function Header() {
             {/* Mobile Notifications Dropdown */}
             {showNotifications && (
               <>
-                <div className="absolute right-0 top-full mt-2 w-80 bg-background-elevated border border-border-secondary rounded-2xl shadow-2xl z-50 animate-scale-in">
+                <div className="absolute right-0 top-full mt-2 w-80 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-ios-lg z-50 animate-fade-in">
                   <div className="p-4">
-                    <h4 className="font-semibold text-text-primary mb-3">Notificaciones</h4>
+                    <h4 className="text-ios-headline text-foreground mb-3">Notificaciones</h4>
                     
                     {loadingNotifications ? (
                       <div className="text-center py-6">
-                        <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                        <p className="text-sm text-text-muted">Cargando notificaciones...</p>
+                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                        <p className="text-ios-body text-muted-foreground">Cargando notificaciones...</p>
                       </div>
                     ) : notifications.length > 0 ? (
                       <div className="space-y-3">
                         {notifications.slice(0, 5).map((notification) => (
                           <div 
                             key={notification.id}
-                            className={`p-3 rounded-xl cursor-pointer transition-colors ${
+                            className={`p-3 rounded-xl cursor-pointer transition-ios ${
                               notification.is_read 
-                                ? 'bg-background-tertiary' 
-                                : 'bg-blue-50 border border-blue-200'
+                                ? 'bg-muted/50' 
+                                : 'bg-primary/5 border border-primary/20'
                             }`}
                             onClick={() => markNotificationAsRead(notification.id)}
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1">
-                                <p className="text-sm font-medium text-text-primary">{notification.title}</p>
-                                <p className="text-xs text-text-muted mt-1">{notification.message}</p>
-                                <p className="text-xs text-text-muted mt-1">
+                                <p className="text-ios-body font-medium text-foreground">{notification.title}</p>
+                                <p className="text-ios-caption text-muted-foreground mt-1">{notification.message}</p>
+                                <p className="text-ios-caption text-muted-foreground mt-1">
                                   {new Date(notification.created_at).toLocaleDateString('es-ES', {
                                     hour: '2-digit',
                                     minute: '2-digit'
@@ -184,7 +184,7 @@ export function Header() {
                                 </p>
                               </div>
                               {!notification.is_read && (
-                                <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 ml-2" />
+                                <div className="w-2 h-2 bg-primary rounded-full mt-1 ml-2" />
                               )}
                             </div>
                           </div>
@@ -192,7 +192,7 @@ export function Header() {
                         {notificationCount > 0 && (
                           <button
                             onClick={markAllAsRead}
-                            className="w-full text-center text-xs text-blue-600 hover:text-blue-700 py-2"
+                            className="w-full text-center text-ios-caption text-primary hover:text-primary/80 py-2"
                           >
                             Marcar todas como leídas
                           </button>
@@ -200,8 +200,8 @@ export function Header() {
                       </div>
                     ) : (
                       <div className="text-center py-6">
-                        <Bell className="h-8 w-8 text-text-muted mx-auto mb-2" />
-                        <p className="text-sm text-text-muted">No hay notificaciones nuevas</p>
+                        <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-ios-body text-muted-foreground">No hay notificaciones nuevas</p>
                       </div>
                     )}
                   </div>
@@ -217,13 +217,13 @@ export function Header() {
 
   // Desktop Header
   return (
-    <header className="h-16 bg-background-primary border-b border-border-primary flex items-center justify-between px-6">
+    <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border/30 flex items-center justify-between px-6">
       {/* Left side - Menu + Search */}
       <div className="flex items-center flex-1">
         {/* Sidebar Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className="p-2 text-text-muted hover:text-accent-primary hover:bg-background-tertiary rounded-xl transition-all duration-200 mr-3"
+          className="p-2 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-xl transition-ios mr-3"
           title={isOpen ? "Ocultar sidebar" : "Mostrar sidebar"}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -232,11 +232,11 @@ export function Header() {
         {/* Search */}
         <div className="flex-1 max-w-lg">
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
               placeholder="Busca lo que necesites... 🔍"
-              className="w-full pl-12 pr-4 py-3 bg-background-tertiary border border-border-primary rounded-2xl text-text-primary placeholder-text-muted focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary transition-all duration-200"
+              className="input-ios w-full pl-12 pr-4 py-3 text-ios-body placeholder:text-muted-foreground"
             />
           </div>
         </div>
@@ -250,11 +250,11 @@ export function Header() {
         <div className="relative">
           <button 
             onClick={handleNotificationClick}
-            className="relative p-2 lg:p-3 text-text-muted hover:text-accent-primary hover:bg-background-tertiary rounded-xl lg:rounded-2xl transition-all duration-200 hover:scale-105"
+            className="relative p-2 lg:p-3 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-xl lg:rounded-2xl transition-ios hover:scale-105"
           >
             <Bell className="h-5 w-5" />
             {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 bg-accent-warm text-xs font-bold text-background-primary rounded-full flex items-center justify-center shadow-lg">
+              <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-xs font-bold text-destructive-foreground rounded-full flex items-center justify-center shadow-ios">
                 {notificationCount}
               </span>
             )}

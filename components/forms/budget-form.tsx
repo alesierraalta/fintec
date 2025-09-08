@@ -119,7 +119,7 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
 
   return (
     <Modal open={isOpen} onClose={handleClose}>
-      <div className="bg-gray-900 rounded-lg shadow-xl w-full max-w-md mx-4">
+      <div className="bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md mx-4 border border-white/20">
         <div className="flex items-center justify-between p-6 border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">
             {budget ? 'Editar Presupuesto' : 'Nuevo Presupuesto'}

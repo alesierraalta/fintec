@@ -134,14 +134,14 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
   );
 
   return (
-    <div className={`bg-background-elevated border border-border-primary rounded-xl overflow-hidden ${className}`}>
+    <div className={`bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden ${className}`}>
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
-          <Filter className="h-5 w-5 text-text-secondary" />
-          <h3 className="font-medium text-text-primary">Filtros</h3>
+          <Filter className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
+          <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Filtros</h3>
           {hasActiveFilters && (
-            <span className="px-2 py-1 bg-accent-primary text-background-primary text-xs rounded-full">
+            <span className="px-2 py-1 bg-primary-600 dark:bg-primary-500 text-white text-xs rounded-full">
               Activos
             </span>
           )}
@@ -194,10 +194,10 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
 
       {/* Expanded Filters */}
       {isExpanded && (
-        <div className="border-t border-border-primary p-4 space-y-4">
+        <div className="border-t border-neutral-200 dark:border-neutral-700 p-4 space-y-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
             <Input
               placeholder="Buscar por descripción o nota..."
               value={filters.search}
@@ -226,7 +226,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
           {/* Amount Range */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
               <Input
                 label="Monto mínimo"
                 type="number"
@@ -238,7 +238,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
             </div>
             
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
               <Input
                 label="Monto máximo"
                 type="number"
@@ -271,7 +271,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
 
           {/* Tags */}
           <div className="relative">
-            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
+            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
             <Input
               label="Etiquetas"
               placeholder="etiqueta1, etiqueta2..."

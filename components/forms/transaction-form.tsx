@@ -28,9 +28,9 @@ interface TransactionFormProps {
 }
 
 const transactionTypes = [
-  { value: 'INCOME', label: 'Ingreso', icon: ArrowDownLeft, color: 'text-green-500' },
-  { value: 'EXPENSE', label: 'Gasto', icon: ArrowUpRight, color: 'text-red-500' },
-  { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'text-blue-500' },
+  { value: 'INCOME', label: 'Ingreso', icon: ArrowDownLeft, color: 'text-green-600', bgColor: 'bg-green-500/10', borderColor: 'border-green-500/20' },
+  { value: 'EXPENSE', label: 'Gasto', icon: ArrowUpRight, color: 'text-red-600', bgColor: 'bg-red-500/10', borderColor: 'border-red-500/20' },
+  { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'text-blue-600', bgColor: 'bg-blue-500/10', borderColor: 'border-blue-500/20' },
 ];
 
 export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type = TransactionType.EXPENSE }: TransactionFormProps) {
@@ -221,8 +221,11 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
         title="Cargando..."
         size="md"
       >
-        <div className="p-8 text-center">
-          <p className="text-gray-400">Cargando datos...</p>
+        <div className="p-8 text-center bg-card/30 backdrop-blur-sm rounded-2xl border border-border/20">
+          <div className="bg-muted/50 backdrop-blur-sm rounded-xl p-3 w-fit mx-auto mb-3">
+            <DollarSign className="h-8 w-8 text-muted-foreground mx-auto animate-pulse" />
+          </div>
+          <p className="text-ios-body text-muted-foreground">Cargando datos...</p>
         </div>
       </Modal>
     );
@@ -236,9 +239,9 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Transaction Type */}
+        {/* iOS-style Transaction Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-ios-caption font-medium text-muted-foreground mb-3 uppercase tracking-wide">
             Tipo de Transacción
           </label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -251,14 +254,14 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
                   key={typeOption.value}
                   type="button"
                   onClick={() => setFormData({ ...formData, type: typeOption.value as TransactionType })}
-                  className={`p-3 rounded-lg border transition-all ${
+                  className={`p-4 rounded-2xl border backdrop-blur-sm transition-ios hover:scale-[1.02] ${
                     isSelected
-                      ? 'border-primary-600 bg-primary-600/10 text-primary-400'
-                      : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:text-gray-300'
+                      ? `${typeOption.borderColor} ${typeOption.bgColor} ${typeOption.color} shadow-ios-sm`
+                      : 'border-border/20 bg-card/30 text-muted-foreground hover:bg-card/50 hover:border-border/30'
                   }`}
                 >
-                  <Icon className="h-5 w-5 mx-auto mb-2" />
-                  <span className="text-xs font-medium">{typeOption.label}</span>
+                  <Icon className="h-6 w-6 mx-auto mb-2" />
+                  <span className="text-ios-caption font-medium">{typeOption.label}</span>
                 </button>
               );
             })}
@@ -291,10 +294,10 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
           />
         </div>
 
-        {/* Category */}
+        {/* iOS-style Category */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="block text-sm font-medium text-gray-300">
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-ios-caption font-medium text-muted-foreground uppercase tracking-wide">
               Categoría
             </label>
             <Button
@@ -302,7 +305,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
               variant="outline"
               size="sm"
               onClick={openCategoryModal}
-              className="text-xs text-accent-secondary hover:text-blue-300 border-accent-secondary hover:border-blue-400 bg-accent-secondary/10 hover:bg-accent-secondary/20 px-3 py-1.5"
+              className="text-ios-caption text-blue-600 hover:text-blue-700 border-blue-500/20 hover:border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 px-3 py-1.5 rounded-xl backdrop-blur-sm transition-ios"
             >
               <Plus className="h-3 w-3 mr-1 flex-shrink-0" />
               <span className="whitespace-nowrap">Nueva Categoría</span>
@@ -341,9 +344,9 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
           />
         </div>
 
-        {/* Note */}
+        {/* iOS-style Note */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">
+          <label className="block text-ios-caption font-medium text-muted-foreground mb-3 uppercase tracking-wide">
             Nota (Opcional)
           </label>
           <textarea
@@ -351,7 +354,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}
             rows={3}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-600 focus:border-transparent resize-none"
+            className="w-full px-4 py-3 bg-card/60 backdrop-blur-sm border border-border/20 rounded-2xl text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/30 resize-none transition-ios"
           />
         </div>
 
@@ -364,18 +367,19 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
             onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
             icon={<Tag className="h-4 w-4" />}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-ios-caption text-muted-foreground mt-2">
             Separa las etiquetas con comas
           </p>
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-700">
+        {/* iOS-style Actions */}
+        <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t border-border/20">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
             disabled={loading}
+            className="bg-card/30 backdrop-blur-sm border border-border/20 hover:bg-card/50 transition-ios rounded-xl"
           >
             Cancelar
           </Button>
@@ -383,6 +387,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
             type="submit"
             loading={loading}
             icon={selectedType?.icon && <selectedType.icon className="h-4 w-4" />}
+            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-ios-sm hover:shadow-ios-md transition-ios rounded-xl"
           >
             {loading ? 'Guardando...' : 'Guardar Transacción'}
           </Button>

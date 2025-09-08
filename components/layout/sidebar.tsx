@@ -47,17 +47,17 @@ export function Sidebar() {
   const isMinimized = !isMobile && !isOpen;
 
   return (
-    <div className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col bg-background-primary border-r border-border-primary`}>
+    <div className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col bg-card/80 backdrop-blur-xl border-r border-border/30 transition-ios`}>
       {/* Logo - iOS-like with rounded corners */}
-      <div className="flex h-16 items-center px-4 lg:px-6 border-b border-border-primary">
+      <div className="flex h-16 items-center px-4 lg:px-6 border-b border-border/20">
         <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-green-500 to-blue-600 shadow-lg">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
             <BarChart3 className="h-5 w-5 text-white" />
           </div>
           {!isMinimized && (
             <div className="hidden sm:block">
-              <span className="text-xl font-bold text-text-primary tracking-tight">FinTec</span>
-              <p className="text-xs text-text-muted -mt-1">Finanzas inteligentes</p>
+              <span className="text-ios-headline text-foreground tracking-tight">FinTec</span>
+              <p className="text-ios-caption text-muted-foreground -mt-1">Finanzas inteligentes</p>
             </div>
           )}
         </div>
@@ -68,7 +68,7 @@ export function Sidebar() {
         <div className="p-4">
           <button 
             onClick={() => window.location.href = '/transactions/add'}
-            className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-red-600 px-4 py-3 text-sm font-semibold text-white hover:bg-red-700 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg"
+            className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-ios shadow-ios-lg backdrop-blur-sm"
             style={{ zIndex: 9999 }}
           >
             <Plus className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function Sidebar() {
         <div className="p-2">
           <button 
             onClick={() => window.location.href = '/transactions/add'}
-            className="w-full h-12 rounded-xl bg-accent-primary hover:bg-accent-primary/90 text-background-primary hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center shadow-lg"
+            className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-ios flex items-center justify-center shadow-ios-md backdrop-blur-sm"
             title="Agregar Transacción"
           >
             <Plus className="h-5 w-5" />
@@ -100,19 +100,19 @@ export function Sidebar() {
               href={item.href}
               onClick={handleLinkClick}
               className={cn(
-                'group flex items-center text-sm font-medium rounded-xl lg:rounded-2xl transition-all duration-200',
+                'group flex items-center text-ios-body font-medium rounded-xl lg:rounded-2xl transition-ios',
                 isMinimized ? 'px-3 py-3 justify-center' : 'px-4 py-3',
                 isActive
-                  ? 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20 shadow-sm'
-                  : 'text-text-secondary hover:bg-background-tertiary hover:text-text-primary hover:scale-[1.02]'
+                  ? 'bg-primary/10 text-primary border border-primary/20 shadow-ios-sm backdrop-blur-sm'
+                  : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:scale-[1.02] hover:shadow-ios-sm'
               )}
               title={isMinimized ? item.name : undefined}
             >
               <item.icon
                 className={cn(
-                  'h-5 w-5 flex-shrink-0 transition-colors',
+                  'h-5 w-5 flex-shrink-0 transition-ios',
                   isMinimized ? '' : 'mr-3',
-                  isActive ? 'text-accent-primary' : 'text-text-muted group-hover:text-text-primary'
+                  isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                 )}
               />
               {!isMinimized && item.name}
@@ -122,15 +122,15 @@ export function Sidebar() {
       </nav>
 
       {/* User Profile - More friendly */}
-      <div className="p-4 border-t border-border-primary">
-        <div className={`flex items-center p-3 rounded-2xl bg-background-tertiary ${isMinimized ? 'justify-center' : 'space-x-3'}`}>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-green-500 to-blue-600 flex items-center justify-center shadow-lg">
+      <div className="p-4 border-t border-border/20">
+        <div className={`flex items-center p-3 rounded-2xl bg-muted/30 backdrop-blur-sm shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}>
+          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios-md">
             <DollarSign className="h-5 w-5 text-white" />
           </div>
           {!isMinimized && (
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-text-primary truncate">¡FinTec! 💼</p>
-              <p className="text-xs text-text-muted truncate">Finanzas inteligentes</p>
+              <p className="text-ios-body font-semibold text-foreground truncate">¡FinTec! 💼</p>
+              <p className="text-ios-caption text-muted-foreground truncate">Finanzas inteligentes</p>
             </div>
           )}
         </div>

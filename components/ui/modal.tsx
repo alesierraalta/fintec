@@ -75,7 +75,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-white rounded-lg shadow-xl dark:bg-gray-900 max-h-[90vh] overflow-y-auto',
+          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto',
           sizeClasses[size],
           className
         )}
@@ -86,7 +86,7 @@ export function Modal({
       >
         {/* Header */}
         {(title || description) && (
-          <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div className="px-4 sm:px-6 py-4 border-b border-white/20">
             {title && (
               <h2
                 id="modal-title"
@@ -136,7 +136,7 @@ export interface ModalHeaderProps {
 
 export function ModalHeader({ children, className }: ModalHeaderProps) {
   return (
-    <div className={cn('px-6 py-4 border-b border-gray-200 dark:border-gray-700', className)}>
+    <div className={cn('px-6 py-4 border-b border-white/20', className)}>
       {children}
     </div>
   );
@@ -158,7 +158,7 @@ export interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
   return (
-    <div className={cn('px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end space-x-3', className)}>
+    <div className={cn('px-6 py-4 border-t border-white/20 flex justify-end space-x-3', className)}>
       {children}
     </div>
   );

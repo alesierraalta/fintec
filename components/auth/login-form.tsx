@@ -60,7 +60,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
             <LogIn className="h-8 w-8 text-blue-600" />

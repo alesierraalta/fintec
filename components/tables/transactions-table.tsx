@@ -156,11 +156,11 @@ export function TransactionsTable({
         header: 'Descripción',
         cell: ({ getValue, row }) => (
           <div className="min-w-0">
-            <p className="text-sm font-medium text-gray-900 truncate">
+            <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">
               {getValue() as string}
             </p>
             {row.original.note && (
-              <p className="text-xs text-gray-500 truncate mt-1">
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-1">
                 {row.original.note}
               </p>
             )}
@@ -172,7 +172,7 @@ export function TransactionsTable({
         accessorKey: 'amount',
         header: ({ column }) => (
           <button
-            className="flex items-center space-x-1 hover:bg-gray-100 rounded px-2 py-1 -mx-2 -my-1"
+            className="flex items-center space-x-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded px-2 py-1 -mx-2 -my-1"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             <DollarSign className="h-4 w-4" />
@@ -209,8 +209,8 @@ export function TransactionsTable({
         header: 'Cuenta',
         cell: ({ row }) => (
           <div className="text-sm">
-            <p className="font-medium text-gray-900">{row.original.account.name}</p>
-            <p className="text-gray-500 text-xs">{row.original.account.type}</p>
+            <p className="font-medium text-neutral-900 dark:text-neutral-100">{row.original.account.name}</p>
+            <p className="text-neutral-500 dark:text-neutral-400 text-xs">{row.original.account.type}</p>
           </div>
         ),
         size: 150,
@@ -225,7 +225,7 @@ export function TransactionsTable({
               className="w-3 h-3 rounded-full flex-shrink-0"
               style={{ backgroundColor: row.original.category.color }}
             />
-            <span className="text-sm text-gray-900 truncate">
+            <span className="text-sm text-neutral-900 dark:text-neutral-100 truncate">
               {row.original.category.name}
             </span>
           </div>
@@ -236,7 +236,7 @@ export function TransactionsTable({
         accessorKey: 'date',
         header: ({ column }) => (
           <button
-            className="flex items-center space-x-1 hover:bg-gray-100 rounded px-2 py-1 -mx-2 -my-1"
+            className="flex items-center space-x-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded px-2 py-1 -mx-2 -my-1"
             onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
           >
             <Calendar className="h-4 w-4" />
@@ -254,8 +254,8 @@ export function TransactionsTable({
           const date = getValue() as string;
           return (
             <div className="text-sm">
-              <p className="text-gray-900">{dateUtils.formatForDisplay(date)}</p>
-              <p className="text-gray-500 text-xs">{dateUtils.fromNow(date)}</p>
+              <p className="text-neutral-900 dark:text-neutral-100">{dateUtils.formatForDisplay(date)}</p>
+              <p className="text-neutral-500 dark:text-neutral-400 text-xs">{dateUtils.fromNow(date)}</p>
             </div>
           );
         },
@@ -274,14 +274,14 @@ export function TransactionsTable({
               {tags.slice(0, 2).map((tag, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-800"
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-neutral-100 dark:bg-neutral-700 text-neutral-800 dark:text-neutral-200"
                 >
                   <Tag className="w-3 h-3 mr-1" />
                   {tag}
                 </span>
               ))}
               {tags.length > 2 && (
-                <span className="text-xs text-gray-500">+{tags.length - 2}</span>
+                <span className="text-xs text-neutral-500 dark:text-neutral-400">+{tags.length - 2}</span>
               )}
             </div>
           );
@@ -296,21 +296,21 @@ export function TransactionsTable({
           <div className="flex items-center space-x-1">
             <button
               onClick={() => onEdit?.(row.original)}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-blue-600"
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 hover:text-primary-600 dark:hover:text-primary-400"
               title="Editar"
             >
               <Edit className="h-4 w-4" />
             </button>
             <button
               onClick={() => onDuplicate?.(row.original)}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-green-600"
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 hover:text-success-600 dark:hover:text-success-400"
               title="Duplicar"
             >
               <Copy className="h-4 w-4" />
             </button>
             <button
               onClick={() => onDelete?.(row.original.id)}
-              className="p-1 hover:bg-gray-100 rounded text-gray-600 hover:text-red-600"
+              className="p-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded text-neutral-600 dark:text-neutral-400 hover:text-error-600 dark:hover:text-error-400"
               title="Eliminar"
             >
               <Trash2 className="h-4 w-4" />
@@ -374,13 +374,13 @@ export function TransactionsTable({
         {/* Search and Filters */}
         <div className="flex items-center space-x-4">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400 dark:text-neutral-500" />
             <input
               type="text"
               placeholder="Buscar transacciones..."
               value={globalFilter}
               onChange={(e) => setGlobalFilter(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100"
             />
           </div>
           
@@ -394,7 +394,7 @@ export function TransactionsTable({
                 read: false,
               });
             }}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700"
           >
             <Filter className="h-4 w-4 mr-2" />
             Filtros
@@ -404,21 +404,21 @@ export function TransactionsTable({
         {/* Actions */}
         <div className="flex items-center space-x-2">
           {selectedRows.length > 0 && (
-            <span className="text-sm text-gray-600">
+            <span className="text-sm text-neutral-600 dark:text-neutral-400">
               {selectedRows.length} seleccionadas
             </span>
           )}
           
           <button
             onClick={onExport}
-            className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700"
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </button>
 
           <div className="relative">
-            <button className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+            <button className="inline-flex items-center px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg text-sm font-medium text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700">
               <Eye className="h-4 w-4 mr-2" />
               Columnas
             </button>
@@ -431,19 +431,19 @@ export function TransactionsTable({
         variants={cardVariants}
         initial="hidden"
         animate="visible"
-        className="bg-white rounded-lg shadow overflow-hidden"
+        className="bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20"
       >
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
             {/* Header */}
-            <thead className="bg-gray-50">
+            <thead className="bg-neutral-50 dark:bg-neutral-900">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
                       colSpan={header.colSpan}
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-400 uppercase tracking-wider"
                       style={{ width: header.getSize() }}
                     >
                       {header.isPlaceholder
@@ -459,16 +459,16 @@ export function TransactionsTable({
             </thead>
 
             {/* Body */}
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-neutral-800 divide-y divide-neutral-200 dark:divide-neutral-700">
               <AnimatePresence>
                 {loading ? (
                   <tr>
                     <td
                       colSpan={columns.length}
-                      className="px-6 py-12 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400"
                     >
                       <div className="flex items-center justify-center space-x-2">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 dark:border-primary-400"></div>
                         <span>Cargando transacciones...</span>
                       </div>
                     </td>
@@ -477,14 +477,14 @@ export function TransactionsTable({
                   <tr>
                     <td
                       colSpan={columns.length}
-                      className="px-6 py-12 text-center text-gray-500"
+                      className="px-6 py-12 text-center text-neutral-500 dark:text-neutral-400"
                     >
                       <div className="text-center">
-                        <DollarSign className="mx-auto h-12 w-12 text-gray-400" />
-                        <h3 className="mt-2 text-sm font-medium text-gray-900">
+                        <DollarSign className="mx-auto h-12 w-12 text-neutral-400 dark:text-neutral-500" />
+                        <h3 className="mt-2 text-sm font-medium text-neutral-900 dark:text-neutral-100">
                           No hay transacciones
                         </h3>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
                           Comienza agregando tu primera transacción.
                         </p>
                       </div>
@@ -499,7 +499,7 @@ export function TransactionsTable({
                       animate="visible"
                       exit="hidden"
                       whileHover="hover"
-                      className="hover:bg-gray-50"
+                      className="hover:bg-neutral-50 dark:hover:bg-neutral-700"
                     >
                       {row.getVisibleCells().map((cell) => (
                         <td
@@ -522,19 +522,19 @@ export function TransactionsTable({
 
         {/* Pagination */}
         {!loading && table.getRowModel().rows.length > 0 && (
-          <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+          <div className="bg-white dark:bg-neutral-800 px-4 py-3 flex items-center justify-between border-t border-neutral-200 dark:border-neutral-700 sm:px-6">
             <div className="flex-1 flex justify-between sm:hidden">
               <button
                 onClick={() => table.previousPage()}
                 disabled={!table.getCanPreviousPage()}
-                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative inline-flex items-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Anterior
               </button>
               <button
                 onClick={() => table.nextPage()}
                 disabled={!table.getCanNextPage()}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-neutral-300 dark:border-neutral-600 text-sm font-medium rounded-md text-neutral-700 dark:text-neutral-300 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Siguiente
               </button>
@@ -542,7 +542,7 @@ export function TransactionsTable({
             
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm text-gray-700">
+                <p className="text-sm text-neutral-700 dark:text-neutral-300">
                   Mostrando{' '}
                   <span className="font-medium">
                     {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}
@@ -566,19 +566,19 @@ export function TransactionsTable({
                 <button
                   onClick={() => table.setPageIndex(0)}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => table.previousPage()}
                   disabled={!table.getCanPreviousPage()}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 
-                <span className="text-sm text-gray-700">
+                <span className="text-sm text-neutral-700 dark:text-neutral-300">
                   Página {table.getState().pagination.pageIndex + 1} de{' '}
                   {table.getPageCount()}
                 </span>
@@ -586,14 +586,14 @@ export function TransactionsTable({
                 <button
                   onClick={() => table.nextPage()}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </button>
                 <button
                   onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                   disabled={!table.getCanNextPage()}
-                  className="p-2 rounded-md text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-md text-neutral-400 dark:text-neutral-500 hover:text-neutral-600 dark:hover:text-neutral-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </button>

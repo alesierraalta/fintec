@@ -85,7 +85,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md mx-auto"
       >
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 text-center">
+        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl text-center">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
@@ -106,7 +106,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <UserPlus className="h-8 w-8 text-green-600" />

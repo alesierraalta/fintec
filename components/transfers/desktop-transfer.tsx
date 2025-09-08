@@ -170,31 +170,31 @@ export function DesktopTransfer() {
     <div className="space-y-8">
       {/* Page Title */}
       <div>
-        <h1 className="text-3xl font-bold text-text-primary">Transferir Dinero</h1>
-        <p className="text-text-muted">Transfiere dinero entre tus cuentas de forma segura</p>
+        <h1 className="text-3xl font-bold text-neutral-900 dark:text-neutral-100">Transferir Dinero</h1>
+        <p className="text-neutral-500 dark:text-neutral-400">Transfiere dinero entre tus cuentas de forma segura</p>
       </div>
 
       {/* Main Transfer Form */}
       <div className="space-y-8">
-          <div className="bg-background-elevated rounded-3xl p-8 border border-border-primary">
-            <h2 className="text-2xl font-semibold text-text-primary mb-6">Seleccionar Cuentas</h2>
+          <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-6">Seleccionar Cuentas</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* From Account */}
               <div className="space-y-4">
-                <label className="text-lg font-medium text-text-secondary">Cuenta Origen</label>
+                <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Cuenta Origen</label>
                 <div className="space-y-3">
                   {loadingAccounts ? (
-                    <div className="p-6 rounded-2xl border-2 border-border-primary bg-background-secondary">
-                      <p className="text-text-muted text-center">Cargando cuentas...</p>
+                    <div className="p-6 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700">
+                      <p className="text-neutral-500 dark:text-neutral-400 text-center">Cargando cuentas...</p>
                     </div>
                   ) : error ? (
-                    <div className="p-6 rounded-2xl border-2 border-red-500 bg-red-500/10">
-                      <p className="text-red-500 text-center">{error}</p>
+                    <div className="p-6 rounded-2xl border-2 border-error-500 dark:border-error-400 bg-error-50 dark:bg-error-900/20">
+                      <p className="text-error-600 dark:text-error-400 text-center">{error}</p>
                     </div>
                   ) : accounts.length === 0 ? (
-                    <div className="p-6 rounded-2xl border-2 border-border-primary bg-background-secondary">
-                      <p className="text-text-muted text-center">No tienes cuentas disponibles</p>
+                    <div className="p-6 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700">
+                      <p className="text-neutral-500 dark:text-neutral-400 text-center">No tienes cuentas disponibles</p>
                     </div>
                   ) : accounts.map((account) => (
                     <button
@@ -202,19 +202,19 @@ export function DesktopTransfer() {
                       onClick={() => setTransferData(prev => ({ ...prev, fromAccountId: account.id }))}
                       className={`w-full p-6 rounded-2xl border-2 transition-all ${
                         transferData.fromAccountId === account.id
-                          ? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/20'
-                          : 'border-border-primary bg-background-secondary hover:border-border-secondary hover:bg-background-tertiary'
+                          ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/20'
+                          : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600'
                       }`}
                       disabled={transferData.toAccountId === account.id}
                     >
                       <div className="flex items-center space-x-4">
                         {getAccountIcon(account.currencyCode)}
                         <div className="flex-1 text-left">
-                          <p className="font-semibold text-text-primary">{account.name}</p>
-                          <p className="text-text-muted">{formatBalance(account.balance, account.currencyCode)}</p>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">{account.name}</p>
+                          <p className="text-neutral-500 dark:text-neutral-400">{formatBalance(account.balance, account.currencyCode)}</p>
                         </div>
                         {transferData.fromAccountId === account.id && (
-                          <Check className="h-6 w-6 text-accent-primary" />
+                          <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                         )}
                       </div>
                     </button>
@@ -235,8 +235,8 @@ export function DesktopTransfer() {
                       <p className="text-red-500 text-center">{error}</p>
                     </div>
                   ) : accounts.length === 0 ? (
-                    <div className="p-6 rounded-2xl border-2 border-border-primary bg-background-secondary">
-                      <p className="text-text-muted text-center">No tienes cuentas disponibles</p>
+                    <div className="p-6 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700">
+                      <p className="text-neutral-500 dark:text-neutral-400 text-center">No tienes cuentas disponibles</p>
                     </div>
                   ) : accounts.map((account) => (
                     <button
@@ -244,19 +244,19 @@ export function DesktopTransfer() {
                       onClick={() => setTransferData(prev => ({ ...prev, toAccountId: account.id }))}
                       className={`w-full p-6 rounded-2xl border-2 transition-all ${
                         transferData.toAccountId === account.id
-                          ? 'border-accent-primary bg-accent-primary/10 shadow-lg shadow-accent-primary/20'
-                          : 'border-border-primary bg-background-secondary hover:border-border-secondary hover:bg-background-tertiary'
+                          ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/20'
+                          : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600'
                       }`}
                       disabled={transferData.fromAccountId === account.id}
                     >
                       <div className="flex items-center space-x-4">
                         {getAccountIcon(account.currencyCode)}
                         <div className="flex-1 text-left">
-                          <p className="font-semibold text-text-primary">{account.name}</p>
-                          <p className="text-text-muted">{formatBalance(account.balance, account.currencyCode)}</p>
+                          <p className="font-semibold text-neutral-900 dark:text-neutral-100">{account.name}</p>
+                          <p className="text-neutral-500 dark:text-neutral-400">{formatBalance(account.balance, account.currencyCode)}</p>
                         </div>
                         {transferData.toAccountId === account.id && (
-                          <Check className="h-6 w-6 text-accent-primary" />
+                          <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
                         )}
                       </div>
                     </button>
@@ -268,15 +268,15 @@ export function DesktopTransfer() {
 
           {/* Amount and Description */}
           {transferData.fromAccountId && transferData.toAccountId && (
-            <div className="bg-background-elevated rounded-3xl p-8 border border-border-primary">
-              <h2 className="text-2xl font-semibold text-text-primary mb-6">Detalles de la Transferencia</h2>
+            <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+              <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-6">Detalles de la Transferencia</h2>
               
               <div className="space-y-6">
                 {/* Amount Input */}
                 <div className="space-y-4">
-                  <label className="text-lg font-medium text-text-secondary">Monto</label>
+                  <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Monto</label>
                   <div className="relative">
-                    <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-text-muted" />
+                    <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 h-6 w-6 text-neutral-500 dark:text-neutral-400" />
                     <input
                       type="number"
                       value={transferData.amount || ''}
@@ -284,23 +284,23 @@ export function DesktopTransfer() {
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-background-secondary border border-border-primary text-text-primary text-xl font-semibold placeholder-text-muted focus:outline-none focus:border-accent-primary transition-colors"
+                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-neutral-50 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-xl font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
                     />
                   </div>
-                  <p className="text-sm text-text-muted">
+                  <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                   </p>
                 </div>
 
                 {/* Description */}
                 <div className="space-y-4">
-                  <label className="text-lg font-medium text-text-secondary">Descripción (opcional)</label>
+                  <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Descripción (opcional)</label>
                   <textarea
                     value={transferData.description}
                     onChange={(e) => setTransferData(prev => ({ ...prev, description: e.target.value }))}
                     placeholder="Describe el motivo de la transferencia..."
                     rows={4}
-                    className="w-full p-4 rounded-xl bg-background-secondary border border-border-primary text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-primary transition-colors resize-none"
+                    className="w-full p-4 rounded-xl bg-neutral-50 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors resize-none"
                   />
                 </div>
               </div>
@@ -309,26 +309,26 @@ export function DesktopTransfer() {
 
         {/* Prominent Transfer Preview - Full Width */}
         {isFormValid() && (
-          <div className="bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-green-500/10 rounded-3xl p-8 border-2 border-blue-200/50 shadow-lg shadow-blue-500/10">
+          <div className="bg-gradient-to-r from-primary-50 via-secondary-50 to-success-50 dark:from-primary-900/20 dark:via-secondary-900/20 dark:to-success-900/20 rounded-3xl p-8 border-2 border-primary-200/50 dark:border-primary-700/50 shadow-lg shadow-primary-500/10">
             <div className="text-center mb-6">
-              <h3 className="text-2xl font-bold text-gray-800 mb-2">Confirmar Transferencia</h3>
-              <p className="text-gray-600">Revisa los datos antes de continuar</p>
+              <h3 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Confirmar Transferencia</h3>
+              <p className="text-neutral-600 dark:text-neutral-400">Revisa los datos antes de continuar</p>
             </div>
             
             <div className="max-w-2xl mx-auto">
-              <div className="bg-white/80 rounded-2xl p-6 backdrop-blur-sm border border-white/50">
+              <div className="bg-white/80 dark:bg-neutral-800/80 rounded-2xl p-6 backdrop-blur-sm border border-white/50 dark:border-neutral-700/50">
                 <div className="flex items-center justify-between">
                   {/* From Account */}
                   <div className="flex-1 text-center">
                     <div className="mb-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+                      <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
                         <Wallet className="w-8 h-8 text-white" />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">Cuenta Origen</p>
-                      <p className="font-bold text-gray-800 text-lg">{getFromAccount()?.name}</p>
-                      <p className="text-2xl font-black text-blue-700 drop-shadow-sm">
+                      <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wide">Cuenta Origen</p>
+                      <p className="font-bold text-neutral-900 dark:text-neutral-100 text-lg">{getFromAccount()?.name}</p>
+                      <p className="text-2xl font-black text-primary-700 dark:text-primary-300 drop-shadow-sm">
                         -{formatBalance(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'VES'), getFromAccount()?.currencyCode || 'VES')}
                       </p>
                     </div>
@@ -336,7 +336,7 @@ export function DesktopTransfer() {
 
                   {/* Arrow */}
                   <div className="px-6">
-                    <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-green-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                    <div className="w-12 h-12 bg-gradient-to-r from-primary-500 to-success-500 rounded-full flex items-center justify-center shadow-lg animate-pulse">
                       <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
                       </svg>
@@ -346,14 +346,14 @@ export function DesktopTransfer() {
                   {/* To Account */}
                   <div className="flex-1 text-center">
                     <div className="mb-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+                      <div className="w-16 h-16 bg-gradient-to-br from-success-500 to-success-600 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
                         <Wallet className="w-8 h-8 text-white" />
                       </div>
                     </div>
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Cuenta Destino</p>
-                      <p className="font-bold text-gray-800 text-lg">{getToAccount()?.name}</p>
-                      <p className="text-2xl font-black text-green-700 drop-shadow-sm">
+                      <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide">Cuenta Destino</p>
+                      <p className="font-bold text-neutral-900 dark:text-neutral-100 text-lg">{getToAccount()?.name}</p>
+                      <p className="text-2xl font-black text-success-700 dark:text-success-300 drop-shadow-sm">
                         +{formatBalance(toMinorUnits(transferData.amount, getToAccount()?.currencyCode || 'VES'), getToAccount()?.currencyCode || 'VES')}
                       </p>
                     </div>
@@ -361,8 +361,8 @@ export function DesktopTransfer() {
                 </div>
 
                 {transferData.description && (
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <p className="text-sm text-gray-600 text-center">
+                  <div className="mt-6 pt-6 border-t border-neutral-200 dark:border-neutral-700">
+                    <p className="text-sm text-neutral-600 dark:text-neutral-400 text-center">
                       <span className="font-medium">Descripción:</span> {transferData.description}
                     </p>
                   </div>
@@ -378,7 +378,7 @@ export function DesktopTransfer() {
               <button
                 onClick={handleTransfer}
                 disabled={loading}
-                className="w-full bg-gradient-to-r from-accent-primary to-accent-secondary hover:from-accent-primary/80 hover:to-accent-secondary/80 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 px-6 rounded-xl font-semibold text-lg transition-all flex items-center justify-center space-x-3 shadow-lg shadow-accent-primary/25"
+                className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 disabled:opacity-50 disabled:cursor-not-allowed text-white py-4 px-6 rounded-xl font-semibold text-lg transition-all flex items-center justify-center space-x-3 shadow-lg shadow-primary-500/25"
               >
                 {loading ? (
                   <div className="animate-spin rounded-full h-6 w-6 border-2 border-white border-t-transparent" />
@@ -392,7 +392,7 @@ export function DesktopTransfer() {
               
               <button
                 onClick={() => router.back()}
-                className="w-full bg-background-tertiary hover:bg-background-elevated text-text-primary py-4 px-6 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3"
+                className="w-full bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-neutral-900 dark:text-neutral-100 py-4 px-6 rounded-xl font-semibold text-lg transition-colors flex items-center justify-center space-x-3"
               >
                 <X className="h-6 w-6" />
                 <span>Cancelar</span>

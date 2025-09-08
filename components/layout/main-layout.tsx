@@ -36,14 +36,14 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
   return (
     <div className={cn(
-      "h-screen bg-background-primary text-text-primary overflow-hidden",
+      "h-screen bg-background text-foreground overflow-hidden transition-ios",
       isMobile && "mobile-app"
     )}>
       <div className="flex h-full relative">
         {/* Mobile Backdrop */}
         {isMobile && isOpen && (
           <div 
-            className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+            className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
             onClick={closeSidebar}
           />
         )}
@@ -67,13 +67,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           
           {/* Page Content */}
           <main className={cn(
-            "flex-1 overflow-auto bg-background-primary",
+            "flex-1 overflow-auto bg-background",
             isMobile ? "pb-24" : ""
           )}>
             <div className={cn(
               isMobile 
-                ? "px-4 py-4" // Mobile app-like padding
-                : "container-padding section-spacing max-w-7xl mx-auto" // Desktop padding
+                ? "px-4 py-6" // Mobile app-like padding
+                : "px-6 py-8 max-w-7xl mx-auto" // Desktop padding
             )}>
               {children}
             </div>
@@ -89,7 +89,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         <div className="fixed bottom-6 right-6 z-40">
           <button
             onClick={() => window.location.href = '/transactions/add'}
-            className="w-14 h-14 rounded-full shadow-2xl bg-red-600 hover:bg-red-700 text-white hover:scale-110 active:scale-95 transition-all duration-200 flex items-center justify-center"
+            className="w-14 h-14 rounded-full shadow-ios-lg bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-110 active:scale-95 transition-ios flex items-center justify-center backdrop-blur-sm"
             title="Agregar transacción"
             style={{ zIndex: 9999 }}
           >

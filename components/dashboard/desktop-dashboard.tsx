@@ -115,20 +115,14 @@ export function DesktopDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Clean Minimal Header */}
+      {/* iOS-style Header */}
       <div className="text-center py-8">
-        <div className="inline-flex items-center space-x-2 text-gray-500 mb-4">
-          <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-          <span className="text-sm">Buenos días</span>
+        <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-ios-caption font-medium">Buenos días</span>
         </div>
         
-        <h1 className="text-4xl font-bold mb-6 tracking-tight"
-            style={{ 
-              background: 'linear-gradient(to right, #10069f, #06b6d4, #4ade80)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent'
-            }}>
+        <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
           Dashboard Financiero
         </h1>
       </div>
@@ -168,24 +162,24 @@ export function DesktopDashboard() {
         />
       </div>
 
-      {/* Optimized Content Grid */}
+      {/* iOS-style Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Column - Wider */}
         <div className="xl:col-span-2 space-y-6">
           {/* Recent Transactions */}
-          <div className="bg-background-tertiary rounded-3xl p-6 border border-border-primary" data-tutorial="recent-transactions">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="recent-transactions">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-accent-secondary rounded-full"></div>
-              <h2 className="text-xl font-semibold text-text-primary">Movimientos Recientes</h2>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h2 className="text-ios-title font-semibold text-foreground">Movimientos Recientes</h2>
             </div>
             <RecentTransactions />
           </div>
 
           {/* Spending Chart */}
-          <div className="bg-background-tertiary rounded-3xl p-6 border border-border-primary" data-tutorial="spending-chart">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="spending-chart">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-accent-tertiary rounded-full"></div>
-              <h2 className="text-xl font-semibold text-text-primary">¿En Qué Gastas?</h2>
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <h2 className="text-ios-title font-semibold text-foreground">¿En Qué Gastas?</h2>
             </div>
             <SpendingChart />
           </div>
@@ -194,89 +188,91 @@ export function DesktopDashboard() {
         {/* Right Column - Compact */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <div className="bg-background-tertiary rounded-3xl p-6 border border-border-primary" data-tutorial="quick-actions">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="quick-actions">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-accent-warm rounded-full"></div>
-              <h2 className="text-xl font-semibold text-text-primary">Acciones Rápidas</h2>
+              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <h2 className="text-ios-title font-semibold text-foreground">Acciones Rápidas</h2>
             </div>
             <QuickActions />
           </div>
 
           {/* Accounts Overview */}
-          <div className="bg-background-tertiary rounded-3xl p-6 border border-border-primary" data-tutorial="accounts-overview">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="accounts-overview">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-accent-tertiary rounded-full"></div>
-              <h2 className="text-xl font-semibold text-text-primary">Tus Cuentas</h2>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h2 className="text-ios-title font-semibold text-foreground">Tus Cuentas</h2>
             </div>
             <AccountsOverview />
           </div>
 
-          {/* Friendly Tips Card */}
-          <div className="bg-gradient-to-br from-accent-primary/10 to-accent-secondary/10 rounded-3xl p-6 border border-accent-primary/20">
+          {/* iOS-style Tips Card */}
+          <div className="bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-3xl p-6 border border-primary/20 backdrop-blur-sm shadow-ios-md">
             <div className="flex items-center space-x-2 mb-4">
-              <Heart className="h-5 w-5 text-accent-primary" />
-              <h3 className="text-lg font-semibold text-text-primary">Tip del Día</h3>
+              <Heart className="h-5 w-5 text-primary" />
+              <h3 className="text-ios-headline font-semibold text-foreground">Tip del Día</h3>
             </div>
-            <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
+            <p className="text-ios-body text-muted-foreground leading-relaxed">
               🌟 ¡Tu gestión financiera está siendo excepcional! Has mejorado un 23% este mes. 
               Seguí así y alcanzarás todas tus metas. 🚀
             </p>
-            <div className="mt-4 flex items-center space-x-2 text-sm text-accent-primary">
+            <div className="mt-4 flex items-center space-x-2 text-ios-caption text-primary">
               <Sparkles className="h-4 w-4" />
-              <span>¡Sigue así!</span>
+              <span className="font-medium">¡Sigue así!</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Minimal Goals Section */}
-      <div className="bg-background-tertiary rounded-xl p-6 border border-border-primary" data-tutorial="goals-progress">
+      {/* iOS-style Goals Section */}
+      <div className="bg-card/60 backdrop-blur-xl rounded-xl p-6 border border-border/20 shadow-ios-lg" data-tutorial="goals-progress">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-text-primary">Metas</h2>
-          <button className="text-sm text-accent-primary hover:text-accent-secondary">
+          <h2 className="text-ios-title font-semibold text-foreground">Metas</h2>
+          <button className="text-ios-body text-primary hover:text-primary/80 font-medium transition-ios">
             Ver todas
           </button>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-background-elevated rounded-lg p-4 border border-border-primary">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md transition-ios">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-green-500/10 rounded-lg">
-                <Target className="h-4 w-4 text-green-500" />
+              <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                <Target className="h-4 w-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-text-primary">Fondo de Emergencia</h3>
+                <h3 className="text-ios-body font-medium text-foreground">Fondo de Emergencia</h3>
                 <div className="flex items-center space-x-2 mt-2">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                    <div className="bg-green-500 h-1.5 rounded-full w-3/4"></div>
+                  <div className="flex-1 bg-muted/30 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full w-3/4 transition-all duration-500"></div>
                   </div>
-                  <span className="text-xs text-green-500 font-medium">75%</span>
+                  <span className="text-ios-caption text-green-600 font-semibold">75%</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-background-elevated rounded-lg p-4 border border-border-primary">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md transition-ios">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Target className="h-4 w-4 text-blue-500" />
+              <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                <Target className="h-4 w-4 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-text-primary">Vacaciones</h3>
+                <h3 className="text-ios-body font-medium text-foreground">Vacaciones</h3>
                 <div className="flex items-center space-x-2 mt-2">
-                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                    <div className="bg-blue-500 h-1.5 rounded-full w-1/2"></div>
+                  <div className="flex-1 bg-muted/30 rounded-full h-2">
+                    <div className="bg-blue-500 h-2 rounded-full w-1/2 transition-all duration-500"></div>
                   </div>
-                  <span className="text-xs text-blue-500 font-medium">45%</span>
+                  <span className="text-ios-caption text-blue-600 font-semibold">45%</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-background-elevated rounded-lg p-4 border border-border-primary hover:bg-background-elevated/80 transition-colors">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md hover:bg-card/90 transition-ios group">
             <div className="text-center">
-              <Plus className="h-5 w-5 text-text-muted mx-auto mb-2" />
-              <h3 className="text-sm font-medium text-text-primary">Nueva Meta</h3>
+              <div className="w-8 h-8 bg-muted/20 rounded-full mx-auto mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-ios">
+                <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-ios" />
+              </div>
+              <h3 className="text-ios-body font-medium text-foreground">Nueva Meta</h3>
             </div>
           </div>
         </div>

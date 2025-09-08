@@ -248,7 +248,7 @@ export function MobileReports() {
       <div className="space-y-4">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Cargando reportes...</p>
+          <p className="text-neutral-400 dark:text-neutral-500">Cargando reportes...</p>
         </div>
       </div>
     );
