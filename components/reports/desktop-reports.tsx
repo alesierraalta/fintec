@@ -156,29 +156,39 @@ export function DesktopReports() {
   }
 
   return (
-    <div className="min-h-screen bg-black p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Reportes Financieros</h1>
-            <p className="text-neutral-400 dark:text-neutral-500">Análisis completo de tu situación financiera</p>
+    <div className="min-h-screen p-6 animate-fade-in">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* iOS-style Header */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+            <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+            <span className="text-ios-caption font-medium">Análisis</span>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <PeriodSelector
-              selectedPeriod={selectedPeriod}
-              onPeriodChange={handlePeriodChange}
-            />
+          <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-cyan-600 to-blue-500 bg-clip-text text-transparent">
+            📊 Reportes Financieros
+          </h1>
+          <p className="text-muted-foreground font-light mb-8">
+            Análisis completo de tu situación financiera
+          </p>
+          
+          {/* iOS Controls */}
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <div className="bg-muted/20 rounded-2xl p-1">
+              <PeriodSelector
+                selectedPeriod={selectedPeriod}
+                onPeriodChange={handlePeriodChange}
+              />
+            </div>
             
             <div className="flex space-x-2">
-              <button className="p-3 rounded-xl backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all duration-300">
+              <button className="p-3 rounded-2xl bg-muted/20 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all duration-200 backdrop-blur-xl">
                 <RefreshCw className="h-5 w-5" />
               </button>
-              <button className="p-3 rounded-xl backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all duration-300">
+              <button className="p-3 rounded-2xl bg-muted/20 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all duration-200 backdrop-blur-xl">
                 <Filter className="h-5 w-5" />
               </button>
-              <button className="p-3 rounded-xl backdrop-blur-md bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all duration-300">
+              <button className="p-3 rounded-2xl bg-primary/20 hover:bg-primary/30 text-primary transition-all duration-200 backdrop-blur-xl">
                 <Download className="h-5 w-5" />
               </button>
             </div>

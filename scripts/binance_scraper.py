@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Binance Scraper - Obtener precio USD/VES real desde Binance P2P
+Binance Scraper - Obtener precios USD/VES real desde Binance P2P
+Muestra tanto tasas de COMPRA como de VENTA
 """
 
 import requests
@@ -11,13 +12,12 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def scrape_binance_rates():
-    """Obtener precio USD/VES real desde Binance P2P"""
+    """Obtener precios USD/VES real desde Binance P2P - Compra y Venta"""
     try:
-        # API P2P de Binance para obtener ofertas reales USDT -> VES
         p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
         
-        # Buscar ofertas de venta de USDT por VES (precio más común)
-        usdt_payload = {
+        # 1. Obtener precios de VENTA (SELL) - La gente vende USDT por VES
+        sell_payload = {
             "proMerchantAds": False,
             "page": 1,
             "rows": 10,
@@ -29,50 +29,90 @@ def scrape_binance_rates():
             "tradeType": "SELL"  # Vendedores de USDT por VES
         }
         
-        response = requests.post(p2p_url, 
-                               json=usdt_payload,
-                               headers={
-                                   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                                   'Content-Type': 'application/json',
-                                   'Accept': 'application/json'
-                               }, 
-                               timeout=10)
+        # 2. Obtener precios de COMPRA (BUY) - La gente compra USDT con VES  
+        buy_payload = {
+            "proMerchantAds": False,
+            "page": 1,
+            "rows": 10,
+            "payTypes": [],
+            "countries": [],
+            "publisherType": None,
+            "asset": "USDT",
+            "fiat": "VES",
+            "tradeType": "BUY"   # Compradores de USDT con VES
+        }
         
-        if response.status_code != 200:
-            raise Exception(f"Binance P2P API returned status code: {response.status_code} - Posible restricción geográfica")
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
         
-        p2p_data = response.json()
+        # Obtener datos de VENTA
+        sell_response = requests.post(p2p_url, json=sell_payload, headers=headers, timeout=10)
+        if sell_response.status_code != 200:
+            raise Exception(f"Error SELL API: {sell_response.status_code}")
         
-        usdt_ves_prices = []
-        if 'data' in p2p_data and p2p_data['data']:
-            ads = p2p_data['data']
-            for ad in ads[:10]:  # Tomar las primeras 10 ofertas
+        # Obtener datos de COMPRA
+        buy_response = requests.post(p2p_url, json=buy_payload, headers=headers, timeout=10)
+        if buy_response.status_code != 200:
+            raise Exception(f"Error BUY API: {buy_response.status_code}")
+        
+        sell_data = sell_response.json()
+        buy_data = buy_response.json()
+        
+        # Procesar precios de VENTA
+        sell_prices = []
+        if 'data' in sell_data and sell_data['data']:
+            for ad in sell_data['data'][:10]:
                 if 'adv' in ad and 'price' in ad['adv']:
                     try:
                         price = float(ad['adv']['price'])
-                        if 200 <= price <= 300:  # Rango real actual para VES (precios altos debido a inflación)
-                            usdt_ves_prices.append(price)
+                        if 200 <= price <= 300:
+                            sell_prices.append(price)
                     except (ValueError, TypeError):
                         continue
         
-        if not usdt_ves_prices:
-            raise Exception("No se pudieron obtener precios P2P válidos - Sin ofertas en rango válido")
+        # Procesar precios de COMPRA
+        buy_prices = []
+        if 'data' in buy_data and buy_data['data']:
+            for ad in buy_data['data'][:10]:
+                if 'adv' in ad and 'price' in ad['adv']:
+                    try:
+                        price = float(ad['adv']['price'])
+                        if 200 <= price <= 300:
+                            buy_prices.append(price)
+                    except (ValueError, TypeError):
+                        continue
         
-        # Calcular precio promedio
-        avg_usdt_ves = sum(usdt_ves_prices) / len(usdt_ves_prices)
+        if not sell_prices and not buy_prices:
+            raise Exception("No se pudieron obtener precios P2P válidos")
         
-        # Como USDT ≈ 1 USD, el precio USDT/VES es aproximadamente USD/VES
-        usd_ves_rate = round(avg_usdt_ves, 2)
+        # Calcular promedios
+        sell_avg = sum(sell_prices) / len(sell_prices) if sell_prices else 228.50
+        buy_avg = sum(buy_prices) / len(buy_prices) if buy_prices else 228.00
+        
+        # Promedio general (para compatibilidad)
+        general_avg = (sell_avg + buy_avg) / 2 if sell_prices and buy_prices else (sell_avg if sell_prices else buy_avg)
         
         return {
             'success': True,
             'data': {
-                'usd_ves': usd_ves_rate,
-                'usdt_ves': round(avg_usdt_ves, 2),
-                'prices_used': len(usdt_ves_prices),
+                'usd_ves': round(general_avg, 2),  # Promedio general
+                'usdt_ves': round(general_avg, 2), # Para compatibilidad
+                'sell_rate': round(sell_avg, 2),   # Tasa de VENTA (más alta)
+                'buy_rate': round(buy_avg, 2),     # Tasa de COMPRA (más baja)
+                'spread': round(abs(sell_avg - buy_avg), 2) if sell_prices and buy_prices else 0,
+                'sell_prices_used': len(sell_prices),
+                'buy_prices_used': len(buy_prices),
+                'prices_used': len(sell_prices) + len(buy_prices),
                 'price_range': {
-                    'min': round(min(usdt_ves_prices), 2),
-                    'max': round(max(usdt_ves_prices), 2)
+                    'sell_min': round(min(sell_prices), 2) if sell_prices else 228.50,
+                    'sell_max': round(max(sell_prices), 2) if sell_prices else 228.50,
+                    'buy_min': round(min(buy_prices), 2) if buy_prices else 228.00,
+                    'buy_max': round(max(buy_prices), 2) if buy_prices else 228.00,
+                    'min': round(min((sell_prices + buy_prices) if (sell_prices and buy_prices) else (sell_prices or buy_prices)), 2),
+                    'max': round(max((sell_prices + buy_prices) if (sell_prices and buy_prices) else (sell_prices or buy_prices)), 2)
                 },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Binance P2P'
@@ -80,15 +120,24 @@ def scrape_binance_rates():
         }
         
     except Exception as e:
-        # Fallback con precio aproximado actual
+        # Fallback con precios aproximados
         return {
             'success': False,
             'error': str(e),
             'data': {
-                'usd_ves': 228.50,
-                'usdt_ves': 228.50,
+                'usd_ves': 228.25,
+                'usdt_ves': 228.25,
+                'sell_rate': 228.50,  # Venta más alta
+                'buy_rate': 228.00,   # Compra más baja
+                'spread': 0.50,
+                'sell_prices_used': 0,
+                'buy_prices_used': 0,
                 'prices_used': 0,
-                'price_range': {'min': 228.50, 'max': 228.50},
+                'price_range': {
+                    'sell_min': 228.50, 'sell_max': 228.50,
+                    'buy_min': 228.00, 'buy_max': 228.00,
+                    'min': 228.00, 'max': 228.50
+                },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Binance P2P (fallback)'
             }

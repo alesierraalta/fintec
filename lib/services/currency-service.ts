@@ -25,13 +25,22 @@ export interface BCVRates {
 export interface BinanceRates {
   usd_ves: number;
   usdt_ves: number;
+  sell_rate: number;  // Tasa de venta (más alta)
+  buy_rate: number;   // Tasa de compra (más baja)
+  spread: number;     // Diferencia entre compra y venta
+  sell_prices_used: number;
+  buy_prices_used: number;
   prices_used: number;
   price_range: {
+    sell_min: number;
+    sell_max: number;
+    buy_min: number;
+    buy_max: number;
     min: number;
     max: number;
   };
   lastUpdated: string;
-}
+};
 
 class CurrencyService {
   private static instance: CurrencyService;
@@ -262,6 +271,11 @@ class CurrencyService {
         const rates: BinanceRates = {
           usd_ves: result.data.usd_ves,
           usdt_ves: result.data.usdt_ves,
+          sell_rate: result.data.sell_rate,
+          buy_rate: result.data.buy_rate,
+          spread: result.data.spread,
+          sell_prices_used: result.data.sell_prices_used,
+          buy_prices_used: result.data.buy_prices_used,
           prices_used: result.data.prices_used,
           price_range: result.data.price_range,
           lastUpdated: result.data.lastUpdated || new Date().toISOString()
@@ -273,12 +287,21 @@ class CurrencyService {
         // Use fallback data if API returns error but has fallback
         if (result.fallback && result.data) {
           const fallbackRates: BinanceRates = {
-            usd_ves: result.data.usd_ves,
-            usdt_ves: result.data.usdt_ves,
-            prices_used: result.data.prices_used,
-            price_range: result.data.price_range,
-            lastUpdated: result.data.lastUpdated || new Date().toISOString()
-          };
+        usd_ves: 228.25,
+        usdt_ves: 228.25,
+        sell_rate: 228.50,
+        buy_rate: 228.00,
+        spread: 0.50,
+        sell_prices_used: 0,
+        buy_prices_used: 0,
+        prices_used: 0,
+        price_range: {
+          sell_min: 228.50, sell_max: 228.50,
+          buy_min: 228.00, buy_max: 228.00,
+          min: 228.00, max: 228.50
+        },
+        lastUpdated: new Date().toISOString()
+      };
           
           this.binanceRates = fallbackRates;
           return fallbackRates;
@@ -296,8 +319,20 @@ class CurrencyService {
       const fallbackRates: BinanceRates = {
         usd_ves: 228.50,
         usdt_ves: 228.50,
+        sell_rate: 228.50,
+        buy_rate: 228.50,
+        spread: 0,
+        sell_prices_used: 0,
+        buy_prices_used: 0,
         prices_used: 0,
-        price_range: { min: 228.50, max: 228.50 },
+        price_range: { 
+          sell_min: 228.50, 
+          sell_max: 228.50, 
+          buy_min: 228.50, 
+          buy_max: 228.50, 
+          min: 228.50, 
+          max: 228.50 
+        },
         lastUpdated: new Date().toISOString()
       };
       

@@ -255,19 +255,28 @@ export function MobileReports() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary">Reportes</h1>
-          <p className="text-sm text-text-muted">Análisis de tus finanzas</p>
+    <div className="space-y-8 animate-fade-in">
+      {/* iOS-style Header */}
+      <div className="text-center py-6">
+        <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+          <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+          <span className="text-ios-caption font-medium">Análisis</span>
         </div>
-        <div className="flex space-x-2">
-          <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
-            <RefreshCw className="h-4 w-4 text-text-primary" />
+        
+        <h1 className="text-ios-large-title font-bold mb-4 tracking-tight bg-gradient-to-r from-primary via-cyan-600 to-blue-500 bg-clip-text text-transparent">
+          📊 Reportes
+        </h1>
+        <p className="text-muted-foreground font-light mb-6">
+          Análisis de tus finanzas
+        </p>
+        
+        {/* iOS Controls */}
+        <div className="flex items-center justify-center space-x-2">
+          <button className="p-3 rounded-2xl bg-muted/20 hover:bg-muted/30 text-muted-foreground hover:text-foreground transition-all duration-200">
+            <RefreshCw className="h-4 w-4" />
           </button>
-          <button className="p-2 rounded-xl bg-background-elevated border border-border-primary hover:bg-background-tertiary transition-colors">
-            <Download className="h-4 w-4 text-text-primary" />
+          <button className="p-3 rounded-2xl bg-primary/20 hover:bg-primary/30 text-primary transition-all duration-200">
+            <Download className="h-4 w-4" />
           </button>
         </div>
       </div>
