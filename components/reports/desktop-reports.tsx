@@ -25,7 +25,12 @@ import {
   Filter,
   Download,
   RefreshCw,
-  ShoppingCart
+  ShoppingCart,
+  Activity,
+  DollarSign,
+  Calendar,
+  Hash,
+  Percent
 } from 'lucide-react';
 
 const periods = [
@@ -93,13 +98,28 @@ export function DesktopReports() {
   
   // Calculate previous period metrics for trend comparison
   const previousMetrics = (() => {
+    const defaultMetrics = { 
+      income: 0, 
+      expenses: 0, 
+      savings: 0, 
+      savingsRate: 0,
+      totalTransactions: 0,
+      avgTransactionAmount: 0,
+      avgDailyExpenses: 0,
+      avgDailyIncome: 0,
+      netCashFlow: 0,
+      expenseRatio: 0,
+      transactionFrequency: { income: 0, expenses: 0 },
+      topSpendingCategory: { categoryId: 'N/A', amount: 0 }
+    };
+    
     if (!selectedPeriod || !data.transactions.length) {
-      return { income: 0, expenses: 0, savings: 0, savingsRate: 0 };
+      return defaultMetrics;
     }
     
     const currentPeriodObj = getPeriodById(selectedPeriod);
     if (!currentPeriodObj) {
-      return { income: 0, expenses: 0, savings: 0, savingsRate: 0 };
+      return defaultMetrics;
     }
     
     const previousPeriod = getPreviousPeriod(currentPeriodObj);
@@ -112,7 +132,12 @@ export function DesktopReports() {
     income: calculateTrend(currentMetrics.income, previousMetrics.income),
     expenses: calculateTrend(currentMetrics.expenses, previousMetrics.expenses),
     savings: calculateTrend(currentMetrics.savings, previousMetrics.savings),
-    savingsRate: calculateTrend(currentMetrics.savingsRate, previousMetrics.savingsRate)
+    savingsRate: calculateTrend(currentMetrics.savingsRate, previousMetrics.savingsRate),
+    // Nuevas tendencias
+    netCashFlow: calculateTrend(currentMetrics.netCashFlow, previousMetrics.netCashFlow),
+    avgDailyExpenses: calculateTrend(currentMetrics.avgDailyExpenses, previousMetrics.avgDailyExpenses),
+    expenseRatio: calculateTrend(currentMetrics.expenseRatio, previousMetrics.expenseRatio),
+    totalTransactions: calculateTrend(currentMetrics.totalTransactions, previousMetrics.totalTransactions)
   };
 
   const MetricCard = ({ icon: Icon, title, value, trendData, color, isExpenseMetric = false }: {
@@ -196,7 +221,7 @@ export function DesktopReports() {
         </div>
 
         {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 gap-6">
           <MetricCard 
             icon={ArrowUpRight} 
             title="Ingresos Totales" 
@@ -226,6 +251,82 @@ export function DesktopReports() {
             trendData={trends.savingsRate}
             color="from-purple-400 to-violet-500" 
           />
+        </div>
+
+        {/* Métricas Fundamentales Adicionales */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard 
+            icon={Activity} 
+            title="Flujo de Efectivo" 
+            value={`$${currentMetrics.netCashFlow.toLocaleString()}`} 
+            trendData={trends.netCashFlow}
+            color="from-indigo-400 to-purple-500" 
+          />
+          <MetricCard 
+            icon={Calendar} 
+            title="Gasto Diario Promedio" 
+            value={`$${currentMetrics.avgDailyExpenses.toFixed(0)}`} 
+            trendData={trends.avgDailyExpenses}
+            color="from-orange-400 to-pink-500"
+            isExpenseMetric={true}
+          />
+          <MetricCard 
+            icon={Percent} 
+            title="Ratio de Gastos" 
+            value={`${currentMetrics.expenseRatio.toFixed(1)}%`} 
+            trendData={trends.expenseRatio}
+            color="from-amber-400 to-orange-500" 
+          />
+          <MetricCard 
+            icon={Hash} 
+            title="Total Transacciones" 
+            value={currentMetrics.totalTransactions.toString()} 
+            trendData={trends.totalTransactions}
+            color="from-teal-400 to-cyan-500" 
+          />
+        </div>
+
+        {/* Métricas de Actividad */}
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Métricas de Actividad</h2>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="p-4 bg-green-500/10 rounded-2xl mb-4 w-fit mx-auto">
+                <ArrowUpRight className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-ios-caption text-muted-foreground mb-2 tracking-wide">TRANSACCIONES DE INGRESO</h3>
+              <p className="text-2xl font-light text-foreground mb-2">{currentMetrics.transactionFrequency.income}</p>
+              <p className="text-ios-footnote text-green-600 font-medium">
+                ${currentMetrics.avgDailyIncome.toFixed(0)}/día promedio
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="p-4 bg-red-500/10 rounded-2xl mb-4 w-fit mx-auto">
+                <ArrowDownRight className="h-8 w-8 text-red-600" />
+              </div>
+              <h3 className="text-ios-caption text-muted-foreground mb-2 tracking-wide">TRANSACCIONES DE GASTO</h3>
+              <p className="text-2xl font-light text-foreground mb-2">{currentMetrics.transactionFrequency.expenses}</p>
+              <p className="text-ios-footnote text-red-600 font-medium">
+                ${currentMetrics.avgTransactionAmount.toFixed(0)} promedio/transacción
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="p-4 bg-purple-500/10 rounded-2xl mb-4 w-fit mx-auto">
+                <ShoppingCart className="h-8 w-8 text-purple-600" />
+              </div>
+              <h3 className="text-ios-caption text-muted-foreground mb-2 tracking-wide">CATEGORÍA TOP</h3>
+              <p className="text-2xl font-light text-foreground mb-2">
+                ${currentMetrics.topSpendingCategory.amount.toFixed(0)}
+              </p>
+              <p className="text-ios-footnote text-purple-600 font-medium">Mayor gasto</p>
+            </div>
+          </div>
         </div>
 
         {/* Charts Section */}

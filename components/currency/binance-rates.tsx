@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   RefreshCw, 
   DollarSign, 
@@ -8,10 +9,19 @@ import {
   ExternalLink,
   TrendingUp,
   TrendingDown,
-  ArrowUpDown
+  ArrowUpDown,
+  Zap,
+  Users,
+  Target,
+  Activity
 } from 'lucide-react';
 import { currencyService } from '@/lib/services/currency-service';
 import type { BinanceRates } from '@/lib/services/currency-service';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
 
 export function BinanceRates() {
   const [rates, setRates] = useState<BinanceRates | null>(null);
@@ -52,138 +62,198 @@ export function BinanceRates() {
 
   if (!rates) {
     return (
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary animate-pulse">
-        <div className="h-4 bg-background-tertiary rounded mb-2"></div>
-        <div className="h-8 bg-background-tertiary rounded"></div>
-      </div>
+      <motion.div 
+        className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg animate-pulse"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="h-4 bg-muted/30 rounded mb-4"></div>
+        <div className="h-8 bg-muted/30 rounded"></div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-2xl p-4 border border-orange-500/20">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-orange-500/20 flex items-center justify-center">
-            <span className="text-sm font-bold text-orange-500">P2P</span>
+    <motion.div 
+      className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay: 0.2 }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 flex items-center justify-center border border-orange-500/20">
+            <Zap className="h-5 w-5 text-orange-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-text-primary">Binance P2P</h3>
-            <p className="text-xs text-text-muted">Compra vs Venta USD/VES</p>
+            <h3 className="text-ios-title font-semibold text-foreground">Binance P2P</h3>
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-success-500 animate-pulse' : 'bg-warning-500'}`}></div>
+              <p className="text-ios-caption text-muted-foreground tracking-wide">USD/VES EN TIEMPO REAL</p>
+            </div>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          <button
+          <motion.button
             onClick={fetchRates}
             disabled={loading}
-            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors disabled:opacity-50"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <RefreshCw className={`h-4 w-4 text-text-primary ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <a 
+            <RefreshCw className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ${loading ? 'animate-spin' : ''}`} />
+          </motion.button>
+          <motion.a 
             href="https://p2p.binance.com/es/trade/sell/USDT?fiat=VES&payment=all" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <ExternalLink className="h-4 w-4 text-text-primary" />
-          </a>
+            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.a>
         </div>
       </div>
 
-      {/* USD/VES Rates - Compra y Venta */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
+      {/* Main Rates Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {/* VENTA (Sell) - Precio más alto */}
-        <div className="bg-background-elevated/50 rounded-xl p-3 border border-red-500/20">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div 
+          className="bg-gradient-to-br from-red-500/10 to-red-600/5 backdrop-blur-sm rounded-2xl p-4 border border-red-500/20 hover:border-red-500/30 transition-all duration-200"
+          variants={fadeInUp}
+          whileHover={{ scale: 1.02 }}
+        >
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
-              <TrendingUp className="h-4 w-4 text-red-500" />
-              <span className="text-sm font-medium text-text-primary">VENTA</span>
+              <div className="w-3 h-3 rounded-full bg-red-500 shadow-lg shadow-red-500/20"></div>
+              <span className="text-ios-body font-medium text-foreground">VENTA</span>
             </div>
             {isLive && (
               <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-500">VIVO</span>
+                <Activity className="h-3 w-3 text-success-500 animate-pulse" />
+                <span className="text-ios-footnote text-success-500 font-medium">VIVO</span>
               </div>
             )}
           </div>
-          <p className="text-xl font-bold text-red-500 mb-1">
+          <p className="text-2xl font-light text-red-500 mb-1">
             Bs. {rates.sell_rate.toFixed(2)}
           </p>
-          <p className="text-xs text-text-muted">Vendedores piden</p>
-          <p className="text-xs text-gray-500 mt-1">{rates.sell_prices_used} ofertas</p>
-        </div>
+          <p className="text-ios-caption text-muted-foreground mb-2">Vendedores piden</p>
+          <div className="flex items-center space-x-1">
+            <Users className="h-3 w-3 text-red-400" />
+            <span className="text-ios-footnote text-red-400 font-medium">{rates.sell_prices_used} ofertas</span>
+          </div>
+        </motion.div>
 
         {/* COMPRA (Buy) - Precio más bajo */}
-        <div className="bg-background-elevated/50 rounded-xl p-3 border border-green-500/20">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div 
+          className="bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-2xl p-4 border border-green-500/20 hover:border-green-500/30 transition-all duration-200"
+          variants={fadeInUp}
+          whileHover={{ scale: 1.02 }}
+        >
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
-              <TrendingDown className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-text-primary">COMPRA</span>
+              <div className="w-3 h-3 rounded-full bg-green-500 shadow-lg shadow-green-500/20"></div>
+              <span className="text-ios-body font-medium text-foreground">COMPRA</span>
             </div>
             {isLive && (
               <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-xs text-green-500">VIVO</span>
+                <Activity className="h-3 w-3 text-success-500 animate-pulse" />
+                <span className="text-ios-footnote text-success-500 font-medium">VIVO</span>
               </div>
             )}
           </div>
-          <p className="text-xl font-bold text-green-500 mb-1">
+          <p className="text-2xl font-light text-green-500 mb-1">
             Bs. {rates.buy_rate.toFixed(2)}
           </p>
-          <p className="text-xs text-text-muted">Compradores ofrecen</p>
-          <p className="text-xs text-gray-500 mt-1">{rates.buy_prices_used} ofertas</p>
+          <p className="text-ios-caption text-muted-foreground mb-2">Compradores ofrecen</p>
+          <div className="flex items-center space-x-1">
+            <Users className="h-3 w-3 text-green-400" />
+            <span className="text-ios-footnote text-green-400 font-medium">{rates.buy_prices_used} ofertas</span>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Market Summary */}
+      <motion.div 
+        className="bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20 mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.4 }}
+      >
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <div className="flex items-center justify-center space-x-1 mb-2">
+              <Target className="h-4 w-4 text-primary" />
+              <p className="text-ios-caption font-medium text-muted-foreground">PROMEDIO</p>
+            </div>
+            <p className="text-xl font-light text-primary">Bs. {rates.usd_ves.toFixed(2)}</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center space-x-1 mb-2">
+              <ArrowUpDown className="h-4 w-4 text-orange-500" />
+              <p className="text-ios-caption font-medium text-muted-foreground">SPREAD</p>
+            </div>
+            <p className="text-xl font-light text-orange-500">Bs. {rates.spread.toFixed(2)}</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center space-x-1 mb-2">
+              <Users className="h-4 w-4 text-blue-500" />
+              <p className="text-ios-caption font-medium text-muted-foreground">OFERTAS</p>
+            </div>
+            <p className="text-xl font-light text-blue-500">{rates.prices_used}</p>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Spread y Promedio */}
-      <div className="bg-background-elevated/50 rounded-xl p-3 border border-border-primary/50 mb-4">
-        <div className="grid grid-cols-3 gap-4 text-center text-sm">
-          <div>
-            <p className="text-text-muted mb-1">Promedio</p>
-            <p className="font-bold text-accent-primary">Bs. {rates.usd_ves.toFixed(2)}</p>
-          </div>
-          <div>
-            <p className="text-text-muted mb-1">Spread</p>
-            <p className="font-bold text-orange-500">
-              <ArrowUpDown className="h-3 w-3 inline mr-1" />
-              Bs. {rates.spread.toFixed(2)}
-            </p>
-          </div>
-          <div>
-            <p className="text-text-muted mb-1">Ofertas Total</p>
-            <p className="font-bold text-text-primary">{rates.prices_used}</p>
+      {/* Market Explanation */}
+      <motion.div 
+        className="bg-primary/5 backdrop-blur-sm rounded-2xl p-4 border border-primary/10 mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.6 }}
+      >
+        <div className="text-center space-y-2">
+          <p className="text-ios-caption text-muted-foreground">
+            <strong className="text-red-500">VENTA:</strong> Si vendes USD, recibes esta cantidad en Bs. · 
+            <strong className="text-green-500 ml-1">COMPRA:</strong> Si compras USD, pagas esta cantidad en Bs.
+          </p>
+          <div className="flex items-center justify-center space-x-2">
+            <ArrowUpDown className="h-3 w-3 text-orange-500" />
+            <span className="text-ios-footnote text-orange-500 font-medium">
+              Diferencia del mercado: Bs. {rates.spread.toFixed(2)}
+            </span>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Explicación del mercado */}
-      <div className="bg-accent-primary/10 rounded-lg p-3 mb-4 border border-accent-primary/20">
-        <p className="text-xs text-text-muted text-center">
-          <strong className="text-red-500">VENTA:</strong> Lo que pides si vendes dólares · 
-          <strong className="text-green-500 ml-1">COMPRA:</strong> Lo que pagas si compras dólares
-        </p>
-        <p className="text-xs text-text-muted text-center mt-1">
-          Diferencia (Spread): <strong>Bs. {rates.spread.toFixed(2)}</strong> - Entre compradores y vendedores
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-text-muted">
-        <div className="flex items-center space-x-2">
+      {/* Footer */}
+      <div className="flex items-center justify-between text-ios-footnote text-muted-foreground">
+        <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-1">
             <Clock className="h-3 w-3" />
             <span>Actualizado: {lastUpdated}</span>
           </div>
           {error && (
-            <span className="text-red-400 bg-red-500/20 px-2 py-1 rounded">
+            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg">
               {error}
             </span>
           )}
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-orange-600">Binance P2P Venezuela</span>
+          {isLive && (
+            <div className="flex items-center space-x-1 text-success-500">
+              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+              <span className="font-medium">P2P LIVE</span>
+            </div>
+          )}
+          <span className="text-orange-600 font-medium">Binance Venezuela</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

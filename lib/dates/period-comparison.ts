@@ -77,15 +77,53 @@ export function filterTransactionsByPeriod(transactions: any[], period: TimePeri
 }
 
 export function calculateMetricsForPeriod(transactions: any[]) {
-  const income = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
-  const expenses = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  const incomeTransactions = transactions.filter(t => t.amount > 0);
+  const expenseTransactions = transactions.filter(t => t.amount < 0);
+  
+  const income = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const expenses = expenseTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
   const savings = income - expenses;
   const savingsRate = income > 0 ? (savings / income * 100) : 0;
   
+  // Nuevas métricas fundamentales
+  const totalTransactions = transactions.length;
+  const avgTransactionAmount = totalTransactions > 0 ? (income + expenses) / totalTransactions : 0;
+  const avgDailyExpenses = expenseTransactions.length > 0 ? expenses / 30 : 0; // Aproximado mensual
+  const avgDailyIncome = incomeTransactions.length > 0 ? income / 30 : 0;
+  const netCashFlow = income - expenses;
+  const expenseRatio = income > 0 ? (expenses / income * 100) : 0;
+  const transactionFrequency = {
+    income: incomeTransactions.length,
+    expenses: expenseTransactions.length
+  };
+  
+  // Encontrar la categoría con mayor gasto
+  const categorySpending: Record<string, number> = {};
+  expenseTransactions.forEach(t => {
+    const categoryId = t.categoryId || 'uncategorized';
+    categorySpending[categoryId] = (categorySpending[categoryId] || 0) + Math.abs(t.amount);
+  });
+  
+  const topSpendingCategory = Object.entries(categorySpending)
+    .sort(([,a], [,b]) => b - a)[0] || ['N/A', 0];
+  
   return {
+    // Métricas originales
     income,
     expenses,
     savings,
-    savingsRate
+    savingsRate,
+    // Nuevas métricas fundamentales
+    totalTransactions,
+    avgTransactionAmount,
+    avgDailyExpenses,
+    avgDailyIncome,
+    netCashFlow,
+    expenseRatio,
+    transactionFrequency,
+    topSpendingCategory: {
+      categoryId: topSpendingCategory[0],
+      amount: topSpendingCategory[1]
+    }
   };
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { 
   RefreshCw, 
   TrendingUp, 
@@ -11,11 +12,19 @@ import {
   ExternalLink,
   Minus,
   ArrowUpDown,
-  Calculator
+  Calculator,
+  Landmark,
+  TrendingUpIcon,
+  TrendingDownIcon
 } from 'lucide-react';
 import { currencyService } from '@/lib/services/currency-service';
 import type { BCVRates } from '@/lib/services/currency-service';
 import { BCVTrend } from '@/lib/services/bcv-history-service';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+};
 
 export function BCVRates() {
   const [rates, setRates] = useState<BCVRates | null>(null);
@@ -51,6 +60,7 @@ export function BCVRates() {
         const trendsData = await currencyService.getBCVTrends();
         setTrends(trendsData);
       } catch (trendError) {
+        // Silent fail for trends
       }
     } catch (error) {
       setError('Error al obtener tasas del BCV');
@@ -62,28 +72,32 @@ export function BCVRates() {
 
   useEffect(() => {
     fetchRates();
+    
+    // Auto-refresh every 10 minutes for BCV data
+    const interval = setInterval(fetchRates, 600000);
+    return () => clearInterval(interval);
   }, []);
 
   const renderTrendIcon = (trend: BCVTrend) => {
     if (trend.trend === 'up') {
       return (
         <div className="flex items-center space-x-1">
-          <TrendingUp className="h-3 w-3 text-green-500" />
-          <span className="text-xs text-green-500">+{Math.abs(trend.changePercent).toFixed(2)}%</span>
+          <TrendingUpIcon className="h-3 w-3 text-success-500" />
+          <span className="text-ios-footnote text-success-500 font-medium">+{Math.abs(trend.changePercent).toFixed(2)}%</span>
         </div>
       );
     } else if (trend.trend === 'down') {
       return (
         <div className="flex items-center space-x-1">
-          <TrendingDown className="h-3 w-3 text-red-500" />
-          <span className="text-xs text-red-500">-{Math.abs(trend.changePercent).toFixed(2)}%</span>
+          <TrendingDownIcon className="h-3 w-3 text-error-500" />
+          <span className="text-ios-footnote text-error-500 font-medium">-{Math.abs(trend.changePercent).toFixed(2)}%</span>
         </div>
       );
     } else {
       return (
         <div className="flex items-center space-x-1">
-          <Minus className="h-3 w-3 text-gray-500" />
-          <span className="text-xs text-gray-500">0.00%</span>
+          <Minus className="h-3 w-3 text-muted-foreground" />
+          <span className="text-ios-footnote text-muted-foreground">0.00%</span>
         </div>
       );
     }
@@ -133,119 +147,154 @@ export function BCVRates() {
 
   if (!rates) {
     return (
-      <div className="bg-background-elevated rounded-2xl p-4 border border-border-primary animate-pulse">
-        <div className="h-4 bg-background-tertiary rounded mb-2"></div>
-        <div className="h-8 bg-background-tertiary rounded"></div>
-      </div>
+      <motion.div 
+        className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg animate-pulse"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <div className="h-4 bg-muted/30 rounded mb-4"></div>
+        <div className="h-8 bg-muted/30 rounded"></div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-r from-yellow-500/10 to-red-500/10 rounded-2xl p-4 border border-yellow-500/20">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-            <span className="text-sm font-bold text-yellow-500">BCV</span>
+    <motion.div 
+      className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-red-500/20 flex items-center justify-center border border-yellow-500/20">
+            <Landmark className="h-5 w-5 text-yellow-600" />
           </div>
           <div>
-            <h3 className="font-semibold text-text-primary">Banco Central de Venezuela</h3>
-            <p className="text-xs text-text-muted">Tasas oficiales</p>
+            <h3 className="text-ios-title font-semibold text-foreground">Banco Central de Venezuela</h3>
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-success-500 animate-pulse' : 'bg-warning-500'}`}></div>
+              <p className="text-ios-caption text-muted-foreground tracking-wide">TASAS OFICIALES</p>
+            </div>
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
-          <button
+          <motion.button
             onClick={() => setShowConverter(!showConverter)}
-            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
             title="Convertidor de Monedas"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <Calculator className="h-4 w-4 text-text-primary" />
-          </button>
-          <button
+            <Calculator className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.button>
+          <motion.button
             onClick={fetchRates}
             disabled={loading}
-            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors disabled:opacity-50"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <RefreshCw className={`h-4 w-4 text-text-primary ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <a 
+            <RefreshCw className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ${loading ? 'animate-spin' : ''}`} />
+          </motion.button>
+          <motion.a 
             href="https://www.bcv.org.ve" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-background-elevated hover:bg-background-tertiary transition-colors"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <ExternalLink className="h-4 w-4 text-text-primary" />
-          </a>
+            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          </motion.a>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-4">
+      {/* Rates Grid */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
         {/* USD Rate */}
-        <div className="bg-background-elevated/50 rounded-xl p-3 border border-border-primary/50">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div 
+          className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-success-500/30 transition-all duration-200"
+          variants={fadeInUp}
+          whileHover={{ scale: 1.02 }}
+        >
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-text-primary">USD/VES</span>
+              <DollarSign className="h-4 w-4 text-success-500" />
+              <span className="text-ios-body font-medium text-foreground">USD/VES</span>
             </div>
             {trends?.usd ? renderTrendIcon(trends.usd) : (
               <div className="flex items-center space-x-1">
-                <Minus className="h-3 w-3 text-gray-500" />
-                <span className="text-xs text-gray-500">0%</span>
+                <Minus className="h-3 w-3 text-muted-foreground" />
+                <span className="text-ios-footnote text-muted-foreground">0%</span>
               </div>
             )}
           </div>
-          <p className="text-lg font-bold text-text-primary">Bs. {rates.usd.toFixed(2)}</p>
-          <p className="text-xs text-text-muted">por 1 USD</p>
-        </div>
+          <p className="text-2xl font-light text-foreground mb-1">Bs. {rates.usd.toFixed(2)}</p>
+          <p className="text-ios-caption text-muted-foreground">por 1 USD</p>
+        </motion.div>
 
         {/* EUR Rate */}
-        <div className="bg-background-elevated/50 rounded-xl p-3 border border-border-primary/50">
-          <div className="flex items-center justify-between mb-2">
+        <motion.div 
+          className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-blue-500/30 transition-all duration-200"
+          variants={fadeInUp}
+          whileHover={{ scale: 1.02 }}
+        >
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <Euro className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-text-primary">EUR/VES</span>
+              <span className="text-ios-body font-medium text-foreground">EUR/VES</span>
             </div>
             {trends?.eur ? renderTrendIcon(trends.eur) : (
               <div className="flex items-center space-x-1">
-                <Minus className="h-3 w-3 text-gray-500" />
-                <span className="text-xs text-gray-500">0%</span>
+                <Minus className="h-3 w-3 text-muted-foreground" />
+                <span className="text-ios-footnote text-muted-foreground">0%</span>
               </div>
             )}
           </div>
-          <p className="text-lg font-bold text-text-primary">Bs. {rates.eur.toFixed(2)}</p>
-          <p className="text-xs text-text-muted">por 1 EUR</p>
-        </div>
+          <p className="text-2xl font-light text-foreground mb-1">Bs. {rates.eur.toFixed(2)}</p>
+          <p className="text-ios-caption text-muted-foreground">por 1 EUR</p>
+        </motion.div>
       </div>
 
       {/* Currency Converter */}
       {showConverter && (
-        <div className="bg-background-elevated/50 rounded-xl p-4 border border-border-primary/50 mb-4">
+        <motion.div 
+          className="bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20 mb-6"
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          transition={{ duration: 0.3 }}
+        >
           <div className="flex items-center space-x-2 mb-4">
-            <Calculator className="h-4 w-4 text-accent-primary" />
-            <h4 className="font-medium text-text-primary">Conversión Rápida</h4>
+            <Calculator className="h-4 w-4 text-primary" />
+            <h4 className="text-ios-body font-medium text-foreground">Conversión Rápida</h4>
           </div>
           
           <div className="space-y-4">
             {/* Amount Input */}
             <div>
-              <label className="block text-sm font-medium text-text-muted mb-2">Cantidad</label>
+              <label className="block text-ios-caption font-medium text-muted-foreground mb-2">Cantidad</label>
               <input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="Ingresa el monto"
-                className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+                className="w-full px-4 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
               />
             </div>
             
-            {/* From Currency */}
+            {/* Currency Selection */}
             <div className="grid grid-cols-5 gap-2 items-center">
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-text-muted mb-2">De</label>
+                <label className="block text-ios-caption font-medium text-muted-foreground mb-2">De</label>
                 <select
                   value={fromCurrency}
                   onChange={(e) => setFromCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
-                  className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
                 >
                   <option value="USD">USD - Dólar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -254,21 +303,23 @@ export function BCVRates() {
               </div>
               
               <div className="flex justify-center">
-                <button
+                <motion.button
                   onClick={swapCurrencies}
-                  className="p-2 rounded-lg bg-accent-primary/20 hover:bg-accent-primary/30 transition-colors"
+                  className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200"
                   title="Intercambiar monedas"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <ArrowUpDown className="h-4 w-4 text-accent-primary" />
-                </button>
+                  <ArrowUpDown className="h-4 w-4 text-primary" />
+                </motion.button>
               </div>
               
               <div className="col-span-2">
-                <label className="block text-sm font-medium text-text-muted mb-2">A</label>
+                <label className="block text-ios-caption font-medium text-muted-foreground mb-2">A</label>
                 <select
                   value={toCurrency}
                   onChange={(e) => setToCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
-                  className="w-full px-3 py-2 bg-background-primary border border-border-primary rounded-lg text-text-primary focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
                 >
                   <option value="USD">USD - Dólar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -278,46 +329,47 @@ export function BCVRates() {
             </div>
             
             {/* Result */}
-            <div className="bg-accent-primary/10 rounded-lg p-3 border border-accent-primary/20">
+            <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
               <div className="text-center">
-                <p className="text-sm text-text-muted mb-1">Resultado</p>
-                <p className="text-2xl font-bold text-accent-primary">
+                <p className="text-ios-caption text-muted-foreground mb-1">Resultado</p>
+                <p className="text-3xl font-light text-primary">
                   {getCurrencySymbol(toCurrency)} {convertCurrency().toLocaleString('es-VE', { 
                     minimumFractionDigits: 2, 
                     maximumFractionDigits: 2 
                   })}
                 </p>
-                <p className="text-xs text-text-muted mt-1">
+                <p className="text-ios-footnote text-muted-foreground mt-1">
                   {amount} {fromCurrency} = {convertCurrency().toFixed(2)} {toCurrency}
                 </p>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
 
-      <div className="flex items-center justify-between text-xs text-text-muted">
-        <div className="flex items-center space-x-2">
+      {/* Footer */}
+      <div className="flex items-center justify-between text-ios-footnote text-muted-foreground">
+        <div className="flex items-center space-x-3">
           <div className="flex items-center space-x-1">
             <Clock className="h-3 w-3" />
             <span>Actualizado: {lastUpdated}</span>
           </div>
           {error && (
-            <span className="text-red-400 bg-red-500/20 px-2 py-1 rounded">
+            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg">
               {error}
             </span>
           )}
         </div>
         <div className="flex items-center space-x-2">
           {isLive && (
-            <span className="flex items-center space-x-1 text-green-500">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span>EN VIVO</span>
-            </span>
+            <div className="flex items-center space-x-1 text-success-500">
+              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+              <span className="font-medium">OFICIAL</span>
+            </div>
           )}
-          <span className="text-yellow-600">bcv.org.ve</span>
+          <span className="text-yellow-600 font-medium">bcv.org.ve</span>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

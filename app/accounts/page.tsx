@@ -413,15 +413,58 @@ export default function AccountsPage() {
             </motion.div>
           </motion.div>
 
-          {/* BCV Rates Widget - iOS Style */}
-          <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-              <h2 className="text-ios-title font-semibold text-foreground">Tasas BCV</h2>
+          {/* Exchange Rates Section - iOS Style */}
+          <motion.div 
+            className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h2 className="text-ios-large-title font-bold text-foreground tracking-tight">
+                  💱 Tasas de Cambio
+                </h2>
+              </div>
+              <motion.div
+                className="flex items-center space-x-2 bg-muted/20 rounded-xl px-3 py-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+              >
+                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
+              </motion.div>
             </div>
-            <BCVRates />
-            <BinanceRates />
-          </div>
+            
+            <p className="text-muted-foreground font-light mb-8 text-ios-body">
+              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
+            </p>
+
+            <div className="space-y-6">
+              <BCVRates />
+              <BinanceRates />
+            </div>
+
+            {/* Exchange Summary */}
+            <motion.div 
+              className="mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <div className="text-center text-ios-caption text-muted-foreground">
+                <p className="mb-1">
+                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno · 
+                  <strong className="ml-1">Binance:</strong> Mercado P2P en tiempo real
+                </p>
+                <p className="text-ios-footnote">
+                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
 
           {/* Accounts List - iOS Style */}
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl border border-border/40 shadow-lg overflow-hidden">
