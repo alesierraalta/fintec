@@ -115,109 +115,138 @@ export default function GoalsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Metas de Ahorro</h1>
-            <p className="text-gray-400">Define y sigue el progreso de tus objetivos financieros</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* iOS-style Header */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-ios-caption font-medium">Objetivos</span>
           </div>
-          <Button
-            onClick={handleNewGoal}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nueva Meta
-          </Button>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Total de Metas</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {totalGoals}
-                </p>
+          
+          <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-green-600 to-emerald-500 bg-clip-text text-transparent">
+            🎯 Metas de Ahorro
+          </h1>
+          <p className="text-muted-foreground font-light mb-6">
+            Define y sigue el progreso de tus objetivos financieros
+          </p>
+          
+          {/* Quick Actions Header */}
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <button
+              onClick={handleNewGoal}
+              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-ios-body"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+              <div className="relative flex items-center space-x-2">
+                <Plus className="h-5 w-5" />
+                <span>Nueva Meta</span>
               </div>
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <Target className="h-6 w-6 text-blue-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Completadas</p>
-                <p className="text-2xl font-bold text-green-400 mt-1">
-                  {completedGoals}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-green-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">En Progreso</p>
-                <p className="text-2xl font-bold text-blue-400 mt-1">
-                  {activeGoals}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-blue-400" />
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Vencidas</p>
-                <p className="text-2xl font-bold text-red-400 mt-1">
-                  {overdueGoals}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-red-400" />
-              </div>
-            </div>
+            </button>
           </div>
         </div>
 
-        {/* Overall Progress */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        {/* iOS-style Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL METAS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {totalGoals}
+            </p>
+            <div className="flex items-center space-x-2">
+              <Target className="h-4 w-4 text-blue-600" />
+              <span className="text-ios-footnote text-blue-600 font-medium">Objetivos</span>
+            </div>
+          </div>
+
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">COMPLETADAS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {completedGoals}
+            </p>
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <span className="text-ios-footnote text-green-600 font-medium">Logradas</span>
+            </div>
+          </div>
+
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">EN PROGRESO</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {activeGoals}
+            </p>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <span className="text-ios-footnote text-blue-600 font-medium">Activas</span>
+            </div>
+          </div>
+
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">VENCIDAS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {overdueGoals}
+            </p>
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <span className="text-ios-footnote text-red-600 font-medium">Retrasadas</span>
+            </div>
+          </div>
+        </div>
+
+        {/* iOS-style Overall Progress */}
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Progreso General</h2>
+          </div>
+          
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Progreso General</h3>
-            <span className="text-sm text-gray-400">
-              {Math.round(overallProgress)}% completado
+            <span className="text-ios-body text-muted-foreground">
+              Completado
+            </span>
+            <span className="text-ios-body font-medium text-foreground">
+              {Math.round(overallProgress)}%
             </span>
           </div>
           
-          <div className="w-full bg-gray-700 rounded-full h-4 mb-4">
+          <div className="w-full bg-muted/30 rounded-full h-3 mb-6 overflow-hidden">
             <div 
-              className="h-4 bg-gradient-to-r from-blue-500 to-green-500 rounded-full transition-all duration-300"
+              className="h-3 bg-gradient-to-r from-primary via-green-500 to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-inner"
               style={{ width: `${Math.min(overallProgress, 100)}%` }}
             />
           </div>
           
           <div className="grid grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Total Ahorrado</p>
-              <p className="text-2xl font-bold text-white">
+            <div className="text-center">
+              <p className="text-ios-caption text-muted-foreground mb-2 tracking-wide">TOTAL AHORRADO</p>
+              <p className="text-2xl font-light text-foreground">
                 {formatCurrency(totalSaved)}
               </p>
+              <div className="flex items-center justify-center space-x-1 mt-2">
+                <DollarSign className="h-4 w-4 text-green-600" />
+                <span className="text-ios-footnote text-green-600 font-medium">Acumulado</span>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-gray-400 mb-1">Meta Total</p>
-              <p className="text-2xl font-bold text-blue-400">
+            <div className="text-center">
+              <p className="text-ios-caption text-muted-foreground mb-2 tracking-wide">META TOTAL</p>
+              <p className="text-2xl font-light text-foreground">
                 {formatCurrency(totalTarget)}
               </p>
+              <div className="flex items-center justify-center space-x-1 mt-2">
+                <Target className="h-4 w-4 text-blue-600" />
+                <span className="text-ios-footnote text-blue-600 font-medium">Objetivo</span>
+              </div>
             </div>
           </div>
         </div>

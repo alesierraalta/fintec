@@ -42,11 +42,6 @@ export class FinanceDB extends Dexie {
     });
   }
 
-  async resetDatabase() {
-    await this.delete();
-    await this.open();
-  }
-
   // Initialize database with default data
   async initialize(): Promise<void> {
     let retryCount = 0;
@@ -72,12 +67,15 @@ export class FinanceDB extends Dexie {
       } catch (error) {
         
         // Check for specific error types that indicate database corruption or conflicts
-        const isIndexError = error.message?.includes('createIndex') || 
-                           error.message?.includes('already exists') ||
-                           error.message?.includes('ConstraintError') ||
-                           error.name === 'ConstraintError';
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorName = error instanceof Error ? error.name : '';
         
-        const isDatabaseClosedError = error.name === 'DatabaseClosedError';
+        const isIndexError = errorMessage.includes('createIndex') || 
+                           errorMessage.includes('already exists') ||
+                           errorMessage.includes('ConstraintError') ||
+                           errorName === 'ConstraintError';
+        
+        const isDatabaseClosedError = errorName === 'DatabaseClosedError';
         
         if ((isIndexError || isDatabaseClosedError) && retryCount < maxRetries - 1) {
           try {
@@ -164,7 +162,8 @@ export class FinanceDB extends Dexie {
     const defaultUser: User = {
       id: 'local-user',
       email: 'usuario@local.app',
-      fullName: 'Usuario Local',
+      name: 'Usuario Local',
+      baseCurrency: 'USD',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

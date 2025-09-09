@@ -144,6 +144,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 Recordar sesión
               </label>
             </div>
+            <button
+              type="button"
+              onClick={() => router.push('/auth/forgot-password')}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              disabled={loading}
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
           </div>
 
           <button

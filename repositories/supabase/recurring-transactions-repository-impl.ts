@@ -1,4 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
 import { RecurringTransactionsRepository } from '../contracts/recurring-transactions-repository';
 import { 
   RecurringTransaction, 
@@ -7,12 +6,12 @@ import {
   RecurringTransactionSummary,
   RecurringFrequency
 } from '@/types/recurring-transactions';
+import { supabase } from './client';
 
 export class SupabaseRecurringTransactionsRepository implements RecurringTransactionsRepository {
-  constructor(private supabase: ReturnType<typeof createClient>) {}
 
   async findByUserId(userId: string): Promise<RecurringTransaction[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('recurring_transactions')
       .select('*')
       .eq('user_id', userId)
@@ -26,7 +25,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async findById(id: string): Promise<RecurringTransaction | null> {
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('recurring_transactions')
       .select('*')
       .eq('id', id)
@@ -43,7 +42,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   async findDueForExecution(date?: string): Promise<RecurringTransaction[]> {
     const executionDate = date || new Date().toISOString().split('T')[0];
 
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('recurring_transactions')
       .select('*')
       .eq('is_active', true)
@@ -77,7 +76,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
       is_active: true
     };
 
-    const { data: result, error } = await this.supabase
+    const { data: result, error } = await supabase
       .from('recurring_transactions')
       .insert(insertData)
       .select()
@@ -108,7 +107,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
     if (data.endDate !== undefined) updateData.end_date = data.endDate;
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
 
-    const { data: result, error } = await this.supabase
+    const { data: result, error } = await supabase
       .from('recurring_transactions')
       .update(updateData)
       .eq('id', id)
@@ -123,7 +122,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await supabase
       .from('recurring_transactions')
       .delete()
       .eq('id', id);
@@ -134,7 +133,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async toggleActive(id: string, isActive: boolean): Promise<RecurringTransaction> {
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('recurring_transactions')
       .update({ is_active: isActive })
       .eq('id', id)
@@ -149,7 +148,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async getSummary(userId: string): Promise<RecurringTransactionSummary> {
-    const { data, error } = await this.supabase
+    const { data, error } = await supabase
       .from('recurring_transactions')
       .select('*')
       .eq('user_id', userId);
@@ -187,7 +186,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
     endDate?: string,
     name?: string
   ): Promise<RecurringTransaction> {
-    const { data, error } = await this.supabase.rpc('create_recurring_from_transaction', {
+    const { data, error } = await supabase.rpc('create_recurring_from_transaction', {
       transaction_id: transactionId,
       frequency,
       interval_count: intervalCount,
@@ -200,11 +199,15 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
     }
 
     // Fetch the created recurring transaction
-    return this.findById(data);
+    const recurringTransaction = await this.findById(data);
+    if (!recurringTransaction) {
+      throw new Error(`Failed to fetch created recurring transaction with id: ${data}`);
+    }
+    return recurringTransaction;
   }
 
   async updateNextExecution(id: string, nextDate: string): Promise<void> {
-    const { error } = await this.supabase
+    const { error } = await supabase
       .from('recurring_transactions')
       .update({ 
         next_execution_date: nextDate,

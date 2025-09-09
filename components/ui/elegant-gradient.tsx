@@ -320,7 +320,7 @@ export function GradientButton({
   glow = true,
   className,
   ...props
-}: Omit<ElegantGradientProps, 'type'> & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+}: Omit<ElegantGradientProps, 'type'> & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'type'>) {
   return (
     <ElegantGradient
       variant={variant}

@@ -40,7 +40,8 @@ export function getRepository(): AppRepository {
       repositoryInstance = createRepository('local');
     }
   }
-  return repositoryInstance;
+  // TypeScript assertion since we guarantee repositoryInstance is never null after the if block
+  return repositoryInstance!;
 }
 
 export function setRepository(repository: AppRepository): void {

@@ -37,7 +37,7 @@ export type FormState<T> = {
 };
 
 // UI component types
-export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ghost';
+export type ButtonVariant = 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'ghost' | 'outline';
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 export type AlertType = 'info' | 'success' | 'warning' | 'error';

@@ -7,7 +7,7 @@ import { TransactionType } from '@/types';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
-import type { Transaction, Account, Category } from '@/types/domain';
+import type { Transaction, Account, Category, CategoryKind } from '@/types/domain';
 import { 
   ArrowDownLeft, 
   ArrowUpRight, 

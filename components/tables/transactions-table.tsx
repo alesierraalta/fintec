@@ -52,6 +52,7 @@ interface Transaction {
   type: TransactionType;
   accountId: string;
   categoryId: string;
+  currencyCode: string;
   amount: number;
   description: string;
   date: string;

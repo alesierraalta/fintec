@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    const category = await repository.categories.update(body);
+    const category = await repository.categories.update(body.id, body);
     
     return NextResponse.json({
       success: true,

@@ -262,125 +262,200 @@ export default function TransactionsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Clean Minimal Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <h1 className="text-3xl font-bold text-white">
-              Transacciones
-            </h1>
+      <div className="space-y-8 animate-fade-in">
+        {/* iOS-style Header */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-ios-caption font-medium">Tus finanzas</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="secondary"
+          
+          <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+            💳 Transacciones
+          </h1>
+          <p className="text-muted-foreground font-light mb-6">
+            Controla todos tus ingresos y gastos
+          </p>
+          
+          {/* Quick Actions Header */}
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <button
               onClick={handleQuickAdd}
-              icon={<Plus className="h-4 w-4" />}
-              className="hidden sm:flex"
+              className="px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 bg-muted hover:bg-muted/80 text-muted-foreground hidden sm:flex"
             >
-              Agregar
-            </Button>
-            <Button
+              <Plus className="h-4 w-4" />
+              <span className="text-sm font-medium">Agregar</span>
+            </button>
+            
+            <button
               onClick={handleNewTransaction}
-              icon={<Sparkles className="h-4 w-4" />}
-              style={{ background: 'linear-gradient(to right, #10069f, #455cff)' }}
-              className="text-white border-none hover:opacity-90"
+              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
             >
-              Nueva
-            </Button>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+              <div className="relative flex items-center space-x-2">
+                <Sparkles className="h-5 w-5" />
+                <span>Nueva Transacción</span>
+              </div>
+            </button>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-6 min-w-0">
-            <h3 className="text-sm font-medium text-gray-400 mb-2 truncate">Total Ingresos</h3>
-            <p className="text-xl sm:text-2xl font-bold text-green-400 truncate">
+        {/* iOS-style Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL INGRESOS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
               ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
+            <div className="flex items-center space-x-2">
+              <ArrowDownLeft className="h-4 w-4 text-green-600" />
+              <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
+            </div>
           </div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-6 min-w-0">
-            <h3 className="text-sm font-medium text-gray-400 mb-2 truncate">Total Gastos</h3>
-            <p className="text-xl sm:text-2xl font-bold text-red-400 truncate">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL GASTOS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
               ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
+            <div className="flex items-center space-x-2">
+              <ArrowUpRight className="h-4 w-4 text-red-600" />
+              <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
+            </div>
           </div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-6 min-w-0">
-            <h3 className="text-sm font-medium text-gray-400 mb-2 truncate">Balance Neto</h3>
-            <p className={`text-xl sm:text-2xl font-bold truncate ${netAmount >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-              ${netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className={`w-2 h-2 ${netAmount >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE NETO</h3>
+            </div>
+            <p className={`text-3xl font-light mb-2 ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              ${Math.abs(netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </p>
+            <div className="flex items-center space-x-2">
+              {netAmount >= 0 ? (
+                <ArrowDownLeft className="h-4 w-4 text-green-600" />
+              ) : (
+                <ArrowUpRight className="h-4 w-4 text-red-600" />
+              )}
+              <span className={`text-ios-footnote font-medium ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {netAmount >= 0 ? 'Positivo' : 'Negativo'}
+              </span>
+            </div>
           </div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 sm:p-6 min-w-0">
-            <h3 className="text-sm font-medium text-gray-400 mb-2 truncate">Transacciones</h3>
-            <p className="text-xl sm:text-2xl font-bold text-white truncate">{filteredTransactions.length}</p>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TRANSACCIONES</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {filteredTransactions.length}
+            </p>
+            <div className="flex items-center space-x-2">
+              <Repeat className="h-4 w-4 text-blue-600" />
+              <span className="text-ios-footnote text-blue-600 font-medium">Total</span>
+            </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <TransactionFilters
-          onFiltersChange={handleFiltersChange}
-        />
+        {/* iOS-style Filters */}
+        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Filtros</h2>
+          </div>
+          <TransactionFilters
+            onFiltersChange={handleFiltersChange}
+          />
+        </div>
 
-        {/* Transactions List */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl overflow-visible">
-          <div className="p-6 border-b border-gray-800">
-            <h3 className="text-lg font-semibold text-white">
-              Todas las Transacciones ({filteredTransactions.length})
-            </h3>
+        {/* iOS-style Transactions List */}
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl border border-border/40 shadow-lg overflow-hidden">
+          <div className="p-6 border-b border-border/40">
+            <div className="flex items-center space-x-2">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              <h3 className="text-ios-title font-semibold text-foreground">
+                Todas las Transacciones ({filteredTransactions.length})
+              </h3>
+            </div>
           </div>
           
-          <div className="divide-y divide-gray-800 relative">
+          <div className="divide-y divide-border/40">
             {loading ? (
               <div className="p-8 text-center">
-                <p className="text-gray-400">Cargando transacciones...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground text-ios-body">✨ Cargando transacciones...</p>
               </div>
             ) : error ? (
               <div className="p-8 text-center">
-                <p className="text-red-400">{error}</p>
+                <p className="text-error-600 text-ios-body mb-4">❌ {error}</p>
+                <button 
+                  onClick={() => window.location.reload()}
+                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all duration-200 text-ios-body font-medium"
+                >
+                  🔄 Reintentar
+                </button>
               </div>
             ) : filteredTransactions.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-400 mb-4">No tienes transacciones aún</p>
-                <Button onClick={handleNewTransaction} icon={<Plus className="h-4 w-4" />}>
-                  Crear tu primera transacción
-                </Button>
+              <div className="p-12 text-center">
+                <div className="h-20 w-20 text-muted-foreground mx-auto mb-6">💳</div>
+                <h3 className="text-ios-title font-semibold text-foreground mb-3">
+                  🎯 ¡Comienza tu Gestión Financiera!
+                </h3>
+                <p className="text-muted-foreground text-ios-body mb-8 max-w-sm mx-auto leading-relaxed">
+                  Crea tu primera transacción para empezar a controlar tus ingresos y gastos
+                </p>
+                <button
+                  onClick={handleNewTransaction}
+                  className="text-white font-medium px-8 py-4 rounded-2xl shadow-lg transition-all duration-300 relative overflow-hidden group bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+                  <div className="relative flex items-center space-x-2">
+                    <Plus className="h-5 w-5" />
+                    <span>Crear Primera Transacción</span>
+                    <Sparkles className="h-4 w-4" />
+                  </div>
+                </button>
               </div>
             ) : (
               filteredTransactions.map((transaction) => (
-              <div key={transaction.id} className="p-4 sm:p-6 hover:bg-gray-800/50 transition-colors overflow-hidden">
+              <div key={transaction.id} className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40">
                 <div className="flex items-start justify-between min-w-0">
                   <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
-                    <div className="p-2 sm:p-3 bg-gray-800 rounded-lg flex-shrink-0">
+                    <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
                       {getIcon(transaction.type)}
                     </div>
                     <div className="flex-1 min-w-0 overflow-hidden">
-                      <h4 className="text-base sm:text-lg font-medium text-white truncate mb-1">{transaction.description || 'Sin descripción'}</h4>
+                      <h4 className="text-ios-body font-medium text-foreground truncate mb-2">{transaction.description || 'Sin descripción'}</h4>
                       
                       {/* Desktop info */}
-                      <div className="hidden sm:flex items-center space-x-2 text-sm text-gray-400 overflow-hidden">
+                      <div className="hidden sm:flex items-center space-x-2 text-ios-caption text-muted-foreground overflow-hidden">
                         <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                        <span className="flex-shrink-0">•</span>
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                         <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
-                        <span className="flex-shrink-0">•</span>
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                         <span className="truncate">{getAccountName(transaction.accountId)}</span>
-                        <span className="flex-shrink-0">•</span>
+                        <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                         <span className="flex-shrink-0">{transaction.date}</span>
                       </div>
                       
                       {/* Mobile info - stacked */}
-                      <div className="sm:hidden space-y-1 text-sm text-gray-400">
+                      <div className="sm:hidden space-y-1 text-ios-caption text-muted-foreground">
                         <div className="flex items-center space-x-2">
                           <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                          <span>•</span>
+                          <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                           <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <span className="truncate">{getAccountName(transaction.accountId)}</span>
-                          <span>•</span>
+                          <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                           <span className="flex-shrink-0">{transaction.date}</span>
                         </div>
                       </div>

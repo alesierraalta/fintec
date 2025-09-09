@@ -123,33 +123,52 @@ export default function BudgetsPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Presupuestos</h1>
-            <p className="text-gray-400">Controla tus gastos con presupuestos mensuales</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* iOS-style Header */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <span className="text-ios-caption font-medium">Planificación</span>
           </div>
-          <Button
-            onClick={handleNewBudget}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
-            <Plus className="h-5 w-5 mr-2" />
-            Nuevo Presupuesto
-          </Button>
+          
+          <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-transparent">
+            💰 Presupuestos
+          </h1>
+          <p className="text-muted-foreground font-light mb-6">
+            Controla tus gastos con presupuestos mensuales
+          </p>
+          
+          {/* Quick Actions Header */}
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            <button
+              onClick={handleNewBudget}
+              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+              <div className="relative flex items-center space-x-2">
+                <Plus className="h-5 w-5" />
+                <span>Nuevo Presupuesto</span>
+              </div>
+            </button>
+          </div>
         </div>
 
-        {/* Month Selector */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        {/* iOS-style Month Selector */}
+        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Período</h2>
+          </div>
+          
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Calendar className="h-5 w-5 text-blue-400" />
-              <span className="text-white font-medium">Período:</span>
+              <Calendar className="h-5 w-5 text-blue-600" />
+              <span className="text-foreground font-medium text-ios-body">Mes seleccionado:</span>
             </div>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-gray-800 border border-gray-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="bg-card border border-border/40 text-foreground rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-ios-body"
             >
               {monthOptions.map((month) => (
                 <option key={month.value} value={month.value}>
@@ -160,67 +179,63 @@ export default function BudgetsPage() {
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Total Presupuestado</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {formatCurrency(totalBudgeted)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                <TrendingUp className="h-6 w-6 text-blue-400" />
-              </div>
+        {/* iOS-style Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">PRESUPUESTADO</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {formatCurrency(totalBudgeted)}
+            </p>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-blue-600" />
+              <span className="text-ios-footnote text-blue-600 font-medium">Total planificado</span>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Total Gastado</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {formatCurrency(totalSpent)}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-red-500/20 rounded-lg flex items-center justify-center">
-                <TrendingDown className="h-6 w-6 text-red-400" />
-              </div>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTADO</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {formatCurrency(totalSpent)}
+            </p>
+            <div className="flex items-center space-x-2">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-ios-footnote text-red-600 font-medium">Gastado real</span>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Disponible</p>
-                <p className={`text-2xl font-bold mt-1 ${
-                  remaining >= 0 ? 'text-green-400' : 'text-red-400'
-                }`}>
-                  {formatCurrency(remaining)}
-                </p>
-              </div>
-              <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${
-                remaining >= 0 ? 'bg-green-500/20' : 'bg-red-500/20'
-              }`}>
-                <TrendingUp className={`h-6 w-6 ${
-                  remaining >= 0 ? 'text-green-400' : 'text-red-400'
-                }`} />
-              </div>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className={`w-2 h-2 ${remaining >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DISPONIBLE</h3>
+            </div>
+            <p className={`text-3xl font-light mb-2 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {formatCurrency(remaining)}
+            </p>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className={`h-4 w-4 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+              <span className={`text-ios-footnote font-medium ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {remaining >= 0 ? 'Disponible' : 'Sobrepasado'}
+              </span>
             </div>
           </div>
 
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-sm font-medium">Sobrepasados</p>
-                <p className="text-2xl font-bold text-white mt-1">
-                  {overBudgetCount}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                <AlertTriangle className="h-6 w-6 text-amber-400" />
-              </div>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">ALERTAS</h3>
+            </div>
+            <p className="text-3xl font-light text-foreground mb-2">
+              {overBudgetCount}
+            </p>
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <span className="text-ios-footnote text-amber-600 font-medium">Sobrepasados</span>
             </div>
           </div>
         </div>

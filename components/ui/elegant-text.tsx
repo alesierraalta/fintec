@@ -2,17 +2,17 @@
 
 import React from 'react'
 import { cn } from '@/lib/utils'
-import { typography } from '@/lib/typography/elegant'
+import typography from '@/lib/typography/elegant'
 
 interface ElegantTextProps {
   children: React.ReactNode
-  variant?: keyof typeof typography.scale
+  variant?: keyof typeof typography.typographyScale
   as?: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'p' | 'span' | 'div'
   color?: 'primary' | 'primary-muted' | 'primary-subtle' | 'secondary' | 'secondary-muted' | 'accent' | 'accent-muted'
   className?: string
   animate?: boolean
   gradient?: boolean
-  weight?: keyof typeof typography.weights
+  weight?: keyof typeof typography.fontWeights
 }
 
 const ElegantText = React.forwardRef<HTMLElement, ElegantTextProps>(

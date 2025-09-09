@@ -48,45 +48,60 @@ export default function SettingsPage() {
   return (
     <AuthGuard>
       <MainLayout>
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Configuración</h1>
-            <p className="text-gray-400">Personaliza tu experiencia y configuraciones</p>
+        <div className="space-y-8 animate-fade-in">
+          {/* iOS-style Header */}
+          <div className="text-center py-8">
+            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <span className="text-ios-caption font-medium">Sistema</span>
+            </div>
+            
+            <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-purple-600 to-indigo-500 bg-clip-text text-transparent">
+              ⚙️ Configuración
+            </h1>
+            <p className="text-muted-foreground font-light mb-6">
+              Personaliza tu experiencia y configuraciones
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Auto Backup Settings */}
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-blue-500/10 rounded-lg">
-                  <Shield className="h-6 w-6 text-blue-400" />
+            {/* iOS-style Auto Backup Settings */}
+            <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg">
+              <div className="flex items-center space-x-2 mb-6">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h2 className="text-ios-title font-semibold text-foreground">Respaldo Automático</h2>
+              </div>
+              
+              <div className="flex items-center space-x-4 mb-6">
+                <div className="p-3 bg-blue-500/10 rounded-2xl">
+                  <Shield className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Respaldo Automático</h3>
-                  <p className="text-sm text-gray-400">Configura respaldos automáticos de tus datos</p>
+                  <p className="text-ios-body text-muted-foreground">Configura respaldos automáticos de tus datos</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                {/* Enable/Disable */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-white">Activar respaldo automático</p>
-                    <p className="text-xs text-gray-400">Crear respaldos según la frecuencia configurada</p>
-                  </div>
-                  <button
-                    onClick={handleToggleAutoBackup}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      settings.enabled ? 'bg-blue-600' : 'bg-gray-600'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        settings.enabled ? 'translate-x-6' : 'translate-x-1'
+              <div className="space-y-6">
+                {/* iOS-style Enable/Disable */}
+                <div className="bg-muted/20 rounded-2xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-ios-body font-medium text-foreground">Activar respaldo automático</p>
+                      <p className="text-ios-caption text-muted-foreground mt-1">Crear respaldos según la frecuencia configurada</p>
+                    </div>
+                    <button
+                      onClick={handleToggleAutoBackup}
+                      className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 shadow-inner ${
+                        settings.enabled ? 'bg-primary shadow-primary/30' : 'bg-muted'
                       }`}
-                    />
-                  </button>
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform duration-300 shadow-md ${
+                          settings.enabled ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Frequency */}

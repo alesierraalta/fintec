@@ -146,7 +146,7 @@ export default function RecurringTransactionsPage() {
               No hay transacciones recurrentes
             </h3>
             <p className="text-gray-400 mb-6">
-              Crea una transacción y activa la opción "Recurrente" para automatizar tus finanzas.
+              Crea una transacción y activa la opción &quot;Recurrente&quot; para automatizar tus finanzas.
             </p>
             <button
               onClick={() => window.location.href = '/transactions/add'}

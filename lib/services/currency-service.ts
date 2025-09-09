@@ -22,9 +22,21 @@ export interface BCVRates {
   lastUpdated: string;
 }
 
+export interface BinanceRates {
+  usd_ves: number;
+  usdt_ves: number;
+  prices_used: number;
+  price_range: {
+    min: number;
+    max: number;
+  };
+  lastUpdated: string;
+}
+
 class CurrencyService {
   private static instance: CurrencyService;
   private bcvRates: BCVRates | null = null;
+  private binanceRates: BinanceRates | null = null;
   private cryptoPrices: Map<string, CryptoPrice> = new Map();
   private exchangeRates: Map<string, ExchangeRate> = new Map();
 
@@ -228,6 +240,75 @@ class CurrencyService {
     } catch (error) {
       return null;
     }
+  }
+
+  // Fetch Binance rates
+  async fetchBinanceRates(): Promise<BinanceRates> {
+    try {
+      const response = await fetch('/api/binance-rates', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        const rates: BinanceRates = {
+          usd_ves: result.data.usd_ves,
+          usdt_ves: result.data.usdt_ves,
+          prices_used: result.data.prices_used,
+          price_range: result.data.price_range,
+          lastUpdated: result.data.lastUpdated || new Date().toISOString()
+        };
+        
+        this.binanceRates = rates;
+        return rates;
+      } else {
+        // Use fallback data if API returns error but has fallback
+        if (result.fallback && result.data) {
+          const fallbackRates: BinanceRates = {
+            usd_ves: result.data.usd_ves,
+            usdt_ves: result.data.usdt_ves,
+            prices_used: result.data.prices_used,
+            price_range: result.data.price_range,
+            lastUpdated: result.data.lastUpdated || new Date().toISOString()
+          };
+          
+          this.binanceRates = fallbackRates;
+          return fallbackRates;
+        }
+        
+        throw new Error(result.error || 'Unknown error fetching Binance rates');
+      }
+    } catch (error) {
+      // Return cached rates if available
+      if (this.binanceRates) {
+        return this.binanceRates;
+      }
+      
+      // Last resort: hardcoded fallback
+      const fallbackRates: BinanceRates = {
+        usd_ves: 228.50,
+        usdt_ves: 228.50,
+        prices_used: 0,
+        price_range: { min: 228.50, max: 228.50 },
+        lastUpdated: new Date().toISOString()
+      };
+      
+      this.binanceRates = fallbackRates;
+      return fallbackRates;
+    }
+  }
+
+  // Get cached Binance rates
+  getBinanceRates(): BinanceRates | null {
+    return this.binanceRates;
   }
 
   // Get cached crypto price

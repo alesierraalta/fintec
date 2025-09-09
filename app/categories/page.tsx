@@ -206,132 +206,156 @@ export default function CategoriesPage() {
 
   return (
     <MainLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Categorías</h1>
-            <p className="text-gray-400">Organiza tus transacciones por categorías</p>
+      <div className="space-y-8 animate-fade-in">
+        {/* iOS-style Header */}
+        <div className="text-center py-8">
+          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+            <span className="text-ios-caption font-medium">Organización</span>
           </div>
-          <div className="flex items-center space-x-3">
-            <div className="flex bg-gray-800 rounded-lg p-1">
+          
+          <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-purple-600 to-blue-500 bg-clip-text text-transparent">
+            🏷️ Categorías
+          </h1>
+          <p className="text-muted-foreground font-light mb-6">
+            Organiza tus transacciones por categorías
+          </p>
+          
+          {/* Quick Actions Header */}
+          <div className="flex items-center justify-center space-x-4 mb-4">
+            {/* View Mode Toggle */}
+            <div className="flex bg-muted/20 rounded-2xl p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-3 rounded-xl transition-all duration-200 ${
                   viewMode === 'grid' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary text-white shadow-lg' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-md transition-colors ${
+                className={`p-3 rounded-xl transition-all duration-200 ${
                   viewMode === 'list' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'text-gray-400 hover:text-white'
+                    ? 'bg-primary text-white shadow-lg' 
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 <List className="h-4 w-4" />
               </button>
             </div>
-            <Button
+            
+            <button
               onClick={handleRefreshStats}
               disabled={loading}
-              variant="outline"
-              icon={<RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />}
+              className="px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 bg-muted hover:bg-muted/80 text-muted-foreground disabled:opacity-50"
             >
-              Actualizar
-            </Button>
-            <Button
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="text-sm font-medium">Actualizar</span>
+            </button>
+            
+            <button
               onClick={handleNewCategory}
-              icon={<Plus className="h-4 w-4" />}
+              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary text-ios-body"
             >
-              Nueva Categoría
-            </Button>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+              <div className="relative flex items-center space-x-2">
+                <Plus className="h-5 w-5" />
+                <span>Nueva Categoría</span>
+              </div>
+            </button>
           </div>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center space-x-3 mb-2">
-              <TrendingUp className="h-5 w-5 text-green-400" />
-              <h3 className="text-sm font-medium text-gray-400">Categorías de Ingresos</h3>
+        {/* iOS-style Summary Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS</h3>
             </div>
-            <p className="text-2xl font-bold text-white">{incomeCategories.length}</p>
-            <p className="text-sm text-green-400 mt-1">
-              Activas
-            </p>
+            <p className="text-3xl font-light text-foreground mb-2">{incomeCategories.length}</p>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-4 w-4 text-green-600" />
+              <span className="text-ios-footnote text-green-600 font-medium">Categorías activas</span>
+            </div>
           </div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center space-x-3 mb-2">
-              <TrendingDown className="h-5 w-5 text-red-400" />
-              <h3 className="text-sm font-medium text-gray-400">Categorías de Gastos</h3>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS</h3>
             </div>
-            <p className="text-2xl font-bold text-white">{expenseCategories.length}</p>
-            <p className="text-sm text-red-400 mt-1">
-              Activas
-            </p>
+            <p className="text-3xl font-light text-foreground mb-2">{expenseCategories.length}</p>
+            <div className="flex items-center space-x-2">
+              <TrendingDown className="h-4 w-4 text-red-600" />
+              <span className="text-ios-footnote text-red-600 font-medium">Categorías activas</span>
+            </div>
           </div>
           
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center space-x-3 mb-2">
-              <Filter className="h-5 w-5 text-blue-400" />
-              <h3 className="text-sm font-medium text-gray-400">Total Categorías</h3>
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+            <div className="flex items-center space-x-2 mb-4">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL</h3>
             </div>
-            <p className="text-2xl font-bold text-white">{categories.length}</p>
-            <p className="text-sm text-gray-400 mt-1">
-              Disponibles
-            </p>
+            <p className="text-3xl font-light text-foreground mb-2">{categories.length}</p>
+            <div className="flex items-center space-x-2">
+              <Filter className="h-4 w-4 text-purple-600" />
+              <span className="text-ios-footnote text-purple-600 font-medium">Disponibles</span>
+            </div>
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
+        {/* iOS-style Filters and Search */}
+        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Buscar y Filtrar</h2>
+          </div>
+          
           <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-            {/* Search */}
+            {/* iOS Search */}
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
                 placeholder="Buscar categorías..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-primary-600 focus:border-transparent"
+                className="w-full pl-12 pr-4 py-3 bg-card/80 border border-border/40 rounded-2xl text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
               />
             </div>
 
-            {/* Filter buttons */}
+            {/* iOS Filter buttons */}
             <div className="flex space-x-2">
               <button
                 onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-ios-caption font-medium transition-all duration-200 ${
                   filter === 'all' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                    ? 'bg-primary text-white shadow-lg' 
+                    : 'bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40'
                 }`}
               >
                 Todas ({categories.length})
               </button>
               <button
                 onClick={() => setFilter('income')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-ios-caption font-medium transition-all duration-200 ${
                   filter === 'income' 
-                    ? 'bg-green-600 text-white' 
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                    ? 'bg-green-600 text-white shadow-lg' 
+                    : 'bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40'
                 }`}
               >
                 Ingresos ({incomeCategories.length})
               </button>
               <button
                 onClick={() => setFilter('expense')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-ios-caption font-medium transition-all duration-200 ${
                   filter === 'expense' 
-                    ? 'bg-red-600 text-white' 
-                    : 'bg-gray-800 text-gray-400 hover:text-white'
+                    ? 'bg-red-600 text-white shadow-lg' 
+                    : 'bg-muted/20 text-muted-foreground hover:text-foreground hover:bg-muted/40'
                 }`}
               >
                 Gastos ({expenseCategories.length})

@@ -68,35 +68,50 @@ function ProfileContent() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="space-y-8"
         >
-          {/* Header */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
-            <div className="flex items-center space-x-6">
-              <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                <User className="h-10 w-10 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Mi Perfil</h1>
-                <p className="text-gray-600 mt-1">Gestiona tu información personal</p>
-              </div>
+          {/* iOS-style Header */}
+          <div className="text-center py-8">
+            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+              <span className="text-ios-caption font-medium">Cuenta</span>
             </div>
+            
+            <div className="w-24 h-24 bg-gradient-to-r from-primary to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <User className="h-12 w-12 text-white" />
+            </div>
+            
+            <h1 className="text-ios-large-title font-bold mb-4 tracking-tight bg-gradient-to-r from-primary via-indigo-600 to-purple-500 bg-clip-text text-transparent">
+              👤 Mi Perfil
+            </h1>
+            <p className="text-muted-foreground font-light mb-6">
+              Gestiona tu información personal
+            </p>
           </div>
 
-          {/* Profile Information */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          {/* iOS-style Profile Information */}
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-8 border border-border/40 shadow-lg">
+            <div className="flex items-center space-x-2 mb-8">
+              <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
+              <h2 className="text-ios-title font-semibold text-foreground">Información Personal</h2>
+            </div>
+            
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center space-x-3">
-                <Settings className="h-6 w-6 text-gray-500" />
-                <h2 className="text-xl font-semibold text-gray-900">Información Personal</h2>
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-indigo-500/10 rounded-2xl">
+                  <Settings className="h-6 w-6 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="text-ios-body text-muted-foreground">Edita tu perfil y datos personales</p>
+                </div>
               </div>
               {!isEditing && (
-                <Button
+                <button
                   onClick={() => setIsEditing(true)}
-                  variant="secondary"
-                  size="sm"
+                  className="px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 bg-primary/10 hover:bg-primary/20 text-primary font-medium text-ios-caption"
                 >
-                  Editar
-                </Button>
+                  <span>Editar</span>
+                </button>
               )}
             </div>
 

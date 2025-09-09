@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { MainLayout } from '@/components/layout/main-layout';
+import { TransactionType } from '@/types/domain';
 
 export default function DebugBalancePage() {
   const repository = useRepository();
@@ -67,7 +68,7 @@ export default function DebugBalancePage() {
           addLog('❌ El balance no cambió después del ajuste');
         }
       } catch (error) {
-        addLog(`❌ Error en ajuste de balance: ${error.message}`);
+        addLog(`❌ Error en ajuste de balance: ${error instanceof Error ? error.message : String(error)}`);
       }
       
       // 4. Verificar categorías
@@ -89,7 +90,7 @@ export default function DebugBalancePage() {
       addLog(`💰 Balance antes de transacción: ${balanceBeforeTransaction / 100}`);
       
       const testTransactionData = {
-        type: 'INCOME' as const,
+        type: TransactionType.INCOME,
         accountId: testAccount.id,
         categoryId: testCategory.id,
         currencyCode: testAccount.currencyCode,
@@ -123,14 +124,14 @@ export default function DebugBalancePage() {
         addLog(`💰 Balance final: ${finalBalance / 100}`);
         
       } catch (error) {
-        addLog(`❌ Error creando transacción: ${error.message}`);
+        addLog(`❌ Error creando transacción: ${error instanceof Error ? error.message : String(error)}`);
         console.error('Error completo:', error);
       }
       
       addLog('🏁 Diagnóstico completado');
       
     } catch (error) {
-      addLog(`❌ Error en diagnóstico: ${error.message}`);
+      addLog(`❌ Error en diagnóstico: ${error instanceof Error ? error.message : String(error)}`);
       console.error('Error completo:', error);
     } finally {
       setIsDebugging(false);
@@ -171,7 +172,7 @@ export default function DebugBalancePage() {
             ))}
             {debugLog.length === 0 && !isDebugging && (
               <div className="text-gray-400 text-sm">
-                Haz clic en "Ejecutar Diagnóstico" para comenzar...
+                Haz clic en &ldquo;Ejecutar Diagnóstico&rdquo; para comenzar...
               </div>
             )}
           </div>

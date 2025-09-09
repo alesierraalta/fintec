@@ -98,11 +98,13 @@ const AnimatedContainer = React.forwardRef<HTMLDivElement, AnimatedContainerProp
     return (
       <div
         ref={(node) => {
-          containerRef.current = node;
+          // Assign to our internal ref
+          (containerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          // Forward to the external ref
           if (typeof ref === 'function') {
             ref(node);
           } else if (ref) {
-            ref.current = node;
+            (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
           }
         }}
         className={cn(

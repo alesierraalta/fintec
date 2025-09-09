@@ -153,7 +153,7 @@ const FormContainer = React.forwardRef<HTMLElement, Omit<ElegantContainerProps, 
 )
 FormContainer.displayName = 'FormContainer'
 
-const FlowContainer = React.forwardRef<HTMLElement, Omit<ElegantContainerProps, 'variant' | 'flow'>>(
+const FlowContainer = React.forwardRef<HTMLElement, Omit<ElegantContainerProps, 'variant'> & { flow?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' }>(
   ({ flow = 'md', ...props }, ref) => (
     <ElegantContainer 
       ref={ref} 
