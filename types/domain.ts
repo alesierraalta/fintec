@@ -79,6 +79,7 @@ export interface Transaction {
   note?: string;
   tags?: string[];
   transferId?: string; // Links to Transfer if this is a transfer transaction
+  pending?: boolean; // Indicates if transaction is pending
   createdAt: string;
   updatedAt: string;
 }

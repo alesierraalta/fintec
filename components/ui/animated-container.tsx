@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
 interface AnimatedContainerProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -30,23 +30,26 @@ const AnimatedContainer = React.forwardRef<HTMLDivElement, AnimatedContainerProp
     const [hasAnimated, setHasAnimated] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    useEffect(() => {
-      const observer = new IntersectionObserver(
-        ([entry]) => {
-          if (entry.isIntersecting && (!once || !hasAnimated)) {
-            setIsVisible(true);
-            if (once) {
-              setHasAnimated(true);
-            }
-          } else if (!once && !entry.isIntersecting) {
-            setIsVisible(false);
-          }
-        },
-        {
-          threshold,
-          rootMargin: '50px'
+    // Memoized intersection observer callback
+    const intersectionCallback = useCallback(([entry]: IntersectionObserverEntry[]) => {
+      if (entry.isIntersecting && (!once || !hasAnimated)) {
+        setIsVisible(true);
+        if (once) {
+          setHasAnimated(true);
         }
-      );
+      } else if (!once && !entry.isIntersecting) {
+        setIsVisible(false);
+      }
+    }, [once, hasAnimated]);
+
+    // Memoized observer options
+    const observerOptions = useMemo(() => ({
+      threshold,
+      rootMargin: '50px'
+    }), [threshold]);
+
+    useEffect(() => {
+      const observer = new IntersectionObserver(intersectionCallback, observerOptions);
 
       const currentRef = containerRef.current;
       if (currentRef) {
@@ -58,18 +61,20 @@ const AnimatedContainer = React.forwardRef<HTMLDivElement, AnimatedContainerProp
           observer.unobserve(currentRef);
         }
       };
-    }, [threshold, once, hasAnimated]);
+    }, [intersectionCallback, observerOptions]);
 
-    const animationClasses = {
+    // Memoized animation classes
+    const animationClasses = useMemo(() => ({
       fadeInUp: 'animate-fade-in-up',
       fadeInDown: 'animate-fade-in-down',
       fadeInLeft: 'animate-fade-in-left',
       fadeInRight: 'animate-fade-in-right',
       scaleIn: 'animate-scale-in',
       slideInUp: 'animate-slide-in-up'
-    };
+    }), []);
 
-    const getStaggeredChildren = () => {
+    // Memoized staggered children
+    const staggeredChildren = useMemo(() => {
       if (!stagger || !React.Children.count(children)) {
         return children;
       }
@@ -93,7 +98,14 @@ const AnimatedContainer = React.forwardRef<HTMLDivElement, AnimatedContainerProp
         }
         return child;
       });
-    };
+    }, [stagger, children, isVisible, animationClasses, animation, delay, staggerDelay, duration]);
+
+    // Memoized container styles
+    const containerStyles = useMemo(() => ({
+      animationDelay: !stagger ? `${delay}ms` : undefined,
+      animationDuration: !stagger ? `${duration}ms` : undefined,
+      animationFillMode: !stagger ? 'both' : undefined
+    }), [stagger, delay, duration]);
 
     return (
       <div
@@ -111,14 +123,10 @@ const AnimatedContainer = React.forwardRef<HTMLDivElement, AnimatedContainerProp
           !stagger && isVisible && animationClasses[animation],
           className
         )}
-        style={{
-          animationDelay: !stagger ? `${delay}ms` : undefined,
-          animationDuration: !stagger ? `${duration}ms` : undefined,
-          animationFillMode: !stagger ? 'both' : undefined
-        }}
+        style={containerStyles}
         {...props}
       >
-        {stagger ? getStaggeredChildren() : children}
+        {stagger ? staggeredChildren : children}
       </div>
     );
   }

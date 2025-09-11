@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Repeat, Sparkles } from 'lucide-react';
-import { TransactionForm } from '@/components/forms/transaction-form';
+import { TransactionForm } from '@/components/forms';
 import { TransactionType } from '@/types';
 import { useModal } from '@/hooks';
 
@@ -22,9 +23,9 @@ export function QuickActions() {
       type: 'INCOME' as TransactionType,
       action: 'modal',
       priority: 1,
-      color: 'bg-primary/15 hover:bg-primary/25',
+      color: 'bg-primary/8 hover:bg-primary/15',
       iconColor: 'text-primary',
-      borderColor: 'border-primary/25 hover:border-primary/40',
+      borderColor: 'border-primary/15 hover:border-primary/25',
       shadowColor: 'hover:shadow-primary/10'
     },
     {
@@ -34,9 +35,9 @@ export function QuickActions() {
       type: 'EXPENSE' as TransactionType,
       action: 'modal',
       priority: 2,
-      color: 'bg-neutral-500/15 hover:bg-neutral-500/25 dark:bg-neutral-400/15 dark:hover:bg-neutral-400/25',
+      color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
       iconColor: 'text-neutral-600 dark:text-neutral-400',
-      borderColor: 'border-neutral-500/25 hover:border-neutral-500/40 dark:border-neutral-400/25 dark:hover:border-neutral-400/40',
+      borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
       shadowColor: 'hover:shadow-gray-500/10'
     },
     {
@@ -47,9 +48,9 @@ export function QuickActions() {
       action: 'navigate',
       route: '/transactions/add',
       priority: 3,
-      color: 'bg-primary/15 hover:bg-primary/25',
+      color: 'bg-primary/8 hover:bg-primary/15',
       iconColor: 'text-primary',
-      borderColor: 'border-primary/25 hover:border-primary/40',
+      borderColor: 'border-primary/15 hover:border-primary/25',
       shadowColor: 'hover:shadow-primary/10'
     },
     {
@@ -60,9 +61,9 @@ export function QuickActions() {
       action: 'navigate',
       route: '/transfers',
       priority: 4,
-      color: 'bg-neutral-500/15 hover:bg-neutral-500/25 dark:bg-neutral-400/15 dark:hover:bg-neutral-400/25',
+      color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
       iconColor: 'text-neutral-600 dark:text-neutral-400',
-      borderColor: 'border-neutral-500/25 hover:border-neutral-500/40 dark:border-neutral-400/25 dark:hover:border-neutral-400/40',
+      borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
       shadowColor: 'hover:shadow-neutral-500/10 dark:hover:shadow-neutral-400/10'
     },
   ];
@@ -112,11 +113,13 @@ export function QuickActions() {
         ))}
       </div>
 
-      <TransactionForm
-        isOpen={isOpen}
-        onClose={closeModal}
-        type={selectedTransactionType}
-      />
+      <Suspense fallback={<FormLoading />}>
+        <TransactionForm
+          isOpen={isOpen}
+          onClose={closeModal}
+          type={selectedTransactionType}
+        />
+      </Suspense>
     </>
   );
 }

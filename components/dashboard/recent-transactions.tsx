@@ -1,28 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
+import { useMemo } from 'react';
+import { useOptimizedTransactions } from '@/hooks/use-optimized-data';
 import { 
   ArrowDownLeft, ArrowUpRight, Repeat, ShoppingCart, Car, Coffee, 
   Briefcase, CreditCard, Wallet, TrendingUp, Calendar, MapPin
 } from 'lucide-react';
 
 export function RecentTransactions() {
-  const repository = useRepository();
-  const { user } = useAuth();
-  const [transactions, setTransactions] = useState<any[]>([]);
+  const { transactions, loading } = useOptimizedTransactions();
 
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (!user) return;
-      try {
-        const allTransactions = await repository.transactions.findAll();
-        setTransactions(allTransactions.slice(0, 5)); // Solo los últimos 5
-      } catch (error) {
-        setTransactions([]);
-      }
-    };
-    loadTransactions();
-  }, [user, repository]);
+  // Memoized recent transactions (last 5)
+  const recentTransactions = useMemo(() => {
+    return transactions
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 5);
+  }, [transactions]);
 
   const formatAmount = (amount: number) => {
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
@@ -91,7 +82,18 @@ export function RecentTransactions() {
     }
   };
 
-  if (transactions.length === 0) {
+  if (loading) {
+    return (
+      <div className="text-center py-12">
+        <div className="w-12 h-12 bg-muted/20 rounded-full mx-auto mb-6 flex items-center justify-center backdrop-blur-sm animate-pulse">
+          <Wallet className="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p className="text-ios-body text-muted-foreground">Cargando transacciones...</p>
+      </div>
+    );
+  }
+
+  if (recentTransactions.length === 0) {
     return (
       <div className="text-center py-12">
         <div className="w-12 h-12 bg-muted/20 rounded-full mx-auto mb-6 flex items-center justify-center backdrop-blur-sm">
@@ -105,7 +107,7 @@ export function RecentTransactions() {
 
   return (
     <div className="space-y-1">
-      {transactions.map((transaction, index) => {
+      {recentTransactions.map((transaction, index) => {
         const amount = (transaction.amountMinor || 0) / 100;
         const typeInfo = getTypeInfo(transaction.type, amount);
 

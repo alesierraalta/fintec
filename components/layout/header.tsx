@@ -1,7 +1,7 @@
 'use client';
 
 import { Bell, Search, Sparkles, Heart, Menu, X, User, LogOut } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -23,22 +23,8 @@ export function Header() {
   const repository = useRepository();
   const bcvRates = useBCVRates();
 
-  // Load notifications and balance when user is available
-  useEffect(() => {
-    if (user) {
-      loadNotifications();
-      loadTotalBalance();
-    }
-  }, [user]);
-
-  // Reload balance when BCV rates change
-  useEffect(() => {
-    if (user) {
-      loadTotalBalance();
-    }
-  }, [bcvRates]);
-
-  const loadTotalBalance = async () => {
+  // Memoized functions for better performance
+  const memoizedLoadTotalBalance = useCallback(async () => {
     if (!user) return;
     try {
       const accounts = await repository.accounts.findByUserId(user.id);
@@ -56,9 +42,9 @@ export function Header() {
     } catch (error) {
       setTotalBalance(0);
     }
-  };
+  }, [user, repository, bcvRates]);
 
-  const loadNotifications = async () => {
+  const memoizedLoadNotifications = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -74,17 +60,26 @@ export function Header() {
     } finally {
       setLoadingNotifications(false);
     }
-  };
+  }, [user, repository]);
 
-  const handleNotificationClick = async () => {
+  // Consolidated effect for loading data
+  useEffect(() => {
+    if (user) {
+      memoizedLoadNotifications();
+      memoizedLoadTotalBalance();
+    }
+  }, [user, memoizedLoadNotifications, memoizedLoadTotalBalance]);
+
+  // Memoized handlers
+  const handleNotificationClick = useCallback(async () => {
     if (!showNotifications) {
       // Load latest notifications when opening
-      await loadNotifications();
+      await memoizedLoadNotifications();
     }
     setShowNotifications(!showNotifications);
-  };
+  }, [showNotifications, memoizedLoadNotifications]);
 
-  const markNotificationAsRead = async (notificationId: string) => {
+  const markNotificationAsRead = useCallback(async (notificationId: string) => {
     try {
       await repository.notifications.markAsRead(notificationId);
       // Update local state
@@ -94,9 +89,9 @@ export function Header() {
       setNotificationCount(prev => Math.max(0, prev - 1));
     } catch (error) {
     }
-  };
+  }, [repository]);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -105,17 +100,27 @@ export function Header() {
       setNotificationCount(0);
     } catch (error) {
     }
-  };
+  }, [user, repository]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await signOut();
     router.push('/auth/login');
-  };
+  }, [signOut, router]);
 
-  const handleProfile = () => {
+  const handleProfile = useCallback(() => {
     router.push('/profile');
     setShowUserMenu(false);
-  };
+  }, [router]);
+
+  // Memoized formatted balance for display
+  const formattedBalance = useMemo(() => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(totalBalance);
+  }, [totalBalance]);
 
   if (isMobile) {
     // Mobile App Header - Native-like

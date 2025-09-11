@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { StatCard } from './stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
-import { SpendingChart } from './spending-chart';
+import { LazySpendingChart } from './lazy-spending-chart';
 import { AccountsOverview } from './accounts-overview';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { 
@@ -22,85 +21,68 @@ import {
 } from 'lucide-react';
 
 export function DesktopDashboard() {
-  const repository = useRepository();
-  const { user } = useAuth();
+  const { accounts: rawAccounts, transactions: rawTransactions } = useOptimizedData();
   const bcvRates = useBCVRates();
-  const [totalBalance, setTotalBalance] = useState(0);
-  const [monthlyIncome, setMonthlyIncome] = useState(0);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(0);
-  const [previousMonthIncome, setPreviousMonthIncome] = useState(0);
-  const [previousMonthExpenses, setPreviousMonthExpenses] = useState(0);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      try {
-        // Cargar balance total (con conversión BCV como header)
-        const accounts = await repository.accounts.findByUserId(user.id);
-        const total = accounts.reduce((sum, acc) => {
-          const balanceMinor = Number(acc.balance) || 0;
-          const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-          
-          // Apply BCV conversion for VES currency (same as header)
-          if (acc.currencyCode === 'VES') {
-            return sum + (balanceMajor / bcvRates.usd);
-          }
-          return sum + balanceMajor;
-        }, 0);
-        setTotalBalance(total);
-
-        // Cargar transacciones del mes actual y anterior
-        const transactions = await repository.transactions.findAll();
-        const now = new Date();
-        const thisMonth = now.getMonth();
-        const thisYear = now.getFullYear();
-        
-        // Transacciones del mes actual
-        const monthTransactions = transactions.filter(t => {
-          const date = new Date(t.date);
-          return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-        });
-
-        // Transacciones del mes anterior
-        const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-        const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
-        const lastMonthTransactions = transactions.filter(t => {
-          const date = new Date(t.date);
-          return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
-        });
-
-        // Calcular ingresos y gastos actuales
-        const income = monthTransactions
-          .filter(t => t.type === 'INCOME')
-          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-        
-        const expenses = monthTransactions
-          .filter(t => t.type === 'EXPENSE')
-          .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
-
-        // Calcular ingresos y gastos del mes anterior
-        const prevIncome = lastMonthTransactions
-          .filter(t => t.type === 'INCOME')
-          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-        
-        const prevExpenses = lastMonthTransactions
-          .filter(t => t.type === 'EXPENSE')
-          .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
-
-        setMonthlyIncome(income);
-        setMonthlyExpenses(expenses);
-        setPreviousMonthIncome(prevIncome);
-        setPreviousMonthExpenses(prevExpenses);
-      } catch (error) {
-        setTotalBalance(0);
-        setMonthlyIncome(0);
-        setMonthlyExpenses(0);
-        setPreviousMonthIncome(0);
-        setPreviousMonthExpenses(0);
+  // Memoized total balance calculation
+  const totalBalance = useMemo(() => {
+    return rawAccounts.reduce((sum, acc) => {
+      const balanceMinor = Number(acc.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+      
+      // Apply BCV conversion for VES currency (same as header)
+      if (acc.currencyCode === 'VES') {
+        return sum + (balanceMajor / bcvRates.usd);
       }
+      return sum + balanceMajor;
+    }, 0);
+  }, [rawAccounts, bcvRates.usd]);
+
+  // Memoized monthly calculations
+  const { monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = useMemo(() => {
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    const thisYear = now.getFullYear();
+    
+    // Transacciones del mes actual
+    const monthTransactions = rawTransactions.filter(t => {
+      const date = new Date(t.date);
+      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
+    });
+
+    // Transacciones del mes anterior
+    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
+    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+    const lastMonthTransactions = rawTransactions.filter(t => {
+      const date = new Date(t.date);
+      return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
+    });
+
+    // Calcular ingresos y gastos actuales
+    const income = monthTransactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    
+    const expenses = monthTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
+
+    // Calcular ingresos y gastos del mes anterior
+    const prevIncome = lastMonthTransactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    
+    const prevExpenses = lastMonthTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
+
+    return {
+      monthlyIncome: income,
+      monthlyExpenses: expenses,
+      previousMonthIncome: prevIncome,
+      previousMonthExpenses: prevExpenses
     };
-    loadData();
-  }, [user, repository]);
+  }, [rawTransactions]);
 
   // Calcular porcentajes de cambio
   const calculatePercentageChange = (current: number, previous: number) => {
@@ -181,7 +163,7 @@ export function DesktopDashboard() {
               <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">¿En Qué Gastas?</h2>
             </div>
-            <SpendingChart />
+            <LazySpendingChart />
           </div>
         </div>
 

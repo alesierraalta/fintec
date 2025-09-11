@@ -1,12 +1,12 @@
 'use client';
 
 import { MainLayout } from '@/components/layout/main-layout';
-import { ReportsContent } from '@/components/reports/reports-content';
+import { LazyReportsContent } from '@/components/reports/lazy-reports-content';
 
 export default function ReportsPage() {
   return (
     <MainLayout>
-      <ReportsContent />
+      <LazyReportsContent />
     </MainLayout>
   );
 }

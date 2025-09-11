@@ -31,10 +31,12 @@ import {
   Sparkles,
   Target,
   Award,
-  Star
+  Star,
+  History
 } from 'lucide-react';
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRates } from '@/components/currency/binance-rates';
+import { RatesHistory } from '@/components/currency/rates-history';
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
@@ -101,6 +103,7 @@ export default function AccountsPage() {
   const repository = useRepository();
   const bcvRates = useBCVRates();
   const [showBalances, setShowBalances] = useState(true);
+  const [showRatesHistory, setShowRatesHistory] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
@@ -203,51 +206,52 @@ export default function AccountsPage() {
     <AuthGuard>
       <MainLayout>
         <div className="space-y-8 animate-fade-in">
-          {/* iOS-style Header */}
-          <div className="text-center py-8">
-            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
+          {/* iOS-style Header - Mobile Optimized */}
+          <div className="text-center py-4 px-4 sm:py-6 md:py-8">
+            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-3 sm:mb-4">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <span className="text-ios-caption font-medium">Tus finanzas</span>
             </div>
             
-            <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-ios-large-title font-bold mb-4 sm:mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent px-2">
               💼 Mis Cuentas
             </h1>
-            <p className="text-muted-foreground font-light mb-6">
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-4 sm:mb-6 px-4">
               Gestiona todas tus cuentas financieras
             </p>
             
-            {/* Quick Actions Header */}
+            {/* Quick Actions Header - Mobile Responsive */}
             <motion.div 
-              className="flex items-center justify-center space-x-4 mb-4"
+              className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4 px-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               <motion.button
-                className={`px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 ${
+                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm font-medium ${
                   showBalances 
                     ? 'bg-muted hover:bg-muted/80 text-muted-foreground' 
                     : 'bg-primary hover:bg-primary/90 text-white shadow-sm'
                 }`}
                 onClick={() => setShowBalances(!showBalances)}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 {showBalances ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                <span className="text-sm font-medium">{showBalances ? 'Ocultar' : 'Mostrar'}</span>
+                <span>{showBalances ? 'Ocultar Saldos' : 'Mostrar Saldos'}</span>
               </motion.button>
               
               <motion.button
-                className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"
+                className="relative w-full sm:w-auto px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"
                 onClick={handleNewAccount}
-                whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
+                whileTap={{ scale: 0.98 }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
-                <div className="relative flex items-center space-x-2">
+                <div className="relative flex items-center justify-center space-x-2">
                   <Plus className="h-5 w-5" />
-                  <span>Nueva Cuenta</span>
+                  <span className="hidden sm:inline">Nueva Cuenta</span>
+                  <span className="sm:hidden">Agregar Cuenta</span>
                   <Sparkles className="h-4 w-4" />
                 </div>
               </motion.button>
@@ -271,9 +275,9 @@ export default function AccountsPage() {
             )}
           </div>
 
-          {/* iOS-style Summary Cards */}
+          {/* iOS-style Summary Cards - Mobile First Responsive */}
           <motion.div 
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8"
             variants={{
               hidden: { opacity: 0 },
               show: {
@@ -284,9 +288,9 @@ export default function AccountsPage() {
             initial="hidden"
             animate="show"
           >
-            {/* Balance Total Card - iOS Style */}
+            {/* Balance Total Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -294,7 +298,7 @@ export default function AccountsPage() {
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
               </div>
-              <p className="text-3xl font-light text-foreground mb-2">
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 {showBalances ? (
                   <NumberTicker 
                     value={totalBalance} 
@@ -322,9 +326,9 @@ export default function AccountsPage() {
               )}
             </motion.div>
 
-            {/* Cuentas Activas Card - iOS Style */}
+            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -333,7 +337,7 @@ export default function AccountsPage() {
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
               </div>
               <div className="flex items-baseline space-x-2 mb-3">
-                <p className="text-3xl font-light text-foreground">
+                <p className="text-2xl sm:text-3xl font-light text-foreground">
                   <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
                 </p>
                 <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
@@ -352,9 +356,9 @@ export default function AccountsPage() {
               </div>
             </motion.div>
 
-            {/* Criptomonedas Card - iOS Style */}
+            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -362,7 +366,7 @@ export default function AccountsPage() {
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
               </div>
-              <p className="text-3xl font-light text-foreground mb-2">
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 <NumberTicker 
                   value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
                   isVisible={true} 
@@ -382,9 +386,9 @@ export default function AccountsPage() {
               )}
             </motion.div>
 
-            {/* Diversificación Card - iOS Style */}
+            {/* Diversificación Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -392,7 +396,7 @@ export default function AccountsPage() {
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
               </div>
-              <p className="text-3xl font-light text-foreground mb-2">
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 <NumberTicker 
                   value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
                   isVisible={true} 
@@ -413,22 +417,22 @@ export default function AccountsPage() {
             </motion.div>
           </motion.div>
 
-          {/* Exchange Rates Section - iOS Style */}
+          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
           <motion.div 
-            className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-ios-large-title font-bold text-foreground tracking-tight">
+                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
                   💱 Tasas de Cambio
                 </h2>
               </div>
               <motion.div
-                className="flex items-center space-x-2 bg-muted/20 rounded-xl px-3 py-2"
+                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
@@ -438,26 +442,43 @@ export default function AccountsPage() {
               </motion.div>
             </div>
             
-            <p className="text-muted-foreground font-light mb-8 text-ios-body">
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center sm:text-left px-2 sm:px-0">
               Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
             </p>
 
             <div className="space-y-6">
               <BCVRates />
               <BinanceRates />
+              
+              {/* History Button - Mobile Responsive */}
+              <motion.div
+                className="flex justify-center px-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <button
+                  onClick={() => setShowRatesHistory(true)}
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full sm:w-auto text-sm sm:text-base"
+                >
+                  <History className="h-4 w-4" />
+                  <span className="font-medium">Ver Historial y Calculadora</span>
+                </button>
+              </motion.div>
             </div>
 
-            {/* Exchange Summary */}
+            {/* Exchange Summary - Mobile Responsive */}
             <motion.div 
-              className="mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20"
+              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 sm:mx-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
             >
-              <div className="text-center text-ios-caption text-muted-foreground">
-                <p className="mb-1">
-                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno · 
-                  <strong className="ml-1">Binance:</strong> Mercado P2P en tiempo real
+              <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
+                <p className="mb-1 leading-relaxed">
+                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
+                  <span className="hidden sm:inline"> · </span>
+                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
                 </p>
                 <p className="text-ios-footnote">
                   Los precios pueden variar entre fuentes debido a las dinámicas del mercado
@@ -478,13 +499,13 @@ export default function AccountsPage() {
             <div className="divide-y divide-border/40">
               {loading ? (
                 <motion.div 
-                  className="p-8 text-center"
+                  className="p-6 sm:p-8 text-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                   <motion.p 
-                    className="text-muted-foreground text-ios-body"
+                    className="text-muted-foreground text-sm sm:text-ios-body"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
                   >
@@ -493,23 +514,23 @@ export default function AccountsPage() {
                 </motion.div>
               ) : error ? (
                 <motion.div 
-                  className="p-8 text-center"
+                  className="p-6 sm:p-8 text-center"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <p className="text-error-600 text-ios-body mb-4">❌ {error}</p>
+                  <p className="text-error-600 text-sm sm:text-ios-body mb-4">❌ {error}</p>
                   <motion.button 
                     onClick={loadAccounts}
-                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all duration-200 text-ios-body font-medium"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    className="px-4 sm:px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all duration-200 text-sm sm:text-ios-body font-medium w-full sm:w-auto"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     🔄 Reintentar
                   </motion.button>
                 </motion.div>
               ) : accounts.length === 0 ? (
                 <motion.div 
-                  className="p-12 text-center"
+                  className="p-8 sm:p-12 text-center"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.3 }}
@@ -519,10 +540,10 @@ export default function AccountsPage() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.5, type: "spring" }}
                   >
-                    <Wallet className="h-20 w-20 text-muted-foreground mx-auto mb-6" />
+                    <Wallet className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mx-auto mb-4 sm:mb-6" />
                   </motion.div>
                   <motion.h3 
-                    className="text-ios-title font-semibold text-foreground mb-3"
+                    className="text-lg sm:text-ios-title font-semibold text-foreground mb-3 px-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.7 }}
@@ -530,7 +551,7 @@ export default function AccountsPage() {
                     🎯 ¡Tu Viaje Financiero Comienza Aquí!
                   </motion.h3>
                   <motion.p 
-                    className="text-muted-foreground text-ios-body mb-8 max-w-sm mx-auto leading-relaxed"
+                    className="text-muted-foreground text-sm sm:text-ios-body mb-6 sm:mb-8 max-w-sm mx-auto leading-relaxed px-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.8 }}
@@ -539,12 +560,12 @@ export default function AccountsPage() {
                   </motion.p>
                   <motion.button
                     onClick={handleNewAccount}
-                    className="text-white font-medium px-8 py-4 rounded-2xl shadow-lg transition-all duration-300 relative overflow-hidden group bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
+                    className="text-white font-medium px-6 sm:px-8 py-3 sm:py-4 rounded-2xl shadow-lg transition-all duration-300 relative overflow-hidden group bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-sm sm:text-ios-body w-full max-w-xs mx-auto"
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 1 }}
-                    whileHover={{ scale: 1.05, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
                     <div className="relative flex items-center space-x-2">
@@ -562,35 +583,35 @@ export default function AccountsPage() {
                     return (
                       <motion.div 
                         key={account.id} 
-                        className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40"
+                        className="p-4 sm:p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ delay: index * 0.1 }}
                         whileHover={{ 
-                          scale: 1.01,
+                          scale: 1.005,
                           transition: { duration: 0.2 }
                         }}
                       >
                         <div className="flex items-center justify-between relative z-10">
-                          <div className="flex items-center space-x-4">
-                            <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200">
-                              <Icon className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
+                          <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                            <div className="p-2.5 sm:p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
+                              <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
                             </div>
-                            <div>
-                              <h4 className="text-ios-body font-medium text-foreground mb-1">{account.name}</h4>
-                              <div className="flex items-center space-x-2 text-ios-caption text-muted-foreground">
-                                <span>{account.type === 'BANK' ? 'Banco' : 
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-sm sm:text-ios-body font-medium text-foreground mb-1 truncate">{account.name}</h4>
+                              <div className="flex items-center flex-wrap gap-1 sm:gap-2 text-xs sm:text-ios-caption text-muted-foreground">
+                                <span className="truncate">{account.type === 'BANK' ? 'Banco' : 
                                        account.type === 'CARD' ? 'Tarjeta' :
                                        account.type === 'CASH' ? 'Efectivo' :
                                        account.type === 'SAVINGS' ? 'Ahorros' : 
                                        'Inversión'}</span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden sm:block"></div>
                                 <span className="text-primary font-medium">
                                   {account.currencyCode}
                                 </span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                <span className={account.active ? 'text-success-600' : 'text-error-600'}>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden sm:block"></div>
+                                <span className={`${account.active ? 'text-success-600' : 'text-error-600'} flex-shrink-0`}>
                                   {account.active ? 'Activa' : 'Inactiva'}
                                 </span>
                               </div>
@@ -598,16 +619,16 @@ export default function AccountsPage() {
                           </div>
                           
                           <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              <p className="text-ios-title font-light text-foreground">
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-sm sm:text-ios-title font-light text-foreground truncate">
                                 {showBalances 
                                   ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                                   : '••••••'
                                 }
                               </p>
-                              <div className="flex items-center justify-end space-x-2 mt-1">
+                              <div className="flex items-center justify-end space-x-1 sm:space-x-2 mt-1">
                                 {account.currencyCode === 'VES' && (
-                                  <span className="text-ios-footnote bg-warning-500/10 text-warning-600 px-2 py-1 rounded-lg font-medium">
+                                  <span className="text-xs sm:text-ios-footnote bg-warning-500/10 text-warning-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-medium">
                                     BCV
                                   </span>
                                 )}
@@ -617,28 +638,28 @@ export default function AccountsPage() {
                             <div className="relative">
                               <button 
                                 onClick={() => toggleDropdown(account.id)}
-                                className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200"
+                                className="p-1.5 sm:p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200 flex-shrink-0"
                               >
-                                <MoreVertical className="h-4 w-4" />
+                                <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </button>
                               
                               {openDropdown === account.id && (
-                                <div className="absolute right-0 mt-2 w-48 bg-card/90 backdrop-blur-xl border border-border/40 rounded-2xl shadow-lg z-10 overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-card/90 backdrop-blur-xl border border-border/40 rounded-2xl shadow-lg z-10 overflow-hidden">
                                   <button
                                     onClick={() => {
                                       handleEditAccount(account);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-4 py-3 text-left text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-3"
+                                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 sm:space-x-3"
                                   >
-                                    <Edit className="h-4 w-4" />
+                                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span>Editar cuenta</span>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteAccount(account)}
-                                    className="w-full px-4 py-3 text-left text-ios-body text-error-600 hover:bg-error-50/50 transition-colors flex items-center space-x-3"
+                                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm sm:text-ios-body text-error-600 hover:bg-error-50/50 transition-colors flex items-center space-x-2 sm:space-x-3"
                                   >
-                                    <Trash2 className="h-4 w-4" />
+                                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span>Eliminar cuenta</span>
                                   </button>
                                 </div>
@@ -660,6 +681,11 @@ export default function AccountsPage() {
           onClose={closeModal}
           onSuccess={handleAccountSaved}
           account={selectedAccount}
+        />
+        
+        <RatesHistory
+          isOpen={showRatesHistory}
+          onClose={() => setShowRatesHistory(false)}
         />
       </MainLayout>
     </AuthGuard>

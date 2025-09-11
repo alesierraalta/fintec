@@ -1,72 +1,58 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { TrendingUp, DollarSign, ShoppingCart, Car, Film, Zap, Heart, Package } from 'lucide-react';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
+import { useOptimizedTransactions } from '@/hooks/use-optimized-data';
 
-export function SpendingChart() {
-  const repository = useRepository();
-  const { user } = useAuth();
+function SpendingChartComponent() {
+  const { expenseTransactions, categories, loading } = useOptimizedTransactions();
   const [data, setData] = useState<any[]>([]);
-  const [totalSpending, setTotalSpending] = useState(0);
 
-  useEffect(() => {
-    const loadSpendingData = async () => {
-      if (!user) return;
-      try {
-        const [transactions, categories] = await Promise.all([
-          repository.transactions.findAll(),
-          repository.categories.findAll()
-        ]);
-        
-        const expenses = transactions.filter(t => t.type === 'EXPENSE');
-        const total = expenses.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-        setTotalSpending(total);
-        
-        if (expenses.length > 0) {
-          // Agrupar gastos por categoría
-          const categoryMap = new Map();
-          
-          expenses.forEach(expense => {
-            const category = categories.find(c => c.id === expense.categoryId);
-            const categoryName = category?.name || 'Sin categoría';
-            const amount = expense.amountMinor / 100;
-            
-            if (categoryMap.has(categoryName)) {
-              categoryMap.set(categoryName, categoryMap.get(categoryName) + amount);
-            } else {
-              categoryMap.set(categoryName, amount);
-            }
-          });
-          
-          // Convertir a array y ordenar por monto
-          const categoryData = Array.from(categoryMap.entries())
-            .map(([name, value]) => ({
-              name,
-              value,
-              percentage: total > 0 ? Math.round((value / total) * 100) : 0,
-              color: getCategoryColor(name),
-              icon: getCategoryIcon(name)
-            }))
-            .sort((a, b) => b.value - a.value)
-            .slice(0, 8); // Mostrar máximo 8 categorías
-          
-          setData(categoryData);
-        } else {
-          setData([]);
-        }
-      } catch (error) {
-        setData([]);
-        setTotalSpending(0);
+  // Memoized total spending calculation
+  const totalSpending = useMemo(() => {
+    return expenseTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+  }, [expenseTransactions]);
+
+  // Memoized spending data by category
+  const spendingData = useMemo(() => {
+    if (expenseTransactions.length === 0) return [];
+    
+    // Agrupar gastos por categoría
+    const categoryMap = new Map();
+    
+    expenseTransactions.forEach(expense => {
+      const category = categories.find(c => c.id === expense.categoryId);
+      const categoryName = category?.name || 'Sin categoría';
+      const amount = expense.amountMinor / 100;
+      
+      if (categoryMap.has(categoryName)) {
+        categoryMap.set(categoryName, categoryMap.get(categoryName) + amount);
+      } else {
+        categoryMap.set(categoryName, amount);
       }
-    };
-    loadSpendingData();
-  }, [user, repository]);
+    });
+    
+    // Convertir a array y ordenar por monto
+    return Array.from(categoryMap.entries())
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: totalSpending > 0 ? Math.round((value / totalSpending) * 100) : 0,
+        color: getCategoryColor(name),
+        icon: getCategoryIcon(name)
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Mostrar máximo 8 categorías
+  }, [expenseTransactions, categories, totalSpending]);
+
+  // Update data when spendingData changes
+  useEffect(() => {
+    setData(spendingData);
+  }, [spendingData]);
   
-  // Función para obtener colores por categoría - Paleta Minimalista
-  const getCategoryColor = (categoryName: string) => {
+  // Función memoizada para obtener colores por categoría - Paleta Minimalista
+  const getCategoryColor = useCallback((categoryName: string) => {
     const colors = {
       'Alimentación': '#0ea5e9',    // Primary Blue
       'Transporte': '#525252',     // Dark Gray
@@ -85,10 +71,10 @@ export function SpendingChart() {
       }
     }
     return colors.Otros;
-  };
+  }, []);
   
-  // Función para obtener iconos por categoría
-  const getCategoryIcon = (categoryName: string) => {
+  // Función memoizada para obtener iconos por categoría
+  const getCategoryIcon = useCallback((categoryName: string) => {
     const icons = {
       'Alimentación': ShoppingCart,
       'Transporte': Car,
@@ -107,7 +93,7 @@ export function SpendingChart() {
       }
     }
     return icons.Otros;
-  };
+  }, []);
   if (data.length === 0) {
     return (
       <div className="text-center py-12 bg-card/30 backdrop-blur-sm rounded-3xl border border-border/20">
@@ -229,3 +215,5 @@ export function SpendingChart() {
     </div>
   );
 }
+
+export const SpendingChart = memo(SpendingChartComponent);

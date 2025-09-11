@@ -1,65 +1,49 @@
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { CreditCard, Wallet, Banknote, TrendingUp } from 'lucide-react';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 
 export function AccountsOverview() {
-  const repository = useRepository();
-  const { user } = useAuth();
+  const { accounts: rawAccounts, loading } = useOptimizedData();
   const bcvRates = useBCVRates();
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [totalBalance, setTotalBalance] = useState(0);
 
-  useEffect(() => {
-    const loadAccounts = async () => {
-      if (!user) return;
-      try {
-        const userAccounts = await repository.accounts.findByUserId(user.id);
-        
-        // Mapear las cuentas para la UI
-        const formattedAccounts = userAccounts.map(account => {
-          const balanceMinor = Number(account.balance) || 0;
-          const balanceMajor = fromMinorUnits(balanceMinor, account.currencyCode);
-          
-          return {
-            id: account.id,
-            name: account.name,
-            type: account.type || 'Cuenta',
-            balance: `$${balanceMajor.toFixed(2)}`,
-            icon: account.type === 'CARD' ? CreditCard :
-                  account.type === 'CASH' ? Banknote : Wallet,
-            changeType: balanceMajor >= 0 ? 'positive' : 'negative',
-            change: balanceMajor >= 0 ? '+0.0%' : '0.0%',
-            active: account.active
-          };
-        });
-        
-        setAccounts(formattedAccounts);
-        
-        // Calcular balance total (con conversión BCV como header)
-        const total = userAccounts.reduce((sum, acc) => {
-          const balanceMinor = Number(acc.balance) || 0;
-          const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-          
-          // Apply BCV conversion for VES currency (same as header)
-          if (acc.currencyCode === 'VES') {
-            return sum + (balanceMajor / bcvRates.usd);
-          }
-          return sum + balanceMajor;
+  // Memoized formatted accounts
+  const { accounts, totalBalance } = useMemo(() => {
+    if (!rawAccounts.length) return { accounts: [], totalBalance: 0 };
+    
+    // Mapear las cuentas para la UI
+    const formattedAccounts = rawAccounts.map(account => {
+      const balanceMinor = Number(account.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, account.currencyCode);
+      
+      return {
+        id: account.id,
+        name: account.name,
+        type: account.type || 'Cuenta',
+        balance: `$${balanceMajor.toFixed(2)}`,
+        icon: account.type === 'CARD' ? CreditCard :
+              account.type === 'CASH' ? Banknote : Wallet,
+        changeType: balanceMajor >= 0 ? 'positive' : 'negative',
+        change: balanceMajor >= 0 ? '+0.0%' : '0.0%',
+        active: account.active
+      };
+    });
+    
+    // Calcular balance total (con conversión BCV como header)
+    const total = rawAccounts.reduce((sum, acc) => {
+      const balanceMinor = Number(acc.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+      
+      // Apply BCV conversion for VES currency (same as header)
+      if (acc.currencyCode === 'VES') {
+        return sum + (balanceMajor / bcvRates.usd);
+      }
+      return sum + balanceMajor;
         }, 0);
         
-        setTotalBalance(total);
-        
-      } catch (error) {
-        setAccounts([]);
-        setTotalBalance(0);
-      }
-    };
-    
-    loadAccounts();
-  }, [user, repository]);
+    return { accounts: formattedAccounts, totalBalance: total };
+  }, [rawAccounts, bcvRates.usd]);
 
   return (
     <div className="space-y-6">

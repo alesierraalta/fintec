@@ -82,7 +82,7 @@ export function BinanceRates() {
       transition={{ duration: 0.5, delay: 0.2 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 flex items-center justify-center border border-orange-500/20">
             <Zap className="h-5 w-5 text-orange-600" />
@@ -91,12 +91,12 @@ export function BinanceRates() {
             <h3 className="text-ios-title font-semibold text-foreground">Binance P2P</h3>
             <div className="flex items-center space-x-2">
               <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-success-500 animate-pulse' : 'bg-warning-500'}`}></div>
-              <p className="text-ios-caption text-muted-foreground tracking-wide">USD/VES EN TIEMPO REAL</p>
+              <p className="text-ios-caption text-muted-foreground tracking-wide text-xs sm:text-sm">USD/VES EN TIEMPO REAL</p>
             </div>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 self-start sm:self-auto">
           <motion.button
             onClick={fetchRates}
             disabled={loading}
@@ -106,21 +106,21 @@ export function BinanceRates() {
           >
             <RefreshCw className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ${loading ? 'animate-spin' : ''}`} />
           </motion.button>
-          <motion.a 
-            href="https://p2p.binance.com/es/trade/sell/USDT?fiat=VES&payment=all" 
-            target="_blank" 
-            rel="noopener noreferrer"
+          <motion.button
+            onClick={() => {
+              // Abrir directamente la página de P2P de Binance
+              window.open('https://p2p.binance.com/es', '_blank', 'noopener,noreferrer');
+            }}
             className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            title="Abrir Binance P2P directamente"
           >
             <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          </motion.a>
+          </motion.button>
         </div>
       </div>
 
       {/* Main Rates Grid */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* VENTA (Sell) - Precio más alto */}
         <motion.div 
           className="bg-gradient-to-br from-red-500/10 to-red-600/5 backdrop-blur-sm rounded-2xl p-4 border border-red-500/20 hover:border-red-500/30 transition-all duration-200"
@@ -185,7 +185,7 @@ export function BinanceRates() {
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        <div className="grid grid-cols-3 gap-4 text-center">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
           <div>
             <div className="flex items-center justify-center space-x-1 mb-2">
               <Target className="h-4 w-4 text-primary" />
@@ -218,9 +218,11 @@ export function BinanceRates() {
         transition={{ delay: 0.6 }}
       >
         <div className="text-center space-y-2">
-          <p className="text-ios-caption text-muted-foreground">
-            <strong className="text-red-500">VENTA:</strong> Si vendes USD, recibes esta cantidad en Bs. · 
-            <strong className="text-green-500 ml-1">COMPRA:</strong> Si compras USD, pagas esta cantidad en Bs.
+          <p className="text-ios-caption text-muted-foreground text-xs sm:text-sm leading-relaxed">
+            <strong className="text-red-500">VENTA:</strong> Si vendes USD, recibes esta cantidad en Bs.
+            <br className="sm:hidden" />
+            <span className="hidden sm:inline"> · </span>
+            <strong className="text-green-500 sm:ml-1">COMPRA:</strong> Si compras USD, pagas esta cantidad en Bs.
           </p>
           <div className="flex items-center justify-center space-x-2">
             <ArrowUpDown className="h-3 w-3 text-orange-500" />
@@ -232,26 +234,26 @@ export function BinanceRates() {
       </motion.div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-ios-footnote text-muted-foreground">
-        <div className="flex items-center space-x-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-ios-footnote text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           <div className="flex items-center space-x-1">
             <Clock className="h-3 w-3" />
-            <span>Actualizado: {lastUpdated}</span>
+            <span className="truncate text-xs sm:text-sm">Actualizado: {lastUpdated}</span>
           </div>
           {error && (
-            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg">
+            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg text-xs">
               {error}
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
           {isLive && (
             <div className="flex items-center space-x-1 text-success-500">
               <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-              <span className="font-medium">P2P LIVE</span>
+              <span className="font-medium text-xs sm:text-sm">P2P LIVE</span>
             </div>
           )}
-          <span className="text-orange-600 font-medium">Binance Venezuela</span>
+          <span className="text-orange-600 font-medium text-xs sm:text-sm">Binance Venezuela</span>
         </div>
       </div>
     </motion.div>

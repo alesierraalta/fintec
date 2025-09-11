@@ -1,5 +1,6 @@
 // Currency service for exchange rates and crypto prices
 import { bcvHistoryService, BCVTrend } from './bcv-history-service';
+import { binanceHistoryService, BinanceTrend } from './binance-history-service';
 
 export interface ExchangeRate {
   currency: string;
@@ -282,6 +283,14 @@ class CurrencyService {
         };
         
         this.binanceRates = rates;
+        
+        // Save to history
+        try {
+          await binanceHistoryService.saveRates(rates.usd_ves);
+        } catch (historyError) {
+          console.warn('Failed to save Binance rates to history:', historyError);
+        }
+        
         return rates;
       } else {
         // Use fallback data if API returns error but has fallback
@@ -344,6 +353,17 @@ class CurrencyService {
   // Get cached Binance rates
   getBinanceRates(): BinanceRates | null {
     return this.binanceRates;
+  }
+
+  // Get Binance trends
+  async getBinanceTrends(): Promise<{ usdVes: BinanceTrend } | null> {
+    try {
+      const trends = await binanceHistoryService.calculateTrends();
+      return { usdVes: trends };
+    } catch (error) {
+      console.error('Error getting Binance trends:', error);
+      return null;
+    }
   }
 
   // Get cached crypto price

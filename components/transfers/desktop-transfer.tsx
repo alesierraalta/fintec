@@ -176,7 +176,7 @@ export function DesktopTransfer() {
 
       {/* Main Transfer Form */}
       <div className="space-y-8">
-          <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+          <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
             <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-6">Seleccionar Cuentas</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -268,7 +268,7 @@ export function DesktopTransfer() {
 
           {/* Amount and Description */}
           {transferData.fromAccountId && transferData.toAccountId && (
-            <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+            <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
               <h2 className="text-2xl font-semibold text-neutral-900 dark:text-neutral-100 mb-6">Detalles de la Transferencia</h2>
               
               <div className="space-y-6">

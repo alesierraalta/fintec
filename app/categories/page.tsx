@@ -1,13 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
-import { useAuth } from '@/hooks/use-auth';
-import { useRepository } from '@/providers/repository-provider';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import type { Category } from '@/types';
 import { 
   Plus, 
@@ -35,96 +34,33 @@ import {
 
 export default function CategoriesPage() {
   const { isOpen, openModal, closeModal } = useModal();
-  const { user } = useAuth();
-  const repository = useRepository();
+  const { categories: rawCategories, transactions: rawTransactions } = useOptimizedData();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
 
-
-
-  // Helper function to enrich categories with transaction statistics
-  const enrichCategoriesWithStats = async (categories: Category[]) => {
-    const enrichedCategories = await Promise.all(
-      categories.map(async (category) => {
-        try {
-          const [transactionCount, totalAmount] = await Promise.all([
-            repository.categories.getUsageCount(category.id),
-            repository.transactions.getTotalByCategoryId(category.id)
-          ]);
-          
-          return {
-            ...category,
-            transactionCount,
-            totalAmount
-          };
-        } catch (error) {
-          console.error(`Error enriching category ${category.id}:`, error);
-          return {
-            ...category,
-            transactionCount: 0,
-            totalAmount: 0
-          };
-        }
-      })
-    );
+  // Memoized categories with transaction statistics
+  const categories = useMemo(() => {
+    if (!rawCategories || !rawTransactions) return [];
     
-    return enrichedCategories;
-  };
+    return rawCategories.map(category => {
+      const categoryTransactions = rawTransactions.filter(t => t.categoryId === category.id);
+      const transactionCount = categoryTransactions.length;
+      const totalAmount = categoryTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+      
+      return {
+        ...category,
+        transactionCount,
+        totalAmount
+      };
+    });
+  }, [rawCategories, rawTransactions]);
 
-  // Load categories from database
-  useEffect(() => {
-    const loadCategories = async () => {
-      if (!user) return;
-      try {
-        setLoading(true);
-        
-        let allCategories = await repository.categories.findAll();
-        
-        // If no categories exist, trigger migration
-        if (allCategories.length === 0) {
-          try {
-            const response = await fetch('/api/migrate-categories', { method: 'POST' });
-            const result = await response.json();
-            
-            // Reload categories after migration
-            allCategories = await repository.categories.findAll();
-          } catch (migrationError) {
-            setCategories([]);
-            return;
-          }
-        }
+  const loading = !rawCategories || !rawTransactions;
 
-        // Enrich categories with transaction statistics
-        const enrichedCategories = await enrichCategoriesWithStats(allCategories);
-        setCategories(enrichedCategories);
-        
-      } catch (error) {
-        console.error('Error loading categories:', error);
-        setCategories([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCategories();
-  }, [user, repository]);
 
-  // Auto-refresh when user navigates back to this page
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user && categories.length > 0) {
-        // Page became visible, refresh statistics
-        handleRefreshStats();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user, categories.length]);
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -150,43 +86,16 @@ export default function CategoriesPage() {
 
   const handleCategorySaved = () => {
     closeModal();
-    // Reload categories with statistics after creating/updating
-    const loadCategories = async () => {
-      if (!user) return;
-      try {
-        setLoading(true);
-        const allCategories = await repository.categories.findAll();
-        const enrichedCategories = await enrichCategoriesWithStats(allCategories);
-        setCategories(enrichedCategories);
-      } catch (error) {
-        console.error('Error reloading categories:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadCategories();
+    // Categories will be automatically updated via useOptimizedData
   };
 
   const handleViewCategory = (categoryId: string) => {
     // Aquí podrías navegar a una vista detallada
   };
 
-  const handleRefreshStats = async () => {
-    if (!user || loading) return;
-    
-    try {
-      setLoading(true);
-      const enrichedCategories = await enrichCategoriesWithStats(categories.map(cat => ({
-        ...cat,
-        transactionCount: undefined,
-        totalAmount: undefined
-      })));
-      setCategories(enrichedCategories);
-    } catch (error) {
-      console.error('Error refreshing category statistics:', error);
-    } finally {
-      setLoading(false);
-    }
+  const handleRefreshStats = () => {
+    // Statistics are automatically refreshed via memoization
+    // No manual refresh needed
   };
 
   // Filter categories

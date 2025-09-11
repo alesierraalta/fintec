@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useCallback, memo, Suspense } from 'react';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
-import { TransactionForm } from '@/components/forms/transaction-form';
+import { TransactionForm } from '@/components/forms';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
 import type { Transaction, TransactionType } from '@/types/domain';
 import { 
   Plus, 
@@ -25,63 +26,29 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
-  const { user } = useAuth();
+  const { transactions, accounts, categories, loading } = useOptimizedData();
   
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [filters, setFilters] = useState<{
+    search?: string;
+    type?: TransactionType;
+    accountId?: string;
+    categoryId?: string;
+    sortBy?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    amountMin?: string;
+    amountMax?: string;
+    tags?: string;
+  }>({});
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Load transactions from database
-  useEffect(() => {
-    const loadTransactions = async () => {
-      if (!user) {
-        setError('Usuario no autenticado');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Load all data in parallel
-        const [allTransactions, userAccounts, allCategories] = await Promise.all([
-          repository.transactions.findAll(),
-          repository.accounts.findByUserId(user.id),
-          repository.categories.findAll()
-        ]);
-        
-        setTransactions(allTransactions);
-        setFilteredTransactions(allTransactions);
-        setAccounts(userAccounts);
-        setCategories(allCategories);
-      } catch (err) {
-        setError('Error al cargar las transacciones');
-        setTransactions([]);
-        setFilteredTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadTransactions();
-  }, [user, repository]);
-
-  // Helper functions optimizadas (código mínimo)
-  const getAccountName = (id?: string) => accounts.find(a => a.id === id)?.name || 'Cuenta';
-  const getCategoryName = (id?: string) => categories.find(c => c.id === id)?.name || 'Categoría';
-  const formatAmount = (minor: number) => (minor / 100).toFixed(2);
-
-  // Handlers optimizados
-  const handleFiltersChange = (filters: any) => {
+  // Memoized filtered transactions
+  const filteredTransactionsMemo = useMemo(() => {
     let filtered = [...transactions];
 
     // Apply search filter
@@ -123,12 +90,12 @@ export default function TransactionsPage() {
 
     // Apply amount filters
     if (filters.amountMin) {
-      const minAmount = parseFloat(filters.amountMin) * 100; // Convert to minor units
+      const minAmount = parseFloat(filters.amountMin) * 100;
       filtered = filtered.filter(t => Math.abs(t.amountMinor) >= minAmount);
     }
     
     if (filters.amountMax) {
-      const maxAmount = parseFloat(filters.amountMax) * 100; // Convert to minor units
+      const maxAmount = parseFloat(filters.amountMax) * 100;
       filtered = filtered.filter(t => Math.abs(t.amountMinor) <= maxAmount);
     }
 
@@ -154,22 +121,49 @@ export default function TransactionsPage() {
             return Math.abs(b.amountMinor) - Math.abs(a.amountMinor);
           case 'amount_asc':
             return Math.abs(a.amountMinor) - Math.abs(b.amountMinor);
-          case 'description_asc':
-            return (a.description || '').localeCompare(b.description || '');
           default:
             return 0;
         }
       });
     }
 
-    setFilteredTransactions(filtered);
-  };
-  const handleNewTransaction = () => router.push('/transactions/add');
-  const handleQuickAdd = () => { setSelectedTransaction(null); openModal(); };
-  const handleEditTransaction = (t: Transaction) => { setSelectedTransaction(t); openModal(); };
-  const handleDeleteTransaction = (t: Transaction) => { setTransactionToDelete(t); setShowDeleteModal(true); };
+    return filtered;
+  }, [transactions, filters]);
 
-  const confirmDelete = async () => {
+  // Helper functions memoized
+  const getAccountName = useCallback((id?: string) => 
+    accounts.find(a => a.id === id)?.name || 'Cuenta', [accounts]
+  );
+  
+  const getCategoryName = useCallback((id?: string) => 
+    categories.find(c => c.id === id)?.name || 'Categoría', [categories]
+  );
+  
+  const formatAmount = useCallback((minor: number) => 
+    (minor / 100).toFixed(2), []
+  );
+
+  // Optimized filter handler
+  const handleFiltersChange = useCallback((newFilters: any) => {
+    setFilters(newFilters);
+  }, []);
+
+  // Update filteredTransactions when memoized value changes
+  useMemo(() => {
+    setFilteredTransactions(filteredTransactionsMemo);
+  }, [filteredTransactionsMemo]);
+
+  // Optimized sorting handler
+  const sortTransactions = useCallback((sortBy: string) => {
+    setFilters(prev => ({ ...prev, sortBy }));
+  }, []);
+
+  const handleNewTransaction = useCallback(() => router.push('/transactions/add'), [router]);
+  const handleQuickAdd = useCallback(() => { setSelectedTransaction(null); openModal(); }, [openModal]);
+  const handleEditTransaction = useCallback((t: Transaction) => { setSelectedTransaction(t); openModal(); }, [openModal]);
+  const handleDeleteTransaction = useCallback((t: Transaction) => { setTransactionToDelete(t); setShowDeleteModal(true); }, []);
+
+  const confirmDelete = useCallback(async () => {
     if (!transactionToDelete) return;
     
     try {
@@ -177,7 +171,6 @@ export default function TransactionsPage() {
       await repository.transactions.delete(transactionToDelete.id);
       
       // Update local state
-      setTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
       setFilteredTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
       
       // Close modal
@@ -188,31 +181,16 @@ export default function TransactionsPage() {
     } finally {
       setDeleting(false);
     }
-  };
+  }, [transactionToDelete, repository]);
 
-  const cancelDelete = () => setShowDeleteModal(false);
+  const cancelDelete = useCallback(() => setShowDeleteModal(false), []);
 
-  const handleTransactionUpdated = () => {
-    // Reload transactions AND accounts after transaction changes
-    const loadData = async () => {
-      try {
-        const allTransactions = await repository.transactions.findAll();
-        setTransactions(allTransactions);
-        setFilteredTransactions(allTransactions);
-        
-        // CRITICAL FIX: Also reload accounts to refresh balances
-        if (user) {
-          const userAccounts = await repository.accounts.findByUserId(user.id);
-          setAccounts(userAccounts);
-        }
-      } catch (err) {
-        console.error('Error reloading data after transaction update:', err);
-      }
-    };
-    loadData();
-  };
+  const handleTransactionUpdated = useCallback(() => {
+    // Update filtered transactions to reflect current data
+    setFilteredTransactions(transactions);
+  }, [transactions]);
 
-  const getIcon = (type: string) => {
+  const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
         return <ArrowDownLeft className="h-4 w-4" style={{ color: '#4ade80' }} />;
@@ -224,9 +202,9 @@ export default function TransactionsPage() {
       default:
         return <ArrowUpRight className="h-4 w-4 text-gray-400" />;
     }
-  };
+  }, []);
 
-  const getAmountColor = (type: string) => {
+  const getAmountColor = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
         return 'text-green-400';
@@ -238,9 +216,9 @@ export default function TransactionsPage() {
       default:
         return 'text-gray-400';
     }
-  };
+  }, []);
 
-  const getTypeLabel = (type: string) => {
+  const getTypeLabel = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
         return 'Ingreso';
@@ -253,12 +231,18 @@ export default function TransactionsPage() {
       default:
         return type;
     }
-  };
+  }, []);
 
-  // Cálculos optimizados (código mínimo)
-  const totalIncome = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-  const totalExpenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-  const netAmount = totalIncome - totalExpenses;
+  // Cálculos memoizados
+  const { totalIncome, totalExpenses, netAmount } = useMemo(() => {
+    const income = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    const expenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    return {
+      totalIncome: income,
+      totalExpenses: expenses,
+      netAmount: income - expenses
+    };
+  }, [filteredTransactions]);
 
   return (
     <MainLayout>
@@ -393,16 +377,6 @@ export default function TransactionsPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground text-ios-body">✨ Cargando transacciones...</p>
               </div>
-            ) : error ? (
-              <div className="p-8 text-center">
-                <p className="text-error-600 text-ios-body mb-4">❌ {error}</p>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all duration-200 text-ios-body font-medium"
-                >
-                  🔄 Reintentar
-                </button>
-              </div>
             ) : filteredTransactions.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="h-20 w-20 text-muted-foreground mx-auto mb-6">💳</div>
@@ -496,13 +470,15 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <TransactionForm
-        isOpen={isOpen}
-        onClose={closeModal}
-        transaction={selectedTransaction}
-        onSuccess={handleTransactionUpdated}
-        type={(selectedTransaction?.type || 'EXPENSE') as TransactionType}
-      />
+      <Suspense fallback={<FormLoading />}>
+        <TransactionForm
+          isOpen={isOpen}
+          onClose={closeModal}
+          transaction={selectedTransaction}
+          onSuccess={handleTransactionUpdated}
+          type={(selectedTransaction?.type || 'EXPENSE') as TransactionType}
+        />
+      </Suspense>
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && transactionToDelete && (

@@ -1,12 +1,13 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
 import { MobileNav } from './mobile-nav';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
-import { TransactionForm } from '@/components/forms/transaction-form';
+import { TransactionForm } from '@/components/forms';
 import { useModal } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
@@ -99,11 +100,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       )}
 
       {/* Transaction Form Modal */}
-      <TransactionForm
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        type={TransactionType.EXPENSE}
-      />
+      <Suspense fallback={<FormLoading />}>
+        <TransactionForm
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          type={TransactionType.EXPENSE}
+        />
+      </Suspense>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from './use-auth';
 import { useRepository } from '@/providers/repository-provider';
 import { BackupService } from '@/lib/services/backup-service';
@@ -144,7 +144,13 @@ export function useAutoBackup() {
     }
   }, [getSettings, saveSettings, requestNotificationPermission]);
 
-  // Check for due backups on mount and periodically
+  // Memoized current settings
+  const currentSettings = useMemo(() => getSettings(), [getSettings]);
+  
+  // Memoized backup due status
+  const backupDueStatus = useMemo(() => isBackupDue(currentSettings), [isBackupDue, currentSettings]);
+
+  // Consolidated effect for backup management
   useEffect(() => {
     if (!user) return;
 
@@ -156,11 +162,7 @@ export function useAutoBackup() {
       performAutoBackup();
     }, 60 * 60 * 1000); // 1 hour
 
-    return () => clearInterval(interval);
-  }, [user, performAutoBackup]);
-
-  // Check for due backups when the page becomes visible
-  useEffect(() => {
+    // Handle visibility change for immediate backup check
     const handleVisibilityChange = () => {
       if (!document.hidden && user) {
         // Small delay to ensure the page is fully loaded
@@ -169,14 +171,18 @@ export function useAutoBackup() {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [user, performAutoBackup]);
 
   return {
-    settings: getSettings(),
+    settings: currentSettings,
     updateSettings,
     performAutoBackup,
-    isBackupDue: isBackupDue(getSettings()),
+    isBackupDue: backupDueStatus,
     requestNotificationPermission,
   };
 }

@@ -8,7 +8,7 @@ let pythonCommand: string | null = null;
 let lastFallbackTime = 0;
 let lastSuccessfulData: any = null;
 let lastSuccessfulTime = 0;
-const FALLBACK_CACHE_DURATION = 3 * 60 * 1000; // 3 minutos
+const FALLBACK_CACHE_DURATION = 30 * 1000; // 30 segundos (reducido para debugging)
 const SUCCESS_CACHE_DURATION = 1 * 60 * 1000; // 1 minuto para datos exitosos (más frecuente que BCV)
 
 export async function GET() {
@@ -99,8 +99,14 @@ function runPythonScraper(): Promise<any> {
       return;
     }
     
-    // Si no, probar comandos en orden de probabilidad
-    const pythonCommands = ['python', 'python3', 'py'];
+    // Si no, probar comandos en orden de probabilidad (incluyendo rutas completas)
+    const pythonCommands = [
+      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
+      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python313\\python.exe',
+      'python', 
+      'python3', 
+      'py'
+    ];
     
     let currentCommand = 0;
     
@@ -130,8 +136,8 @@ function runPythonScraper(): Promise<any> {
 }
 
 function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (result: any) => void, onError: (error: Error) => void) {
-  const python = spawn(cmd, [scriptPath], {
-    timeout: 10000 // Timeout de 10 segundos para Binance
+  const python = spawn(cmd, [scriptPath, '--silent'], {
+    timeout: 30000 // Timeout de 30 segundos para Binance (aumentado)
   });
   
   let output = '';
@@ -146,19 +152,26 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
   });
   
   python.on('close', (code) => {
+    console.log(`Python process closed with code: ${code}`);
+    console.log(`Python stdout: ${output}`);
+    console.log(`Python stderr: ${errorOutput}`);
+    
     if (code === 0) {
       try {
         const result = JSON.parse(output);
         onSuccess(result);
       } catch (parseError) {
-        onError(new Error('Failed to parse Binance scraper output'));
+        console.error('Parse error:', parseError);
+        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+        onError(new Error(`Failed to parse Binance scraper output: ${errorMessage}`));
       }
     } else {
-      onError(new Error(`Python command failed with code ${code}`));
+      onError(new Error(`Python command failed with code ${code}. stderr: ${errorOutput}`));
     }
   });
   
   python.on('error', (error) => {
+    console.error('Python spawn error:', error);
     onError(error);
   });
   
@@ -168,7 +181,7 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
       python.kill();
       onError(new Error('Binance scraper timeout'));
     }
-  }, 10000);
+  }, 30000);
 }
 
 // Alternative endpoint for CORS-enabled requests

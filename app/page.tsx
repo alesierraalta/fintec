@@ -1,12 +1,12 @@
 import { MainLayout } from '@/components/layout/main-layout';
-import { DashboardContent } from '@/components/dashboard/dashboard-content';
+import { LazyDashboardContent } from '@/components/dashboard/lazy-dashboard-content';
 import { AuthGuard } from '@/components/auth/auth-guard';
 
 export default function HomePage() {
   return (
     <AuthGuard>
       <MainLayout>
-        <DashboardContent />
+        <LazyDashboardContent />
       </MainLayout>
     </AuthGuard>
   );

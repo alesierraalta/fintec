@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User, Session, AuthError, PostgrestError } from '@supabase/supabase-js';
 import { supabase } from '@/repositories/supabase/client';
 
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, userData?: any) => {
+  const signUp = useCallback(async (email: string, password: string, userData?: any) => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
@@ -127,9 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signIn = async (email: string, password: string, rememberMe: boolean = false) => {
+  const signIn = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       setLoading(true);
       
@@ -163,9 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -185,9 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const updateProfile = async (data: any) => {
+  const updateProfile = useCallback(async (data: any) => {
     try {
       setLoading(true);
       
@@ -217,8 +217,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
-  const resetPassword = async (email: string) => {
+  }, [user]);
+  const resetPassword = useCallback(async (email: string) => {
     try {
       setLoading(true);
       
@@ -232,9 +232,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     loading,
@@ -243,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     updateProfile,
     resetPassword
-  };
+  }), [user, session, loading, signUp, signIn, signOut, updateProfile, resetPassword]);
 
   return (
     <AuthContext.Provider value={value}>

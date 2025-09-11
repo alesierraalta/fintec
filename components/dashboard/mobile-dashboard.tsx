@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useMemo } from 'react';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { 
@@ -17,57 +16,47 @@ import {
 } from 'lucide-react';
 
 export function MobileDashboard() {
-  const repository = useRepository();
-  const { user } = useAuth();
+  const { accounts: rawAccounts, transactions: rawTransactions, loading } = useOptimizedData();
   const bcvRates = useBCVRates();
-  const [totalBalance, setTotalBalance] = useState(0);
-  const [monthlyIncome, setMonthlyIncome] = useState(0);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(0);
 
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      try {
-        const accounts = await repository.accounts.findByUserId(user.id);
-        const total = accounts.reduce((sum, acc) => {
-          const balanceMinor = Number(acc.balance) || 0;
-          const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-          
-          // Apply BCV conversion for VES currency (same as header)
-          if (acc.currencyCode === 'VES') {
-            return sum + (balanceMajor / bcvRates.usd);
-          }
-          return sum + balanceMajor;
-        }, 0);
-        setTotalBalance(total);
-
-        const transactions = await repository.transactions.findAll();
-        const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
-        
-        const monthTransactions = transactions.filter(t => {
-          const date = new Date(t.date);
-          return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-        });
-
-        const income = monthTransactions
-          .filter(t => t.type === 'INCOME')
-          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-        
-        const expenses = monthTransactions
-          .filter(t => t.type === 'EXPENSE')
-          .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-
-        setMonthlyIncome(income);
-        setMonthlyExpenses(expenses);
-      } catch (error) {
-        setTotalBalance(0);
-        setMonthlyIncome(0);
-        setMonthlyExpenses(0);
+  // Memoized total balance calculation
+  const totalBalance = useMemo(() => {
+    if (!rawAccounts.length) return 0;
+    
+    return rawAccounts.reduce((sum, acc) => {
+      const balanceMinor = Number(acc.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+      
+      // Apply BCV conversion for VES currency
+      if (acc.currencyCode === 'VES') {
+        return sum + (balanceMajor / bcvRates.usd);
       }
-    };
-    loadData();
-  }, [user, repository]);
+      return sum + balanceMajor;
+    }, 0);
+  }, [rawAccounts, bcvRates.usd]);
+
+  // Memoized monthly calculations
+  const { monthlyIncome, monthlyExpenses } = useMemo(() => {
+    if (!rawTransactions.length) return { monthlyIncome: 0, monthlyExpenses: 0 };
+    
+    const thisMonth = new Date().getMonth();
+    const thisYear = new Date().getFullYear();
+    
+    const monthTransactions = rawTransactions.filter(t => {
+      const date = new Date(t.date);
+      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
+    });
+
+    const income = monthTransactions
+      .filter(t => t.type === 'INCOME')
+      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    
+    const expenses = monthTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+
+    return { monthlyIncome: income, monthlyExpenses: expenses };
+  }, [rawTransactions]);
   
   return (
     <div className="space-y-6">

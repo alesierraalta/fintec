@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { PeriodSelector } from './period-selector';
-import { useRepository } from '@/providers/repository-provider';
-import { useAuth } from '@/hooks/use-auth';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { TimePeriod, formatDateForAPI } from '@/lib/dates/periods';
 import { 
   Filter, 
@@ -37,11 +36,8 @@ const sortOptions = [
 ];
 
 export function TransactionFilters({ onFiltersChange, className }: TransactionFiltersProps) {
-  const { user } = useAuth();
-  const repository = useRepository();
+  const { accounts: rawAccounts, categories: rawCategories } = useOptimizedData();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [accounts, setAccounts] = useState<any[]>([{ value: '', label: 'Todas las cuentas' }]);
-  const [categories, setCategories] = useState<any[]>([{ value: '', label: 'Todas las categorías' }]);
   const [filters, setFilters] = useState({
     search: '',
     accountId: '',
@@ -56,32 +52,16 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     sortBy: 'date_desc',
   });
 
-  // Load accounts and categories from database
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) return;
-      
-      try {
-        const [userAccounts, allCategories] = await Promise.all([
-          repository.accounts.findByUserId(user.id),
-          repository.categories.findAll()
-        ]);
+  // Memoized accounts and categories options
+  const accounts = useMemo(() => [
+    { value: '', label: 'Todas las cuentas' },
+    ...rawAccounts.map(acc => ({ value: acc.id, label: acc.name }))
+  ], [rawAccounts]);
 
-        setAccounts([
-          { value: '', label: 'Todas las cuentas' },
-          ...userAccounts.map(acc => ({ value: acc.id, label: acc.name }))
-        ]);
-
-        setCategories([
-          { value: '', label: 'Todas las categorías' },
-          ...allCategories.map(cat => ({ value: cat.id, label: cat.name }))
-        ]);
-      } catch (error) {
-      }
-    };
-
-    loadData();
-  }, [user, repository]);
+  const categories = useMemo(() => [
+    { value: '', label: 'Todas las categorías' },
+    ...rawCategories.map(cat => ({ value: cat.id, label: cat.name }))
+  ], [rawCategories]);
 
   const handleFilterChange = (key: string, value: string) => {
     const newFilters = { ...filters, [key]: value };

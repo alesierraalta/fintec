@@ -44,7 +44,7 @@ export function StatCard({
 
   return (
     <div className={cn(
-      'bg-card/90 backdrop-blur-xl border border-border/40 rounded-3xl p-6 hover:bg-card transition-ios hover:scale-[1.02] hover:shadow-ios-lg group cursor-pointer shadow-lg',
+      'bg-card/60 backdrop-blur-xl border border-border/20 rounded-3xl p-6 hover:bg-card/80 transition-ios hover:scale-[1.02] hover:shadow-ios-lg group cursor-pointer shadow-ios-sm',
       className
     )}>
       <div className="space-y-4">

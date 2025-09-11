@@ -184,7 +184,7 @@ export function MobileTransfer() {
           <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">Cuenta Origen</label>
           <div className="space-y-2">
             {loadingAccounts ? (
-              <div className="p-4 rounded-2xl border-2 border-white/20 bg-card/60 backdrop-blur-xl shadow-lg">
+              <div className="p-4 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
                 <p className="text-neutral-500 dark:text-neutral-400 text-center text-sm">Cargando cuentas...</p>
               </div>
             ) : error ? (
@@ -192,7 +192,7 @@ export function MobileTransfer() {
                 <p className="text-error-600 dark:text-error-400 text-center text-sm">{error}</p>
               </div>
             ) : accounts.length === 0 ? (
-              <div className="p-4 rounded-2xl border-2 border-white/20 bg-card/60 backdrop-blur-xl shadow-lg">
+              <div className="p-4 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800">
                 <p className="text-neutral-500 dark:text-neutral-400 text-center text-sm">No tienes cuentas disponibles</p>
               </div>
             ) : accounts.map((account) => (
@@ -202,7 +202,7 @@ export function MobileTransfer() {
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   transferData.fromAccountId === account.id
                     ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                    : 'border-white/20 bg-card/60 backdrop-blur-xl hover:border-neutral-300 dark:hover:border-neutral-600'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600'
                 }`}
                 disabled={transferData.toAccountId === account.id}
               >
@@ -248,7 +248,7 @@ export function MobileTransfer() {
                     className={`w-full p-4 rounded-2xl border-2 transition-all ${
                       transferData.toAccountId === account.id
                         ? 'border-success-500 dark:border-success-400 bg-success-50 dark:bg-success-900/20'
-                        : 'border-white/20 bg-card/60 backdrop-blur-xl hover:border-neutral-300 dark:hover:border-neutral-600'
+                        : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600'
                     }`}
                   >
                                     <div className="flex items-center justify-between">
@@ -291,7 +291,7 @@ export function MobileTransfer() {
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full pl-12 pr-4 py-4 rounded-xl bg-card/60 backdrop-blur-xl border border-white/20 shadow-lg text-neutral-900 dark:text-neutral-100 text-lg font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
+                className="w-full pl-12 pr-4 py-4 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 text-lg font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
               />
             </div>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
@@ -307,7 +307,7 @@ export function MobileTransfer() {
               onChange={(e) => setTransferData(prev => ({ ...prev, description: e.target.value }))}
               placeholder="Describe el motivo de la transferencia..."
               rows={3}
-              className="w-full p-4 rounded-xl bg-card/60 backdrop-blur-xl border border-white/20 shadow-lg text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors resize-none"
+              className="w-full p-4 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors resize-none"
             />
           </div>
         </div>
