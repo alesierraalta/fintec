@@ -56,14 +56,6 @@ export default function LandingPage() {
 
   const features = [
     {
-      icon: DollarSign,
-      title: "Tasas en Tiempo Real",
-      description: "Accede a las tasas oficiales del BCV y precios P2P de Binance actualizados al instante",
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
-      borderColor: "border-green-500/20"
-    },
-    {
       icon: BarChart3,
       title: "Gestión Completa",
       description: "Administra todas tus cuentas, transacciones y presupuestos desde una sola aplicación",
@@ -111,8 +103,8 @@ export default function LandingPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                MiAppFinanzas
+              <span className="text-xl font-bold text-white">
+                FinTec
               </span>
             </motion.div>
             
@@ -140,12 +132,7 @@ export default function LandingPage() {
             initial="hidden"
             animate={isVisible ? "show" : "hidden"}
           >
-            <motion.div variants={fadeInUp} className="mb-6">
-              <span className="inline-flex items-center space-x-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Sparkles className="h-4 w-4" />
-                <span>Tasas en Tiempo Real</span>
-              </span>
-            </motion.div>
+
             
             <motion.h1 
               variants={fadeInUp}
@@ -293,7 +280,7 @@ export default function LandingPage() {
               ¿Listo para tomar control de tus finanzas?
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Únete a miles de usuarios que ya confían en MiAppFinanzas
+              Únete a miles de usuarios que ya confían en FinTec
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -322,13 +309,13 @@ export default function LandingPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
                 <DollarSign className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                MiAppFinanzas
+              <span className="text-xl font-bold text-white">
+                FinTec
               </span>
             </div>
             
             <div className="text-muted-foreground text-center md:text-right">
-              <p>&copy; 2024 MiAppFinanzas. Todos los derechos reservados.</p>
+              <p>&copy; 2024 FinTec. Todos los derechos reservados.</p>
               <p className="text-sm mt-1">Tasas actualizadas en tiempo real desde fuentes oficiales</p>
             </div>
           </div>

@@ -135,7 +135,7 @@ export function Header() {
 
         {/* Center - App Title */}
         <div className="flex-1 text-center">
-          <h1 className="text-ios-headline text-foreground">Cashew</h1>
+          <h1 className="text-ios-headline font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">FinTec</h1>
         </div>
 
         {/* Right - Notifications */}
