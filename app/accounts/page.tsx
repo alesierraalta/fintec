@@ -206,19 +206,103 @@ export default function AccountsPage() {
     <AuthGuard>
       <MainLayout>
         <div className="space-y-8 animate-fade-in">
-          {/* iOS-style Header - Mobile Optimized */}
-          <div className="text-center py-4 px-4 sm:py-6 md:py-8">
-            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-3 sm:mb-4">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <span className="text-ios-caption font-medium">Tus finanzas</span>
-            </div>
+          {/* iOS-style Header - Enhanced Mobile Optimized */}
+          <div className="text-center py-6 px-4 sm:py-8 md:py-10">
+            {/* Status Indicator with Enhanced Animation */}
+            <motion.div 
+              className="inline-flex items-center space-x-3 text-muted-foreground mb-4 sm:mb-6"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+            >
+              <div className="relative">
+                <div className="w-3 h-3 bg-gradient-to-r from-primary to-blue-500 rounded-full animate-pulse shadow-lg shadow-primary/30"></div>
+                <div className="absolute inset-0 w-3 h-3 bg-gradient-to-r from-primary to-blue-500 rounded-full animate-ping opacity-20"></div>
+              </div>
+              <span className="text-ios-caption font-semibold tracking-wide uppercase">Centro Financiero</span>
+              <div className="flex space-x-1">
+                <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </motion.div>
             
-            <h1 className="text-2xl sm:text-3xl md:text-ios-large-title font-bold mb-4 sm:mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent px-2">
-              💼 Mis Cuentas
-            </h1>
-            <p className="text-sm sm:text-base text-muted-foreground font-light mb-4 sm:mb-6 px-4">
-              Gestiona todas tus cuentas financieras
-            </p>
+            {/* Enhanced Title with Visual Elements */}
+            <motion.div
+              className="relative mb-6 sm:mb-8"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+            >
+              {/* Background Glow Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-green-500/10 blur-3xl rounded-full scale-150 opacity-60"></div>
+              
+              {/* Main Title */}
+              <h1 className="relative text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 tracking-tight">
+                <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent bg-size-200 animate-gradient">
+                  💼 Mis Cuentas
+                </span>
+              </h1>
+              
+              {/* Decorative Elements */}
+              <div className="flex items-center justify-center space-x-4 mb-4">
+                <motion.div 
+                  className="w-12 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
+                  initial={{ width: 0 }}
+                  animate={{ width: 48 }}
+                  transition={{ duration: 1, delay: 0.8 }}
+                ></motion.div>
+                <motion.div
+                  className="p-2 rounded-full bg-gradient-to-r from-primary/20 to-blue-500/20 backdrop-blur-sm border border-primary/30"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  transition={{ duration: 0.6, delay: 1 }}
+                >
+                  <Wallet className="h-4 w-4 text-primary" />
+                </motion.div>
+                <motion.div 
+                  className="w-12 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
+                  initial={{ width: 0 }}
+                  animate={{ width: 48 }}
+                  transition={{ duration: 1, delay: 0.8 }}
+                ></motion.div>
+              </div>
+            </motion.div>
+            
+            {/* Enhanced Description with Stats Preview */}
+            <motion.div
+              className="space-y-3 mb-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <p className="text-base sm:text-lg text-muted-foreground font-light leading-relaxed px-4 max-w-2xl mx-auto">
+                Controla y optimiza tu patrimonio financiero desde un solo lugar
+              </p>
+              
+              {/* Quick Stats Badges */}
+              <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
+                <motion.div 
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary/10 to-blue-500/10 backdrop-blur-sm rounded-full px-4 py-2 border border-primary/20"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.6 }}
+                >
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-ios-caption font-medium text-foreground">{accounts.length} Cuenta{accounts.length !== 1 ? 's' : ''}</span>
+                </motion.div>
+                
+                <motion.div 
+                  className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 backdrop-blur-sm rounded-full px-4 py-2 border border-green-500/20"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <TrendingUp className="h-3 w-3 text-green-600" />
+                  <span className="text-ios-caption font-medium text-foreground">+{balanceGrowth.toFixed(1)}% este mes</span>
+                </motion.div>
+              </div>
+            </motion.div>
             
             {/* Quick Actions Header - Mobile Responsive */}
             <motion.div 

@@ -159,6 +159,21 @@ body {
   50% { background-position: 100% 50%; }
 }
 
+@keyframes animate-gradient {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* Enhanced Animation Classes */
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: animate-gradient 3s ease infinite;
+}
+
+.bg-size-200 {
+  background-size: 200% 200%;
+}
+
 /* iOS-style Typography */
 .ios-title {
   @apply text-2xl font-semibold tracking-tight;
