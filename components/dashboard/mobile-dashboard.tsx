@@ -60,99 +60,136 @@ export function MobileDashboard() {
   
   return (
     <div className="space-y-6">
-      {/* Elegant Mobile Header */}
+      {/* iOS-style Header */}
       <div className="text-center py-8">
         <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
-          <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-          <span className="text-ios-caption font-medium tracking-wide">Buenos días</span>
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span className="text-ios-caption font-medium">Tus finanzas</span>
         </div>
         
-        <h1 className="text-ios-title mb-2 tracking-tight text-foreground">
-          Dashboard
+        <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+          💰 Dashboard
         </h1>
-        <p className="text-muted-foreground font-light">
-          Tu centro financiero
+        <p className="text-muted-foreground font-light mb-6">
+          Tu centro de control financiero
         </p>
-      </div>
-
-      {/* Clean Balance Card */}
-      <div className="bg-card backdrop-blur-xl rounded-2xl p-8 border border-border/50 shadow-lg">
-        <div className="text-center">
-          <p className="text-ios-caption text-muted-foreground mb-3 font-medium tracking-wide">BALANCE TOTAL</p>
-          <h2 className="text-4xl font-light text-foreground mb-3">${totalBalance.toFixed(2)}</h2>
-          <div className="flex items-center justify-center space-x-2">
-            <div className="w-1 h-1 bg-primary rounded-full"></div>
-            <span className="text-ios-caption text-muted-foreground font-medium">Actualizado hoy</span>
-          </div>
+        
+        {/* Quick Actions Header */}
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <button className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+            <div className="relative flex items-center space-x-2">
+              <Sparkles className="h-5 w-5" />
+              <span>Resumen Rápido</span>
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Refined Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-card/90 backdrop-blur-xl rounded-xl p-6 border border-border/40 shadow-lg">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-green-500/10 rounded-lg">
-              <TrendingUp className="h-5 w-5 text-green-600" />
-            </div>
-            <span className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS</span>
+      {/* iOS-style Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+            <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
           </div>
-          <p className="text-2xl font-light text-foreground mb-1">${monthlyIncome.toFixed(0)}</p>
-          <p className="text-ios-footnote text-muted-foreground">Este mes</p>
+          <p className="text-3xl font-light text-foreground mb-2">
+            ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <div className="flex items-center space-x-2">
+            <Sparkles className="h-4 w-4 text-blue-600" />
+            <span className="text-ios-footnote text-blue-600 font-medium">Actualizado</span>
+          </div>
         </div>
         
-        <div className="bg-card/90 backdrop-blur-xl rounded-xl p-6 border border-border/40 shadow-lg">
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="p-2 bg-red-500/10 rounded-lg">
-              <TrendingDown className="h-5 w-5 text-red-600" />
-            </div>
-            <span className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS</span>
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS MES</h3>
           </div>
-          <p className="text-2xl font-light text-foreground mb-1">${monthlyExpenses.toFixed(0)}</p>
-          <p className="text-ios-footnote text-muted-foreground">Controlados</p>
+          <p className="text-3xl font-light text-foreground mb-2">
+            ${monthlyIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <div className="flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4 text-green-600" />
+            <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
+          </div>
+        </div>
+        
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS MES</h3>
+          </div>
+          <p className="text-3xl font-light text-foreground mb-2">
+            ${monthlyExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <div className="flex items-center space-x-2">
+            <TrendingDown className="h-4 w-4 text-red-600" />
+            <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
+          </div>
+        </div>
+        
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
+          <div className="flex items-center space-x-2 mb-4">
+            <div className={`w-2 h-2 ${(monthlyIncome - monthlyExpenses) >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
+            <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE MES</h3>
+          </div>
+          <p className={`text-3xl font-light mb-2 ${(monthlyIncome - monthlyExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            ${Math.abs(monthlyIncome - monthlyExpenses).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+          </p>
+          <div className="flex items-center space-x-2">
+            {(monthlyIncome - monthlyExpenses) >= 0 ? (
+              <TrendingUp className="h-4 w-4 text-green-600" />
+            ) : (
+              <TrendingDown className="h-4 w-4 text-red-600" />
+            )}
+            <span className={`text-ios-footnote font-medium ${(monthlyIncome - monthlyExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              {(monthlyIncome - monthlyExpenses) >= 0 ? 'Positivo' : 'Negativo'}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Clean Quick Actions */}
-      <div className="bg-card/60 backdrop-blur-xl rounded-2xl p-6 border border-border/20 shadow-ios-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-ios-headline font-medium text-foreground">Acciones</h3>
-          <div className="w-2 h-2 bg-primary rounded-full"></div>
+      {/* iOS-style Quick Actions */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+          <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">ACCIONES RÁPIDAS</h3>
         </div>
         <QuickActions />
       </div>
 
-      {/* Clean Recent Transactions */}
-      <div className="bg-card/60 backdrop-blur-xl rounded-2xl p-6 border border-border/20 shadow-ios-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-ios-headline font-medium text-foreground">Movimientos</h3>
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+      {/* iOS-style Recent Transactions */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+          <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">MOVIMIENTOS RECIENTES</h3>
         </div>
         <RecentTransactions />
       </div>
 
-      {/* Clean Accounts Overview */}
-      <div className="bg-card/60 backdrop-blur-xl rounded-2xl p-6 border border-border/20 shadow-ios-md">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-ios-headline font-medium text-foreground">Cuentas</h3>
-          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+      {/* iOS-style Accounts Overview */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center space-x-2 mb-6">
+          <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
+          <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">RESUMEN DE CUENTAS</h3>
         </div>
         <AccountsOverview />
       </div>
 
-      {/* Mobile Insights */}
-      <div className="bg-gradient-to-br from-primary/5 to-blue-500/5 rounded-2xl p-6 border border-primary/10 shadow-ios-sm backdrop-blur-sm">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="p-2 bg-primary/10 rounded-lg">
-            <Heart className="h-5 w-5 text-primary" />
-          </div>
-          <h3 className="text-ios-headline font-medium text-foreground">Perspectiva</h3>
+      {/* iOS-style Mobile Insights */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center space-x-2 mb-4">
+          <div className="w-2 h-2 bg-gradient-to-r from-primary to-blue-500 rounded-full animate-pulse"></div>
+          <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">PERSPECTIVA FINANCIERA</h3>
         </div>
-        <p className="text-muted-foreground leading-relaxed mb-4">
-          Tu gestión financiera está en buen camino. Mantén el equilibrio.
+        <p className="text-foreground leading-relaxed mb-4 text-ios-body">
+          Tu gestión financiera está en buen camino. Mantén el equilibrio entre ingresos y gastos.
         </p>
-        <div className="flex items-center space-x-2 text-ios-body text-primary font-medium">
-          <Sparkles className="h-4 w-4" />
-          <span>Excelente trabajo</span>
+        <div className="flex items-center space-x-2">
+          <Heart className="h-4 w-4 text-primary" />
+          <span className="text-ios-footnote text-primary font-medium">Excelente trabajo</span>
         </div>
       </div>
     </div>

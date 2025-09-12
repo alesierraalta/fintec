@@ -9,48 +9,6 @@ function SpendingChartComponent() {
   const { expenseTransactions, categories, loading } = useOptimizedTransactions();
   const [data, setData] = useState<any[]>([]);
 
-  // Memoized total spending calculation
-  const totalSpending = useMemo(() => {
-    return expenseTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-  }, [expenseTransactions]);
-
-  // Memoized spending data by category
-  const spendingData = useMemo(() => {
-    if (expenseTransactions.length === 0) return [];
-    
-    // Agrupar gastos por categoría
-    const categoryMap = new Map();
-    
-    expenseTransactions.forEach(expense => {
-      const category = categories.find(c => c.id === expense.categoryId);
-      const categoryName = category?.name || 'Sin categoría';
-      const amount = expense.amountMinor / 100;
-      
-      if (categoryMap.has(categoryName)) {
-        categoryMap.set(categoryName, categoryMap.get(categoryName) + amount);
-      } else {
-        categoryMap.set(categoryName, amount);
-      }
-    });
-    
-    // Convertir a array y ordenar por monto
-    return Array.from(categoryMap.entries())
-      .map(([name, value]) => ({
-        name,
-        value,
-        percentage: totalSpending > 0 ? Math.round((value / totalSpending) * 100) : 0,
-        color: getCategoryColor(name),
-        icon: getCategoryIcon(name)
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 8); // Mostrar máximo 8 categorías
-  }, [expenseTransactions, categories, totalSpending]);
-
-  // Update data when spendingData changes
-  useEffect(() => {
-    setData(spendingData);
-  }, [spendingData]);
-  
   // Función memoizada para obtener colores por categoría - Paleta Minimalista
   const getCategoryColor = useCallback((categoryName: string) => {
     const colors = {
@@ -94,6 +52,48 @@ function SpendingChartComponent() {
     }
     return icons.Otros;
   }, []);
+
+  // Memoized total spending calculation
+  const totalSpending = useMemo(() => {
+    return expenseTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+  }, [expenseTransactions]);
+
+  // Memoized spending data by category
+  const spendingData = useMemo(() => {
+    if (expenseTransactions.length === 0) return [];
+    
+    // Agrupar gastos por categoría
+    const categoryMap = new Map();
+    
+    expenseTransactions.forEach(expense => {
+      const category = categories.find(c => c.id === expense.categoryId);
+      const categoryName = category?.name || 'Sin categoría';
+      const amount = expense.amountMinor / 100;
+      
+      if (categoryMap.has(categoryName)) {
+        categoryMap.set(categoryName, categoryMap.get(categoryName) + amount);
+      } else {
+        categoryMap.set(categoryName, amount);
+      }
+    });
+    
+    // Convertir a array y ordenar por monto
+    return Array.from(categoryMap.entries())
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: totalSpending > 0 ? Math.round((value / totalSpending) * 100) : 0,
+        color: getCategoryColor(name),
+        icon: getCategoryIcon(name)
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Mostrar máximo 8 categorías
+  }, [expenseTransactions, categories, totalSpending, getCategoryColor, getCategoryIcon]);
+
+  // Update data when spendingData changes
+  useEffect(() => {
+    setData(spendingData);
+  }, [spendingData]);
   if (data.length === 0) {
     return (
       <div className="text-center py-12 bg-card/30 backdrop-blur-sm rounded-3xl border border-border/20">

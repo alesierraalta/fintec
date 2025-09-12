@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { StatCard } from './stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
@@ -21,12 +21,28 @@ import {
 } from 'lucide-react';
 
 export function DesktopDashboard() {
-  const { accounts: rawAccounts, transactions: rawTransactions } = useOptimizedData();
+  const { accounts: rawAccounts, transactions: rawTransactions, loading, loadAllData } = useOptimizedData();
   const bcvRates = useBCVRates();
 
-  // Memoized total balance calculation
-  const totalBalance = useMemo(() => {
-    return rawAccounts.reduce((sum, acc) => {
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
+
+  // Calculate summary statistics from real data
+  const summaryStats = useMemo(() => {
+    if (!rawTransactions.length || !rawAccounts.length) {
+      return {
+        totalBalance: 0,
+        monthlyIncome: 0,
+        monthlyExpenses: 0,
+        previousMonthIncome: 0,
+        previousMonthExpenses: 0
+      };
+    }
+
+    // Calculate total balance
+    const totalBalance = rawAccounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
       
@@ -36,10 +52,7 @@ export function DesktopDashboard() {
       }
       return sum + balanceMajor;
     }, 0);
-  }, [rawAccounts, bcvRates.usd]);
 
-  // Memoized monthly calculations
-  const { monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = useMemo(() => {
     const now = new Date();
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
@@ -59,30 +72,33 @@ export function DesktopDashboard() {
     });
 
     // Calcular ingresos y gastos actuales
-    const income = monthTransactions
+    const monthlyIncome = monthTransactions
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
     
-    const expenses = monthTransactions
+    const monthlyExpenses = monthTransactions
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
 
     // Calcular ingresos y gastos del mes anterior
-    const prevIncome = lastMonthTransactions
+    const previousMonthIncome = lastMonthTransactions
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
     
-    const prevExpenses = lastMonthTransactions
+    const previousMonthExpenses = lastMonthTransactions
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
 
     return {
-      monthlyIncome: income,
-      monthlyExpenses: expenses,
-      previousMonthIncome: prevIncome,
-      previousMonthExpenses: prevExpenses
+      totalBalance,
+      monthlyIncome,
+      monthlyExpenses,
+      previousMonthIncome,
+      previousMonthExpenses
     };
-  }, [rawTransactions]);
+  }, [rawTransactions, rawAccounts, bcvRates.usd]);
+
+  const { totalBalance, monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = summaryStats;
 
   // Calcular porcentajes de cambio
   const calculatePercentageChange = (current: number, previous: number) => {
@@ -101,103 +117,138 @@ export function DesktopDashboard() {
       <div className="text-center py-8">
         <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-          <span className="text-ios-caption font-medium">Buenos días</span>
+          <span className="text-ios-caption font-medium">Tus finanzas</span>
         </div>
         
         <h1 className="text-ios-large-title font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
-          Dashboard Financiero
+          💳 Dashboard Financiero
         </h1>
+        <p className="text-muted-foreground font-light mb-6">
+          Controla todos tus ingresos y gastos
+        </p>
+        
+        {/* Quick Actions Header */}
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <button className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+            <div className="relative flex items-center space-x-2">
+              <Sparkles className="h-5 w-5" />
+              <span>Resumen Rápido</span>
+            </div>
+          </button>
+        </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6" data-tutorial="stats-grid">
-        <StatCard
-          title="Balance Total"
-          value={`$${totalBalance.toFixed(2)}`}
-          change={calculatePercentageChange(totalBalance, totalBalance)}
-          changeType="neutral"
-          icon={Sparkles}
-          description="Este mes"
-        />
-        <StatCard
-          title="Ingresos"
-          value={`$${monthlyIncome.toFixed(2)}`}
-          change={calculatePercentageChange(monthlyIncome, previousMonthIncome)}
-          changeType={incomeChangeType}
-          icon={TrendingUp}
-          description="Mensual"
-        />
-        <StatCard
-          title="Gastos"
-          value={`$${monthlyExpenses.toFixed(2)}`}
-          change={calculatePercentageChange(monthlyExpenses, previousMonthExpenses)}
-          changeType={expenseChangeType}
-          icon={TrendingDown}
-          description="Controlado"
-        />
-        <StatCard
-          title="Meta de Ahorro"
-          value={`${Math.max(0, savingsRate).toFixed(0)}%`}
-          change={savingsRate >= 50 ? "+Excelente" : savingsRate >= 20 ? "+Bueno" : "Mejorar"}
-          changeType={savingsRate >= 20 ? "positive" : "neutral"}
-          icon={Target}
-          description="Progreso"
-        />
+      {/* iOS-style Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Balance Card */}
+        <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-muted-foreground">Balance Total</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-3xl font-light text-foreground">
+              {loading ? '...' : `$${totalBalance.toFixed(2)}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Monthly Income Card */}
+        <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-muted-foreground">Ingresos del Mes</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-3xl font-light text-foreground">
+              {loading ? '...' : `$${monthlyIncome.toFixed(2)}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Monthly Expenses Card */}
+        <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-muted-foreground">Gastos del Mes</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-3xl font-light text-foreground">
+              {loading ? '...' : `$${monthlyExpenses.toFixed(2)}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Total Transactions Card */}
+        <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-muted-foreground">Transacciones</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-3xl font-light text-foreground">
+              {loading ? '...' : rawTransactions.length}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* iOS-style Content Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left Column - Wider */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Recent Transactions */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="recent-transactions">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+        {/* Recent Transactions */}
+        <div className="lg:col-span-2 xl:col-span-2">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg h-full" data-tutorial="recent-transactions">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">Movimientos Recientes</h2>
             </div>
             <RecentTransactions />
           </div>
-
-          {/* Spending Chart */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="spending-chart">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-              <h2 className="text-ios-title font-semibold text-foreground">¿En Qué Gastas?</h2>
-            </div>
-            <LazySpendingChart />
-          </div>
         </div>
 
-        {/* Right Column - Compact */}
-        <div className="space-y-6">
-          {/* Quick Actions */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="quick-actions">
+        {/* Quick Actions */}
+        <div className="lg:col-span-1 xl:col-span-1">
+          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg h-full" data-tutorial="quick-actions">
             <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">Acciones Rápidas</h2>
             </div>
             <QuickActions />
           </div>
+        </div>
+      </div>
 
-          {/* Accounts Overview */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="accounts-overview">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <h2 className="text-ios-title font-semibold text-foreground">Tus Cuentas</h2>
-            </div>
-            <AccountsOverview />
+      {/* Second Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Spending Chart */}
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="spending-chart">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">¿En Qué Gastas?</h2>
           </div>
+          <LazySpendingChart />
+        </div>
 
-          {/* iOS-style Tips Card */}
-          <div className="bg-gradient-to-br from-primary/10 to-blue-500/10 rounded-3xl p-6 border border-primary/20 backdrop-blur-sm shadow-ios-md">
+        {/* Accounts Overview */}
+        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="accounts-overview">
+          <div className="flex items-center space-x-2 mb-6">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Tus Cuentas</h2>
+          </div>
+          <AccountsOverview />
+          
+          {/* Tips Card integrated */}
+          <div className="mt-6 pt-6 border-t border-border/30">
             <div className="flex items-center space-x-2 mb-4">
-              <Heart className="h-5 w-5 text-primary" />
-              <h3 className="text-ios-headline font-semibold text-foreground">Tip del Día</h3>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <h3 className="text-ios-title font-semibold text-foreground">Tip del Día</h3>
             </div>
             <p className="text-ios-body text-muted-foreground leading-relaxed">
               🌟 ¡Tu gestión financiera está siendo excepcional! Has mejorado un 23% este mes. 
               Seguí así y alcanzarás todas tus metas. 🚀
             </p>
-            <div className="mt-4 flex items-center space-x-2 text-ios-caption text-primary">
+            <div className="mt-4 flex items-center space-x-2 text-ios-caption text-green-600">
               <Sparkles className="h-4 w-4" />
               <span className="font-medium">¡Sigue así!</span>
             </div>
@@ -206,16 +257,19 @@ export function DesktopDashboard() {
       </div>
 
       {/* iOS-style Goals Section */}
-      <div className="bg-card/60 backdrop-blur-xl rounded-xl p-6 border border-border/20 shadow-ios-lg" data-tutorial="goals-progress">
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg" data-tutorial="goals-progress">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-ios-title font-semibold text-foreground">Metas</h2>
-          <button className="text-ios-body text-primary hover:text-primary/80 font-medium transition-ios">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Metas</h2>
+          </div>
+          <button className="text-ios-body text-green-600 hover:text-green-700 font-medium transition-colors">
             Ver todas
           </button>
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md transition-ios">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center space-x-3">
               <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
                 <Target className="h-4 w-4 text-green-600" />
@@ -232,27 +286,27 @@ export function DesktopDashboard() {
             </div>
           </div>
           
-          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md transition-ios">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <div className="flex items-center space-x-3">
-              <div className="p-2 bg-blue-500/10 rounded-xl border border-blue-500/20">
-                <Target className="h-4 w-4 text-blue-600" />
+              <div className="p-2 bg-green-500/10 rounded-xl border border-green-500/20">
+                <Target className="h-4 w-4 text-green-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-ios-body font-medium text-foreground">Vacaciones</h3>
                 <div className="flex items-center space-x-2 mt-2">
                   <div className="flex-1 bg-muted/30 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full w-1/2 transition-all duration-500"></div>
+                    <div className="bg-green-500 h-2 rounded-full w-1/2 transition-all duration-500"></div>
                   </div>
-                  <span className="text-ios-caption text-blue-600 font-semibold">45%</span>
+                  <span className="text-ios-caption text-green-600 font-semibold">45%</span>
                 </div>
               </div>
             </div>
           </div>
           
-          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-ios-sm hover:shadow-ios-md hover:bg-card/90 transition-ios group">
+          <div className="bg-card/80 rounded-xl p-4 border border-border/10 backdrop-blur-sm shadow-lg hover:shadow-xl hover:bg-card/90 transition-all duration-300 group">
             <div className="text-center">
-              <div className="w-8 h-8 bg-muted/20 rounded-full mx-auto mb-2 flex items-center justify-center group-hover:bg-primary/10 transition-ios">
-                <Plus className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-ios" />
+              <div className="w-8 h-8 bg-muted/20 rounded-full mx-auto mb-2 flex items-center justify-center group-hover:bg-green-500/10 transition-all duration-300">
+                <Plus className="h-4 w-4 text-muted-foreground group-hover:text-green-600 transition-all duration-300" />
               </div>
               <h3 className="text-ios-body font-medium text-foreground">Nueva Meta</h3>
             </div>
