@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
-import { RepositoryProvider } from '@/providers';
+import { RepositoryProvider, QueryProvider } from '@/providers';
 import { AuthProvider } from '@/contexts/auth-context';
 import './globals.css';
 
@@ -40,13 +40,15 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning className="dark">
       <body className={`${inter.className} dark`}>
-        <AuthProvider>
-          <RepositoryProvider>
-            <div id="root">
-              {children}
-            </div>
-          </RepositoryProvider>
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <RepositoryProvider>
+              <div id="root">
+                {children}
+              </div>
+            </RepositoryProvider>
+          </AuthProvider>
+        </QueryProvider>
         <div id="modal-root" />
       </body>
     </html>

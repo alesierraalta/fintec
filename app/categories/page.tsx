@@ -6,7 +6,7 @@ import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import type { Category } from '@/types';
 import { 
   Plus, 

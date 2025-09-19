@@ -9,7 +9,7 @@ import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import { useRepository } from '@/providers';
 import type { Transaction, TransactionType } from '@/types/domain';
 import { 

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useOptimizedTransactions } from '@/hooks/use-optimized-data';
+import { useOptimizedTransactions } from '@/hooks';
 import { 
   ArrowDownLeft, ArrowUpRight, Repeat, ShoppingCart, Car, Coffee, 
   Briefcase, CreditCard, Wallet, TrendingUp, Calendar, MapPin

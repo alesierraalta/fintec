@@ -6,7 +6,7 @@ import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { LazySpendingChart } from './lazy-spending-chart';
 import { AccountsOverview } from './accounts-overview';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import { useRepository } from '@/providers';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';

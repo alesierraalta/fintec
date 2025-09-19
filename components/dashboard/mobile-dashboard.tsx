@@ -4,7 +4,7 @@ import { useMemo } from 'react';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { CreditCard, Wallet, Banknote, TrendingUp } from 'lucide-react';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 

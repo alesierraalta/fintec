@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { PeriodSelector } from './period-selector';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useOptimizedData } from '@/hooks';
 import { TimePeriod, formatDateForAPI } from '@/lib/dates/periods';
 import { 
   Filter, 

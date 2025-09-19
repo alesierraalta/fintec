@@ -309,3 +309,37 @@ body {
 .shadow-error {
   box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.15);
 }
+
+/* iOS-style Shadow System */
+.shadow-ios-xs {
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+
+.shadow-ios-sm {
+  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1), 0 1px 3px -1px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-ios-md {
+  box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.1), 0 2px 8px -2px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-ios-lg {
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.12), 0 4px 16px -4px rgba(0, 0, 0, 0.1);
+}
+
+.shadow-ios-xl {
+  box-shadow: 0 16px 64px -16px rgba(0, 0, 0, 0.15), 0 8px 32px -8px rgba(0, 0, 0, 0.1);
+}
+
+/* iOS-style Transition System */
+.transition-ios {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-ios-fast {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-ios-slow {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}

@@ -130,3 +130,11 @@ temp/
 
 # Vercel
 .vercel
+
+# MCP (Model Context Protocol) related files and directories
+.mcp/
+.playwright-mcp/
+.serena/
+mcp-*/
+*.mcp
+mcp_*/
