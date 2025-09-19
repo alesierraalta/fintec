@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Search, Sparkles, Heart, Menu, X, User, LogOut } from 'lucide-react';
+import { Bell, Sparkles, Heart, Menu, X, User, LogOut } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
@@ -223,8 +223,8 @@ export function Header() {
   // Desktop Header
   return (
     <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border/30 flex items-center justify-between px-6">
-      {/* Left side - Menu + Search */}
-      <div className="flex items-center flex-1">
+      {/* Left side - Menu */}
+      <div className="flex items-center">
         {/* Sidebar Toggle Button */}
         <button
           onClick={toggleSidebar}
@@ -234,17 +234,6 @@ export function Header() {
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
 
-        {/* Search */}
-        <div className="flex-1 max-w-lg">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Busca lo que necesites... 🔍"
-              className="input-ios w-full pl-12 pr-4 py-3 text-ios-body placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
       </div>
 
       {/* Actions - Responsive */}

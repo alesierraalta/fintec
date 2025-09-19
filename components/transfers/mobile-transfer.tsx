@@ -9,13 +9,15 @@ import {
   DollarSign,
   Check,
   X,
-  Bitcoin
+  Bitcoin,
+  RotateCcw
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
+import { RateSelector } from './rate-selector';
 
 
 
@@ -25,6 +27,8 @@ interface TransferData {
   amount: number;
   description: string;
   date: string;
+  exchangeRate?: number;
+  rateSource?: string;
 }
 
 export function MobileTransfer() {
@@ -41,8 +45,11 @@ export function MobileTransfer() {
     toAccountId: '',
     amount: 0,
     description: '',
-    date: ''
+    date: '',
+    exchangeRate: undefined,
+    rateSource: undefined
   });
+  const [amountError, setAmountError] = useState<string>('');
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -93,14 +100,90 @@ export function MobileTransfer() {
     });
   };
 
+  const validateAmount = (amount: number) => {
+    const fromAccount = getFromAccount();
+    if (!fromAccount) {
+      setAmountError('');
+      return true;
+    }
+
+    if (amount <= 0) {
+      setAmountError('');
+      return true;
+    }
+
+    // Convert amount to minor units for comparison
+    const amountInMinorUnits = toMinorUnits(amount, fromAccount.currencyCode);
+    
+    if (amountInMinorUnits > fromAccount.balance) {
+      setAmountError(`Saldo insuficiente. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)}`);
+      return false;
+    }
+
+    setAmountError('');
+    return true;
+  };
+
   const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
   const getToAccount = () => accounts.find(acc => acc.id === transferData.toAccountId);
 
+  const handleFromAccountSelect = (accountId: string) => {
+    // If clicking on already selected account, deselect it
+    if (transferData.fromAccountId === accountId) {
+      setTransferData(prev => ({ ...prev, fromAccountId: '' }));
+    } else {
+      setTransferData(prev => ({ ...prev, fromAccountId: accountId }));
+    }
+    // Validate amount when account changes
+    if (transferData.amount > 0) {
+      validateAmount(transferData.amount);
+    }
+  };
+
+  const handleToAccountSelect = (accountId: string) => {
+    // If clicking on already selected account, deselect it
+    if (transferData.toAccountId === accountId) {
+      setTransferData(prev => ({ ...prev, toAccountId: '' }));
+    } else {
+      setTransferData(prev => ({ ...prev, toAccountId: accountId }));
+    }
+  };
+
+  const clearFromAccount = () => {
+    setTransferData(prev => ({ ...prev, fromAccountId: '' }));
+  };
+
+  const clearToAccount = () => {
+    setTransferData(prev => ({ ...prev, toAccountId: '' }));
+  };
+
+  const handleRateSelected = (rate: number, source: string) => {
+    setTransferData(prev => ({
+      ...prev,
+      exchangeRate: rate,
+      rateSource: source
+    }));
+  };
+
+  const handleManualRate = (rate: number) => {
+    setTransferData(prev => ({
+      ...prev,
+      exchangeRate: rate,
+      rateSource: 'Manual'
+    }));
+  };
+
   const isFormValid = () => {
+    const fromAccount = getFromAccount();
+    const toAccount = getToAccount();
+    const hasDifferentCurrencies = fromAccount && toAccount && fromAccount.currencyCode !== toAccount.currencyCode;
+    
     return transferData.fromAccountId && 
            transferData.toAccountId && 
            transferData.fromAccountId !== transferData.toAccountId &&
-           transferData.amount > 0;
+           transferData.amount > 0 &&
+           (!hasDifferentCurrencies || transferData.exchangeRate) &&
+           !amountError; // Add balance validation
   };
 
   const handleTransfer = async () => {
@@ -136,6 +219,8 @@ export function MobileTransfer() {
           amount: transferData.amount,
           description: transferData.description || `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
           date: transferData.date,
+          exchangeRate: transferData.exchangeRate,
+          rateSource: transferData.rateSource,
         }),
       });
 
@@ -156,7 +241,9 @@ export function MobileTransfer() {
         toAccountId: '',
         amount: 0,
         description: '',
-        date: new Date().toISOString().split('T')[0]
+        date: new Date().toISOString().split('T')[0],
+        exchangeRate: undefined,
+        rateSource: undefined
       });
       
     } catch (error) {
@@ -198,13 +285,13 @@ export function MobileTransfer() {
             ) : accounts.map((account) => (
               <button
                 key={`from-${account.id}`}
-                onClick={() => setTransferData(prev => ({ ...prev, fromAccountId: account.id }))}
+                onClick={() => handleFromAccountSelect(account.id)}
                 className={`w-full p-4 rounded-2xl border-2 transition-all ${
                   transferData.fromAccountId === account.id
                     ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20'
                     : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600'
                 }`}
-                disabled={transferData.toAccountId === account.id}
+                disabled={transferData.toAccountId === account.id && transferData.fromAccountId !== account.id}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -212,12 +299,20 @@ export function MobileTransfer() {
                     <div className="text-left">
                       <p className="font-medium text-neutral-900 dark:text-neutral-100">{account.name}</p>
                       <p className="text-sm text-neutral-500 dark:text-neutral-400">{account.currencyCode}</p>
+                      {transferData.fromAccountId === account.id && (
+                        <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                          Toca para deseleccionar
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-neutral-900 dark:text-neutral-100">
                       {formatBalance(account.balance, account.currencyCode)}
                     </p>
+                    {transferData.fromAccountId === account.id && (
+                      <Check className="h-5 w-5 text-primary-600 dark:text-primary-400 ml-auto mt-1" />
+                    )}
                   </div>
                 </div>
               </button>
@@ -244,27 +339,35 @@ export function MobileTransfer() {
                 .map((account) => (
                   <button
                     key={`to-${account.id}`}
-                    onClick={() => setTransferData(prev => ({ ...prev, toAccountId: account.id }))}
+                    onClick={() => handleToAccountSelect(account.id)}
                     className={`w-full p-4 rounded-2xl border-2 transition-all ${
                       transferData.toAccountId === account.id
                         ? 'border-success-500 dark:border-success-400 bg-success-50 dark:bg-success-900/20'
                         : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-600'
                     }`}
                   >
-                                    <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    {getAccountIcon(account.currencyCode)}
-                    <div className="text-left">
-                      <p className="font-medium text-neutral-900 dark:text-neutral-100">{account.name}</p>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400">{account.currencyCode}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        {getAccountIcon(account.currencyCode)}
+                        <div className="text-left">
+                          <p className="font-medium text-neutral-900 dark:text-neutral-100">{account.name}</p>
+                          <p className="text-sm text-neutral-500 dark:text-neutral-400">{account.currencyCode}</p>
+                          {transferData.toAccountId === account.id && (
+                            <p className="text-xs text-success-600 dark:text-success-400 font-medium">
+                              Toca para deseleccionar
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-neutral-900 dark:text-neutral-100">
+                          {formatBalance(account.balance, account.currencyCode)}
+                        </p>
+                        {transferData.toAccountId === account.id && (
+                          <Check className="h-5 w-5 text-success-600 dark:text-success-400 ml-auto mt-1" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">
-                      {formatBalance(account.balance, account.currencyCode)}
-                    </p>
-                  </div>
-                </div>
                   </button>
                 ))}
             </div>
@@ -287,16 +390,30 @@ export function MobileTransfer() {
               <input
                 type="number"
                 value={transferData.amount || ''}
-                onChange={(e) => setTransferData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                onChange={(e) => {
+                  const newAmount = parseFloat(e.target.value) || 0;
+                  setTransferData(prev => ({ ...prev, amount: newAmount }));
+                  validateAmount(newAmount);
+                }}
                 placeholder="0.00"
                 step="0.01"
                 min="0"
-                className="w-full pl-12 pr-4 py-4 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 text-lg font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
+                className={`w-full pl-12 pr-4 py-4 rounded-xl bg-white dark:bg-neutral-800 border text-neutral-900 dark:text-neutral-100 text-lg font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none transition-colors ${
+                  amountError 
+                    ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400' 
+                    : 'border-neutral-200 dark:border-neutral-700 focus:border-primary-500 dark:focus:border-primary-400'
+                }`}
               />
             </div>
             <p className="text-sm text-neutral-500 dark:text-neutral-400">
               Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
             </p>
+            {amountError && (
+              <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
+                <X className="h-4 w-4 text-red-500" />
+                <span className="text-sm text-red-600 dark:text-red-400">{amountError}</span>
+              </div>
+            )}
           </div>
 
           {/* Description */}
@@ -311,6 +428,17 @@ export function MobileTransfer() {
             />
           </div>
         </div>
+      )}
+
+      {/* Exchange Rate Selector - Show when currencies are different */}
+      {transferData.fromAccountId && transferData.toAccountId && transferData.amount > 0 && getFromAccount() && getToAccount() && getFromAccount()!.currencyCode !== getToAccount()!.currencyCode && (
+        <RateSelector
+          fromCurrency={getFromAccount()!.currencyCode}
+          toCurrency={getToAccount()!.currencyCode}
+          amount={transferData.amount}
+          onRateSelected={handleRateSelected}
+          onManualRate={handleManualRate}
+        />
       )}
 
       {/* Prominent Transfer Preview - Mobile */}
@@ -352,7 +480,12 @@ export function MobileTransfer() {
                 <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide mb-1">Cuenta Destino</p>
                 <p className="font-bold text-neutral-900 dark:text-neutral-100">{getToAccount()?.name}</p>
                 <p className="text-xl font-black text-success-700 dark:text-success-400">
-                  +{formatBalance(toMinorUnits(transferData.amount, getToAccount()?.currencyCode || 'VES'), getToAccount()?.currencyCode || 'VES')}
+                  +{formatBalance(toMinorUnits(
+                    getFromAccount()?.currencyCode !== getToAccount()?.currencyCode && transferData.exchangeRate 
+                      ? transferData.amount * transferData.exchangeRate 
+                      : transferData.amount, 
+                    getToAccount()?.currencyCode || 'VES'
+                  ), getToAccount()?.currencyCode || 'VES')}
                 </p>
               </div>
 

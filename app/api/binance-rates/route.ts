@@ -101,6 +101,7 @@ function runPythonScraper(): Promise<any> {
     
     // Si no, probar comandos en orden de probabilidad (incluyendo rutas completas)
     const pythonCommands = [
+      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python312\\python.exe',
       'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
       'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python313\\python.exe',
       'python', 

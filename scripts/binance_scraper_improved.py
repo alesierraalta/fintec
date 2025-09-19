@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Binance Scraper - Get real USD/VES rates from Binance P2P
-Shows both BUY and SELL rates
-Improved version with async/await, retry mechanism, and better error handling
+Binance Scraper - Obtener precios USD/VES real desde Binance P2P
+Muestra tanto tasas de COMPRA como de VENTA
+Versión mejorada con async/await, retry mechanism, y mejor manejo de errores
 """
 
 import asyncio
@@ -17,7 +17,7 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Logging configuration
+# Configuración de logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ScraperConfig:
-    """Scraper configuration"""
+    """Configuración del scraper"""
     max_pages: int = 20
     rows_per_page: int = 20
     max_retries: int = 3
@@ -39,19 +39,19 @@ class ScraperConfig:
     rate_limit_delay: float = 0.5
     price_range_min: float = 200.0
     price_range_max: float = 400.0
-    cache_duration: int = 60  # seconds
+    cache_duration: int = 60  # segundos
     user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
 
 @dataclass
 class PriceData:
-    """Structure for price data"""
+    """Estructura para datos de precios"""
     price: float
     trade_type: str
     timestamp: datetime
     source: str = "Binance P2P"
 
 class BinanceScraper:
-    """Improved scraper for Binance P2P with async/await and better error handling"""
+    """Scraper mejorado para Binance P2P con async/await y mejor manejo de errores"""
     
     def __init__(self, config: ScraperConfig = None):
         self.config = config or ScraperConfig()
@@ -80,33 +80,33 @@ class BinanceScraper:
             await self.session.close()
     
     async def _make_request_with_retry(self, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
-        """Make request with retry mechanism and exponential backoff"""
+        """Hacer request con retry mechanism y exponential backoff"""
         for attempt in range(self.config.max_retries):
             try:
                 async with self.session.post(self.p2p_url, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()
-                        logger.info(f"Page {page} ({trade_type}): {response.status} - {len(data.get('data', []))} offers")
+                        logger.info(f"Página {page} ({trade_type}): {response.status} - {len(data.get('data', []))} ofertas")
                         return data
                     elif response.status == 429:
                         wait_time = self.config.retry_delay * (2 ** attempt)
-                        logger.warning(f"Rate limit on page {page}, waiting {wait_time}s...")
+                        logger.warning(f"Rate limit en página {page}, esperando {wait_time}s...")
                         await asyncio.sleep(wait_time)
                         continue
                     else:
-                        logger.error(f"HTTP Error {response.status} on page {page}")
+                        logger.error(f"Error HTTP {response.status} en página {page}")
                         if attempt < self.config.max_retries - 1:
                             await asyncio.sleep(self.config.retry_delay * (2 ** attempt))
                             continue
                         return None
             except asyncio.TimeoutError:
-                logger.error(f"Timeout on page {page}, attempt {attempt + 1}")
+                logger.error(f"Timeout en página {page}, intento {attempt + 1}")
                 if attempt < self.config.max_retries - 1:
                     await asyncio.sleep(self.config.retry_delay * (2 ** attempt))
                     continue
                 return None
             except Exception as e:
-                logger.error(f"Error on page {page}: {e}")
+                logger.error(f"Error en página {page}: {e}")
                 if attempt < self.config.max_retries - 1:
                     await asyncio.sleep(self.config.retry_delay * (2 ** attempt))
                     continue
@@ -115,12 +115,12 @@ class BinanceScraper:
         return None
     
     async def _get_offers_for_type(self, trade_type: str, silent: bool = False) -> List[PriceData]:
-        """Get offers for a specific trade type"""
+        """Obtener ofertas para un tipo de trade específico"""
         all_prices = []
         total_offers_found = 0
         
         if not silent:
-            logger.info(f"Starting search for {trade_type} offers")
+            logger.info(f"Iniciando búsqueda de ofertas {trade_type}")
         
         for page in range(1, self.config.max_pages + 1):
             payload = {
@@ -157,10 +157,10 @@ class BinanceScraper:
                         except (ValueError, TypeError):
                             continue
                 
-                # If no offers or less than expected, probably last page
+                # Si no hay ofertas o son menos de las esperadas, posiblemente es la última página
                 if page_offers == 0 or page_offers < self.config.rows_per_page:
                     if not silent:
-                        logger.info(f"Last page detected on page {page}")
+                        logger.info(f"Última página detectada en página {page}")
                     break
                 
                 # Rate limiting
@@ -168,69 +168,62 @@ class BinanceScraper:
                     await asyncio.sleep(self.config.rate_limit_delay)
             else:
                 if not silent:
-                    logger.info(f"No data on page {page}")
+                    logger.info(f"Sin datos en página {page}")
                 break
         
         if not silent:
-            logger.info(f"Total {trade_type} offers: {total_offers_found}, valid: {len(all_prices)}")
+            logger.info(f"Total ofertas {trade_type}: {total_offers_found}, válidas: {len(all_prices)}")
         
         return all_prices
     
     def _validate_and_filter_prices(self, prices: List[PriceData]) -> List[PriceData]:
-        """Validate and filter prices to remove outliers"""
+        """Validar y filtrar precios para eliminar outliers"""
         if not prices:
             return prices
         
-        # Convert to price list for calculations
+        # Convertir a lista de precios para cálculos
         price_values = [p.price for p in prices]
         
-        # Calculate statistics
+        # Calcular estadísticas
         mean_price = sum(price_values) / len(price_values)
         variance = sum((x - mean_price) ** 2 for x in price_values) / len(price_values)
         std_dev = variance ** 0.5
         
-        # Filter outliers (prices more than 2 standard deviations from mean)
+        # Filtrar outliers (precios que están más de 2 desviaciones estándar de la media)
         filtered_prices = []
         for price_data in prices:
             if abs(price_data.price - mean_price) <= 2 * std_dev:
                 filtered_prices.append(price_data)
         
-        logger.info(f"Filtered: {len(prices)} -> {len(filtered_prices)} prices (removed {len(prices) - len(filtered_prices)} outliers)")
+        logger.info(f"Filtrado: {len(prices)} -> {len(filtered_prices)} precios (eliminados {len(prices) - len(filtered_prices)} outliers)")
         
         return filtered_prices
     
     async def scrape_rates(self, silent: bool = False) -> Dict:
-        """Main method to get exchange rates"""
+        """Método principal para obtener tasas de cambio"""
         try:
             async with self:
-                # Get SELL and BUY prices in parallel
+                # Obtener precios de VENTA y COMPRA en paralelo
                 sell_task = self._get_offers_for_type("SELL", silent)
                 buy_task = self._get_offers_for_type("BUY", silent)
                 
                 sell_prices, buy_prices = await asyncio.gather(sell_task, buy_task)
                 
-                # Validate and filter prices
+                # Validar y filtrar precios
                 sell_prices = self._validate_and_filter_prices(sell_prices)
                 buy_prices = self._validate_and_filter_prices(buy_prices)
                 
                 if not sell_prices and not buy_prices:
-                    raise Exception("Could not get valid P2P prices")
+                    raise Exception("No se pudieron obtener precios P2P válidos")
                 
-                # Calculate statistics
+                # Calcular estadísticas
                 sell_values = [p.price for p in sell_prices] if sell_prices else []
                 buy_values = [p.price for p in buy_prices] if buy_prices else []
                 
-                # Calculate min, avg, max for SELL
-                sell_min = round(min(sell_values), 2) if sell_values else 228.50
-                sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 228.50
-                sell_max = round(max(sell_values), 2) if sell_values else 228.50
+                sell_avg = sum(sell_values) / len(sell_values) if sell_values else 228.50
+                buy_avg = sum(buy_values) / len(buy_values) if buy_values else 228.00
                 
-                # Calculate min, avg, max for BUY
-                buy_min = round(min(buy_values), 2) if buy_values else 228.00
-                buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 228.00
-                buy_max = round(max(buy_values), 2) if buy_values else 228.00
-                
-                # General average (using averages)
+                # Promedio general
                 general_avg = (sell_avg + buy_avg) / 2 if sell_values and buy_values else (sell_avg if sell_values else buy_avg)
                 
                 return {
@@ -238,33 +231,27 @@ class BinanceScraper:
                     'data': {
                         'usd_ves': round(general_avg, 2),
                         'usdt_ves': round(general_avg, 2),
-                        # Main values (for compatibility)
-                        'sell_rate': sell_avg,
-                        'buy_rate': buy_avg,
-                        # New values: min, avg, max for SELL
-                        'sell_min': sell_min,
-                        'sell_avg': sell_avg,
-                        'sell_max': sell_max,
-                        # New values: min, avg, max for BUY
-                        'buy_min': buy_min,
-                        'buy_avg': buy_avg,
-                        'buy_max': buy_max,
-                        # Spreads
-                        'spread_min': round(abs(sell_min - buy_max), 2) if sell_values and buy_values else 0,
-                        'spread_avg': round(abs(sell_avg - buy_avg), 2) if sell_values and buy_values else 0,
-                        'spread_max': round(abs(sell_max - buy_min), 2) if sell_values and buy_values else 0,
-                        # Compatibility with previous spread
+                        'sell_rate': {
+                            'min': round(min(sell_values), 2) if sell_values else 228.50,
+                            'avg': round(sell_avg, 2),
+                            'max': round(max(sell_values), 2) if sell_values else 228.50
+                        },
+                        'buy_rate': {
+                            'min': round(min(buy_values), 2) if buy_values else 228.00,
+                            'avg': round(buy_avg, 2),
+                            'max': round(max(buy_values), 2) if buy_values else 228.00
+                        },
                         'spread': round(abs(sell_avg - buy_avg), 2) if sell_values and buy_values else 0,
                         'sell_prices_used': len(sell_prices),
                         'buy_prices_used': len(buy_prices),
                         'prices_used': len(sell_prices) + len(buy_prices),
                         'price_range': {
-                            'sell_min': sell_min,
-                            'sell_max': sell_max,
-                            'buy_min': buy_min,
-                            'buy_max': buy_max,
-                            'min': round(min(sell_values + buy_values), 2) if sell_values and buy_values else (sell_min if sell_values else buy_min),
-                            'max': round(max(sell_values + buy_values), 2) if sell_values and buy_values else (sell_max if sell_values else buy_max)
+                            'sell_min': round(min(sell_values), 2) if sell_values else 228.50,
+                            'sell_max': round(max(sell_values), 2) if sell_values else 228.50,
+                            'buy_min': round(min(buy_values), 2) if buy_values else 228.00,
+                            'buy_max': round(max(buy_values), 2) if buy_values else 228.00,
+                            'min': round(min(sell_values + buy_values), 2) if sell_values and buy_values else (round(min(sell_values), 2) if sell_values else round(min(buy_values), 2)),
+                            'max': round(max(sell_values + buy_values), 2) if sell_values and buy_values else (round(max(sell_values), 2) if sell_values else round(max(buy_values), 2))
                         },
                         'lastUpdated': datetime.now().isoformat(),
                         'source': 'Binance P2P (Improved)',
@@ -273,17 +260,17 @@ class BinanceScraper:
                 }
                 
         except Exception as e:
-            logger.error(f"Error in scraper: {e}")
+            logger.error(f"Error en scraper: {e}")
             return self._get_fallback_data(str(e))
     
     def _calculate_quality_score(self, sell_prices: List[PriceData], buy_prices: List[PriceData]) -> float:
-        """Calculate quality score based on data quantity and consistency"""
+        """Calcular score de calidad basado en cantidad de datos y consistencia"""
         total_prices = len(sell_prices) + len(buy_prices)
         
-        # Score based on data quantity (0-50 points)
+        # Score basado en cantidad de datos (0-50 puntos)
         quantity_score = min(50, total_prices * 2)
         
-        # Score based on consistency (0-50 points)
+        # Score basado en consistencia (0-50 puntos)
         all_prices = [p.price for p in sell_prices + buy_prices]
         if len(all_prices) > 1:
             mean_price = sum(all_prices) / len(all_prices)
@@ -296,29 +283,23 @@ class BinanceScraper:
         return round(quantity_score + consistency_score, 1)
     
     def _get_fallback_data(self, error: str) -> Dict:
-        """Fallback data in case of error"""
+        """Datos de fallback en caso de error"""
         return {
             'success': False,
             'error': error,
             'data': {
                 'usd_ves': 228.25,
                 'usdt_ves': 228.25,
-                # Main values (for compatibility)
-                'sell_rate': 228.50,
-                'buy_rate': 228.00,
-                # New values: min, avg, max for SELL
-                'sell_min': 228.50,
-                'sell_avg': 228.50,
-                'sell_max': 228.50,
-                # New values: min, avg, max for BUY
-                'buy_min': 228.00,
-                'buy_avg': 228.00,
-                'buy_max': 228.00,
-                # Spreads
-                'spread_min': 0.00,
-                'spread_avg': 0.50,
-                'spread_max': 0.50,
-                # Compatibility with previous spread
+                'sell_rate': {
+                    'min': 228.50,
+                    'avg': 228.50,
+                    'max': 228.50
+                },
+                'buy_rate': {
+                    'min': 228.00,
+                    'avg': 228.00,
+                    'max': 228.00
+                },
                 'spread': 0.50,
                 'sell_prices_used': 0,
                 'buy_prices_used': 0,
@@ -335,22 +316,13 @@ class BinanceScraper:
         }
 
 async def scrape_binance_rates_async(silent: bool = False) -> Dict:
-    """Main async function for compatibility"""
+    """Función async principal para compatibilidad"""
     config = ScraperConfig()
     scraper = BinanceScraper(config)
     return await scraper.scrape_rates(silent)
 
-def scrape_binance_rates(silent: bool = False) -> Dict:
-    """Sync function for compatibility with existing code"""
-    try:
-        return asyncio.run(scrape_binance_rates_async(silent))
-    except Exception as e:
-        logger.error(f"Error executing async scraper: {e}")
-        # Fallback to sync implementation if async fails
-        return _scrape_binance_rates_sync(silent)
-
 def _scrape_binance_rates_sync(silent: bool = False) -> Dict:
-    """Sync fallback implementation using requests"""
+    """Implementación síncrona de fallback usando requests"""
     import requests
     
     try:
@@ -406,18 +378,10 @@ def _scrape_binance_rates_sync(silent: bool = False) -> Dict:
         buy_prices = get_offers_sync("BUY")
         
         if not sell_prices and not buy_prices:
-            raise Exception("Could not get valid P2P prices")
+            raise Exception("No se pudieron obtener precios P2P válidos")
         
-        # Calculate min, avg, max for SELL
-        sell_min = round(min(sell_prices), 2) if sell_prices else 228.50
-        sell_avg = round(sum(sell_prices) / len(sell_prices), 2) if sell_prices else 228.50
-        sell_max = round(max(sell_prices), 2) if sell_prices else 228.50
-        
-        # Calculate min, avg, max for BUY
-        buy_min = round(min(buy_prices), 2) if buy_prices else 228.00
-        buy_avg = round(sum(buy_prices) / len(buy_prices), 2) if buy_prices else 228.00
-        buy_max = round(max(buy_prices), 2) if buy_prices else 228.00
-        
+        sell_avg = sum(sell_prices) / len(sell_prices) if sell_prices else 228.50
+        buy_avg = sum(buy_prices) / len(buy_prices) if buy_prices else 228.00
         general_avg = (sell_avg + buy_avg) / 2 if sell_prices and buy_prices else (sell_avg if sell_prices else buy_avg)
         
         return {
@@ -425,33 +389,27 @@ def _scrape_binance_rates_sync(silent: bool = False) -> Dict:
             'data': {
                 'usd_ves': round(general_avg, 2),
                 'usdt_ves': round(general_avg, 2),
-                # Main values (for compatibility)
-                'sell_rate': sell_avg,
-                'buy_rate': buy_avg,
-                # New values: min, avg, max for SELL
-                'sell_min': sell_min,
-                'sell_avg': sell_avg,
-                'sell_max': sell_max,
-                # New values: min, avg, max for BUY
-                'buy_min': buy_min,
-                'buy_avg': buy_avg,
-                'buy_max': buy_max,
-                # Spreads
-                'spread_min': round(abs(sell_min - buy_max), 2) if sell_prices and buy_prices else 0,
-                'spread_avg': round(abs(sell_avg - buy_avg), 2) if sell_prices and buy_prices else 0,
-                'spread_max': round(abs(sell_max - buy_min), 2) if sell_prices and buy_prices else 0,
-                # Compatibility with previous spread
+                'sell_rate': {
+                    'min': round(min(sell_prices), 2) if sell_prices else 228.50,
+                    'avg': round(sell_avg, 2),
+                    'max': round(max(sell_prices), 2) if sell_prices else 228.50
+                },
+                'buy_rate': {
+                    'min': round(min(buy_prices), 2) if buy_prices else 228.00,
+                    'avg': round(buy_avg, 2),
+                    'max': round(max(buy_prices), 2) if buy_prices else 228.00
+                },
                 'spread': round(abs(sell_avg - buy_avg), 2) if sell_prices and buy_prices else 0,
                 'sell_prices_used': len(sell_prices),
                 'buy_prices_used': len(buy_prices),
                 'prices_used': len(sell_prices) + len(buy_prices),
                 'price_range': {
-                    'sell_min': sell_min,
-                    'sell_max': sell_max,
-                    'buy_min': buy_min,
-                    'buy_max': buy_max,
-                    'min': round(min(sell_prices + buy_prices), 2) if sell_prices and buy_prices else (sell_min if sell_prices else buy_min),
-                    'max': round(max(sell_prices + buy_prices), 2) if sell_prices and buy_prices else (sell_max if sell_prices else buy_max)
+                    'sell_min': round(min(sell_prices), 2) if sell_prices else 228.50,
+                    'sell_max': round(max(sell_prices), 2) if sell_prices else 228.50,
+                    'buy_min': round(min(buy_prices), 2) if buy_prices else 228.00,
+                    'buy_max': round(max(buy_prices), 2) if buy_prices else 228.00,
+                    'min': round(min(sell_prices + buy_prices), 2) if sell_prices and buy_prices else (round(min(sell_prices), 2) if sell_prices else round(min(buy_prices), 2)),
+                    'max': round(max(sell_prices + buy_prices), 2) if sell_prices and buy_prices else (round(max(sell_prices), 2) if sell_prices else round(max(buy_prices), 2))
                 },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Binance P2P (Sync Fallback)',
@@ -466,22 +424,16 @@ def _scrape_binance_rates_sync(silent: bool = False) -> Dict:
             'data': {
                 'usd_ves': 228.25,
                 'usdt_ves': 228.25,
-                # Main values (for compatibility)
-                'sell_rate': 228.50,
-                'buy_rate': 228.00,
-                # New values: min, avg, max for SELL
-                'sell_min': 228.50,
-                'sell_avg': 228.50,
-                'sell_max': 228.50,
-                # New values: min, avg, max for BUY
-                'buy_min': 228.00,
-                'buy_avg': 228.00,
-                'buy_max': 228.00,
-                # Spreads
-                'spread_min': 0.00,
-                'spread_avg': 0.50,
-                'spread_max': 0.50,
-                # Compatibility with previous spread
+                'sell_rate': {
+                    'min': 228.50,
+                    'avg': 228.50,
+                    'max': 228.50
+                },
+                'buy_rate': {
+                    'min': 228.00,
+                    'avg': 228.00,
+                    'max': 228.00
+                },
                 'spread': 0.50,
                 'sell_prices_used': 0,
                 'buy_prices_used': 0,
@@ -496,6 +448,15 @@ def _scrape_binance_rates_sync(silent: bool = False) -> Dict:
                 'quality_score': 0.0
             }
         }
+
+def scrape_binance_rates(silent: bool = False) -> Dict:
+    """Función síncrona para compatibilidad con código existente"""
+    try:
+        return asyncio.run(scrape_binance_rates_async(silent))
+    except Exception as e:
+        logger.error(f"Error ejecutando scraper async: {e}")
+        # Fallback a implementación síncrona si async falla
+        return _scrape_binance_rates_sync(silent)
 
 if __name__ == '__main__':
     import sys

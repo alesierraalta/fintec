@@ -26,8 +26,16 @@ export interface BCVRates {
 export interface BinanceRates {
   usd_ves: number;
   usdt_ves: number;
-  sell_rate: number;  // Tasa de venta (más alta)
-  buy_rate: number;   // Tasa de compra (más baja)
+  sell_rate: {
+    min: number;
+    avg: number;
+    max: number;
+  };
+  buy_rate: {
+    min: number;
+    avg: number;
+    max: number;
+  };
   spread: number;     // Diferencia entre compra y venta
   sell_prices_used: number;
   buy_prices_used: number;
@@ -269,11 +277,20 @@ class CurrencyService {
       const result = await response.json();
       
       if (result.success && result.data) {
+        // Handle the actual API response structure from Python scraper
         const rates: BinanceRates = {
           usd_ves: result.data.usd_ves,
           usdt_ves: result.data.usdt_ves,
-          sell_rate: result.data.sell_rate,
-          buy_rate: result.data.buy_rate,
+          sell_rate: {
+            min: result.data.sell_min || result.data.sell_rate || 228.50,
+            avg: result.data.sell_avg || result.data.sell_rate || 228.50,
+            max: result.data.sell_max || result.data.sell_rate || 228.50
+          },
+          buy_rate: {
+            min: result.data.buy_min || result.data.buy_rate || 228.00,
+            avg: result.data.buy_avg || result.data.buy_rate || 228.00,
+            max: result.data.buy_max || result.data.buy_rate || 228.00
+          },
           spread: result.data.spread,
           sell_prices_used: result.data.sell_prices_used,
           buy_prices_used: result.data.buy_prices_used,
@@ -296,21 +313,29 @@ class CurrencyService {
         // Use fallback data if API returns error but has fallback
         if (result.fallback && result.data) {
           const fallbackRates: BinanceRates = {
-        usd_ves: 228.25,
-        usdt_ves: 228.25,
-        sell_rate: 228.50,
-        buy_rate: 228.00,
-        spread: 0.50,
-        sell_prices_used: 0,
-        buy_prices_used: 0,
-        prices_used: 0,
-        price_range: {
-          sell_min: 228.50, sell_max: 228.50,
-          buy_min: 228.00, buy_max: 228.00,
-          min: 228.00, max: 228.50
-        },
-        lastUpdated: new Date().toISOString()
-      };
+            usd_ves: result.data.usd_ves || 228.25,
+            usdt_ves: result.data.usdt_ves || 228.25,
+            sell_rate: {
+              min: result.data.sell_min || result.data.sell_rate || 228.50,
+              avg: result.data.sell_avg || result.data.sell_rate || 228.50,
+              max: result.data.sell_max || result.data.sell_rate || 228.50
+            },
+            buy_rate: {
+              min: result.data.buy_min || result.data.buy_rate || 228.00,
+              avg: result.data.buy_avg || result.data.buy_rate || 228.00,
+              max: result.data.buy_max || result.data.buy_rate || 228.00
+            },
+            spread: result.data.spread || 0.50,
+            sell_prices_used: result.data.sell_prices_used || 0,
+            buy_prices_used: result.data.buy_prices_used || 0,
+            prices_used: result.data.prices_used || 0,
+            price_range: result.data.price_range || {
+              sell_min: 228.50, sell_max: 228.50,
+              buy_min: 228.00, buy_max: 228.00,
+              min: 228.00, max: 228.50
+            },
+            lastUpdated: result.data.lastUpdated || new Date().toISOString()
+          };
           
           this.binanceRates = fallbackRates;
           return fallbackRates;
@@ -328,8 +353,16 @@ class CurrencyService {
       const fallbackRates: BinanceRates = {
         usd_ves: 228.50,
         usdt_ves: 228.50,
-        sell_rate: 228.50,
-        buy_rate: 228.50,
+        sell_rate: {
+          min: 228.50,
+          avg: 228.50,
+          max: 228.50
+        },
+        buy_rate: {
+          min: 228.50,
+          avg: 228.50,
+          max: 228.50
+        },
         spread: 0,
         sell_prices_used: 0,
         buy_prices_used: 0,

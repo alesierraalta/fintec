@@ -10,13 +10,15 @@ import {
   Check,
   X,
   Bitcoin,
-  Send
+  Send,
+  RotateCcw
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
+import { RateSelector } from './rate-selector';
 
 interface TransferData {
   fromAccountId: string;
@@ -24,6 +26,8 @@ interface TransferData {
   amount: number;
   description: string;
   date: string;
+  exchangeRate?: number;
+  rateSource?: string;
 }
 
 export function DesktopTransfer() {
@@ -40,8 +44,11 @@ export function DesktopTransfer() {
     toAccountId: '',
     amount: 0,
     description: '',
-    date: ''
+    date: '',
+    exchangeRate: undefined,
+    rateSource: undefined
   });
+  const [amountError, setAmountError] = useState<string>('');
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -92,14 +99,90 @@ export function DesktopTransfer() {
     });
   };
 
+  const validateAmount = (amount: number) => {
+    const fromAccount = getFromAccount();
+    if (!fromAccount) {
+      setAmountError('');
+      return true;
+    }
+
+    if (amount <= 0) {
+      setAmountError('');
+      return true;
+    }
+
+    // Convert amount to minor units for comparison
+    const amountInMinorUnits = toMinorUnits(amount, fromAccount.currencyCode);
+    
+    if (amountInMinorUnits > fromAccount.balance) {
+      setAmountError(`Saldo insuficiente. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)}`);
+      return false;
+    }
+
+    setAmountError('');
+    return true;
+  };
+
   const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
   const getToAccount = () => accounts.find(acc => acc.id === transferData.toAccountId);
 
+  const handleFromAccountSelect = (accountId: string) => {
+    // If clicking on already selected account, deselect it
+    if (transferData.fromAccountId === accountId) {
+      setTransferData(prev => ({ ...prev, fromAccountId: '' }));
+    } else {
+      setTransferData(prev => ({ ...prev, fromAccountId: accountId }));
+    }
+    // Validate amount when account changes
+    if (transferData.amount > 0) {
+      validateAmount(transferData.amount);
+    }
+  };
+
+  const handleToAccountSelect = (accountId: string) => {
+    // If clicking on already selected account, deselect it
+    if (transferData.toAccountId === accountId) {
+      setTransferData(prev => ({ ...prev, toAccountId: '' }));
+    } else {
+      setTransferData(prev => ({ ...prev, toAccountId: accountId }));
+    }
+  };
+
+  const clearFromAccount = () => {
+    setTransferData(prev => ({ ...prev, fromAccountId: '' }));
+  };
+
+  const clearToAccount = () => {
+    setTransferData(prev => ({ ...prev, toAccountId: '' }));
+  };
+
+  const handleRateSelected = (rate: number, source: string) => {
+    setTransferData(prev => ({
+      ...prev,
+      exchangeRate: rate,
+      rateSource: source
+    }));
+  };
+
+  const handleManualRate = (rate: number) => {
+    setTransferData(prev => ({
+      ...prev,
+      exchangeRate: rate,
+      rateSource: 'Manual'
+    }));
+  };
+
   const isFormValid = () => {
+    const fromAccount = getFromAccount();
+    const toAccount = getToAccount();
+    const hasDifferentCurrencies = fromAccount && toAccount && fromAccount.currencyCode !== toAccount.currencyCode;
+    
     return transferData.fromAccountId && 
            transferData.toAccountId && 
            transferData.fromAccountId !== transferData.toAccountId &&
-           transferData.amount > 0;
+           transferData.amount > 0 &&
+           (!hasDifferentCurrencies || transferData.exchangeRate) &&
+           !amountError; // Add balance validation
   };
 
   const handleTransfer = async () => {
@@ -123,11 +206,20 @@ export function DesktopTransfer() {
     setLoading(true);
     
     try {
+      // Get the user's session token for authentication
+      const { supabase } = await import('@/repositories/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Usuario no autenticado');
+      }
+      
       // Call the real API endpoint
       const response = await fetch('/api/transfers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           fromAccountId: transferData.fromAccountId,
@@ -135,6 +227,8 @@ export function DesktopTransfer() {
           amount: transferData.amount,
           description: transferData.description || `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
           date: transferData.date,
+          exchangeRate: transferData.exchangeRate,
+          rateSource: transferData.rateSource,
         }),
       });
 
@@ -182,7 +276,19 @@ export function DesktopTransfer() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* From Account */}
               <div className="space-y-4">
-                <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Cuenta Origen</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Cuenta Origen</label>
+                  {transferData.fromAccountId && (
+                    <button
+                      onClick={clearFromAccount}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Deseleccionar cuenta origen"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span>Limpiar</span>
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-3">
                   {loadingAccounts ? (
                     <div className="p-6 rounded-2xl border-2 border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700">
@@ -199,13 +305,13 @@ export function DesktopTransfer() {
                   ) : accounts.map((account) => (
                     <button
                       key={`from-${account.id}`}
-                      onClick={() => setTransferData(prev => ({ ...prev, fromAccountId: account.id }))}
-                      className={`w-full p-6 rounded-2xl border-2 transition-all ${
+                      onClick={() => handleFromAccountSelect(account.id)}
+                      className={`w-full p-6 rounded-2xl border-2 transition-all relative ${
                         transferData.fromAccountId === account.id
                           ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/20'
                           : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600'
                       }`}
-                      disabled={transferData.toAccountId === account.id}
+                      disabled={transferData.toAccountId === account.id && transferData.fromAccountId !== account.id}
                     >
                       <div className="flex items-center space-x-4">
                         {getAccountIcon(account.currencyCode)}
@@ -214,7 +320,12 @@ export function DesktopTransfer() {
                           <p className="text-neutral-500 dark:text-neutral-400">{formatBalance(account.balance, account.currencyCode)}</p>
                         </div>
                         {transferData.fromAccountId === account.id && (
-                          <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-center space-x-2">
+                            <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                            <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                              Haz clic para deseleccionar
+                            </span>
+                          </div>
                         )}
                       </div>
                     </button>
@@ -224,7 +335,19 @@ export function DesktopTransfer() {
 
               {/* To Account */}
               <div className="space-y-4">
-                <label className="text-lg font-medium text-text-secondary">Cuenta Destino</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-lg font-medium text-neutral-700 dark:text-neutral-300">Cuenta Destino</label>
+                  {transferData.toAccountId && (
+                    <button
+                      onClick={clearToAccount}
+                      className="flex items-center space-x-1 px-3 py-1 text-sm text-neutral-600 dark:text-neutral-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                      title="Deseleccionar cuenta destino"
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      <span>Limpiar</span>
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-3">
                   {loadingAccounts ? (
                     <div className="p-6 rounded-2xl border-2 border-border-primary bg-background-secondary">
@@ -241,13 +364,13 @@ export function DesktopTransfer() {
                   ) : accounts.map((account) => (
                     <button
                       key={`to-${account.id}`}
-                      onClick={() => setTransferData(prev => ({ ...prev, toAccountId: account.id }))}
-                      className={`w-full p-6 rounded-2xl border-2 transition-all ${
+                      onClick={() => handleToAccountSelect(account.id)}
+                      className={`w-full p-6 rounded-2xl border-2 transition-all relative ${
                         transferData.toAccountId === account.id
                           ? 'border-primary-600 dark:border-primary-400 bg-primary-50 dark:bg-primary-900/20 shadow-lg shadow-primary-500/20'
                           : 'border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-700 hover:border-neutral-300 dark:hover:border-neutral-600 hover:bg-neutral-100 dark:hover:bg-neutral-600'
                       }`}
-                      disabled={transferData.fromAccountId === account.id}
+                      disabled={transferData.fromAccountId === account.id && transferData.toAccountId !== account.id}
                     >
                       <div className="flex items-center space-x-4">
                         {getAccountIcon(account.currencyCode)}
@@ -256,7 +379,12 @@ export function DesktopTransfer() {
                           <p className="text-neutral-500 dark:text-neutral-400">{formatBalance(account.balance, account.currencyCode)}</p>
                         </div>
                         {transferData.toAccountId === account.id && (
-                          <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                          <div className="flex items-center space-x-2">
+                            <Check className="h-6 w-6 text-primary-600 dark:text-primary-400" />
+                            <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
+                              Haz clic para deseleccionar
+                            </span>
+                          </div>
                         )}
                       </div>
                     </button>
@@ -280,16 +408,30 @@ export function DesktopTransfer() {
                     <input
                       type="number"
                       value={transferData.amount || ''}
-                      onChange={(e) => setTransferData(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))}
+                      onChange={(e) => {
+                        const newAmount = parseFloat(e.target.value) || 0;
+                        setTransferData(prev => ({ ...prev, amount: newAmount }));
+                        validateAmount(newAmount);
+                      }}
                       placeholder="0.00"
                       step="0.01"
                       min="0"
-                      className="w-full pl-12 pr-4 py-4 rounded-xl bg-neutral-50 dark:bg-neutral-700 border border-neutral-200 dark:border-neutral-600 text-neutral-900 dark:text-neutral-100 text-xl font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
+                      className={`w-full pl-12 pr-4 py-4 rounded-xl bg-neutral-50 dark:bg-neutral-700 border text-neutral-900 dark:text-neutral-100 text-xl font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none transition-colors ${
+                        amountError 
+                          ? 'border-red-500 dark:border-red-400 focus:border-red-500 dark:focus:border-red-400' 
+                          : 'border-neutral-200 dark:border-neutral-600 focus:border-primary-500 dark:focus:border-primary-400'
+                      }`}
                     />
                   </div>
                   <p className="text-sm text-neutral-500 dark:text-neutral-400">
                     Saldo disponible: {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                   </p>
+                  {amountError && (
+                    <div className="flex items-center space-x-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-xl">
+                      <X className="h-4 w-4 text-red-500" />
+                      <span className="text-sm text-red-600 dark:text-red-400">{amountError}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
@@ -305,6 +447,17 @@ export function DesktopTransfer() {
                 </div>
               </div>
             </div>
+          )}
+
+          {/* Exchange Rate Selector - Show when currencies are different */}
+          {transferData.fromAccountId && transferData.toAccountId && transferData.amount > 0 && getFromAccount() && getToAccount() && getFromAccount()!.currencyCode !== getToAccount()!.currencyCode && (
+            <RateSelector
+              fromCurrency={getFromAccount()!.currencyCode}
+              toCurrency={getToAccount()!.currencyCode}
+              amount={transferData.amount}
+              onRateSelected={handleRateSelected}
+              onManualRate={handleManualRate}
+            />
           )}
 
         {/* Prominent Transfer Preview - Full Width */}
@@ -354,7 +507,12 @@ export function DesktopTransfer() {
                       <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide">Cuenta Destino</p>
                       <p className="font-bold text-neutral-900 dark:text-neutral-100 text-lg">{getToAccount()?.name}</p>
                       <p className="text-2xl font-black text-success-700 dark:text-success-300 drop-shadow-sm">
-                        +{formatBalance(toMinorUnits(transferData.amount, getToAccount()?.currencyCode || 'VES'), getToAccount()?.currencyCode || 'VES')}
+                        +{formatBalance(toMinorUnits(
+                          getFromAccount()?.currencyCode !== getToAccount()?.currencyCode && transferData.exchangeRate 
+                            ? transferData.amount * transferData.exchangeRate 
+                            : transferData.amount, 
+                          getToAccount()?.currencyCode || 'VES'
+                        ), getToAccount()?.currencyCode || 'VES')}
                       </p>
                     </div>
                   </div>

@@ -13,21 +13,10 @@ import {
   Zap,
   Users,
   Target,
-  Activity,
-  BarChart3,
-  Percent,
-  Euro
+  Activity
 } from 'lucide-react';
 import { currencyService } from '@/lib/services/currency-service';
 import type { BinanceRates } from '@/lib/services/currency-service';
-import { useBCVRates } from '@/hooks/use-bcv-rates';
-import { 
-  calculateAverageRateDifference, 
-  calculateEurUsdRateDifference,
-  formatPercentageDifference, 
-  getPercentageColorClass,
-  type RateComparison 
-} from '@/lib/rate-comparison';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -40,9 +29,6 @@ export function BinanceRates() {
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
-
-  // Get BCV rates for comparison
-  const bcvRates = useBCVRates();
 
   const fetchRates = async () => {
     setLoading(true);
@@ -73,15 +59,6 @@ export function BinanceRates() {
     const interval = setInterval(fetchRates, 120000);
     return () => clearInterval(interval);
   }, []);
-
-  // Calculate percentage difference with BCV for both USD and EUR
-  const usdRateComparison: RateComparison | null = rates && bcvRates ? 
-    calculateAverageRateDifference(bcvRates.usd, rates.sell_rate.avg, rates.buy_rate.avg) : 
-    null;
-    
-  const eurRateComparison: RateComparison | null = rates && bcvRates ? 
-    calculateEurUsdRateDifference(bcvRates.eur, rates.sell_rate.avg, rates.buy_rate.avg) : 
-    null;
 
   if (!rates) {
     return (
@@ -141,109 +118,6 @@ export function BinanceRates() {
           </motion.button>
         </div>
       </div>
-
-      {/* BCV Comparison - New Section */}
-      {(usdRateComparison || eurRateComparison) && (
-        <motion.div 
-          className="bg-gradient-to-r from-orange-500/5 to-yellow-500/5 backdrop-blur-sm rounded-2xl p-4 border border-orange-500/20 mb-6"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <div className="flex items-center space-x-2 mb-4">
-            <BarChart3 className="h-4 w-4 text-orange-600" />
-            <h4 className="text-ios-body font-medium text-foreground">Comparación con BCV Oficial</h4>
-          </div>
-          
-          {/* USD Comparison */}
-          {usdRateComparison && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="h-4 w-4 text-success-500" />
-                  <span className="text-ios-body font-medium text-foreground">USD/VES vs USD/VES</span>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-ios-footnote font-medium border ${getPercentageColorClass(!usdRateComparison.isBCVHigher)}`}>
-                  <div className="flex items-center space-x-1">
-                    {!usdRateComparison.isBCVHigher ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    <span>{formatPercentageDifference(usdRateComparison.percentageDifference, !usdRateComparison.isBCVHigher)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">BCV USD</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {usdRateComparison.bcvRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {usdRateComparison.binanceRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {usdRateComparison.absoluteDifference.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="mt-2 text-center">
-                <p className="text-ios-footnote text-muted-foreground">
-                  {!usdRateComparison.isBCVHigher ? 
-                    `Binance P2P es ${usdRateComparison.percentageDifference.toFixed(1)}% más alto que BCV` :
-                    `BCV es ${usdRateComparison.percentageDifference.toFixed(1)}% más alto que Binance P2P`
-                  }
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {/* EUR Comparison */}
-          {eurRateComparison && (
-            <div className="border-t border-border/20 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Euro className="h-4 w-4 text-blue-500" />
-                  <span className="text-ios-body font-medium text-foreground">EUR/VES vs USD/VES</span>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-ios-footnote font-medium border ${getPercentageColorClass(!eurRateComparison.isBCVHigher)}`}>
-                  <div className="flex items-center space-x-1">
-                    {!eurRateComparison.isBCVHigher ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    <span>{formatPercentageDifference(eurRateComparison.percentageDifference, !eurRateComparison.isBCVHigher)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">BCV EUR</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {eurRateComparison.bcvRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {eurRateComparison.binanceRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {eurRateComparison.absoluteDifference.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="mt-2 text-center">
-                <p className="text-ios-footnote text-muted-foreground">
-                  {!eurRateComparison.isBCVHigher ? 
-                    `Binance P2P es ${eurRateComparison.percentageDifference.toFixed(1)}% más alto que BCV EUR` :
-                    `BCV EUR es ${eurRateComparison.percentageDifference.toFixed(1)}% más alto que Binance P2P`
-                  }
-                </p>
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
 
       {/* Main Rates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6">
