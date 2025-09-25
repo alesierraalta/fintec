@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 """
-Enhanced Binance Scraper - Fixed version with better extreme price capture
-Fixes the price discrepancy issue where min/max prices were not accurately captured
-Uses only built-in Python modules for maximum compatibility
-
-PROBLEM SOLVED:
-- Previous scraper: min 290.67 vs real 297.000 (6.33 Bs difference)
-- Previous scraper: max 310 vs real 358.376 Bs (48.376 Bs difference)
-- Enhanced scraper: min 285.61 vs real 297.000 (captures lower extremes)
-- Enhanced scraper: max 358.31 vs real 358.376 Bs (only 0.066 Bs difference!)
+Built-in Binance Scraper - Uses only Python built-in modules
+Enhanced version with better extreme price capture and filtering
+Fixes the price discrepancy issue (290.67 vs 297.000 min, 310 vs 358.376 max)
 """
 
 import json
@@ -26,14 +20,14 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('binance_scraper.log'),
+        logging.FileHandler('binance_scraper_builtin.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-class EnhancedBinanceScraper:
-    """Enhanced scraper with better extreme price capture"""
+class BuiltinEnhancedBinanceScraper:
+    """Enhanced scraper using only built-in Python modules"""
     
     def __init__(self):
         self.p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
@@ -262,7 +256,7 @@ class EnhancedBinanceScraper:
         logger.info(f"Multiple sampling for {trade_type}: {len(all_prices)} total -> {len(unique_prices)} unique prices")
         return unique_prices
     
-    def scrape_rates(self, silent: bool = False) -> Dict:
+    def scrape_rates_enhanced(self, silent: bool = False) -> Dict:
         """Enhanced main method with better extreme price capture"""
         try:
             # Get SELL and BUY prices with multiple sampling runs
@@ -338,15 +332,16 @@ class EnhancedBinanceScraper:
                         'max': overall_max
                     },
                     'lastUpdated': datetime.now().isoformat(),
-                    'source': 'Binance P2P (Enhanced)',
+                    'source': 'Binance P2P (Built-in Enhanced)',
                     'quality_score': quality_score,
                     'sampling_runs': self.multiple_sampling_runs,
                     'extreme_preservation_percent': self.preserve_extremes_percent,
                     # Debug information
                     'debug_info': {
+                        'original_sell_count': len([p for p in sell_prices if 'original' in p]) if sell_prices else 0,
+                        'original_buy_count': len([p for p in buy_prices if 'original' in p]) if buy_prices else 0,
                         'filtering_applied': len(sell_prices) + len(buy_prices) > 0,
-                        'extreme_preservation_active': True,
-                        'improvement_notes': 'Fixed price discrepancy issue - now captures true min/max extremes'
+                        'extreme_preservation_active': True
                     }
                 }
             }
@@ -415,30 +410,26 @@ class EnhancedBinanceScraper:
                     'min': 228.00, 'max': 228.50
                 },
                 'lastUpdated': datetime.now().isoformat(),
-                'source': 'Binance P2P (Enhanced Fallback)',
+                'source': 'Binance P2P (Built-in Enhanced Fallback)',
                 'quality_score': 0.0,
                 'sampling_runs': 0,
                 'extreme_preservation_percent': 0.0,
                 'debug_info': {
+                    'original_sell_count': 0,
+                    'original_buy_count': 0,
                     'filtering_applied': False,
-                    'extreme_preservation_active': False,
-                    'improvement_notes': 'Fallback mode - enhanced features disabled'
+                    'extreme_preservation_active': False
                 }
             }
         }
 
-def scrape_binance_rates(silent: bool = False) -> Dict:
-    """Main scraper function - enhanced version"""
-    scraper = EnhancedBinanceScraper()
-    return scraper.scrape_rates(silent)
-
-# Async compatibility functions (for backward compatibility)
-async def scrape_binance_rates_async(silent: bool = False) -> Dict:
-    """Async wrapper for compatibility"""
-    return scrape_binance_rates(silent)
+def scrape_binance_rates_builtin_enhanced(silent: bool = False) -> Dict:
+    """Built-in enhanced scraper function"""
+    scraper = BuiltinEnhancedBinanceScraper()
+    return scraper.scrape_rates_enhanced(silent)
 
 if __name__ == '__main__':
     import sys
     silent = '--silent' in sys.argv
-    result = scrape_binance_rates(silent=silent)
+    result = scrape_binance_rates_builtin_enhanced(silent=silent)
     print(json.dumps(result, indent=2))

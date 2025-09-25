@@ -1,103 +1,91 @@
 #!/usr/bin/env python3
 """
-Enhanced Binance Scraper - Fixed version with better extreme price capture
-Fixes the price discrepancy issue where min/max prices were not accurately captured
-Uses only built-in Python modules for maximum compatibility
-
-PROBLEM SOLVED:
-- Previous scraper: min 290.67 vs real 297.000 (6.33 Bs difference)
-- Previous scraper: max 310 vs real 358.376 Bs (48.376 Bs difference)
-- Enhanced scraper: min 285.61 vs real 297.000 (captures lower extremes)
-- Enhanced scraper: max 358.31 vs real 358.376 Bs (only 0.066 Bs difference!)
+Simple Enhanced Binance Scraper - No aiohttp dependency
+Fixes the price discrepancy issue with improved filtering and extreme preservation
 """
 
 import json
 import logging
 import time
 import statistics
-import urllib.request
-import urllib.parse
-import urllib.error
+import requests
 from datetime import datetime
 from typing import Dict, List, Optional
+from dataclasses import dataclass
 
 # Logging configuration
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('binance_scraper.log'),
+        logging.FileHandler('binance_scraper_simple_enhanced.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-class EnhancedBinanceScraper:
-    """Enhanced scraper with better extreme price capture"""
+@dataclass
+class SimpleScraperConfig:
+    """Simple scraper configuration"""
+    max_pages: int = 30  # Increased to capture more data
+    rows_per_page: int = 20
+    max_retries: int = 3
+    retry_delay: float = 1.0
+    request_timeout: int = 15
+    rate_limit_delay: float = 0.3
+    price_range_min: float = 150.0  # Expanded range
+    price_range_max: float = 500.0  # Expanded range
+    user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     
-    def __init__(self):
+    # Enhanced filtering configuration
+    preserve_extremes_percent: float = 5.0  # Preserve top/bottom 5%
+    iqr_multiplier: float = 2.5  # IQR-based filtering (less aggressive)
+    min_data_points: int = 30  # Minimum before filtering
+    multiple_sampling_runs: int = 3  # Multiple runs for extremes
+
+class SimpleEnhancedBinanceScraper:
+    """Simple enhanced scraper with better extreme price capture"""
+    
+    def __init__(self, config: SimpleScraperConfig = None):
+        self.config = config or SimpleScraperConfig()
         self.p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
-        self.max_pages = 30  # Increased to capture more data
-        self.rows_per_page = 20
-        self.max_retries = 3
-        self.retry_delay = 1.0
-        self.request_timeout = 15
-        self.rate_limit_delay = 0.3
-        self.price_range_min = 150.0  # Expanded range
-        self.price_range_max = 500.0  # Expanded range
-        self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        
-        # Enhanced filtering configuration
-        self.preserve_extremes_percent = 5.0  # Preserve top/bottom 5%
-        self.iqr_multiplier = 2.5  # IQR-based filtering (less aggressive)
-        self.min_data_points = 30  # Minimum before filtering
-        self.multiple_sampling_runs = 3  # Multiple runs for extremes
         
     def _make_request_with_retry(self, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
-        """Make request with retry mechanism using urllib"""
-        # Convert payload to JSON bytes
-        data = json.dumps(payload).encode('utf-8')
+        """Make request with retry mechanism"""
+        headers = {
+            'User-Agent': self.config.user_agent,
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        }
         
-        # Create request
-        req = urllib.request.Request(
-            self.p2p_url,
-            data=data,
-            headers={
-                'User-Agent': self.user_agent,
-                'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
-        )
-        
-        for attempt in range(self.max_retries):
+        for attempt in range(self.config.max_retries):
             try:
-                with urllib.request.urlopen(req, timeout=self.request_timeout) as response:
-                    if response.status == 200:
-                        response_data = json.loads(response.read().decode('utf-8'))
-                        logger.info(f"Page {page} ({trade_type}): {response.status} - {len(response_data.get('data', []))} offers")
-                        return response_data
-                    else:
-                        logger.error(f"HTTP Error {response.status} on page {page}")
-                        if attempt < self.max_retries - 1:
-                            time.sleep(self.retry_delay * (2 ** attempt))
-                            continue
-                        return None
-            except urllib.error.HTTPError as e:
-                if e.code == 429:  # Rate limit
-                    wait_time = self.retry_delay * (2 ** attempt)
+                response = requests.post(
+                    self.p2p_url, 
+                    json=payload, 
+                    headers=headers, 
+                    timeout=self.config.request_timeout
+                )
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    logger.info(f"Page {page} ({trade_type}): {response.status_code} - {len(data.get('data', []))} offers")
+                    return data
+                elif response.status_code == 429:
+                    wait_time = self.config.retry_delay * (2 ** attempt)
                     logger.warning(f"Rate limit on page {page}, waiting {wait_time}s...")
                     time.sleep(wait_time)
                     continue
                 else:
-                    logger.error(f"HTTP Error {e.code} on page {page}")
-                    if attempt < self.max_retries - 1:
-                        time.sleep(self.retry_delay * (2 ** attempt))
+                    logger.error(f"HTTP Error {response.status_code} on page {page}")
+                    if attempt < self.config.max_retries - 1:
+                        time.sleep(self.config.retry_delay * (2 ** attempt))
                         continue
                     return None
             except Exception as e:
                 logger.error(f"Error on page {page}: {e}")
-                if attempt < self.max_retries - 1:
-                    time.sleep(self.retry_delay * (2 ** attempt))
+                if attempt < self.config.max_retries - 1:
+                    time.sleep(self.config.retry_delay * (2 ** attempt))
                     continue
                 return None
         
@@ -111,11 +99,11 @@ class EnhancedBinanceScraper:
         if not silent:
             logger.info(f"Starting enhanced search for {trade_type} offers (run {run_number})")
         
-        for page in range(1, self.max_pages + 1):
+        for page in range(1, self.config.max_pages + 1):
             payload = {
                 "proMerchantAds": False,
                 "page": page,
-                "rows": self.rows_per_page,
+                "rows": self.config.rows_per_page,
                 "payTypes": [],
                 "countries": [],
                 "publisherType": None,
@@ -136,7 +124,7 @@ class EnhancedBinanceScraper:
                     if 'adv' in ad and 'price' in ad['adv']:
                         try:
                             price = float(ad['adv']['price'])
-                            if self.price_range_min <= price <= self.price_range_max:
+                            if self.config.price_range_min <= price <= self.config.price_range_max:
                                 price_data = {
                                     'price': price,
                                     'trade_type': trade_type,
@@ -149,14 +137,14 @@ class EnhancedBinanceScraper:
                             continue
                 
                 # If no offers or less than expected, probably last page
-                if page_offers == 0 or page_offers < self.rows_per_page:
+                if page_offers == 0 or page_offers < self.config.rows_per_page:
                     if not silent:
                         logger.info(f"Last page detected on page {page}")
                     break
                 
                 # Rate limiting
                 if page % 3 == 0:
-                    time.sleep(self.rate_limit_delay)
+                    time.sleep(self.config.rate_limit_delay)
             else:
                 if not silent:
                     logger.info(f"No data on page {page}")
@@ -169,7 +157,7 @@ class EnhancedBinanceScraper:
     
     def _enhanced_filtering_with_extreme_preservation(self, prices: List[Dict]) -> List[Dict]:
         """Enhanced filtering that preserves legitimate extreme prices"""
-        if not prices or len(prices) < self.min_data_points:
+        if not prices or len(prices) < self.config.min_data_points:
             logger.info(f"Not enough data points ({len(prices)}) for filtering, returning all prices")
             return prices
         
@@ -179,7 +167,7 @@ class EnhancedBinanceScraper:
         sorted_prices = sorted(prices, key=lambda x: x['price'])
         
         # Preserve top and bottom extremes (configurable percentage)
-        preserve_count = max(1, int(len(prices) * self.preserve_extremes_percent / 100))
+        preserve_count = max(1, int(len(prices) * self.config.preserve_extremes_percent / 100))
         preserved_low = sorted_prices[:preserve_count]
         preserved_high = sorted_prices[-preserve_count:]
         
@@ -197,8 +185,8 @@ class EnhancedBinanceScraper:
             q3 = statistics.quantiles(middle_values, n=4)[2]
             iqr = q3 - q1
             
-            lower_bound = q1 - (self.iqr_multiplier * iqr)
-            upper_bound = q3 + (self.iqr_multiplier * iqr)
+            lower_bound = q1 - (self.config.iqr_multiplier * iqr)
+            upper_bound = q3 + (self.config.iqr_multiplier * iqr)
             
             # Filter middle prices using IQR
             filtered_middle = []
@@ -239,15 +227,15 @@ class EnhancedBinanceScraper:
         """Perform multiple sampling runs to capture price extremes"""
         all_prices = []
         
-        for run in range(1, self.multiple_sampling_runs + 1):
+        for run in range(1, self.config.multiple_sampling_runs + 1):
             if not silent:
-                logger.info(f"Starting sampling run {run}/{self.multiple_sampling_runs} for {trade_type}")
+                logger.info(f"Starting sampling run {run}/{self.config.multiple_sampling_runs} for {trade_type}")
             
             run_prices = self._get_offers_for_type_enhanced(trade_type, run, silent)
             all_prices.extend(run_prices)
             
             # Small delay between runs to avoid rate limiting
-            if run < self.multiple_sampling_runs:
+            if run < self.config.multiple_sampling_runs:
                 time.sleep(1.0)
         
         # Remove duplicates based on price and ad_id
@@ -262,7 +250,7 @@ class EnhancedBinanceScraper:
         logger.info(f"Multiple sampling for {trade_type}: {len(all_prices)} total -> {len(unique_prices)} unique prices")
         return unique_prices
     
-    def scrape_rates(self, silent: bool = False) -> Dict:
+    def scrape_rates_enhanced(self, silent: bool = False) -> Dict:
         """Enhanced main method with better extreme price capture"""
         try:
             # Get SELL and BUY prices with multiple sampling runs
@@ -338,16 +326,10 @@ class EnhancedBinanceScraper:
                         'max': overall_max
                     },
                     'lastUpdated': datetime.now().isoformat(),
-                    'source': 'Binance P2P (Enhanced)',
+                    'source': 'Binance P2P (Simple Enhanced)',
                     'quality_score': quality_score,
-                    'sampling_runs': self.multiple_sampling_runs,
-                    'extreme_preservation_percent': self.preserve_extremes_percent,
-                    # Debug information
-                    'debug_info': {
-                        'filtering_applied': len(sell_prices) + len(buy_prices) > 0,
-                        'extreme_preservation_active': True,
-                        'improvement_notes': 'Fixed price discrepancy issue - now captures true min/max extremes'
-                    }
+                    'sampling_runs': self.config.multiple_sampling_runs,
+                    'extreme_preservation_percent': self.config.preserve_extremes_percent
                 }
             }
             
@@ -415,30 +397,21 @@ class EnhancedBinanceScraper:
                     'min': 228.00, 'max': 228.50
                 },
                 'lastUpdated': datetime.now().isoformat(),
-                'source': 'Binance P2P (Enhanced Fallback)',
+                'source': 'Binance P2P (Simple Enhanced Fallback)',
                 'quality_score': 0.0,
                 'sampling_runs': 0,
-                'extreme_preservation_percent': 0.0,
-                'debug_info': {
-                    'filtering_applied': False,
-                    'extreme_preservation_active': False,
-                    'improvement_notes': 'Fallback mode - enhanced features disabled'
-                }
+                'extreme_preservation_percent': 0.0
             }
         }
 
-def scrape_binance_rates(silent: bool = False) -> Dict:
-    """Main scraper function - enhanced version"""
-    scraper = EnhancedBinanceScraper()
-    return scraper.scrape_rates(silent)
-
-# Async compatibility functions (for backward compatibility)
-async def scrape_binance_rates_async(silent: bool = False) -> Dict:
-    """Async wrapper for compatibility"""
-    return scrape_binance_rates(silent)
+def scrape_binance_rates_simple_enhanced(silent: bool = False) -> Dict:
+    """Simple enhanced scraper function"""
+    config = SimpleScraperConfig()
+    scraper = SimpleEnhancedBinanceScraper(config)
+    return scraper.scrape_rates_enhanced(silent)
 
 if __name__ == '__main__':
     import sys
     silent = '--silent' in sys.argv
-    result = scrape_binance_rates(silent=silent)
+    result = scrape_binance_rates_simple_enhanced(silent=silent)
     print(json.dumps(result, indent=2))

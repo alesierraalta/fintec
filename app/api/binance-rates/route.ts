@@ -91,7 +91,7 @@ function getFallbackData(reason: string) {
 
 function runPythonScraper(): Promise<any> {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'scripts', 'binance_scraper.py');
+    const scriptPath = path.join(process.cwd(), 'scripts', 'binance_scraper_fast.py');
     
     // Si ya conocemos el comando Python que funciona, usarlo directamente
     if (pythonCommand) {
@@ -138,7 +138,7 @@ function runPythonScraper(): Promise<any> {
 
 function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (result: any) => void, onError: (error: Error) => void) {
   const python = spawn(cmd, [scriptPath, '--silent'], {
-    timeout: 30000 // Timeout de 30 segundos para Binance (aumentado)
+    timeout: 90000 // Timeout de 90 segundos para Binance Fast (optimizado para API)
   });
   
   let output = '';
@@ -182,7 +182,7 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
       python.kill();
       onError(new Error('Binance scraper timeout'));
     }
-  }, 30000);
+  }, 90000);
 }
 
 // Alternative endpoint for CORS-enabled requests

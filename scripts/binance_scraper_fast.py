@@ -1,14 +1,7 @@
 #!/usr/bin/env python3
 """
-Enhanced Binance Scraper - Fixed version with better extreme price capture
-Fixes the price discrepancy issue where min/max prices were not accurately captured
-Uses only built-in Python modules for maximum compatibility
-
-PROBLEM SOLVED:
-- Previous scraper: min 290.67 vs real 297.000 (6.33 Bs difference)
-- Previous scraper: max 310 vs real 358.376 Bs (48.376 Bs difference)
-- Enhanced scraper: min 285.61 vs real 297.000 (captures lower extremes)
-- Enhanced scraper: max 358.31 vs real 358.376 Bs (only 0.066 Bs difference!)
+Fast Binance Scraper - Optimized for API use with 60-second timeout
+Balances speed and accuracy for real-time API responses
 """
 
 import json
@@ -26,32 +19,32 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('binance_scraper.log'),
+        logging.FileHandler('binance_scraper_fast.log'),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-class EnhancedBinanceScraper:
-    """Enhanced scraper with better extreme price capture"""
+class FastBinanceScraper:
+    """Fast scraper optimized for API use with 60-second timeout"""
     
     def __init__(self):
         self.p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
-        self.max_pages = 30  # Increased to capture more data
+        self.max_pages = 20  # Reduced for speed
         self.rows_per_page = 20
-        self.max_retries = 3
-        self.retry_delay = 1.0
-        self.request_timeout = 15
-        self.rate_limit_delay = 0.3
-        self.price_range_min = 150.0  # Expanded range
-        self.price_range_max = 500.0  # Expanded range
+        self.max_retries = 2  # Reduced for speed
+        self.retry_delay = 0.5  # Reduced for speed
+        self.request_timeout = 10  # Reduced for speed
+        self.rate_limit_delay = 0.2  # Reduced for speed
+        self.price_range_min = 150.0
+        self.price_range_max = 500.0
         self.user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         
-        # Enhanced filtering configuration
-        self.preserve_extremes_percent = 5.0  # Preserve top/bottom 5%
-        self.iqr_multiplier = 2.5  # IQR-based filtering (less aggressive)
-        self.min_data_points = 30  # Minimum before filtering
-        self.multiple_sampling_runs = 3  # Multiple runs for extremes
+        # Optimized filtering configuration
+        self.preserve_extremes_percent = 5.0  # Keep extreme preservation
+        self.iqr_multiplier = 2.5  # Keep IQR filtering
+        self.min_data_points = 20  # Reduced minimum
+        self.multiple_sampling_runs = 2  # Reduced from 3 to 2 for speed
         
     def _make_request_with_retry(self, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
         """Make request with retry mechanism using urllib"""
@@ -103,13 +96,13 @@ class EnhancedBinanceScraper:
         
         return None
     
-    def _get_offers_for_type_enhanced(self, trade_type: str, run_number: int = 1, silent: bool = False) -> List[Dict]:
-        """Enhanced method to get offers"""
+    def _get_offers_for_type_fast(self, trade_type: str, run_number: int = 1, silent: bool = False) -> List[Dict]:
+        """Fast method to get offers"""
         all_prices = []
         total_offers_found = 0
         
         if not silent:
-            logger.info(f"Starting enhanced search for {trade_type} offers (run {run_number})")
+            logger.info(f"Starting fast search for {trade_type} offers (run {run_number})")
         
         for page in range(1, self.max_pages + 1):
             payload = {
@@ -154,8 +147,8 @@ class EnhancedBinanceScraper:
                         logger.info(f"Last page detected on page {page}")
                     break
                 
-                # Rate limiting
-                if page % 3 == 0:
+                # Faster rate limiting
+                if page % 5 == 0:  # Less frequent rate limiting
                     time.sleep(self.rate_limit_delay)
             else:
                 if not silent:
@@ -167,8 +160,8 @@ class EnhancedBinanceScraper:
         
         return all_prices
     
-    def _enhanced_filtering_with_extreme_preservation(self, prices: List[Dict]) -> List[Dict]:
-        """Enhanced filtering that preserves legitimate extreme prices"""
+    def _fast_filtering_with_extreme_preservation(self, prices: List[Dict]) -> List[Dict]:
+        """Fast filtering that preserves legitimate extreme prices"""
         if not prices or len(prices) < self.min_data_points:
             logger.info(f"Not enough data points ({len(prices)}) for filtering, returning all prices")
             return prices
@@ -223,9 +216,8 @@ class EnhancedBinanceScraper:
                 unique_prices.append(price_data)
         
         filtered_count = len(unique_prices)
-        logger.info(f"Enhanced filtering: {original_count} -> {filtered_count} prices")
+        logger.info(f"Fast filtering: {original_count} -> {filtered_count} prices")
         logger.info(f"Preserved {len(preserved_low)} low extremes, {len(preserved_high)} high extremes")
-        logger.info(f"Filtered middle prices: {len(middle_prices)} -> {len(filtered_middle)}")
         
         # Log extreme values for debugging
         if unique_prices:
@@ -235,20 +227,20 @@ class EnhancedBinanceScraper:
         
         return unique_prices
     
-    def _multiple_sampling_runs(self, trade_type: str, silent: bool = False) -> List[Dict]:
-        """Perform multiple sampling runs to capture price extremes"""
+    def _fast_sampling_runs(self, trade_type: str, silent: bool = False) -> List[Dict]:
+        """Perform fast sampling runs to capture price extremes"""
         all_prices = []
         
         for run in range(1, self.multiple_sampling_runs + 1):
             if not silent:
-                logger.info(f"Starting sampling run {run}/{self.multiple_sampling_runs} for {trade_type}")
+                logger.info(f"Starting fast sampling run {run}/{self.multiple_sampling_runs} for {trade_type}")
             
-            run_prices = self._get_offers_for_type_enhanced(trade_type, run, silent)
+            run_prices = self._get_offers_for_type_fast(trade_type, run, silent)
             all_prices.extend(run_prices)
             
-            # Small delay between runs to avoid rate limiting
+            # Shorter delay between runs for speed
             if run < self.multiple_sampling_runs:
-                time.sleep(1.0)
+                time.sleep(0.5)  # Reduced from 1.0 to 0.5
         
         # Remove duplicates based on price and ad_id
         seen_prices = set()
@@ -259,19 +251,19 @@ class EnhancedBinanceScraper:
                 seen_prices.add(price_key)
                 unique_prices.append(price_data)
         
-        logger.info(f"Multiple sampling for {trade_type}: {len(all_prices)} total -> {len(unique_prices)} unique prices")
+        logger.info(f"Fast sampling for {trade_type}: {len(all_prices)} total -> {len(unique_prices)} unique prices")
         return unique_prices
     
-    def scrape_rates(self, silent: bool = False) -> Dict:
-        """Enhanced main method with better extreme price capture"""
+    def scrape_rates_fast(self, silent: bool = False) -> Dict:
+        """Fast main method optimized for API use"""
         try:
-            # Get SELL and BUY prices with multiple sampling runs
-            sell_prices = self._multiple_sampling_runs("SELL", silent)
-            buy_prices = self._multiple_sampling_runs("BUY", silent)
+            # Get SELL and BUY prices with fast sampling runs
+            sell_prices = self._fast_sampling_runs("SELL", silent)
+            buy_prices = self._fast_sampling_runs("BUY", silent)
             
-            # Apply enhanced filtering
-            sell_prices = self._enhanced_filtering_with_extreme_preservation(sell_prices)
-            buy_prices = self._enhanced_filtering_with_extreme_preservation(buy_prices)
+            # Apply fast filtering
+            sell_prices = self._fast_filtering_with_extreme_preservation(sell_prices)
+            buy_prices = self._fast_filtering_with_extreme_preservation(buy_prices)
             
             if not sell_prices and not buy_prices:
                 raise Exception("Could not get valid P2P prices")
@@ -298,8 +290,8 @@ class EnhancedBinanceScraper:
             overall_min = round(min(all_values), 2) if all_values else min(sell_min, buy_min)
             overall_max = round(max(all_values), 2) if all_values else max(sell_max, buy_max)
             
-            # Enhanced quality score
-            quality_score = self._calculate_enhanced_quality_score(sell_prices, buy_prices, sell_min, sell_max, buy_min, buy_max)
+            # Fast quality score
+            quality_score = self._calculate_fast_quality_score(sell_prices, buy_prices, sell_min, sell_max, buy_min, buy_max)
             
             return {
                 'success': True,
@@ -338,7 +330,7 @@ class EnhancedBinanceScraper:
                         'max': overall_max
                     },
                     'lastUpdated': datetime.now().isoformat(),
-                    'source': 'Binance P2P (Enhanced)',
+                    'source': 'Binance P2P (Fast)',
                     'quality_score': quality_score,
                     'sampling_runs': self.multiple_sampling_runs,
                     'extreme_preservation_percent': self.preserve_extremes_percent,
@@ -346,18 +338,18 @@ class EnhancedBinanceScraper:
                     'debug_info': {
                         'filtering_applied': len(sell_prices) + len(buy_prices) > 0,
                         'extreme_preservation_active': True,
-                        'improvement_notes': 'Fixed price discrepancy issue - now captures true min/max extremes'
+                        'optimization_notes': 'Fast version optimized for 60-second API timeout'
                     }
                 }
             }
             
         except Exception as e:
-            logger.error(f"Error in enhanced scraper: {e}")
+            logger.error(f"Error in fast scraper: {e}")
             return self._get_fallback_data(str(e))
     
-    def _calculate_enhanced_quality_score(self, sell_prices: List[Dict], buy_prices: List[Dict], 
-                                        sell_min: float, sell_max: float, buy_min: float, buy_max: float) -> float:
-        """Calculate enhanced quality score"""
+    def _calculate_fast_quality_score(self, sell_prices: List[Dict], buy_prices: List[Dict], 
+                                    sell_min: float, sell_max: float, buy_min: float, buy_max: float) -> float:
+        """Calculate fast quality score"""
         total_prices = len(sell_prices) + len(buy_prices)
         
         # Score based on data quantity (0-30 points)
@@ -382,7 +374,7 @@ class EnhancedBinanceScraper:
         return round(total_score, 1)
     
     def _get_fallback_data(self, error: str) -> Dict:
-        """Enhanced fallback data"""
+        """Fast fallback data"""
         return {
             'success': False,
             'error': error,
@@ -415,30 +407,25 @@ class EnhancedBinanceScraper:
                     'min': 228.00, 'max': 228.50
                 },
                 'lastUpdated': datetime.now().isoformat(),
-                'source': 'Binance P2P (Enhanced Fallback)',
+                'source': 'Binance P2P (Fast Fallback)',
                 'quality_score': 0.0,
                 'sampling_runs': 0,
                 'extreme_preservation_percent': 0.0,
                 'debug_info': {
                     'filtering_applied': False,
                     'extreme_preservation_active': False,
-                    'improvement_notes': 'Fallback mode - enhanced features disabled'
+                    'optimization_notes': 'Fast fallback mode'
                 }
             }
         }
 
-def scrape_binance_rates(silent: bool = False) -> Dict:
-    """Main scraper function - enhanced version"""
-    scraper = EnhancedBinanceScraper()
-    return scraper.scrape_rates(silent)
-
-# Async compatibility functions (for backward compatibility)
-async def scrape_binance_rates_async(silent: bool = False) -> Dict:
-    """Async wrapper for compatibility"""
-    return scrape_binance_rates(silent)
+def scrape_binance_rates_fast(silent: bool = False) -> Dict:
+    """Fast scraper function optimized for API use"""
+    scraper = FastBinanceScraper()
+    return scraper.scrape_rates_fast(silent)
 
 if __name__ == '__main__':
     import sys
     silent = '--silent' in sys.argv
-    result = scrape_binance_rates(silent=silent)
+    result = scrape_binance_rates_fast(silent=silent)
     print(json.dumps(result, indent=2))
