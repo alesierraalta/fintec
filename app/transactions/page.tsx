@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, memo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, Suspense } from 'react';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -26,7 +26,12 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
-  const { transactions, accounts, categories, loading } = useOptimizedData();
+  const { transactions, accounts, categories, loading, loadAllData } = useOptimizedData();
+  
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
   
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
@@ -159,7 +164,7 @@ export default function TransactionsPage() {
   }, []);
 
   const handleNewTransaction = useCallback(() => router.push('/transactions/add'), [router]);
-  const handleQuickAdd = useCallback(() => { setSelectedTransaction(null); openModal(); }, [openModal]);
+
   const handleEditTransaction = useCallback((t: Transaction) => { setSelectedTransaction(t); openModal(); }, [openModal]);
   const handleDeleteTransaction = useCallback((t: Transaction) => { setTransactionToDelete(t); setShowDeleteModal(true); }, []);
 
@@ -263,15 +268,7 @@ export default function TransactionsPage() {
           
           {/* Quick Actions Header */}
           <div className="flex items-center justify-center space-x-4 mb-4">
-            <button
-              onClick={handleQuickAdd}
-              className="px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 bg-muted hover:bg-muted/80 text-muted-foreground hidden sm:flex"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-sm font-medium">Agregar</span>
-            </button>
-            
-            <button
+<button
               onClick={handleNewTransaction}
               className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
             >
