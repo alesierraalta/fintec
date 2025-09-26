@@ -32,11 +32,15 @@ import {
   Target,
   Award,
   Star,
-  History
+  History,
+  Settings
 } from 'lucide-react';
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRates } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
+import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
+import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
+import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
@@ -109,6 +113,9 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const { checkAlerts } = useBalanceAlerts();
 
   // Load accounts from database
   useEffect(() => {
@@ -141,6 +148,9 @@ export default function AccountsPage() {
       
       const userAccounts = await repository.accounts.findByUserId(user.id);
       setAccounts(userAccounts);
+      
+      // Check for balance alerts after loading accounts
+      await checkAlerts(userAccounts);
     } catch (err) {
       console.error('Error loading accounts:', err);
       setError('Error al cargar las cuentas');
@@ -180,6 +190,18 @@ export default function AccountsPage() {
 
   const toggleDropdown = (accountId: string) => {
     setOpenDropdown(openDropdown === accountId ? null : accountId);
+  };
+
+  const handleAlertSettings = (account: Account) => {
+    setSelectedAccountForAlert(account);
+    setShowAlertSettings(true);
+    setOpenDropdown(null);
+  };
+
+  const handleCloseAlertSettings = () => {
+    setShowAlertSettings(false);
+    setSelectedAccountForAlert(null);
+    loadAccounts(); // Reload to get updated alert settings
   };
 
   const formatBalance = (balanceMinor: number, currency: string) => {
@@ -361,7 +383,7 @@ export default function AccountsPage() {
 
           {/* iOS-style Summary Cards - Mobile First Responsive */}
           <motion.div 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8"
             variants={{
               hidden: { opacity: 0 },
               show: {
@@ -508,7 +530,7 @@ export default function AccountsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                 <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
@@ -526,7 +548,7 @@ export default function AccountsPage() {
               </motion.div>
             </div>
             
-            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center sm:text-left px-2 sm:px-0">
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
               Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
             </p>
 
@@ -543,7 +565,7 @@ export default function AccountsPage() {
               >
                 <button
                   onClick={() => setShowRatesHistory(true)}
-                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full sm:w-auto text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
                 >
                   <History className="h-4 w-4" />
                   <span className="font-medium">Ver Historial y Calculadora</span>
@@ -553,7 +575,7 @@ export default function AccountsPage() {
 
             {/* Exchange Summary - Mobile Responsive */}
             <motion.div 
-              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 sm:mx-0"
+              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}
@@ -678,23 +700,23 @@ export default function AccountsPage() {
                         }}
                       >
                         <div className="flex items-center justify-between relative z-10">
-                          <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 md:space-x-4 flex-1 min-w-0">
                             <div className="p-2.5 sm:p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
                               <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground group-hover:text-primary transition-colors duration-200" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <h4 className="text-sm sm:text-ios-body font-medium text-foreground mb-1 truncate">{account.name}</h4>
-                              <div className="flex items-center flex-wrap gap-1 sm:gap-2 text-xs sm:text-ios-caption text-muted-foreground">
+                              <div className="flex items-center flex-wrap gap-1 md:gap-2 text-xs sm:text-ios-caption text-muted-foreground">
                                 <span className="truncate">{account.type === 'BANK' ? 'Banco' : 
                                        account.type === 'CARD' ? 'Tarjeta' :
                                        account.type === 'CASH' ? 'Efectivo' :
                                        account.type === 'SAVINGS' ? 'Ahorros' : 
                                        'Inversión'}</span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden sm:block"></div>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden md:block"></div>
                                 <span className="text-primary font-medium">
                                   {account.currencyCode}
                                 </span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden sm:block"></div>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full hidden md:block"></div>
                                 <span className={`${account.active ? 'text-success-600' : 'text-error-600'} flex-shrink-0`}>
                                   {account.active ? 'Activa' : 'Inactiva'}
                                 </span>
@@ -710,34 +732,42 @@ export default function AccountsPage() {
                                   : '••••••'
                                 }
                               </p>
-                              <div className="flex items-center justify-end space-x-1 sm:space-x-2 mt-1">
+                              <div className="flex items-center justify-end space-x-1 md:space-x-2 mt-1">
                                 {account.currencyCode === 'VES' && (
                                   <span className="text-xs sm:text-ios-footnote bg-warning-500/10 text-warning-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-medium">
                                     BCV
                                   </span>
                                 )}
+                                <BalanceAlertIndicator account={account} />
                               </div>
                             </div>
                             
                             <div className="relative">
                               <button 
                                 onClick={() => toggleDropdown(account.id)}
-                                className="p-1.5 sm:p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200 flex-shrink-0"
+                                className="p-1.5 md:p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200 flex-shrink-0"
                               >
                                 <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </button>
                               
                               {openDropdown === account.id && (
-                                <div className="absolute right-0 mt-2 w-44 sm:w-48 bg-card/90 backdrop-blur-xl border border-border/40 rounded-2xl shadow-lg z-10 overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-card border border-border rounded-2xl shadow-xl z-20 overflow-hidden">
                                   <button
                                     onClick={() => {
                                       handleEditAccount(account);
                                       setOpenDropdown(null);
                                     }}
-                                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 sm:space-x-3"
+                                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
                                   >
                                     <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                                     <span>Editar cuenta</span>
+                                  </button>
+                                  <button
+                                    onClick={() => handleAlertSettings(account)}
+                                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
+                                  >
+                                    <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                    <span>Alertas de saldo</span>
                                   </button>
                                   <button
                                     onClick={() => handleDeleteAccount(account)}
@@ -771,6 +801,23 @@ export default function AccountsPage() {
           isOpen={showRatesHistory}
           onClose={() => setShowRatesHistory(false)}
         />
+        
+        {/* Balance Alert Settings Modal */}
+        {showAlertSettings && selectedAccountForAlert && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
+              <div className="p-4 border-b border-border/40">
+                <h3 className="text-ios-title font-semibold text-foreground">
+                  Alertas de Saldo - {selectedAccountForAlert.name}
+                </h3>
+              </div>
+              <BalanceAlertSettings
+                account={selectedAccountForAlert}
+                onClose={handleCloseAlertSettings}
+              />
+            </div>
+          </div>
+        )}
       </MainLayout>
     </AuthGuard>
   );

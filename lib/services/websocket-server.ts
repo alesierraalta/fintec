@@ -81,12 +81,12 @@ class WebSocketService {
 
   private sendLatestRates(socket: any): void {
     // This would typically fetch from database
-    // For now, we'll send a placeholder (ya con la lógica corregida)
+    // For now, we'll send a placeholder with correct logic
     socket.emit('exchange-rate-update', {
       usd_ves: 228.25,
       usdt_ves: 228.25,
-      sell_rate: 228.00, // Precio de VENTA para usuario (menor precio)
-      buy_rate: 228.50,  // Precio de COMPRA para usuario (mayor precio)
+      sell_rate: 228.50, // Precio de VENTA para usuario (SELL del scraper)
+      buy_rate: 228.00,  // Precio de COMPRA para usuario (BUY del scraper)
       lastUpdated: new Date().toISOString(),
       source: 'Background Scraper'
     });

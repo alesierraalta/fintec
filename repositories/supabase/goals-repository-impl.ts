@@ -331,4 +331,59 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     return mapSupabaseGoalArrayToDomain(data || []);
   }
+
+  async getGoalsWithProgress(): Promise<import('@/repositories/contracts').GoalWithProgress[]> {
+    const goals = await this.findActive();
+    return Promise.all(goals.map(goal => this.calculateGoalProgress(goal)));
+  }
+
+  async getGoalWithProgress(id: string): Promise<import('@/repositories/contracts').GoalWithProgress | null> {
+    const goal = await this.findById(id);
+    if (!goal) {
+      return null;
+    }
+    return this.calculateGoalProgress(goal);
+  }
+
+  // Helper method to calculate goal progress
+  private calculateGoalProgress(goal: SavingsGoal): import('@/repositories/contracts').GoalWithProgress {
+    const progressPercentage = goal.targetBaseMinor > 0 
+      ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100) 
+      : 0;
+    
+    const remainingBaseMinor = Math.max(0, goal.targetBaseMinor - goal.currentBaseMinor);
+
+    let daysRemaining: number | undefined;
+    let isOnTrack: boolean | undefined;
+    let suggestedMonthlyContribution: number | undefined;
+
+    if (goal.targetDate) {
+      const today = new Date();
+      const targetDate = new Date(goal.targetDate);
+      const timeDiff = targetDate.getTime() - today.getTime();
+      daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
+      
+      if (daysRemaining > 0) {
+        const monthsRemaining = daysRemaining / 30.44; // Average days per month
+        suggestedMonthlyContribution = remainingBaseMinor / monthsRemaining;
+        
+        // Check if on track (simplified logic)
+        const createdDate = new Date(goal.createdAt);
+        const daysSinceCreation = Math.max(1, Math.ceil((today.getTime() - createdDate.getTime()) / (1000 * 3600 * 24)));
+        const currentMonthlyRate = goal.currentBaseMinor / daysSinceCreation * 30.44;
+        isOnTrack = currentMonthlyRate >= suggestedMonthlyContribution;
+      } else {
+        isOnTrack = progressPercentage >= 100;
+      }
+    }
+
+    return {
+      ...goal,
+      progressPercentage,
+      remainingBaseMinor,
+      daysRemaining,
+      isOnTrack,
+      suggestedMonthlyContribution,
+    };
+  }
 }

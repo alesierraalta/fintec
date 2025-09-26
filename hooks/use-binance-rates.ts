@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 interface BinanceRates {
   usd_ves: number;
@@ -57,7 +57,7 @@ export function useBinanceRates() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRates = async () => {
+  const fetchRates = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -130,11 +130,19 @@ export function useBinanceRates() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRates();
-  }, []);
+  }, [fetchRates]);
 
-  return { rates, loading, error, refetch: fetchRates };
+  // Memoize the returned object to prevent unnecessary re-renders
+  const returnValue = useMemo(() => ({
+    rates,
+    loading,
+    error,
+    refetch: fetchRates
+  }), [rates, loading, error, fetchRates]);
+
+  return returnValue;
 }

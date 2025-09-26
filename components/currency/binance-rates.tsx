@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   RefreshCw, 
@@ -34,7 +34,7 @@ const fadeInUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
-export function BinanceRates() {
+export const BinanceRates = React.memo(function BinanceRates() {
   const [rates, setRates] = useState<BinanceRates | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
@@ -44,7 +44,7 @@ export function BinanceRates() {
   // Get BCV rates for comparison
   const bcvRates = useBCVRates();
 
-  const fetchRates = async () => {
+  const fetchRates = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -64,7 +64,7 @@ export function BinanceRates() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchRates();
@@ -72,16 +72,40 @@ export function BinanceRates() {
     // Auto-refresh every 2 minutes for P2P data
     const interval = setInterval(fetchRates, 120000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchRates]);
 
   // Calculate percentage difference with BCV for both USD and EUR
-  const usdRateComparison: RateComparison | null = rates && bcvRates ? 
-    calculateAverageRateDifference(bcvRates.usd, rates.sell_rate.avg, rates.buy_rate.avg) : 
-    null;
+  // Memoize expensive calculations
+  const usdRateComparison: RateComparison | null = useMemo(() => {
+    return rates && bcvRates ? 
+      calculateAverageRateDifference(bcvRates.usd, rates.sell_rate.avg, rates.buy_rate.avg) : 
+      null;
+  }, [rates, bcvRates]);
     
-  const eurRateComparison: RateComparison | null = rates && bcvRates ? 
-    calculateEurUsdRateDifference(bcvRates.eur, rates.sell_rate.avg, rates.buy_rate.avg) : 
-    null;
+  const eurRateComparison: RateComparison | null = useMemo(() => {
+    return rates && bcvRates ? 
+      calculateEurUsdRateDifference(bcvRates.eur, rates.sell_rate.avg, rates.buy_rate.avg) : 
+      null;
+  }, [rates, bcvRates]);
+
+  // Memoize other expensive calculations
+  const marketSummary = useMemo(() => {
+    if (!rates) return null;
+    return {
+      average: (rates.sell_rate.avg + rates.buy_rate.avg) / 2,
+      spread: Math.abs(rates.sell_rate.avg - rates.buy_rate.avg),
+      totalOffers: rates.prices_used
+    };
+  }, [rates]);
+
+  // Memoize handlers
+  const handleRefresh = useCallback(() => {
+    fetchRates();
+  }, [fetchRates]);
+
+  const handleOpenBinance = useCallback(() => {
+    window.open('https://p2p.binance.com/es', '_blank', 'noopener,noreferrer');
+  }, []);
 
   if (!rates) {
     return (
@@ -121,7 +145,7 @@ export function BinanceRates() {
         
         <div className="flex items-center space-x-2 self-start sm:self-auto">
           <motion.button
-            onClick={fetchRates}
+            onClick={handleRefresh}
             disabled={loading}
             className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group"
             whileHover={{ scale: 1.05 }}
@@ -130,10 +154,7 @@ export function BinanceRates() {
             <RefreshCw className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ${loading ? 'animate-spin' : ''}`} />
           </motion.button>
           <motion.button
-            onClick={() => {
-              // Abrir directamente la página de P2P de Binance
-              window.open('https://p2p.binance.com/es', '_blank', 'noopener,noreferrer');
-            }}
+            onClick={handleOpenBinance}
             className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
             title="Abrir Binance P2P directamente"
           >
@@ -329,21 +350,21 @@ export function BinanceRates() {
               <Target className="h-4 w-4 text-primary" />
               <p className="text-ios-caption font-medium text-muted-foreground">PROMEDIO</p>
             </div>
-            <p className="text-xl font-light text-primary">Bs. {((rates.sell_rate.avg + rates.buy_rate.avg) / 2).toFixed(2)}</p>
+            <p className="text-xl font-light text-primary">Bs. {marketSummary?.average.toFixed(2) || '0.00'}</p>
           </div>
           <div>
             <div className="flex items-center justify-center space-x-1 mb-2">
               <ArrowUpDown className="h-4 w-4 text-orange-500" />
               <p className="text-ios-caption font-medium text-muted-foreground">SPREAD</p>
             </div>
-            <p className="text-xl font-light text-orange-500">Bs. {Math.abs(rates.sell_rate.avg - rates.buy_rate.avg).toFixed(2)}</p>
+            <p className="text-xl font-light text-orange-500">Bs. {marketSummary?.spread.toFixed(2) || '0.00'}</p>
           </div>
           <div>
             <div className="flex items-center justify-center space-x-1 mb-2">
               <Users className="h-4 w-4 text-blue-500" />
               <p className="text-ios-caption font-medium text-muted-foreground">OFERTAS</p>
             </div>
-            <p className="text-xl font-light text-blue-500">{rates.prices_used}</p>
+            <p className="text-xl font-light text-blue-500">{marketSummary?.totalOffers || 0}</p>
           </div>
         </div>
       </motion.div>
@@ -365,7 +386,7 @@ export function BinanceRates() {
           <div className="flex items-center justify-center space-x-2">
             <ArrowUpDown className="h-3 w-3 text-orange-500" />
             <span className="text-ios-footnote text-orange-500 font-medium">
-              Diferencia del mercado: Bs. {Math.abs(rates.sell_rate.avg - rates.buy_rate.avg).toFixed(2)}
+              Diferencia del mercado: Bs. {marketSummary?.spread.toFixed(2) || '0.00'}
             </span>
           </div>
         </div>
@@ -396,4 +417,4 @@ export function BinanceRates() {
       </div>
     </motion.div>
   );
-}
+});

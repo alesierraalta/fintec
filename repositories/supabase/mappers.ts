@@ -58,6 +58,8 @@ export function mapSupabaseAccountToDomain(supabaseAccount: SupabaseAccount): Ac
     currencyCode: supabaseAccount.currency_code,
     balance: supabaseAccount.balance,
     active: supabaseAccount.active,
+    minimumBalance: supabaseAccount.minimum_balance || 0,
+    alertEnabled: supabaseAccount.alert_enabled || false,
     createdAt: supabaseAccount.created_at,
     updatedAt: supabaseAccount.updated_at,
   };
@@ -73,6 +75,8 @@ export function mapDomainAccountToSupabase(account: Partial<Account>): Partial<S
     active: account.active,
     created_at: account.createdAt,
     updated_at: account.updatedAt,
+    minimum_balance: account.minimumBalance,
+    alert_enabled: account.alertEnabled,
   };
 
   // Only include id if it's a valid non-empty string

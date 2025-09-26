@@ -126,6 +126,8 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       ...(updateData.currencyCode && { currency_code: updateData.currencyCode }),
       ...(updateData.balance !== undefined && { balance: updateData.balance }),
       ...(updateData.active !== undefined && { active: updateData.active }),
+      ...(updateData.minimumBalance !== undefined && { minimum_balance: updateData.minimumBalance }),
+      ...(updateData.alertEnabled !== undefined && { alert_enabled: updateData.alertEnabled }),
       updated_at: new Date().toISOString(),
     };
 

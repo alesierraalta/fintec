@@ -189,7 +189,7 @@ export function BCVRates() {
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-red-500/20 flex items-center justify-center border border-yellow-500/20">
             <Landmark className="h-5 w-5 text-yellow-600" />
@@ -267,7 +267,7 @@ export function BCVRates() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">BCV USD</p>
                   <p className="text-lg font-semibold text-yellow-600">Bs. {usdRateComparison.bcvRate.toFixed(2)}</p>
@@ -308,7 +308,7 @@ export function BCVRates() {
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">BCV EUR</p>
                   <p className="text-lg font-semibold text-yellow-600">Bs. {eurRateComparison.bcvRate.toFixed(2)}</p>
@@ -333,7 +333,7 @@ export function BCVRates() {
       )}
 
       {/* Rates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6">
         {/* USD Rate */}
         <motion.div 
           className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-success-500/30 transition-all duration-200"
@@ -407,8 +407,8 @@ export function BCVRates() {
             </div>
             
             {/* Currency Selection */}
-            <div className="grid grid-cols-5 gap-2 items-center">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-2 items-center">
+              <div className="col-span-1 sm:col-span-2">
                 <label className="block text-ios-caption font-medium text-muted-foreground mb-2">De</label>
                 <select
                   value={fromCurrency}
@@ -421,7 +421,7 @@ export function BCVRates() {
                 </select>
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center col-span-1 sm:col-span-1">
                 <motion.button
                   onClick={swapCurrencies}
                   className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200"
@@ -433,7 +433,7 @@ export function BCVRates() {
                 </motion.button>
               </div>
               
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <label className="block text-ios-caption font-medium text-muted-foreground mb-2">A</label>
                 <select
                   value={toCurrency}

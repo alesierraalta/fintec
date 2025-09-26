@@ -7,6 +7,9 @@ export interface CreateAccountDTO {
   currencyCode: string;
   balance?: number; // in minor units
   active?: boolean;
+  // Balance alert settings
+  minimumBalance?: number; // in minor units
+  alertEnabled?: boolean;
 }
 
 export interface UpdateAccountDTO extends Partial<CreateAccountDTO> {

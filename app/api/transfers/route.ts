@@ -16,23 +16,40 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit');
     
-    let transfers;
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // For now, skip authentication and use a hardcoded user ID for testing
+    const userId = 'afdd840d-c869-43f8-8eee-3830c0257095';
+    
+    let query = supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userId)
+      .in('type', ['TRANSFER_OUT', 'TRANSFER_IN'])
+      .not('transfer_id', 'is', null);
     
     if (accountId) {
-      // Get transactions that are transfers for a specific account
-      const result = await repository.transactions.findByAccountId(accountId);
-      transfers = result.data.filter(t => t.transferId);
-    } else if (startDate && endDate) {
-      const result = await repository.transactions.findByDateRange(startDate, endDate);
-      transfers = result.data.filter(t => t.transferId);
-    } else {
-      const allTransactions = await repository.transactions.findAll();
-      transfers = allTransactions.filter(t => t.transferId);
+      query = query.eq('account_id', accountId);
+    }
+    
+    if (startDate && endDate) {
+      query = query.gte('date', startDate).lte('date', endDate);
+    }
+    
+    if (limit) {
+      query = query.limit(parseInt(limit));
+    }
+    
+    const { data: transfers, error } = await query.order('date', { ascending: false });
+    
+    if (error) {
+      throw new Error(`Failed to fetch transfers: ${error.message}`);
     }
     
     // Group transfers by transferId
-    const transferGroups = transfers.reduce((groups: any, transaction: any) => {
-      const transferId = transaction.transferId;
+    const transferGroups = (transfers || []).reduce((groups: any, transaction: any) => {
+      const transferId = transaction.transfer_id;
       if (!groups[transferId]) {
         groups[transferId] = [];
       }
@@ -46,19 +63,19 @@ export async function GET(request: NextRequest) {
       
       return {
         id: transferId,
-        fromTransaction: {
+        fromTransaction: fromTransaction ? {
           ...fromTransaction,
-          amountMinor: fromTransaction?.amountMinor || 0,
-          exchangeRate: fromTransaction?.exchangeRate,
-          amountBaseMinor: fromTransaction?.amountBaseMinor
-        },
-        toTransaction: {
+          amountMinor: fromTransaction.amount_minor || 0,
+          exchangeRate: fromTransaction.exchange_rate,
+          amountBaseMinor: fromTransaction.amount_base_minor
+        } : null,
+        toTransaction: toTransaction ? {
           ...toTransaction,
-          amountMinor: toTransaction?.amountMinor || 0,
-          exchangeRate: toTransaction?.exchangeRate,
-          amountBaseMinor: toTransaction?.amountBaseMinor
-        },
-        amount: fromTransaction?.amount || 0,
+          amountMinor: toTransaction.amount_minor || 0,
+          exchangeRate: toTransaction.exchange_rate,
+          amountBaseMinor: toTransaction.amount_base_minor
+        } : null,
+        amount: fromTransaction?.amount_minor || toTransaction?.amount_minor || 0,
         date: fromTransaction?.date || toTransaction?.date,
         description: fromTransaction?.description || toTransaction?.description
       };
@@ -70,6 +87,7 @@ export async function GET(request: NextRequest) {
       count: transferList.length
     });
   } catch (error) {
+    console.error('Transfer API GET error:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -186,10 +204,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
-    // Find all transactions with this transferId
-    const transactions = await repository.transactions.findByTransferId(transferId);
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    if (transactions.length === 0) {
+    // For now, skip authentication and use a hardcoded user ID for testing
+    const userId = 'afdd840d-c869-43f8-8eee-3830c0257095';
+    
+    // Find all transactions with this transferId
+    const { data: transactions, error: fetchError } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('transfer_id', transferId);
+    
+    if (fetchError) {
+      throw new Error(`Failed to find transfer transactions: ${fetchError.message}`);
+    }
+    
+    if (!transactions || transactions.length === 0) {
       return NextResponse.json(
         { 
           success: false, 
@@ -200,8 +232,14 @@ export async function DELETE(request: NextRequest) {
     }
     
     // Delete all transactions associated with this transfer
-    for (const transaction of transactions) {
-      await repository.transactions.delete(transaction.id);
+    const { error: deleteError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('user_id', userId)
+      .eq('transfer_id', transferId);
+    
+    if (deleteError) {
+      throw new Error(`Failed to delete transfer transactions: ${deleteError.message}`);
     }
     
     return NextResponse.json({
@@ -209,6 +247,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Transfer deleted successfully'
     });
   } catch (error) {
+    console.error('Transfer API DELETE error:', error);
     return NextResponse.json(
       { 
         success: false, 

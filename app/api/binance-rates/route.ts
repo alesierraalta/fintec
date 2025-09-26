@@ -8,8 +8,10 @@ let pythonCommand: string | null = null;
 let lastFallbackTime = 0;
 let lastSuccessfulData: any = null;
 let lastSuccessfulTime = 0;
-const FALLBACK_CACHE_DURATION = 30 * 1000; // 30 segundos (reducido para debugging)
-const SUCCESS_CACHE_DURATION = 1 * 60 * 1000; // 1 minuto para datos exitosos (más frecuente que BCV)
+const FALLBACK_CACHE_DURATION = 15 * 1000; // 15 segundos (ultra-agresivo)
+const SUCCESS_CACHE_DURATION = 30 * 1000; // 30 segundos (ultra-agresivo)
+const SCRAPER_TIMEOUT = 45 * 1000; // 45 segundos máximo para el scraper
+const BACKGROUND_REFRESH_INTERVAL = 20 * 1000; // 20 segundos para background refresh
 
 export async function GET() {
   try {
@@ -17,6 +19,8 @@ export async function GET() {
     
     // 1. Si tenemos datos exitosos recientes, devolverlos inmediatamente
     if (lastSuccessfulData && (now - lastSuccessfulTime) < SUCCESS_CACHE_DURATION) {
+      // Trigger background refresh si no está en progreso
+      triggerBackgroundRefresh();
       return NextResponse.json({
         ...lastSuccessfulData,
         cached: true,
@@ -29,8 +33,8 @@ export async function GET() {
       return NextResponse.json(getFallbackData('Python no disponible (cached)'));
     }
     
-    // 3. Intentar ejecutar el scraper de Python para Binance
-    const result = await runPythonScraper();
+    // 3. Intentar ejecutar el scraper ultra-rápido con timeout agresivo
+    const result = await runPythonScraperWithTimeout();
     
     if (result.success) {
       pythonAvailable = true;
@@ -89,9 +93,41 @@ function getFallbackData(reason: string) {
   };
 }
 
+function triggerBackgroundRefresh() {
+  // Solo hacer background refresh si no hay uno en progreso
+  if (!backgroundRefreshPromise && lastSuccessfulData) {
+    const cacheAge = Date.now() - lastSuccessfulTime;
+    // Solo hacer background refresh si el cache tiene más de 20 segundos
+    if (cacheAge > BACKGROUND_REFRESH_INTERVAL) {
+      backgroundRefreshPromise = runPythonScraperWithTimeout()
+        .then((result) => {
+          if (result.success) {
+            lastSuccessfulData = result;
+            lastSuccessfulTime = Date.now();
+          }
+          backgroundRefreshPromise = null;
+        })
+        .catch(() => {
+          backgroundRefreshPromise = null;
+        });
+    }
+  }
+}
+
+function runPythonScraperWithTimeout(): Promise<any> {
+  return Promise.race([
+    runPythonScraper(),
+    new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error('Scraper timeout - using fallback'));
+      }, SCRAPER_TIMEOUT);
+    })
+  ]);
+}
+
 function runPythonScraper(): Promise<any> {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'scripts', 'binance_scraper_fast.py');
+    const scriptPath = path.join(process.cwd(), 'fintec', 'scripts', 'binance_scraper_ultra_fast.py');
     
     // Si ya conocemos el comando Python que funciona, usarlo directamente
     if (pythonCommand) {
@@ -138,7 +174,7 @@ function runPythonScraper(): Promise<any> {
 
 function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (result: any) => void, onError: (error: Error) => void) {
   const python = spawn(cmd, [scriptPath, '--silent'], {
-    timeout: 90000 // Timeout de 90 segundos para Binance Fast (optimizado para API)
+    timeout: SCRAPER_TIMEOUT // Timeout de 45 segundos para Ultra-Fast (optimizado para velocidad)
   });
   
   let output = '';
@@ -182,7 +218,7 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
       python.kill();
       onError(new Error('Binance scraper timeout'));
     }
-  }, 90000);
+  }, SCRAPER_TIMEOUT);
 }
 
 // Alternative endpoint for CORS-enabled requests

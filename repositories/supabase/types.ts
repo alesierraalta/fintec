@@ -9,6 +9,8 @@ export interface SupabaseAccount {
   currency_code: string;
   balance: number; // stored in minor units
   active: boolean;
+  minimum_balance?: number; // stored in minor units
+  alert_enabled?: boolean;
   created_at: string;
   updated_at: string;
 }

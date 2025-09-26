@@ -20,6 +20,9 @@ export interface Account {
   active: boolean;
   createdAt: string;
   updatedAt: string;
+  // Balance alert settings
+  minimumBalance?: number; // in minor units
+  alertEnabled?: boolean;
 }
 
 export enum AccountType {
