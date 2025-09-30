@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useOptimizedTransactions } from '@/hooks/use-optimized-data';
 import { 
   ArrowDownLeft, ArrowUpRight, Repeat, ShoppingCart, Car, Coffee, 
@@ -6,7 +6,19 @@ import {
 } from 'lucide-react';
 
 export function RecentTransactions() {
-  const { transactions, loading } = useOptimizedTransactions();
+  const { transactions, loading, refreshTransactions } = useOptimizedTransactions();
+
+  // Force clear cache on component mount if we detect stale data
+  useEffect(() => {
+    // If we have transactions but they seem to be stale (all showing as income)
+    if (transactions.length > 0 && !loading) {
+      const allIncome = transactions.every(t => t.type === 'INCOME');
+      if (allIncome) {
+        console.log('Detected potentially stale cache with all income transactions, clearing...');
+        refreshTransactions();
+      }
+    }
+  }, [transactions, loading, refreshTransactions]);
 
   // Memoized recent transactions (last 5)
   const recentTransactions = useMemo(() => {
@@ -15,12 +27,13 @@ export function RecentTransactions() {
       .slice(0, 5);
   }, [transactions]);
 
-  const formatAmount = (amount: number) => {
+  const formatAmount = (amount: number, type: string) => {
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    return amount > 0 ? `+$${formatted}` : `-$${formatted}`;
+    // Use transaction type to determine sign, not amount value
+    return type === 'INCOME' ? `+$${formatted}` : `-$${formatted}`;
   };
 
   const formatDate = (dateString: string) => {
@@ -43,7 +56,7 @@ export function RecentTransactions() {
 
   const getTypeInfo = (type: string, amount: number) => {
     switch (type) {
-      case 'income':
+      case 'INCOME':
         return {
           icon: <ArrowDownLeft className="h-4 w-4" />,
           iconColor: 'text-green-600',
@@ -52,7 +65,7 @@ export function RecentTransactions() {
           borderColor: 'border-green-500/20',
           label: 'Ingreso'
         };
-      case 'expense':
+      case 'EXPENSE':
         return {
           icon: <ArrowUpRight className="h-4 w-4" />,
           iconColor: 'text-red-600',
@@ -61,7 +74,8 @@ export function RecentTransactions() {
           borderColor: 'border-red-500/20',
           label: 'Gasto'
         };
-      case 'transfer':
+      case 'TRANSFER_OUT':
+      case 'TRANSFER_IN':
         return {
           icon: <Repeat className="h-4 w-4" />,
           iconColor: 'text-blue-600',
@@ -147,7 +161,7 @@ export function RecentTransactions() {
               {/* Right side - Amount */}
               <div className="text-right">
                 <div className={`text-ios-body font-semibold ${typeInfo.amountColor}`}>
-                  {formatAmount(amount)}
+                  {formatAmount(amount, transaction.type)}
                 </div>
               </div>
             </div>

@@ -32,6 +32,28 @@ let globalCache: DataCache = {
   },
 };
 
+// Force clear cache on module load if we detect stale data
+if (typeof window !== 'undefined') {
+  const cacheKey = 'fintec_cache_cleared';
+  const lastCleared = localStorage.getItem(cacheKey);
+  const now = Date.now();
+  
+  // Clear cache if it hasn't been cleared in the last 24 hours or if we detect stale data
+  if (!lastCleared || (now - parseInt(lastCleared)) > 24 * 60 * 60 * 1000) {
+    globalCache = {
+      transactions: [],
+      accounts: [],
+      categories: [],
+      lastUpdated: {
+        transactions: 0,
+        accounts: 0,
+        categories: 0,
+      },
+    };
+    localStorage.setItem(cacheKey, now.toString());
+  }
+}
+
 export function useOptimizedData() {
   const repository = useRepository();
   const { user } = useAuth();
@@ -48,8 +70,15 @@ export function useOptimizedData() {
   const loadTransactions = useCallback(async (forceRefresh = false) => {
     if (!user) return [];
     
+    // Check for stale cache - if all transactions are INCOME, likely stale
     if (!forceRefresh && isCacheValid('transactions') && globalCache.transactions.length > 0) {
-      return globalCache.transactions;
+      const allIncome = globalCache.transactions.every(t => t.type === 'INCOME');
+      if (allIncome && globalCache.transactions.length > 2) {
+        console.log('Detected potentially stale cache, forcing refresh...');
+        forceRefresh = true;
+      } else {
+        return globalCache.transactions;
+      }
     }
 
     try {
