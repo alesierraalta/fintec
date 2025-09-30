@@ -80,29 +80,29 @@
 }
 
 .dark {
-  --background: 0 0% 4%;           /* Dark Background */
-  --foreground: 0 0% 95%;          /* Light Text */
-  --card: 0 0% 6%;                 /* Dark Card */
-  --card-foreground: 0 0% 95%;     /* Light Card Text */
-  --popover: 0 0% 6%;              /* Dark Popover */
-  --popover-foreground: 0 0% 95%;  /* Light Popover Text */
+  --background: 0 0% 0%;           /* Pure Black Background */
+  --foreground: 0 0% 98%;          /* Near White Text */
+  --card: 0 0% 3%;                 /* Very Dark Card */
+  --card-foreground: 0 0% 98%;     /* Near White Card Text */
+  --popover: 0 0% 3%;              /* Very Dark Popover */
+  --popover-foreground: 0 0% 98%;  /* Near White Popover Text */
   
-  --primary: 211 100% 60%;         /* Brighter Blue for Dark */
-  --primary-foreground: 0 0% 9%;   /* Dark Text on Blue */
-  --secondary: 0 0% 10%;           /* Dark Secondary */
-  --secondary-foreground: 0 0% 95%; /* Light Secondary Text */
+  --primary: 211 100% 65%;         /* Bright Blue for Black */
+  --primary-foreground: 0 0% 0%;   /* Black Text on Blue */
+  --secondary: 0 0% 8%;            /* Very Dark Secondary */
+  --secondary-foreground: 0 0% 98%; /* Near White Secondary Text */
   
-  --muted: 0 0% 10%;               /* Dark Muted */
-  --muted-foreground: 0 0% 65%;    /* Medium Light Text */
-  --accent: 211 100% 60%;          /* Bright Blue Accent */
-  --accent-foreground: 0 0% 9%;    /* Dark Accent Text */
+  --muted: 0 0% 5%;                /* Very Dark Muted */
+  --muted-foreground: 0 0% 70%;    /* Light Gray Text */
+  --accent: 211 100% 65%;          /* Bright Blue Accent */
+  --accent-foreground: 0 0% 0%;    /* Black Accent Text */
   
-  --destructive: 0 75% 65%;        /* Softer Red for Dark */
-  --destructive-foreground: 0 0% 95%;
+  --destructive: 0 75% 70%;        /* Bright Red for Black */
+  --destructive-foreground: 0 0% 98%;
   
-  --border: 0 0% 15%;              /* Dark Border */
-  --input: 0 0% 10%;               /* Dark Input */
-  --ring: 211 100% 60%;            /* Bright Focus Ring */
+  --border: 0 0% 12%;              /* Dark Border */
+  --input: 0 0% 5%;                /* Very Dark Input */
+  --ring: 211 100% 65%;            /* Bright Focus Ring */
 }
 
 /* Base Styles */
@@ -110,9 +110,20 @@
   @apply border-border;
 }
 
+/* Prevent horizontal scroll */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 body {
   @apply bg-background text-foreground;
   font-feature-settings: "rlig" 1, "calt" 1;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #000000; /* Pure black background */
 }
 
 /* Utility Classes */
@@ -308,4 +319,64 @@ body {
 
 .shadow-error {
   box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.15);
+}
+
+/* Responsive Container Utilities */
+.no-horizontal-scroll {
+  overflow-x: hidden;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Black Theme Utilities */
+.black-theme-card {
+  background-color: rgba(8, 8, 8, 0.95) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px);
+}
+
+.black-theme-text {
+  color: #f8f8f8 !important;
+}
+
+.black-theme-muted {
+  color: #b0b0b0 !important;
+}
+
+.black-theme-border {
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.black-theme-input {
+  background-color: rgba(12, 12, 12, 0.8) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+  color: #f8f8f8 !important;
+}
+
+.black-theme-input:focus {
+  border-color: rgba(59, 130, 246, 0.6) !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }

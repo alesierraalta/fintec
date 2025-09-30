@@ -37,10 +37,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
   return (
     <div className={cn(
-      "h-screen bg-background text-foreground overflow-hidden transition-ios",
+      "h-screen bg-background text-foreground overflow-hidden transition-ios no-horizontal-scroll",
       isMobile && "mobile-app"
     )}>
-      <div className="flex h-full relative">
+      <div className="flex h-full relative no-horizontal-scroll">
         {/* Mobile Backdrop */}
         {isMobile && isOpen && (
           <div 
@@ -63,18 +63,18 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         </div>
         
         {/* Main Content */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 no-horizontal-scroll">
           <Header />
           
           {/* Page Content */}
           <main className={cn(
-            "flex-1 overflow-auto bg-background",
+            "flex-1 overflow-auto bg-background no-horizontal-scroll",
             isMobile ? "pb-24" : ""
           )}>
             <div className={cn(
               isMobile 
-                ? "px-4 py-6" // Mobile app-like padding
-                : "px-6 py-8 max-w-7xl mx-auto" // Desktop padding
+                ? "px-4 py-6 no-horizontal-scroll" // Mobile app-like padding
+                : "px-6 py-8 max-w-7xl mx-auto no-horizontal-scroll" // Desktop padding
             )}>
               {children}
             </div>

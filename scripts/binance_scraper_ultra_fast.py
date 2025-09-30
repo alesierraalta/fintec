@@ -127,9 +127,46 @@ class UltraFastBinanceScraper:
         return results
     
     def _fast_simple_filtering(self, prices: List[Dict]) -> List[Dict]:
-        """Ultra-fast simple filtering - no complex algorithms"""
+        """Ultra-fast simple filtering with extreme preservation"""
         if not prices or len(prices) < self.min_data_points:
             return prices
+        
+        # Sort prices for extreme preservation
+        sorted_prices = sorted(prices, key=lambda x: x['price'])
+        
+        # Preserve extremes (top and bottom 10%)
+        preserve_count = max(1, len(sorted_prices) // 10)
+        extremes = sorted_prices[:preserve_count] + sorted_prices[-preserve_count:]
+        
+        # Simple range-based filtering for middle values
+        price_values = [p['price'] for p in prices]
+        
+        if len(price_values) > 20:
+            mean_price = sum(price_values) / len(price_values)
+            variance = sum((x - mean_price) ** 2 for x in price_values) / len(price_values)
+            std_dev = variance ** 0.5
+            
+            lower_bound = mean_price - (2.5 * std_dev)  # Less aggressive than 3
+            upper_bound = mean_price + (2.5 * std_dev)
+            
+            filtered_middle = []
+            for price_data in prices:
+                if lower_bound <= price_data['price'] <= upper_bound:
+                    filtered_middle.append(price_data)
+            
+            # Combine extremes with filtered middle, remove duplicates
+            seen_ids = set()
+            final_prices = []
+            
+            for price_data in extremes + filtered_middle:
+                price_id = price_data.get('ad_id', str(price_data['price']))
+                if price_id not in seen_ids:
+                    seen_ids.add(price_id)
+                    final_prices.append(price_data)
+            
+            return final_prices
+        
+        return prices
         
         # Simple range-based filtering
         price_values = [p['price'] for p in prices]
@@ -281,14 +318,14 @@ class UltraFastBinanceScraper:
             logger.error(f"Error in ultra-fast scraper: {e}")
             return self._get_fallback_data(str(e), execution_time)
     
-    def _get_fallback_data(self, error: str, execution_time: float) -> Dict:
-        """Ultra-fast fallback data"""
+    def _get_fallback_data(self, error: str, execution_time: float = 0.0) -> Dict:
+        """Enhanced fallback data with better error handling"""
         return {
             'success': False,
             'error': error,
             'data': {
-                'usd_ves': 228.25,
-                'usdt_ves': 228.25,
+                'usd_ves': 228.50,
+                'usdt_ves': 228.50,
                 'sell_rate': 228.50,
                 'buy_rate': 228.00,
                 'sell_min': 228.50,
@@ -299,7 +336,7 @@ class UltraFastBinanceScraper:
                 'buy_max': 228.00,
                 'overall_min': 228.00,
                 'overall_max': 228.50,
-                'spread_min': 0.00,
+                'spread_min': 0.50,
                 'spread_avg': 0.50,
                 'spread_max': 0.50,
                 'spread': 0.50,
@@ -307,9 +344,12 @@ class UltraFastBinanceScraper:
                 'buy_prices_used': 0,
                 'prices_used': 0,
                 'price_range': {
-                    'sell_min': 228.50, 'sell_max': 228.50,
-                    'buy_min': 228.00, 'buy_max': 228.00,
-                    'min': 228.00, 'max': 228.50
+                    'sell_min': 228.50,
+                    'sell_max': 228.50,
+                    'buy_min': 228.00,
+                    'buy_max': 228.00,
+                    'min': 228.00,
+                    'max': 228.50
                 },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Binance P2P (Ultra-Fast Fallback)',
@@ -323,7 +363,9 @@ class UltraFastBinanceScraper:
                     'simple_filtering': False,
                     'performance_target': '15-30 seconds'
                 }
-            }
+            },
+            'fallback': True,
+            'fallback_reason': error
         }
 
 def scrape_binance_rates_ultra_fast(silent: bool = True) -> Dict:

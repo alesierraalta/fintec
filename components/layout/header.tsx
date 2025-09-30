@@ -125,7 +125,7 @@ export function Header() {
   if (isMobile) {
     // Mobile App Header - Native-like
     return (
-      <header className="h-16 bg-card/80 backdrop-blur-xl flex items-center justify-between px-4 border-b border-border/30">
+      <header className="h-16 black-theme-header flex items-center justify-between px-4">
         {/* Left - Profile/Menu */}
         <div className="flex items-center">
           <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios">
@@ -143,7 +143,7 @@ export function Header() {
           <div className="relative">
             <button 
               onClick={handleNotificationClick}
-              className="relative p-2 text-muted-foreground hover:text-primary rounded-xl transition-ios hover:bg-muted/50"
+              className="relative p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10"
             >
               <Bell className="h-5 w-5" />
               {notificationCount > 0 && (
@@ -156,7 +156,7 @@ export function Header() {
             {/* Mobile Notifications Dropdown */}
             {showNotifications && (
               <>
-                <div className="absolute right-0 top-full mt-2 w-80 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-ios-lg z-50 animate-fade-in">
+                <div className="absolute right-0 top-full mt-2 w-80 black-theme-card rounded-2xl shadow-ios-lg z-50 animate-fade-in">
                   <div className="p-4">
                     <h4 className="text-ios-headline text-foreground mb-3">Notificaciones</h4>
                     
@@ -222,13 +222,13 @@ export function Header() {
 
   // Desktop Header
   return (
-    <header className="h-16 bg-card/80 backdrop-blur-xl border-b border-border/30 flex items-center justify-between px-6">
+    <header className="h-16 black-theme-header flex items-center justify-between px-6">
       {/* Left side - Menu */}
       <div className="flex items-center">
         {/* Sidebar Toggle Button */}
         <button
           onClick={toggleSidebar}
-          className="p-2 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-xl transition-ios mr-3"
+          className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios mr-3"
           title={isOpen ? "Ocultar sidebar" : "Mostrar sidebar"}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -244,7 +244,7 @@ export function Header() {
         <div className="relative">
           <button 
             onClick={handleNotificationClick}
-            className="relative p-2 lg:p-3 text-muted-foreground hover:text-primary hover:bg-muted/50 rounded-xl lg:rounded-2xl transition-ios hover:scale-105"
+            className="relative p-2 lg:p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl lg:rounded-2xl transition-ios hover:scale-105"
           >
             <Bell className="h-5 w-5" />
             {notificationCount > 0 && (
@@ -257,7 +257,7 @@ export function Header() {
           {/* Notifications Dropdown */}
           {showNotifications && (
             <>
-              <div className="absolute right-0 top-full mt-2 w-80 bg-background-elevated border border-border-secondary rounded-2xl shadow-2xl z-50 animate-scale-in">
+              <div className="absolute right-0 top-full mt-2 w-80 black-theme-card rounded-2xl shadow-2xl z-50 animate-scale-in">
                 <div className="p-4">
                   <h4 className="font-semibold text-text-primary mb-3">Notificaciones</h4>
                   
@@ -318,7 +318,7 @@ export function Header() {
         </div>
 
         {/* Balance Display - Responsive */}
-        <div className="hidden sm:flex items-center space-x-2 lg:space-x-3 bg-background-tertiary rounded-xl lg:rounded-2xl px-3 lg:px-4 py-2 border border-border-primary">
+        <div className="hidden sm:flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl px-3 lg:px-4 py-2">
           <div className="text-right">
             <div className="flex items-center space-x-1">
               <Sparkles className="h-3 w-3 text-accent-primary" />
@@ -332,7 +332,7 @@ export function Header() {
         <div className="relative">
           <div 
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center space-x-2 lg:space-x-3 bg-background-tertiary rounded-xl lg:rounded-2xl p-2 border border-border-primary hover:bg-background-elevated transition-all duration-200 cursor-pointer"
+            className="flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
               <User className="h-4 w-4 lg:h-5 lg:w-5 text-background-primary" />
@@ -348,31 +348,31 @@ export function Header() {
           {/* User Menu Dropdown */}
           {showUserMenu && (
             <>
-              <div className="absolute right-0 top-full mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-2 z-50">
-                <div className="px-4 py-3 border-b border-gray-100">
+              <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
+                <div className="px-4 py-3 border-b border-white/10">
                   <div className="flex items-center space-x-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
                       <User className="h-5 w-5 text-white" />
                     </div>
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-white">
                         {user?.user_metadata?.full_name || 'Usuario'}
                       </p>
-                      <p className="text-sm text-gray-500">{user?.email}</p>
+                      <p className="text-sm text-white/70">{user?.email}</p>
                     </div>
                   </div>
                 </div>
                 <div className="py-2">
                   <button
                     onClick={handleProfile}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
                   >
                     <User className="h-4 w-4" />
                     <span>Mi Perfil</span>
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Cerrar Sesión</span>

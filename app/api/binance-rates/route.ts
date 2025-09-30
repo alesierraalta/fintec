@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-// Cache optimizado para datos de Binance
+// Cache optimizado para datos de Binance - FORCE FRESH START
 let pythonAvailable: boolean | null = null;
 let pythonCommand: string | null = null;
 let lastFallbackTime = 0;
@@ -12,6 +12,10 @@ const FALLBACK_CACHE_DURATION = 15 * 1000; // 15 segundos (ultra-agresivo)
 const SUCCESS_CACHE_DURATION = 30 * 1000; // 30 segundos (ultra-agresivo)
 const SCRAPER_TIMEOUT = 45 * 1000; // 45 segundos máximo para el scraper
 const BACKGROUND_REFRESH_INTERVAL = 20 * 1000; // 20 segundos para background refresh
+
+// Force reset all cache variables on module load
+console.log('🔄 Binance API module loaded - all cache variables reset');
+console.log('🐍 Python command priority: py (Windows Python Launcher)');
 
 export async function GET() {
   try {
@@ -114,6 +118,9 @@ function triggerBackgroundRefresh() {
   }
 }
 
+// Add backgroundRefreshPromise variable declaration
+let backgroundRefreshPromise: Promise<any> | null = null;
+
 function runPythonScraperWithTimeout(): Promise<any> {
   return Promise.race([
     runPythonScraper(),
@@ -127,7 +134,7 @@ function runPythonScraperWithTimeout(): Promise<any> {
 
 function runPythonScraper(): Promise<any> {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'fintec', 'scripts', 'binance_scraper_ultra_fast.py');
+    const scriptPath = path.join(process.cwd(), 'scripts', 'binance_scraper_production.py');
     
     // Si ya conocemos el comando Python que funciona, usarlo directamente
     if (pythonCommand) {
@@ -137,12 +144,12 @@ function runPythonScraper(): Promise<any> {
     
     // Si no, probar comandos en orden de probabilidad (incluyendo rutas completas)
     const pythonCommands = [
+      'py', // Windows Python Launcher - most reliable
       'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python312\\python.exe',
-      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
-      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python313\\python.exe',
       'python', 
       'python3', 
-      'py'
+      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
+      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python313\\python.exe'
     ];
     
     let currentCommand = 0;
@@ -173,8 +180,11 @@ function runPythonScraper(): Promise<any> {
 }
 
 function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (result: any) => void, onError: (error: Error) => void) {
+  console.log(`🐍 Attempting Python command: ${cmd}`);
+  
   const python = spawn(cmd, [scriptPath, '--silent'], {
-    timeout: SCRAPER_TIMEOUT // Timeout de 45 segundos para Ultra-Fast (optimizado para velocidad)
+    timeout: SCRAPER_TIMEOUT, // Timeout de 45 segundos para Ultra-Fast (optimizado para velocidad)
+    env: { ...process.env, PYTHONIOENCODING: 'utf-8' } // Force UTF-8 encoding
   });
   
   let output = '';
@@ -195,20 +205,41 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
     
     if (code === 0) {
       try {
-        const result = JSON.parse(output);
+        // Clean the output to extract only JSON
+        const cleanOutput = output.trim();
+        
+        // Try to find JSON in the output (in case there's mixed content)
+        let jsonOutput = cleanOutput;
+        
+        // Look for JSON object start
+        const jsonStart = cleanOutput.indexOf('{');
+        if (jsonStart !== -1) {
+          jsonOutput = cleanOutput.substring(jsonStart);
+        }
+        
+        // Look for JSON object end
+        const jsonEnd = jsonOutput.lastIndexOf('}');
+        if (jsonEnd !== -1) {
+          jsonOutput = jsonOutput.substring(0, jsonEnd + 1);
+        }
+        
+        const result = JSON.parse(jsonOutput);
+        console.log(`✅ Python command successful: ${cmd}`);
         onSuccess(result);
       } catch (parseError) {
         console.error('Parse error:', parseError);
+        console.error('Raw output that failed to parse:', output);
         const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
-        onError(new Error(`Failed to parse Binance scraper output: ${errorMessage}`));
+        onError(new Error(`Failed to parse Binance scraper output: ${errorMessage}. Raw output: ${output.substring(0, 200)}...`));
       }
     } else {
+      console.log(`❌ Python command failed: ${cmd} (code: ${code})`);
       onError(new Error(`Python command failed with code ${code}. stderr: ${errorOutput}`));
     }
   });
   
   python.on('error', (error) => {
-    console.error('Python spawn error:', error);
+    console.log(`❌ Python spawn error for ${cmd}:`, error);
     onError(error);
   });
   

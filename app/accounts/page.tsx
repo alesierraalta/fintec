@@ -227,7 +227,7 @@ export default function AccountsPage() {
   return (
     <AuthGuard>
       <MainLayout>
-        <div className="space-y-8 animate-fade-in">
+        <div className="space-y-8 animate-fade-in no-horizontal-scroll w-full">
           {/* iOS-style Header - Enhanced Mobile Optimized */}
           <div className="text-center py-6 px-4 sm:py-8 md:py-10">
             {/* Status Indicator with Enhanced Animation */}
@@ -383,7 +383,7 @@ export default function AccountsPage() {
 
           {/* iOS-style Summary Cards - Mobile First Responsive */}
           <motion.div 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8"
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
             variants={{
               hidden: { opacity: 0 },
               show: {
@@ -396,7 +396,7 @@ export default function AccountsPage() {
           >
             {/* Balance Total Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -434,7 +434,7 @@ export default function AccountsPage() {
 
             {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -464,7 +464,7 @@ export default function AccountsPage() {
 
             {/* Criptomonedas Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -494,7 +494,7 @@ export default function AccountsPage() {
 
             {/* Diversificación Card - iOS Style Mobile Responsive */}
             <motion.div 
-              className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
             >
@@ -525,7 +525,7 @@ export default function AccountsPage() {
 
           {/* Exchange Rates Section - iOS Style Mobile Responsive */}
           <motion.div 
-            className="bg-card/90 backdrop-blur-xl rounded-3xl p-4 sm:p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
+            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
@@ -594,7 +594,7 @@ export default function AccountsPage() {
           </motion.div>
 
           {/* Accounts List - iOS Style */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl border border-border/40 shadow-lg overflow-hidden">
+          <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
             <div className="p-6 border-b border-border/40">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
