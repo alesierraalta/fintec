@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
@@ -48,18 +49,17 @@ export function Sidebar() {
 
   return (
     <div className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col black-theme-sidebar transition-ios`}>
-      {/* Logo - iOS-like with rounded corners */}
+      {/* Logo */}
       <div className="flex h-16 items-center px-4 lg:px-6 border-b border-white/10">
-        <div className="flex items-center space-x-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
-            <BarChart3 className="h-5 w-5 text-white" />
-          </div>
-          {!isMinimized && (
-            <div className="hidden sm:block">
-              <span className="text-ios-headline text-white tracking-tight">FinTec</span>
-              <p className="text-ios-caption text-white/70 -mt-1">Finanzas inteligentes</p>
-            </div>
-          )}
+        <div className="flex items-center justify-center w-full">
+          <Image
+            src="/finteclogodark.jpg"
+            alt="FinTec Logo"
+            width={isMinimized ? 40 : 120}
+            height={isMinimized ? 40 : 40}
+            className="object-contain transition-all duration-300"
+            priority
+          />
         </div>
       </div>
 
