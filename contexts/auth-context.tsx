@@ -103,18 +103,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!error && data.user) {
+        // Wait a moment for the session to be established
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
         // Create user profile in our database
         const { error: profileError } = await supabase
           .from('users')
           .insert([{
             id: data.user.id,
             email: data.user.email,
-            full_name: userData?.full_name || '',
+            name: userData?.full_name || '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }]);
 
         if (profileError) {
+          console.log('Profile creation error:', profileError.message);
+          // Don't fail the registration if profile creation fails
+          // The user is still registered in Supabase Auth
         } else {
           // Create welcome notifications
           await createWelcomeNotifications(data.user.id, userData?.full_name || data.user.email?.split('@')[0] || 'Usuario');

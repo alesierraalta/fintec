@@ -130,3 +130,27 @@ temp/
 
 # Vercel
 .vercel
+
+# Archivos de prueba obsoletos (prevenir acumulación)
+test-*.js
+debug-*.js
+test_*.js
+
+# Scripts de datos obsoletos (prevenir acumulación)
+create-*.js
+insert-*.js
+init-database.js
+
+# Documentación temporal (prevenir acumulación)
+*_ANALYSIS_*.md
+*_SOLUCION_*.md
+*_RESUMEN_*.md
+
+# Resultados de testing (prevenir acumulación)
+playwright-report/
+test-results/
+*.test-results.json
+
+# Archivos de backup (prevenir acumulación)
+*_backup.*
+*.backup.*
