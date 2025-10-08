@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
@@ -16,8 +16,13 @@ import {
 } from 'lucide-react';
 
 export function MobileDashboard() {
-  const { accounts: rawAccounts, transactions: rawTransactions, loading } = useOptimizedData();
+  const { accounts: rawAccounts, transactions: rawTransactions, loading, loadAllData } = useOptimizedData();
   const bcvRates = useBCVRates();
+
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   // Memoized total balance calculation
   const totalBalance = useMemo(() => {

@@ -59,6 +59,10 @@ export function Sidebar() {
             height={isMinimized ? 40 : 40}
             className="object-contain transition-all duration-300"
             priority
+            unoptimized
+            onError={(e) => {
+              console.error('Logo failed to load:', e.currentTarget.src);
+            }}
           />
         </div>
       </div>

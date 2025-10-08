@@ -108,6 +108,10 @@ export default function LandingPage() {
                   fill
                   className="object-contain"
                   priority
+                  unoptimized
+                  onError={(e) => {
+                    console.error('Logo failed to load:', e.currentTarget.src);
+                  }}
                 />
               </div>
             </motion.div>
@@ -324,6 +328,10 @@ export default function LandingPage() {
                   fill
                   className="object-contain"
                   priority
+                  unoptimized
+                  onError={(e) => {
+                    console.error('Logo failed to load:', e.currentTarget.src);
+                  }}
                 />
               </div>
             </div>
