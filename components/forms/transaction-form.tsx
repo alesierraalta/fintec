@@ -126,11 +126,15 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
     setLoading(true);
     
     try {
+      // Get selected account to determine currency
+      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+      const currencyCode = selectedAccount?.currencyCode || 'USD';
+
       const transactionData = {
         type: formData.type as TransactionType,
         accountId: formData.accountId,
         categoryId: formData.categoryId,
-        currencyCode: 'USD', // TODO: Get from selected account
+        currencyCode: currencyCode,
         amountMinor: Math.round(amount * 100),
         date: formData.date,
         description: formData.description.trim(),
