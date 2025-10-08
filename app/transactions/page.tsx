@@ -152,6 +152,25 @@ export default function TransactionsPage() {
     return (minor / 100).toFixed(2);
   }, []);
 
+  const getCurrencySymbol = useCallback((currencyCode: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'VES': 'Bs.',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CAD': 'C$',
+      'AUD': 'A$',
+      'BRL': 'R$',
+      'PEN': 'S/',
+      'MXN': 'MX$',
+      'ARS': 'AR$',
+      'COP': 'CO$',
+      'CLP': 'CL$',
+    };
+    return symbols[currencyCode] || currencyCode;
+  }, []);
+
   // Optimized filter handler
   const handleFiltersChange = useCallback((newFilters: any) => {
     setFilters(newFilters);
@@ -306,6 +325,7 @@ export default function TransactionsPage() {
               <ArrowDownLeft className="h-4 w-4 text-green-600" />
               <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -320,6 +340,7 @@ export default function TransactionsPage() {
               <ArrowUpRight className="h-4 w-4 text-red-600" />
               <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -340,6 +361,7 @@ export default function TransactionsPage() {
                 {netAmount >= 0 ? 'Positivo' : 'Negativo'}
               </span>
             </div>
+            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -460,8 +482,9 @@ export default function TransactionsPage() {
                   <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
                     <div className="text-right">
                       <p className={`text-sm sm:text-xl font-semibold truncate ${getAmountColor(transaction.type)}`}>
-                        {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}${formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
+                        {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
                       </p>
+                      <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>
                     </div>
                     
                     <TransactionActionsDropdown
