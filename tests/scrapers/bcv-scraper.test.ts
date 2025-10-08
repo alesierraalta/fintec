@@ -31,11 +31,11 @@ describe('BCV Scraper', () => {
     expect(result.data.usd).toBeGreaterThan(0);
     expect(result.data.eur).toBeGreaterThan(0);
 
-    // Rates should be within reasonable bounds
-    expect(result.data.usd).toBeGreaterThanOrEqual(20);
-    expect(result.data.usd).toBeLessThanOrEqual(300);
-    expect(result.data.eur).toBeGreaterThanOrEqual(20);
-    expect(result.data.eur).toBeLessThanOrEqual(400);
+    // Rates should be within reasonable bounds (updated for current market)
+    expect(result.data.usd).toBeGreaterThanOrEqual(150);
+    expect(result.data.usd).toBeLessThanOrEqual(250);
+    expect(result.data.eur).toBeGreaterThanOrEqual(180);
+    expect(result.data.eur).toBeLessThanOrEqual(280);
   });
 
   it('should have a valid timestamp', async () => {
