@@ -17,7 +17,9 @@ import {
   AlertTriangle,
   CheckCircle,
   Calendar,
-  Filter
+  Filter,
+  Trash2,
+  XCircle
 } from 'lucide-react';
 
 export default function BackupsPage() {
@@ -36,6 +38,11 @@ export default function BackupsPage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Clear account states
+  const [showClearModal, setShowClearModal] = useState(false);
+  const [clearConfirmation, setClearConfirmation] = useState('');
+  const [clearLoading, setClearLoading] = useState(false);
 
   useEffect(() => {
     // Load last backup timestamp from localStorage
@@ -110,6 +117,46 @@ export default function BackupsPage() {
 
   const handleQuickBackup = async () => {
     await handleExportBackup();
+  };
+
+  const handleClearAccount = async () => {
+    if (!user || clearConfirmation !== 'VACIAR CUENTA') {
+      alert('Por favor, escribe exactamente "VACIAR CUENTA" para confirmar.');
+      return;
+    }
+
+    try {
+      setClearLoading(true);
+      
+      const response = await fetch('/api/clear-account', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          confirmationText: clearConfirmation
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al vaciar la cuenta');
+      }
+
+      alert('¡Cuenta vaciada exitosamente! Todos tus datos han sido eliminados.');
+      
+      // Reset states and close modal
+      setShowClearModal(false);
+      setClearConfirmation('');
+      
+      // Reload page to reflect changes
+      window.location.reload();
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Error al vaciar la cuenta. Por favor, inténtalo de nuevo.');
+    } finally {
+      setClearLoading(false);
+    }
   };
 
   return (
@@ -355,7 +402,121 @@ export default function BackupsPage() {
               <li>• Puedes usar los filtros para crear respaldos parciales por fechas</li>
             </ul>
           </div>
+
+          {/* Danger Zone - Clear Account */}
+          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
+            <div className="flex items-start space-x-3 mb-4">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <Trash2 className="h-6 w-6 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-red-400 mb-1">Zona de Peligro</h3>
+                <p className="text-sm text-gray-400">
+                  Esta acción es irreversible y eliminará TODOS tus datos financieros
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                <div className="flex items-start space-x-2 mb-3">
+                  <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-300">
+                    <p className="font-medium mb-1">¿Estás completamente seguro?</p>
+                    <p className="text-xs text-red-400">
+                      Al vaciar tu cuenta se eliminarán permanentemente:
+                    </p>
+                    <ul className="text-xs text-red-400 mt-2 space-y-1 ml-4">
+                      <li>• Todas las transacciones</li>
+                      <li>• Todas las cuentas y sus saldos</li>
+                      <li>• Todos los presupuestos</li>
+                      <li>• Todas las metas de ahorro</li>
+                      <li>• Todas las categorías personalizadas</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="text-xs text-gray-400 italic mb-3">
+                  💡 Recomendación: Crea un respaldo antes de vaciar tu cuenta
+                </p>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowClearModal(true)}
+                  icon={<Trash2 className="h-4 w-4" />}
+                  className="w-full bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30"
+                >
+                  Vaciar Cuenta
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Clear Account Confirmation Modal */}
+        {showClearModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-900 border border-red-500/30 rounded-xl max-w-lg w-full p-6 shadow-2xl">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="p-2 bg-red-500/10 rounded-lg">
+                  <XCircle className="h-6 w-6 text-red-400" />
+                </div>
+                <h3 className="text-xl font-bold text-red-400">Confirmar Eliminación Total</h3>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+                  <p className="text-sm text-red-300 font-medium mb-2">
+                    ⚠️ Esta acción NO se puede deshacer
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    Se eliminarán permanentemente todos tus datos financieros. 
+                    Asegúrate de haber creado un respaldo si deseas conservar esta información.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Para confirmar, escribe exactamente: <span className="text-red-400 font-mono">VACIAR CUENTA</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={clearConfirmation}
+                    onChange={(e) => setClearConfirmation(e.target.value)}
+                    placeholder="Escribe VACIAR CUENTA"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    disabled={clearLoading}
+                  />
+                  <p className="text-xs text-gray-400 mt-2">
+                    Debe coincidir exactamente (en mayúsculas)
+                  </p>
+                </div>
+
+                <div className="flex space-x-3 pt-4">
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      setShowClearModal(false);
+                      setClearConfirmation('');
+                    }}
+                    disabled={clearLoading}
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleClearAccount}
+                    disabled={clearLoading || clearConfirmation !== 'VACIAR CUENTA'}
+                    icon={clearLoading ? undefined : <Trash2 className="h-4 w-4" />}
+                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {clearLoading ? 'Vaciando...' : 'Confirmar y Vaciar'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </MainLayout>
     </AuthGuard>
   );

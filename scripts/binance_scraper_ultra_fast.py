@@ -167,27 +167,6 @@ class UltraFastBinanceScraper:
             return final_prices
         
         return prices
-        
-        # Simple range-based filtering
-        price_values = [p['price'] for p in prices]
-        
-        # Remove obvious outliers (beyond 3 standard deviations)
-        if len(price_values) > 20:
-            mean_price = sum(price_values) / len(price_values)
-            variance = sum((x - mean_price) ** 2 for x in price_values) / len(price_values)
-            std_dev = variance ** 0.5
-            
-            lower_bound = mean_price - (3 * std_dev)
-            upper_bound = mean_price + (3 * std_dev)
-            
-            filtered_prices = []
-            for price_data in prices:
-                if lower_bound <= price_data['price'] <= upper_bound:
-                    filtered_prices.append(price_data)
-            
-            return filtered_prices
-        
-        return prices
     
     def _calculate_fast_quality_score(self, sell_prices: List[Dict], buy_prices: List[Dict]) -> float:
         """Fast quality score calculation"""
@@ -318,7 +297,7 @@ class UltraFastBinanceScraper:
             logger.error(f"Error in ultra-fast scraper: {e}")
             return self._get_fallback_data(str(e), execution_time)
     
-    def _get_fallback_data(self, error: str, execution_time: float = 0.0) -> Dict:
+    def _get_fallback_data(self, error: str, execution_time: float) -> Dict:
         """Enhanced fallback data with better error handling"""
         return {
             'success': False,

@@ -16,7 +16,7 @@ interface BalanceAlertSettingsProps {
 }
 
 export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertSettingsProps) {
-  const { repository } = useRepository();
+  const repository = useRepository();
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [minimumBalance, setMinimumBalance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +40,7 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
       const minimumBalanceMinor = minimumBalance ? Math.round(parseFloat(minimumBalance) * 100) : 0;
 
       await repository.accounts.update(account.id, {
+        id: account.id,
         alertEnabled,
         minimumBalance: minimumBalanceMinor,
       });

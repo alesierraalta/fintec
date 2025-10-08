@@ -34,7 +34,7 @@ const fadeInUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
-export const BinanceRates = React.memo(function BinanceRates() {
+export const BinanceRatesComponent = React.memo(function BinanceRatesComponent() {
   const [rates, setRates] = useState<BinanceRates | null>(null);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');

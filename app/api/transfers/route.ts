@@ -24,8 +24,11 @@ export async function GET(request: NextRequest) {
     
     let query = supabase
       .from('transactions')
-      .select('*')
-      .eq('user_id', userId)
+      .select(`
+        *,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .in('type', ['TRANSFER_OUT', 'TRANSFER_IN'])
       .not('transfer_id', 'is', null);
     
@@ -213,8 +216,11 @@ export async function DELETE(request: NextRequest) {
     // Find all transactions with this transferId
     const { data: transactions, error: fetchError } = await supabase
       .from('transactions')
-      .select('id')
-      .eq('user_id', userId)
+      .select(`
+        id,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .eq('transfer_id', transferId);
     
     if (fetchError) {
@@ -235,7 +241,6 @@ export async function DELETE(request: NextRequest) {
     const { error: deleteError } = await supabase
       .from('transactions')
       .delete()
-      .eq('user_id', userId)
       .eq('transfer_id', transferId);
     
     if (deleteError) {

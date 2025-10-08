@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -24,11 +25,11 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { BCVRates } from '@/components/currency/bcv-rates';
-import { BinanceRates } from '@/components/currency/binance-rates';
+import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] } }
+  show: { opacity: 1, y: 0 }
 };
 
 const staggerContainer = {
@@ -44,7 +45,7 @@ const staggerContainer = {
 
 const scaleIn = {
   hidden: { opacity: 0, scale: 0.8 },
-  show: { opacity: 1, scale: 1, transition: { duration: 0.5, ease: "easeOut" } }
+  show: { opacity: 1, scale: 1 }
 };
 
 export default function LandingPage() {
@@ -95,20 +96,24 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <motion.div 
-              className="flex items-center space-x-2"
+              className="flex items-center"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
+              <div className="relative w-24 h-24">
+                <Image
+                  src="/finteclogodark.jpg"
+                  alt="FinTec Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <span className="text-xl font-bold text-white">
-                FinTec
-              </span>
             </motion.div>
             
             <motion.div
+              className="flex items-center space-x-3"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
@@ -116,6 +121,12 @@ export default function LandingPage() {
               <Link href="/auth/login">
                 <button className="bg-primary text-primary-foreground px-6 py-2 rounded-xl font-medium hover:bg-primary/90 transition-all duration-200 shadow-lg shadow-primary/20">
                   Iniciar Sesión
+                </button>
+              </Link>
+              
+              <Link href="/auth/register">
+                <button className="border border-border px-6 py-2 rounded-xl font-medium hover:bg-muted/50 transition-all duration-200">
+                  Registrarse
                 </button>
               </Link>
             </motion.div>
@@ -185,7 +196,7 @@ export default function LandingPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 xl:gap-10">
                 <BCVRates />
-                <BinanceRates />
+                <BinanceRatesComponent />
               </div>
             </div>
           </motion.div>
@@ -305,13 +316,16 @@ export default function LandingPage() {
       <footer className="py-12 px-4 sm:px-6 lg:px-8 border-t border-border/20">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/60 rounded-xl flex items-center justify-center">
-                <DollarSign className="h-5 w-5 text-white" />
+            <div className="flex items-center mb-4 md:mb-0">
+              <div className="relative w-32 h-32">
+                <Image
+                  src="/finteclogodark.jpg"
+                  alt="FinTec Logo"
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <span className="text-xl font-bold text-white">
-                FinTec
-              </span>
             </div>
             
             <div className="text-muted-foreground text-center md:text-right">

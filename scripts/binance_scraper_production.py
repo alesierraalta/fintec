@@ -11,6 +11,7 @@ import asyncio
 import aiohttp
 import argparse
 import sys
+import random
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 import statistics
@@ -29,16 +30,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ProductionConfig:
-    """Production scraper configuration optimized for high price detection (310+)"""
-    max_pages: int = 30  # Ultra-comprehensive search across maximum pages
+    """Production scraper configuration - ANTI RATE LIMITING OPTIMIZED"""
+    max_pages: int = 15  # Reduced to avoid rate limiting (was 30)
     rows_per_page: int = 20
-    max_retries: int = 3  # More retries for reliability
-    retry_delay: float = 1.0  # Faster retries
-    request_timeout: int = 15  # Longer timeout for comprehensive search
-    rate_limit_delay: float = 0.3  # Much faster search
+    max_retries: int = 2  # Reduced retries (was 3)
+    retry_delay: float = 2.0  # Increased delay between retries (was 1.0)
+    request_timeout: int = 15  # Timeout per request
+    rate_limit_delay: float = 1.2  # INCREASED: More respectful delay (was 0.3)
     price_range_min: float = 100.0  # Lower minimum to catch any price
     price_range_max: float = 2000.0  # Much higher maximum to catch very high prices
-    user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
     # Ultra-aggressive filtering for high price capture
     preserve_extremes_percent: float = 15.0  # Even more aggressive preservation
@@ -87,10 +88,22 @@ class PriceData:
 class ProductionBinanceScraper:
     """Production scraper optimized for speed, reliability, and data quality"""
     
+    # User-Agent rotation pool for anti-detection
+    USER_AGENTS = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0'
+    ]
+    
     def __init__(self, config: ProductionConfig = None):
         self.config = config or ProductionConfig()
         self.p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
         self.session = None
+        self.current_user_agent = random.choice(self.USER_AGENTS)
         
     async def __aenter__(self):
         """Async context manager entry"""
@@ -118,16 +131,27 @@ class ProductionBinanceScraper:
             await self.session.close()
     
     async def _make_request_with_retry(self, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
-        """Make request with optimized retry mechanism"""
+        """Make request with optimized retry mechanism and User-Agent rotation"""
         for attempt in range(self.config.max_retries + 1):
             try:
+                # Rotate User-Agent on retries to appear more human-like
+                if attempt > 0:
+                    new_user_agent = random.choice(self.USER_AGENTS)
+                    self.session.headers.update({'User-Agent': new_user_agent})
+                    logger.info(f"Rotated User-Agent for retry {attempt}")
+                
                 async with self.session.post(self.p2p_url, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()
                         return data
                     elif response.status == 429:
                         wait_time = self.config.retry_delay * (2 ** attempt)
-                        logger.warning(f"Rate limit on page {page}, waiting {wait_time}s...")
+                        logger.warning(f"Rate limit (429) on page {page}, waiting {wait_time}s...")
+                        await asyncio.sleep(wait_time)
+                        continue
+                    elif response.status == 403:
+                        wait_time = self.config.retry_delay * (3 ** attempt)  # More aggressive backoff for 403
+                        logger.warning(f"Forbidden (403) on page {page}, waiting {wait_time}s...")
                         await asyncio.sleep(wait_time)
                         continue
                     else:
@@ -462,10 +486,22 @@ class ProductionBinanceScraper:
 class ExhaustiveBinanceScraper:
     """Exhaustive scraper for comprehensive high price detection across all available pages"""
     
+    # User-Agent rotation pool (same as ProductionBinanceScraper)
+    USER_AGENTS = [
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:121.0) Gecko/20100101 Firefox/121.0'
+    ]
+    
     def __init__(self, config: ExhaustiveConfig = None):
         self.config = config or ExhaustiveConfig()
         self.p2p_url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
         self.session = None
+        self.current_user_agent = random.choice(self.USER_AGENTS)
         self.search_stats = {
             'total_pages_searched': 0,
             'total_requests_made': 0,
@@ -488,11 +524,15 @@ class ExhaustiveBinanceScraper:
             connector=connector,
             timeout=timeout,
             headers={
-                'User-Agent': self.config.user_agent,
+                'User-Agent': self.current_user_agent,
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Referer': 'https://p2p.binance.com/'
             }
         )
+        logger.info(f"Exhaustive session initialized with User-Agent: {self.current_user_agent[:50]}...")
         return self
     
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -501,9 +541,15 @@ class ExhaustiveBinanceScraper:
             await self.session.close()
     
     async def _make_request_with_retry(self, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
-        """Make request with optimized retry mechanism for exhaustive search"""
+        """Make request with optimized retry mechanism for exhaustive search + User-Agent rotation"""
         for attempt in range(self.config.max_retries + 1):
             try:
+                # Rotate User-Agent on retries
+                if attempt > 0:
+                    new_user_agent = random.choice(self.USER_AGENTS)
+                    self.session.headers.update({'User-Agent': new_user_agent})
+                    logger.info(f"Exhaustive scraper rotated User-Agent for retry {attempt}")
+                
                 async with self.session.post(self.p2p_url, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()

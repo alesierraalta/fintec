@@ -77,11 +77,13 @@ export function filterTransactionsByPeriod(transactions: any[], period: TimePeri
 }
 
 export function calculateMetricsForPeriod(transactions: any[]) {
-  const incomeTransactions = transactions.filter(t => t.amount > 0);
-  const expenseTransactions = transactions.filter(t => t.amount < 0);
+  // Filter by transaction type instead of amount sign
+  const incomeTransactions = transactions.filter(t => t.type === 'INCOME');
+  const expenseTransactions = transactions.filter(t => t.type === 'EXPENSE');
   
-  const income = incomeTransactions.reduce((sum, t) => sum + t.amount, 0);
-  const expenses = expenseTransactions.reduce((sum, t) => sum + Math.abs(t.amount), 0);
+  // Use amountBaseMinor and convert from minor units (cents) to major units (dollars)
+  const income = incomeTransactions.reduce((sum, t) => sum + (t.amountBaseMinor / 100), 0);
+  const expenses = expenseTransactions.reduce((sum, t) => sum + (t.amountBaseMinor / 100), 0);
   const savings = income - expenses;
   const savingsRate = income > 0 ? (savings / income * 100) : 0;
   
@@ -101,7 +103,7 @@ export function calculateMetricsForPeriod(transactions: any[]) {
   const categorySpending: Record<string, number> = {};
   expenseTransactions.forEach(t => {
     const categoryId = t.categoryId || 'uncategorized';
-    categorySpending[categoryId] = (categorySpending[categoryId] || 0) + Math.abs(t.amount);
+    categorySpending[categoryId] = (categorySpending[categoryId] || 0) + (t.amountBaseMinor / 100);
   });
   
   const topSpendingCategory = Object.entries(categorySpending)

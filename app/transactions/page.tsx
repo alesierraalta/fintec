@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, memo, Suspense } from 'react
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
+import { AuthGuard } from '@/components/auth/auth-guard';
 import { TransactionForm } from '@/components/forms';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
@@ -144,9 +145,12 @@ export default function TransactionsPage() {
     categories.find(c => c.id === id)?.name || 'Categoría', [categories]
   );
   
-  const formatAmount = useCallback((minor: number) => 
-    (minor / 100).toFixed(2), []
-  );
+  const formatAmount = useCallback((minor: number) => {
+    if (!minor || isNaN(minor) || !isFinite(minor)) {
+      return '0.00';
+    }
+    return (minor / 100).toFixed(2);
+  }, []);
 
   // Optimized filter handler
   const handleFiltersChange = useCallback((newFilters: any) => {
@@ -240,8 +244,14 @@ export default function TransactionsPage() {
 
   // Cálculos memoizados
   const { totalIncome, totalExpenses, netAmount } = useMemo(() => {
-    const income = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-    const expenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+    const income = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => {
+      const amount = t.amountMinor && !isNaN(t.amountMinor) ? t.amountMinor / 100 : 0;
+      return sum + amount;
+    }, 0);
+    const expenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => {
+      const amount = t.amountMinor && !isNaN(t.amountMinor) ? t.amountMinor / 100 : 0;
+      return sum + amount;
+    }, 0);
     return {
       totalIncome: income,
       totalExpenses: expenses,
@@ -250,7 +260,8 @@ export default function TransactionsPage() {
   }, [filteredTransactions]);
 
   return (
-    <MainLayout>
+    <AuthGuard>
+      <MainLayout>
       <div className="space-y-8 animate-fade-in">
         {/* iOS-style Header */}
         <div className="text-center py-8">
@@ -449,7 +460,7 @@ export default function TransactionsPage() {
                   <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
                     <div className="text-right">
                       <p className={`text-sm sm:text-xl font-semibold truncate ${getAmountColor(transaction.type)}`}>
-                        {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}${formatAmount(Math.abs(transaction.amountMinor))}
+                        {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}${formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
                       </p>
                     </div>
                     
@@ -529,5 +540,6 @@ export default function TransactionsPage() {
 
 
     </MainLayout>
+    </AuthGuard>
   );
 }

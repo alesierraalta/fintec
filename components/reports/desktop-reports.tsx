@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useRepository } from '@/providers/repository-provider';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { PeriodSelector } from '../filters/period-selector';
 import { TimePeriod, getPeriodById } from '@/lib/dates/periods';
 import { 
@@ -42,52 +42,36 @@ const periods = [
 
 export function DesktopReports() {
   const { user } = useAuth();
-  const repository = useRepository();
+  const { transactions, accounts, categories, loading, loadAllData } = useOptimizedData();
   const [selectedPeriod, setSelectedPeriod] = useState<string>('');
-  const [data, setData] = useState<{ transactions: any[], categories: any[], accounts: any[] }>({ transactions: [], categories: [], accounts: [] });
   const [filteredTransactions, setFilteredTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
 
+  // Load data on component mount
   useEffect(() => {
-    if (!user) return;
-    
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        const [transactions, categories, accounts] = await Promise.all([
-          repository.transactions.findAll(),
-          repository.categories.findAll(),
-          repository.accounts.findByUserId(user.id)
-        ]);
-        setData({ transactions, categories, accounts });
-        setFilteredTransactions(transactions);
-      } catch (error) {
-        setData({ transactions: [], categories: [], accounts: [] });
-        setFilteredTransactions([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    loadAllData();
+  }, [loadAllData]);
 
-    loadData();
-  }, [user, repository]);
+  // Set initial filtered transactions
+  useEffect(() => {
+    setFilteredTransactions(transactions);
+  }, [transactions]);
 
   // Filter transactions when period changes
   useEffect(() => {
     if (!selectedPeriod) {
-      setFilteredTransactions(data.transactions);
+      setFilteredTransactions(transactions);
       return;
     }
 
     const period = getPeriodById(selectedPeriod);
     if (period) {
-      const filtered = data.transactions.filter(transaction => {
+      const filtered = transactions.filter(transaction => {
         const transactionDate = new Date(transaction.date);
         return transactionDate >= period.startDate && transactionDate <= period.endDate;
       });
       setFilteredTransactions(filtered);
     }
-  }, [selectedPeriod, data.transactions]);
+  }, [selectedPeriod, transactions]);
 
   const handlePeriodChange = (period: TimePeriod | null) => {
     setSelectedPeriod(period?.id || '');
@@ -113,7 +97,7 @@ export function DesktopReports() {
       topSpendingCategory: { categoryId: 'N/A', amount: 0 }
     };
     
-    if (!selectedPeriod || !data.transactions.length) {
+    if (!selectedPeriod || !transactions.length) {
       return defaultMetrics;
     }
     
@@ -123,7 +107,7 @@ export function DesktopReports() {
     }
     
     const previousPeriod = getPreviousPeriod(currentPeriodObj);
-    const previousTransactions = filterTransactionsByPeriod(data.transactions, previousPeriod);
+    const previousTransactions = filterTransactionsByPeriod(transactions, previousPeriod);
     return calculateMetricsForPeriod(previousTransactions);
   })();
 
@@ -322,7 +306,7 @@ export function DesktopReports() {
               </div>
               <h3 className="text-ios-caption text-muted-foreground mb-2 tracking-wide">CATEGORÍA TOP</h3>
               <p className="text-2xl font-light text-foreground mb-2">
-                ${currentMetrics.topSpendingCategory.amount.toFixed(0)}
+                ${currentMetrics.topSpendingCategory.amount && !isNaN(currentMetrics.topSpendingCategory.amount) && isFinite(currentMetrics.topSpendingCategory.amount) ? currentMetrics.topSpendingCategory.amount.toFixed(0) : '0'}
               </p>
               <p className="text-ios-footnote text-purple-600 font-medium">Mayor gasto</p>
             </div>
@@ -339,7 +323,7 @@ export function DesktopReports() {
             </h3>
             
             <div className="space-y-4">
-              {data.categories.map((category, index) => (
+              {categories.map((category, index) => (
                 <div key={category.id} className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
@@ -373,15 +357,21 @@ export function DesktopReports() {
             </h3>
             
             <div className="space-y-3">
-              {filteredTransactions.slice(0, 5).map((transaction) => (
+              {filteredTransactions.slice(0, 5).map((transaction) => {
+                const amount = transaction.amountMinor && !isNaN(transaction.amountMinor) && isFinite(transaction.amountMinor)
+                  ? transaction.amountMinor / 100
+                  : 0;
+                const isIncome = transaction.type === 'INCOME';
+                
+                return (
                 <div key={transaction.id} className="flex items-center justify-between p-4 rounded-xl bg-black/20 hover:bg-white/5 transition-colors">
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                      transaction.amount > 0 
+                      isIncome
                         ? 'bg-green-500/20 text-green-400' 
                         : 'bg-red-500/20 text-red-400'
                     }`}>
-                      {transaction.amount > 0 ? (
+                      {isIncome ? (
                         <ArrowUpRight className="h-6 w-6" />
                       ) : (
                         <ArrowDownRight className="h-6 w-6" />
@@ -398,13 +388,14 @@ export function DesktopReports() {
                   </div>
                   <div className="text-right">
                     <p className={`font-semibold ${
-                      transaction.amount > 0 ? 'text-green-400' : 'text-red-400'
+                      isIncome ? 'text-green-400' : 'text-red-400'
                     }`}>
-                      {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount)}
+                      {isIncome ? '+' : '-'}${Math.abs(amount).toFixed(2)}
                     </p>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>

@@ -1,18 +1,4 @@
 {
   "cookies": [],
-  "origins": [
-    {
-      "origin": "http://localhost:3000",
-      "localStorage": [
-        {
-          "name": "fintec_cache_cleared",
-          "value": "1759365269104"
-        },
-        {
-          "name": "sb-lssnujnctuchowgrspvk-auth-token",
-          "value": "{\"access_token\":\"eyJhbGciOiJIUzI1NiIsImtpZCI6Ijd1dGtnVWowUDVPSzhnTVciLCJ0eXAiOiJKV1QifQ.eyJpc3MiOiJodHRwczovL2xzc251am5jdHVjaG93Z3JzcHZrLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiI3ZTJjZmE3MS0wMjAwLTQwNDMtYmJkZC1kNTRkOGIxMWI3NjUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzU5MzY4ODkxLCJpYXQiOjE3NTkzNjUyOTEsImVtYWlsIjoidGVzdEBmaW50ZWMuY29tIiwicGhvbmUiOiIiLCJhcHBfbWV0YWRhdGEiOnsicHJvdmlkZXIiOiJlbWFpbCIsInByb3ZpZGVycyI6WyJlbWFpbCJdfSwidXNlcl9tZXRhZGF0YSI6eyJlbWFpbCI6InRlc3RAZmludGVjLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiZnVsbF9uYW1lIjoiVGVzdCBVc2VyIiwicGhvbmVfdmVyaWZpZWQiOmZhbHNlLCJzdWIiOiI3ZTJjZmE3MS0wMjAwLTQwNDMtYmJkZC1kNTRkOGIxMWI3NjUifSwicm9sZSI6ImF1dGhlbnRpY2F0ZWQiLCJhYWwiOiJhYWwxIiwiYW1yIjpbeyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTc1OTM2NTI5MX1dLCJzZXNzaW9uX2lkIjoiZmUyMjJiNDktMGNhYy00YmRhLTlkNGUtYjVjNmI4MGI4NTg2IiwiaXNfYW5vbnltb3VzIjpmYWxzZX0.Ojuy2ADRvf9x8OMyW3UVfboe14Y4SMODLXbIcm9WvUw\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1759368891,\"refresh_token\":\"qb6r2uimpgla\",\"user\":{\"id\":\"7e2cfa71-0200-4043-bbdd-d54d8b11b765\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"test@fintec.com\",\"email_confirmed_at\":\"2025-10-01T17:21:51.54723Z\",\"phone\":\"\",\"confirmation_sent_at\":\"2025-10-01T13:09:02.586627Z\",\"confirmed_at\":\"2025-10-01T17:21:51.54723Z\",\"last_sign_in_at\":\"2025-10-02T00:34:51.838050562Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email\":\"test@fintec.com\",\"email_verified\":false,\"full_name\":\"Test User\",\"phone_verified\":false,\"sub\":\"7e2cfa71-0200-4043-bbdd-d54d8b11b765\"},\"identities\":[{\"identity_id\":\"c15d61b8-4783-4ab9-8bcb-abacda2b6e30\",\"id\":\"7e2cfa71-0200-4043-bbdd-d54d8b11b765\",\"user_id\":\"7e2cfa71-0200-4043-bbdd-d54d8b11b765\",\"identity_data\":{\"email\":\"test@fintec.com\",\"email_verified\":false,\"full_name\":\"Test User\",\"phone_verified\":false,\"sub\":\"7e2cfa71-0200-4043-bbdd-d54d8b11b765\"},\"provider\":\"email\",\"last_sign_in_at\":\"2025-10-01T11:23:25.233219Z\",\"created_at\":\"2025-10-01T11:23:25.233275Z\",\"updated_at\":\"2025-10-01T11:23:25.233275Z\",\"email\":\"test@fintec.com\"}],\"created_at\":\"2025-10-01T11:23:25.221647Z\",\"updated_at\":\"2025-10-02T00:34:51.839829Z\",\"is_anonymous\":false},\"weak_password\":null}"
-        }
-      ]
-    }
-  ]
+  "origins": []
 }

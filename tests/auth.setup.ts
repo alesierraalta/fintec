@@ -95,14 +95,14 @@ setup('authenticate', async ({ page }) => {
     console.log('🎉 Setup de autenticación completado exitosamente!');
     
   } catch (error) {
-    console.error('❌ Error en setup de autenticación:', error.message);
+    console.error('❌ Error en setup de autenticación:', error instanceof Error ? error.message : String(error));
     
     // Intentar guardar el estado actual de todas formas
     try {
       await page.context().storageState({ path: authFile });
       console.log('💾 Estado parcial guardado');
     } catch (saveError) {
-      console.error('❌ No se pudo guardar el estado:', saveError.message);
+      console.error('❌ No se pudo guardar el estado:', saveError instanceof Error ? saveError.message : String(saveError));
     }
     
     throw error;

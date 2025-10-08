@@ -121,4 +121,3 @@ if (require.main === module) {
 }
 
 module.exports = { fixAuthPermissions };
-

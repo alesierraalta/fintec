@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServer } from 'http';
 import BackgroundScraperManager from '@/lib/services/background-scraper-manager';
-
-let scraperManager: BackgroundScraperManager | null = null;
-let httpServer: any = null;
+import ScraperInstanceManager from '@/lib/services/scraper-instance-manager';
 
 export async function POST(request: NextRequest) {
   try {
-    if (scraperManager && scraperManager['isRunning']) {
+    const instanceManager = ScraperInstanceManager.getInstance();
+    
+    if (instanceManager.isRunning()) {
       return NextResponse.json({ 
         success: true, 
         message: 'Background scraper already running' 
@@ -15,16 +15,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create HTTP server for WebSocket
-    if (!httpServer) {
-      httpServer = createServer();
-      httpServer.listen(3001, () => {
-        console.log('WebSocket server listening on port 3001');
-      });
-    }
+    const httpServer = createServer();
+    httpServer.listen(3001, () => {
+      console.log('WebSocket server listening on port 3001');
+    });
 
     // Create and start scraper manager
-    scraperManager = new BackgroundScraperManager(httpServer);
+    const scraperManager = new BackgroundScraperManager(httpServer);
     await scraperManager.start();
+
+    // Store in singleton
+    instanceManager.setScraperManager(scraperManager, httpServer);
 
     return NextResponse.json({ 
       success: true, 
@@ -41,6 +42,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
+    const instanceManager = ScraperInstanceManager.getInstance();
+    const scraperManager = instanceManager.getScraperManager();
+    
     if (!scraperManager) {
       return NextResponse.json({ 
         success: false, 

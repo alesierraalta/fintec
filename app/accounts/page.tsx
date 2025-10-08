@@ -36,7 +36,7 @@ import {
   Settings
 } from 'lucide-react';
 import { BCVRates } from '@/components/currency/bcv-rates';
-import { BinanceRates } from '@/components/currency/binance-rates';
+import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
@@ -554,7 +554,7 @@ export default function AccountsPage() {
 
             <div className="space-y-6">
               <BCVRates />
-              <BinanceRates />
+              <BinanceRatesComponent />
               
               {/* History Button - Mobile Responsive */}
               <motion.div
@@ -812,6 +812,7 @@ export default function AccountsPage() {
                 </h3>
               </div>
               <BalanceAlertSettings
+                isOpen={showAlertSettings}
                 account={selectedAccountForAlert}
                 onClose={handleCloseAlertSettings}
               />

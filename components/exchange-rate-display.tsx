@@ -41,7 +41,7 @@ export default function ExchangeRateDisplay() {
                 Connected
               </Badge>
             ) : (
-              <Badge variant="destructive">
+              <Badge variant="danger">
                 <WifiOff className="h-4 w-4 mr-1" />
                 Disconnected
               </Badge>
@@ -65,49 +65,51 @@ export default function ExchangeRateDisplay() {
           )}
           
           {rates ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">USD/VES</h3>
-                <div className="text-2xl font-bold text-blue-600">
-                  {formatPrice(rates.usd_ves)}
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">USD/VES</h3>
+                  <div className="text-2xl font-bold text-blue-600">
+                    {formatPrice(rates.usd_ves)}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Source: {rates.source}
+                  </p>
                 </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">USDT/VES</h3>
+                  <div className="text-2xl font-bold text-green-600">
+                    {formatPrice(rates.usdt_ves)}
+                  </div>
+                  <p className="text-sm text-gray-500">
+                    Source: {rates.source}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Precio de Venta</h3>
+                  <div className="text-xl font-semibold text-red-600">
+                    {formatPrice(rates.sell_rate)}
+                  </div>
+                  <p className="text-xs text-gray-500">Precio al que puedes vender USDT</p>
+                </div>
+                
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">Precio de Compra</h3>
+                  <div className="text-xl font-semibold text-green-600">
+                    {formatPrice(rates.buy_rate)}
+                  </div>
+                  <p className="text-xs text-gray-500">Precio al que puedes comprar USDT</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 pt-4 border-t">
                 <p className="text-sm text-gray-500">
-                  Source: {rates.source}
+                  Last updated: {formatDate(rates.lastUpdated)}
                 </p>
               </div>
-              
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">USDT/VES</h3>
-                <div className="text-2xl font-bold text-green-600">
-                  {formatPrice(rates.usdt_ves)}
-                </div>
-                <p className="text-sm text-gray-500">
-                  Source: {rates.source}
-                </p>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Precio de Venta</h3>
-                <div className="text-xl font-semibold text-red-600">
-                  {formatPrice(rates.sell_rate)}
-                </div>
-                <p className="text-xs text-gray-500">Precio al que puedes vender USDT</p>
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="font-semibold text-lg">Precio de Compra</h3>
-                <div className="text-xl font-semibold text-green-600">
-                  {formatPrice(rates.buy_rate)}
-                </div>
-                <p className="text-xs text-gray-500">Precio al que puedes comprar USDT</p>
-              </div>
-            </div>
-            
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                Last updated: {formatDate(rates.lastUpdated)}
-              </p>
-            </div>
+            </>
           ) : (
             <div className="text-center py-8">
               <p className="text-gray-500">

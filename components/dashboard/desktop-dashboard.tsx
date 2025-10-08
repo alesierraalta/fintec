@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react';
 import { StatCard } from './stat-card';
+import { SkeletonStatCard } from '@/components/ui/skeleton-stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { LazySpendingChart } from './lazy-spending-chart';
@@ -52,10 +53,10 @@ export function DesktopDashboard() {
         
         // Calculate summary statistics
         const totalGoals = goalsWithProgress.length;
-        const activeGoals = goalsWithProgress.filter(g => g.progress < 100).length;
-        const completedGoals = goalsWithProgress.filter(g => g.progress >= 100).length;
-        const averageProgress = totalGoals > 0 
-          ? goalsWithProgress.reduce((sum, g) => sum + g.progress, 0) / totalGoals 
+        const activeGoals = goalsWithProgress.filter(g => g.progressPercentage < 100).length;
+        const completedGoals = goalsWithProgress.filter(g => g.progressPercentage >= 100).length;
+        const averageProgress = totalGoals > 0
+          ? goalsWithProgress.reduce((sum, g) => sum + g.progressPercentage, 0) / totalGoals
           : 0;
         
         setGoalsSummary({
@@ -186,6 +187,15 @@ export function DesktopDashboard() {
       
       {/* iOS-style Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {loading ? (
+          <>
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+            <SkeletonStatCard />
+          </>
+        ) : (
+          <>
         {/* Total Balance Card */}
         <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
           <div className="flex items-center space-x-2 mb-2">
@@ -194,7 +204,7 @@ export function DesktopDashboard() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-3xl font-light text-foreground">
-              {loading ? '...' : `$${totalBalance.toFixed(2)}`}
+              ${totalBalance.toFixed(2)}
             </span>
           </div>
         </div>
@@ -207,7 +217,7 @@ export function DesktopDashboard() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-3xl font-light text-foreground">
-              {loading ? '...' : `$${monthlyIncome.toFixed(2)}`}
+              ${monthlyIncome.toFixed(2)}
             </span>
           </div>
         </div>
@@ -220,7 +230,7 @@ export function DesktopDashboard() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-3xl font-light text-foreground">
-              {loading ? '...' : `$${monthlyExpenses.toFixed(2)}`}
+              ${monthlyExpenses.toFixed(2)}
             </span>
           </div>
         </div>
@@ -233,10 +243,12 @@ export function DesktopDashboard() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-3xl font-light text-foreground">
-              {loading ? '...' : rawTransactions.length}
+              {rawTransactions.length}
             </span>
           </div>
         </div>
+          </>
+        )}
       </div>
 
       {/* iOS-style Content Grid */}
@@ -339,7 +351,7 @@ export function DesktopDashboard() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {goals.slice(0, 2).map((goal) => {
-              const progressColor = goal.progress >= 100 ? 'green' : goal.progress >= 75 ? 'blue' : goal.progress >= 50 ? 'yellow' : 'red';
+              const progressColor = goal.progressPercentage >= 100 ? 'green' : goal.progressPercentage >= 75 ? 'blue' : goal.progressPercentage >= 50 ? 'yellow' : 'red';
               const iconBgColor = {
                 green: 'bg-green-500/10 border-green-500/20',
                 blue: 'bg-blue-500/10 border-blue-500/20',
@@ -374,13 +386,13 @@ export function DesktopDashboard() {
                     <div className="flex-1 min-w-0">
                       <h3 className="text-ios-body font-medium text-foreground">{goal.description}</h3>
                       <p className="text-ios-caption text-muted-foreground">
-                         ${fromMinorUnits(goal.currentAmount, 'USD')} / ${fromMinorUnits(goal.targetAmount, 'USD')}
+                         ${fromMinorUnits(goal.currentBaseMinor, 'USD')} / ${fromMinorUnits(goal.targetBaseMinor, 'USD')}
                        </p>
                       <div className="flex items-center space-x-2 mt-2">
                         <div className="flex-1 bg-muted/30 rounded-full h-2">
-                          <div className={`${barColor} h-2 rounded-full transition-all duration-500`} style={{ width: `${Math.min(goal.progress, 100)}%` }}></div>
+                          <div className={`${barColor} h-2 rounded-full transition-all duration-500`} style={{ width: `${Math.min(goal.progressPercentage, 100)}%` }}></div>
                         </div>
-                        <span className={`text-ios-caption ${textColor} font-semibold`}>{Math.round(goal.progress)}%</span>
+                        <span className={`text-ios-caption ${textColor} font-semibold`}>{Math.round(goal.progressPercentage)}%</span>
                       </div>
                     </div>
                   </div>

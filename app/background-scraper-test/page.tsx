@@ -83,7 +83,7 @@ export default function BackgroundScraperTestPage() {
             <Button
               onClick={stopScraper}
               disabled={!isScraperRunning || isLoading}
-              variant="destructive"
+              variant="danger"
               className="flex items-center space-x-2"
             >
               <Square className="h-4 w-4" />
@@ -110,7 +110,7 @@ export default function BackgroundScraperTestPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm">
-            <p>1. Click "Start Scraper" to begin background data collection</p>
+            <p>1. Click &quot;Start Scraper&quot; to begin background data collection</p>
             <p>2. The scraper runs the Python script every minute</p>
             <p>3. Real-time updates are sent via WebSocket</p>
             <p>4. Data is stored in the database automatically</p>

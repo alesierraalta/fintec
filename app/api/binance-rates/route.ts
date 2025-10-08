@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
-// Cache optimizado para datos de Binance - FORCE FRESH START
+// Cache optimizado para datos de Binance - ANTI RATE LIMITING
 let pythonAvailable: boolean | null = null;
 let pythonCommand: string | null = null;
 let lastFallbackTime = 0;
 let lastSuccessfulData: any = null;
 let lastSuccessfulTime = 0;
-const FALLBACK_CACHE_DURATION = 15 * 1000; // 15 segundos (ultra-agresivo)
-const SUCCESS_CACHE_DURATION = 30 * 1000; // 30 segundos (ultra-agresivo)
-const SCRAPER_TIMEOUT = 45 * 1000; // 45 segundos máximo para el scraper
-const BACKGROUND_REFRESH_INTERVAL = 20 * 1000; // 20 segundos para background refresh
+let consecutiveFailures = 0; // Track failures for exponential backoff
+let lastRequestTime = 0; // Track last request to enforce minimum delay
+
+// INCREASED CACHE DURATIONS TO AVOID RATE LIMITING
+const FALLBACK_CACHE_DURATION = 60 * 1000; // 1 minuto (evitar spam)
+const SUCCESS_CACHE_DURATION = 180 * 1000; // 3 minutos (reducir peticiones)
+const SCRAPER_TIMEOUT = 120 * 1000; // 2 minutos para production scraper
+const BACKGROUND_REFRESH_INTERVAL = 180 * 1000; // 3 minutos para background refresh
+const MIN_REQUEST_INTERVAL = 30 * 1000; // Mínimo 30 segundos entre peticiones
+const MAX_CONSECUTIVE_FAILURES = 3; // Después de 3 fallos, esperar más tiempo
 
 // Force reset all cache variables on module load
 console.log('🔄 Binance API module loaded - all cache variables reset');
@@ -21,34 +27,77 @@ export async function GET() {
   try {
     const now = Date.now();
     
-    // 1. Si tenemos datos exitosos recientes, devolverlos inmediatamente
+    // 1. ALWAYS return cached data if available and recent (ANTI RATE LIMITING)
     if (lastSuccessfulData && (now - lastSuccessfulTime) < SUCCESS_CACHE_DURATION) {
-      // Trigger background refresh si no está en progreso
-      triggerBackgroundRefresh();
+      // Trigger background refresh only if cache is aging
+      const cacheAge = now - lastSuccessfulTime;
+      if (cacheAge > BACKGROUND_REFRESH_INTERVAL) {
+        triggerBackgroundRefresh();
+      }
       return NextResponse.json({
         ...lastSuccessfulData,
         cached: true,
-        cacheAge: Math.round((now - lastSuccessfulTime) / 1000)
+        cacheAge: Math.round(cacheAge / 1000)
       });
     }
     
-    // 2. Si sabemos que Python no está disponible y el cache de error es reciente, devolver fallback
-    if (pythonAvailable === false && (now - lastFallbackTime) < FALLBACK_CACHE_DURATION) {
-      return NextResponse.json(getFallbackData('Python no disponible (cached)'));
+    // 2. Enforce minimum interval between requests (ANTI RATE LIMITING)
+    const timeSinceLastRequest = now - lastRequestTime;
+    if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+      console.log(`Rate limiting protection: ${timeSinceLastRequest}ms since last request`);
+      if (lastSuccessfulData) {
+        return NextResponse.json({
+          ...lastSuccessfulData,
+          cached: true,
+          rateLimited: true,
+          cacheAge: Math.round((now - lastSuccessfulTime) / 1000)
+        });
+      }
+      return NextResponse.json(getFallbackData('Too many requests - rate limiting protection'));
     }
     
-    // 3. Intentar ejecutar el scraper ultra-rápido con timeout agresivo
+    // 3. Si tenemos muchos fallos consecutivos, usar exponential backoff
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      const backoffTime = Math.min(consecutiveFailures * 60 * 1000, 300 * 1000); // Max 5 minutos
+      if ((now - lastFallbackTime) < backoffTime) {
+        console.log(`Exponential backoff: waiting ${backoffTime}ms after ${consecutiveFailures} failures`);
+        if (lastSuccessfulData) {
+          return NextResponse.json({
+            ...lastSuccessfulData,
+            cached: true,
+            backoff: true,
+            cacheAge: Math.round((now - lastSuccessfulTime) / 1000)
+          });
+        }
+        return NextResponse.json(getFallbackData('Multiple failures - exponential backoff'));
+      }
+    }
+    
+    // 4. Intentar ejecutar el scraper con protecciones
+    lastRequestTime = now;
     const result = await runPythonScraperWithTimeout();
     
     if (result.success) {
       pythonAvailable = true;
       lastSuccessfulData = result;
       lastSuccessfulTime = now;
+      consecutiveFailures = 0; // Reset failure counter
       return NextResponse.json(result);
     } else {
-      // Marcar Python como no disponible y usar fallback
-      pythonAvailable = false;
+      // Incrementar contador de fallos
+      consecutiveFailures++;
       lastFallbackTime = now;
+      
+      // Detectar rate limiting específicamente
+      const isRateLimited = result.error && (
+        result.error.includes('429') || 
+        result.error.includes('Too Many Requests') ||
+        result.error.includes('Could not get valid P2P prices')
+      );
+      
+      if (isRateLimited) {
+        console.warn(`Rate limiting detected! Consecutive failures: ${consecutiveFailures}`);
+      }
       
       // Si tenemos datos exitosos antiguos, usarlos como fallback mejorado
       if (lastSuccessfulData) {
@@ -56,15 +105,16 @@ export async function GET() {
           ...lastSuccessfulData,
           fallback: true,
           fallbackReason: result.error || 'Binance scraper failed',
-          dataAge: Math.round((now - lastSuccessfulTime) / 1000)
+          rateLimited: isRateLimited,
+          dataAge: Math.round((now - lastSuccessfulTime) / 1000),
+          consecutiveFailures
         });
       }
       
       return NextResponse.json(getFallbackData(result.error || 'Binance scraper failed'));
     }
   } catch (error) {
-    // Marcar Python como no disponible
-    pythonAvailable = false;
+    consecutiveFailures++;
     lastFallbackTime = Date.now();
     
     // Si tenemos datos exitosos antiguos, usarlos
@@ -88,12 +138,33 @@ function getFallbackData(reason: string) {
     data: {
       usd_ves: 228.50,
       usdt_ves: 228.50,
+      sell_rate: 228.50,
+      buy_rate: 228.00,
+      sell_min: 228.50,
+      sell_avg: 228.50,
+      sell_max: 228.50,
+      buy_min: 228.00,
+      buy_avg: 228.00,
+      buy_max: 228.00,
+      overall_min: 228.00,
+      overall_max: 228.50,
+      spread: 0.50,
+      sell_prices_used: 0,
+      buy_prices_used: 0,
       prices_used: 0,
-      price_range: { min: 228.50, max: 228.50 },
+      price_range: {
+        sell_min: 228.50,
+        sell_max: 228.50,
+        buy_min: 228.00,
+        buy_max: 228.00,
+        min: 228.00,
+        max: 228.50
+      },
       lastUpdated: new Date().toISOString(),
-      source: 'Binance P2P (fallback - Python no disponible)'
+      source: 'Binance P2P (fallback - rate limiting protection)'
     },
-    fallback: true
+    fallback: true,
+    consecutiveFailures
   };
 }
 
@@ -134,6 +205,7 @@ function runPythonScraperWithTimeout(): Promise<any> {
 
 function runPythonScraper(): Promise<any> {
   return new Promise((resolve, reject) => {
+    // Using production scraper with delays to avoid rate limiting
     const scriptPath = path.join(process.cwd(), 'scripts', 'binance_scraper_production.py');
     
     // Si ya conocemos el comando Python que funciona, usarlo directamente

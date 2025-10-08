@@ -28,6 +28,11 @@ export function RecentTransactions() {
   }, [transactions]);
 
   const formatAmount = (amount: number, type: string) => {
+    // Handle NaN, null, undefined values
+    if (!amount || isNaN(amount) || !isFinite(amount)) {
+      return type === 'INCOME' ? '+$0.00' : '-$0.00';
+    }
+    
     const formatted = Math.abs(amount).toLocaleString('es-ES', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -122,7 +127,9 @@ export function RecentTransactions() {
   return (
     <div className="space-y-1">
       {recentTransactions.map((transaction, index) => {
-        const amount = (transaction.amountMinor || 0) / 100;
+        const amount = transaction.amountMinor && !isNaN(transaction.amountMinor) 
+          ? transaction.amountMinor / 100 
+          : 0;
         const typeInfo = getTypeInfo(transaction.type, amount);
 
         return (

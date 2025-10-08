@@ -1,340 +1,211 @@
-# 📊 Binance Scrapers Documentation - Optimized Architecture
+# protocolo_mcp_opt.yml
+version: "1.1"
+orden: ["1-analizar_archivos", "2-plan_de_accion", "3-implementar_probar_documentar"]
 
-## 🎯 Overview
+# 1) ANALIZAR ARCHIVOS — EN BASE AL PROMPT (Serena primero)
+analizar_archivos:
+  herramienta: "Serena"
+  basado_en_prompt: true
+  objetivo: "Derivar exactamente qué archivos y memoria revisar según el contenido del prompt del usuario."
+  extraccion_desde_prompt:
+    - "Entidades/tecnologías (APIs, librerías, servicios)"
+    - "Acciones pedidas (crear, refactorizar, integrar, optimizar)"
+    - "Dominios/módulos (auth, pagos, UI, worker, etc.)"
+    - "Pistas de rutas o nombres (e.g., user, invoice, dashboard)"
+  seleccion_archivos:
+    reglas:
+      - "Construir patrones glob desde palabras clave del prompt (e.g., **/*user*.*, **/auth/**)"
+      - "Priorizar carpetas convencionales: src/, app/, lib/, server/, tests/"
+      - "Incluir migraciones/esquemas si el prompt menciona datos/DB"
+      - "Cruzar con memoria/decisiones previas usando las mismas claves del prompt"
+    pseudocodigo: |
+      // Selección mínima y eficiente por prompt
+      export function archivosRelevantes(prompt: string, arbol: string[]): string[] {
+        const kws = [...new Set(prompt.toLowerCase().match(/[a-z0-9_-]{3,}/g) ?? [])];
+        const pat = (k: string) => new RegExp(`(^|/)${k}(/|\\.|$)`);
+        const candidatos = arbol.filter(p => kws.some(k => pat(k).test(p)));
+        const score = (p: string) =>
+          (p.includes('/src/') || p.includes('/app/')) ? 3 :
+          (p.includes('/lib/') || p.includes('/server/')) ? 2 : 1;
+        return candidatos.sort((a,b)=>score(b)-score(a)).slice(0,200);
+      }
 
-This documentation covers the optimized Binance P2P scraper architecture after comprehensive MCP analysis and cleanup. The system now provides ultra-fast USD/VES rate retrieval with enhanced error handling and extreme price capture.
+# 2) PLAN DE ACCIÓN — PASO A PASO (Sequential Thinking + DocFork)
+plan_de_accion:
+  pensamiento_secuencial:
+    - "Desglosar requisitos explícitos/implícitos del prompt + Mapa Serena"
+    - "Elegir arquitectura mínima que cumpla (diagramar flujos simples)"
+    - "Partir en tareas pequeñas (funciones ≤ 20 líneas; acoplamiento bajo)"
+    - "Definir criterios de aceptación + métricas (SLA rendimiento/seguridad)"
+  docfork_investigacion:
+    minimo_sesiones: 3
+    temas:
+      - "APIs/SDKs/contratos mencionados por el prompt"
+      - "Buenas prácticas de seguridad y rendimiento aplicables"
+      - "Patrones probados (idempotencia, reintentos, caché, streaming, colas)"
+  salida:
+    backlog:
+      - "Lista ordenada de tareas con dependencias"
+      - "Criterios de ‘hecho’ por tarea"
+      - "Riesgos → mitigaciones"
+      - "Decisiones y trade-offs respaldados por documentación"
 
-## 🏗️ Architecture Summary
+# 3) IMPLEMENTAR → PROBAR → DOCUMENTAR (optimizado al máximo)
+implementacion:
+  objetivos:
+    - "Código totalmente optimizado: mínimo LOC con máxima legibilidad y seguridad"
+    - "Complejidad algorítmica y de memoria claras (preferir O(n) y O(1) en hot paths)"
+    - "Medible: perfiles, métricas y umbrales de rendimiento"
+  reglas:
+    - "Cada función ≤ 20 líneas; una sola responsabilidad; early-returns; evitar ramas profundas"
+    - "Hot paths: evitar asignaciones/objetos innecesarios, reutilizar buffers/estructuras"
+    - "E/S: batch, cache, compresión y streaming; concurrencia limitada y backpressure"
+    - "TypeScript estricto, sin any implícitos; contratos validados en los bordes"
+    - "Side effects aislados; pure functions por defecto; logs estructurados mínimos"
+    - "Cargas diferidas (lazy/dynamic import) y tree-shaking friendly"
+  configuracion:
+    tsconfig.json: |
+      {
+        "compilerOptions": {
+          "target": "ES2022",
+          "module": "ESNext",
+          "moduleResolution": "Bundler",
+          "strict": true,
+          "noUncheckedIndexedAccess": true,
+          "noImplicitOverride": true,
+          "exactOptionalPropertyTypes": true,
+          "forceConsistentCasingInFileNames": true,
+          "skipLibCheck": true,
+          "outDir": "dist"
+        },
+        "include": ["src"]
+      }
+    package.json: |
+      {
+        "name": "mcp-proyecto-optimizado",
+        "type": "module",
+        "scripts": {
+          "build": "tsc -p .",
+          "dev": "tsx src/server.ts",
+          "test:e2e": "playwright test"
+        },
+        "dependencies": {
+          "fastify": "^5.0.0"
+        },
+        "devDependencies": {
+          "@playwright/test": "^1.48.0",
+          "tsx": "^4.19.0",
+          "typescript": "^5.6.0"
+        }
+      }
+  plantillas_optim:
+    # Utilidades TypeScript ultra-eficientes (todas ≤ 20 líneas)
+    src/utils/lru_cache.ts: |
+      // LRU minimalista (≤ 15 líneas), Map con recencia por reinserción
+      export class LRU<K, V> {
+        private m = new Map<K, V>();
+        constructor(private max = 500) {}
+        get(k: K): V | null { const v = this.m.get(k); if (v !== undefined) { this.m.delete(k); this.m.set(k, v); } return v ?? null; }
+        set(k: K, v: V): void { if (this.m.has(k)) this.m.delete(k); this.m.set(k, v); if (this.m.size > this.max) this.m.delete(this.m.keys().next().value as K); }
+        has(k: K): boolean { return this.m.has(k); }
+        delete(k: K): boolean { return this.m.delete(k); }
+        clear(): void { this.m.clear(); }
+        size(): number { return this.m.size; }
+      }
+    src/utils/p_limit.ts: |
+      // Concurrencia acotada simple (≤ 15 líneas)
+      export function pLimit(concurrency: number) {
+        let active = 0; const q: Array<() => Promise<void>> = [];
+        const next = () => { if (active >= concurrency || !q.length) return;
+          active++; q.shift()!().finally(() => { active--; next(); }); };
+        return <T>(fn: () => Promise<T>) => new Promise<T>((res, rej) => { q.push(() => fn().then(res, rej)); next(); });
+      }
+    src/utils/fnv1a.ts: |
+      // Hash FNV-1a 32-bit, rápido y estable (1 línea útil)
+      export const fnv1a32 = (s: string) => { let h = 0x811c9dc5; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h + ((h<<1)+(h<<4)+(h<<7)+(h<<8)+(h<<24))) >>> 0; } return h >>> 0; };
+    src/utils/debounce.ts: |
+      // Debounce sin dependencias (≤ 10 líneas)
+      export function debounce<T extends (...a: any[]) => void>(fn: T, ms = 200) {
+        let t: any; return ((...args: Parameters<T>) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); }) as T;
+      }
+    src/utils/memo_fetch.ts: |
+      // Fetch JSON memoizado con LRU + concurrencia limitada (≤ 20 líneas)
+      import { LRU } from './lru_cache.js'; import { pLimit } from './p_limit.js';
+      const cache = new LRU<string, any>(500); const limit = pLimit(8);
+      export async function memoJSON<T>(url: string, ttlMs = 60_000): Promise<T> {
+        const hit = cache.get(url); if (hit && (hit.t + ttlMs > Date.now())) return hit.v as T;
+        return limit(async () => {
+          const r = await fetch(url); if (!r.ok) throw new Error(String(r.status));
+          const v = await r.json(); cache.set(url, { v, t: Date.now() }); return v as T;
+        });
+      }
+    src/utils/validate.ts: |
+      // Validación mínima sin libs: esquema por funciones
+      export type V<T> = (x: unknown) => x is T;
+      export const isStr = (min = 1): V<string> => (x): x is string => typeof x === 'string' && x.length >= min;
+      export const isObj = <T extends object>(): V<T> => (x): x is T => !!x && typeof x === 'object';
+      export function shape<T extends Record<string, V<any>>>(s: T): V<{ [K in keyof T]: T[K] extends V<infer U> ? U : never }> {
+        return (x: unknown): x is any => isObj()(x) && Object.entries(s).every(([k, v]) => v((x as any)[k]));
+      }
+    src/server.ts: |
+      // API Fastify optimizada: validación, caché HTTP y uso de memoJSON
+      import Fastify from 'fastify';
+      import { isStr, shape } from './utils/validate.js';
+      import { memoJSON } from './utils/memo_fetch.js';
+      const app = Fastify({ logger: false });
+      const qSchema = shape({ q: isStr(1) });
+      app.get('/search', async (req, rep) => {
+        const query = (req.query ?? {}) as any; if (!qSchema(query)) return rep.code(400).send({ error: 'bad_request' });
+        const data = await memoJSON<any>(`https://dummyjson.com/products/search?q=${encodeURIComponent(query.q)}`, 30_000);
+        rep.header('Cache-Control', 'private, max-age=60').send({ items: data?.products ?? [] });
+      });
+      app.get('/health', (_, rep) => rep.send({ ok: true }));
+      app.listen({ port: 3000, host: '0.0.0.0' });
+  playwright_tests: |
+    // tests/search.spec.ts — pruebas E2E concisas pero completas
+    import { test, expect } from '@playwright/test';
 
-### Current File Structure (Post-Optimization)
-```
-fintec/scripts/
-├── binance_scraper_production.py    # 🚀 NEW: Production-ready scraper (15-30s)
-├── binance_scraper_ultra_fast.py    # ⚡ ENHANCED: Ultra-fast scraper (optimized)
-├── binance_scraper_fallback.py      # 🛡️ RENAMED: Fallback scraper (no dependencies)
-├── binance_config.json              # ⚙️ Configuration file
-├── requirements.txt                 # 📦 Dependencies
-├── BINANCE_SCRAPERS_ANALYSIS.md     # 📋 Analysis report
-└── BINANCE_SCRAPERS_DOCUMENTATION.md # 📚 This file
-```
+    test.describe('API /search', () => {
+      test('camino feliz', async ({ request }) => {
+        const r = await request.get('http://localhost:3000/search?q=phone');
+        expect(r.ok()).toBeTruthy();
+        const j = await r.json();
+        expect(Array.isArray(j.items)).toBeTruthy();
+      });
 
-### Removed Files (Redundant)
-- ❌ `binance_scraper_backup.py` - Duplicate functionality
-- ❌ `binance_scraper_fixed.py` - Outdated version
-- ❌ `binance_scraper_improved.py` - Superseded by production
-- ❌ `binance_scraper_simple_enhanced.py` - Consolidated features
-- ❌ `binance_scraper_fast.py` - Merged into ultra-fast
-- ❌ `binance_scraper_enhanced.py` - Features consolidated
+      test('valida query vacía', async ({ request }) => {
+        const r = await request.get('http://localhost:3000/search?q=');
+        expect(r.status()).toBe(400);
+      });
 
-## 🚀 Production Scrapers
+      test('maneja error aguas arriba', async ({ request }) => {
+        // Simulación simple: endpoint inexistente
+        const r = await request.get('http://localhost:3000/search?q=' + encodeURIComponent('##force500##'));
+        expect([200,400,500]).toContain(r.status()); // tolerancia controlada para upstream
+      });
 
-### 1. binance_scraper_production.py
-**Purpose**: Primary production scraper with optimal balance of speed and accuracy
+      test('SLA básico', async ({ request }) => {
+        const t0 = Date.now();
+        await request.get('http://localhost:3000/search?q=fast');
+        expect(Date.now() - t0).toBeLessThan(1500);
+      });
 
-**Key Features**:
-- ⚡ Target execution time: 15-30 seconds
-- 🎯 Enhanced extreme price capture (preserves top/bottom 15%)
-- 🔄 Multiple sampling runs for better data quality
-- 📊 Advanced quality scoring system
-- 🛡️ Comprehensive error handling with fallback
-- 🔧 Configurable via `binance_config.json`
-
-**Performance Metrics**:
-- Concurrent requests: ✅ Yes
-- Rate limiting: ✅ Optimized (0.1s delay)
-- Retry mechanism: ✅ 3 attempts with exponential backoff
-- Timeout handling: ✅ 30s per request
-- Data filtering: ✅ IQR-based with extreme preservation
-
-### 2. binance_scraper_ultra_fast.py (Enhanced)
-**Purpose**: Ultra-fast scraper for time-critical applications
-
-**Key Features**:
-- ⚡ Target execution time: 15-25 seconds
-- 🎯 **NEW**: Extreme preservation filtering (top/bottom 10%)
-- 🔄 Concurrent request processing
-- 📊 Fast quality scoring
-- 🛡️ **ENHANCED**: Better fallback data structure
-- ⚙️ Aggressive optimization settings
-
-**Recent Enhancements**:
-- ✅ Added extreme price preservation to `_fast_simple_filtering()`
-- ✅ Enhanced fallback data with complete price structure
-- ✅ Improved error handling with detailed fallback reasons
-- ✅ Better duplicate removal using ad_id tracking
-
-### 3. binance_scraper_fallback.py
-**Purpose**: Dependency-free fallback scraper using only Python built-ins
-
-**Key Features**:
-- 🛡️ No external dependencies (urllib only)
-- 🔧 Simple configuration
-- ⚡ Basic but reliable functionality
-- 📊 Essential price capture
-
-## 🔧 Configuration System
-
-### binance_config.json Structure
-```json
-{
-  "max_pages": 3,
-  "rows_per_page": 20,
-  "max_retries": 3,
-  "retry_delay": 1.0,
-  "request_timeout": 30,
-  "rate_limit_delay": 0.1,
-  "price_range": {
-    "min": 50.0,
-    "max": 500.0
-  },
-  "cache_duration": 300,
-  "user_agent": "Mozilla/5.0...",
-  "api_endpoints": {
-    "p2p_url": "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
-  },
-  "asset_config": {
-    "asset": "USDT",
-    "fiat": "VES"
-  },
-  "trade_types": ["SELL", "BUY"],
-  "logging": {
-    "level": "INFO",
-    "file": "binance_scraper.log"
-  },
-  "fallback_values": {
-    "usd_ves": 228.50,
-    "spread": 0.50
-  }
-}
-```
-
-## 📊 Data Structure Standards
-
-### Response Format (Standardized)
-```json
-{
-  "success": true,
-  "data": {
-    "usd_ves": 228.25,
-    "usdt_ves": 228.25,
-    "sell_rate": 228.50,
-    "buy_rate": 228.00,
-    "sell_min": 227.80,
-    "sell_avg": 228.50,
-    "sell_max": 229.20,
-    "buy_min": 227.50,
-    "buy_avg": 228.00,
-    "buy_max": 228.80,
-    "overall_min": 227.50,
-    "overall_max": 229.20,
-    "spread_min": 0.30,
-    "spread_avg": 0.50,
-    "spread_max": 0.70,
-    "spread": 0.50,
-    "sell_prices_used": 45,
-    "buy_prices_used": 42,
-    "prices_used": 87,
-    "price_range": {
-      "sell_min": 227.80,
-      "sell_max": 229.20,
-      "buy_min": 227.50,
-      "buy_max": 228.80,
-      "min": 227.50,
-      "max": 229.20
-    },
-    "lastUpdated": "2024-01-15T10:30:00.000Z",
-    "source": "Binance P2P (Production)",
-    "quality_score": 85.7,
-    "execution_time_seconds": 18.5,
-    "optimization_level": "production"
-  }
-}
-```
-
-### Error Response Format
-```json
-{
-  "success": false,
-  "error": "Connection timeout",
-  "data": {
-    // Fallback data structure (same as success)
-  },
-  "fallback": true,
-  "fallback_reason": "Connection timeout"
-}
-```
-
-## 🎯 Extreme Price Capture System
-
-### Problem Solved
-Previous versions were losing extreme prices due to aggressive filtering, leading to inaccurate min/max values.
-
-### Solution Implemented
-1. **Extreme Preservation**: Always preserve top/bottom 10-15% of prices
-2. **Smart Filtering**: Apply statistical filtering only to middle values
-3. **Duplicate Removal**: Use ad_id tracking to prevent duplicates
-4. **Quality Scoring**: Factor in extreme price capture for quality assessment
-
-### Algorithm Flow
-```
-1. Collect all prices from multiple pages
-2. Sort prices by value
-3. Preserve extremes (top/bottom percentiles)
-4. Apply IQR filtering to middle values
-5. Combine extremes + filtered middle
-6. Remove duplicates by ad_id
-7. Calculate comprehensive statistics
-```
-
-## 🔄 Integration with Next.js API
-
-### API Route Update
-The API route (`app/api/binance-rates/route.ts`) has been updated to use the new production scraper:
-
-```typescript
-// Updated to use production scraper
-const scriptPath = path.join(process.cwd(), 'fintec', 'scripts', 'binance_scraper_production.py');
-```
-
-### Caching Strategy
-- **Success Cache**: 30 seconds for successful responses
-- **Fallback Cache**: 15 seconds for error responses
-- **Background Refresh**: Automatic refresh every 20 seconds
-- **Timeout Protection**: 45-second maximum execution time
-
-## 🧪 Quality Assurance
-
-### Quality Score Calculation
-```python
-def calculate_quality_score(sell_prices, buy_prices):
-    # Quantity score (40 points max)
-    quantity_score = min(40, total_prices * 1.0)
-    
-    # Range score (30 points max) - rewards price diversity
-    range_score = min(30, (price_range / 50) * 30)
-    
-    # Consistency score (30 points max) - penalizes high volatility
-    consistency_score = max(0, 30 - (std_dev / mean_price) * 30)
-    
-    return quantity_score + range_score + consistency_score
-```
-
-### Performance Benchmarks
-| Scraper | Target Time | Avg Time | Success Rate | Quality Score |
-|---------|-------------|----------|--------------|---------------|
-| Production | 15-30s | 22s | 95% | 85+ |
-| Ultra-Fast | 15-25s | 18s | 92% | 80+ |
-| Fallback | 10-20s | 15s | 98% | 70+ |
-
-## 🛡️ Error Handling Strategy
-
-### Hierarchical Fallback System
-1. **Primary**: Production scraper with full features
-2. **Secondary**: Ultra-fast scraper with basic features
-3. **Tertiary**: Fallback scraper with no dependencies
-4. **Final**: Static fallback values from config
-
-### Error Categories
-- **Network Errors**: Timeout, connection refused, DNS issues
-- **API Errors**: Rate limiting, invalid response, server errors
-- **Data Errors**: Invalid JSON, missing fields, out-of-range values
-- **System Errors**: Python not found, import errors, file access
-
-## 📈 Performance Optimizations
-
-### Implemented Optimizations
-1. **Concurrent Requests**: Multiple API calls in parallel
-2. **Smart Rate Limiting**: Minimal delays between requests
-3. **Aggressive Timeouts**: Fast failure for unresponsive endpoints
-4. **Efficient Filtering**: Optimized algorithms for large datasets
-5. **Memory Management**: Minimal object creation and cleanup
-6. **Connection Pooling**: Reuse HTTP connections when possible
-
-### Future Optimization Opportunities
-- [ ] Redis caching for cross-instance data sharing
-- [ ] WebSocket connections for real-time updates
-- [ ] Machine learning for price prediction
-- [ ] Geographic load balancing
-- [ ] CDN integration for global performance
-
-## 🔍 Monitoring and Debugging
-
-### Logging Strategy
-- **INFO**: Successful operations and performance metrics
-- **WARNING**: Recoverable errors and fallback usage
-- **ERROR**: Critical failures requiring attention
-- **DEBUG**: Detailed execution flow (disabled in production)
-
-### Key Metrics to Monitor
-- Execution time per scraper
-- Success/failure rates
-- Quality scores over time
-- Cache hit/miss ratios
-- API response times
-- Error frequency by type
-
-## 🚀 Deployment Recommendations
-
-### Production Checklist
-- [ ] Verify Python environment and dependencies
-- [ ] Test all scrapers individually
-- [ ] Validate configuration file
-- [ ] Set up monitoring and alerting
-- [ ] Configure log rotation
-- [ ] Test fallback scenarios
-- [ ] Verify API route integration
-- [ ] Performance test under load
-
-### Maintenance Schedule
-- **Daily**: Monitor logs and performance metrics
-- **Weekly**: Review quality scores and error rates
-- **Monthly**: Update dependencies and security patches
-- **Quarterly**: Performance optimization review
-
-## 📚 Usage Examples
-
-### Direct Python Usage
-```python
-from binance_scraper_production import ProductionBinanceScraper
-
-async def get_rates():
-    async with ProductionBinanceScraper() as scraper:
-        result = await scraper.scrape_rates_production()
-        return result
-
-# Usage
-import asyncio
-rates = asyncio.run(get_rates())
-print(f"USD/VES: {rates['data']['usd_ves']}")
-```
-
-### API Integration
-```javascript
-// Frontend usage
-const response = await fetch('/api/binance-rates');
-const data = await response.json();
-console.log(`Current rate: ${data.data.usd_ves}`);
-```
-
-## 🎯 Success Metrics
-
-### Achieved Improvements
-- ✅ **50% reduction** in codebase complexity (11 → 3 files)
-- ✅ **30% improvement** in execution time consistency
-- ✅ **95% accuracy** in extreme price capture
-- ✅ **Zero dependency conflicts** after cleanup
-- ✅ **100% API compatibility** maintained
-- ✅ **Enhanced error resilience** with multi-level fallbacks
-
-### Quality Improvements
-- ✅ Standardized response formats across all scrapers
-- ✅ Comprehensive error handling and logging
-- ✅ Configurable parameters via JSON
-- ✅ Production-ready code with proper documentation
-- ✅ Optimized for both speed and accuracy
-
----
-
-*Last updated: January 2024*
-*MCP Analysis Version: Enhanced*
-*Architecture Status: Production Ready*
+      test('health', async ({ request }) => {
+        const r = await request.get('http://localhost:3000/health');
+        expect((await r.json()).ok).toBeTruthy();
+      });
+    });
+  documentacion_minima: |
+    ## [Componente/Función]
+    **Propósito:** …
+    **Entradas/Salidas:** …
+    **Decisiones (DocFork):** …
+    **Impacto Serena:** archivos tocados, integraciones
+    **Seguridad:** validaciones en bordes, authz si aplica, sanitización
+    **Rendimiento:** SLA, caching, streaming/batching, concurrencia
+    **Pruebas:** felices, bordes, errores, integración, perf
+  checklist_salida:
+    - "Alineado con Mapa Serena y Plan"
+    - "Playwright verde (feliz/bordes/errores/perf/integración)"
+    - "Docs actualizadas con referencias a investigación"
+    - "Monitoreo/riesgos definidos (health/logs/alertas)"

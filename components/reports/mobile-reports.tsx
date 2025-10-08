@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { useRepository } from '@/providers/repository-provider';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { 
   PieChart,
   BarChart3,
@@ -17,12 +17,14 @@ import {
 
 export function MobileReports() {
   const { user } = useAuth();
-  const repository = useRepository();
+  const { transactions, categories, loading, loadAllData } = useOptimizedData();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
   const [selectedTab, setSelectedTab] = useState('overview');
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  // Load data on component mount
+  useEffect(() => {
+    loadAllData();
+  }, [loadAllData]);
 
   const periods = [
     { id: 'week', label: 'Semana' },
@@ -37,26 +39,6 @@ export function MobileReports() {
     { id: 'trends', label: 'Tendencias', icon: Target }
   ];
 
-  // Load reports data from database
-  useEffect(() => {
-    const loadReportsData = async () => {
-      if (!user) return;
-      try {
-        setLoading(true);
-        const [transactionsData, categoriesData] = await Promise.all([
-          repository.transactions.findAll(),
-          repository.categories.findAll()
-        ]);
-        setTransactions(transactionsData);
-        setCategories(categoriesData);
-      } catch (error) {
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadReportsData();
-  }, [user, repository]);
 
   const getPeriodStartDate = (period: string): Date => {
     const now = new Date();
@@ -175,7 +157,7 @@ export function MobileReports() {
                   <span className="text-sm font-medium text-text-primary">{category.category}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-text-primary">${category.amount.toFixed(2)}</p>
+                  <p className="text-sm font-semibold text-text-primary">${category.amount && !isNaN(category.amount) && isFinite(category.amount) ? category.amount.toFixed(2) : '0.00'}</p>
                   <p className="text-xs text-text-muted">{category.percentage}%</p>
                 </div>
               </div>
@@ -212,7 +194,7 @@ export function MobileReports() {
                   </div>
                 </div>
                 <span className="text-sm font-semibold text-text-primary">
-                  ${Math.abs(transaction.amountMinor / 100).toFixed(2)}
+                  ${transaction.amountMinor && !isNaN(transaction.amountMinor) && isFinite(transaction.amountMinor) ? Math.abs(transaction.amountMinor / 100).toFixed(2) : '0.00'}
                 </span>
               </div>
             ))}

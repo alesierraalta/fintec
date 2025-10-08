@@ -18,7 +18,7 @@ export class BalanceAlertService {
    * Check if an account balance is approaching or below the minimum threshold
    */
   static checkAccountBalance(account: Account): BalanceAlert | null {
-    if (!account.alertEnabled || account.minimumBalance <= 0) {
+    if (!account.alertEnabled || !account.minimumBalance || account.minimumBalance <= 0) {
       return null;
     }
 
@@ -145,7 +145,7 @@ Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFo
    * Calculate how much money is needed to reach the safe threshold
    */
   static calculateAmountNeeded(account: Account): number {
-    if (!account.alertEnabled || account.minimumBalance <= 0) {
+    if (!account.alertEnabled || !account.minimumBalance || account.minimumBalance <= 0) {
       return 0;
     }
 

@@ -53,7 +53,7 @@ interface Transaction {
   accountId: string;
   categoryId: string;
   currencyCode: string;
-  amount: number;
+  amountMinor: number;
   description: string;
   date: string;
   note?: string;
@@ -170,7 +170,7 @@ export function TransactionsTable({
         size: 200,
       },
       {
-        accessorKey: 'amount',
+        accessorKey: 'amountMinor',
         header: ({ column }) => (
           <button
             className="flex items-center space-x-1 hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded px-2 py-1 -mx-2 -my-1"
@@ -188,7 +188,10 @@ export function TransactionsTable({
           const isNegative = type === 'EXPENSE' || type === 'TRANSFER_OUT';
           
           // Convert from minor units (cents) to major units (dollars)
-          const amount = amountMinor / 100;
+          // Handle NaN, null, undefined values
+          const amount = amountMinor && !isNaN(amountMinor) && isFinite(amountMinor)
+            ? amountMinor / 100
+            : 0;
           
           return (
             <span className={`font-mono font-semibold ${

@@ -59,6 +59,7 @@ export function useOptimizedData() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Check if cache is valid
   const isCacheValid = useCallback((type: keyof DataCache['lastUpdated']) => {
@@ -152,6 +153,11 @@ export function useOptimizedData() {
         loadCategories(forceRefresh),
       ]);
 
+      // Mark initial load as complete if we have any data
+      if (transactions.length > 0 || accounts.length > 0 || categories.length > 0) {
+        setIsInitialLoad(false);
+      }
+
       return { transactions, accounts, categories };
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading data');
@@ -178,6 +184,8 @@ export function useOptimizedData() {
           categories: 0,
         },
       };
+      // Reset initial load state when cache is cleared
+      setIsInitialLoad(true);
     }
   }, []);
 
@@ -205,12 +213,18 @@ export function useOptimizedData() {
     categories: globalCache.categories,
   }), [globalCache.transactions, globalCache.accounts, globalCache.categories]);
 
+  // Determine if we should show loading state
+  const shouldShowLoading = useMemo(() => {
+    return loading || (isInitialLoad && (globalCache.transactions.length === 0 || globalCache.accounts.length === 0));
+  }, [loading, isInitialLoad, globalCache.transactions.length, globalCache.accounts.length]);
+
   return {
     // Data
     ...cachedData,
     
     // Loading states
-    loading,
+    loading: shouldShowLoading,
+    isInitialLoad,
     error,
     
     // Load functions

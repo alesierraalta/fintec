@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-// This would need to be imported from a shared location
-// For now, we'll use a simple approach
-let scraperManager: any = null;
+import ScraperInstanceManager from '@/lib/services/scraper-instance-manager';
 
 export async function POST(request: NextRequest) {
   try {
+    const instanceManager = ScraperInstanceManager.getInstance();
+    const scraperManager = instanceManager.getScraperManager();
+    const httpServer = instanceManager.getHttpServer();
+    
     if (!scraperManager) {
       return NextResponse.json({ 
         success: false, 
@@ -14,7 +15,14 @@ export async function POST(request: NextRequest) {
     }
 
     await scraperManager.stop();
-    scraperManager = null;
+    
+    // Close HTTP server if exists
+    if (httpServer) {
+      httpServer.close();
+    }
+    
+    // Clear from singleton
+    instanceManager.clearScraperManager();
 
     return NextResponse.json({ 
       success: true, 
