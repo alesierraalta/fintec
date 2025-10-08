@@ -43,6 +43,7 @@ import { useModal } from '@/hooks';
 import { CreateTransactionDTO, TransactionType } from '@/types';
 import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
+import { logger } from '@/lib/utils/logger';
 
 // Data constants
 const transactionTypes = [
@@ -101,7 +102,7 @@ export function MobileAddTransaction() {
         setAccounts(userAccounts.filter(acc => acc.active));
         setLoadingAccounts(false);
       } catch (err) {
-        console.error('Error loading data:', err);
+        logger.error('Error loading data:', err);
         setLoadingCategories(false);
         setLoadingAccounts(false);
       }
@@ -140,7 +141,7 @@ export function MobileAddTransaction() {
         setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
       }
     } catch (error) {
-      console.error('Error reloading categories:', error);
+      logger.error('Error reloading categories:', error);
     }
   };
 
@@ -227,7 +228,7 @@ export function MobileAddTransaction() {
           
           alert(`¡Transacción recurrente configurada! Se repetirá ${formData.frequency === 'weekly' ? 'semanalmente' : formData.frequency === 'monthly' ? 'mensualmente' : 'anualmente'}.`);
         } catch (recurringError) {
-          console.error('Error creating recurring transaction:', recurringError);
+          logger.error('Error creating recurring transaction:', recurringError);
           alert('Transacción creada pero hubo un error con la configuración recurrente.');
         }
       }

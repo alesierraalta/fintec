@@ -22,6 +22,7 @@ import {
   Smile,
   Plus
 } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 export function DesktopDashboard() {
   const { accounts: rawAccounts, transactions: rawTransactions, loading, loadAllData } = useOptimizedData();
@@ -66,7 +67,7 @@ export function DesktopDashboard() {
           averageProgress
         });
       } catch (error) {
-        console.error('Error loading goals:', error);
+        logger.error('Error loading goals:', error);
       } finally {
         setGoalsLoading(false);
       }

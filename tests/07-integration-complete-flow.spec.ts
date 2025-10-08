@@ -49,7 +49,7 @@ test.describe('Complete Integration Flow Tests', () => {
             console.log('✅ Campo de descripción llenado');
           }
         } catch (error) {
-          console.log(`⚠️ Error llenando campos: ${error.message}`);
+          console.log(`⚠️ Error llenando campos: ${(error as Error).message}`);
         }
       }
       
@@ -134,7 +134,7 @@ test.describe('Complete Integration Flow Tests', () => {
           await categoryInputs[0].fill('Test Category');
           console.log('✅ Nombre de categoría ingresado: Test Category');
         } catch (error) {
-          console.log(`⚠️ Error llenando categoría: ${error.message}`);
+          console.log(`⚠️ Error llenando categoría: ${(error as Error).message}`);
         }
       }
       
@@ -241,7 +241,7 @@ test.describe('Complete Integration Flow Tests', () => {
             await accountInputs[0].fill('Test Account');
             console.log('✅ Nombre de cuenta ingresado: Test Account');
           } catch (error) {
-            console.log(`⚠️ Error llenando cuenta: ${error.message}`);
+            console.log(`⚠️ Error llenando cuenta: ${(error as Error).message}`);
           }
         }
       }

@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import BackgroundScraperService from './background-scraper';
 
+import { logger } from '@/lib/utils/logger';
 interface ExchangeRateData {
   usd_ves: number;
   usdt_ves: number;
@@ -29,14 +30,14 @@ class WebSocketService {
   }
 
   start(): void {
-    console.log('Starting WebSocket service...');
+    logger.info('Starting WebSocket service...');
     this.scraper.start((data) => {
       this.broadcastUpdate(data);
     });
   }
 
   stop(): void {
-    console.log('Stopping WebSocket service...');
+    logger.info('Stopping WebSocket service...');
     this.scraper.stop();
     this.io.close();
   }
@@ -44,11 +45,11 @@ class WebSocketService {
   private setupEventHandlers(): void {
     this.io.on('connection', (socket) => {
       this.connectedClients++;
-      console.log(`Client connected. Total clients: ${this.connectedClients}`);
+      logger.info(`Client connected. Total clients: ${this.connectedClients}`);
 
       socket.on('disconnect', () => {
         this.connectedClients--;
-        console.log(`Client disconnected. Total clients: ${this.connectedClients}`);
+        logger.info(`Client disconnected. Total clients: ${this.connectedClients}`);
       });
 
       socket.on('request-latest-rates', () => {
@@ -73,9 +74,9 @@ class WebSocketService {
       };
 
       this.io.emit('exchange-rate-update', rateData);
-      console.log(`Broadcasted exchange rate update to ${this.connectedClients} clients`);
+      logger.info(`Broadcasted exchange rate update to ${this.connectedClients} clients`);
     } else {
-      console.error('Failed to broadcast update:', data.error);
+      logger.error('Failed to broadcast update:', data.error);
     }
   }
 

@@ -133,7 +133,7 @@ const EChartsWrapper = forwardRef<EChartsWrapperRef, EChartsWrapperProps>(({
         instanceRef.current = null;
       }
     };
-  }, [theme, onChartReady, addNotification]);
+  }, [theme, onChartReady, addNotification, onEvents]);
 
   // Update chart option
   useEffect(() => {

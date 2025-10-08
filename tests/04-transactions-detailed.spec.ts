@@ -309,7 +309,7 @@ test.describe('Transactions Page Detailed Tests', () => {
           await page.waitForTimeout(1000);
           console.log('✅ Transacción de ingreso creada exitosamente');
         } catch (error) {
-          console.log(`⚠️ Error llenando formulario: ${error.message}`);
+          console.log(`⚠️ Error llenando formulario: ${(error as Error).message}`);
         }
       } else {
         console.log('⚠️ Formulario no apareció después del clic');
@@ -397,7 +397,7 @@ test.describe('Transactions Page Detailed Tests', () => {
         await page.waitForTimeout(1000);
         console.log('✅ Transacción de gasto creada exitosamente');
       } catch (error) {
-        console.log(`⚠️ Error llenando formulario de gasto: ${error.message}`);
+        console.log(`⚠️ Error llenando formulario de gasto: ${(error as Error).message}`);
       }
     } else {
       console.log('⚠️ No se encontró botón para crear transacción');

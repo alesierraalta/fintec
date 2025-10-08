@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
+import { logger } from '@/lib/utils/logger';
 
 // Cache optimizado para datos de Binance - ANTI RATE LIMITING
 let pythonAvailable: boolean | null = null;
@@ -20,8 +21,8 @@ const MIN_REQUEST_INTERVAL = 30 * 1000; // Mínimo 30 segundos entre peticiones
 const MAX_CONSECUTIVE_FAILURES = 3; // Después de 3 fallos, esperar más tiempo
 
 // Force reset all cache variables on module load
-console.log('🔄 Binance API module loaded - all cache variables reset');
-console.log('🐍 Python command priority: py (Windows Python Launcher)');
+logger.info('🔄 Binance API module loaded - all cache variables reset');
+logger.info('🐍 Python command priority: py (Windows Python Launcher)');
 
 export async function GET() {
   try {
@@ -44,7 +45,7 @@ export async function GET() {
     // 2. Enforce minimum interval between requests (ANTI RATE LIMITING)
     const timeSinceLastRequest = now - lastRequestTime;
     if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-      console.log(`Rate limiting protection: ${timeSinceLastRequest}ms since last request`);
+      logger.info(`Rate limiting protection: ${timeSinceLastRequest}ms since last request`);
       if (lastSuccessfulData) {
         return NextResponse.json({
           ...lastSuccessfulData,
@@ -60,7 +61,7 @@ export async function GET() {
     if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
       const backoffTime = Math.min(consecutiveFailures * 60 * 1000, 300 * 1000); // Max 5 minutos
       if ((now - lastFallbackTime) < backoffTime) {
-        console.log(`Exponential backoff: waiting ${backoffTime}ms after ${consecutiveFailures} failures`);
+        logger.info(`Exponential backoff: waiting ${backoffTime}ms after ${consecutiveFailures} failures`);
         if (lastSuccessfulData) {
           return NextResponse.json({
             ...lastSuccessfulData,
@@ -96,7 +97,7 @@ export async function GET() {
       );
       
       if (isRateLimited) {
-        console.warn(`Rate limiting detected! Consecutive failures: ${consecutiveFailures}`);
+        logger.warn(`Rate limiting detected! Consecutive failures: ${consecutiveFailures}`);
       }
       
       // Si tenemos datos exitosos antiguos, usarlos como fallback mejorado
@@ -136,29 +137,29 @@ function getFallbackData(reason: string) {
     success: false,
     error: reason,
     data: {
-      usd_ves: 228.50,
-      usdt_ves: 228.50,
-      sell_rate: 228.50,
-      buy_rate: 228.00,
-      sell_min: 228.50,
-      sell_avg: 228.50,
-      sell_max: 228.50,
-      buy_min: 228.00,
-      buy_avg: 228.00,
-      buy_max: 228.00,
-      overall_min: 228.00,
-      overall_max: 228.50,
-      spread: 0.50,
+      usd_ves: 300.00,
+      usdt_ves: 300.00,
+      sell_rate: 302.00,
+      buy_rate: 298.00,
+      sell_min: 300.00,
+      sell_avg: 302.00,
+      sell_max: 304.00,
+      buy_min: 296.00,
+      buy_avg: 298.00,
+      buy_max: 300.00,
+      overall_min: 296.00,
+      overall_max: 304.00,
+      spread: 4.00,
       sell_prices_used: 0,
       buy_prices_used: 0,
       prices_used: 0,
       price_range: {
-        sell_min: 228.50,
-        sell_max: 228.50,
-        buy_min: 228.00,
-        buy_max: 228.00,
-        min: 228.00,
-        max: 228.50
+        sell_min: 300.00,
+        sell_max: 304.00,
+        buy_min: 296.00,
+        buy_max: 300.00,
+        min: 296.00,
+        max: 304.00
       },
       lastUpdated: new Date().toISOString(),
       source: 'Binance P2P (fallback - rate limiting protection)'
@@ -214,14 +215,11 @@ function runPythonScraper(): Promise<any> {
       return;
     }
     
-    // Si no, probar comandos en orden de probabilidad (incluyendo rutas completas)
+    // Probar comandos en orden de probabilidad (Python312 detectado como instalado)
     const pythonCommands = [
       'py', // Windows Python Launcher - most reliable
       'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python312\\python.exe',
-      'python', 
-      'python3', 
-      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python310\\python.exe',
-      'C:\\Users\\alesierraalta\\AppData\\Local\\Programs\\Python\\Python313\\python.exe'
+      'python'
     ];
     
     let currentCommand = 0;
@@ -252,7 +250,7 @@ function runPythonScraper(): Promise<any> {
 }
 
 function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (result: any) => void, onError: (error: Error) => void) {
-  console.log(`🐍 Attempting Python command: ${cmd}`);
+  logger.info(`🐍 Attempting Python command: ${cmd}`);
   
   const python = spawn(cmd, [scriptPath, '--silent'], {
     timeout: SCRAPER_TIMEOUT, // Timeout de 45 segundos para Ultra-Fast (optimizado para velocidad)
@@ -271,9 +269,7 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
   });
   
   python.on('close', (code) => {
-    console.log(`Python process closed with code: ${code}`);
-    console.log(`Python stdout: ${output}`);
-    console.log(`Python stderr: ${errorOutput}`);
+    logger.info(`Python process closed with code: ${code}`);
     
     if (code === 0) {
       try {
@@ -296,22 +292,24 @@ function executePythonCommand(cmd: string, scriptPath: string, onSuccess: (resul
         }
         
         const result = JSON.parse(jsonOutput);
-        console.log(`✅ Python command successful: ${cmd}`);
+        logger.info(`✅ Python command successful: ${cmd}`);
+        logger.info(`📊 Scraped data: ${result.data?.prices_used || 0} prices, sell: ${result.data?.sell_avg || 0}, buy: ${result.data?.buy_avg || 0}`);
         onSuccess(result);
       } catch (parseError) {
-        console.error('Parse error:', parseError);
-        console.error('Raw output that failed to parse:', output);
+        logger.error('❌ Parse error:', parseError);
+        logger.error('Raw output (first 500 chars):', output.substring(0, 500));
         const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
         onError(new Error(`Failed to parse Binance scraper output: ${errorMessage}. Raw output: ${output.substring(0, 200)}...`));
       }
     } else {
-      console.log(`❌ Python command failed: ${cmd} (code: ${code})`);
+      logger.info(`❌ Python command failed: ${cmd} (code: ${code})`);
+      if (errorOutput) logger.error('stderr:', errorOutput);
       onError(new Error(`Python command failed with code ${code}. stderr: ${errorOutput}`));
     }
   });
   
   python.on('error', (error) => {
-    console.log(`❌ Python spawn error for ${cmd}:`, error);
+    logger.info(`❌ Python spawn error for ${cmd}:`, error);
     onError(error);
   });
   

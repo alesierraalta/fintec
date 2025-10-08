@@ -2,6 +2,7 @@ import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { spawn } from 'child_process';
 import path from 'path';
 
+import { logger } from '@/lib/utils/logger';
 interface ScraperResult {
   success: boolean;
   data?: {
@@ -27,14 +28,14 @@ class BackgroundScraperService {
 
   start(onUpdate: (data: ScraperResult) => void): void {
     if (this.isRunning) {
-      console.log('Background scraper already running');
+      logger.info('Background scraper already running');
       return;
     }
 
     this.onUpdateCallback = onUpdate;
     this.isRunning = true;
     
-    console.log('Starting background scraper service...');
+    logger.info('Starting background scraper service...');
     this.runScraperLoop();
   }
 
@@ -44,7 +45,7 @@ class BackgroundScraperService {
       this.worker.terminate();
       this.worker = null;
     }
-    console.log('Background scraper service stopped');
+    logger.info('Background scraper service stopped');
   }
 
   private async runScraperLoop(): Promise<void> {
@@ -55,7 +56,7 @@ class BackgroundScraperService {
           this.onUpdateCallback(result);
         }
       } catch (error) {
-        console.error('Scraper error:', error);
+        logger.error('Scraper error:', error);
         if (this.onUpdateCallback) {
           this.onUpdateCallback({
             success: false,

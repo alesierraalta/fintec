@@ -158,7 +158,7 @@ export const gradientAnimations = {
 };
 
 // Export all animation utilities
-export default {
+const advancedAnimations = {
   easings,
   durations,
   staggerDelays,
@@ -169,3 +169,5 @@ export default {
   glassMorphism,
   gradientAnimations,
 };
+
+export default advancedAnimations;

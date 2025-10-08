@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
@@ -41,6 +41,7 @@ import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
 import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
+import { logger } from '@/lib/utils/logger';
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
@@ -117,24 +118,7 @@ export default function AccountsPage() {
   const [showAlertSettings, setShowAlertSettings] = useState(false);
   const { checkAlerts } = useBalanceAlerts();
 
-  // Load accounts from database
-  useEffect(() => {
-    loadAccounts();
-  }, [user]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (openDropdown) {
-        setOpenDropdown(null);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [openDropdown]);
-
-  const loadAccounts = async () => {
+  const loadAccounts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -152,12 +136,29 @@ export default function AccountsPage() {
       // Check for balance alerts after loading accounts
       await checkAlerts(userAccounts);
     } catch (err) {
-      console.error('Error loading accounts:', err);
+      logger.error('Error loading accounts:', err);
       setError('Error al cargar las cuentas');
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, repository.accounts, checkAlerts]);
+
+  // Load accounts from database
+  useEffect(() => {
+    loadAccounts();
+  }, [loadAccounts]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (openDropdown) {
+        setOpenDropdown(null);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [openDropdown]);
 
   const handleEditAccount = (account: Account) => {
     setSelectedAccount(account);

@@ -154,3 +154,17 @@ test-results/
 # Archivos de backup (prevenir acumulación)
 *_backup.*
 *.backup.*
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Playwright authentication artifacts
+playwright/.auth/
+
+# Debug screenshots
+*-test.png
+debug-*.png
+diagnose-*.png

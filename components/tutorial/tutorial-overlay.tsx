@@ -80,7 +80,8 @@ export function TutorialOverlay() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, progress.current, nextStep, previousStep, closeTutorial]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, nextStep, previousStep, closeTutorial]);
 
   // Window resize handler
   useEffect(() => {

@@ -28,7 +28,7 @@ test.describe('Backend Integration Tests', () => {
     page.on('response', response => {
       const url = response.url();
       if ((url.includes('supabase') || url.includes('/api/')) && response.status() >= 400) {
-        errors.push(`${response.status()} ${response.method()} ${url}`);
+        errors.push(`${response.status()} ${response.request().method()} ${url}`);
       }
     });
     
@@ -221,9 +221,9 @@ test.describe('Backend Integration Tests', () => {
       const url = response.url();
       if (url.includes('supabase') || url.includes('/api/')) {
         if (response.status() >= 400) {
-          errors.push(`${response.status()} ${response.method()} ${url.split('?')[0]}`);
+          errors.push(`${response.status()} ${response.request().method()} ${url.split('?')[0]}`);
         } else {
-          successfulRequests.push(`${response.status()} ${response.method()} ${url.split('?')[0]}`);
+          successfulRequests.push(`${response.status()} ${response.request().method()} ${url.split('?')[0]}`);
         }
       }
     });

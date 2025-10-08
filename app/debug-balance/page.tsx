@@ -5,6 +5,7 @@ import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { MainLayout } from '@/components/layout/main-layout';
 import { TransactionType } from '@/types/domain';
+import { logger } from '@/lib/utils/logger';
 
 export default function DebugBalancePage() {
   const repository = useRepository();
@@ -125,14 +126,14 @@ export default function DebugBalancePage() {
         
       } catch (error) {
         addLog(`❌ Error creando transacción: ${error instanceof Error ? error.message : String(error)}`);
-        console.error('Error completo:', error);
+        logger.error('Error completo:', error);
       }
       
       addLog('🏁 Diagnóstico completado');
       
     } catch (error) {
       addLog(`❌ Error en diagnóstico: ${error instanceof Error ? error.message : String(error)}`);
-      console.error('Error completo:', error);
+      logger.error('Error completo:', error);
     } finally {
       setIsDebugging(false);
     }

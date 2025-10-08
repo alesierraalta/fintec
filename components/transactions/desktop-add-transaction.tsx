@@ -50,6 +50,7 @@ import { useFormShortcuts } from '@/lib/hotkeys';
 import { useNotifications } from '@/lib/store';
 import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
+import { logger } from '@/lib/utils/logger';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -153,7 +154,7 @@ export function DesktopAddTransaction() {
         setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
       }
     } catch (error) {
-      console.error('Error reloading categories:', error);
+      logger.error('Error reloading categories:', error);
       addNotification({
         read: false,
         type: 'error',
@@ -308,7 +309,7 @@ export function DesktopAddTransaction() {
             message: `Se creará automáticamente cada ${formData.frequency === 'weekly' ? 'semana' : formData.frequency === 'monthly' ? 'mes' : 'año'}`
           });
         } catch (recurringError) {
-          console.error('Error creating recurring transaction:', recurringError);
+          logger.error('Error creating recurring transaction:', recurringError);
           addNotification({
             read: false,
             type: 'warning',
@@ -329,7 +330,7 @@ export function DesktopAddTransaction() {
       
       if (formData.isRecurring) {
         // TODO: Implement recurring transactions functionality
-        console.log('Recurring transaction feature not implemented yet');
+        logger.info('Recurring transaction feature not implemented yet');
         
         addNotification({
           read: false,

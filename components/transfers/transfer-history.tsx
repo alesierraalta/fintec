@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   ArrowRightLeft,
   Calendar,
@@ -18,6 +18,7 @@ import {
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { logger } from '@/lib/utils/logger';
 
 interface Transfer {
   id: string;
@@ -71,7 +72,7 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
   // Get current BCV rates for comparison
   const currentBCVRates = useBCVRates();
 
-  const loadTransfers = async () => {
+  const loadTransfers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -89,16 +90,16 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       
       setTransfers(result.data || []);
     } catch (err) {
-      console.error('Error loading transfers:', err);
+      logger.error('Error loading transfers:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateFilter]);
 
   useEffect(() => {
     loadTransfers();
-  }, [dateFilter]);
+  }, [loadTransfers]);
 
   const filteredTransfers = transfers
     .filter(transfer => {

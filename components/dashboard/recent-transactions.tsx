@@ -5,6 +5,8 @@ import {
   Briefcase, CreditCard, Wallet, TrendingUp, Calendar, MapPin
 } from 'lucide-react';
 
+import { logger } from '@/lib/utils/logger';
+
 export function RecentTransactions() {
   const { transactions, loading, refreshTransactions } = useOptimizedTransactions();
 
@@ -14,7 +16,7 @@ export function RecentTransactions() {
     if (transactions.length > 0 && !loading) {
       const allIncome = transactions.every(t => t.type === 'INCOME');
       if (allIncome) {
-        console.log('Detected potentially stale cache with all income transactions, clearing...');
+        logger.info('Detected potentially stale cache with all income transactions, clearing...');
         refreshTransactions();
       }
     }

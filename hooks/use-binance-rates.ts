@@ -30,26 +30,26 @@ interface BinanceRates {
 
 export function useBinanceRates() {
   const [rates, setRates] = useState<BinanceRates>({ 
-    usd_ves: 228.25,
-    usdt_ves: 228.25,
+    usd_ves: 300.00,
+    usdt_ves: 300.00,
     sell_rate: {
-      min: 228.50,
-      avg: 228.50,
-      max: 228.50
+      min: 300.00,
+      avg: 302.00,
+      max: 304.00
     },
     buy_rate: {
-      min: 228.00,
-      avg: 228.00,
-      max: 228.00
+      min: 296.00,
+      avg: 298.00,
+      max: 300.00
     },
-    spread: 0.50,
+    spread: 4.00,
     sell_prices_used: 0,
     buy_prices_used: 0,
     prices_used: 0,
     price_range: {
-      sell_min: 228.50, sell_max: 228.50,
-      buy_min: 228.00, buy_max: 228.00,
-      min: 228.00, max: 228.50
+      sell_min: 300.00, sell_max: 304.00,
+      buy_min: 296.00, buy_max: 300.00,
+      min: 296.00, max: 304.00
     },
     lastUpdated: new Date().toISOString()
   });
@@ -70,26 +70,26 @@ export function useBinanceRates() {
         const buyRate = data.data.buy_rate;
         
         setRates({
-          usd_ves: data.data.usd_ves || 228.25,
-          usdt_ves: data.data.usdt_ves || 228.25,
+          usd_ves: data.data.usd_ves || 300.00,
+          usdt_ves: data.data.usdt_ves || 300.00,
           sell_rate: typeof sellRate === 'object' ? sellRate : {
-            min: data.data.sell_min || sellRate || 228.50,
-            avg: sellRate || 228.50,
-            max: data.data.sell_max || sellRate || 228.50
+            min: data.data.sell_min || sellRate || 300.00,
+            avg: sellRate || 302.00,
+            max: data.data.sell_max || sellRate || 304.00
           },
           buy_rate: typeof buyRate === 'object' ? buyRate : {
-            min: data.data.buy_min || buyRate || 228.00,
-            avg: buyRate || 228.00,
-            max: data.data.buy_max || buyRate || 228.00
+            min: data.data.buy_min || buyRate || 296.00,
+            avg: buyRate || 298.00,
+            max: data.data.buy_max || buyRate || 300.00
           },
-          spread: data.data.spread || 0.50,
+          spread: data.data.spread || 4.00,
           sell_prices_used: data.data.sell_prices_used || 0,
           buy_prices_used: data.data.buy_prices_used || 0,
           prices_used: data.data.prices_used || 0,
           price_range: data.data.price_range || {
-            sell_min: 228.50, sell_max: 228.50,
-            buy_min: 228.00, buy_max: 228.00,
-            min: 228.00, max: 228.50
+            sell_min: 300.00, sell_max: 304.00,
+            buy_min: 296.00, buy_max: 300.00,
+            min: 296.00, max: 304.00
           },
           lastUpdated: data.data.lastUpdated || new Date().toISOString()
         });
@@ -99,26 +99,26 @@ export function useBinanceRates() {
         const buyRate = data.data.buy_rate;
         
         setRates({
-          usd_ves: data.data.usd_ves || 228.25,
-          usdt_ves: data.data.usdt_ves || 228.25,
+          usd_ves: data.data.usd_ves || 300.00,
+          usdt_ves: data.data.usdt_ves || 300.00,
           sell_rate: typeof sellRate === 'object' ? sellRate : {
-            min: data.data.sell_min || sellRate || 228.50,
-            avg: sellRate || 228.50,
-            max: data.data.sell_max || sellRate || 228.50
+            min: data.data.sell_min || sellRate || 300.00,
+            avg: sellRate || 302.00,
+            max: data.data.sell_max || sellRate || 304.00
           },
           buy_rate: typeof buyRate === 'object' ? buyRate : {
-            min: data.data.buy_min || buyRate || 228.00,
-            avg: buyRate || 228.00,
-            max: data.data.buy_max || buyRate || 228.00
+            min: data.data.buy_min || buyRate || 296.00,
+            avg: buyRate || 298.00,
+            max: data.data.buy_max || buyRate || 300.00
           },
-          spread: data.data.spread || 0.50,
+          spread: data.data.spread || 4.00,
           sell_prices_used: data.data.sell_prices_used || 0,
           buy_prices_used: data.data.buy_prices_used || 0,
           prices_used: data.data.prices_used || 0,
           price_range: data.data.price_range || {
-            sell_min: 228.50, sell_max: 228.50,
-            buy_min: 228.00, buy_max: 228.00,
-            min: 228.00, max: 228.50
+            sell_min: 300.00, sell_max: 304.00,
+            buy_min: 296.00, buy_max: 300.00,
+            min: 296.00, max: 304.00
           },
           lastUpdated: data.data.lastUpdated || new Date().toISOString()
         });

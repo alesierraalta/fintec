@@ -51,7 +51,7 @@ test.describe('Category Form Analysis', () => {
         console.log(`     - Disabled: ${disabled}`);
         console.log(`     - Class: ${className ? className.substring(0, 50) + '...' : 'N/A'}`);
       } catch (error) {
-        console.log(`   Input ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Input ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -80,7 +80,7 @@ test.describe('Category Form Analysis', () => {
         console.log(`     - Disabled: ${disabled}`);
         console.log(`     - Opciones: ${optionTexts.join(', ')}`);
       } catch (error) {
-        console.log(`   Select ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Select ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -102,7 +102,7 @@ test.describe('Category Form Analysis', () => {
         console.log(`     - Required: ${required}`);
         console.log(`     - Disabled: ${disabled}`);
       } catch (error) {
-        console.log(`   Textarea ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Textarea ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -126,7 +126,7 @@ test.describe('Category Form Analysis', () => {
         console.log(`     - Disabled: ${disabled}`);
         console.log(`     - Class: ${className ? className.substring(0, 50) + '...' : 'N/A'}`);
       } catch (error) {
-        console.log(`   Botón ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Botón ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -144,7 +144,7 @@ test.describe('Category Form Analysis', () => {
         
         console.log(`   Label ${i + 1}: "${text?.trim()}" (for: ${htmlFor})`);
       } catch (error) {
-        console.log(`   Label ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Label ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -192,7 +192,7 @@ test.describe('Category Form Analysis', () => {
         console.log(`     - Enabled: ${isEnabled}`);
         console.log(`     - Disabled attribute: ${disabled}`);
       } catch (error) {
-        console.log(`   Submit Button ${i + 1}: Error analizando - ${error.message}`);
+        console.log(`   Submit Button ${i + 1}: Error analizando - ${(error as Error).message}`);
       }
     }
     
@@ -284,7 +284,7 @@ test.describe('Category Form Analysis', () => {
             console.log('⚠️ Categoría no visible en la lista (puede estar en proceso)');
           }
         } catch (error) {
-          console.log(`❌ Error enviando formulario: ${error.message}`);
+          console.log(`❌ Error enviando formulario: ${(error as Error).message}`);
         }
       } else {
         console.log('⚠️ No se puede enviar el formulario (botón deshabilitado)');

@@ -1,6 +1,7 @@
 // Currency service for exchange rates and crypto prices
 import { bcvHistoryService, BCVTrend } from './bcv-history-service';
 import { binanceHistoryService, BinanceTrend } from './binance-history-service';
+import { logger } from '@/lib/utils/logger';
 
 export interface ExchangeRate {
   currency: string;
@@ -305,7 +306,7 @@ class CurrencyService {
         try {
           await binanceHistoryService.saveRates(rates.usd_ves);
         } catch (historyError) {
-          console.warn('Failed to save Binance rates to history:', historyError);
+          logger.warn('Failed to save Binance rates to history:', historyError);
         }
         
         return rates;
@@ -394,7 +395,7 @@ class CurrencyService {
       const trends = await binanceHistoryService.calculateTrends();
       return { usdVes: trends };
     } catch (error) {
-      console.error('Error getting Binance trends:', error);
+      logger.error('Error getting Binance trends:', error);
       return null;
     }
   }

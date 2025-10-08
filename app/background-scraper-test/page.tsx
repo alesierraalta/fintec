@@ -5,6 +5,7 @@ import ExchangeRateDisplay from '@/components/exchange-rate-display';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Play, Square, RefreshCw } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 export default function BackgroundScraperTestPage() {
   const [isScraperRunning, setIsScraperRunning] = useState(false);
@@ -24,12 +25,12 @@ export default function BackgroundScraperTestPage() {
       
       if (data.success) {
         setIsScraperRunning(true);
-        console.log('Background scraper started:', data.message);
+        logger.info('Background scraper started:', data.message);
       } else {
-        console.error('Failed to start scraper:', data.error);
+        logger.error('Failed to start scraper:', data.error);
       }
     } catch (error) {
-      console.error('Error starting scraper:', error);
+      logger.error('Error starting scraper:', error);
     } finally {
       setIsLoading(false);
     }
@@ -49,12 +50,12 @@ export default function BackgroundScraperTestPage() {
       
       if (data.success) {
         setIsScraperRunning(false);
-        console.log('Background scraper stopped:', data.message);
+        logger.info('Background scraper stopped:', data.message);
       } else {
-        console.error('Failed to stop scraper:', data.error);
+        logger.error('Failed to stop scraper:', data.error);
       }
     } catch (error) {
-      console.error('Error stopping scraper:', error);
+      logger.error('Error stopping scraper:', error);
     } finally {
       setIsLoading(false);
     }

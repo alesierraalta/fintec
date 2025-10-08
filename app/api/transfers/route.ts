@@ -4,6 +4,8 @@ import { CreateTransactionDTO } from '@/types';
 import { TransactionType } from '@/types';
 import { toMinorUnits } from '@/lib/money';
 
+import { logger } from '@/lib/utils/logger';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
@@ -90,7 +92,7 @@ export async function GET(request: NextRequest) {
       count: transferList.length
     });
   } catch (error) {
-    console.error('Transfer API GET error:', error);
+    logger.error('Transfer API GET error:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -105,9 +107,9 @@ export async function GET(request: NextRequest) {
 // POST /api/transfers - Create new transfer
 export async function POST(request: NextRequest) {
   try {
-    console.log('POST /api/transfers called');
+    logger.info('POST /api/transfers called');
     const body = await request.json();
-    console.log('Request body:', body);
+    logger.info('Request body:', body);
     
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
@@ -178,7 +180,7 @@ export async function POST(request: NextRequest) {
       amount: body.amount
     });
   } catch (error) {
-    console.error('Transfer API error:', error);
+    logger.error('Transfer API error:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -252,7 +254,7 @@ export async function DELETE(request: NextRequest) {
       message: 'Transfer deleted successfully'
     });
   } catch (error) {
-    console.error('Transfer API DELETE error:', error);
+    logger.error('Transfer API DELETE error:', error);
     return NextResponse.json(
       { 
         success: false, 

@@ -1,5 +1,7 @@
 import Dexie, { Table } from 'dexie';
 
+import { logger } from '@/lib/utils/logger';
+
 export interface BinanceHistoryRecord {
   id?: number;
   date: string;
@@ -79,7 +81,7 @@ class BinanceHistoryService {
         .delete();
 
     } catch (error) {
-      console.error('Error saving Binance rates to history:', error);
+      logger.error('Error saving Binance rates to history:', error);
     }
   }
 
@@ -90,7 +92,7 @@ class BinanceHistoryService {
         .equals(date)
         .first() || null;
     } catch (error) {
-      console.error('Error getting Binance rates for date:', error);
+      logger.error('Error getting Binance rates for date:', error);
       return null;
     }
   }
@@ -106,7 +108,7 @@ class BinanceHistoryService {
         .aboveOrEqual(cutoffDateStr)
         .toArray();
     } catch (error) {
-      console.error('Error getting historical Binance rates:', error);
+      logger.error('Error getting historical Binance rates:', error);
       return [];
     }
   }
@@ -142,7 +144,7 @@ class BinanceHistoryService {
         period: `${days}d`
       };
     } catch (error) {
-      console.error('Error calculating Binance trends:', error);
+      logger.error('Error calculating Binance trends:', error);
       return {
         percentage: 0,
         direction: 'stable',
@@ -158,7 +160,7 @@ class BinanceHistoryService {
         .reverse()
         .first() || null;
     } catch (error) {
-      console.error('Error getting latest Binance rate:', error);
+      logger.error('Error getting latest Binance rate:', error);
       return null;
     }
   }
@@ -167,7 +169,7 @@ class BinanceHistoryService {
     try {
       await this.db.binanceRates.clear();
     } catch (error) {
-      console.error('Error clearing Binance history:', error);
+      logger.error('Error clearing Binance history:', error);
     }
   }
 
@@ -180,7 +182,7 @@ class BinanceHistoryService {
       const sum = rates.reduce((acc, rate) => acc + rate.usd, 0);
       return sum / rates.length;
     } catch (error) {
-      console.error('Error calculating average Binance rate:', error);
+      logger.error('Error calculating average Binance rate:', error);
       return 0;
     }
   }

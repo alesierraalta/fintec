@@ -114,7 +114,7 @@ test.describe('Optimized Integration Tests', () => {
             await inputs[0].fill('Test Category');
             console.log('✅ Campo de categoría llenado');
           } catch (error) {
-            console.log(`⚠️ Error llenando campo: ${error.message}`);
+            console.log(`⚠️ Error llenando campo: ${(error as Error).message}`);
           }
         }
       } else {
@@ -364,7 +364,7 @@ test.describe('Optimized Integration Tests', () => {
           console.log(`⚠️ URL inesperada en ${pageInfo.name}: ${currentUrl}`);
         }
       } catch (error) {
-        console.log(`❌ Error navegando a ${pageInfo.name}: ${error.message}`);
+        console.log(`❌ Error navegando a ${pageInfo.name}: ${(error as Error).message}`);
       }
     }
     
@@ -407,7 +407,7 @@ test.describe('Optimized Integration Tests', () => {
           console.log(`⚠️ ${pageInfo.name} no tiene elementos básicos`);
         }
       } catch (error) {
-        console.log(`❌ Error verificando elementos en ${pageInfo.name}: ${error.message}`);
+        console.log(`❌ Error verificando elementos en ${pageInfo.name}: ${(error as Error).message}`);
       }
     }
     

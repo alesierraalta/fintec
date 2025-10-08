@@ -61,14 +61,14 @@ export function MobileReports() {
     return transactions.filter(t => new Date(t.date) >= start);
   })();
 
-  const totalIncome = filteredTransactions.filter(t => t.amountMinor > 0).reduce((s, t) => s + (t.amountMinor / 100), 0);
-  const totalExpenses = filteredTransactions.filter(t => t.amountMinor < 0).reduce((s, t) => s + Math.abs(t.amountMinor / 100), 0);
+  const totalIncome = filteredTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + (t.amountMinor / 100), 0);
+  const totalExpenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + (t.amountMinor / 100), 0);
 
   const categoryTotals = (() => {
     const map: Record<string, number> = {};
-    filteredTransactions.filter(t => t.amountMinor < 0).forEach(t => {
+    filteredTransactions.filter(t => t.type === 'EXPENSE').forEach(t => {
       const key = t.categoryId || 'uncategorized';
-      map[key] = (map[key] || 0) + Math.abs(t.amountMinor / 100);
+      map[key] = (map[key] || 0) + (t.amountMinor / 100);
     });
     const total = Object.values(map).reduce((s, v) => s + v, 0);
     const idToName: Record<string, string> = {};

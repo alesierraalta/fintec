@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   History,
@@ -20,6 +20,7 @@ import { bcvHistoryService, BCVHistoryRecord } from '@/lib/services/bcv-history-
 import { binanceHistoryService, BinanceHistoryRecord } from '@/lib/services/binance-history-service';
 import { currencyService } from '@/lib/services/currency-service';
 import { Button } from '@/components/ui';
+import { logger } from '@/lib/utils/logger';
 
 interface RatesHistoryProps {
   isOpen: boolean;
@@ -63,42 +64,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
     activeSource: 'BCV'
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      loadHistoricalRates();
-    }
-  }, [isOpen]);
-
-  const loadHistoricalRates = async () => {
-    setLoading(true);
-    try {
-      const [bcvRates, binanceRates] = await Promise.all([
-        bcvHistoryService.getHistoricalRates(30),
-        binanceHistoryService.getHistoricalRates(30)
-      ]);
-      
-      setBcvHistoricalRates(bcvRates.reverse()); // Más recientes primero
-      setBinanceHistoricalRates(binanceRates.reverse()); // Más recientes primero
-      
-      // Seleccionar la tasa más reciente por defecto para la calculadora
-      if (bcvRates.length > 0) {
-        setCalculator(prev => {
-          const updated = { ...prev, selectedBCVRate: bcvRates[0] };
-          calculateResult(bcvRates[0], null, updated.amount, updated.fromCurrency, updated.toCurrency, 'BCV');
-          return updated;
-        });
-      }
-      if (binanceRates.length > 0) {
-        setCalculator(prev => ({ ...prev, selectedBinanceRate: binanceRates[0] }));
-      }
-    } catch (error) {
-      console.error('Error loading historical rates:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const calculateResult = (
+  const calculateResult = useCallback((
     bcvRate: BCVHistoryRecord | null, 
     binanceRate: BinanceHistoryRecord | null, 
     amount: string, 
@@ -106,7 +72,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
     to: string, 
     source: 'BCV' | 'Binance'
   ) => {
-    console.log('calculateResult called with:', { bcvRate, binanceRate, amount, from, to, source });
+    logger.info('calculateResult called with:', { bcvRate, binanceRate, amount, from, to, source });
     const numAmount = parseFloat(amount) || 0;
     let result = 0;
 
@@ -136,9 +102,9 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
       }
     }
 
-    console.log('Setting calculator result:', result, 'type:', typeof result);
+    logger.info(`Setting calculator result: ${result}, type: ${typeof result}`);
     setCalculator(prev => ({ ...prev, result }));
-  };
+  }, []);
 
   const handleCalculatorChange = (field: keyof CalculatorState, value: any) => {
     setCalculator(prev => {
@@ -159,6 +125,41 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
       return updated;
     });
   };
+
+  const loadHistoricalRates = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [bcvRates, binanceRates] = await Promise.all([
+        bcvHistoryService.getHistoricalRates(30),
+        binanceHistoryService.getHistoricalRates(30)
+      ]);
+      
+      setBcvHistoricalRates(bcvRates.reverse()); // Más recientes primero
+      setBinanceHistoricalRates(binanceRates.reverse()); // Más recientes primero
+      
+      // Seleccionar la tasa más reciente por defecto para la calculadora
+      if (bcvRates.length > 0) {
+        setCalculator(prev => {
+          const updated = { ...prev, selectedBCVRate: bcvRates[0] };
+          calculateResult(bcvRates[0], null, updated.amount, updated.fromCurrency, updated.toCurrency, 'BCV');
+          return updated;
+        });
+      }
+      if (binanceRates.length > 0) {
+        setCalculator(prev => ({ ...prev, selectedBinanceRate: binanceRates[0] }));
+      }
+    } catch (error) {
+      logger.error('Error loading historical rates:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [calculateResult]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadHistoricalRates();
+    }
+  }, [isOpen, loadHistoricalRates]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-VE', {

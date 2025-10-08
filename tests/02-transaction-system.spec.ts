@@ -62,7 +62,7 @@ test.describe('Transaction System', () => {
           formFound = true;
           break;
         } catch (error) {
-          console.log(`⚠️ Campo no encontrado: ${selector} - ${error.message}`);
+          console.log(`⚠️ Campo no encontrado: ${selector} - ${(error as Error).message}`);
         }
       }
       
@@ -80,7 +80,7 @@ test.describe('Transaction System', () => {
             console.log(`✅ Campo de descripción encontrado: ${selector}`);
             break;
           } catch (error) {
-            console.log(`⚠️ Campo de descripción no encontrado: ${selector} - ${error.message}`);
+            console.log(`⚠️ Campo de descripción no encontrado: ${selector} - ${(error as Error).message}`);
           }
         }
         
@@ -164,7 +164,7 @@ test.describe('Transaction System', () => {
         formOpened = true;
         break;
       } catch (error) {
-        console.log(`⚠️ Selector no encontrado: ${selector} - ${error.message}`);
+        console.log(`⚠️ Selector no encontrado: ${selector} - ${(error as Error).message}`);
       }
     }
     
@@ -186,7 +186,7 @@ test.describe('Transaction System', () => {
           amountFilled = true;
           break;
         } catch (error) {
-          console.log(`⚠️ Campo de monto no encontrado: ${selector} - ${error.message}`);
+          console.log(`⚠️ Campo de monto no encontrado: ${selector} - ${(error as Error).message}`);
         }
       }
       
@@ -205,7 +205,7 @@ test.describe('Transaction System', () => {
           descriptionFilled = true;
           break;
         } catch (error) {
-          console.log(`⚠️ Campo de descripción no encontrado: ${selector} - ${error.message}`);
+          console.log(`⚠️ Campo de descripción no encontrado: ${selector} - ${(error as Error).message}`);
         }
       }
       

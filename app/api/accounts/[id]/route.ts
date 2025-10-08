@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { UpdateAccountDTO } from '@/repositories/contracts';
+import { logger } from '@/lib/utils/logger';
 
 const repository = new SupabaseAppRepository();
 
@@ -39,7 +40,7 @@ export async function GET(
       data: account
     });
   } catch (error) {
-    console.error('Error fetching account:', error);
+    logger.error('Error fetching account:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -83,7 +84,7 @@ export async function PUT(
       message: 'Account updated successfully'
     });
   } catch (error) {
-    console.error('Error updating account:', error);
+    logger.error('Error updating account:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -132,7 +133,7 @@ export async function DELETE(
       message: 'Account deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting account:', error);
+    logger.error('Error deleting account:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -181,7 +182,7 @@ export async function PATCH(
       message: 'Account balance updated successfully'
     });
   } catch (error) {
-    console.error('Error updating account balance:', error);
+    logger.error('Error updating account balance:', error);
     return NextResponse.json(
       { 
         success: false, 

@@ -3,6 +3,8 @@ import { SupabaseAppRepository } from '@/repositories/supabase';
 import { supabase } from '@/repositories/supabase/client';
 import type { Budget, SavingsGoal } from '@/types';
 
+import { logger } from '@/lib/utils/logger';
+
 const repository = new SupabaseAppRepository();
 
 /**
@@ -103,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       // Notifications table might not exist, continue
-      console.log('Notifications deletion skipped:', error);
+      logger.info('Notifications deletion skipped:', error);
     }
 
     return NextResponse.json({
@@ -114,7 +116,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error clearing account:', error);
+    logger.error('Error clearing account:', error);
     return NextResponse.json(
       { 
         success: false,

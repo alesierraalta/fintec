@@ -87,7 +87,7 @@ test.describe('Fixed Category Lifecycle Tests', () => {
           break;
         }
       } catch (error) {
-        console.log(`⚠️ Error con selector ${selector}: ${error.message}`);
+        console.log(`⚠️ Error con selector ${selector}: ${(error as Error).message}`);
         // Continuar con el siguiente selector
       }
     }
@@ -210,7 +210,7 @@ test.describe('Fixed Category Lifecycle Tests', () => {
           break;
         }
       } catch (error) {
-        console.log(`⚠️ Error con selector ${selector}: ${error.message}`);
+        console.log(`⚠️ Error con selector ${selector}: ${(error as Error).message}`);
         // Continuar
       }
     }

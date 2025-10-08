@@ -219,7 +219,7 @@ test.describe('Categories Page Detailed Tests', () => {
       console.log('✅ Campo de búsqueda limpiado');
       
     } catch (error) {
-      console.log(`⚠️ Error con campo de búsqueda: ${error.message}`);
+      console.log(`⚠️ Error con campo de búsqueda: ${(error as Error).message}`);
     }
     
     console.log('✅ Test de búsqueda de categorías completado');
@@ -246,7 +246,7 @@ test.describe('Categories Page Detailed Tests', () => {
         filtersClicked++;
         await page.waitForTimeout(1000);
       } catch (error) {
-        console.log(`⚠️ Error clickeando filtro ${filter}: ${error.message}`);
+        console.log(`⚠️ Error clickeando filtro ${filter}: ${(error as Error).message}`);
       }
     }
     
@@ -309,7 +309,7 @@ test.describe('Categories Page Detailed Tests', () => {
       }
       
     } catch (error) {
-      console.log(`⚠️ Error clickeando "Nueva Categoría": ${error.message}`);
+      console.log(`⚠️ Error clickeando "Nueva Categoría": ${(error as Error).message}`);
     }
     
     console.log('✅ Test de interfaz de creación completado');
@@ -522,7 +522,7 @@ test.describe('Categories Page Detailed Tests', () => {
       }
       
     } catch (error) {
-      console.log(`⚠️ Error con botón de actualización: ${error.message}`);
+      console.log(`⚠️ Error con botón de actualización: ${(error as Error).message}`);
     }
     
     console.log('✅ Test de actualización de categorías completado');

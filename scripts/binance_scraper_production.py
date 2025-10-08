@@ -30,22 +30,22 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ProductionConfig:
-    """Production scraper configuration - ANTI RATE LIMITING OPTIMIZED"""
-    max_pages: int = 15  # Reduced to avoid rate limiting (was 30)
+    """Production scraper configuration - OPTIMIZED FOR SPEED & RELIABILITY"""
+    max_pages: int = 5  # Reduced for speed (5 pages × 20 = 100 offers is sufficient)
     rows_per_page: int = 20
-    max_retries: int = 2  # Reduced retries (was 3)
-    retry_delay: float = 2.0  # Increased delay between retries (was 1.0)
+    max_retries: int = 2  # Reduced retries
+    retry_delay: float = 2.0  # Increased delay between retries
     request_timeout: int = 15  # Timeout per request
-    rate_limit_delay: float = 1.2  # INCREASED: More respectful delay (was 0.3)
+    rate_limit_delay: float = 2.0  # INCREASED: More respectful delay to avoid 429 errors
     price_range_min: float = 100.0  # Lower minimum to catch any price
-    price_range_max: float = 2000.0  # Much higher maximum to catch very high prices
+    price_range_max: float = 500.0  # Realistic maximum (was 2000)
     user_agent: str = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
-    # Ultra-aggressive filtering for high price capture
-    preserve_extremes_percent: float = 15.0  # Even more aggressive preservation
-    iqr_multiplier: float = 6.0  # Extremely lenient to preserve high prices
-    min_data_points: int = 1  # Accept any data
-    quality_threshold: float = 0.20  # Very low threshold to include high prices
+    # Balanced filtering for accurate price capture
+    preserve_extremes_percent: float = 5.0  # Preserve top/bottom 5% (was 15%)
+    iqr_multiplier: float = 2.5  # Standard outlier detection (was 6.0)
+    min_data_points: int = 3  # Minimum data required
+    quality_threshold: float = 0.50  # Standard quality threshold
 
 @dataclass
 class ExhaustiveConfig:
@@ -176,56 +176,47 @@ class ProductionBinanceScraper:
         return None
     
     async def _get_offers_concurrent(self, trade_type: str) -> List[PriceData]:
-        """Get offers using sequential strategy to avoid rate limits and capture high prices"""
+        """Get offers using optimized sequential strategy - fast and reliable"""
         all_prices = []
         
         # Process pages sequentially to avoid rate limits
+        # Only use regular ads (not ProMerchant) to reduce requests by 50%
         for page in range(1, self.config.max_pages + 1):
             try:
-                # Try both regular and proMerchant ads to capture more high prices
-                configs = [
-                    {"proMerchantAds": False, "source": "Regular"},
-                    {"proMerchantAds": True, "source": "ProMerchant"}
-                ]
+                result = await self._make_request_with_retry({
+                    "proMerchantAds": False,  # Only regular ads for speed
+                    "page": page,
+                    "rows": self.config.rows_per_page,
+                    "payTypes": [],
+                    "countries": [],
+                    "publisherType": None,
+                    "asset": "USDT",
+                    "fiat": "VES",
+                    "tradeType": trade_type
+                }, trade_type, page)
                 
-                for config in configs:
-                    result = await self._make_request_with_retry({
-                        "proMerchantAds": config["proMerchantAds"],
-                        "page": page,
-                        "rows": self.config.rows_per_page,
-                        "payTypes": [],
-                        "countries": [],
-                        "publisherType": None,
-                        "asset": "USDT",
-                        "fiat": "VES",
-                        "tradeType": trade_type
-                    }, trade_type, page)
-                    
-                    if result and 'data' in result and result['data']:
-                        for offer in result['data']:
-                            try:
-                                price = float(offer['adv']['price'])
-                                if self.config.price_range_min <= price <= self.config.price_range_max:
-                                    price_data = PriceData(
-                                        price=price,
-                                        trade_type=trade_type,
-                                        timestamp=datetime.now(),
-                                        page_number=page,
-                                        ad_id=offer['adv'].get('advNo', ''),
-                                        source=f"Binance P2P ({config['source']})"
-                                    )
-                                    all_prices.append(price_data)
+                if result and 'data' in result and result['data']:
+                    for offer in result['data']:
+                        try:
+                            price = float(offer['adv']['price'])
+                            if self.config.price_range_min <= price <= self.config.price_range_max:
+                                price_data = PriceData(
+                                    price=price,
+                                    trade_type=trade_type,
+                                    timestamp=datetime.now(),
+                                    page_number=page,
+                                    ad_id=offer['adv'].get('advNo', ''),
+                                    source="Binance P2P"
+                                )
+                                all_prices.append(price_data)
+                                
+                                # Log high prices immediately
+                                if price >= 310:
+                                    logger.info(f"HIGH PRICE FOUND: {price} VES (page {page})")
                                     
-                                    # Log high prices immediately
-                                    if price >= 310:
-                                        logger.info(f"HIGH PRICE FOUND: {price} VES ({config['source']}, page {page})")
-                                        
-                            except (KeyError, ValueError, TypeError) as e:
-                                logger.debug(f"Error parsing offer: {e}")
-                                continue
-                    
-                    # Small delay between ad types
-                    await asyncio.sleep(0.2)
+                        except (KeyError, ValueError, TypeError) as e:
+                            logger.debug(f"Error parsing offer: {e}")
+                            continue
                 
                 # Delay between pages to respect rate limits
                 await asyncio.sleep(self.config.rate_limit_delay)
@@ -366,14 +357,14 @@ class ProductionBinanceScraper:
                 buy_values = [p.price for p in buy_prices] if buy_prices else []
                 
                 # Calculate min, avg, max for SELL
-                sell_min = round(min(sell_values), 2) if sell_values else 228.50
-                sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 228.50
-                sell_max = round(max(sell_values), 2) if sell_values else 228.50
+                sell_min = round(min(sell_values), 2) if sell_values else 300.00
+                sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 302.00
+                sell_max = round(max(sell_values), 2) if sell_values else 304.00
                 
                 # Calculate min, avg, max for BUY
-                buy_min = round(min(buy_values), 2) if buy_values else 228.00
-                buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 228.00
-                buy_max = round(max(buy_values), 2) if buy_values else 228.00
+                buy_min = round(min(buy_values), 2) if buy_values else 296.00
+                buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 298.00
+                buy_max = round(max(buy_values), 2) if buy_values else 300.00
                 
                 # General average
                 general_avg = (sell_avg + buy_avg) / 2 if sell_values and buy_values else (sell_avg if sell_values else buy_avg)
@@ -448,32 +439,32 @@ class ProductionBinanceScraper:
             'success': False,
             'error': error,
             'data': {
-                'usd_ves': 228.25,
-                'usdt_ves': 228.25,
-                'sell_rate': 228.50,
-                'buy_rate': 228.00,
-                'sell_min': 228.00,
-                'sell_avg': 228.50,
-                'sell_max': 229.00,
-                'buy_min': 227.50,
-                'buy_avg': 228.00,
-                'buy_max': 228.50,
-                'overall_min': 227.50,
-                'overall_max': 229.00,
-                'spread': 0.50,
-                'spread_min': 0.00,
-                'spread_avg': 0.50,
-                'spread_max': 1.00,
+                'usd_ves': 300.00,
+                'usdt_ves': 300.00,
+                'sell_rate': 302.00,
+                'buy_rate': 298.00,
+                'sell_min': 300.00,
+                'sell_avg': 302.00,
+                'sell_max': 304.00,
+                'buy_min': 296.00,
+                'buy_avg': 298.00,
+                'buy_max': 300.00,
+                'overall_min': 296.00,
+                'overall_max': 304.00,
+                'spread': 4.00,
+                'spread_min': 2.00,
+                'spread_avg': 4.00,
+                'spread_max': 6.00,
                 'sell_prices_used': 0,
                 'buy_prices_used': 0,
                 'prices_used': 0,
                 'price_range': {
-                    'sell_min': 228.00,
-                    'sell_max': 229.00,
-                    'buy_min': 227.50,
-                    'buy_max': 228.50,
-                    'min': 227.50,
-                    'max': 229.00
+                    'sell_min': 300.00,
+                    'sell_max': 304.00,
+                    'buy_min': 296.00,
+                    'buy_max': 300.00,
+                    'min': 296.00,
+                    'max': 304.00
                 },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Fallback Data (Production)',
@@ -852,14 +843,14 @@ class ExhaustiveBinanceScraper:
                 buy_values = [p.price for p in buy_prices] if buy_prices else []
                 
                 # Calculate min, avg, max for SELL
-                sell_min = round(min(sell_values), 2) if sell_values else 228.50
-                sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 228.50
-                sell_max = round(max(sell_values), 2) if sell_values else 228.50
+                sell_min = round(min(sell_values), 2) if sell_values else 300.00
+                sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 302.00
+                sell_max = round(max(sell_values), 2) if sell_values else 304.00
                 
                 # Calculate min, avg, max for BUY
-                buy_min = round(min(buy_values), 2) if buy_values else 228.00
-                buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 228.00
-                buy_max = round(max(buy_values), 2) if buy_values else 228.00
+                buy_min = round(min(buy_values), 2) if buy_values else 296.00
+                buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 298.00
+                buy_max = round(max(buy_values), 2) if buy_values else 300.00
                 
                 # General average
                 general_avg = (sell_avg + buy_avg) / 2 if sell_values and buy_values else (sell_avg if sell_values else buy_avg)
@@ -947,32 +938,32 @@ class ExhaustiveBinanceScraper:
             'success': False,
             'error': error,
             'data': {
-                'usd_ves': 228.25,
-                'usdt_ves': 228.25,
-                'sell_rate': 228.50,
-                'buy_rate': 228.00,
-                'sell_min': 228.00,
-                'sell_avg': 228.50,
-                'sell_max': 229.00,
-                'buy_min': 227.50,
-                'buy_avg': 228.00,
-                'buy_max': 228.50,
-                'overall_min': 227.50,
-                'overall_max': 229.00,
-                'spread': 0.50,
-                'spread_min': 0.00,
-                'spread_avg': 0.50,
-                'spread_max': 1.00,
+                'usd_ves': 300.00,
+                'usdt_ves': 300.00,
+                'sell_rate': 302.00,
+                'buy_rate': 298.00,
+                'sell_min': 300.00,
+                'sell_avg': 302.00,
+                'sell_max': 304.00,
+                'buy_min': 296.00,
+                'buy_avg': 298.00,
+                'buy_max': 300.00,
+                'overall_min': 296.00,
+                'overall_max': 304.00,
+                'spread': 4.00,
+                'spread_min': 2.00,
+                'spread_avg': 4.00,
+                'spread_max': 6.00,
                 'sell_prices_used': 0,
                 'buy_prices_used': 0,
                 'prices_used': 0,
                 'price_range': {
-                    'sell_min': 228.00,
-                    'sell_max': 229.00,
-                    'buy_min': 227.50,
-                    'buy_max': 228.50,
-                    'min': 227.50,
-                    'max': 229.00
+                    'sell_min': 300.00,
+                    'sell_max': 304.00,
+                    'buy_min': 296.00,
+                    'buy_max': 300.00,
+                    'min': 296.00,
+                    'max': 304.00
                 },
                 'lastUpdated': datetime.now().isoformat(),
                 'source': 'Fallback Data (Exhaustive Search)',

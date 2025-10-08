@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
+import { logger } from '@/lib/utils/logger';
 interface ExchangeRateData {
   usd_ves: number;
   usdt_ves: number;
@@ -38,14 +39,14 @@ class ExchangeRateDatabase {
         });
 
       if (error) {
-        console.error('Error storing exchange rate:', error);
+        logger.error('Error storing exchange rate:', error);
         return false;
       }
 
-      console.log('Exchange rate stored successfully');
+      logger.info('Exchange rate stored successfully');
       return true;
     } catch (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return false;
     }
   }
@@ -60,7 +61,7 @@ class ExchangeRateDatabase {
         .single();
 
       if (error) {
-        console.error('Error fetching latest exchange rate:', error);
+        logger.error('Error fetching latest exchange rate:', error);
         return null;
       }
 
@@ -73,7 +74,7 @@ class ExchangeRateDatabase {
         source: data.source
       };
     } catch (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return null;
     }
   }
@@ -87,7 +88,7 @@ class ExchangeRateDatabase {
         .limit(limit);
 
       if (error) {
-        console.error('Error fetching exchange rate history:', error);
+        logger.error('Error fetching exchange rate history:', error);
         return [];
       }
 
@@ -100,7 +101,7 @@ class ExchangeRateDatabase {
         source: rate.source
       }));
     } catch (error) {
-      console.error('Database error:', error);
+      logger.error('Database error:', error);
       return [];
     }
   }

@@ -1,4 +1,6 @@
 import { Account } from '@/types/domain';
+import { logger } from '@/lib/utils/logger';
+
 // Simple console-based notifications for now
 
 export interface BalanceAlert {
@@ -84,7 +86,7 @@ export class BalanceAlertService {
     const minimumFormatted = formatAmount(minimumBalance);
 
     if (alertType === 'critical') {
-      console.warn(`⚠️ Saldo Crítico: ${accountName}`, {
+      logger.warn(`⚠️ Saldo Crítico: ${accountName}`, {
         description: `Tu saldo actual (${currentFormatted}) está por debajo del mínimo establecido (${minimumFormatted}).`,
         currentBalance,
         minimumBalance,
@@ -98,7 +100,7 @@ export class BalanceAlertService {
 Tu saldo actual (${currentFormatted}) está por debajo del mínimo establecido (${minimumFormatted}).`);
       }
     } else {
-      console.warn(`🔔 Alerta de Saldo: ${accountName}`, {
+      logger.warn(`🔔 Alerta de Saldo: ${accountName}`, {
         description: `Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFormatted}).`,
         currentBalance,
         minimumBalance,

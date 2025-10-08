@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { PeriodSelector } from '../filters/period-selector';
@@ -72,6 +72,19 @@ export function DesktopReports() {
       setFilteredTransactions(filtered);
     }
   }, [selectedPeriod, transactions]);
+
+  // Calculate spending by category
+  const categorySpending = useMemo(() => {
+    const spending: Record<string, number> = {};
+    filteredTransactions
+      .filter(t => t.type === 'EXPENSE')
+      .forEach(t => {
+        const catId = t.categoryId || 'uncategorized';
+        spending[catId] = (spending[catId] || 0) + (t.amountMinor / 100);
+      });
+    const totalSpent = Object.values(spending).reduce((sum, val) => sum + val, 0);
+    return { spending, totalSpent };
+  }, [filteredTransactions]);
 
   const handlePeriodChange = (period: TimePeriod | null) => {
     setSelectedPeriod(period?.id || '');
@@ -323,29 +336,49 @@ export function DesktopReports() {
             </h3>
             
             <div className="space-y-4">
-              {categories.map((category, index) => (
-                <div key={category.id} className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-xl bg-gradient-to-r from-blue-${(index % 3 + 3) * 100} to-purple-${(index % 3 + 3) * 100} flex items-center justify-center`}>
-                        <ShoppingCart className="h-5 w-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-white">{category.name}</p>
-                        <p className="text-sm text-neutral-400 dark:text-neutral-500">0% del total</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold text-white">$0</p>
-                      <p className="text-sm text-neutral-400 dark:text-neutral-500">este mes</p>
-                    </div>
-                  </div>
+              {categories
+                .filter(category => categorySpending.spending[category.id] > 0)
+                .sort((a, b) => (categorySpending.spending[b.id] || 0) - (categorySpending.spending[a.id] || 0))
+                .map((category, index) => {
+                  const amount = categorySpending.spending[category.id] || 0;
+                  const percentage = categorySpending.totalSpent > 0 
+                    ? Math.round((amount / categorySpending.totalSpent) * 100) 
+                    : 0;
                   
-                  <div className="w-full bg-black/20 rounded-full h-2">
-                    <div className={`h-2 rounded-full bg-gradient-to-r from-blue-${(index % 3 + 3) * 100} to-purple-${(index % 3 + 3) * 100} transition-all duration-500`} style={{ width: '0%' }} />
-                  </div>
+                  return (
+                    <div key={category.id} className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-10 h-10 rounded-xl bg-gradient-to-r from-blue-${(index % 3 + 3) * 100} to-purple-${(index % 3 + 3) * 100} flex items-center justify-center`}>
+                            <ShoppingCart className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-white">{category.name}</p>
+                            <p className="text-sm text-neutral-400 dark:text-neutral-500">{percentage}% del total</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-white">${amount.toFixed(2)}</p>
+                          <p className="text-sm text-neutral-400 dark:text-neutral-500">
+                            {selectedPeriod ? 'período' : 'total'}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full bg-black/20 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full bg-gradient-to-r from-blue-${(index % 3 + 3) * 100} to-purple-${(index % 3 + 3) * 100} transition-all duration-500`} 
+                          style={{ width: `${percentage}%` }} 
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              {categories.filter(c => categorySpending.spending[c.id] > 0).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-neutral-400 dark:text-neutral-500">No hay gastos en este período</p>
                 </div>
-              ))}
+              )}
             </div>
           </div>
 

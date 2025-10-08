@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import ScraperInstanceManager from '@/lib/services/scraper-instance-manager';
 
+import { logger } from '@/lib/utils/logger';
+
 export async function POST(request: NextRequest) {
   try {
     const instanceManager = ScraperInstanceManager.getInstance();
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
       message: 'Background scraper stopped successfully' 
     });
   } catch (error) {
-    console.error('Error stopping background scraper:', error);
+    logger.error('Error stopping background scraper:', error);
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

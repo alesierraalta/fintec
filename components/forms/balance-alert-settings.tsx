@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { X, DollarSign, AlertTriangle, Bell } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 // Simple success/error state management
 
 interface BalanceAlertSettingsProps {
@@ -57,7 +58,7 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
         onClose();
       }, 2000);
     } catch (error) {
-      console.error('Error updating alert settings:', error);
+      logger.error('Error updating alert settings:', error);
       setErrorMessage('No se pudieron guardar los cambios. Inténtalo de nuevo.');
       setSuccessMessage(null);
     } finally {

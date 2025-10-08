@@ -87,10 +87,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       
       {/* Floating Add Transaction Button */}
       {shouldShowFloatingButton && (
-        <div className="fixed bottom-6 right-6 z-40">
+        <div className="fixed bottom-24 right-6 z-40">
           <button
             onClick={() => window.location.href = '/transactions/add'}
-            className="w-14 h-14 rounded-full shadow-ios-lg bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-110 active:scale-95 transition-ios flex items-center justify-center backdrop-blur-sm"
+            className="w-14 h-14 rounded-full shadow-ios-lg bg-green-500 hover:bg-green-600 text-white hover:scale-110 active:scale-95 transition-ios flex items-center justify-center backdrop-blur-sm"
             title="Agregar transacción"
             style={{ zIndex: 9999 }}
           >

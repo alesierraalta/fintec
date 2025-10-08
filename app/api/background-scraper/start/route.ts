@@ -3,6 +3,8 @@ import { createServer } from 'http';
 import BackgroundScraperManager from '@/lib/services/background-scraper-manager';
 import ScraperInstanceManager from '@/lib/services/scraper-instance-manager';
 
+import { logger } from '@/lib/utils/logger';
+
 export async function POST(request: NextRequest) {
   try {
     const instanceManager = ScraperInstanceManager.getInstance();
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Create HTTP server for WebSocket
     const httpServer = createServer();
     httpServer.listen(3001, () => {
-      console.log('WebSocket server listening on port 3001');
+      logger.info('WebSocket server listening on port 3001');
     });
 
     // Create and start scraper manager
@@ -32,7 +34,7 @@ export async function POST(request: NextRequest) {
       message: 'Background scraper started successfully' 
     });
   } catch (error) {
-    console.error('Error starting background scraper:', error);
+    logger.error('Error starting background scraper:', error);
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -59,7 +61,7 @@ export async function GET() {
       data: latestRates 
     });
   } catch (error) {
-    console.error('Error getting latest rates:', error);
+    logger.error('Error getting latest rates:', error);
     return NextResponse.json({ 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 

@@ -263,7 +263,7 @@ export const textColors = {
 };
 
 // Export all typography utilities
-export default {
+const elegantTypography = {
   fontWeights,
   fontSizes,
   lineHeights,
@@ -273,3 +273,5 @@ export default {
   getResponsiveTypography,
   textColors,
 };
+
+export default elegantTypography;

@@ -3,6 +3,8 @@ import BackgroundScraperService from './background-scraper';
 import WebSocketService from './websocket-server';
 import ExchangeRateDatabase from './exchange-rate-db';
 
+import { logger } from '@/lib/utils/logger';
+
 class BackgroundScraperManager {
   private httpServer: HTTPServer;
   private scraper: BackgroundScraperService;
@@ -21,11 +23,11 @@ class BackgroundScraperManager {
 
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('Background scraper manager already running');
+      logger.info('Background scraper manager already running');
       return;
     }
 
-    console.log('Starting background scraper manager...');
+    logger.info('Starting background scraper manager...');
     this.isRunning = true;
     
     // Start WebSocket service
@@ -36,7 +38,7 @@ class BackgroundScraperManager {
       this.handleScraperUpdate(data);
     });
 
-    console.log('Background scraper manager started successfully');
+    logger.info('Background scraper manager started successfully');
   }
 
   async stop(): Promise<void> {
@@ -44,13 +46,13 @@ class BackgroundScraperManager {
       return;
     }
 
-    console.log('Stopping background scraper manager...');
+    logger.info('Stopping background scraper manager...');
     this.isRunning = false;
     
     this.scraper.stop();
     this.websocket.stop();
     
-    console.log('Background scraper manager stopped');
+    logger.info('Background scraper manager stopped');
   }
 
   private setupScraperCallbacks(): void {
@@ -72,12 +74,12 @@ class BackgroundScraperManager {
           source: data.data.source
         });
 
-        console.log('Exchange rate updated and stored in database');
+        logger.info('Exchange rate updated and stored in database');
       } catch (error) {
-        console.error('Error handling scraper update:', error);
+        logger.error('Error handling scraper update:', error);
       }
     } else {
-      console.error('Scraper update failed:', data.error);
+      logger.error('Scraper update failed:', data.error);
     }
   }
 

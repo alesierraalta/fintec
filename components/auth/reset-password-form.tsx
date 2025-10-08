@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Lock, CheckCircle, AlertCircle, Key } from 'lucide-react';
 import { supabase } from '@/repositories/supabase/client';
 import { Input } from '@/components/ui';
+import { logger } from '@/lib/utils/logger';
 
 interface ResetPasswordFormProps {
   accessToken: string;
@@ -35,11 +36,11 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
         });
         
         if (error) {
-          console.error('Error setting session:', error);
+          logger.error('Error setting session:', error);
           setError('Link de restablecimiento inválido o expirado');
         }
       } catch (err) {
-        console.error('Error setting session:', err);
+        logger.error('Error setting session:', err);
         setError('Error al procesar el link de restablecimiento');
       }
     };

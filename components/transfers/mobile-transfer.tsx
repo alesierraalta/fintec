@@ -18,6 +18,7 @@ import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
 import { RateSelector } from './rate-selector';
+import { logger } from '@/lib/utils/logger';
 
 
 
@@ -247,7 +248,7 @@ export function MobileTransfer() {
       });
       
     } catch (error) {
-      console.error('Transfer error:', error);
+      logger.error('Transfer error:', error);
       alert(`Error al procesar la transferencia: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setLoading(false);

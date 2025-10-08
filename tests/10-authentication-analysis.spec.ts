@@ -113,24 +113,24 @@ test.describe('Authentication Analysis and Debugging', () => {
       
       if (storageState.origins.length > 0) {
         const origin = storageState.origins[0];
-        console.log(`📊 Cookies: ${origin.localStorage.length}`);
         console.log(`📊 LocalStorage: ${origin.localStorage.length}`);
-        console.log(`📊 SessionStorage: ${origin.sessionStorage.length}`);
         
-        // Buscar cookies de autenticación
-        const authCookies = origin.cookies.filter(cookie => 
-          cookie.name.includes('auth') || 
-          cookie.name.includes('session') ||
-          cookie.name.includes('supabase')
-        );
+        // Buscar cookies de autenticación (if cookies exist)
+        const authCookies = ('cookies' in origin && Array.isArray((origin as any).cookies)) 
+          ? (origin as any).cookies.filter((cookie: any) => 
+              cookie.name.includes('auth') || 
+              cookie.name.includes('session') ||
+              cookie.name.includes('supabase')
+            )
+          : [];
         
         console.log(`📊 Cookies de auth: ${authCookies.length}`);
-        authCookies.forEach(cookie => {
+        authCookies.forEach((cookie: any) => {
           console.log(`   - ${cookie.name}: ${cookie.value.substring(0, 20)}...`);
         });
       }
     } catch (error) {
-      console.log(`⚠️ Error verificando storage: ${error.message}`);
+      console.log(`⚠️ Error verificando storage: ${(error as Error).message}`);
     }
     
     // Paso 6: Verificar elementos de UI relacionados con auth

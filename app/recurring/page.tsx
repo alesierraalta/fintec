@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
@@ -17,6 +17,7 @@ import {
   Plus,
   ArrowRight
 } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 export default function RecurringTransactionsPage() {
   const repository = useRepository();
@@ -25,11 +26,7 @@ export default function RecurringTransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  useEffect(() => {
-    loadRecurringTransactions();
-  }, [user]);
-
-  const loadRecurringTransactions = async () => {
+  const loadRecurringTransactions = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -38,18 +35,22 @@ export default function RecurringTransactionsPage() {
       setRecurringTransactions(transactions);
     } catch (err) {
       setError('Error al cargar las transacciones recurrentes');
-      console.error(err);
+      logger.error('Error al cargar las transacciones recurrentes', err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, repository.recurringTransactions]);
+
+  useEffect(() => {
+    loadRecurringTransactions();
+  }, [loadRecurringTransactions]);
 
   const toggleActive = async (id: string, isActive: boolean) => {
     try {
       await repository.recurringTransactions.toggleActive(id, !isActive);
       await loadRecurringTransactions();
     } catch (err) {
-      console.error('Error toggling recurring transaction:', err);
+      logger.error('Error toggling recurring transaction:', err);
     }
   };
 
@@ -60,7 +61,7 @@ export default function RecurringTransactionsPage() {
       await repository.recurringTransactions.delete(id);
       await loadRecurringTransactions();
     } catch (err) {
-      console.error('Error deleting recurring transaction:', err);
+      logger.error('Error deleting recurring transaction:', err);
     }
   };
 

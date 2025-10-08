@@ -18,6 +18,7 @@ import {
   Tag,
   Plus
 } from 'lucide-react';
+import { logger } from '@/lib/utils/logger';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -202,7 +203,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
         setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
       }
     } catch (error) {
-      console.error('Error reloading categories:', error);
+      logger.error('Error reloading categories:', error);
     }
   };
 

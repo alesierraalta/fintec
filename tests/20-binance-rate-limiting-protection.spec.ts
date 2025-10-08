@@ -236,10 +236,10 @@ test.describe('Binance Rate Limiting Protection', () => {
     });
     
     // Most should be cached or rate limited (protection working)
-    const protected = results.filter(r => r.cached || r.rateLimited);
-    console.log(`${protected.length}/5 requests used cache or rate limiting protection`);
+    const protectedRequests = results.filter(r => r.cached || r.rateLimited);
+    console.log(`${protectedRequests.length}/5 requests used cache or rate limiting protection`);
     
-    expect(protected.length).toBeGreaterThan(0);
+    expect(protectedRequests.length).toBeGreaterThan(0);
     console.log('✅ Concurrent requests handled safely');
   });
 });

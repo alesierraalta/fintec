@@ -135,7 +135,7 @@ test.describe('Complete Category Workflow Tests', () => {
           });
         }
       } catch (error) {
-        console.log(`❌ Error enviando formulario: ${error.message}`);
+        console.log(`❌ Error enviando formulario: ${(error as Error).message}`);
       }
     } else {
       console.log('⚠️ No se puede enviar el formulario (botón sigue deshabilitado)');
@@ -225,7 +225,7 @@ test.describe('Complete Category Workflow Tests', () => {
         const categoryExists = await page.locator(`text=${categoryName}`).isVisible({ timeout: 5000 });
         console.log(`📊 Categoría visible: ${categoryExists ? 'SÍ' : 'NO'}`);
       } catch (error) {
-        console.log(`❌ Error creando categoría mínima: ${error.message}`);
+        console.log(`❌ Error creando categoría mínima: ${(error as Error).message}`);
       }
     } else {
       console.log('⚠️ Se requieren campos adicionales para crear la categoría');
@@ -258,7 +258,7 @@ test.describe('Complete Category Workflow Tests', () => {
           const categoryExists = await page.locator(`text=${categoryName}`).isVisible({ timeout: 5000 });
           console.log(`📊 Categoría visible: ${categoryExists ? 'SÍ' : 'NO'}`);
         } catch (error) {
-          console.log(`❌ Error creando categoría completa: ${error.message}`);
+          console.log(`❌ Error creando categoría completa: ${(error as Error).message}`);
         }
       }
     }
