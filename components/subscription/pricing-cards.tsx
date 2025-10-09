@@ -76,7 +76,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
               ) : (
                 <Button
                   className={`w-full ${data.highlighted ? 'bg-primary' : ''}`}
-                  variant={data.highlighted ? 'default' : 'outline'}
+                  variant={data.highlighted ? 'primary' : 'outline'}
                   onClick={() => onSelectTier(key as 'base' | 'premium')}
                   disabled={isCurrent || loading}
                 >
