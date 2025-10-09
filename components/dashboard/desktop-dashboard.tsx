@@ -303,12 +303,23 @@ export function DesktopDashboard() {
               <h3 className="text-ios-title font-semibold text-foreground">Tip del Día</h3>
             </div>
             <p className="text-ios-body text-muted-foreground leading-relaxed">
-              🌟 ¡Tu gestión financiera está siendo excepcional! Has mejorado un 23% este mes. 
-              Seguí así y alcanzarás todas tus metas. 🚀
+              {savingsRate > 50 ? (
+                <>🌟 ¡Excelente! Estás ahorrando {savingsRate.toFixed(0)}% de tus ingresos este mes. Sigue así y alcanzarás todas tus metas. 🚀</>
+              ) : savingsRate > 20 ? (
+                <>💪 Buen trabajo! Estás ahorrando {savingsRate.toFixed(0)}% de tus ingresos. Intenta aumentar un poco más para alcanzar tus metas más rápido.</>
+              ) : savingsRate > 0 ? (
+                <>📊 Estás ahorrando {savingsRate.toFixed(0)}% de tus ingresos. Considera reducir algunos gastos para mejorar tu tasa de ahorro.</>
+              ) : monthlyIncome > 0 ? (
+                <>⚠️ Tus gastos superan tus ingresos este mes. Revisa tus gastos y busca áreas donde puedas reducir.</>
+              ) : (
+                <>💡 Comienza registrando tus ingresos y gastos para obtener insights personalizados sobre tus finanzas.</>
+              )}
             </p>
             <div className="mt-4 flex items-center space-x-2 text-ios-caption text-green-600">
               <Sparkles className="h-4 w-4" />
-              <span className="font-medium">¡Sigue así!</span>
+              <span className="font-medium">
+                {savingsRate > 20 ? '¡Sigue así!' : 'Tú puedes mejorar'}
+              </span>
             </div>
           </div>
         </div>
