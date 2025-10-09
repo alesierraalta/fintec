@@ -259,3 +259,4 @@ curl -X POST https://fintec-six.vercel.app/api/lemonsqueezy/checkout \
 - [ ] Clean up: Remove test endpoint after confirmation
 
 
+
