@@ -1,10 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
+import { useSubscription } from '@/hooks/use-subscription';
+import { FeatureBadge } from '@/components/subscription/feature-badge';
 import { 
   Home,
   CreditCard,
@@ -18,7 +21,8 @@ import {
   Plus,
   DollarSign,
   BarChart3,
-  Shield
+  Shield,
+  Crown
 } from 'lucide-react';
 
 const navigation = [
@@ -38,6 +42,8 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { closeSidebar, isMobile, isOpen } = useSidebar();
+  const { tier, isPremium, isBase } = useSubscription();
+  const [logoError, setLogoError] = useState(false);
 
   const handleLinkClick = () => {
     if (isMobile) {
@@ -52,18 +58,25 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center px-4 lg:px-6 border-b border-white/10">
         <div className="flex items-center justify-center w-full">
-          <Image
-            src="/finteclogodark.jpg"
-            alt="FinTec Logo"
-            width={isMinimized ? 40 : 120}
-            height={isMinimized ? 40 : 40}
-            className="object-contain transition-all duration-300"
-            priority
-            unoptimized
-            onError={(e) => {
-              console.error('Logo failed to load:', e.currentTarget.src);
-            }}
-          />
+          <div className="relative p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+            {logoError ? (
+              <div className="text-white font-bold text-xl px-4">FinTec</div>
+            ) : (
+              <Image
+                src="/finteclogodark.jpg"
+                alt="FinTec Logo"
+                width={isMinimized ? 40 : 120}
+                height={isMinimized ? 40 : 40}
+                className="object-contain transition-all duration-300"
+                priority
+                unoptimized
+                onError={(e) => {
+                  console.error('Logo failed to load:', e.currentTarget.src);
+                  setLogoError(true);
+                }}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -129,12 +142,24 @@ export function Sidebar() {
       <div className="p-4 border-t border-white/10">
         <div className={`flex items-center p-3 rounded-2xl black-theme-card shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}>
           <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios-md">
-            <DollarSign className="h-5 w-5 text-white" />
+            {isPremium ? (
+              <Crown className="h-5 w-5 text-white" />
+            ) : (
+              <DollarSign className="h-5 w-5 text-white" />
+            )}
           </div>
           {!isMinimized && (
             <div className="flex-1 min-w-0">
               <p className="text-ios-body font-semibold text-white truncate">¡FinTec! 💼</p>
-              <p className="text-ios-caption text-white/70 truncate">Finanzas inteligentes</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-ios-caption text-white/70">Plan {tier === 'free' ? 'Gratis' : tier === 'base' ? 'Base' : 'Premium'}</p>
+                {(isPremium || isBase) && (
+                  <FeatureBadge 
+                    tier={isPremium ? 'premium' : 'base'} 
+                    variant="compact" 
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>

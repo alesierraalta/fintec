@@ -6,6 +6,9 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { Button } from '@/components/ui';
 import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
+import { useSubscription } from '@/hooks/use-subscription';
+import { UpgradeModal } from '@/components/subscription/upgrade-modal';
+import { LimitWarning } from '@/components/subscription/limit-warning';
 import { BackupService, BackupOptions } from '@/lib/services/backup-service';
 import { 
   Download, 
@@ -25,11 +28,13 @@ import {
 export default function BackupsPage() {
   const { user } = useAuth();
   const repository = useRepository();
+  const { usageStatus, isAtLimit, tier, hasFeature } = useSubscription();
   const [backupService] = useState(() => new BackupService(repository));
   
   const [loading, setLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [backupOptions, setBackupOptions] = useState<BackupOptions>({
     includeInactive: false,
     dateFrom: '',
@@ -54,6 +59,12 @@ export default function BackupsPage() {
 
   const handleExportBackup = async () => {
     if (!user) return;
+
+    // Check backup limit for free tier
+    if (tier === 'free' && isAtLimit('backups')) {
+      setShowUpgradeModal(true);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -174,6 +185,16 @@ export default function BackupsPage() {
               <span>Datos encriptados</span>
             </div>
           </div>
+
+          {/* Subscription Warning */}
+          {tier === 'free' && usageStatus && usageStatus.backups.percentage >= 75 && (
+            <LimitWarning
+              title="Alcanzando límite de respaldos"
+              message={`Has usado ${usageStatus.backups.current} de ${usageStatus.backups.limit} respaldos este mes. Actualiza a Base para respaldos ilimitados y automáticos.`}
+              onUpgrade={() => setShowUpgradeModal(true)}
+              severity={usageStatus.backups.percentage >= 100 ? 'error' : 'warning'}
+            />
+          )}
 
           {/* Quick Actions */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -517,6 +538,14 @@ export default function BackupsPage() {
             </div>
           </div>
         )}
+
+        {/* Upgrade Modal */}
+        <UpgradeModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          suggestedTier="base"
+          reason="Has alcanzado tu límite de respaldos mensuales. Actualiza a Base para respaldos ilimitados y automáticos."
+        />
       </MainLayout>
     </AuthGuard>
   );

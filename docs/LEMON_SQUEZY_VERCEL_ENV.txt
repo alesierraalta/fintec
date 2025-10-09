@@ -1,0 +1,136 @@
+# ========================================
+# VARIABLES PARA VERCEL - LEMONSQUEEZY
+# ========================================
+# Dominio: https://fintec-six.vercel.app
+# 
+# ¡MUCHO MÁS SIMPLE QUE STRIPE!
+# Solo 9 variables vs 10 de Stripe
+# ========================================
+
+# ========================================
+# SUPABASE ✅ (Igual que antes)
+# ========================================
+
+NEXT_PUBLIC_SUPABASE_URL
+https://bfxkcmoccqgvkrrkkdju.supabase.co
+
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJmeGtjbW9jY3FndmtycmtrZGp1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5MzAwODMsImV4cCI6MjA3NTUwNjA4M30.C8a8aC5gGAUGtbPbZ1uQUHBewtTi43cWNRS_StqjvAM
+
+SUPABASE_SERVICE_ROLE_KEY
+[COPIAR DE SUPABASE - Settings → API → service_role key]
+
+# ========================================
+# LEMONSQUEEZY 🍋 (NUEVO - Solo 5 variables)
+# ========================================
+
+# API Key (Dashboard → Settings → API → Create API Key)
+LEMONSQUEEZY_API_KEY
+[TU API KEY - empieza con eyJ0...]
+
+# Store ID (✅ CONFIGURADO AUTOMÁTICAMENTE)
+LEMONSQUEEZY_STORE_ID
+229057
+
+# Variant IDs de los productos
+# Base Plan (Dashboard → Products → Base Plan → Variant ID)
+LEMONSQUEEZY_VARIANT_ID_BASE
+[VARIANT ID DEL PLAN BASE]
+
+# Premium Plan (Dashboard → Products → Premium Plan → Variant ID)
+LEMONSQUEEZY_VARIANT_ID_PREMIUM
+[VARIANT ID DEL PLAN PREMIUM]
+
+# Webhook Secret (✅ CREADO AUTOMÁTICAMENTE VIA MCP)
+# Webhook URL: https://fintec-six.vercel.app/api/lemonsqueezy/webhook
+# Webhook ID: 56213
+LEMONSQUEEZY_WEBHOOK_SECRET
+ff85755c034e89ea5f877662a24834e3
+
+# ========================================
+# APP CONFIGURATION ✅
+# ========================================
+
+NEXT_PUBLIC_APP_URL
+https://fintec-six.vercel.app
+
+NODE_ENV
+production
+
+# ========================================
+# CHECKLIST ANTES DE GUARDAR EN VERCEL
+# ========================================
+# 
+# [ ] SUPABASE_SERVICE_ROLE_KEY copiada
+# [ ] Cuenta LemonSqueezy creada
+# [ ] Store creado y Store ID copiado
+# [ ] Productos Base y Premium creados
+# [ ] Variant IDs de ambos productos copiados
+# [ ] API Key de LemonSqueezy creada y copiada
+# [ ] (Opcional) Webhook configurado y secret copiado
+# [ ] Todas las variables agregadas a Vercel
+# [ ] Migración 011_add_lemonsqueezy_fields.sql aplicada en Supabase
+# [ ] Environment seleccionado: Production
+# [ ] Deploy ejecutado
+# 
+# ========================================
+# PASOS PARA OBTENER CADA VALOR
+# ========================================
+# 
+# 1. SUPABASE_SERVICE_ROLE_KEY:
+#    - https://supabase.com/dashboard
+#    - Proyecto: fintec
+#    - Settings → API → service_role key (secret)
+# 
+# 2. LEMONSQUEEZY_API_KEY:
+#    - https://app.lemonsqueezy.com
+#    - Settings → API → Create API Key
+#    - Name: Fintec Production
+#    - Scopes: Todos (o mínimo subscriptions + orders)
+# 
+# 3. LEMONSQUEEZY_STORE_ID:
+#    - Dashboard → Settings → General
+#    - Copiar Store ID (número)
+# 
+# 4. LEMONSQUEEZY_VARIANT_ID_BASE:
+#    - Dashboard → Products
+#    - Click en "Base - Plan Fintec"
+#    - Copiar el Variant ID (aparece en la página o URL)
+# 
+# 5. LEMONSQUEEZY_VARIANT_ID_PREMIUM:
+#    - Dashboard → Products
+#    - Click en "Premium - Plan Fintec"
+#    - Copiar el Variant ID
+# 
+# 6. LEMONSQUEEZY_WEBHOOK_SECRET (opcional):
+#    - Dashboard → Settings → Webhooks
+#    - Add Endpoint:
+#      URL: https://fintec-six.vercel.app/api/lemonsqueezy/webhook
+#    - Copiar Signing Secret
+# 
+# ========================================
+# DESPUÉS DE AGREGAR A VERCEL
+# ========================================
+# 
+# 1. Vercel Dashboard → Deployments
+# 2. Redeploy (sin usar cache)
+# 3. Esperar ~2 minutos
+# 4. Visitar https://fintec-six.vercel.app
+# 5. Probar checkout en /pricing
+# 6. Usar tarjeta de test: 4242 4242 4242 4242
+# 
+# ========================================
+# VENTAJAS DE LEMONSQUEEZY
+# ========================================
+# 
+# ✅ Solo 9 variables (vs 10 de Stripe)
+# ✅ NO necesitas webhook obligatorio
+# ✅ NO necesitas cuenta bancaria ahora
+# ✅ 1 sola API Key (vs 2 de Stripe)
+# ✅ Setup en 5 minutos (vs 15 de Stripe)
+# ✅ Ellos manejan impuestos automáticamente
+# ✅ Ellos manejan toda la facturación
+# 
+# ========================================
+
+

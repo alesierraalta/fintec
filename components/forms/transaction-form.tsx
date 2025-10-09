@@ -7,6 +7,8 @@ import { TransactionType } from '@/types';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
+import { useSubscription } from '@/hooks/use-subscription';
+import { UpgradeModal } from '@/components/subscription/upgrade-modal';
 import type { Transaction, Account, Category, CategoryKind } from '@/types/domain';
 import { 
   ArrowDownLeft, 
@@ -38,10 +40,12 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
   const repository = useRepository();
   const { user } = useAuth();
   const { isOpen: isCategoryModalOpen, openModal: openCategoryModal, closeModal: closeCategoryModal } = useModal();
+  const { usageStatus, isAtLimit, tier } = useSubscription();
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [formData, setFormData] = useState({
     type: transaction?.type || type,
     accountId: transaction?.accountId || '',
@@ -110,6 +114,12 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+    
+    // Check if user is at transaction limit (only for new transactions)
+    if (!transaction && tier === 'free' && isAtLimit('transactions')) {
+      setShowUpgradeModal(true);
+      return;
+    }
     
     // Basic validation
     if (!formData.accountId || !formData.categoryId || !formData.amount) {
@@ -407,6 +417,14 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
         category={null}
         parentCategoryId={null}
         defaultKind={getCategoryKindForTransaction() as CategoryKind}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        suggestedTier="base"
+        reason="Has alcanzado tu límite de 500 transacciones mensuales. Actualiza a Base para transacciones ilimitadas."
       />
     </Modal>
   );

@@ -12,7 +12,7 @@ const nextConfig = {
     ignoreDuringBuilds: false,
   },
   images: {
-    formats: ['image/webp', 'image/avif'],
+    unoptimized: true,
   },
 };
 

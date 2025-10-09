@@ -10,6 +10,7 @@ import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Account } from '@/types';
 import { fromMinorUnits } from '@/lib/money';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
@@ -107,6 +108,7 @@ export default function AccountsPage() {
   const { user } = useAuth();
   const repository = useRepository();
   const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
   const [showBalances, setShowBalances] = useState(true);
   const [showRatesHistory, setShowRatesHistory] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -211,6 +213,21 @@ export default function AccountsPage() {
       locale: 'es-ES'
     });
   };
+
+  // Convertir balance a USD
+  const convertToUSD = useCallback((balanceMinor: number, currencyCode: string): number => {
+    if (currencyCode === 'USD') return balanceMinor / 100;
+    
+    const balanceMajor = balanceMinor / 100;
+    
+    if (currencyCode === 'VES') {
+      // Usar tasa promedio de Binance
+      return balanceMajor / binanceRates.usd_ves;
+    }
+    
+    // Agregar más monedas según necesidad
+    return balanceMajor;
+  }, [binanceRates]);
 
   // Cálculo optimizado con tasas BCV reales
   const totalBalance = accounts.reduce((sum, acc) => {
@@ -733,6 +750,14 @@ export default function AccountsPage() {
                                   : '••••••'
                                 }
                               </p>
+                              {account.currencyCode !== 'USD' && showBalances && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode).toLocaleString('en-US', { 
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  })} USD
+                                </p>
+                              )}
                               <div className="flex items-center justify-end space-x-1 md:space-x-2 mt-1">
                                 {account.currencyCode === 'VES' && (
                                   <span className="text-xs sm:text-ios-footnote bg-warning-500/10 text-warning-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-medium">

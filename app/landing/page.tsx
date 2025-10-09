@@ -50,6 +50,7 @@ const scaleIn = {
 
 export default function LandingPage() {
   const [isVisible, setIsVisible] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -101,18 +102,23 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="relative w-24 h-24">
-                <Image
-                  src="/finteclogodark.jpg"
-                  alt="FinTec Logo"
-                  fill
-                  className="object-contain"
-                  priority
-                  unoptimized
-                  onError={(e) => {
-                    console.error('Logo failed to load:', e.currentTarget.src);
-                  }}
-                />
+              <div className="relative w-24 h-24 p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+                {logoError ? (
+                  <div className="flex items-center justify-center h-full text-white font-bold text-2xl">FinTec</div>
+                ) : (
+                  <Image
+                    src="/finteclogodark.jpg"
+                    alt="FinTec Logo"
+                    fill
+                    className="object-contain p-2"
+                    priority
+                    unoptimized
+                    onError={(e) => {
+                      console.error('Logo failed to load:', e.currentTarget.src);
+                      setLogoError(true);
+                    }}
+                  />
+                )}
               </div>
             </motion.div>
             
@@ -321,18 +327,23 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="relative w-32 h-32">
-                <Image
-                  src="/finteclogodark.jpg"
-                  alt="FinTec Logo"
-                  fill
-                  className="object-contain"
-                  priority
-                  unoptimized
-                  onError={(e) => {
-                    console.error('Logo failed to load:', e.currentTarget.src);
-                  }}
-                />
+              <div className="relative w-32 h-32 p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+                {logoError ? (
+                  <div className="flex items-center justify-center h-full text-white font-bold text-3xl">FinTec</div>
+                ) : (
+                  <Image
+                    src="/finteclogodark.jpg"
+                    alt="FinTec Logo"
+                    fill
+                    className="object-contain p-2"
+                    priority
+                    unoptimized
+                    onError={(e) => {
+                      console.error('Logo failed to load:', e.currentTarget.src);
+                      setLogoError(true);
+                    }}
+                  />
+                )}
               </div>
             </div>
             

@@ -12,6 +12,7 @@ import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
+import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import type { Transaction, TransactionType } from '@/types/domain';
 import { 
   Plus, 
@@ -28,6 +29,7 @@ export default function TransactionsPage() {
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
   const { transactions, accounts, categories, loading, loadAllData } = useOptimizedData();
+  const { convert, convertToUSD } = useCurrencyConverter();
   
   // Load data on component mount
   useEffect(() => {
@@ -261,22 +263,48 @@ export default function TransactionsPage() {
     }
   }, []);
 
-  // Cálculos memoizados
-  const { totalIncome, totalExpenses, netAmount } = useMemo(() => {
-    const income = filteredTransactions.filter(t => t.type === 'INCOME').reduce((sum, t) => {
-      const amount = t.amountMinor && !isNaN(t.amountMinor) ? t.amountMinor / 100 : 0;
-      return sum + amount;
-    }, 0);
-    const expenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((sum, t) => {
-      const amount = t.amountMinor && !isNaN(t.amountMinor) ? t.amountMinor / 100 : 0;
-      return sum + amount;
-    }, 0);
-    return {
-      totalIncome: income,
-      totalExpenses: expenses,
-      netAmount: income - expenses
-    };
+  // Calcular totales por moneda
+  const totalesPorMoneda = useMemo(() => {
+    const resultado: Record<string, { income: number, expenses: number }> = {};
+    
+    filteredTransactions.forEach(t => {
+      const currency = t.currencyCode || 'USD';
+      if (!resultado[currency]) {
+        resultado[currency] = { income: 0, expenses: 0 };
+      }
+      
+      const amount = (t.amountMinor || 0) / 100;
+      if (t.type === 'INCOME') {
+        resultado[currency].income += amount;
+      } else if (t.type === 'EXPENSE') {
+        resultado[currency].expenses += amount;
+      }
+    });
+    
+    return resultado;
   }, [filteredTransactions]);
+
+  // Convertir a USD para mostrar equivalente
+  const totalesEnUSD = useMemo(() => {
+    let totalIncomeUSD = 0;
+    let totalExpensesUSD = 0;
+    
+    Object.entries(totalesPorMoneda).forEach(([currency, totals]) => {
+      if (currency === 'USD') {
+        totalIncomeUSD += totals.income;
+        totalExpensesUSD += totals.expenses;
+      } else {
+        totalIncomeUSD += convertToUSD(totals.income * 100, currency);
+        totalExpensesUSD += convertToUSD(totals.expenses * 100, currency);
+      }
+    });
+    
+    return {
+      income: totalIncomeUSD,
+      expenses: totalExpensesUSD,
+      net: totalIncomeUSD - totalExpensesUSD
+    };
+  }, [totalesPorMoneda, convertToUSD]);
 
   return (
     <AuthGuard>
@@ -318,14 +346,38 @@ export default function TransactionsPage() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL INGRESOS</h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
-              ${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="flex items-center space-x-2">
+            
+            {/* Desglose por moneda */}
+            <div className="space-y-2 mb-3">
+              {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
+                totals.income > 0 && (
+                  <div key={`income-${currency}`} className="flex items-baseline justify-between">
+                    <span className="text-2xl font-light text-green-600">
+                      {getCurrencySymbol(currency)}{totals.income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{currency}</span>
+                  </div>
+                )
+              ))}
+              {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].income === 0) && (
+                <p className="text-2xl font-light text-green-600">$0.00</p>
+              )}
+            </div>
+            
+            {/* Total en USD */}
+            {Object.keys(totalesPorMoneda).length > 1 && (
+              <div className="mt-3 pt-3 border-t border-border/20">
+                <span className="text-xs text-muted-foreground">Total equiv.:</span>
+                <p className="text-lg font-semibold text-green-600">
+                  ${totalesEnUSD.income.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2 mt-3">
               <ArrowDownLeft className="h-4 w-4 text-green-600" />
               <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
@@ -333,35 +385,85 @@ export default function TransactionsPage() {
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL GASTOS</h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
-              ${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="flex items-center space-x-2">
+            
+            {/* Desglose por moneda */}
+            <div className="space-y-2 mb-3">
+              {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
+                totals.expenses > 0 && (
+                  <div key={`expense-${currency}`} className="flex items-baseline justify-between">
+                    <span className="text-2xl font-light text-red-600">
+                      {getCurrencySymbol(currency)}{totals.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{currency}</span>
+                  </div>
+                )
+              ))}
+              {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].expenses === 0) && (
+                <p className="text-2xl font-light text-red-600">$0.00</p>
+              )}
+            </div>
+            
+            {/* Total en USD */}
+            {Object.keys(totalesPorMoneda).length > 1 && (
+              <div className="mt-3 pt-3 border-t border-border/20">
+                <span className="text-xs text-muted-foreground">Total equiv.:</span>
+                <p className="text-lg font-semibold text-red-600">
+                  ${totalesEnUSD.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2 mt-3">
               <ArrowUpRight className="h-4 w-4 text-red-600" />
               <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
             <div className="flex items-center space-x-2 mb-4">
-              <div className={`w-2 h-2 ${netAmount >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
+              <div className={`w-2 h-2 ${totalesEnUSD.net >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE NETO</h3>
             </div>
-            <p className={`text-3xl font-light mb-2 ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-              ${Math.abs(netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="flex items-center space-x-2">
-              {netAmount >= 0 ? (
+            
+            {/* Desglose por moneda */}
+            <div className="space-y-2 mb-3">
+              {Object.entries(totalesPorMoneda).map(([currency, totals]) => {
+                const net = totals.income - totals.expenses;
+                if (net === 0) return null;
+                return (
+                  <div key={`net-${currency}`} className="flex items-baseline justify-between">
+                    <span className={`text-2xl font-light ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {net >= 0 ? '+' : ''}{getCurrencySymbol(currency)}{net.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{currency}</span>
+                  </div>
+                );
+              })}
+              {Object.keys(totalesPorMoneda).length === 0 && (
+                <p className="text-2xl font-light text-foreground">$0.00</p>
+              )}
+            </div>
+            
+            {/* Total en USD */}
+            {Object.keys(totalesPorMoneda).length > 1 && (
+              <div className="mt-3 pt-3 border-t border-border/20">
+                <span className="text-xs text-muted-foreground">Total equiv.:</span>
+                <p className={`text-lg font-semibold ${totalesEnUSD.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {totalesEnUSD.net >= 0 ? '+' : ''}${totalesEnUSD.net.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                </p>
+              </div>
+            )}
+            
+            <div className="flex items-center space-x-2 mt-3">
+              {totalesEnUSD.net >= 0 ? (
                 <ArrowDownLeft className="h-4 w-4 text-green-600" />
               ) : (
                 <ArrowUpRight className="h-4 w-4 text-red-600" />
               )}
-              <span className={`text-ios-footnote font-medium ${netAmount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {netAmount >= 0 ? 'Positivo' : 'Negativo'}
+              <span className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                {totalesEnUSD.net >= 0 ? 'Positivo' : 'Negativo'}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground mt-2 opacity-70">* Incluye todas las monedas</p>
           </div>
           
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
