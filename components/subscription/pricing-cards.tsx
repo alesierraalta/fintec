@@ -1,9 +1,11 @@
 'use client';
 
-import { Check, Zap } from 'lucide-react';
+import { Check, Zap, AlertCircle } from 'lucide-react';
 import { TIER_FEATURES, SubscriptionTier } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { useLemonSqueezyProducts } from '@/hooks/use-lemon-squeezy-products';
+import { Loading } from '@/components/ui/loading';
 
 interface PricingCardsProps {
   currentTier?: SubscriptionTier;
@@ -12,11 +14,72 @@ interface PricingCardsProps {
 }
 
 export function PricingCards({ currentTier = 'free', onSelectTier, loading }: PricingCardsProps) {
+  const { products, loading: productsLoading, error } = useLemonSqueezyProducts();
+
+  // Map Lemon Squeezy products to tiers
+  const getTierData = (tier: SubscriptionTier) => {
+    // For free tier, always use static data
+    if (tier === 'free') {
+      return TIER_FEATURES.free;
+    }
+
+    // Find matching product from Lemon Squeezy
+    const product = products.find((p) => {
+      const slug = p.attributes.slug.toLowerCase();
+      if (tier === 'base') {
+        return slug.includes('full') || slug.includes('base');
+      }
+      if (tier === 'premium') {
+        return slug.includes('premium') || slug.includes('ia');
+      }
+      return false;
+    });
+
+    // If we have a product from Lemon Squeezy, merge with static features
+    if (product && product.variants && product.variants.length > 0) {
+      const variant = product.variants[0];
+      const staticData = TIER_FEATURES[tier];
+
+      return {
+        ...staticData,
+        name: product.attributes.name,
+        price: variant.attributes.price,
+        interval: variant.attributes.interval,
+        // Keep the static features as they are more detailed
+        features: staticData.features,
+      };
+    }
+
+    // Fallback to static data if Lemon Squeezy data not available
+    return TIER_FEATURES[tier];
+  };
+
   const tiers: Array<{ key: SubscriptionTier; data: typeof TIER_FEATURES.free }> = [
-    { key: 'free', data: TIER_FEATURES.free },
-    { key: 'base', data: TIER_FEATURES.base },
-    { key: 'premium', data: TIER_FEATURES.premium },
+    { key: 'free', data: getTierData('free') },
+    { key: 'base', data: getTierData('base') },
+    { key: 'premium', data: getTierData('premium') },
   ];
+
+  // Show loading state while fetching products
+  if (productsLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loading />
+      </div>
+    );
+  }
+
+  // Show error state if fetching failed
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+        <AlertCircle className="h-12 w-12 text-destructive" />
+        <p className="text-sm text-muted-foreground">
+          Error al cargar los planes. Por favor, intenta de nuevo más tarde.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="grid gap-6 md:grid-cols-3">
