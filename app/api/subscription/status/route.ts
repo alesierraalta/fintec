@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       limits,
     });
   } catch (error: any) {
-    console.error('Error fetching subscription status:', error);
+    
     return NextResponse.json(
       { error: error?.message || 'Failed to fetch subscription status' },
       { status: 500 }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { detectAnomalies } from '@/lib/ai/anomaly-detection';
 import { optimizeBudgets } from '@/lib/ai/budget-optimizer';
-import { canUseAI, useResource } from '@/lib/subscriptions/feature-gate';
+import { canUseAI } from '@/lib/subscriptions/feature-gate';
+import { incrementUsage } from '@/lib/stripe/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,11 +42,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Increment usage
-    await useResource(userId, 'aiRequests');
+    await incrementUsage(userId, 'aiRequests');
 
     return NextResponse.json({ result });
   } catch (error: any) {
-    console.error('Error in AI analysis:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to perform analysis' },
       { status: 500 }

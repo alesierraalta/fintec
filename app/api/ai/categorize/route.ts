@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { categorizeTransaction, batchCategorizeTransactions } from '@/lib/ai/categorization';
-import { canUseAI, useResource } from '@/lib/subscriptions/feature-gate';
+import { canUseAI } from '@/lib/subscriptions/feature-gate';
+import { incrementUsage } from '@/lib/stripe/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       
       // Increment usage for each transaction
       for (let i = 0; i < batch.length; i++) {
-        await useResource(userId, 'aiRequests');
+        await incrementUsage(userId, 'aiRequests');
       }
 
       return NextResponse.json({
@@ -54,11 +55,10 @@ export async function POST(request: NextRequest) {
     const suggestion = await categorizeTransaction(userId, description, amount, merchantInfo);
     
     // Increment usage
-    await useResource(userId, 'aiRequests');
+    await incrementUsage(userId, 'aiRequests');
 
     return NextResponse.json({ suggestion });
   } catch (error: any) {
-    console.error('Error in AI categorization:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to categorize transaction' },
       { status: 500 }

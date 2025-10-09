@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     const signature = request.headers.get('x-signature');
 
     if (!signature) {
-      console.error('[LemonSqueezy Webhook] Missing signature');
+      
       return NextResponse.json(
         { error: 'Missing webhook signature' },
         { status: 400 }
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const isValid = verifyWebhookSignature(rawBody, signature);
     
     if (!isValid) {
-      console.error('[LemonSqueezy Webhook] Invalid signature');
+      
       return NextResponse.json(
         { error: 'Invalid webhook signature' },
         { status: 400 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error: any) {
-    console.error('[LemonSqueezy Webhook] Error:', error);
+    
     return NextResponse.json(
       { error: error?.message || 'Webhook processing failed' },
       { status: 500 }

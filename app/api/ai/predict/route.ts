@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { predictSpending } from '@/lib/ai/predictions';
-import { canUseAI, useResource } from '@/lib/subscriptions/feature-gate';
+import { canUseAI } from '@/lib/subscriptions/feature-gate';
+import { incrementUsage } from '@/lib/stripe/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {
@@ -36,11 +37,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Increment usage
-    await useResource(userId, 'aiRequests');
+    await incrementUsage(userId, 'aiRequests');
 
     return NextResponse.json({ prediction });
   } catch (error: any) {
-    console.error('Error in AI predictions:', error);
     return NextResponse.json(
       { error: error?.message || 'Failed to generate predictions' },
       { status: 500 }
