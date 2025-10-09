@@ -50,7 +50,7 @@ async function cleanupOldData() {
         continue;
       }
 
-      const deletedCount = Array.isArray(deleted) ? deleted.length : 0;
+      const deletedCount = Array.isArray(deleted) ? (deleted as any[]).length : 0;
       totalDeleted += deletedCount;
 
       if (deletedCount > 0) {

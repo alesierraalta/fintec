@@ -1,4 +1,4 @@
-import { SubscriptionTier, Feature, TIER_LIMITS } from '@/types/subscription';
+import { SubscriptionTier, Feature, TIER_LIMITS, FEATURE_ACCESS } from '@/types/subscription';
 import { getUserTier, getUserUsage, incrementUsage } from '@/lib/stripe/subscriptions';
 import { hasFeatureAccess, isWithinLimit } from './limits';
 

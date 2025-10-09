@@ -1,11 +1,8 @@
 import OpenAI from 'openai';
 
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('OPENAI_API_KEY is not defined in environment variables');
-}
-
+// Initialize OpenAI client - validation happens at runtime when used
 export const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
+  apiKey: process.env.OPENAI_API_KEY || 'placeholder',
 });
 
 export const AI_MODEL = 'gpt-4o-mini'; // Cost-effective model

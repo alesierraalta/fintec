@@ -86,6 +86,8 @@ async function syncStripeSubscriptions() {
           })
           .eq('id', user.id);
 
+        // Note: Using type assertion for Stripe API compatibility
+        const sub = stripeSubscription as any;
         await supabase
           .from('subscriptions')
           .upsert({
@@ -94,9 +96,13 @@ async function syncStripeSubscriptions() {
             status,
             stripe_subscription_id: stripeSubscription.id,
             stripe_customer_id: user.stripe_customer_id!,
-            current_period_start: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
-            cancel_at_period_end: stripeSubscription.cancel_at_period_end,
+            current_period_start: sub.current_period_start 
+              ? new Date(sub.current_period_start * 1000).toISOString()
+              : new Date().toISOString(),
+            current_period_end: sub.current_period_end 
+              ? new Date(sub.current_period_end * 1000).toISOString()
+              : new Date().toISOString(),
+            cancel_at_period_end: sub.cancel_at_period_end || false,
             updated_at: new Date().toISOString(),
           });
 

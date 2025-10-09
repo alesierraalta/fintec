@@ -57,7 +57,7 @@ export function UpgradeModal({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Actualiza tu plan">
+    <Modal open={isOpen} onClose={onClose} title="Actualiza tu plan">
       <div className="space-y-6">
         {/* Reason */}
         {reason && (

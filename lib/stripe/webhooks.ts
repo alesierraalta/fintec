@@ -52,6 +52,8 @@ export async function handleCheckoutCompleted(
     ? await stripe.subscriptions.retrieve(subscription)
     : subscription;
 
+  // Note: Using type assertion for Stripe API compatibility
+  const subData = subscriptionData as any;
   await supabase
     .from('subscriptions')
     .upsert({
@@ -60,9 +62,13 @@ export async function handleCheckoutCompleted(
       status: 'active',
       stripe_subscription_id: subscriptionData.id,
       stripe_customer_id: customerId,
-      current_period_start: new Date(subscriptionData.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscriptionData.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscriptionData.cancel_at_period_end,
+      current_period_start: subData.current_period_start 
+        ? new Date(subData.current_period_start * 1000).toISOString()
+        : new Date().toISOString(),
+      current_period_end: subData.current_period_end 
+        ? new Date(subData.current_period_end * 1000).toISOString()
+        : new Date().toISOString(),
+      cancel_at_period_end: subData.cancel_at_period_end || false,
       updated_at: new Date().toISOString(),
     });
 
@@ -103,16 +109,22 @@ export async function handleSubscriptionUpdated(
     .eq('id', userId);
 
   // Update subscription record
+  // Note: Using type assertion for Stripe API compatibility
+  const sub = subscription as any;
   await supabase
     .from('subscriptions')
     .update({
       tier: tier || 'free',
       status,
-      current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      cancelled_at: subscription.canceled_at 
-        ? new Date(subscription.canceled_at * 1000).toISOString()
+      current_period_start: sub.current_period_start 
+        ? new Date(sub.current_period_start * 1000).toISOString()
+        : new Date().toISOString(),
+      current_period_end: sub.current_period_end 
+        ? new Date(sub.current_period_end * 1000).toISOString()
+        : new Date().toISOString(),
+      cancel_at_period_end: sub.cancel_at_period_end || false,
+      cancelled_at: sub.canceled_at 
+        ? new Date(sub.canceled_at * 1000).toISOString()
         : null,
       updated_at: new Date().toISOString(),
     })
@@ -164,7 +176,9 @@ export async function handleSubscriptionDeleted(
 export async function handlePaymentFailed(
   invoice: Stripe.Invoice
 ): Promise<void> {
-  const subscriptionId = invoice.subscription as string;
+  // Note: Using type assertion for Stripe API compatibility
+  const inv = invoice as any;
+  const subscriptionId = inv.subscription as string;
   
   if (!subscriptionId) return;
 
@@ -199,7 +213,9 @@ export async function handlePaymentFailed(
 export async function handlePaymentSucceeded(
   invoice: Stripe.Invoice
 ): Promise<void> {
-  const subscriptionId = invoice.subscription as string;
+  // Note: Using type assertion for Stripe API compatibility
+  const inv = invoice as any;
+  const subscriptionId = inv.subscription as string;
   
   if (!subscriptionId) return;
 

@@ -116,11 +116,11 @@ export async function handleLemonSqueezyWebhook(
   switch (event_name) {
     case 'subscription_created':
     case 'subscription_payment_success':
-      await handleSubscriptionActivated(userId, attributes, tier);
+      await handleSubscriptionActivated(userId, data.id, attributes, tier);
       break;
       
     case 'subscription_updated':
-      await handleSubscriptionUpdated(userId, attributes, tier);
+      await handleSubscriptionUpdated(userId, data.id, attributes, tier);
       break;
       
     case 'subscription_cancelled':
@@ -134,7 +134,7 @@ export async function handleLemonSqueezyWebhook(
       
     case 'subscription_resumed':
     case 'subscription_unpaused':
-      await handleSubscriptionResumed(userId, attributes, tier);
+      await handleSubscriptionResumed(userId, data.id, attributes, tier);
       break;
       
     case 'subscription_payment_failed':
@@ -169,6 +169,7 @@ function determineTier(variantName: string, productName: string): 'base' | 'prem
  */
 async function handleSubscriptionActivated(
   userId: string,
+  subscriptionId: string,
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
@@ -191,7 +192,7 @@ async function handleSubscriptionActivated(
       user_id: userId,
       tier,
       status: 'active',
-      lemonsqueezy_subscription_id: data.id,
+      lemonsqueezy_subscription_id: subscriptionId,
       lemonsqueezy_customer_id: attributes.customer_id.toString(),
       current_period_start: attributes.created_at,
       current_period_end: attributes.renews_at,
@@ -207,6 +208,7 @@ async function handleSubscriptionActivated(
  */
 async function handleSubscriptionUpdated(
   userId: string,
+  subscriptionId: string,
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
@@ -289,6 +291,7 @@ async function handleSubscriptionPaused(
  */
 async function handleSubscriptionResumed(
   userId: string,
+  subscriptionId: string,
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
