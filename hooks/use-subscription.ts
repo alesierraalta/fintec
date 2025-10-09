@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from './use-auth';
 import { 
   SubscriptionTier, 
@@ -106,12 +107,15 @@ export function useSubscription() {
  */
 export function useUpgrade() {
   const { user } = useAuth();
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const upgrade = useCallback(async (tier: 'base' | 'premium') => {
     if (!user?.id) {
       setError('User not authenticated');
+      // Redirect to login with return URL
+      router.push(`/auth/login?returnTo=/checkout?tier=${tier}`);
       return null;
     }
 
@@ -119,35 +123,16 @@ export function useUpgrade() {
     setError(null);
 
     try {
-      const response = await fetch('/api/lemonsqueezy/checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          tier,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      
-      if (url) {
-        window.location.href = url;
-      }
-
-      return url;
+      // Redirect to checkout page instead of calling API directly
+      router.push(`/checkout?tier=${tier}`);
+      return null;
     } catch (error: any) {
       setError(error.message || 'Failed to initiate upgrade');
       return null;
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, router]);
 
   return {
     upgrade,
