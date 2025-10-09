@@ -102,7 +102,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      if (!error && data.user) {
+      // If there's an error during signup, return it immediately
+      if (error) {
+        return { error };
+      }
+
+      if (data.user) {
         // Check if email confirmation is required
         const emailConfirmationRequired = !data.session;
         
@@ -123,7 +128,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }]);
 
         if (profileError) {
-          console.log('Profile creation error:', profileError.message);
           // Don't fail the registration if profile creation fails
           // The user is still registered in Supabase Auth
         } else {
@@ -133,16 +137,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
         
-        return { error, emailConfirmationRequired };
+        return { error: null, emailConfirmationRequired };
       }
 
-      return { error };
+      // If we reach here, something unexpected happened
+      return { error: { message: 'Error al crear la cuenta', name: 'AuthError', status: 500 } as AuthError };
     } catch (err) {
       return { error: err as AuthError };
     } finally {
       setLoading(false);
     }
-  }, []);;
+  }, []);;;
 
   const signIn = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
@@ -154,6 +159,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password
       });
 
+      // If there's an authentication error, return it immediately
+      if (authError) {
+        return { error: authError };
+      }
+
+      // Check if we got valid user and session data
       if (authData.user && authData.session) {
         // Create or update user profile in database
         await supabase
@@ -171,14 +182,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: null };
       }
 
-      // Return authentication error
-      return { error: authError || { message: 'Credenciales inválidas' } as AuthError };
+      // If we reach here, something went wrong but no error was provided
+      return { error: { message: 'Credenciales inválidas', name: 'AuthError', status: 400 } as AuthError };
     } catch (err) {
       return { error: err as AuthError };
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []);;
 
   const signOut = useCallback(async () => {
     try {
