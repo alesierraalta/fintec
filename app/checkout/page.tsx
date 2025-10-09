@@ -44,7 +44,6 @@ function CheckoutContent() {
     setError(null);
 
     try {
-      console.log('[Checkout] Calling API with:', { userId: user.id, tier, userEmail: user.email });
       
       const response = await fetch('/api/lemonsqueezy/checkout', {
         method: 'POST',
@@ -59,16 +58,13 @@ function CheckoutContent() {
         }),
       });
 
-      console.log('[Checkout] API response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('[Checkout] API error:', errorData);
-        throw new Error(errorData.error || 'No se pudo crear la sesión de pago');
+          throw new Error(errorData.error || 'No se pudo crear la sesión de pago');
       }
 
       const { url } = await response.json();
-      console.log('[Checkout] Checkout URL received, redirecting...');
 
       if (url) {
         // Redirect to Lemon Squeezy checkout
@@ -77,7 +73,6 @@ function CheckoutContent() {
         throw new Error('No se recibió URL de pago');
       }
     } catch (error: any) {
-      console.error('[Checkout] Error:', error);
       setError(error.message || 'Error al procesar el pago');
       setLoading(false);
     }

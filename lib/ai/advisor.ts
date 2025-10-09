@@ -135,7 +135,6 @@ Proporciona un análisis completo. Responde ÚNICAMENTE en formato JSON:
       areasForImprovement: result.areasForImprovement || [],
     };
   } catch (error) {
-    console.error('Error getting financial advice:', error);
     return null;
   }
 }

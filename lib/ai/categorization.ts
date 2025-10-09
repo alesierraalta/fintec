@@ -98,7 +98,6 @@ Analiza la transacción y sugiere la categoría más apropiada. Responde ÚNICAM
       reason: result.reason || 'Basado en descripción de la transacción',
     };
   } catch (error) {
-    console.error('Error categorizing transaction:', error);
     return null;
   }
 }

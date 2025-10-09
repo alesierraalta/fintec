@@ -72,8 +72,7 @@ export function Sidebar() {
                 priority
                 unoptimized
                 onError={(e) => {
-                  console.error('Logo failed to load:', e.currentTarget.src);
-                  setLogoError(true);
+                      setLogoError(true);
                 }}
               />
             )}

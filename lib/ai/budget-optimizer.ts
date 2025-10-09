@@ -120,7 +120,6 @@ Proporciona recomendaciones para cada categoría. Responde ÚNICAMENTE en format
       potentialSavings: opt.potentialSavings,
     }));
   } catch (error) {
-    console.error('Error optimizing budgets:', error);
     return [];
   }
 }

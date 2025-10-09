@@ -114,8 +114,7 @@ export default function LandingPage() {
                     priority
                     unoptimized
                     onError={(e) => {
-                      console.error('Logo failed to load:', e.currentTarget.src);
-                      setLogoError(true);
+                                  setLogoError(true);
                     }}
                   />
                 )}
@@ -339,8 +338,7 @@ export default function LandingPage() {
                     priority
                     unoptimized
                     onError={(e) => {
-                      console.error('Logo failed to load:', e.currentTarget.src);
-                      setLogoError(true);
+                                  setLogoError(true);
                     }}
                   />
                 )}

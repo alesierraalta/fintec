@@ -75,7 +75,6 @@ export function useOptimizedData() {
     if (!forceRefresh && isCacheValid('transactions') && globalCache.transactions.length > 0) {
       const allIncome = globalCache.transactions.every(t => t.type === 'INCOME');
       if (allIncome && globalCache.transactions.length > 2) {
-        console.log('Detected potentially stale cache, forcing refresh...');
         forceRefresh = true;
       } else {
         return globalCache.transactions;

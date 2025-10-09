@@ -11,7 +11,6 @@ import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { Account } from '@/types';
 import { fromMinorUnits } from '@/lib/money';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';

@@ -182,7 +182,6 @@ export async function upsertSubscription(subscriptionData: {
       .eq('id', existing.id);
 
     if (error) {
-      console.error('[LemonSqueezy] Error updating subscription:', error);
       throw error;
     }
   } else {
@@ -203,7 +202,6 @@ export async function upsertSubscription(subscriptionData: {
       });
 
     if (error) {
-      console.error('[LemonSqueezy] Error creating subscription:', error);
       throw error;
     }
   }
@@ -222,7 +220,6 @@ export async function cancelSubscription(userId: string) {
     .eq('user_id', userId);
 
   if (error) {
-    console.error('[LemonSqueezy] Error canceling subscription:', error);
     throw error;
   }
 }

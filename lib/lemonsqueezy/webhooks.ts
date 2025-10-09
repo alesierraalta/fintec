@@ -100,14 +100,12 @@ export async function handleLemonSqueezyWebhook(
   const { event_name, custom_data } = meta;
   const { attributes } = data;
   
-  console.log(`[LemonSqueezy Webhook] Event: ${event_name}`);
   
   // Extraer user_id del custom_data
   const userId = custom_data?.user_id;
   
   if (!userId) {
-    console.warn('[LemonSqueezy Webhook] No user_id in custom_data');
-    return;
+      return;
   }
   
   // Determinar el tier basado en el producto
@@ -143,12 +141,10 @@ export async function handleLemonSqueezyWebhook(
       
     case 'order_created':
       // Para compras de una sola vez (si las tienes)
-      console.log('[LemonSqueezy] Order created:', attributes.order_number);
-      break;
+          break;
       
     default:
-      console.log(`[LemonSqueezy] Unhandled event: ${event_name}`);
-  }
+      }
 }
 
 /**
@@ -173,7 +169,6 @@ async function handleSubscriptionActivated(
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Activating subscription for user ${userId}`);
   
   // Actualizar usuario
   await supabase
@@ -200,7 +195,6 @@ async function handleSubscriptionActivated(
       updated_at: new Date().toISOString(),
     });
   
-  console.log(`[LemonSqueezy] Subscription activated for user ${userId}`);
 }
 
 /**
@@ -212,7 +206,6 @@ async function handleSubscriptionUpdated(
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Updating subscription for user ${userId}`);
   
   await supabase
     .from('users')
@@ -241,7 +234,6 @@ async function handleSubscriptionCancelled(
   userId: string,
   attributes: any
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Cancelling subscription for user ${userId}`);
   
   await supabase
     .from('users')
@@ -268,7 +260,6 @@ async function handleSubscriptionPaused(
   userId: string,
   attributes: any
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Pausing subscription for user ${userId}`);
   
   await supabase
     .from('users')
@@ -295,7 +286,6 @@ async function handleSubscriptionResumed(
   attributes: any,
   tier: 'base' | 'premium'
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Resuming subscription for user ${userId}`);
   
   await supabase
     .from('users')
@@ -321,7 +311,6 @@ async function handlePaymentFailed(
   userId: string,
   attributes: any
 ): Promise<void> {
-  console.log(`[LemonSqueezy] Payment failed for user ${userId}`);
   
   await supabase
     .from('users')

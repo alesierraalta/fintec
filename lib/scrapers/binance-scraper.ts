@@ -114,7 +114,6 @@ async function fetchOffers(tradeType: 'SELL' | 'BUY'): Promise<PriceData[]> {
       );
 
       if (!response.ok) {
-        console.warn(`Binance API returned ${response.status} for ${tradeType} page ${page}`);
         continue;
       }
 
@@ -145,7 +144,7 @@ async function fetchOffers(tradeType: 'SELL' | 'BUY'): Promise<PriceData[]> {
         await new Promise(resolve => setTimeout(resolve, PAGE_DELAY));
       }
     } catch (error) {
-      console.error(`Error fetching ${tradeType} page ${page}:`, error);
+      // Error fetching page, continue to next
       continue;
     }
   }

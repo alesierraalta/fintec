@@ -43,7 +43,6 @@ function extractRates(html: string): { usd: number | null; eur: number | null } 
       const rate = parseFloat(eurMatch1[1].replace(',', '.'));
       if (rate >= EUR_MIN && rate <= EUR_MAX) {
         eur = rate;
-        console.log('EUR extracted (pattern 1):', rate);
       }
     } catch (e) {
       // Continue to next pattern
@@ -59,7 +58,6 @@ function extractRates(html: string): { usd: number | null; eur: number | null } 
       const rate = parseFloat(usdMatch1[1].replace(',', '.'));
       if (rate >= USD_MIN && rate <= USD_MAX) {
         usd = rate;
-        console.log('USD extracted (pattern 1):', rate);
       }
     } catch (e) {
       // Continue to next pattern
@@ -81,7 +79,6 @@ function extractRates(html: string): { usd: number | null; eur: number | null } 
           const rate = parseFloat(match[1].replace(',', '.'));
           if (rate >= EUR_MIN && rate <= EUR_MAX) {
             eur = rate;
-            console.log('EUR extracted (fallback):', rate);
             break;
           }
         } catch (e) {
@@ -105,7 +102,6 @@ function extractRates(html: string): { usd: number | null; eur: number | null } 
           const rate = parseFloat(match[1].replace(',', '.'));
           if (rate >= USD_MIN && rate <= USD_MAX) {
             usd = rate;
-            console.log('USD extracted (fallback):', rate);
             break;
           }
         } catch (e) {
@@ -117,8 +113,7 @@ function extractRates(html: string): { usd: number | null; eur: number | null } 
 
   // Debug logging
   if (!usd || !eur) {
-    console.log('BCV extraction failed. USD:', usd, 'EUR:', eur);
-    console.log('HTML snippet (first 1000 chars):', html.substring(0, 1000));
+    // Failed to extract rates
   }
 
   return { usd, eur };
@@ -179,7 +174,6 @@ async function fetchHTML(url: string, timeout: number): Promise<string> {
     });
   } catch (importError) {
     // If https module is not available (Edge/Browser), fall back to fetch
-    console.log('Using fetch fallback (https module not available)');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -228,8 +222,7 @@ export async function scrapeBCVRates(): Promise<BCVRateResult> {
 
     // Log warning if using fallback
     if (!usd || !eur) {
-      console.warn('BCV scraper using fallback data. USD:', usd, 'EUR:', eur);
-    }
+      }
 
     return {
       success: usd !== null && eur !== null,
@@ -246,10 +239,6 @@ export async function scrapeBCVRates(): Promise<BCVRateResult> {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     // Log the error for debugging
-    console.error('❌ BCV Scraper Error:', errorMessage);
-    console.error('   This is expected in local development due to SSL certificate issues.');
-    console.error('   In Vercel production, the scraper will extract REAL data successfully.');
-    console.error('   The regex patterns are verified to work correctly.');
 
     // Return realistic fallback data on error
     return {

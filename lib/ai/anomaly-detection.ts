@@ -143,7 +143,6 @@ Identifica transacciones anómalas (montos inusuales, patrones extraños, etc.).
 
     return anomalies;
   } catch (error) {
-    console.error('Error detecting anomalies:', error);
     return [];
   }
 }
@@ -185,7 +184,6 @@ export async function checkTransactionAnomaly(
 
     return { isAnomalous: false };
   } catch (error) {
-    console.error('Error checking transaction anomaly:', error);
     return null;
   }
 }

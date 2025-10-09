@@ -105,7 +105,6 @@ Proporciona una predicción detallada. Responde ÚNICAMENTE en formato JSON:
       recommendations: result.recommendations || [],
     };
   } catch (error) {
-    console.error('Error predicting spending:', error);
     return null;
   }
 }
@@ -118,7 +117,6 @@ export async function identifyTrends(userId: string): Promise<string[]> {
     const prediction = await predictSpending(userId);
     return prediction?.insights || [];
   } catch (error) {
-    console.error('Error identifying trends:', error);
     return [];
   }
 }
