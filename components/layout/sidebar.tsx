@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { FeatureBadge } from '@/components/subscription/feature-badge';
+import { UpgradeButton } from '@/components/subscription/upgrade-button';
 import { 
   Home,
   CreditCard,
@@ -137,6 +138,9 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Upgrade Button - Only for free users */}
+      <UpgradeButton isMinimized={isMinimized} />
 
       {/* User Profile - More friendly */}
       <div className="p-4 border-t border-white/10">
