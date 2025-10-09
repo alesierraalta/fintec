@@ -119,7 +119,7 @@ export function useUpgrade() {
     setError(null);
 
     try {
-      const response = await fetch('/api/stripe/checkout', {
+      const response = await fetch('/api/lemonsqueezy/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +157,11 @@ export function useUpgrade() {
 }
 
 /**
- * Hook to manage subscription (access customer portal)
+ * Hook to manage subscription (access Lemon Squeezy customer portal)
+ * 
+ * With Lemon Squeezy, customers can manage their subscriptions directly
+ * through the Lemon Squeezy dashboard. The customer portal URL can be
+ * found in the subscription data or accessed directly via Lemon Squeezy.
  */
 export function useManageSubscription() {
   const { user } = useAuth();
@@ -174,24 +178,20 @@ export function useManageSubscription() {
     setError(null);
 
     try {
-      const response = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: user.id,
-        }),
-      });
-
+      // Get the subscription data to find the customer portal URL
+      const response = await fetch(`/api/subscription/status?userId=${user.id}`);
+      
       if (!response.ok) {
-        throw new Error('Failed to create portal session');
+        throw new Error('Failed to fetch subscription data');
       }
 
-      const { url } = await response.json();
+      const { subscription } = await response.json();
       
-      if (url) {
-        window.location.href = url;
+      if (subscription?.customerPortalUrl) {
+        window.location.href = subscription.customerPortalUrl;
+      } else {
+        // Fallback: redirect to Lemon Squeezy general portal
+        window.open('https://app.lemonsqueezy.com/my-orders', '_blank');
       }
     } catch (error: any) {
       setError(error.message || 'Failed to open customer portal');

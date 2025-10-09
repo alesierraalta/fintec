@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getFinancialAdvice } from '@/lib/ai/advisor';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
-import { incrementUsage } from '@/lib/stripe/subscriptions';
+import { incrementUsage } from '@/lib/lemonsqueezy/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {

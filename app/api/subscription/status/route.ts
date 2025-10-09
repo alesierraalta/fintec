@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserSubscription, getUserTier, getUserUsage } from '@/lib/stripe/subscriptions';
+import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/lemonsqueezy/subscriptions';
 import { TIER_LIMITS } from '@/types/subscription';
 
 export async function GET(request: NextRequest) {
@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get subscription info
-    const subscription = await getUserSubscription(userId);
+    const subscription = await getSubscriptionByUserId(userId);
     const tier = await getUserTier(userId);
     const usage = await getUserUsage(userId);
 

@@ -1,7 +1,7 @@
 /**
  * LemonSqueezy Configuration
  * 
- * LemonSqueezy es mucho más simple que Stripe:
+ * LemonSqueezy es muy simple:
  * - No necesitas webhooks complejos
  * - No necesitas crear sesiones server-side
  * - Solo usas URLs de productos directamente

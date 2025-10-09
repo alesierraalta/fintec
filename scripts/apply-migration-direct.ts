@@ -111,7 +111,7 @@ async function applyMigration() {
         console.log('✅ Tablas "subscriptions" y "usage_tracking" creadas exitosamente!');
         console.log('\n📋 Próximos pasos:');
         console.log('1. Ejecuta: npx tsx scripts/verify-migration.ts');
-        console.log('2. Configura Stripe productos');
+        console.log('2. Configura Lemon Squeezy productos');
         console.log('3. Ejecuta: npx tsx scripts/migrate-subscriptions.ts');
       }
     }

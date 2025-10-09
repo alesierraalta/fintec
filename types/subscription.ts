@@ -14,8 +14,10 @@ export interface Subscription {
   userId: string;
   tier: SubscriptionTier;
   status: SubscriptionStatus;
-  stripeSubscriptionId?: string;
-  stripeCustomerId?: string;
+  lemonSqueezySubscriptionId?: string;
+  lemonSqueezyCustomerId?: string;
+  lemonSqueezyOrderId?: string;
+  customerPortalUrl?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;

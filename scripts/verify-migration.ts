@@ -52,7 +52,7 @@ async function verifyMigration() {
     if (!subsError && !usageError && !usersError) {
       console.log('\n🎉 ¡MIGRACIÓN EXITOSA!');
       console.log('\n📋 Próximos pasos:');
-      console.log('   1. Configurar productos en Stripe Dashboard');
+      console.log('   1. Configurar productos en Lemon Squeezy Dashboard');
       console.log('   2. Agregar variables de entorno (.env.local)');
       console.log('   3. Ejecutar: npx tsx scripts/migrate-subscriptions.ts');
       console.log('   4. Probar: npm run dev → http://localhost:3000/pricing');

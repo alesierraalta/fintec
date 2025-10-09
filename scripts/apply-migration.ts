@@ -65,7 +65,7 @@ async function applyMigration() {
         console.log('✅ La tabla "usage_tracking" también existe.');
         console.log('\n🎉 El sistema de suscripciones ya está configurado en la base de datos!');
         console.log('\nPróximos pasos:');
-        console.log('1. Configurar productos en Stripe');
+        console.log('1. Configurar productos en Lemon Squeezy');
         console.log('2. Agregar variables de entorno');
         console.log('3. Ejecutar: npm run tsx scripts/migrate-subscriptions.ts');
         process.exit(0);

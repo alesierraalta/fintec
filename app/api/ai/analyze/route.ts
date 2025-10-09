@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { detectAnomalies } from '@/lib/ai/anomaly-detection';
 import { optimizeBudgets } from '@/lib/ai/budget-optimizer';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
-import { incrementUsage } from '@/lib/stripe/subscriptions';
+import { incrementUsage } from '@/lib/lemonsqueezy/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {

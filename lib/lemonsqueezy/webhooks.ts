@@ -1,7 +1,7 @@
 /**
  * LemonSqueezy Webhooks
  * 
- * Los webhooks de LemonSqueezy son más simples que Stripe:
+ * Los webhooks de LemonSqueezy son muy simples:
  * - Un solo endpoint para todos los eventos
  * - Verificación con HMAC signature
  * - Eventos claros y directos

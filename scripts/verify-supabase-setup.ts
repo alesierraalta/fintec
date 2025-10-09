@@ -108,7 +108,7 @@ async function checkSubscriptionFields() {
     // Intentar insertar un usuario de prueba (fallará por RLS pero nos dice si los campos existen)
     const { error } = await supabase
       .from('users')
-      .select('subscription_tier, subscription_status, stripe_customer_id')
+      .select('subscription_tier, subscription_status')
       .limit(1);
     
     if (error && !error.message.includes('row-level security')) {
@@ -143,31 +143,29 @@ async function checkExchangeRates() {
   }
 }
 
-async function checkStripeConfig() {
-  console.log('\n🔧 Verificando configuración de Stripe...');
+async function checkLemonSqueezyConfig() {
+  console.log('\n🔧 Verificando configuración de Lemon Squeezy...');
   
-  const stripeEnvVars = [
-    'STRIPE_SECRET_KEY',
-    'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY',
-    'STRIPE_WEBHOOK_SECRET',
-    'STRIPE_PRICE_ID_BASE',
-    'STRIPE_PRICE_ID_PREMIUM',
+  const lemonSqueezyEnvVars = [
+    'LEMONSQUEEZY_API_KEY',
+    'LEMONSQUEEZY_STORE_ID',
+    'LEMONSQUEEZY_WEBHOOK_SECRET',
   ];
 
   let missingVars: string[] = [];
   
-  for (const varName of stripeEnvVars) {
+  for (const varName of lemonSqueezyEnvVars) {
     if (!process.env[varName]) {
       missingVars.push(varName);
     }
   }
 
   if (missingVars.length === 0) {
-    addResult('Stripe Config', 'OK', 'Todas las variables de Stripe configuradas');
-  } else if (missingVars.length === stripeEnvVars.length) {
-    addResult('Stripe Config', 'WARNING', 'Stripe no configurado (ver docs/STRIPE_SETUP_GUIDE.md)', { missingVars });
+    addResult('Lemon Squeezy Config', 'OK', 'Todas las variables de Lemon Squeezy configuradas');
+  } else if (missingVars.length === lemonSqueezyEnvVars.length) {
+    addResult('Lemon Squeezy Config', 'WARNING', 'Lemon Squeezy no configurado (ver docs/LEMON_SQUEEZY_PRICING_INTEGRATION.md)', { missingVars });
   } else {
-    addResult('Stripe Config', 'ERROR', `Faltan variables de Stripe: ${missingVars.join(', ')}`, { missingVars });
+    addResult('Lemon Squeezy Config', 'ERROR', `Faltan variables de Lemon Squeezy: ${missingVars.join(', ')}`, { missingVars });
   }
 }
 
@@ -202,7 +200,7 @@ async function printResults() {
   if (!hasErrors && !hasWarnings) {
     console.log('\n✅ ¡TODO PERFECTO! La base de datos está completamente configurada.');
     console.log('\n📋 Próximos pasos:');
-    console.log('   1. Configurar Stripe (ver docs/STRIPE_SETUP_GUIDE.md)');
+    console.log('   1. Configurar Lemon Squeezy (ver docs/LEMON_SQUEEZY_PRICING_INTEGRATION.md)');
     console.log('   2. Iniciar el servidor: npm run dev');
     console.log('   3. Registrar tu primer usuario');
   } else if (hasErrors) {
@@ -211,7 +209,7 @@ async function printResults() {
   } else {
     console.log('\n⚠️  HAY ADVERTENCIAS (warnings).');
     console.log('   La mayoría son normales para una DB nueva.');
-    console.log('   Revisa que Stripe esté configurado si quieres usar suscripciones.');
+    console.log('   Revisa que Lemon Squeezy esté configurado si quieres usar suscripciones.');
   }
 
   console.log('\n' + '='.repeat(80) + '\n');
@@ -228,7 +226,7 @@ async function main() {
   await checkRLS();
   await checkSubscriptionFields();
   await checkExchangeRates();
-  await checkStripeConfig();
+  await checkLemonSqueezyConfig();
   
   await printResults();
 

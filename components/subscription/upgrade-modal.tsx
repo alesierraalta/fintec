@@ -133,7 +133,7 @@ export function UpgradeModal({
         </div>
 
         <p className="text-xs text-center text-muted-foreground">
-          Serás redirigido a Stripe para completar el pago de forma segura
+          Serás redirigido a Lemon Squeezy para completar el pago de forma segura
         </p>
       </div>
     </Modal>

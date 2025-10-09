@@ -22,7 +22,7 @@ function SubscriptionSuccessContent() {
       return;
     }
 
-    // Give Stripe webhook time to process
+    // Give Lemon Squeezy webhook time to process
     const timer = setTimeout(() => {
       setVerifying(false);
     }, 3000);

@@ -45,7 +45,7 @@ async function runMigration() {
     
     console.log('\n✅ Migration completed successfully!');
     console.log('\nNext steps:');
-    console.log('1. Configure Stripe products in Stripe Dashboard');
+    console.log('1. Configure Lemon Squeezy products in Dashboard');
     console.log('2. Add environment variables to .env.local');
     console.log('3. Run: npm run tsx scripts/migrate-subscriptions.ts');
     
