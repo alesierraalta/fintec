@@ -34,9 +34,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
     const { error } = await signIn(formData.email, formData.password, rememberMe);
 
+    console.log('Login attempt result:', { error, hasError: !!error });
+
     if (error) {
       // Provide more helpful error messages
       let errorMessage = error.message;
+      
+      console.log('Original error message:', errorMessage);
       
       if (error.message === 'Invalid login credentials' || error.message.includes('Invalid')) {
         errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
@@ -48,6 +52,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         errorMessage = 'No existe una cuenta con este email. ¿Deseas registrarte?';
       }
       
+      console.log('Setting error message:', errorMessage);
       setError(errorMessage);
     } else {
       onSuccess?.();

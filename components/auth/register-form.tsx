@@ -57,7 +57,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       full_name: formData.fullName
     });
 
+    console.log('Registration result:', { error, emailConfirmationRequired, hasError: !!error });
+
     if (error) {
+      console.log('Registration error:', error.message);
       if (error.message.includes('already registered')) {
         setError('Este email ya está registrado. Intenta iniciar sesión.');
       } else if (error.message.includes('User already registered')) {
@@ -66,6 +69,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         setError(error.message);
       }
     } else {
+      console.log('Registration successful, email confirmation required:', emailConfirmationRequired);
       setSuccess(true);
       setEmailConfirmationRequired(emailConfirmationRequired || false);
       
