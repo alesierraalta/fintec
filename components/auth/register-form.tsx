@@ -13,7 +13,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const router = useRouter();
-  const { signUp, loading } = useAuth();
+  const { signUp, loading, authError, clearAuthError } = useAuth();
   
   const [formData, setFormData] = useState({
     fullName: '',
@@ -23,25 +23,25 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   const validateForm = () => {
     if (!formData.fullName.trim()) {
-      setError('El nombre completo es requerido');
+      setValidationError('El nombre completo es requerido');
       return false;
     }
     if (!formData.email) {
-      setError('El email es requerido');
+      setValidationError('El email es requerido');
       return false;
     }
     if (formData.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setValidationError('La contraseña debe tener al menos 6 caracteres');
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setValidationError('Las contraseñas no coinciden');
       return false;
     }
     return true;
@@ -49,7 +49,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    setValidationError(null);
+    clearAuthError();
 
     if (!validateForm()) return;
 
@@ -57,17 +58,8 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       full_name: formData.fullName
     });
 
-
-    if (error) {
-        if (error.message.includes('already registered')) {
-        setError('Este email ya está registrado. Intenta iniciar sesión.');
-      } else if (error.message.includes('User already registered')) {
-        setError('Este email ya está registrado. Intenta iniciar sesión o recuperar tu contraseña.');
-      } else {
-        setError(error.message);
-      }
-    } else {
-        setSuccess(true);
+    if (!error) {
+      setSuccess(true);
       setEmailConfirmationRequired(emailConfirmationRequired || false);
       
       // Only redirect if no email confirmation is required
@@ -78,13 +70,15 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         }, 2000);
       }
     }
+    // Errors are now handled by authError from context
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user starts typing
-    if (error) setError(null);
+    // Clear errors when user starts typing
+    if (validationError) setValidationError(null);
+    if (authError) clearAuthError();
   };
 
   if (success) {
@@ -157,14 +151,26 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           <p className="text-gray-600">Únete para gestionar tus finanzas</p>
         </div>
 
-        {error && (
+        {(validationError || authError) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3"
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-red-700 text-sm">{error}</p>
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-700 text-sm">{validationError || authError}</p>
+              {authError && authError.includes('registrado') && (
+                <p className="text-red-600 text-xs mt-2">
+                  💡 Si ya tienes una cuenta, puedes <button 
+                    onClick={() => router.push('/auth/login')} 
+                    className="underline hover:text-red-700"
+                  >
+                    iniciar sesión aquí
+                  </button>
+                </p>
+              )}
+            </div>
           </motion.div>
         )}
 

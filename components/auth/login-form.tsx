@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle, Info } from 'lucide-react';
@@ -13,7 +13,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter();
-  const { signIn, loading } = useAuth();
+  const { signIn, authError, clearAuthError } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -21,39 +21,32 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
+    clearAuthError();
+    setLoading(true);
 
     if (!formData.email || !formData.password) {
-      setError('Por favor completa todos los campos');
+      // For validation errors, we can still use a local approach or set in context
+      // For now keeping it simple with a check that prevents submission
+      setLoading(false);
       return;
     }
 
-    const { error } = await signIn(formData.email, formData.password, rememberMe);
+    try {
+      const result = await signIn(formData.email, formData.password, rememberMe);
 
-
-    if (error) {
-      // Provide more helpful error messages
-      let errorMessage = error.message;
-      
-        
-      if (error.message === 'Invalid login credentials' || error.message.includes('Invalid')) {
-        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
-      } else if (error.message.includes('Email not confirmed')) {
-        errorMessage = 'Tu email aún no ha sido confirmado. Por favor revisa tu correo y haz clic en el enlace de confirmación.';
-      } else if (error.message.includes('Email not verified')) {
-        errorMessage = 'Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.';
-      } else if (error.message.includes('User not found')) {
-        errorMessage = 'No existe una cuenta con este email. ¿Deseas registrarte?';
+      if (!result.error) {
+        setLoading(false);
+        onSuccess?.();
+        router.push('/');
+      } else {
+        setLoading(false);
       }
-      
-        setError(errorMessage);
-    } else {
-      onSuccess?.();
-      router.push('/');
+    } catch (err) {
+      setLoading(false);
     }
   };
 
@@ -61,7 +54,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
-    if (error) setError(null);
+    if (authError) clearAuthError();
   };
 
   return (
@@ -80,7 +73,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           <p className="text-gray-600">Accede a tu cuenta para continuar</p>
         </div>
 
-        {error && (
+        {authError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -88,8 +81,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           >
             <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-red-700 text-sm">{error}</p>
-              {error.includes('confirmado') || error.includes('verificar') ? (
+              <p className="text-red-700 text-sm">{authError}</p>
+              {authError.includes('confirmado') || authError.includes('verificar') ? (
                 <p className="text-red-600 text-xs mt-2">
                   💡 Revisa tu bandeja de entrada y carpeta de spam para encontrar el correo de confirmación.
                 </p>

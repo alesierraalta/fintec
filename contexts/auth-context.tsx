@@ -42,6 +42,8 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   signUp: (email: string, password: string, userData?: any) => Promise<{ error: AuthError | null; emailConfirmationRequired?: boolean }>;
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
@@ -54,7 +56,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true); // Cambiar a true para cargar sesión inicial
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null); // Cambiar a true para cargar sesión inicial
 
   // Initialize Supabase auth session only
   useEffect(() => {
@@ -94,6 +97,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(async (email: string, password: string, userData?: any) => {
     try {
       setLoading(true);
+      setAuthError(null); // Clear any previous errors
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -102,12 +107,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       });
 
-      // If there's an error during signup, return it immediately
+      // If there's an error during signup, set it in context
       if (error) {
+        let errorMessage = error.message;
+        
+        // Translate common errors to user-friendly Spanish messages
+        if (errorMessage.includes('already registered') || errorMessage.includes('User already registered')) {
+          errorMessage = 'Este correo ya está registrado. ¿Olvidaste tu contraseña?';
+        } else if (errorMessage.includes('weak password') || errorMessage.includes('Password')) {
+          errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+        } else if (errorMessage.includes('Email address') && errorMessage.includes('is invalid')) {
+          // Supabase is blocking this specific email address
+          errorMessage = 'Este correo electrónico no puede ser usado para registro. Por favor usa un email corporativo o educativo válido.';
+        } else if (errorMessage.includes('Invalid email')) {
+          errorMessage = 'El formato del correo electrónico no es válido';
+        } else if (errorMessage.includes('Email rate limit exceeded')) {
+          errorMessage = 'Demasiados intentos. Por favor espera un momento e intenta de nuevo.';
+        } else if (errorMessage.includes('Signup requires a valid password')) {
+          errorMessage = 'La contraseña es requerida y debe ser válida';
+        }
+        
+        setAuthError(errorMessage);
         return { error };
       }
 
       if (data.user) {
+        // Check if the user already exists (identities array is empty)
+        if (data.user.identities && data.user.identities.length === 0) {
+          setAuthError('Este correo ya está registrado. ¿Olvidaste tu contraseña?');
+          return { error: { message: 'Email already registered', name: 'AuthError', status: 400 } as AuthError };
+        }
+        
         // Check if email confirmation is required
         const emailConfirmationRequired = !data.session;
         
@@ -141,8 +171,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If we reach here, something unexpected happened
+      setAuthError('Error inesperado al crear la cuenta. Por favor intenta de nuevo.');
       return { error: { message: 'Error al crear la cuenta', name: 'AuthError', status: 500 } as AuthError };
     } catch (err) {
+      setAuthError('Error inesperado durante el registro. Por favor intenta de nuevo.');
       return { error: err as AuthError };
     } finally {
       setLoading(false);
@@ -152,6 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
       setLoading(true);
+      setAuthError(null); // Clear any previous errors
       
       // Use only Supabase Auth - no local fallback
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
@@ -159,8 +192,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password
       });
 
-      // If there's an authentication error, return it immediately
+      // If there's an authentication error, set it in context and return
       if (authError) {
+        let errorMessage = authError.message;
+        if (errorMessage === 'Invalid login credentials' || errorMessage.includes('Invalid')) {
+          errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+        } else if (errorMessage.includes('Email not confirmed')) {
+          errorMessage = 'Tu email aún no ha sido confirmado. Por favor revisa tu correo y haz clic en el enlace de confirmación.';
+        } else if (errorMessage.includes('Email not verified')) {
+          errorMessage = 'Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.';
+        } else if (errorMessage.includes('User not found')) {
+          errorMessage = 'No existe una cuenta con este email. ¿Deseas registrarte?';
+        }
+        setAuthError(errorMessage);
         return { error: authError };
       }
 
@@ -189,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);;
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -260,16 +304,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+
+  const clearAuthError = useCallback(() => {
+    setAuthError(null);
+  }, []);
+
   const value = useMemo(() => ({
     user,
     session,
     loading,
+    authError,
+    clearAuthError,
     signUp,
     signIn,
     signOut,
     updateProfile,
     resetPassword
-  }), [user, session, loading, signUp, signIn, signOut, updateProfile, resetPassword]);
+  }), [user, session, loading, authError, clearAuthError, signUp, signIn, signOut, updateProfile, resetPassword]);
 
   return (
     <AuthContext.Provider value={value}>
