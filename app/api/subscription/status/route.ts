@@ -31,14 +31,23 @@ export async function GET(request: NextRequest) {
       backups: {
         current: usage?.backupCount || 0,
         limit: limits.backups,
+        percentage: limits.backups === 'unlimited' 
+          ? 0 
+          : Math.round(((usage?.backupCount || 0) / limits.backups) * 100),
       },
       exports: {
         current: usage?.exportCount || 0,
         limit: limits.exports,
+        percentage: limits.exports === 'unlimited'
+          ? 0
+          : Math.round(((usage?.exportCount || 0) / limits.exports) * 100),
       },
       aiRequests: {
         current: usage?.aiRequests || 0,
         limit: limits.aiRequests,
+        percentage: limits.aiRequests === 'unlimited'
+          ? 0
+          : Math.round(((usage?.aiRequests || 0) / limits.aiRequests) * 100),
       },
     };
 

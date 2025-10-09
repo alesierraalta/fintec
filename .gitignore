@@ -168,3 +168,4 @@ playwright/.auth/
 *-test.png
 debug-*.png
 diagnose-*.png
+docs/SETUP_FINTEC.md

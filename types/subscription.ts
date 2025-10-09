@@ -204,14 +204,17 @@ export interface UsageStatus {
   backups: {
     current: number;
     limit: number | 'unlimited';
+    percentage: number;
   };
   exports: {
     current: number;
     limit: number | 'unlimited';
+    percentage: number;
   };
   aiRequests: {
     current: number;
     limit: number | 'unlimited';
+    percentage: number;
   };
 }
 
