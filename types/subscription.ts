@@ -102,8 +102,8 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     ],
   },
   base: {
-    name: 'Base',
-    price: 499, // $4.99
+    name: 'Plan Full',
+    price: 599, // $5.99
     currency: 'USD',
     interval: 'month',
     features: [
@@ -120,7 +120,7 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     highlighted: true,
   },
   premium: {
-    name: 'Premium',
+    name: 'Premium IA',
     price: 999, // $9.99
     currency: 'USD',
     interval: 'month',
