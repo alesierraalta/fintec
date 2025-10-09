@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle, Info } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui';
 
@@ -35,11 +35,20 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     const { error } = await signIn(formData.email, formData.password, rememberMe);
 
     if (error) {
-      setError(
-        error.message === 'Invalid login credentials' 
-          ? 'Credenciales inválidas. Verifica tu email y contraseña.'
-          : error.message
-      );
+      // Provide more helpful error messages
+      let errorMessage = error.message;
+      
+      if (error.message === 'Invalid login credentials' || error.message.includes('Invalid')) {
+        errorMessage = 'Credenciales incorrectas. Verifica tu email y contraseña.';
+      } else if (error.message.includes('Email not confirmed')) {
+        errorMessage = 'Tu email aún no ha sido confirmado. Por favor revisa tu correo y haz clic en el enlace de confirmación.';
+      } else if (error.message.includes('Email not verified')) {
+        errorMessage = 'Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.';
+      } else if (error.message.includes('User not found')) {
+        errorMessage = 'No existe una cuenta con este email. ¿Deseas registrarte?';
+      }
+      
+      setError(errorMessage);
     } else {
       onSuccess?.();
       router.push('/');
@@ -73,10 +82,17 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3"
+            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-red-700 text-sm">{error}</p>
+            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-red-700 text-sm">{error}</p>
+              {error.includes('confirmado') || error.includes('verificar') ? (
+                <p className="text-red-600 text-xs mt-2">
+                  💡 Revisa tu bandeja de entrada y carpeta de spam para encontrar el correo de confirmación.
+                </p>
+              ) : null}
+            </div>
           </motion.div>
         )}
 

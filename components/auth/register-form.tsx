@@ -25,6 +25,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [emailConfirmationRequired, setEmailConfirmationRequired] = useState(false);
 
   const validateForm = () => {
     if (!formData.fullName.trim()) {
@@ -52,22 +53,29 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
     if (!validateForm()) return;
 
-    const { error } = await signUp(formData.email, formData.password, {
+    const { error, emailConfirmationRequired } = await signUp(formData.email, formData.password, {
       full_name: formData.fullName
     });
 
     if (error) {
       if (error.message.includes('already registered')) {
         setError('Este email ya está registrado. Intenta iniciar sesión.');
+      } else if (error.message.includes('User already registered')) {
+        setError('Este email ya está registrado. Intenta iniciar sesión o recuperar tu contraseña.');
       } else {
         setError(error.message);
       }
     } else {
       setSuccess(true);
-      setTimeout(() => {
-        onSuccess?.();
-        router.push('/');
-      }, 2000);
+      setEmailConfirmationRequired(emailConfirmationRequired || false);
+      
+      // Only redirect if no email confirmation is required
+      if (!emailConfirmationRequired) {
+        setTimeout(() => {
+          onSuccess?.();
+          router.push('/');
+        }, 2000);
+      }
     }
   };
 
@@ -89,11 +97,44 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
             <CheckCircle className="h-8 w-8 text-green-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Cuenta Creada!</h2>
-          <p className="text-gray-600 mb-4">
-            Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
-          </p>
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {emailConfirmationRequired ? '¡Registro Exitoso!' : '¡Cuenta Creada!'}
+          </h2>
+          
+          {emailConfirmationRequired ? (
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                Hemos enviado un correo de confirmación a <strong>{formData.email}</strong>
+              </p>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-blue-700 text-sm font-medium mb-2">
+                  📧 Pasos siguientes:
+                </p>
+                <ol className="text-left text-blue-700 text-sm space-y-1 list-decimal list-inside">
+                  <li>Revisa tu bandeja de entrada</li>
+                  <li>Haz clic en el enlace de confirmación</li>
+                  <li>Regresa aquí e inicia sesión</li>
+                </ol>
+              </div>
+              <p className="text-xs text-gray-500">
+                ¿No recibiste el correo? Revisa tu carpeta de spam.
+              </p>
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:opacity-90"
+                style={{ background: 'linear-gradient(to right, #10069f, #455cff)' }}
+              >
+                Ir a Iniciar Sesión
+              </button>
+            </div>
+          ) : (
+            <div>
+              <p className="text-gray-600 mb-4">
+                Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
+              </p>
+              <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
+            </div>
+          )}
         </div>
       </motion.div>
     );

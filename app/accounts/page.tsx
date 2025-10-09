@@ -11,6 +11,7 @@ import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { Account } from '@/types';
 import { fromMinorUnits } from '@/lib/money';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
@@ -119,6 +120,8 @@ export default function AccountsPage() {
   const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
   const [showAlertSettings, setShowAlertSettings] = useState(false);
   const { checkAlerts } = useBalanceAlerts();
+
+  const { totalBalanceChange } = useOptimizedData();
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -240,7 +243,8 @@ export default function AccountsPage() {
     return sum + balanceMajor;
   }, 0);
   
-  const balanceGrowth = totalBalance > 100 ? 5.2 : totalBalance > 0 ? 1.5 : 0;
+  // Replaced hardcoded balanceGrowth with dynamic value from useOptimizedData
+  const balanceGrowth = parseFloat(totalBalanceChange?.replace('%', '') || '0');
 
   return (
     <AuthGuard>

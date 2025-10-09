@@ -42,7 +42,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData?: any) => Promise<{ error: AuthError | null }>;
+  signUp: (email: string, password: string, userData?: any) => Promise<{ error: AuthError | null; emailConfirmationRequired?: boolean }>;
   signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<{ error: AuthError | null }>;
   updateProfile: (data: any) => Promise<{ error: AuthError | PostgrestError | null }>;
@@ -103,8 +103,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (!error && data.user) {
-        // Wait a moment for the session to be established
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Check if email confirmation is required
+        const emailConfirmationRequired = !data.session;
+        
+        // Wait a moment for the session to be established (if applicable)
+        if (data.session) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
         
         // Create user profile in our database
         const { error: profileError } = await supabase
@@ -122,9 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Don't fail the registration if profile creation fails
           // The user is still registered in Supabase Auth
         } else {
-          // Create welcome notifications
-          await createWelcomeNotifications(data.user.id, userData?.full_name || data.user.email?.split('@')[0] || 'Usuario');
+          // Create welcome notifications only if session is active
+          if (data.session) {
+            await createWelcomeNotifications(data.user.id, userData?.full_name || data.user.email?.split('@')[0] || 'Usuario');
+          }
         }
+        
+        return { error, emailConfirmationRequired };
       }
 
       return { error };
@@ -133,7 +142,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []);;
 
   const signIn = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
     try {
