@@ -58,7 +58,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center px-4 lg:px-6 border-b border-white/10">
         <div className="flex items-center justify-center w-full">
-          <div className="relative p-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
+          <div className="relative">
             {logoError ? (
               <div className="text-white font-bold text-xl px-4">FinTec</div>
             ) : (
