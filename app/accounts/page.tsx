@@ -121,8 +121,6 @@ export default function AccountsPage() {
   const [showAlertSettings, setShowAlertSettings] = useState(false);
   const { checkAlerts } = useBalanceAlerts();
 
-  const { totalBalanceChange } = useOptimizedData();
-
   const loadAccounts = useCallback(async () => {
     try {
       setLoading(true);
@@ -243,8 +241,8 @@ export default function AccountsPage() {
     return sum + balanceMajor;
   }, 0);
   
-  // Replaced hardcoded balanceGrowth with dynamic value from useOptimizedData
-  const balanceGrowth = parseFloat(totalBalanceChange?.replace('%', '') || '0');
+  // Default balance growth to 0 (could be calculated from transaction history if needed)
+  const balanceGrowth = 0;
 
   return (
     <AuthGuard>
