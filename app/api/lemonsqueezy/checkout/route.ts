@@ -14,9 +14,9 @@ export async function POST(request: NextRequest) {
     console.log('[LemonSqueezy Checkout] POST request received');
     
     const body = await request.json();
-    const { userId, tier } = body;
+    const { userId, tier, userEmail, userName } = body;
 
-    console.log('[LemonSqueezy Checkout] Request body:', { userId, tier });
+    console.log('[LemonSqueezy Checkout] Request body:', { userId, tier, userEmail, userName });
 
     if (!userId || !tier) {
       console.error('[LemonSqueezy Checkout] Missing userId or tier');
@@ -34,40 +34,61 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener email del usuario
-    console.log('[LemonSqueezy Checkout] Fetching user data from Supabase...');
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('email, name')
-      .eq('id', userId)
-      .single();
+    // Initialize user data with fallback from client
+    let email = userEmail || '';
+    let name = userName || '';
 
-    if (userError) {
-      console.error('[LemonSqueezy Checkout] Supabase error:', userError);
+    // Try to get user data from Supabase users table (if it exists)
+    console.log('[LemonSqueezy Checkout] Attempting to fetch user data from Supabase users table...');
+    try {
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('email, name')
+        .eq('id', userId)
+        .single();
+
+      if (userData && !userError) {
+        console.log('[LemonSqueezy Checkout] User data found in users table');
+        email = userData.email || email;
+        name = userData.name || name;
+      } else {
+        console.log('[LemonSqueezy Checkout] User not in users table, trying Supabase Auth...');
+        
+        // Try Supabase Auth as fallback
+        const { data: authData, error: authError } = await supabase.auth.admin.getUserById(userId);
+        
+        if (authData?.user && !authError) {
+          console.log('[LemonSqueezy Checkout] User data found in Supabase Auth');
+          email = authData.user.email || email;
+          name = authData.user.user_metadata?.name || authData.user.user_metadata?.full_name || name;
+        } else {
+          console.log('[LemonSqueezy Checkout] User not found in Supabase Auth, using client data');
+        }
+      }
+    } catch (dbError: any) {
+      console.warn('[LemonSqueezy Checkout] Database query failed, using client data:', dbError.message);
+      // Continue with client-provided data
+    }
+
+    // Validate we have at least an email
+    if (!email) {
+      console.error('[LemonSqueezy Checkout] No email available for user');
       return NextResponse.json(
         { 
-          error: 'Failed to fetch user data',
-          details: userError.message 
+          error: 'User email is required',
+          details: 'Could not retrieve user email from database or client'
         },
-        { status: 500 }
+        { status: 400 }
       );
     }
 
-    if (!userData) {
-      console.error('[LemonSqueezy Checkout] User not found:', userId);
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    console.log('[LemonSqueezy Checkout] User data fetched:', { email: userData.email });
+    console.log('[LemonSqueezy Checkout] Using email:', email);
 
     // Generar URL de checkout
     console.log('[LemonSqueezy Checkout] Generating checkout URL for tier:', tier);
     const checkoutUrl = tier === 'base'
-      ? getBaseCheckoutUrl(userData.email, userId)
-      : getPremiumCheckoutUrl(userData.email, userId);
+      ? getBaseCheckoutUrl(email, userId)
+      : getPremiumCheckoutUrl(email, userId);
 
     console.log('[LemonSqueezy Checkout] Checkout URL generated successfully');
 

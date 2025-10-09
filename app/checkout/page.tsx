@@ -44,7 +44,7 @@ function CheckoutContent() {
     setError(null);
 
     try {
-      console.log('[Checkout] Calling API with:', { userId: user.id, tier });
+      console.log('[Checkout] Calling API with:', { userId: user.id, tier, userEmail: user.email });
       
       const response = await fetch('/api/lemonsqueezy/checkout', {
         method: 'POST',
@@ -54,6 +54,8 @@ function CheckoutContent() {
         body: JSON.stringify({
           userId: user.id,
           tier,
+          userEmail: user.email,
+          userName: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split('@')[0] || '',
         }),
       });
 
