@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle, Info } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { Input } from '@/components/ui';
+import { Button, Input } from '@/components/ui';
+import { GradientCard } from '@/components/ui/elegant-gradient';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -64,12 +65,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+      <GradientCard 
+        variant="primary" 
+        intensity="light"
+        className="p-8"
+      >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <LogIn className="h-8 w-8 text-blue-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
+          <motion.div 
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <LogIn className="h-8 w-8 text-white" />
+          </motion.div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Iniciar Sesión
+          </h2>
           <p className="text-gray-600">Accede a tu cuenta para continuar</p>
         </div>
 
@@ -165,24 +176,17 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             </button>
           </div>
 
-          <button
+          <Button
             type="submit"
-            className="w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(to right, #10069f, #455cff)' }}
+            variant="primary"
+            size="lg"
+            className="w-full"
+            loading={loading}
             disabled={loading}
+            icon={!loading && <LogIn className="h-5 w-5" />}
           >
-            {loading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Iniciando sesión...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <LogIn className="h-4 w-4" />
-                <span>Iniciar Sesión</span>
-              </div>
-            )}
-          </button>
+            {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          </Button>
         </form>
 
         <div className="mt-6 text-center">
@@ -190,14 +194,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             ¿No tienes cuenta?{' '}
             <button
               onClick={() => router.push('/auth/register')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
               disabled={loading}
             >
               Regístrate aquí
             </button>
           </p>
         </div>
-      </div>
+      </GradientCard>
     </motion.div>
   );
 }

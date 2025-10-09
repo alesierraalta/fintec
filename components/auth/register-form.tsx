@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, User, UserPlus, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button, Input } from '@/components/ui';
+import { GradientCard } from '@/components/ui/elegant-gradient';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -90,18 +91,27 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md mx-auto"
       >
-        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+        <GradientCard 
+          variant="success" 
+          intensity="light"
+          className="p-8 text-center"
+        >
+          <motion.div 
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4 shadow-lg"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300 }}
+          >
+            <CheckCircle className="h-8 w-8 text-white" />
+          </motion.div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
             ¡Cuenta Creada!
           </h2>
           <p className="text-gray-600 mb-4">
             Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
           </p>
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
+          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto" />
+        </GradientCard>
       </motion.div>
     );
   }
@@ -113,12 +123,22 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+      <GradientCard 
+        variant="primary" 
+        intensity="light"
+        className="p-8"
+      >
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-            <UserPlus className="h-8 w-8 text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Crear Cuenta</h2>
+          <motion.div 
+            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4 shadow-lg"
+            whileHover={{ scale: 1.05, rotate: -5 }}
+            transition={{ type: "spring", stiffness: 400 }}
+          >
+            <UserPlus className="h-8 w-8 text-white" />
+          </motion.div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+            Crear Cuenta
+          </h2>
           <p className="text-gray-600">Únete para gestionar tus finanzas</p>
         </div>
 
@@ -245,20 +265,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
           <Button
             type="submit"
+            variant="success"
+            size="lg"
             className="w-full"
+            loading={loading}
             disabled={loading}
+            icon={!loading && <UserPlus className="h-5 w-5" />}
           >
-            {loading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Creando cuenta...</span>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <UserPlus className="h-4 w-4" />
-                <span>Crear Cuenta</span>
-              </div>
-            )}
+            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
           </Button>
         </form>
 
@@ -267,14 +281,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             ¿Ya tienes cuenta?{' '}
             <button
               onClick={() => router.push('/auth/login')}
-              className="text-blue-600 hover:text-blue-700 font-medium"
+              className="text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
               disabled={loading}
             >
               Inicia sesión aquí
             </button>
           </p>
         </div>
-      </div>
+      </GradientCard>
     </motion.div>
   );
 }
