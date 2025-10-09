@@ -71,7 +71,7 @@ export default function SubscriptionPage() {
                   </div>
                   
                   {subscription?.status && (
-                    <Badge variant={subscription.status === 'active' ? 'default' : 'secondary'}>
+                    <Badge variant={subscription.status === 'active' ? 'default' : 'outline'}>
                       {subscription.status === 'active' ? 'Activo' : subscription.status}
                     </Badge>
                   )}
