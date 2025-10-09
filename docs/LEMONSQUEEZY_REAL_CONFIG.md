@@ -58,15 +58,17 @@
 
 Configura estas variables en: Vercel Dashboard → Project Settings → Environment Variables
 
+⚠️ **IMPORTANTE:** El `STORE_ID` debe ser el **slug** (`fintec`), NO el ID numérico (`229057`)
+
 ```bash
 # LemonSqueezy
-LEMONSQUEEZY_STORE_ID=229057
+LEMONSQUEEZY_STORE_ID=fintec  # ← SLUG, no 229057
 LEMONSQUEEZY_API_KEY=<tu-api-key>
 LEMONSQUEEZY_WEBHOOK_SECRET=<tu-webhook-secret>
 LEMONSQUEEZY_PRODUCT_ID_BASE=656807
 LEMONSQUEEZY_PRODUCT_ID_PREMIUM=656822
-LEMONSQUEEZY_VARIANT_ID_BASE=085044d4-3711-4313-bd18-8d43c24cdd36
-LEMONSQUEEZY_VARIANT_ID_PREMIUM=ea09c700-e8ba-43fa-ab75-df56fd7875e2
+LEMONSQUEEZY_VARIANT_ID_BASE=085044d4-3711-4313-bd18-8d43c24cdd36  # ← SLUG de checkout
+LEMONSQUEEZY_VARIANT_ID_PREMIUM=ea09c700-e8ba-43fa-ab75-df56fd7875e2  # ← SLUG de checkout
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://lssnujnctuchowgrspvk.supabase.co
@@ -78,15 +80,17 @@ NEXT_PUBLIC_APP_URL=https://fintec-six.vercel.app
 
 ### Para Local (.env.local)
 
+⚠️ **IMPORTANTE:** El `STORE_ID` debe ser el **slug** (`fintec`), NO el ID numérico (`229057`)
+
 ```bash
 # LemonSqueezy
-LEMONSQUEEZY_STORE_ID=229057
+LEMONSQUEEZY_STORE_ID=fintec  # ← SLUG, no 229057
 LEMONSQUEEZY_API_KEY=<tu-api-key>
 LEMONSQUEEZY_WEBHOOK_SECRET=<tu-webhook-secret>
 LEMONSQUEEZY_PRODUCT_ID_BASE=656807
 LEMONSQUEEZY_PRODUCT_ID_PREMIUM=656822
-LEMONSQUEEZY_VARIANT_ID_BASE=085044d4-3711-4313-bd18-8d43c24cdd36
-LEMONSQUEEZY_VARIANT_ID_PREMIUM=ea09c700-e8ba-43fa-ab75-df56fd7875e2
+LEMONSQUEEZY_VARIANT_ID_BASE=085044d4-3711-4313-bd18-8d43c24cdd36  # ← SLUG de checkout
+LEMONSQUEEZY_VARIANT_ID_PREMIUM=ea09c700-e8ba-43fa-ab75-df56fd7875e2  # ← SLUG de checkout
 
 # Supabase
 NEXT_PUBLIC_SUPABASE_URL=https://lssnujnctuchowgrspvk.supabase.co

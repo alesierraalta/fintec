@@ -7,6 +7,7 @@ import { AccountsOverview } from './accounts-overview';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -65,6 +66,9 @@ export function MobileDashboard() {
   
   return (
     <div className="space-y-6">
+      {/* Free User Limit Warnings */}
+      <FreeLimitWarning />
+      
       {/* iOS-style Header */}
       <div className="text-center py-8">
         <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">

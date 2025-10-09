@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { CreateTransactionDTO } from '@/types';
 import { TransactionType } from '@/types';
+import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
 
 const repository = new SupabaseAppRepository();
 
@@ -77,6 +78,24 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Check subscription limits (extract userId from account or body)
+    const userId = body.userId;
+    if (userId) {
+      const limitCheck = await canCreateTransaction(userId);
+      if (!limitCheck.allowed) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: limitCheck.reason || 'Límite alcanzado',
+            limitReached: true,
+            current: limitCheck.current,
+            limit: limitCheck.limit,
+          },
+          { status: 403 }
+        );
+      }
     }
     
     const transactionData: CreateTransactionDTO = {

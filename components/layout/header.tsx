@@ -138,8 +138,17 @@ export function Header() {
           <h1 className="text-ios-headline font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">FinTec</h1>
         </div>
 
-        {/* Right - Notifications */}
+        {/* Right - Pricing & Notifications */}
         <div className="flex items-center space-x-2">
+          {/* Botón de Pricing */}
+          <button
+            onClick={() => router.push('/pricing')}
+            className="p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10"
+            title="Ver planes de precios"
+          >
+            <Sparkles className="h-5 w-5" />
+          </button>
+
           <div className="relative">
             <button 
               onClick={handleNotificationClick}

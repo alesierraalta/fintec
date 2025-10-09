@@ -12,6 +12,7 @@ import { useRepository } from '@/providers';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import type { GoalWithProgress } from '@/repositories/contracts';
+import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import { 
   Sparkles, 
   TrendingUp, 
@@ -160,6 +161,9 @@ export function DesktopDashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Free User Limit Warnings */}
+      <FreeLimitWarning />
+      
       {/* iOS-style Header */}
       <div className="text-center py-8">
         <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
