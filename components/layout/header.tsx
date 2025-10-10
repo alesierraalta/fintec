@@ -162,58 +162,6 @@ export function Header() {
             />
             <span className="text-xs font-medium">Actualiza tu plan</span>
           </div>
-
-
-                    ) : notifications.length > 0 ? (
-                      <div className="space-y-3">
-                        {notifications.slice(0, 5).map((notification) => (
-                          <div 
-                            key={notification.id}
-                            className={`p-3 rounded-xl cursor-pointer transition-ios ${
-                              notification.is_read 
-                                ? 'bg-muted/50' 
-                                : 'bg-primary/5 border border-primary/20'
-                            }`}
-                            onClick={() => markNotificationAsRead(notification.id)}
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1">
-                                <p className="text-ios-body font-medium text-foreground">{notification.title}</p>
-                                <p className="text-ios-caption text-muted-foreground mt-1">{notification.message}</p>
-                                <p className="text-ios-caption text-muted-foreground mt-1">
-                                  {new Date(notification.created_at).toLocaleDateString('es-ES', {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
-                              </div>
-                              {!notification.is_read && (
-                                <div className="w-2 h-2 bg-primary rounded-full mt-1 ml-2" />
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        {notificationCount > 0 && (
-                          <button
-                            onClick={markAllAsRead}
-                            className="w-full text-center text-ios-caption text-primary hover:text-primary/80 py-2"
-                          >
-                            Marcar todas como leídas
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <Bell className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-ios-body text-muted-foreground">No hay notificaciones nuevas</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-              </>
-            )}
-          </div>
         </div>
       </header>
     );
