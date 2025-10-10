@@ -12,9 +12,9 @@ export const metadata: Metadata = {
   keywords: 'finanzas personales, presupuesto, gastos, ingresos, ahorro, fintec, fintech, inversiones',
   authors: [{ name: 'FinTec App' }],
   icons: {
-    icon: '/images/fintecminilogodark.jpg',
-    shortcut: '/images/fintecminilogodark.jpg',
-    apple: '/images/fintecminilogodark.jpg',
+    icon: '/fintecminilogodark.jpg',
+    shortcut: '/fintecminilogodark.jpg',
+    apple: '/fintecminilogodark.jpg',
   },
   other: {
     'theme-color': '#000000',

@@ -153,7 +153,7 @@ export function Header() {
             title="Actualiza tu plan"
           >
             <Image
-              src="/images/fintecminilogodark.jpg"
+              src="/fintecminilogodark.jpg"
               alt="Actualiza tu plan"
               width={24}
               height={24}
