@@ -127,11 +127,9 @@ export function Header() {
     // Mobile App Header - Native-like
     return (
       <header className="h-16 black-theme-header flex items-center justify-between px-4">
-        {/* Left - Profile/Menu */}
+        {/* Left - Empty space for layout balance */}
         <div className="flex items-center">
-          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios">
-            <Heart className="h-4 w-4 text-primary-foreground" />
-          </div>
+          {/* Empty div to maintain layout balance */}
         </div>
 
         {/* Center - Logo */}
@@ -165,31 +163,7 @@ export function Header() {
             <span className="text-xs font-medium">Actualiza tu plan</span>
           </div>
 
-          <div className="relative">
-            <button 
-              onClick={handleNotificationClick}
-              className="relative p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10"
-            >
-              <Bell className="h-5 w-5" />
-              {notificationCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-xs font-bold text-destructive-foreground rounded-full flex items-center justify-center shadow-ios">
-                  {notificationCount}
-                </span>
-              )}
-            </button>
 
-            {/* Mobile Notifications Dropdown */}
-            {showNotifications && (
-              <>
-                <div className="absolute right-0 top-full mt-2 w-80 black-theme-card rounded-2xl shadow-ios-lg z-50 animate-fade-in">
-                  <div className="p-4">
-                    <h4 className="text-ios-headline text-foreground mb-3">Notificaciones</h4>
-                    
-                    {loadingNotifications ? (
-                      <div className="text-center py-6">
-                        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                        <p className="text-ios-body text-muted-foreground">Cargando notificaciones...</p>
-                      </div>
                     ) : notifications.length > 0 ? (
                       <div className="space-y-3">
                         {notifications.slice(0, 5).map((notification) => (
