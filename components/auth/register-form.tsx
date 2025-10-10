@@ -91,27 +91,23 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-md mx-auto"
       >
-        <GradientCard 
-          variant="success" 
-          intensity="light"
-          className="p-8 text-center"
-        >
+        <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border/20 shadow-2xl text-center">
           <motion.div 
-            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4 shadow-lg"
+            className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-2xl mb-4"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 300 }}
           >
-            <CheckCircle className="h-8 w-8 text-white" />
+            <CheckCircle className="h-8 w-8 text-success" />
           </motion.div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold text-foreground mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-transparent">
             ¡Cuenta Creada!
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
           </p>
-          <div className="w-8 h-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto" />
-        </GradientCard>
+          <div className="w-8 h-8 border-2 border-success border-t-transparent rounded-full animate-spin mx-auto" />
+        </div>
       </motion.div>
     );
   }
@@ -123,39 +119,35 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <GradientCard 
-        variant="primary" 
-        intensity="light"
-        className="p-8"
-      >
+      <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border/20 shadow-2xl">
         <div className="text-center mb-8">
           <motion.div 
-            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl mb-4 shadow-lg"
+            className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-2xl mb-4"
             whileHover={{ scale: 1.05, rotate: -5 }}
             transition={{ type: "spring", stiffness: 400 }}
           >
-            <UserPlus className="h-8 w-8 text-white" />
+            <UserPlus className="h-8 w-8 text-success" />
           </motion.div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold text-foreground mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-transparent">
             Crear Cuenta
           </h2>
-          <p className="text-gray-600">Únete para gestionar tus finanzas</p>
+          <p className="text-muted-foreground">Únete para gestionar tus finanzas</p>
         </div>
 
         {(validationError || authError) && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+            className="mb-6 p-4 bg-error/10 border border-error/20 rounded-lg flex items-start space-x-3"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="h-5 w-5 text-error flex-shrink-0 mt-0.5" />
             <div className="flex-1">
-              <p className="text-red-700 text-sm">{validationError || authError}</p>
+              <p className="text-error text-sm">{validationError || authError}</p>
               {authError && authError.includes('registrado') && (
-                <p className="text-red-600 text-xs mt-2">
+                <p className="text-error/80 text-xs mt-2">
                   💡 Si ya tienes una cuenta, puedes <button 
                     onClick={() => router.push('/auth/login')} 
-                    className="underline hover:text-red-700"
+                    className="underline hover:text-error"
                   >
                     iniciar sesión aquí
                   </button>
@@ -167,11 +159,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="fullName" className="block text-sm font-medium text-foreground mb-2">
               Nombre Completo
             </label>
             <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="fullName"
                 name="fullName"
@@ -187,11 +179,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           </div>
 
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
@@ -207,11 +199,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
               Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -226,21 +218,21 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+            <p className="text-xs text-muted-foreground mt-1">Mínimo 6 caracteres</p>
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-2">
               Confirmar Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -255,7 +247,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={loading}
               >
                 {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -277,18 +269,18 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             ¿Ya tienes cuenta?{' '}
             <button
               onClick={() => router.push('/auth/login')}
-              className="text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+              className="text-primary hover:text-primary/80 font-semibold transition-all"
               disabled={loading}
             >
               Inicia sesión aquí
             </button>
           </p>
         </div>
-      </GradientCard>
+      </div>
     </motion.div>
   );
 }

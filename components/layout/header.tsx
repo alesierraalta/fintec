@@ -1,6 +1,7 @@
 'use client';
 
 import { Bell, Sparkles, Heart, Menu, X, User, LogOut } from 'lucide-react';
+import Image from 'next/image';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
@@ -133,21 +134,36 @@ export function Header() {
           </div>
         </div>
 
-        {/* Center - App Title */}
-        <div className="flex-1 text-center">
-          <h1 className="text-ios-headline font-bold bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">FinTec</h1>
+        {/* Center - Logo */}
+        <div className="flex-1 flex items-center justify-center">
+          <Image
+            src="/finteclogodark.jpg"
+            alt="FinTec Logo"
+            width={120}
+            height={40}
+            className="object-contain"
+            unoptimized
+          />
         </div>
 
         {/* Right - Pricing & Notifications */}
         <div className="flex items-center space-x-2">
-          {/* Botón de Pricing */}
-          <button
+          {/* Logo y mensaje de Pricing */}
+          <div
             onClick={() => router.push('/pricing')}
-            className="p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10"
-            title="Ver planes de precios"
+            className="flex items-center space-x-1 p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10 cursor-pointer"
+            title="Actualiza tu plan"
           >
-            <Sparkles className="h-5 w-5" />
-          </button>
+            <Image
+              src="/images/fintecminilogodark.jpg"
+              alt="Actualiza tu plan"
+              width={24}
+              height={24}
+              className="object-contain"
+              unoptimized
+            />
+            <span className="text-xs font-medium">Actualiza tu plan</span>
+          </div>
 
           <div className="relative">
             <button 
