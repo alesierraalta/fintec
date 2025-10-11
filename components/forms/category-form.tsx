@@ -7,6 +7,7 @@ import { IconPicker } from './icon-picker';
 import { CategoryKind } from '@/types';
 import { Tag, Folder } from 'lucide-react';
 import { useRepository } from '@/providers/repository-provider';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 
 interface CategoryFormProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ const categoryKinds = [
 
 export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave, defaultKind }: CategoryFormProps) {
   const repository = useRepository();
+  const { invalidateCache, loadCategories } = useOptimizedData();
   const [formData, setFormData] = useState({
     name: category?.name || '',
     kind: category?.kind || defaultKind || 'EXPENSE',
@@ -32,6 +34,7 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
     parentId: category?.parentId || parentCategoryId || '',
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [parentCategories, setParentCategories] = useState<any[]>([]);
 
   // Load parent categories from database
@@ -72,6 +75,7 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
     if (!formData.name.trim()) return;
 
     setLoading(true);
+    setError(null);
     
     try {
       let createdCategory = null;
@@ -97,6 +101,10 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
       
+      // Invalidate cache and refresh data
+      invalidateCache('categories');
+      await loadCategories(true);
+      
       onSave?.(createdCategory);
       onClose();
       
@@ -111,10 +119,21 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
     } catch (error) {
+      console.error('Error creating/updating category:', error);
+      setError(error instanceof Error ? error.message : 'Error al crear/actualizar la categoría');
     } finally {
       setLoading(false);
     }
   };
+
+  if (error) {
+    return (
+      <div className="p-4 bg-red-50 border border-red-200 rounded">
+        <p className="text-red-700">Error: {error}</p>
+        <button onClick={() => setError(null)} className="mt-2 text-blue-600">Reintentar</button>
+      </div>
+    );
+  }
 
   return (
     <Modal open={isOpen} onClose={onClose} title={category ? 'Editar Categoría' : 'Nueva Categoría'}>
