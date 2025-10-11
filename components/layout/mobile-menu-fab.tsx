@@ -32,6 +32,12 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   {
+    name: 'Actualizar Plan',
+    href: '/pricing',
+    icon: Sparkles,
+    description: 'Mejora tu suscripción'
+  },
+  {
     name: 'Categorías',
     href: '/categories',
     icon: Tags,
@@ -61,17 +67,11 @@ const menuItems: MenuItem[] = [
     icon: Repeat,
     description: 'Gestiona transacciones recurrentes'
   },
-  {
+    {
     name: 'Configuración',
     href: '/settings',
     icon: Settings,
     description: 'Ajusta tu aplicación'
-  },
-  {
-    name: 'Actualizar Plan',
-    href: '/pricing',
-    icon: Sparkles,
-    description: 'Mejora tu suscripción'
   }
 ];
 
