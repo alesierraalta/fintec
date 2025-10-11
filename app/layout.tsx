@@ -11,11 +11,6 @@ export const metadata: Metadata = {
   description: 'Gestiona tus finanzas de forma inteligente y moderna. Control de gastos, presupuestos, inversiones, metas de ahorro y más.',
   keywords: 'finanzas personales, presupuesto, gastos, ingresos, ahorro, fintec, fintech, inversiones',
   authors: [{ name: 'FinTec App' }],
-  icons: {
-    icon: '/fintecminilogodark.jpg',
-    shortcut: '/fintecminilogodark.jpg',
-    apple: '/fintecminilogodark.jpg',
-  },
   other: {
     'theme-color': '#000000',
   },

@@ -348,6 +348,9 @@ CREATE POLICY "Users can delete own transactions" ON transactions FOR DELETE USI
 
 -- Categories are global (for now - could be user-specific later)
 CREATE POLICY "Anyone can view categories" ON categories FOR SELECT TO authenticated USING (true);
+CREATE POLICY "Authenticated users can insert categories" ON categories FOR INSERT TO authenticated WITH CHECK (true);
+CREATE POLICY "Authenticated users can update categories" ON categories FOR UPDATE TO authenticated USING (true);
+CREATE POLICY "Authenticated users can delete categories" ON categories FOR DELETE TO authenticated USING (true);
 
 -- Budgets and goals are user-specific through category/account relationships
 -- (Additional policies would be added here)
