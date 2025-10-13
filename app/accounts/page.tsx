@@ -110,6 +110,7 @@ export default function AccountsPage() {
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
   const [showBalances, setShowBalances] = useState(true);
+  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
   const [showRatesHistory, setShowRatesHistory] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -215,19 +216,30 @@ export default function AccountsPage() {
   };
 
   // Convertir balance a USD
-  const convertToUSD = useCallback((balanceMinor: number, currencyCode: string): number => {
+  const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
     if (currencyCode === 'USD') return balanceMinor / 100;
 
     const balanceMajor = balanceMinor / 100;
 
     if (currencyCode === 'VES') {
-      // Usar tasa oficial BCV para consistencia
-      return balanceMajor / bcvRates.usd;
+      switch (useRate) {
+        case 'binance':
+          // Usar tasa de Binance para conversión de mercado
+          return balanceMajor / binanceRates.usd_ves;
+        case 'bcv_usd':
+          // Usar tasa oficial BCV Dólar
+          return balanceMajor / bcvRates.usd;
+        case 'bcv_eur':
+          // Usar tasa oficial BCV Euro (conversión aproximada)
+          return (balanceMajor / bcvRates.eur) * 1.1; // EUR → USD aproximado
+        default:
+          return balanceMajor / bcvRates.usd;
+      }
     }
 
     // Agregar más monedas según necesidad
     return balanceMajor;
-  }, [bcvRates]);
+  }, [binanceRates, bcvRates]);
 
   // Cálculo optimizado con tasas BCV reales
   const totalBalance = accounts.reduce((sum, acc) => {
@@ -243,7 +255,21 @@ export default function AccountsPage() {
   // Default balance growth to 0 (could be calculated from transaction history if needed)
   const balanceGrowth = 0;
 
-  return (
+  // Función para mostrar tasas actuales
+  const showCurrentRates = () => {
+    console.log('=== TASAS ACTUALES ===');
+    console.log(`💱 Binance: ${binanceRates.usd_ves} Bs/USDT`);
+    console.log(`🇺🇸 BCV USD: ${bcvRates.usd} Bs/USD`);
+    console.log(`🇪🇺 BCV EUR: ${bcvRates.eur} Bs/EUR`);
+    console.log('===================');
+  };
+
+  // Mostrar tasas actuales al cargar
+  useEffect(() => {
+    showCurrentRates();
+  }, [binanceRates, bcvRates]);
+
+  return \(
     <AuthGuard>
       <MainLayout>
         <div className="space-y-8 animate-fade-in no-horizontal-scroll w-full">
@@ -365,7 +391,42 @@ export default function AccountsPage() {
                 {showBalances ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 <span>{showBalances ? 'Ocultar Saldos' : 'Mostrar Saldos'}</span>
               </motion.button>
-              
+
+              {showBalances && (
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <button
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      usdEquivalentType === 'binance'
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                    }`}
+                    onClick={() => setUsdEquivalentType('binance')}
+                  >
+                    💱 Binance
+                  </button>
+                  <button
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      usdEquivalentType === 'bcv_usd'
+                        ? 'bg-green-500 text-white'
+                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                    }`}
+                    onClick={() => setUsdEquivalentType('bcv_usd')}
+                  >
+                    🇺🇸 BCV USD
+                  </button>
+                  <button
+                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      usdEquivalentType === 'bcv_eur'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                    }`}
+                    onClick={() => setUsdEquivalentType('bcv_eur')}
+                  >
+                    🇪🇺 BCV EUR
+                  </button>
+                </div>
+              )}
+
               <motion.button
                 className="relative w-full sm:w-auto px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"
                 onClick={handleNewAccount}
@@ -571,6 +632,42 @@ export default function AccountsPage() {
               Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
             </p>
 
+            {/* Tasas actuales visibles para el usuario */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
+                </div>
+                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
+                </div>
+                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
+                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
+                </div>
+                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
+              </div>
+            </div>
+
             <div className="space-y-6">
               <BCVRates />
               <BinanceRatesComponent />
@@ -753,7 +850,13 @@ export default function AccountsPage() {
                               </p>
                               {account.currencyCode !== 'USD' && showBalances && (
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode).toLocaleString('en-US', { 
+                                  ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode, usdEquivalentType).toLocaleString('en-US', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  })} USD
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    ({usdEquivalentType === 'binance' ? 'Binance' : usdEquivalentType === 'bcv_usd' ? 'BCV USD' : 'BCV EUR'})
+                                  </span>
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2
                                   })} USD
