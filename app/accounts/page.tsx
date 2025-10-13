@@ -217,17 +217,17 @@ export default function AccountsPage() {
   // Convertir balance a USD
   const convertToUSD = useCallback((balanceMinor: number, currencyCode: string): number => {
     if (currencyCode === 'USD') return balanceMinor / 100;
-    
+
     const balanceMajor = balanceMinor / 100;
-    
+
     if (currencyCode === 'VES') {
-      // Usar tasa promedio de Binance
-      return balanceMajor / binanceRates.usd_ves;
+      // Usar tasa oficial BCV para consistencia
+      return balanceMajor / bcvRates.usd;
     }
-    
+
     // Agregar más monedas según necesidad
     return balanceMajor;
-  }, [binanceRates]);
+  }, [bcvRates]);
 
   // Cálculo optimizado con tasas BCV reales
   const totalBalance = accounts.reduce((sum, acc) => {
