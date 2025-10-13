@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { Bell, Sparkles, Menu, X, User, LogOut } from 'lucide-react';
 import Image from 'next/image';
