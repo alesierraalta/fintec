@@ -269,7 +269,7 @@ export default function AccountsPage() {
     showCurrentRates();
   }, [binanceRates, bcvRates]);
 
-  return \(
+  return (
     <AuthGuard>
       <MainLayout>
         <div className="space-y-8 animate-fade-in no-horizontal-scroll w-full">
