@@ -134,9 +134,9 @@ export function MobileMenuFAB() {
                 <button
                   key={item.name}
                   onClick={() => handleNavigate(item.href)}
-                  className="w-full flex items-center space-x-4 p-4 rounded-2xl bg-background-secondary/50 hover:bg-background-secondary border border-border-primary/20 hover:border-border-primary/40 transition-ios active:scale-95"
+                  className={cn('w-full flex items-center space-x-4 p-4 rounded-2xl transition-ios active:scale-95', item.href === '/pricing' ? 'bg-purple-500/90 hover:bg-purple-600 text-white border border-purple-400/30 hover:border-purple-500/50' : 'bg-background-secondary/50 hover:bg-background-secondary border border-border-primary/20 hover:border-border-primary/40')}
                 >
-                  <div className="p-3 rounded-xl bg-accent-primary/10 border border-accent-primary/20">
+                  <div className={cn('p-3 rounded-xl', item.href === '/pricing' ? 'bg-purple-400/20 border border-purple-400/40' : 'bg-accent-primary/10 border border-accent-primary/20')}>
                     <item.icon className="h-5 w-5 text-accent-primary" />
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -165,7 +165,7 @@ export function MobileMenuFAB() {
             'w-14 h-14 rounded-full shadow-ios-lg transition-ios flex items-center justify-center backdrop-blur-sm',
             isOpen
               ? 'bg-accent-primary hover:bg-accent-primary/90 rotate-90'
-              : 'bg-background-primary/90 hover:bg-background-secondary border border-border-primary/30 hover:border-border-primary/50 active:scale-95'
+              : 'bg-purple-500 hover:bg-purple-600 active:scale-95'
           )}
           title="Más opciones"
           aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -179,7 +179,7 @@ export function MobileMenuFAB() {
               alt="FinTec Menu"
               width={32}
               height={32}
-              className="object-contain rounded-full"
+              className="object-contain"
               unoptimized
             />
           )}

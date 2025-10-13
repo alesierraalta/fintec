@@ -11,158 +11,18 @@ import type { Notification } from '@/types/notifications';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 
-export function Header() {
-  const [notificationCount, setNotificationCount] = useState(0);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [totalBalance, setTotalBalance] = useState(0);
-  const { isOpen, isMobile, toggleSidebar } = useSidebar();
-  const { user, signOut } = useAuth();
-  const router = useRouter();
-  const repository = useRepository();
-  const bcvRates = useBCVRates();
-
-  // Memoized functions for better performance
-  const memoizedLoadTotalBalance = useCallback(async () => {
-    if (!user) return;
-    try {
-      const accounts = await repository.accounts.findByUserId(user.id);
-      const total = accounts.reduce((sum, acc) => {
-        const balanceMinor = Number(acc.balance) || 0;
-        const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-        
-        // Apply BCV conversion for VES currency
-        if (acc.currencyCode === 'VES') {
-          return sum + (balanceMajor / bcvRates.usd);
-        }
-        return sum + balanceMajor;
-      }, 0);
-      setTotalBalance(total);
-    } catch (error) {
-      setTotalBalance(0);
-    }
-  }, [user, repository, bcvRates]);
-
-  const memoizedLoadNotifications = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      setLoadingNotifications(true);
-      const [unreadNotifications, count] = await Promise.all([
-        repository.notifications.findUnreadByUserId(user.id),
-        repository.notifications.countUnreadByUserId(user.id)
-      ]);
-      
-      setNotifications(unreadNotifications);
-      setNotificationCount(count);
-    } catch (error) {
-    } finally {
-      setLoadingNotifications(false);
-    }
-  }, [user, repository]);
-
-  // Consolidated effect for loading data
-  useEffect(() => {
-    if (user) {
-      memoizedLoadNotifications();
-      memoizedLoadTotalBalance();
-    }
-  }, [user, memoizedLoadNotifications, memoizedLoadTotalBalance]);
-
-  // Memoized handlers
-  const handleNotificationClick = useCallback(async () => {
-    if (!showNotifications) {
-      // Load latest notifications when opening
-      await memoizedLoadNotifications();
-    }
-    setShowNotifications(!showNotifications);
-  }, [showNotifications, memoizedLoadNotifications]);
-
-  const markNotificationAsRead = useCallback(async (notificationId: string) => {
-    try {
-      await repository.notifications.markAsRead(notificationId);
-      // Update local state
-      setNotifications(prev => 
-        prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
-      );
-      setNotificationCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-    }
-  }, [repository]);
-
-  const markAllAsRead = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      await repository.notifications.markAllAsRead(user.id);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-      setNotificationCount(0);
-    } catch (error) {
-    }
-  }, [user, repository]);
-
-  const handleLogout = useCallback(async () => {
-    await signOut();
-    router.push('/auth/login');
-  }, [signOut, router]);
-
-  const handleProfile = useCallback(() => {
-    router.push('/profile');
-    setShowUserMenu(false);
-  }, [router]);
-
-  // Memoized formatted balance for display
-  const formattedBalance = useMemo(() => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(totalBalance);
-  }, [totalBalance]);
-
-  if (isMobile) {
-    // Mobile App Header - Native-like
+if (isMobile) {
+    // Mobile App Header - Simplified with only centered logo
     return (
-      <header className="h-16 black-theme-header flex items-center justify-between px-4">
-        {/* Left - Empty space for layout balance */}
-        <div className="flex items-center">
-          {/* Empty div to maintain layout balance */}
-        </div>
-
-        {/* Center - Logo */}
-        <div className="flex-1 flex items-center justify-center">
-          <Image
-            src="/finteclogodark.jpg"
-            alt="FinTec Logo"
-            width={120}
-            height={40}
-            className="object-contain"
-            unoptimized
-          />
-        </div>
-
-        {/* Right - Pricing & Notifications */}
-        <div className="flex items-center space-x-2">
-          {/* Logo y mensaje de Pricing */}
-          <div
-            onClick={() => router.push('/pricing')}
-            className="flex items-center space-x-1 p-2 text-white/80 hover:text-white rounded-xl transition-ios hover:bg-white/10 cursor-pointer"
-            title="Actualiza tu plan"
-          >
-            <Image
-              src="/fintecminilogodark.jpg?v=1"
-              alt="Actualiza tu plan"
-              width={24}
-              height={24}
-              className="object-contain"
-              unoptimized
-            />
-            <span className="text-xs font-medium">Actualiza tu plan</span>
-          </div>
-        </div>
+      <header className="h-16 black-theme-header flex items-center justify-center px-4">
+        <Image
+          src="/finteclogodark.jpg"
+          alt="FinTec Logo"
+          width={120}
+          height={40}
+          className="object-contain"
+          unoptimized
+        />
       </header>
     );
   }
