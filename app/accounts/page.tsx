@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
@@ -857,9 +857,6 @@ export default function AccountsPage() {
                                   <span className="text-xs text-muted-foreground ml-1">
                                     ({usdEquivalentType === 'binance' ? 'Binance' : usdEquivalentType === 'bcv_usd' ? 'BCV USD' : 'BCV EUR'})
                                   </span>
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2
-                                  })} USD
                                 </p>
                               )}
                               <div className="flex items-center justify-end space-x-1 md:space-x-2 mt-1">
