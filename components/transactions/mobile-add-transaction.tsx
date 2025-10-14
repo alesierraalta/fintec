@@ -160,19 +160,23 @@ export function MobileAddTransaction() {
     } else if (value === '=') {
       try {
         const result = eval(calculatorValue);
-        setCalculatorValue(result.toString());
-        setFormData({ ...formData, amount: result.toString() });
+        const resultStr = result.toString();
+        setCalculatorValue(resultStr);
+        setFormData({ ...formData, amount: resultStr });
       } catch {
         setCalculatorValue('Error');
+        setFormData({ ...formData, amount: '' });
       }
     } else if (value === '⌫') {
       const newValue = calculatorValue.length > 1 ? calculatorValue.slice(0, -1) : '0';
       setCalculatorValue(newValue);
       setFormData({ ...formData, amount: newValue === '0' ? '' : newValue });
     } else {
-      setCalculatorValue(prev => prev === '0' ? value : prev + value);
+      const newValue = calculatorValue === '0' ? value : calculatorValue + value;
+      setCalculatorValue(newValue);
+      setFormData({ ...formData, amount: newValue });
     }
-  };
+  };;
 
   const handleSubmit = async () => {
     if (!formData.amount) {
