@@ -179,11 +179,17 @@ export function MobileAddTransaction() {
   };;
 
   const handleSubmit = async () => {
-    if (!formData.amount) {
+    // Validate required fields
+    if (!formData.amount || formData.amount.trim() === '') {
       alert('Por favor ingresa un monto');
       return;
     }
 
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Por favor ingresa un monto válido mayor a 0');
+      return;
+    }
 
     setLoading(true);
     
@@ -197,7 +203,7 @@ export function MobileAddTransaction() {
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
-        amountMinor: Math.round(parseFloat(formData.amount) * 100),
+        amountMinor: Math.round(amount * 100),
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description,
         note: formData.note || undefined,
@@ -217,7 +223,7 @@ export function MobileAddTransaction() {
             accountId: formData.accountId || 'acc1',
             categoryId: formData.categoryId || 'food',
             currencyCode: 'USD',
-            amountMinor: Math.round(parseFloat(formData.amount) * 100),
+            amountMinor: Math.round(amount * 100),
             description: formData.description,
             note: formData.note || undefined,
             tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
@@ -250,7 +256,7 @@ export function MobileAddTransaction() {
     } finally {
       setLoading(false);
     }
-  };
+  };;
 
   const renderContent = () => {
     return (
