@@ -20,10 +20,10 @@ export function AccountActionsDropdown({
   onAlertSettings 
 }: AccountActionsDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 220 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 220, maxHeight: 240 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-  const [dropdownDirection, setDropdownDirection] = useState<'down' | 'up'>('down');
+  const [placement, setPlacement] = useState<'down' | 'up' | 'sheet'>('down');
 
   const calculatePosition = useCallback(() => {
     if (!triggerRef.current || typeof window === 'undefined') {
@@ -32,45 +32,64 @@ export function AccountActionsDropdown({
 
     const rect = triggerRef.current.getBoundingClientRect();
     const dropdownElement = dropdownRef.current;
-    const dropdownHeight = dropdownElement?.offsetHeight ?? 192;
-    const safeMargin = 8;
-    const gap = 8;
+    const dropdownHeight = dropdownElement?.offsetHeight ?? 210;
+    const safeMargin = 12;
+    const gap = 10;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
     const scrollX = window.scrollX;
     const scrollY = window.scrollY;
-    const width = viewportWidth < 640 ? 240 : 248;
+    const baseWidth = viewportWidth < 640 ? Math.min(viewportWidth - safeMargin * 2, 300) : 256;
 
     const minLeft = scrollX + safeMargin;
-    const maxLeft = scrollX + viewportWidth - width - safeMargin;
-    let left = rect.right - width + scrollX;
+    const maxLeft = scrollX + viewportWidth - baseWidth - safeMargin;
+    let left = rect.right - baseWidth + scrollX;
     left = clamp(left, minLeft, Math.max(minLeft, maxLeft));
 
     let top = rect.bottom + gap + scrollY;
-    let direction: 'down' | 'up' = 'down';
+    let nextPlacement: 'down' | 'up' | 'sheet' = 'down';
 
-    const availableBelow = viewportHeight - rect.bottom;
-    const availableAbove = rect.top;
+    const availableBelow = viewportHeight - rect.bottom - safeMargin;
+    const availableAbove = rect.top - safeMargin;
 
-    if (availableBelow < dropdownHeight + gap && availableAbove >= dropdownHeight) {
-      direction = 'up';
+    if (availableBelow >= dropdownHeight + gap) {
+      nextPlacement = 'down';
+      top = rect.bottom + gap + scrollY;
+    } else if (availableAbove >= dropdownHeight + gap) {
+      nextPlacement = 'up';
       top = rect.top - dropdownHeight - gap + scrollY;
+    } else {
+      nextPlacement = 'sheet';
+      const sheetWidth = viewportWidth < 640 ? Math.min(viewportWidth - safeMargin * 2, 360) : baseWidth;
+      const sheetLeft = scrollX + (viewportWidth - sheetWidth) / 2;
+      const sheetTop = scrollY + Math.max(safeMargin, viewportHeight - dropdownHeight - safeMargin);
+
+      left = clamp(sheetLeft, minLeft, scrollX + viewportWidth - sheetWidth - safeMargin);
+
+      setPosition({
+        top: sheetTop,
+        left,
+        width: sheetWidth,
+        maxHeight: viewportHeight - safeMargin * 2,
+      });
+      setPlacement(nextPlacement);
+      return;
     }
 
     const maxTop = scrollY + viewportHeight - dropdownHeight - safeMargin;
     const minTop = scrollY + safeMargin;
 
-    if (direction === 'down' && top > maxTop) {
-      direction = 'up';
+    if (nextPlacement === 'down' && top > maxTop) {
+      nextPlacement = 'up';
       top = rect.top - dropdownHeight - gap + scrollY;
     }
 
-    if (direction === 'up' && top < minTop) {
+    if (nextPlacement === 'up' && top < minTop) {
       top = minTop;
     }
 
-    setPosition({ top, left, width });
-    setDropdownDirection(direction);
+    setPosition({ top, left, width: baseWidth, maxHeight: viewportHeight - safeMargin * 2 });
+    setPlacement(nextPlacement);
   }, []);
 
   const handleToggle = () => {
@@ -128,7 +147,7 @@ export function AccountActionsDropdown({
         calculatePosition();
       };
 
-      window.addEventListener('scroll', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, { passive: true });
       window.addEventListener('resize', handleScrollOrResize);
       
       return () => {
@@ -138,6 +157,15 @@ export function AccountActionsDropdown({
     }
   }, [isOpen, calculatePosition]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    return () => {
+      setPlacement('down');
+    };
+  }, [isOpen]);
   if (typeof document === 'undefined') return null;
 
   return (
@@ -158,48 +186,73 @@ export function AccountActionsDropdown({
           <motion.div
             ref={dropdownRef}
             id={`account-dropdown-${account.id}`}
-            className="fixed flex flex-col bg-card/95 border border-border/60 rounded-2xl shadow-2xl backdrop-blur-md ring-1 ring-black/5 z-[10000] overflow-hidden"
+            className={`fixed flex flex-col z-[10000] overflow-hidden border border-border/60 backdrop-blur-xl shadow-2xl shadow-black/40 ring-1 ring-black/10 bg-[rgba(15,15,18,0.94)] ${
+              placement === 'sheet' ? 'rounded-t-3xl rounded-b-2xl' : 'rounded-2xl'
+            }`}
             style={{
               top: `${position.top}px`,
               left: `${position.left}px`,
               width: `${position.width}px`,
-              transformOrigin: dropdownDirection === 'down' ? 'top right' : 'bottom right',
+              maxHeight: `${position.maxHeight}px`,
+              transformOrigin:
+                placement === 'down'
+                  ? 'top right'
+                  : placement === 'up'
+                    ? 'bottom right'
+                    : 'center',
+              overflowY: placement === 'sheet' ? 'auto' : 'visible',
             }}
             role="menu"
             aria-orientation="vertical"
-            initial={{ opacity: 0, scale: 0.97, y: dropdownDirection === 'down' ? -6 : 6 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: dropdownDirection === 'down' ? -6 : 6 }}
-            transition={{ duration: 0.16, ease: 'easeInOut' }}
+            initial={
+              placement === 'sheet'
+                ? { opacity: 0, y: 28 }
+                : { opacity: 0, scale: 0.96, y: placement === 'down' ? -10 : 10 }
+            }
+            animate={
+              placement === 'sheet' ? { opacity: 1, y: 0 } : { opacity: 1, scale: 1, y: 0 }
+            }
+            exit={
+              placement === 'sheet'
+                ? { opacity: 0, y: 24 }
+                : { opacity: 0, scale: 0.96, y: placement === 'down' ? -10 : 10 }
+            }
+            transition={{ duration: 0.18, ease: 'easeInOut' }}
           >
             <motion.button
               onClick={handleEdit}
-              className="flex items-center w-full px-4 py-3 text-left text-sm sm:text-[15px] text-foreground hover:bg-muted/40 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm sm:text-[15px] text-foreground hover:bg-muted/40/70 transition-colors"
               role="menuitem"
-              whileHover={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+              whileHover={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
             >
-              <Edit className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span>Editar cuenta</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/40 text-foreground">
+                <Edit className="h-[18px] w-[18px]" />
+              </span>
+              <span className="font-medium">Editar cuenta</span>
             </motion.button>
-            
+
             <motion.button
               onClick={handleAlertSettings}
-              className="flex items-center w-full px-4 py-3 text-left text-sm sm:text-[15px] text-foreground hover:bg-muted/40 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm sm:text-[15px] text-foreground hover:bg-muted/40/70 transition-colors"
               role="menuitem"
-              whileHover={{ backgroundColor: 'rgba(0,0,0,0.04)' }}
+              whileHover={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
             >
-              <Settings className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span>Alertas de saldo</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/40 text-foreground">
+                <Settings className="h-[18px] w-[18px]" />
+              </span>
+              <span className="font-medium">Alertas de saldo</span>
             </motion.button>
-            
+
             <motion.button
               onClick={handleDelete}
-              className="flex items-center w-full px-4 py-3 text-left text-sm sm:text-[15px] text-error-600 hover:bg-error/10 transition-colors"
+              className="flex items-center gap-3 w-full px-4 py-3 text-left text-sm sm:text-[15px] text-error-400 hover:bg-error/25 transition-colors"
               role="menuitem"
-              whileHover={{ backgroundColor: 'rgba(239,68,68,0.1)' }}
+              whileHover={{ backgroundColor: 'rgba(239,68,68,0.18)' }}
             >
-              <Trash2 className="h-4 w-4 mr-3 flex-shrink-0" />
-              <span>Eliminar cuenta</span>
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-error-500/20 text-error-200">
+                <Trash2 className="h-[18px] w-[18px]" />
+              </span>
+              <span className="font-medium">Eliminar cuenta</span>
             </motion.button>
           </motion.div>,
           document.body

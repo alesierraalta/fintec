@@ -231,7 +231,8 @@ export function MobileTransfer() {
         throw new Error(result.error || 'Error al procesar la transferencia');
       }
       
-      alert(`Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${toAccount.name}`);
+      const formattedAmount = formatCurrencyWithBCV(toMinorUnits(transferData.amount, fromAccount.currencyCode), fromAccount.currencyCode);
+      alert(`Transferencia exitosa: ${formattedAmount} de ${fromAccount.name} a ${toAccount.name}`);
       
       // Refresh accounts to show updated balances  
       // loadAccounts(); // TODO: Implement account refresh
@@ -517,7 +518,9 @@ export function MobileTransfer() {
             </div>
             <div className="flex justify-between">
               <span className="text-neutral-500 dark:text-neutral-400">Monto:</span>
-              <span className="text-neutral-900 dark:text-neutral-100 font-bold">${transferData.amount.toFixed(2)}</span>
+              <span className="text-neutral-900 dark:text-neutral-100 font-bold">
+                {formatCurrencyWithBCV(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'USD'), getFromAccount()?.currencyCode || 'USD')}
+              </span>
             </div>
             
             {/* Balance Changes */}

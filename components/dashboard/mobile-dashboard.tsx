@@ -175,7 +175,7 @@ export function MobileDashboard() {
           <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
           <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">MOVIMIENTOS RECIENTES</h3>
         </div>
-        <RecentTransactions />
+        <RecentTransactions transactions={[]} />
       </div>
 
       {/* iOS-style Accounts Overview */}

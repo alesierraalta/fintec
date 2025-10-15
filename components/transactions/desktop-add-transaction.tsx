@@ -51,6 +51,7 @@ import { useNotifications } from '@/lib/store';
 import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
+import { CURRENCIES } from '@/lib/money';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -794,7 +795,14 @@ export function DesktopAddTransaction() {
               )}
               {formData.amount && (
                 <p className="text-gray-300">
-                  Monto: <span className="text-white font-semibold">${formData.amount}</span>
+                  Monto: <span className="text-white font-semibold">
+                    {(() => {
+                      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+                      const currencyCode = selectedAccount?.currencyCode || 'USD';
+                      const currency = CURRENCIES[currencyCode];
+                      return `${currency?.symbol || '$'}${formData.amount}`;
+                    })()}
+                  </span>
                 </p>
               )}
               {formData.accountId && (

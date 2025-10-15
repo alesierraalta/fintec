@@ -41,6 +41,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { dateUtils } from '@/lib/dates/dayjs';
+import { formatCurrency } from '@/lib/money';
 import { cardVariants, listItemVariants, staggerContainer } from '@/lib/animations';
 import { useTableShortcuts } from '@/lib/hotkeys';
 import { useNotifications } from '@/lib/store';
@@ -187,20 +188,18 @@ export function TransactionsTable({
           const type = row.original.type as unknown as string;
           const isNegative = type === 'EXPENSE' || type === 'TRANSFER_OUT';
           
-          // Convert from minor units (cents) to major units (dollars)
-          // Handle NaN, null, undefined values
-          const amount = amountMinor && !isNaN(amountMinor) && isFinite(amountMinor)
-            ? amountMinor / 100
-            : 0;
+          // Format currency using the proper currency formatter
+          const formattedAmount = formatCurrency(
+            amountMinor,
+            currencyCode,
+            { showSymbol: true }
+          );
           
           return (
             <span className={`font-mono font-semibold ${
               isNegative ? 'text-red-600' : 'text-green-600'
             }`}>
-              {isNegative ? '-' : '+'}${Math.abs(amount).toLocaleString('es-ES', {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
+              {isNegative ? '-' : '+'}{formattedAmount}
             </span>
           );
         },

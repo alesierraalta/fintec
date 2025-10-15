@@ -44,6 +44,7 @@ import { CreateTransactionDTO, TransactionType } from '@/types';
 import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
+import { CURRENCIES } from '@/lib/money';
 
 // Data constants
 const transactionTypes = [
@@ -459,7 +460,14 @@ export function MobileAddTransaction() {
           
           <div className="bg-black/20 rounded-xl p-4 mb-4">
             <div className="text-right">
-              <div className="text-2xl font-bold text-white">${calculatorValue}</div>
+              <div className="text-2xl font-bold text-white">
+                {(() => {
+                  const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+                  const currencyCode = selectedAccount?.currencyCode || 'USD';
+                  const currency = CURRENCIES[currencyCode];
+                  return `${currency?.symbol || '$'}${calculatorValue}`;
+                })()}
+              </div>
             </div>
           </div>
 
