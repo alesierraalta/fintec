@@ -89,12 +89,12 @@ export function DesktopDashboard() {
       };
     }
 
-    // Calculate total balance
+    // Calculate total balance with proper VES conversion
     const totalBalance = rawAccounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
       
-      // Apply BCV conversion for VES currency (same as header)
+      // Apply BCV conversion for VES currency (convert VES to USD)
       if (acc.currencyCode === 'VES') {
         return sum + (balanceMajor / bcvRates.usd);
       }
@@ -119,23 +119,51 @@ export function DesktopDashboard() {
       return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
     });
 
-    // Calcular ingresos y gastos actuales
+    // Calcular ingresos y gastos actuales con conversión correcta
     const monthlyIncome = monthTransactions
       .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD for consistent calculation
+        if (t.currencyCode === 'VES') {
+          return sum + (amountMajor / bcvRates.usd);
+        }
+        return sum + amountMajor;
+      }, 0);
     
     const monthlyExpenses = monthTransactions
       .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD for consistent calculation
+        if (t.currencyCode === 'VES') {
+          return sum + (Math.abs(amountMajor) / bcvRates.usd);
+        }
+        return sum + Math.abs(amountMajor);
+      }, 0);
 
-    // Calcular ingresos y gastos del mes anterior
+    // Calcular ingresos y gastos del mes anterior con conversión correcta
     const previousMonthIncome = lastMonthTransactions
       .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD for consistent calculation
+        if (t.currencyCode === 'VES') {
+          return sum + (amountMajor / bcvRates.usd);
+        }
+        return sum + amountMajor;
+      }, 0);
     
     const previousMonthExpenses = lastMonthTransactions
       .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + Math.abs(t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD for consistent calculation
+        if (t.currencyCode === 'VES') {
+          return sum + (Math.abs(amountMajor) / bcvRates.usd);
+        }
+        return sum + Math.abs(amountMajor);
+      }, 0);
 
     return {
       totalBalance,
@@ -144,7 +172,7 @@ export function DesktopDashboard() {
       previousMonthIncome,
       previousMonthExpenses
     };
-  }, [rawTransactions, rawAccounts, bcvRates.usd]);
+  }, [rawTransactions, rawAccounts, bcvRates.usd]);;
 
   const { totalBalance, monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = summaryStats;
 

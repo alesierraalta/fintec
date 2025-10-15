@@ -28,14 +28,15 @@ export function RecentTransactions({
     const isNegative = transaction.type === TransactionType.EXPENSE || 
                       transaction.type === TransactionType.TRANSFER_OUT;
     
+    // Use the proper formatCurrency function from money.ts
     const formattedAmount = formatCurrency(
       transaction.amountMinor,
       transaction.currencyCode,
-      { showSymbol: true }
+      { showSymbol: true, showCode: true }
     );
     
     return isNegative ? `-${formattedAmount}` : formattedAmount;
-  };
+  };;
 
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {

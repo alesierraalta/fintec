@@ -29,7 +29,16 @@ export function AccountsOverview() {
         acc[accountId] = { currentMonth: 0, lastMonth: 0 };
       }
       
-      const amount = t.amountMinor / 100;
+      // Convert to major units with proper currency handling
+      const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+      let amountUSD = amountMajor;
+      
+      // Convert VES to USD for consistent calculation
+      if (t.currencyCode === 'VES') {
+        amountUSD = amountMajor / bcvRates.usd;
+      }
+      
+      const amount = amountUSD;
       
       if (month === thisMonth && year === thisYear) {
         acc[accountId].currentMonth += amount;
@@ -72,7 +81,7 @@ export function AccountsOverview() {
         id: account.id,
         name: account.name,
         type: account.type || 'Cuenta',
-        balance: `$${balanceMajor.toFixed(2)}`,
+        balance: account.currencyCode === 'VES' ? `Bs.${balanceMajor.toFixed(2)} VES` : `$${balanceMajor.toFixed(2)} ${account.currencyCode}`,
         icon: account.type === 'CARD' ? CreditCard :
               account.type === 'CASH' ? Banknote : Wallet,
         changeType,
@@ -101,14 +110,28 @@ export function AccountsOverview() {
           const date = new Date(t.date);
           return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
         })
-        .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+        .reduce((sum, t) => {
+          const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+          // Convert VES to USD for consistent calculation
+          if (t.currencyCode === 'VES') {
+            return sum + (amountMajor / bcvRates.usd);
+          }
+          return sum + amountMajor;
+        }, 0);
       
       const totalLastMonthTransactions = rawTransactions
         .filter(t => {
           const date = new Date(t.date);
           return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
         })
-        .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+        .reduce((sum, t) => {
+          const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+          // Convert VES to USD for consistent calculation
+          if (t.currencyCode === 'VES') {
+            return sum + (amountMajor / bcvRates.usd);
+          }
+          return sum + amountMajor;
+        }, 0);
       
       const previousBalance = total - totalCurrentMonthTransactions;
       
