@@ -878,7 +878,7 @@ export default function AccountsPage() {
                               </button>
                               
                               {openDropdown === account.id && (
-                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-card border border-border rounded-2xl shadow-xl z-20 overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl z-50 overflow-hidden">
                                   <button
                                     onClick={() => {
                                       handleEditAccount(account);
