@@ -40,10 +40,6 @@ export default function CategoriesPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchTerm, setSearchTerm] = useState('');
-  // Debugging: Log user and rawCategories
-  const { user } = useAuth();
-  console.log('Current User:', user);
-  console.log('Raw Categories:', rawCategories);
 
   // Memoized categories with transaction statistics
   const categories = useMemo(() => {
