@@ -1,112 +1,145 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MainLayout } from '@/components/layout/main-layout';
+import { AuthGuard } from '@/components/auth/auth-guard';
+import { AccountForm } from '@/components/forms/account-form';
+import { Button } from '@/components/ui';
+import { useModal } from '@/hooks';
+import { useRepository } from '@/providers/repository-provider';
+import { useAuth } from '@/hooks/use-auth';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
+import { Account } from '@/types';
+import { fromMinorUnits } from '@/lib/money';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { 
   Plus, 
   Wallet, 
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
-  Bitcoin, 
-  DollarSign, 
-  Star, 
-  Sparkles, 
-  Eye, 
-  EyeOff, 
-  MoreVertical, 
-  Edit, 
-  BellRing, 
+  CreditCard, 
+  Banknote, 
+  TrendingUp,
+  TrendingDown,
+  PiggyBank,
+  MoreVertical,
+  Edit,
   Trash2,
+  Eye,
+  EyeOff,
+  Bitcoin,
+  DollarSign,
+  Sparkles,
+  Target,
+  Award,
+  Star,
   History,
-  Settings
+  Settings,
+  ChevronUp,
+  BarChart3
 } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { useRepository } from '@/providers/repository-provider';
-import { useBCVRates } from '@/hooks/use-bcv-rates';
-import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { Account, Category, Transaction } from '@/types';
-import { formatCurrencyWithBCV } from '@/lib/currency-ves';
-import { fromMinorUnits } from '@/lib/money';
-import { logger } from '@/lib/utils/logger';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { MainLayout } from '@/components/layout/main-layout';
-import { AccountForm } from '@/components/forms/account-form';
-import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
-import { NumberTicker } from '@/components/ui/number-ticker';
-import { BalanceAlertSettings } from '@/components/accounts/balance-alert-settings';
-
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
+import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
+import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
+import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
+import { logger } from '@/lib/utils/logger';
 
+// Componente NumberTicker simulado (efecto psicológico de progreso)
+const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
+  value: number;
+  prefix?: string;
+  suffix?: string;
+  isVisible?: boolean;
+}) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    const duration = 1000;
+    const steps = 50;
+    const stepValue = value / steps;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+      current += stepValue;
+      if (current >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(current);
+      }
+    }, duration / steps);
+    
+    return () => clearInterval(timer);
+  }, [value, isVisible]);
+  
+  return (
+    <span>
+      {prefix}{isVisible ? displayValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '••••••'}{suffix}
+    </span>
+  );
+};
 
-// Account type icons mapping
 const accountIcons = {
-  BANK: Wallet,
-  CARD: Wallet,
+  BANK: Banknote,
+  CARD: CreditCard,
   CASH: Wallet,
-  SAVINGS: Wallet,
+  SAVINGS: PiggyBank,
   INVESTMENT: TrendingUp,
   CRYPTO: Bitcoin,
 };
 
+// Animaciones
+const fadeInUp = {
+  initial: { y: 20, opacity: 0 },
+  animate: { y: 0, opacity: 1 },
+  exit: { y: -20, opacity: 0 }
+};
+
+const cardHover = {
+  initial: { scale: 1 },
+  whileHover: { scale: 1.02, y: -2 },
+  transition: { type: "spring" as const, stiffness: 400, damping: 25 }
+};
+
 export default function AccountsPage() {
+  const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAuth();
   const repository = useRepository();
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
-  
-  // State management
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [showBalances, setShowBalances] = useState(false);
+  const [showBalances, setShowBalances] = useState(true);
   const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
-  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
   const [showRatesHistory, setShowRatesHistory] = useState(false);
-  const [showAlertSettings, setShowAlertSettings] = useState(false);
-  const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
-  
-  // Dropdown state
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   const dropdownRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
+  const [showAlertSettings, setShowAlertSettings] = useState(false);
+  const { checkAlerts } = useBalanceAlerts();
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
-  // Modal handlers
-  const openModal = () => setIsOpen(true);
-  const closeModal = () => setIsOpen(false);
-
-  // Check balance alerts
-  const checkAlerts = useCallback(async (accounts: Account[]) => {
-    try {
-      for (const account of accounts) {
-        if (account.alertEnabled && account.minimumBalance) {
-          const balance = Number(account.balance) || 0;
-          const threshold = Number(account.minimumBalance) || 0;
-          
-          if (balance <= threshold) {
-            // You could show a notification here
-            // Alert notification removed for clean build`);
-          }
-        }
-      }
-    } catch (error) {
-      logger.error('Error checking balance alerts:', error);
-    }
-  }, []);
-
-  // Load accounts from database
   const loadAccounts = useCallback(async () => {
-    if (!user?.id) return;
-    
     try {
       setLoading(true);
       setError(null);
+      
+      if (!user?.id) {
+        // No user authenticated, show empty state or redirect to login
+        setAccounts([]);
+        setError('Debes iniciar sesión para ver tus cuentas');
+        return;
+      }
+      
       const userAccounts = await repository.accounts.findByUserId(user.id);
       setAccounts(userAccounts);
       
@@ -141,7 +174,7 @@ export default function AccountsPage() {
       } finally {
         setLoadingTransactions(false);
       }
-    };
+    };;
 
     if (user?.id) {
       loadTransactionsAndCategories();
@@ -171,14 +204,12 @@ export default function AccountsPage() {
       };
 
       window.addEventListener('scroll', handleScroll);
-
+      window.addEventListener('resize', handleScroll);
+      
       return () => {
         window.removeEventListener('scroll', handleScroll);
         window.removeEventListener('resize', handleScroll);
       };
-      window.addEventListener('resize', handleScroll);
-      
-
     }
   }, [openDropdown]);
 
@@ -333,7 +364,7 @@ export default function AccountsPage() {
 
     // Agregar más monedas según necesidad
     return balanceMajor;
-  }, [binanceRates, bcvRates]);
+  }, [binanceRates.usd_ves, bcvRates.usd, bcvRates.eur]);
 
   // Cálculo optimizado con tasas BCV reales
   const totalBalance = accounts.reduce((sum, acc) => {
@@ -353,9 +384,9 @@ export default function AccountsPage() {
   const showCurrentRates = useCallback(() => {
     // Tasas actuales - logging removido para build limpio
     // Binance: ${binanceRates.usd_ves} Bs/USDT
-    // BCV USD: ${bcvRates.usd} Bs/USD
+    // BCV USD: ${bcvRates.usd} Bs/USD  
     // BCV EUR: ${bcvRates.eur} Bs/EUR
-  }, [binanceRates, bcvRates]);;
+  }, [binanceRates, bcvRates]);
 
   // Mostrar tasas actuales al cargar
   useEffect(() => {
@@ -495,7 +526,7 @@ export default function AccountsPage() {
                     }`}
                     onClick={() => setUsdEquivalentType('binance')}
                   >
-                    💰 Binance
+                    💱 Binance
                   </button>
                   <button
                     className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -548,153 +579,11 @@ export default function AccountsPage() {
                 <span className="text-ios-caption text-muted-foreground font-medium">
                   {accounts.length >= 5 ? '🏆 Maestro Financiero' : 
                    accounts.length >= 3 ? '🥉 Organizador Avanzado' : 
-                   accounts.length >= 1 ? '⭐ ¡Buen Comienzo!' : ''}
+                   accounts.length >= 1 ? '🌟 ¡Buen Comienzo!' : ''}
                 </span>
               </motion.div>
             )}
           </div>
-
-          {/* iOS-style Summary Cards - Mobile First Responsive */}
-          <motion.div 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.1 }
-              }
-            }}
-            initial="hidden"
-            animate="show"
-          >
-            {/* Balance Total Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                {showBalances ? (
-                  <NumberTicker 
-                    value={totalBalance} 
-                    prefix="$" 
-                    isVisible={showBalances} 
-                  />
-                ) : '••••••'}
-              </p>
-              {balanceGrowth !== 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {balanceGrowth > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-success-600" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-error-600" />
-                  )}
-                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
-                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
-                  </span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
-              </div>
-              <div className="flex items-baseline space-x-2 mb-3">
-                <p className="text-2xl sm:text-3xl font-light text-foreground">
-                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
-                </p>
-                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
-              </div>
-              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
-                <motion.div 
-                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
-                  transition={{ delay: 0.5, duration: 1 }}
-                ></motion.div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Target className="h-3 w-3 text-success-600" />
-                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
-              </div>
-            </motion.div>
-
-            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
-              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <Bitcoin className="h-3 w-3 text-warning-600" />
-                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Diversificación Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
-              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  <DollarSign className="h-3 w-3 text-primary-600" />
-                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
-                </motion.div>
-              )}
-            </motion.div>
-          </motion.div>
 
           {/* Accounts List - iOS Style */}
           <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
@@ -949,6 +838,148 @@ export default function AccountsPage() {
             </div>
           </div>
 
+          {/* iOS-style Summary Cards - Mobile First Responsive */}
+          <motion.div 
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {/* Balance Total Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                {showBalances ? (
+                  <NumberTicker 
+                    value={totalBalance} 
+                    prefix="$" 
+                    isVisible={showBalances} 
+                  />
+                ) : '••••••'}
+              </p>
+              {balanceGrowth !== 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {balanceGrowth > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-success-600" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-error-600" />
+                  )}
+                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
+                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
+              </div>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <p className="text-2xl sm:text-3xl font-light text-foreground">
+                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
+                </p>
+                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
+              </div>
+              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
+                <motion.div 
+                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
+                  transition={{ delay: 0.5, duration: 1 }}
+                ></motion.div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Target className="h-3 w-3 text-success-600" />
+                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
+              </div>
+            </motion.div>
+
+            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
+              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <Bitcoin className="h-3 w-3 text-warning-600" />
+                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Diversificación Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
+              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <DollarSign className="h-3 w-3 text-primary-600" />
+                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+
           {/* Exchange Rates Section - iOS Style Mobile Responsive */}
           <motion.div 
             className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
@@ -960,7 +991,7 @@ export default function AccountsPage() {
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                 <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
-                  💰 Tasas de Cambio
+                  💱 Tasas de Cambio
                 </h2>
               </div>
               <motion.div
@@ -1142,17 +1173,3 @@ export default function AccountsPage() {
     </AuthGuard>
   );
 }
-
-// Animation variants
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0 }
-};
-
-const cardHover = {
-  whileHover: { 
-    scale: 1.02,
-    transition: { duration: 0.2 }
-  },
-  whileTap: { scale: 0.98 }
-};
