@@ -878,7 +878,7 @@ export default function AccountsPage() {
                               </button>
                               
                               {openDropdown === account.id && (
-                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[100] overflow-hidden">
                                   <button
                                     onClick={() => {
                                       handleEditAccount(account);
@@ -931,7 +931,7 @@ export default function AccountsPage() {
         
         {/* Balance Alert Settings Modal */}
         {showAlertSettings && selectedAccountForAlert && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
               <div className="p-4 border-b border-border/40">
                 <h3 className="text-ios-title font-semibold text-foreground">
