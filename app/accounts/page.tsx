@@ -388,7 +388,7 @@ export default function AccountsPage() {
     // Binance: ${binanceRates.usd_ves} Bs/USDT
     // BCV USD: ${bcvRates.usd} Bs/USD  
     // BCV EUR: ${bcvRates.eur} Bs/EUR
-  }, [binanceRates, bcvRates]);;;
+  }, []);;;
 
   // Mostrar tasas actuales al cargar
   useEffect(() => {
@@ -431,7 +431,7 @@ export default function AccountsPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-green-500/10 blur-3xl rounded-full scale-150 opacity-60"></div>
               
               {/* Main Title */}
-              <h1 className="relative text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 sm:mb-4 tracking-tight">
+              <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-3 sm:mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white bg-size-200 animate-gradient">
                   💼 Mis Cuentas
                 </span>
@@ -608,7 +608,7 @@ export default function AccountsPage() {
             >
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
+                <h3 className="text-lg font-medium text-white tracking-wide">BALANCE TOTAL</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 {showBalances ? (
@@ -646,7 +646,7 @@ export default function AccountsPage() {
             >
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
+                <h3 className="text-lg font-medium text-white tracking-wide">CUENTAS ACTIVAS</h3>
               </div>
               <div className="flex items-baseline space-x-2 mb-3">
                 <p className="text-2xl sm:text-3xl font-light text-foreground">
@@ -676,7 +676,7 @@ export default function AccountsPage() {
             >
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
+                <h3 className="text-lg font-medium text-white tracking-wide">CRIPTOMONEDAS</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 <NumberTicker 
@@ -706,7 +706,7 @@ export default function AccountsPage() {
             >
               <div className="flex items-center space-x-2 mb-4">
                 <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
+                <h3 className="text-lg font-medium text-white tracking-wide">DIVERSIFICACIÓN</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 <NumberTicker 
@@ -734,7 +734,7 @@ export default function AccountsPage() {
             <div className="p-6 border-b border-border/40">
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h3 className="text-ios-title font-semibold text-foreground">Todas las Cuentas</h3>
+                <h3 className="text-2xl font-semibold text-foreground">Todas las Cuentas</h3>
               </div>
             </div>
             
@@ -991,7 +991,7 @@ export default function AccountsPage() {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
+                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground tracking-tight">
                   💱 Tasas de Cambio
                 </h2>
               </div>
@@ -1159,7 +1159,7 @@ export default function AccountsPage() {
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
             <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
               <div className="p-4 border-b border-border/40">
-                <h3 className="text-ios-title font-semibold text-foreground">
+                <h3 className="text-2xl font-semibold text-foreground">
                   Alertas de Saldo - {selectedAccountForAlert.name}
                 </h3>
               </div>

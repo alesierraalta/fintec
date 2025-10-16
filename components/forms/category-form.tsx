@@ -119,7 +119,6 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
     } catch (error) {
-      console.error('Error creating/updating category:', error);
       setError(error instanceof Error ? error.message : 'Error al crear/actualizar la categoría');
     } finally {
       setLoading(false);

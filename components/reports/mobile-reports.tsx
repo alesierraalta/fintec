@@ -245,7 +245,7 @@ export function MobileReports() {
           <span className="text-ios-caption font-medium">Análisis</span>
         </div>
         
-        <h1 className="text-ios-large-title font-bold mb-4 tracking-tight bg-gradient-to-r from-primary via-cyan-600 to-blue-500 bg-clip-text text-transparent">
+        <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 tracking-tight bg-gradient-to-r from-primary via-cyan-600 to-blue-500 bg-clip-text text-white">
           📊 Reportes
         </h1>
         <p className="text-muted-foreground font-light mb-6">
