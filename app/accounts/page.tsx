@@ -587,254 +587,6 @@ export default function AccountsPage() {
             )}
           </div>
 
-          {/* iOS-style Summary Cards - Mobile First Responsive */}
-          <motion.div 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.1 }
-              }
-            }}
-            initial="hidden"
-            animate="show"
-          >
-            {/* Balance Total Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                {showBalances ? (
-                  <NumberTicker 
-                    value={totalBalance} 
-                    prefix="$" 
-                    isVisible={showBalances} 
-                  />
-                ) : '••••••'}
-              </p>
-              {balanceGrowth !== 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {balanceGrowth > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-success-600" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-error-600" />
-                  )}
-                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
-                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
-                  </span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
-              </div>
-              <div className="flex items-baseline space-x-2 mb-3">
-                <p className="text-2xl sm:text-3xl font-light text-foreground">
-                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
-                </p>
-                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
-              </div>
-              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
-                <motion.div 
-                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
-                  transition={{ delay: 0.5, duration: 1 }}
-                ></motion.div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Target className="h-3 w-3 text-success-600" />
-                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
-              </div>
-            </motion.div>
-
-            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
-              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <Bitcoin className="h-3 w-3 text-warning-600" />
-                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Diversificación Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
-              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  <DollarSign className="h-3 w-3 text-primary-600" />
-                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
-                </motion.div>
-              )}
-            </motion.div>
-          </motion.div>
-
-          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
-          <motion.div 
-            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
-                  💱 Tasas de Cambio
-                </h2>
-              </div>
-              <motion.div
-                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-              >
-                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-                <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
-              </motion.div>
-            </div>
-            
-            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
-              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
-            </p>
-
-            {/* Tasas actuales visibles para el usuario */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
-                </div>
-                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
-              </div>
-
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
-                </div>
-                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
-                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
-              </div>
-
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
-                </div>
-                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
-                </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <BCVRates />
-              <BinanceRatesComponent />
-              
-              {/* History Button - Mobile Responsive */}
-              <motion.div
-                className="flex justify-center px-4"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-              >
-                <button
-                  onClick={() => setShowRatesHistory(true)}
-                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
-                >
-                  <History className="h-4 w-4" />
-                  <span className="font-medium">Ver Historial y Calculadora</span>
-                </button>
-              </motion.div>
-            </div>
-
-            {/* Exchange Summary - Mobile Responsive */}
-            <motion.div 
-              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-            >
-              <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
-                <p className="mb-1 leading-relaxed">
-                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
-                  <span className="hidden sm:inline"> · </span>
-                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
-                </p>
-                <p className="text-ios-footnote">
-                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
-
           {/* Accounts List - iOS Style */}
           <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
             <div className="p-6 border-b border-border/40">
@@ -1087,6 +839,254 @@ export default function AccountsPage() {
               )}
             </div>
           </div>
+          {/* iOS-style Summary Cards - Mobile First Responsive */}
+          <motion.div 
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {/* Balance Total Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                {showBalances ? (
+                  <NumberTicker 
+                    value={totalBalance} 
+                    prefix="$" 
+                    isVisible={showBalances} 
+                  />
+                ) : '••••••'}
+              </p>
+              {balanceGrowth !== 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {balanceGrowth > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-success-600" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-error-600" />
+                  )}
+                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
+                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
+              </div>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <p className="text-2xl sm:text-3xl font-light text-foreground">
+                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
+                </p>
+                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
+              </div>
+              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
+                <motion.div 
+                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
+                  transition={{ delay: 0.5, duration: 1 }}
+                ></motion.div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Target className="h-3 w-3 text-success-600" />
+                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
+              </div>
+            </motion.div>
+
+            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
+              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <Bitcoin className="h-3 w-3 text-warning-600" />
+                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Diversificación Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
+              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <DollarSign className="h-3 w-3 text-primary-600" />
+                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+
+          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
+          <motion.div 
+            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
+                  💱 Tasas de Cambio
+                </h2>
+              </div>
+              <motion.div
+                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+              >
+                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
+              </motion.div>
+            </div>
+            
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
+              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
+            </p>
+
+            {/* Tasas actuales visibles para el usuario */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
+                </div>
+                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
+                </div>
+                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
+                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
+                </div>
+                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <BCVRates />
+              <BinanceRatesComponent />
+              
+              {/* History Button - Mobile Responsive */}
+              <motion.div
+                className="flex justify-center px-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <button
+                  onClick={() => setShowRatesHistory(true)}
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
+                >
+                  <History className="h-4 w-4" />
+                  <span className="font-medium">Ver Historial y Calculadora</span>
+                </button>
+              </motion.div>
+            </div>
+
+            {/* Exchange Summary - Mobile Responsive */}
+            <motion.div 
+              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
+                <p className="mb-1 leading-relaxed">
+                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
+                  <span className="hidden sm:inline"> · </span>
+                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
+                </p>
+                <p className="text-ios-footnote">
+                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+
         </div>
 
         <AccountForm
