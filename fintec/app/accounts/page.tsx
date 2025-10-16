@@ -21,18 +21,21 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRepository } from '@/providers/repository-provider';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Account, Category, Transaction } from '@/types';
-import { formatCurrencyWithBCV, fromMinorUnits } from '@/lib/currency-utils';
-import { logger } from '@/lib/logger';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import { fromMinorUnits } from '@/lib/money';
+import { logger } from '@/lib/utils/logger';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AccountForm } from '@/components/forms/account-form';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
-import { NumberTicker } from '@/components/ui/number-ticker';
+
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
-import { useExchangeRates } from '@/hooks/use-exchange-rates';
+
 
 // Account type icons mapping
 const accountIcons = {
@@ -47,7 +50,8 @@ const accountIcons = {
 export default function AccountsPage() {
   const { user } = useAuth();
   const repository = useRepository();
-  const { binanceRates, bcvRates } = useExchangeRates();
+  const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
   
   // State management
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -78,13 +82,13 @@ export default function AccountsPage() {
   const checkAlerts = useCallback(async (accounts: Account[]) => {
     try {
       for (const account of accounts) {
-        if (account.balanceAlertEnabled && account.balanceAlertThreshold) {
+        if (account.alertEnabled && account.minimumBalance) {
           const balance = Number(account.balance) || 0;
-          const threshold = Number(account.balanceAlertThreshold) || 0;
+          const threshold = Number(account.minimumBalance) || 0;
           
           if (balance <= threshold) {
             // You could show a notification here
-            console.log(`Alert: Account ${account.name} balance is below threshold`);
+            // Alert notification removed for clean build`);
           }
         }
       }
@@ -164,12 +168,14 @@ export default function AccountsPage() {
       };
 
       window.addEventListener('scroll', handleScroll);
-      window.addEventListener('resize', handleScroll);
-      
-          repository.transactions.findAll(),
-          repository.categories.findAll()
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
         window.removeEventListener('resize', handleScroll);
       };
+      window.addEventListener('resize', handleScroll);
+      
+
     }
   }, [openDropdown]);
 
@@ -341,18 +347,17 @@ export default function AccountsPage() {
   const balanceGrowth = 0;
 
   // Función para mostrar tasas actuales
-  const showCurrentRates = () => {
-    console.log('=== TASAS ACTUALES ===');
-    console.log(`💰 Binance: ${binanceRates.usd_ves} Bs/USDT`);
-    console.log(`🇺🇸 BCV USD: ${bcvRates.usd} Bs/USD`);
-    console.log(`🇪🇺 BCV EUR: ${bcvRates.eur} Bs/EUR`);
-    console.log('===================');
-  };
+  const showCurrentRates = useCallback(() => {
+    // Tasas actuales - logging removido para build limpio
+    // Binance: ${binanceRates.usd_ves} Bs/USDT
+    // BCV USD: ${bcvRates.usd} Bs/USD
+    // BCV EUR: ${bcvRates.eur} Bs/EUR
+  }, [binanceRates, bcvRates]);;
 
   // Mostrar tasas actuales al cargar
   useEffect(() => {
     showCurrentRates();
-  }, [binanceRates, bcvRates]);
+  }, [showCurrentRates]);
 
   return (
     <AuthGuard>
@@ -571,11 +576,9 @@ export default function AccountsPage() {
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 {showBalances ? (
-                  <NumberTicker 
-                    value={totalBalance} 
-                    prefix="$" 
-                    isVisible={showBalances} 
-                  />
+                  <span className="font-light">
+                    {showBalances ? `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '••••••'}
+                  </span>
                 ) : '••••••'}
               </p>
               {balanceGrowth !== 0 && (
@@ -609,7 +612,7 @@ export default function AccountsPage() {
               </div>
               <div className="flex items-baseline space-x-2 mb-3">
                 <p className="text-2xl sm:text-3xl font-light text-foreground">
-                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
+                  <span className="font-light">{accounts.filter(acc => acc.active).length}</span>
                 </p>
                 <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
               </div>
@@ -638,10 +641,7 @@ export default function AccountsPage() {
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
-                  isVisible={true} 
-                />
+                <span className="font-light">{accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length}</span>
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
               {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
@@ -668,10 +668,7 @@ export default function AccountsPage() {
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
-                  isVisible={true} 
-                />
+                <span className="font-light">{Array.from(new Set(accounts.map(acc => acc.currencyCode))).length}</span>
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
               {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
@@ -956,7 +953,7 @@ export default function AccountsPage() {
                             
                             <div className="relative">
                               <button 
-                                ref={(el) => dropdownRefs.current[account.id] = el}
+                                ref={(el) => { dropdownRefs.current[account.id] = el; }}
                                 onClick={() => toggleDropdown(account.id)}
                                 aria-label="Acciones de cuenta"
                                 aria-expanded={openDropdown === account.id}
@@ -1101,7 +1098,7 @@ export default function AccountsPage() {
                   </button>
                   <button
                     onClick={() => {
-                      handleDeleteAccount(account.id);
+                      handleDeleteAccount(account);
                       setOpenDropdown(null);
                     }}
                     className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-red-500 hover:bg-red-500/10 transition-colors flex items-center space-x-2 md:space-x-3"

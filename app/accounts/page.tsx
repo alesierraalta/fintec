@@ -383,18 +383,17 @@ export default function AccountsPage() {
   const balanceGrowth = 0;
 
   // Función para mostrar tasas actuales
-  const showCurrentRates = () => {
-    console.log('=== TASAS ACTUALES ===');
-    console.log(`💱 Binance: ${binanceRates.usd_ves} Bs/USDT`);
-    console.log(`🇺🇸 BCV USD: ${bcvRates.usd} Bs/USD`);
-    console.log(`🇪🇺 BCV EUR: ${bcvRates.eur} Bs/EUR`);
-    console.log('===================');
-  };
+  const showCurrentRates = useCallback(() => {
+    // Tasas actuales - logging removido para build limpio
+    // Binance: ${binanceRates.usd_ves} Bs/USDT
+    // BCV USD: ${bcvRates.usd} Bs/USD  
+    // BCV EUR: ${bcvRates.eur} Bs/EUR
+  }, [binanceRates, bcvRates]);;;
 
   // Mostrar tasas actuales al cargar
   useEffect(() => {
     showCurrentRates();
-  }, [binanceRates, bcvRates]);
+  }, [showCurrentRates]);
 
   return (
     <AuthGuard>
@@ -998,7 +997,7 @@ export default function AccountsPage() {
                             
                             <div className="relative">
                               <button 
-                                ref={(el) => dropdownRefs.current[account.id] = el}
+                                ref={(el) => { dropdownRefs.current[account.id] = el; }}
                                 onClick={() => toggleDropdown(account.id)}
                                 aria-label="Acciones de cuenta"
                                 aria-expanded={openDropdown === account.id}

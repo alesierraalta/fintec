@@ -40,7 +40,7 @@ export default function CategoriesPage() {
     // Force refresh categories on mount to ensure latest data
     invalidateCache('categories');
     loadCategories(true);
-  }, []);
+  }, [invalidateCache, loadCategories]);
   const { categories: rawCategories, transactions: rawTransactions } = useOptimizedData();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
