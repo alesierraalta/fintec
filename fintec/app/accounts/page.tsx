@@ -1,138 +1,105 @@
-'use client';
-
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MainLayout } from '@/components/layout/main-layout';
-import { AuthGuard } from '@/components/auth/auth-guard';
-import { AccountForm } from '@/components/forms/account-form';
-import { Button } from '@/components/ui';
-import { useModal } from '@/hooks';
-import { useRepository } from '@/providers/repository-provider';
-import { useAuth } from '@/hooks/use-auth';
-import { useBCVRates } from '@/hooks/use-bcv-rates';
-import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { Account } from '@/types';
-import { fromMinorUnits } from '@/lib/money';
-import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { 
   Plus, 
   Wallet, 
-  CreditCard, 
-  Banknote, 
-  TrendingUp,
-  TrendingDown,
-  PiggyBank,
-  MoreVertical,
-  Edit,
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  Bitcoin, 
+  DollarSign, 
+  Star, 
+  Sparkles, 
+  Eye, 
+  EyeOff, 
+  MoreVertical, 
+  Edit, 
+  BellRing, 
   Trash2,
-  Eye,
-  EyeOff,
-  Bitcoin,
-  DollarSign,
-  Sparkles,
-  Target,
-  Award,
-  Star,
-  History,
-  Settings
+  History
 } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+import { useRepository } from '@/providers/repository-provider';
+import { Account, Category, Transaction } from '@/types';
+import { formatCurrencyWithBCV, fromMinorUnits } from '@/lib/currency-utils';
+import { logger } from '@/lib/logger';
+import { AuthGuard } from '@/components/auth/auth-guard';
+import { MainLayout } from '@/components/layout/main-layout';
+import { AccountForm } from '@/components/forms/account-form';
+import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
+import { NumberTicker } from '@/components/ui/number-ticker';
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
-import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
-import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
-import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
-import { logger } from '@/lib/utils/logger';
-import { AccountActionsDropdown } from '@/components/accounts/account-actions-dropdown';
+import { useExchangeRates } from '@/hooks/use-exchange-rates';
 
-// Componente NumberTicker simulado (efecto psicológico de progreso)
-const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  isVisible?: boolean;
-}) => {
-  const [displayValue, setDisplayValue] = useState(0);
-  
-  useEffect(() => {
-    if (!isVisible) return;
-    
-    const duration = 1000;
-    const steps = 50;
-    const stepValue = value / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-      current += stepValue;
-      if (current >= value) {
-        setDisplayValue(value);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(current);
-      }
-    }, duration / steps);
-    
-    return () => clearInterval(timer);
-  }, [value, isVisible]);
-  
-  return (
-    <span>
-      {prefix}{isVisible ? displayValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '••••••'}{suffix}
-    </span>
-  );
-};
-
+// Account type icons mapping
 const accountIcons = {
-  BANK: Banknote,
-  CARD: CreditCard,
+  BANK: Wallet,
+  CARD: Wallet,
   CASH: Wallet,
-  SAVINGS: PiggyBank,
+  SAVINGS: Wallet,
   INVESTMENT: TrendingUp,
   CRYPTO: Bitcoin,
 };
 
-// Animaciones
-const fadeInUp = {
-  initial: { y: 20, opacity: 0 },
-  animate: { y: 0, opacity: 1 },
-  exit: { y: -20, opacity: 0 }
-};
-
-const cardHover = {
-  initial: { scale: 1 },
-  whileHover: { scale: 1.02, y: -2 },
-  transition: { type: "spring" as const, stiffness: 400, damping: 25 }
-};
-
 export default function AccountsPage() {
-  const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAuth();
   const repository = useRepository();
-  const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
-  const [showBalances, setShowBalances] = useState(true);
-  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
-  const [showRatesHistory, setShowRatesHistory] = useState(false);
-  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const { binanceRates, bcvRates } = useExchangeRates();
+  
+  // State management
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
+  const [showBalances, setShowBalances] = useState(false);
+  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
+  const [showRatesHistory, setShowRatesHistory] = useState(false);
   const [showAlertSettings, setShowAlertSettings] = useState(false);
-  const { checkAlerts } = useBalanceAlerts();
+  const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
+  
+  // Dropdown state
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const dropdownRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
+  // Modal handlers
+  const openModal = () => setIsOpen(true);
+  const closeModal = () => setIsOpen(false);
+
+  // Check balance alerts
+  const checkAlerts = useCallback(async (accounts: Account[]) => {
+    try {
+      for (const account of accounts) {
+        if (account.balanceAlertEnabled && account.balanceAlertThreshold) {
+          const balance = Number(account.balance) || 0;
+          const threshold = Number(account.balanceAlertThreshold) || 0;
+          
+          if (balance <= threshold) {
+            // You could show a notification here
+            console.log(`Alert: Account ${account.name} balance is below threshold`);
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Error checking balance alerts:', error);
+    }
+  }, []);
+
+  // Load accounts from database
   const loadAccounts = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
       setError(null);
-      
-      if (!user?.id) {
-        // No user authenticated, show empty state or redirect to login
-        setAccounts([]);
-        setError('Debes iniciar sesión para ver tus cuentas');
-        return;
-      }
-      
       const userAccounts = await repository.accounts.findByUserId(user.id);
       setAccounts(userAccounts);
       
@@ -151,6 +118,61 @@ export default function AccountsPage() {
     loadAccounts();
   }, [loadAccounts]);
 
+  // Load transactions and categories
+  useEffect(() => {
+    const loadTransactionsAndCategories = async () => {
+      try {
+        setLoadingTransactions(true);
+        const [transactionsData, categoriesData] = await Promise.all([
+          repository.transactions.findAll(),
+          repository.categories.findAll()
+        ]);
+        setTransactions(transactionsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error loading transactions and categories:', error);
+      } finally {
+        setLoadingTransactions(false);
+      }
+    };
+
+    if (user?.id) {
+      loadTransactionsAndCategories();
+    }
+  }, [user?.id, repository.transactions, repository.categories]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (openDropdown) {
+      const handleClickOutside = (event: MouseEvent) => {
+        const dropdown = document.getElementById(`account-dropdown-${openDropdown}`);
+        if (dropdown && !dropdown.contains(event.target as Node)) {
+          setOpenDropdown(null);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openDropdown]);
+
+  // Recalculate position on scroll/resize
+  useEffect(() => {
+    if (openDropdown) {
+      const handleScroll = () => {
+        calculateDropdownPosition(openDropdown);
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', handleScroll);
+      
+          repository.transactions.findAll(),
+          repository.categories.findAll()
+        window.removeEventListener('resize', handleScroll);
+      };
+    }
+  }, [openDropdown]);
+
   const handleEditAccount = (account: Account) => {
     setSelectedAccount(account);
     openModal();
@@ -166,22 +188,42 @@ export default function AccountsPage() {
     loadAccounts();
   };
 
-          repository.transactions.findAll(),
-          repository.categories.findAll()
+  const handleDeleteAccount = async (account: Account) => {
+    if (!confirm(`¿Estás seguro de que quieres eliminar la cuenta "${account.name}"?`)) {
       return;
     }
     
     try {
       await repository.accounts.delete(account.id);
+      setOpenDropdown(null);
       loadAccounts();
     } catch (err) {
       alert('Error al eliminar la cuenta');
     }
   };
 
+  const calculateDropdownPosition = (accountId: string) => {
+    const trigger = dropdownRefs.current[accountId];
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.right - 192 + window.scrollX, // 192px = w-48
+      });
+    }
+  };
+
+  const toggleDropdown = (accountId: string) => {
+    if (openDropdown !== accountId) {
+      calculateDropdownPosition(accountId);
+    }
+    setOpenDropdown(openDropdown === accountId ? null : accountId);
+  };
+
   const handleAlertSettings = (account: Account) => {
     setSelectedAccountForAlert(account);
     setShowAlertSettings(true);
+    setOpenDropdown(null);
   };
 
   const handleCloseAlertSettings = () => {
@@ -190,12 +232,73 @@ export default function AccountsPage() {
     loadAccounts(); // Reload to get updated alert settings
   };
 
+  // Get category name helper
+  const getCategoryName = useCallback((categoryId?: string) => {
+    return categories.find(c => c.id === categoryId)?.name || 'Sin categoría';
+  }, [categories]);
+
+  // Calculate category statistics for an account
+  const getAccountCategoryStats = useCallback((accountId: string) => {
+    const accountTransactions = transactions.filter(t => t.accountId === accountId);
+    const categoryStats: Record<string, { income: number; expenses: number; count: number }> = {};
+
+    accountTransactions.forEach(transaction => {
+      const categoryId = transaction.categoryId || 'uncategorized';
+      const categoryName = getCategoryName(categoryId);
+      
+      if (!categoryStats[categoryName]) {
+        categoryStats[categoryName] = { income: 0, expenses: 0, count: 0 };
+      }
+
+      const amount = (transaction.amountMinor || 0) / 100;
+      categoryStats[categoryName].count++;
+
+      if (transaction.type === 'INCOME') {
+        categoryStats[categoryName].income += amount;
+      } else if (transaction.type === 'EXPENSE') {
+        categoryStats[categoryName].expenses += amount;
+      }
+    });
+
+    return Object.entries(categoryStats)
+      .map(([categoryName, stats]) => ({
+        categoryName,
+        ...stats,
+        net: stats.income - stats.expenses
+      }))
+      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  }, [transactions, getCategoryName]);
+
+  // Toggle account expansion
+  const toggleAccountExpansion = (accountId: string) => {
+    setExpandedAccount(expandedAccount === accountId ? null : accountId);
+  };
+
   const formatBalance = (balanceMinor: number, currency: string) => {
     return formatCurrencyWithBCV(balanceMinor, currency, {
       showUSDEquivalent: currency === 'VES',
       locale: 'es-ES'
     });
   };
+
+  const getCurrencySymbol = useCallback((currencyCode: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'VES': 'Bs.',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CAD': 'C$',
+      'AUD': 'A$',
+      'BRL': 'R$',
+      'PEN': 'S/',
+      'MXN': 'MX$',
+      'ARS': 'AR$',
+      'COP': 'CO$',
+      'CLP': 'CL$',
+    };
+    return symbols[currencyCode] || currencyCode;
+  }, []);
 
   // Convertir balance a USD
   const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
@@ -240,7 +343,7 @@ export default function AccountsPage() {
   // Función para mostrar tasas actuales
   const showCurrentRates = () => {
     console.log('=== TASAS ACTUALES ===');
-    console.log(`💱 Binance: ${binanceRates.usd_ves} Bs/USDT`);
+    console.log(`💰 Binance: ${binanceRates.usd_ves} Bs/USDT`);
     console.log(`🇺🇸 BCV USD: ${bcvRates.usd} Bs/USD`);
     console.log(`🇪🇺 BCV EUR: ${bcvRates.eur} Bs/EUR`);
     console.log('===================');
@@ -384,7 +487,7 @@ export default function AccountsPage() {
                     }`}
                     onClick={() => setUsdEquivalentType('binance')}
                   >
-                    💱 Binance
+                    💰 Binance
                   </button>
                   <button
                     className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
@@ -437,7 +540,7 @@ export default function AccountsPage() {
                 <span className="text-ios-caption text-muted-foreground font-medium">
                   {accounts.length >= 5 ? '🏆 Maestro Financiero' : 
                    accounts.length >= 3 ? '🥉 Organizador Avanzado' : 
-                   accounts.length >= 1 ? '🌟 ¡Buen Comienzo!' : ''}
+                   accounts.length >= 1 ? '⭐ ¡Buen Comienzo!' : ''}
                 </span>
               </motion.div>
             )}
@@ -596,7 +699,7 @@ export default function AccountsPage() {
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
                 <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
-                  💱 Tasas de Cambio
+                  💰 Tasas de Cambio
                 </h2>
               </div>
               <motion.div
@@ -852,15 +955,90 @@ export default function AccountsPage() {
                             </div>
                             
                             <div className="relative">
-                              <AccountActionsDropdown
-                                account={account}
-                                onEdit={handleEditAccount}
-                                onDelete={handleDeleteAccount}
-                                onAlertSettings={handleAlertSettings}
-                              />
+                              <button 
+                                ref={(el) => dropdownRefs.current[account.id] = el}
+                                onClick={() => toggleDropdown(account.id)}
+                                aria-label="Acciones de cuenta"
+                                aria-expanded={openDropdown === account.id}
+                                aria-haspopup="menu"
+                                className="p-1.5 md:p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200 flex-shrink-0"
+                              >
+                                <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                              </button>
+                              
+
                             </div>
                           </div>
                         </div>
+
+                        {/* Category Statistics - Expandable */}
+                        {expandedAccount === account.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="mt-4 pt-4 border-t border-border/20"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium text-foreground">📊 Estadísticas por Categoría</h4>
+                                <span className="text-xs text-muted-foreground">
+                                  {getAccountCategoryStats(account.id).length} categorías
+                                </span>
+                              </div>
+                              
+                              {loadingTransactions ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  <span className="ml-2 text-xs text-muted-foreground">Cargando estadísticas...</span>
+                                </div>
+                              ) : getAccountCategoryStats(account.id).length === 0 ? (
+                                <div className="text-center py-4">
+                                  <p className="text-xs text-muted-foreground">No hay transacciones en esta cuenta</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {getAccountCategoryStats(account.id).map((stat, index) => (
+                                    <motion.div
+                                      key={stat.categoryName}
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                      className="flex items-center justify-between p-2 bg-muted/10 rounded-lg"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-foreground truncate">
+                                          {stat.categoryName}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {stat.count} transacción{stat.count !== 1 ? 'es' : ''}
+                                        </p>
+                                      </div>
+                                      <div className="text-right ml-2">
+                                        {stat.income > 0 && (
+                                          <p className="text-xs text-green-600 font-medium">
+                                            +{getCurrencySymbol(account.currencyCode)}{stat.income.toFixed(2)}
+                                          </p>
+                                        )}
+                                        {stat.expenses > 0 && (
+                                          <p className="text-xs text-red-600 font-medium">
+                                            -{getCurrencySymbol(account.currencyCode)}{stat.expenses.toFixed(2)}
+                                          </p>
+                                        )}
+                                        <p className={`text-xs font-semibold ${
+                                          stat.net >= 0 ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                          {stat.net >= 0 ? '+' : ''}{getCurrencySymbol(account.currencyCode)}{stat.net.toFixed(2)}
+                                        </p>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -882,25 +1060,76 @@ export default function AccountsPage() {
           onClose={() => setShowRatesHistory(false)}
         />
         
-        {/* Balance Alert Settings Modal */}
-        {showAlertSettings && selectedAccountForAlert && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
-              <div className="p-4 border-b border-border/40">
-                <h3 className="text-ios-title font-semibold text-foreground">
-                  Alertas de Saldo - {selectedAccountForAlert.name}
-                </h3>
-              </div>
-              <BalanceAlertSettings
-                isOpen={showAlertSettings}
-                account={selectedAccountForAlert}
-                onClose={handleCloseAlertSettings}
-              />
-            </div>
-          </div>
+        {/* Account Dropdown Portal */}
+        {openDropdown && typeof document !== 'undefined' && createPortal(
+          <div
+            id={`account-dropdown-${openDropdown}`}
+            className="fixed w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[10000]"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+            }}
+            role="menu"
+            aria-orientation="vertical"
+            aria-labelledby="account-options-menu"
+          >
+            {(() => {
+              const account = accounts.find(acc => acc.id === openDropdown);
+              if (!account) return null;
+              
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      handleEditAccount(account);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
+                  >
+                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Editar cuenta</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleAlertSettings(account);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
+                  >
+                    <BellRing className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Alertas de saldo</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleDeleteAccount(account.id);
+                      setOpenDropdown(null);
+                    }}
+                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-red-500 hover:bg-red-500/10 transition-colors flex items-center space-x-2 md:space-x-3"
+                  >
+                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span>Eliminar cuenta</span>
+                  </button>
+                </>
+              );
+            })()}
+          </div>,
+          document.body
         )}
       </MainLayout>
     </AuthGuard>
   );
 }
 
+// Animation variants
+const fadeInUp = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
+
+const cardHover = {
+  whileHover: { 
+    scale: 1.02,
+    transition: { duration: 0.2 }
+  },
+  whileTap: { scale: 0.98 }
+};
