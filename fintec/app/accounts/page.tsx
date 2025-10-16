@@ -17,7 +17,8 @@ import {
   Edit, 
   BellRing, 
   Trash2,
-  History
+  History,
+  Settings
 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useRepository } from '@/providers/repository-provider';
@@ -31,6 +32,8 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AccountForm } from '@/components/forms/account-form';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
+import { NumberTicker } from '@/components/ui/number-ticker';
+import { BalanceAlertSettings } from '@/components/accounts/balance-alert-settings';
 
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
@@ -576,9 +579,11 @@ export default function AccountsPage() {
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 {showBalances ? (
-                  <span className="font-light">
-                    {showBalances ? `$${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '••••••'}
-                  </span>
+                  <NumberTicker 
+                    value={totalBalance} 
+                    prefix="$" 
+                    isVisible={showBalances} 
+                  />
                 ) : '••••••'}
               </p>
               {balanceGrowth !== 0 && (
@@ -612,7 +617,7 @@ export default function AccountsPage() {
               </div>
               <div className="flex items-baseline space-x-2 mb-3">
                 <p className="text-2xl sm:text-3xl font-light text-foreground">
-                  <span className="font-light">{accounts.filter(acc => acc.active).length}</span>
+                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
                 </p>
                 <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
               </div>
@@ -641,7 +646,10 @@ export default function AccountsPage() {
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <span className="font-light">{accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length}</span>
+                <NumberTicker 
+                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
+                  isVisible={true} 
+                />
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
               {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
@@ -668,7 +676,10 @@ export default function AccountsPage() {
                 <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <span className="font-light">{Array.from(new Set(accounts.map(acc => acc.currencyCode))).length}</span>
+                <NumberTicker 
+                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
+                  isVisible={true} 
+                />
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
               {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
@@ -684,7 +695,6 @@ export default function AccountsPage() {
               )}
             </motion.div>
           </motion.div>
-
 
           {/* Accounts List - iOS Style */}
           <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
@@ -938,78 +948,9 @@ export default function AccountsPage() {
               )}
             </div>
           </div>
-        </div>
-
-        <AccountForm
-          isOpen={isOpen}
-          onClose={closeModal}
-          onSuccess={handleAccountSaved}
-          account={selectedAccount}
-        />
-        
-        <RatesHistory
-          isOpen={showRatesHistory}
-          onClose={() => setShowRatesHistory(false)}
-        />
-        
-        {/* Account Dropdown Portal */}
-        {openDropdown && typeof document !== 'undefined' && createPortal(
-          <div
-            id={`account-dropdown-${openDropdown}`}
-            className="fixed w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[10000]"
-            style={{
-              top: `${dropdownPosition.top}px`,
-              left: `${dropdownPosition.left}px`,
-            }}
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="account-options-menu"
-          >
-            {(() => {
-              const account = accounts.find(acc => acc.id === openDropdown);
-              if (!account) return null;
-              
-              return (
-                <>
-                  <button
-                    onClick={() => {
-                      handleEditAccount(account);
-                      setOpenDropdown(null);
-                    }}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
-                  >
-                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>Editar cuenta</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleAlertSettings(account);
-                      setOpenDropdown(null);
-                    }}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
-                  >
-                    <BellRing className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>Alertas de saldo</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      handleDeleteAccount(account);
-                      setOpenDropdown(null);
-                    }}
-                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-red-500 hover:bg-red-500/10 transition-colors flex items-center space-x-2 md:space-x-3"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span>Eliminar cuenta</span>
-                  </button>
-                </>
-              );
-            })()}
-          </div>,
-          document.body
-        )}
 
           {/* Exchange Rates Section - iOS Style Mobile Responsive */}
-          <motion.div
+          <motion.div 
             className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1032,7 +973,7 @@ export default function AccountsPage() {
                 <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
               </motion.div>
             </div>
-
+            
             <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
               Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
             </p>
@@ -1076,7 +1017,7 @@ export default function AccountsPage() {
             <div className="space-y-6">
               <BCVRates />
               <BinanceRatesComponent />
-
+              
               {/* History Button - Mobile Responsive */}
               <motion.div
                 className="flex justify-center px-4"
@@ -1095,7 +1036,7 @@ export default function AccountsPage() {
             </div>
 
             {/* Exchange Summary - Mobile Responsive */}
-            <motion.div
+            <motion.div 
               className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1113,7 +1054,90 @@ export default function AccountsPage() {
               </div>
             </motion.div>
           </motion.div>
+        </div>
 
+        <AccountForm
+          isOpen={isOpen}
+          onClose={closeModal}
+          onSuccess={handleAccountSaved}
+          account={selectedAccount}
+        />
+        
+        <RatesHistory
+          isOpen={showRatesHistory}
+          onClose={() => setShowRatesHistory(false)}
+        />
+        
+        {/* Account Dropdown Portal */}
+        {openDropdown && typeof document !== 'undefined' && createPortal(
+          <div
+            id={`account-dropdown-${openDropdown}`}
+            className="fixed w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[10000]"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+            }}
+            role="menu"
+            aria-orientation="vertical"
+            aria-labelledby="account-options-menu"
+          >
+            {(() => {
+              const account = accounts.find(acc => acc.id === openDropdown);
+              if (!account) return null;
+              
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      handleEditAccount(account);
+                      setOpenDropdown(null);
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-foreground hover:bg-muted/20 transition-colors rounded-t-2xl"
+                    role="menuitem"
+                  >
+                    <Edit className="h-4 w-4 mr-3" />
+                    Editar cuenta
+                  </button>
+                  <button
+                    onClick={() => handleAlertSettings(account)}
+                    className="flex items-center w-full px-4 py-3 text-sm text-foreground hover:bg-muted/20 transition-colors"
+                    role="menuitem"
+                  >
+                    <Settings className="h-4 w-4 mr-3" />
+                    Alertas de saldo
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAccount(account)}
+                    className="flex items-center w-full px-4 py-3 text-sm text-error-600 hover:bg-error-50/50 transition-colors rounded-b-2xl"
+                    role="menuitem"
+                  >
+                    <Trash2 className="h-4 w-4 mr-3" />
+                    Eliminar cuenta
+                  </button>
+                </>
+              );
+            })()}
+          </div>,
+          document.body
+        )}
+
+        {/* Balance Alert Settings Modal */}
+        {showAlertSettings && selectedAccountForAlert && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
+              <div className="p-4 border-b border-border/40">
+                <h3 className="text-ios-title font-semibold text-foreground">
+                  Alertas de Saldo - {selectedAccountForAlert.name}
+                </h3>
+              </div>
+              <BalanceAlertSettings
+                isOpen={showAlertSettings}
+                account={selectedAccountForAlert}
+                onClose={handleCloseAlertSettings}
+              />
+            </div>
+          </div>
+        )}
       </MainLayout>
     </AuthGuard>
   );
