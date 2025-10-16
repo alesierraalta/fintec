@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
@@ -34,6 +34,13 @@ import {
 
 export default function CategoriesPage() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { invalidateCache, loadCategories } = useOptimizedData();
+
+  useEffect(() => {
+    // Force refresh categories on mount to ensure latest data
+    invalidateCache('categories');
+    loadCategories(true);
+  }, []);
   const { categories: rawCategories, transactions: rawTransactions } = useOptimizedData();
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
