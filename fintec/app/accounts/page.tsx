@@ -585,6 +585,148 @@ export default function AccountsPage() {
             )}
           </div>
 
+          {/* iOS-style Summary Cards - Mobile First Responsive */}
+          <motion.div 
+            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
+            variants={{
+              hidden: { opacity: 0 },
+              show: {
+                opacity: 1,
+                transition: { staggerChildren: 0.1 }
+              }
+            }}
+            initial="hidden"
+            animate="show"
+          >
+            {/* Balance Total Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                {showBalances ? (
+                  <NumberTicker 
+                    value={totalBalance} 
+                    prefix="$" 
+                    isVisible={showBalances} 
+                  />
+                ) : '••••••'}
+              </p>
+              {balanceGrowth !== 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  {balanceGrowth > 0 ? (
+                    <TrendingUp className="h-4 w-4 text-success-600" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-error-600" />
+                  )}
+                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
+                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
+              </div>
+              <div className="flex items-baseline space-x-2 mb-3">
+                <p className="text-2xl sm:text-3xl font-light text-foreground">
+                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
+                </p>
+                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
+              </div>
+              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
+                <motion.div 
+                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
+                  transition={{ delay: 0.5, duration: 1 }}
+                ></motion.div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Target className="h-3 w-3 text-success-600" />
+                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
+              </div>
+            </motion.div>
+
+            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
+              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.7 }}
+                >
+                  <Bitcoin className="h-3 w-3 text-warning-600" />
+                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
+                </motion.div>
+              )}
+            </motion.div>
+
+            {/* Diversificación Card - iOS Style Mobile Responsive */}
+            <motion.div 
+              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
+              variants={fadeInUp}
+              {...cardHover}
+            >
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
+              </div>
+              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+                <NumberTicker 
+                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
+                  isVisible={true} 
+                />
+              </p>
+              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
+              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
+                <motion.div 
+                  className="flex items-center space-x-2"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <DollarSign className="h-3 w-3 text-primary-600" />
+                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
+                </motion.div>
+              )}
+            </motion.div>
+          </motion.div>
+
           {/* Accounts List - iOS Style */}
           <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
             <div className="p-6 border-b border-border/40">
@@ -837,148 +979,6 @@ export default function AccountsPage() {
               )}
             </div>
           </div>
-
-          {/* iOS-style Summary Cards - Mobile First Responsive */}
-          <motion.div 
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
-            variants={{
-              hidden: { opacity: 0 },
-              show: {
-                opacity: 1,
-                transition: { staggerChildren: 0.1 }
-              }
-            }}
-            initial="hidden"
-            animate="show"
-          >
-            {/* Balance Total Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                {showBalances ? (
-                  <NumberTicker 
-                    value={totalBalance} 
-                    prefix="$" 
-                    isVisible={showBalances} 
-                  />
-                ) : '••••••'}
-              </p>
-              {balanceGrowth !== 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                >
-                  {balanceGrowth > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-success-600" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-error-600" />
-                  )}
-                  <span className={`text-ios-footnote font-medium ${balanceGrowth > 0 ? 'text-success-600' : 'text-error-600'}`}>
-                    {balanceGrowth > 0 ? '+' : ''}{balanceGrowth}% este mes
-                  </span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CUENTAS ACTIVAS</h3>
-              </div>
-              <div className="flex items-baseline space-x-2 mb-3">
-                <p className="text-2xl sm:text-3xl font-light text-foreground">
-                  <NumberTicker value={accounts.filter(acc => acc.active).length} isVisible={true} />
-                </p>
-                <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
-              </div>
-              <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
-                <motion.div 
-                  className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
-                  transition={{ delay: 0.5, duration: 1 }}
-                ></motion.div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Target className="h-3 w-3 text-success-600" />
-                <span className="text-ios-footnote text-success-600">Meta: 5 cuentas</span>
-              </div>
-            </motion.div>
-
-            {/* Criptomonedas Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">CRIPTOMONEDAS</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
-              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <Bitcoin className="h-3 w-3 text-warning-600" />
-                  <span className="text-ios-footnote text-warning-600 font-medium">Inversor Crypto</span>
-                </motion.div>
-              )}
-            </motion.div>
-
-            {/* Diversificación Card - iOS Style Mobile Responsive */}
-            <motion.div 
-              className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
-              variants={fadeInUp}
-              {...cardHover}
-            >
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DIVERSIFICACIÓN</h3>
-              </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
-                  isVisible={true} 
-                />
-              </p>
-              <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
-              {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
-                <motion.div 
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.8 }}
-                >
-                  <DollarSign className="h-3 w-3 text-primary-600" />
-                  <span className="text-ios-footnote text-primary-600 font-medium">Bien Diversificado</span>
-                </motion.div>
-              )}
-            </motion.div>
-          </motion.div>
 
           {/* Exchange Rates Section - iOS Style Mobile Responsive */}
           <motion.div 
