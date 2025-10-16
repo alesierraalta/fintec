@@ -166,8 +166,8 @@ export default function AccountsPage() {
       try {
         setLoadingTransactions(true);
         const [transactionsData, categoriesData] = await Promise.all([
-          repository.transactions.findAll(user?.id || ''),
-          repository.categories.findAll(user?.id || '')
+          repository.transactions.findAll(),
+          repository.categories.findAll()
         ]);
         setTransactions(transactionsData);
         setCategories(categoriesData);
@@ -176,7 +176,7 @@ export default function AccountsPage() {
       } finally {
         setLoadingTransactions(false);
       }
-    };
+    };;
 
     if (user?.id) {
       loadTransactionsAndCategories();
