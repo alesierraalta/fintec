@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
@@ -34,7 +35,9 @@ import {
   Award,
   Star,
   History,
-  Settings
+  Settings,
+  ChevronUp,
+  BarChart3
 } from 'lucide-react';
 import { BCVRates } from '@/components/currency/bcv-rates';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
@@ -117,9 +120,15 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const dropdownRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const [selectedAccountForAlert, setSelectedAccountForAlert] = useState<Account | null>(null);
   const [showAlertSettings, setShowAlertSettings] = useState(false);
   const { checkAlerts } = useBalanceAlerts();
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
   const loadAccounts = useCallback(async () => {
     try {
@@ -151,16 +160,59 @@ export default function AccountsPage() {
     loadAccounts();
   }, [loadAccounts]);
 
-  // Close dropdown when clicking outside
+  // Load transactions and categories
   useEffect(() => {
-    const handleClickOutside = () => {
-      if (openDropdown) {
-        setOpenDropdown(null);
+    const loadTransactionsAndCategories = async () => {
+      try {
+        setLoadingTransactions(true);
+        const [transactionsData, categoriesData] = await Promise.all([
+          repository.transactions.findByUserId(user?.id || ''),
+          repository.categories.findByUserId(user?.id || '')
+        ]);
+        setTransactions(transactionsData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error('Error loading transactions and categories:', error);
+      } finally {
+        setLoadingTransactions(false);
       }
     };
 
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
+    if (user?.id) {
+      loadTransactionsAndCategories();
+    }
+  }, [user?.id, repository.transactions, repository.categories]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (openDropdown) {
+      const handleClickOutside = (event: MouseEvent) => {
+        const dropdown = document.getElementById(`account-dropdown-${openDropdown}`);
+        if (dropdown && !dropdown.contains(event.target as Node)) {
+          setOpenDropdown(null);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openDropdown]);
+
+  // Recalculate position on scroll/resize
+  useEffect(() => {
+    if (openDropdown) {
+      const handleScroll = () => {
+        calculateDropdownPosition(openDropdown);
+      };
+
+      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('resize', handleScroll);
+      
+      return () => {
+        window.removeEventListener('scroll', handleScroll);
+        window.removeEventListener('resize', handleScroll);
+      };
+    }
   }, [openDropdown]);
 
   const handleEditAccount = (account: Account) => {
@@ -192,7 +244,21 @@ export default function AccountsPage() {
     }
   };
 
+  const calculateDropdownPosition = (accountId: string) => {
+    const trigger = dropdownRefs.current[accountId];
+    if (trigger) {
+      const rect = trigger.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.right - 192 + window.scrollX, // 192px = w-48
+      });
+    }
+  };
+
   const toggleDropdown = (accountId: string) => {
+    if (openDropdown !== accountId) {
+      calculateDropdownPosition(accountId);
+    }
     setOpenDropdown(openDropdown === accountId ? null : accountId);
   };
 
@@ -208,12 +274,73 @@ export default function AccountsPage() {
     loadAccounts(); // Reload to get updated alert settings
   };
 
+  // Get category name helper
+  const getCategoryName = useCallback((categoryId?: string) => {
+    return categories.find(c => c.id === categoryId)?.name || 'Sin categoría';
+  }, [categories]);
+
+  // Calculate category statistics for an account
+  const getAccountCategoryStats = useCallback((accountId: string) => {
+    const accountTransactions = transactions.filter(t => t.accountId === accountId);
+    const categoryStats: Record<string, { income: number; expenses: number; count: number }> = {};
+
+    accountTransactions.forEach(transaction => {
+      const categoryId = transaction.categoryId || 'uncategorized';
+      const categoryName = getCategoryName(categoryId);
+      
+      if (!categoryStats[categoryName]) {
+        categoryStats[categoryName] = { income: 0, expenses: 0, count: 0 };
+      }
+
+      const amount = (transaction.amountMinor || 0) / 100;
+      categoryStats[categoryName].count++;
+
+      if (transaction.type === 'INCOME') {
+        categoryStats[categoryName].income += amount;
+      } else if (transaction.type === 'EXPENSE') {
+        categoryStats[categoryName].expenses += amount;
+      }
+    });
+
+    return Object.entries(categoryStats)
+      .map(([categoryName, stats]) => ({
+        categoryName,
+        ...stats,
+        net: stats.income - stats.expenses
+      }))
+      .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+  }, [transactions, getCategoryName]);
+
+  // Toggle account expansion
+  const toggleAccountExpansion = (accountId: string) => {
+    setExpandedAccount(expandedAccount === accountId ? null : accountId);
+  };
+
   const formatBalance = (balanceMinor: number, currency: string) => {
     return formatCurrencyWithBCV(balanceMinor, currency, {
       showUSDEquivalent: currency === 'VES',
       locale: 'es-ES'
     });
   };
+
+  const getCurrencySymbol = useCallback((currencyCode: string) => {
+    const symbols: Record<string, string> = {
+      'USD': '$',
+      'VES': 'Bs.',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'CAD': 'C$',
+      'AUD': 'A$',
+      'BRL': 'R$',
+      'PEN': 'S/',
+      'MXN': 'MX$',
+      'ARS': 'AR$',
+      'COP': 'CO$',
+      'CLP': 'CL$',
+    };
+    return symbols[currencyCode] || currencyCode;
+  }, []);
 
   // Convertir balance a USD
   const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
@@ -871,43 +998,89 @@ export default function AccountsPage() {
                             
                             <div className="relative">
                               <button 
+                                ref={(el) => dropdownRefs.current[account.id] = el}
                                 onClick={() => toggleDropdown(account.id)}
+                                aria-label="Acciones de cuenta"
+                                aria-expanded={openDropdown === account.id}
+                                aria-haspopup="menu"
                                 className="p-1.5 md:p-2 text-muted-foreground hover:text-foreground hover:bg-muted/20 rounded-xl transition-all duration-200 flex-shrink-0"
                               >
                                 <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </button>
                               
-                              {openDropdown === account.id && (
-                                <div className="absolute right-0 mt-2 w-44 md:w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[100] overflow-hidden">
-                                  <button
-                                    onClick={() => {
-                                      handleEditAccount(account);
-                                      setOpenDropdown(null);
-                                    }}
-                                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
-                                  >
-                                    <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                    <span>Editar cuenta</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleAlertSettings(account)}
-                                    className="w-full px-3 md:px-4 py-2.5 md:py-3 text-left text-sm sm:text-ios-body text-foreground hover:bg-muted/20 transition-colors flex items-center space-x-2 md:space-x-3"
-                                  >
-                                    <Settings className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                    <span>Alertas de saldo</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteAccount(account)}
-                                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm sm:text-ios-body text-error-600 hover:bg-error-50/50 transition-colors flex items-center space-x-2 sm:space-x-3"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                                    <span>Eliminar cuenta</span>
-                                  </button>
-                                </div>
-                              )}
+
                             </div>
                           </div>
                         </div>
+
+                        {/* Category Statistics - Expandable */}
+                        {expandedAccount === account.id && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="mt-4 pt-4 border-t border-border/20"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h4 className="text-sm font-medium text-foreground">📊 Estadísticas por Categoría</h4>
+                                <span className="text-xs text-muted-foreground">
+                                  {getAccountCategoryStats(account.id).length} categorías
+                                </span>
+                              </div>
+                              
+                              {loadingTransactions ? (
+                                <div className="flex items-center justify-center py-4">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                                  <span className="ml-2 text-xs text-muted-foreground">Cargando estadísticas...</span>
+                                </div>
+                              ) : getAccountCategoryStats(account.id).length === 0 ? (
+                                <div className="text-center py-4">
+                                  <p className="text-xs text-muted-foreground">No hay transacciones en esta cuenta</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-2">
+                                  {getAccountCategoryStats(account.id).map((stat, index) => (
+                                    <motion.div
+                                      key={stat.categoryName}
+                                      initial={{ opacity: 0, x: -10 }}
+                                      animate={{ opacity: 1, x: 0 }}
+                                      transition={{ delay: index * 0.1 }}
+                                      className="flex items-center justify-between p-2 bg-muted/10 rounded-lg"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-foreground truncate">
+                                          {stat.categoryName}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {stat.count} transacción{stat.count !== 1 ? 'es' : ''}
+                                        </p>
+                                      </div>
+                                      <div className="text-right ml-2">
+                                        {stat.income > 0 && (
+                                          <p className="text-xs text-green-600 font-medium">
+                                            +{getCurrencySymbol(account.currencyCode)}{stat.income.toFixed(2)}
+                                          </p>
+                                        )}
+                                        {stat.expenses > 0 && (
+                                          <p className="text-xs text-red-600 font-medium">
+                                            -{getCurrencySymbol(account.currencyCode)}{stat.expenses.toFixed(2)}
+                                          </p>
+                                        )}
+                                        <p className={`text-xs font-semibold ${
+                                          stat.net >= 0 ? 'text-green-600' : 'text-red-600'
+                                        }`}>
+                                          {stat.net >= 0 ? '+' : ''}{getCurrencySymbol(account.currencyCode)}{stat.net.toFixed(2)}
+                                        </p>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
                       </motion.div>
                     );
                   })}
@@ -929,6 +1102,59 @@ export default function AccountsPage() {
           onClose={() => setShowRatesHistory(false)}
         />
         
+        {/* Account Dropdown Portal */}
+        {openDropdown && typeof document !== 'undefined' && createPortal(
+          <div
+            id={`account-dropdown-${openDropdown}`}
+            className="fixed w-48 bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl border border-gray-200/40 dark:border-gray-700/40 rounded-2xl shadow-2xl z-[10000]"
+            style={{
+              top: `${dropdownPosition.top}px`,
+              left: `${dropdownPosition.left}px`,
+            }}
+            role="menu"
+            aria-orientation="vertical"
+            aria-labelledby="account-options-menu"
+          >
+            {(() => {
+              const account = accounts.find(acc => acc.id === openDropdown);
+              if (!account) return null;
+              
+              return (
+                <>
+                  <button
+                    onClick={() => {
+                      handleEditAccount(account);
+                      setOpenDropdown(null);
+                    }}
+                    className="flex items-center w-full px-4 py-3 text-sm text-foreground hover:bg-muted/20 transition-colors rounded-t-2xl"
+                    role="menuitem"
+                  >
+                    <Edit className="h-4 w-4 mr-3" />
+                    Editar cuenta
+                  </button>
+                  <button
+                    onClick={() => handleAlertSettings(account)}
+                    className="flex items-center w-full px-4 py-3 text-sm text-foreground hover:bg-muted/20 transition-colors"
+                    role="menuitem"
+                  >
+                    <Settings className="h-4 w-4 mr-3" />
+                    Alertas de saldo
+                  </button>
+                  <button
+                    onClick={() => handleDeleteAccount(account)}
+                    className="flex items-center w-full px-4 py-3 text-sm text-error-600 hover:bg-error-50/50 transition-colors rounded-b-2xl"
+                    role="menuitem"
+                  >
+                    <Trash2 className="h-4 w-4 mr-3" />
+                    Eliminar cuenta
+                  </button>
+                </>
+              );
+            })()}
+          </div>,
+          document.body
+        )}
+
         {/* Balance Alert Settings Modal */}
         {showAlertSettings && selectedAccountForAlert && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">

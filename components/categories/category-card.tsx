@@ -97,7 +97,7 @@ export function CategoryCard({ category, onEdit, onDelete, onView, onAddSubcateg
                 <div className={`font-medium ${
                   category.kind === 'INCOME' ? 'text-green-400' : 'text-red-400'
                 }`}>
-                  ${Math.abs(category.totalAmount / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {category.kind === 'INCOME' ? '+' : '-'}${Math.abs(category.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </div>
               )}
             </div>

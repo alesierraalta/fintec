@@ -119,6 +119,10 @@ export default function CategoriesPage() {
   // Calculate statistics (optimized with minimal code)
   const incomeCategories = categories.filter(c => c.kind === 'INCOME');
   const expenseCategories = categories.filter(c => c.kind === 'EXPENSE');
+  
+  // Calculate total amounts
+  const totalIncome = incomeCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
+  const totalExpenses = expenseCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
 
   return (
     <MainLayout>
@@ -192,10 +196,12 @@ export default function CategoriesPage() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS</h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">{incomeCategories.length}</p>
+            <p className="text-3xl font-light text-green-600 mb-2">
+              +${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </p>
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-ios-footnote text-green-600 font-medium">Categorías activas</span>
+              <span className="text-ios-footnote text-green-600 font-medium">{incomeCategories.length} categorías</span>
             </div>
           </div>
           
@@ -204,10 +210,12 @@ export default function CategoriesPage() {
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS</h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">{expenseCategories.length}</p>
+            <p className="text-3xl font-light text-red-600 mb-2">
+              -${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </p>
             <div className="flex items-center space-x-2">
               <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-ios-footnote text-red-600 font-medium">Categorías activas</span>
+              <span className="text-ios-footnote text-red-600 font-medium">{expenseCategories.length} categorías</span>
             </div>
           </div>
           
