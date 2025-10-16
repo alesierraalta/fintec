@@ -685,111 +685,6 @@ export default function AccountsPage() {
             </motion.div>
           </motion.div>
 
-          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
-          <motion.div 
-            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
-                  💰 Tasas de Cambio
-                </h2>
-              </div>
-              <motion.div
-                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-              >
-                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-                <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
-              </motion.div>
-            </div>
-            
-            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
-              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
-            </p>
-
-            {/* Tasas actuales visibles para el usuario */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
-                </div>
-                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
-              </div>
-
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
-                </div>
-                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
-                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
-              </div>
-
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
-                </div>
-                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
-                </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <BCVRates />
-              <BinanceRatesComponent />
-              
-              {/* History Button - Mobile Responsive */}
-              <motion.div
-                className="flex justify-center px-4"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-              >
-                <button
-                  onClick={() => setShowRatesHistory(true)}
-                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
-                >
-                  <History className="h-4 w-4" />
-                  <span className="font-medium">Ver Historial y Calculadora</span>
-                </button>
-              </motion.div>
-            </div>
-
-            {/* Exchange Summary - Mobile Responsive */}
-            <motion.div 
-              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-            >
-              <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
-                <p className="mb-1 leading-relaxed">
-                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
-                  <span className="hidden sm:inline"> · </span>
-                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
-                </p>
-                <p className="text-ios-footnote">
-                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
-                </p>
-              </div>
-            </motion.div>
-          </motion.div>
 
           {/* Accounts List - iOS Style */}
           <div className="black-theme-card rounded-3xl shadow-lg overflow-hidden w-full no-horizontal-scroll">
@@ -1112,6 +1007,113 @@ export default function AccountsPage() {
           </div>,
           document.body
         )}
+
+          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
+          <motion.div
+            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
+              <div className="flex items-center space-x-3">
+                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
+                <h2 className="text-xl sm:text-2xl md:text-ios-large-title font-bold text-foreground tracking-tight">
+                  💰 Tasas de Cambio
+                </h2>
+              </div>
+              <motion.div
+                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+              >
+                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+                <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
+              </motion.div>
+            </div>
+
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
+              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
+            </p>
+
+            {/* Tasas actuales visibles para el usuario */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
+                </div>
+                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
+              </div>
+
+              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
+                </div>
+                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
+                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
+                </p>
+                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
+              </div>
+
+              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
+                </div>
+                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
+                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
+                </p>
+                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              <BCVRates />
+              <BinanceRatesComponent />
+
+              {/* History Button - Mobile Responsive */}
+              <motion.div
+                className="flex justify-center px-4"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <button
+                  onClick={() => setShowRatesHistory(true)}
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
+                >
+                  <History className="h-4 w-4" />
+                  <span className="font-medium">Ver Historial y Calculadora</span>
+                </button>
+              </motion.div>
+            </div>
+
+            {/* Exchange Summary - Mobile Responsive */}
+            <motion.div
+              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 1.2 }}
+            >
+              <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
+                <p className="mb-1 leading-relaxed">
+                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
+                  <span className="hidden sm:inline"> · </span>
+                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
+                </p>
+                <p className="text-ios-footnote">
+                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
+                </p>
+              </div>
+            </motion.div>
+          </motion.div>
+
       </MainLayout>
     </AuthGuard>
   );
