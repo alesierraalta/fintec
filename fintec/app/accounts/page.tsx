@@ -166,8 +166,8 @@ export default function AccountsPage() {
     loadAccounts();
   };
 
-  const handleDeleteAccount = async (account: Account) => {
-    if (!confirm(`¿Estás seguro de que quieres eliminar la cuenta "${account.name}"?`)) {
+          repository.transactions.findAll(),
+          repository.categories.findAll()
       return;
     }
     
