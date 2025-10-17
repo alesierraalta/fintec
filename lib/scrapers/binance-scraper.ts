@@ -47,10 +47,10 @@ interface BinanceRateResult {
 
 // Configuration
 const BINANCE_P2P_API = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
-const MAX_PAGES = 3; // Reduced for serverless timeout constraints
+const MAX_PAGES = 2; // Reduced for serverless timeout constraints
 const ROWS_PER_PAGE = 20;
-const REQUEST_TIMEOUT = 8000; // 8 seconds total
-const PAGE_DELAY = 1500; // 1.5 seconds between pages
+const REQUEST_TIMEOUT = 12000; // 12 seconds total
+const PAGE_DELAY = 5000; // 5 seconds between pages
 const PRICE_MIN = 100;
 const PRICE_MAX = 500;
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
@@ -301,6 +301,8 @@ export async function scrapeBinanceRates(): Promise<BinanceRateResult> {
   } catch (error) {
     const executionTime = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // eslint-disable-next-line no-console
+    console.error(`[Binance Scraper Error] ${errorMessage}`);
 
     // Return fallback data
     return {

@@ -364,6 +364,43 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+-- Function to adjust account balance
+CREATE OR REPLACE FUNCTION adjust_account_balance(account_id_input uuid, adjustment_amount bigint)
+RETURNS SETOF accounts AS $$
+BEGIN
+  UPDATE accounts
+  SET balance = balance + adjustment_amount,
+      updated_at = NOW()
+  WHERE id = account_id_input;
+
+  RETURN QUERY SELECT * FROM accounts WHERE id = account_id_input;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Type for bulk balance updates
+CREATE TYPE account_balance_update AS (id uuid, new_balance bigint);
+
+-- Function to update multiple account balances
+CREATE OR REPLACE FUNCTION update_multiple_account_balances(updates account_balance_update[])
+RETURNS SETOF accounts AS $$
+DECLARE
+  updated_ids uuid[];
+  update_item account_balance_update;
+BEGIN
+  FOREACH update_item IN ARRAY updates
+  LOOP
+    UPDATE accounts
+    SET balance = update_item.new_balance,
+        updated_at = NOW()
+    WHERE id = update_item.id;
+    updated_ids := array_append(updated_ids, update_item.id);
+  END LOOP;
+
+  RETURN QUERY SELECT * FROM accounts WHERE id = ANY(updated_ids);
+END;
+$$ LANGUAGE plpgsql;
+
+
 -- Triggers for updating timestamps
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_accounts_updated_at BEFORE UPDATE ON accounts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

@@ -376,8 +376,18 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async exists(id: string): Promise<boolean> {
-    const category = await this.findById(id);
-    return category !== null;
+    const { data, error } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return false; // Not found
+      throw new Error(`Failed to check category existence: ${error.message}`);
+    }
+
+    return !!data;
   }
 }
 

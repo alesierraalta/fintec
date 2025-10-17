@@ -1,6 +1,7 @@
 import { Account, AccountType, PaginatedResult, PaginationParams } from '@/types';
 import { AccountsRepository, CreateAccountDTO, UpdateAccountDTO } from '@/repositories/contracts';
 import { supabase } from './client';
+import { SupabaseAccount } from './types';
 import { 
   mapSupabaseAccountToDomain, 
   mapDomainAccountToSupabase,
@@ -226,26 +227,28 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async adjustBalance(id: string, adjustment: number): Promise<Account> {
-    // First get current balance
-    const account = await this.findById(id);
-    if (!account) {
-      throw new Error(`Account not found: ${id}`);
+    const { data, error } = await supabase.rpc('adjust_account_balance', {
+      account_id_input: id,
+      adjustment_amount: adjustment,
+    }).single();
+
+    if (error) {
+      throw new Error(`Failed to adjust account balance: ${error.message}`);
     }
-    
-    const newBalance = account.balance + adjustment;
-    return this.updateBalance(id, newBalance);
+
+    return mapSupabaseAccountToDomain(data as SupabaseAccount);
   }
 
   async updateBalances(updates: { id: string; newBalance: number }[]): Promise<Account[]> {
-    const results: Account[] = [];
-    
-    // Process each update sequentially to maintain consistency
-    for (const update of updates) {
-      const result = await this.updateBalance(update.id, update.newBalance);
-      results.push(result);
+    const { data, error } = await supabase.rpc('update_multiple_account_balances', {
+      updates: updates.map(u => ({ id: u.id, new_balance: u.newBalance })),
+    });
+
+    if (error) {
+      throw new Error(`Failed to update balances: ${error.message}`);
     }
-    
-    return results;
+
+    return mapSupabaseAccountArrayToDomain(data);
   }
 
   async getTotalBalanceByType(type: AccountType): Promise<number> {

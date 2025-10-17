@@ -280,14 +280,27 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     remaining: number;
     percentageUsed: number;
   } | null> {
-    const budget = await this.findByCategoryAndMonth(categoryId, monthYYYYMM);
-    
-    if (!budget) {
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('amount_base_minor, spent_base_minor')
+      .eq('category_id', categoryId)
+      .eq('month_year', monthYYYYMM)
+      .eq('active', true)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch budget progress: ${error.message}`);
+    }
+
+    if (!data) {
       return null;
     }
 
-    const budgeted = budget.amountBaseMinor;
-    const spent = budget.spentMinor || 0;
+    const budgeted = data.amount_base_minor;
+    const spent = data.spent_base_minor || 0;
     const remaining = budgeted - spent;
     const percentageUsed = budgeted > 0 ? (spent / budgeted) * 100 : 0;
 

@@ -172,7 +172,8 @@ export default function AccountsPage() {
         setTransactions(transactionsData);
         setCategories(categoriesData);
       } catch (error) {
-        console.error('Error loading transactions and categories:', error);
+        // eslint-disable-next-line no-console
+        logger.error('Error loading transactions and categories:', error);
       } finally {
         setLoadingTransactions(false);
       }

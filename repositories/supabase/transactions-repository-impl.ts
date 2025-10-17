@@ -173,7 +173,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async create(transactionData: CreateTransactionDTO): Promise<Transaction> {
-    // Convert DTO to full transaction object (let Supabase generate the ID)
+    // Convert DTO and create atomically via RPC (insert + balance update)
     const transaction = {
       ...transactionData,
       amountBaseMinor: transactionData.amountMinor, // TODO: Apply exchange rate conversion
@@ -182,34 +182,25 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const supabaseTransaction = mapDomainTransactionToSupabase(transaction);
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert(supabaseTransaction)
-      .select()
-      .single();
+    const { data, error } = await supabase.rpc('create_transaction_and_adjust_balance', {
+      p_account_id: supabaseTransaction.account_id,
+      p_category_id: supabaseTransaction.category_id,
+      p_type: supabaseTransaction.type,
+      p_currency_code: supabaseTransaction.currency_code,
+      p_amount_minor: supabaseTransaction.amount_minor,
+      p_amount_base_minor: supabaseTransaction.amount_base_minor,
+      p_exchange_rate: supabaseTransaction.exchange_rate,
+      p_date: supabaseTransaction.date,
+      p_description: supabaseTransaction.description,
+      p_note: supabaseTransaction.note ?? null,
+      p_tags: supabaseTransaction.tags ?? null,
+    });
 
     if (error) {
       throw new Error(`Failed to create transaction: ${error.message}`);
     }
 
     const createdTransaction = mapSupabaseTransactionToDomain(data);
-
-    // Update account balance based on transaction type
-    if (this.accountsRepository) {
-      try {
-        const balanceAdjustment = this.calculateBalanceAdjustment(transactionData.type, transactionData.amountMinor);
-        await this.accountsRepository.adjustBalance(transactionData.accountId, balanceAdjustment);
-        
-        console.log(`✅ Balance updated for account ${transactionData.accountId}: ${balanceAdjustment > 0 ? '+' : ''}${balanceAdjustment / 100}`);
-      } catch (balanceError) {
-        console.error('❌ Failed to update account balance:', balanceError);
-        // Don't throw here to avoid rolling back the transaction creation
-        // The transaction was created successfully, balance update failed
-      }
-    } else {
-      console.warn('⚠️ AccountsRepository not set, balance not updated');
-    }
-
     return createdTransaction;
   }
 
@@ -270,31 +261,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Get the transaction before deleting to reverse the balance change
-    const transaction = await this.findById(id);
-    if (!transaction) {
-      throw new Error(`Transaction with id ${id} not found`);
-    }
-
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.rpc('delete_transaction_and_adjust_balance', {
+      transaction_id_input: id,
+    });
 
     if (error) {
       throw new Error(`Failed to delete transaction: ${error.message}`);
-    }
-
-    // Reverse the balance adjustment
-    if (this.accountsRepository) {
-      try {
-        const originalAdjustment = this.calculateBalanceAdjustment(transaction.type, transaction.amountMinor);
-        const reverseAdjustment = -originalAdjustment;
-        await this.accountsRepository.adjustBalance(transaction.accountId, reverseAdjustment);
-        console.log(`✅ Balance reversed for account ${transaction.accountId}: ${reverseAdjustment > 0 ? '+' : ''}${reverseAdjustment / 100}`);
-      } catch (balanceError) {
-        console.error('❌ Failed to reverse account balance on transaction delete:', balanceError);
-      }
     }
   }
 

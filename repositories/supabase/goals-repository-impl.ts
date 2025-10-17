@@ -241,14 +241,25 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     percentageComplete: number;
     isCompleted: boolean;
   } | null> {
-    const goal = await this.findById(id);
-    
-    if (!goal) {
+    const { data, error } = await supabase
+      .from('goals')
+      .select('target_base_minor, current_base_minor')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch goal progress: ${error.message}`);
+    }
+
+    if (!data) {
       return null;
     }
 
-    const target = goal.targetBaseMinor;
-    const current = goal.currentBaseMinor;
+    const target = data.target_base_minor;
+    const current = data.current_base_minor;
     const remaining = Math.max(0, target - current);
     const percentageComplete = target > 0 ? (current / target) * 100 : 0;
     const isCompleted = current >= target;
