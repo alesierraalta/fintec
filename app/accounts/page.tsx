@@ -206,10 +206,19 @@ export default function AccountsPage() {
         calculateDropdownPosition(openDropdown);
       };
 
+      // Get the scrollable container (main element with overflow-auto)
+      const scrollContainer = document.querySelector('main');
+      
+      if (scrollContainer) {
+        scrollContainer.addEventListener('scroll', handleScroll);
+      }
       window.addEventListener('scroll', handleScroll);
       window.addEventListener('resize', handleScroll);
       
       return () => {
+        if (scrollContainer) {
+          scrollContainer.removeEventListener('scroll', handleScroll);
+        }
         window.removeEventListener('scroll', handleScroll);
         window.removeEventListener('resize', handleScroll);
       };
@@ -249,9 +258,10 @@ export default function AccountsPage() {
     const trigger = dropdownRefs.current[accountId];
     if (trigger) {
       const rect = trigger.getBoundingClientRect();
+      // Use viewport-relative positioning for fixed positioning
       setDropdownPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.right - 192 + window.scrollX, // 192px = w-48
+        top: rect.bottom,
+        left: rect.right - 192, // 192px = w-48
       });
     }
   };

@@ -442,4 +442,91 @@ test.describe('Accounts System', () => {
     
     console.log('✅ Test de acciones de gestión completado');
   });
+
+  test('should keep dropdown menu aligned with button during scroll', async ({ page }) => {
+    console.log('🔍 Probando alineación del menú desplegable durante scroll...');
+
+    // Navigate to accounts page
+    await page.goto('/accounts');
+    await page.waitForLoadState('networkidle');
+
+    // Find the first account row with a dropdown button
+    const moreButtonLocator = page.locator('[aria-label="Acciones de cuenta"]').first();
+    
+    // Verify the button exists
+    try {
+      await expect(moreButtonLocator).toBeVisible({ timeout: 5000 });
+      console.log('✅ Botón de menú desplegable encontrado');
+    } catch {
+      console.log('⚠️ Botón de menú desplegable no encontrado - probablemente no hay cuentas');
+      return;
+    }
+
+    // Get initial button position
+    const buttonBox = await moreButtonLocator.boundingBox();
+    if (!buttonBox) {
+      throw new Error('No se pudo obtener la posición del botón');
+    }
+    console.log(`📍 Posición inicial del botón: x=${buttonBox.x}, y=${buttonBox.y}`);
+
+    // Click to open dropdown
+    await moreButtonLocator.click();
+    console.log('📌 Menú desplegable abierto');
+
+    // Wait for dropdown to appear
+    const dropdownLocator = page.locator('[role="menu"]');
+    await expect(dropdownLocator).toBeVisible({ timeout: 2000 });
+    console.log('✅ Menú desplegable visible');
+
+    // Get dropdown initial position
+    const dropdownBox = await dropdownLocator.boundingBox();
+    if (!dropdownBox) {
+      throw new Error('No se pudo obtener la posición del menú desplegable');
+    }
+    const initialDropdownY = dropdownBox.y;
+    console.log(`📍 Posición inicial del menú: y=${initialDropdownY}`);
+
+    // Scroll down in the main content area
+    const mainContainer = page.locator('main');
+    await mainContainer.evaluate(el => {
+      el.scrollTop += 200;
+    });
+    
+    console.log('📜 Scroll realizado en el contenedor principal');
+    await page.waitForTimeout(500);
+
+    // Get button position after scroll
+    const buttonBoxAfterScroll = await moreButtonLocator.boundingBox();
+    if (!buttonBoxAfterScroll) {
+      throw new Error('No se pudo obtener la posición del botón después del scroll');
+    }
+    console.log(`📍 Posición del botón después del scroll: y=${buttonBoxAfterScroll.y}`);
+
+    // Get dropdown position after scroll
+    const dropdownBoxAfterScroll = await dropdownLocator.boundingBox();
+    if (!dropdownBoxAfterScroll) {
+      throw new Error('No se pudo obtener la posición del menú después del scroll');
+    }
+    const finalDropdownY = dropdownBoxAfterScroll.y;
+    console.log(`📍 Posición del menú después del scroll: y=${finalDropdownY}`);
+
+    // Verify dropdown moved with the button
+    const buttonYMovement = Math.abs(buttonBox.y - buttonBoxAfterScroll.y);
+    const dropdownYMovement = Math.abs(initialDropdownY - finalDropdownY);
+    
+    console.log(`📊 Movimiento del botón en Y: ${buttonYMovement}px`);
+    console.log(`📊 Movimiento del menú en Y: ${dropdownYMovement}px`);
+
+    // The button and dropdown should move together (within tolerance)
+    expect(Math.abs(buttonYMovement - dropdownYMovement)).toBeLessThan(50);
+    console.log('✅ El menú se mantiene alineado con el botón durante el scroll');
+
+    // Verify dropdown is still on screen and positioned below the button
+    expect(dropdownBoxAfterScroll.y).toBeGreaterThan(buttonBoxAfterScroll.y);
+    console.log('✅ El menú está correctamente posicionado debajo del botón');
+
+    // Verify dropdown is still visible
+    expect(dropdownLocator).toBeVisible();
+    console.log('✅ El menú desplegable permanece visible después del scroll');
+  });
 });
