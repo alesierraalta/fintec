@@ -293,7 +293,7 @@ export function DesktopDashboard() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">Movimientos Recientes</h2>
             </div>
-            <RecentTransactions transactions={[]} />
+            <RecentTransactions transactions={rawTransactions} />
           </div>
         </div>
 
