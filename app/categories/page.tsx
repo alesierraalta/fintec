@@ -10,6 +10,7 @@ import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import type { Category } from '@/types';
+import { useRepository } from '@/providers/repository-provider';
 import { 
   Plus, 
   Filter,
@@ -35,6 +36,7 @@ import {
 } from 'lucide-react';
 
 export default function CategoriesPage() {
+  const repository = useRepository();
   const {
     isOpen,
     openModal,
@@ -62,6 +64,9 @@ export default function CategoriesPage() {
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Currency converter (same logic as transactions/accounts)
+  const { convertToUSD } = useCurrencyConverter();
+
   // Memoized categories with transaction statistics
   const categories = useMemo(() => {
     if (!rawCategories || !rawTransactions) return [] as any[];
@@ -69,20 +74,32 @@ export default function CategoriesPage() {
     return rawCategories.map(category => {
       const categoryTransactions = rawTransactions.filter(t => t.categoryId === category.id);
       const transactionCount = categoryTransactions.length;
-      const totalAmount = categoryTransactions.reduce((sum, t) => sum + (t.amountMinor ?? 0), 0) / 100;
+
+      // Totals per currency in minor units
+      const totalVESMinor = categoryTransactions
+        .filter(t => t.currencyCode === 'VES')
+        .reduce((sum, t) => sum + (t.amountMinor || 0), 0);
+      const totalUSDMinor = categoryTransactions
+        .filter(t => t.currencyCode === 'USD')
+        .reduce((sum, t) => sum + (t.amountMinor || 0), 0);
+
+      // USD equivalent using shared converter
+      const totalEquivUSDMinor = categoryTransactions.reduce((sum, t) => {
+        const usd = convertToUSD(t.amountMinor || 0, t.currencyCode);
+        return sum + Math.round(usd * 100);
+      }, 0);
 
       return {
         ...category,
         transactionCount,
-        totalAmount,
+        totalVESMinor,
+        totalUSDMinor,
+        totalEquivUSDMinor,
       };
     });
-  }, [rawCategories, rawTransactions]);
+  }, [rawCategories, rawTransactions, convertToUSD]);
 
   const loading = !rawCategories || !rawTransactions;
-
-  // Currency converter (same logic as transactions/accounts)
-  const { convertToUSD } = useCurrencyConverter();
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -102,8 +119,22 @@ export default function CategoriesPage() {
     openModal();
   };
 
-  const handleDeleteCategory = (categoryId: string) => {
-    // Implement deletion logic if required
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      const canDelete = await repository.categories.canDelete(categoryId);
+      if (!canDelete) {
+        alert("This category cannot be deleted because it has associated transactions or subcategories.");
+        return;
+      }
+
+      if (window.confirm("Are you sure you want to delete this category?")) {
+        await repository.categories.delete(categoryId);
+        loadAllData(true);
+      }
+    } catch (error) {
+      console.error("Failed to delete category", error);
+      alert("Failed to delete category. Please try again.");
+    }
   };
 
   const handleCategorySaved = () => {

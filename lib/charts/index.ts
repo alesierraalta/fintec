@@ -289,22 +289,6 @@ export const doughnutChartConfig = (
           },
         },
       },
-      tooltip: {
-        ...defaultChartOptions.plugins?.tooltip,
-        callbacks: {
-          label: (context: TooltipItem<'doughnut'>) => {
-            const label = context.label || '';
-            const value = context.parsed;
-            const total = context.dataset.data.reduce((a: number, b: number) => a + b, 0);
-            const percentage = ((value / total) * 100).toFixed(1);
-            
-            return `${label}: $${value.toLocaleString('es-ES', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })} (${percentage}%)`;
-          },
-        },
-      },
     },
     ...options,
   },
