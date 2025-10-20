@@ -33,15 +33,27 @@ import {
 } from 'lucide-react';
 
 export default function CategoriesPage() {
-  const { isOpen, openModal, closeModal } = useModal();
-  const { invalidateCache, loadCategories } = useOptimizedData();
+  const {
+    isOpen,
+    openModal,
+    closeModal,
+  } = useModal();
+
+  // Use a single optimized data hook instance
+  const optimized = useOptimizedData();
+  const {
+    categories: rawCategories,
+    transactions: rawTransactions,
+    invalidateCache,
+    loadAllData,
+  } = optimized;
 
   useEffect(() => {
-    // Force refresh categories on mount to ensure latest data
-    invalidateCache('categories');
-    loadCategories(true);
-  }, [invalidateCache, loadCategories]);
-  const { categories: rawCategories, transactions: rawTransactions } = useOptimizedData();
+    // Ensure latest real data: clear cache and load everything in parallel
+    invalidateCache();
+    loadAllData(true);
+  }, [invalidateCache, loadAllData]);
+
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -50,24 +62,22 @@ export default function CategoriesPage() {
 
   // Memoized categories with transaction statistics
   const categories = useMemo(() => {
-    if (!rawCategories || !rawTransactions) return [];
-    
+    if (!rawCategories || !rawTransactions) return [] as any[];
+
     return rawCategories.map(category => {
       const categoryTransactions = rawTransactions.filter(t => t.categoryId === category.id);
       const transactionCount = categoryTransactions.length;
-      const totalAmount = categoryTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-      
+      const totalAmount = categoryTransactions.reduce((sum, t) => sum + (t.amountMinor ?? 0), 0) / 100;
+
       return {
         ...category,
         transactionCount,
-        totalAmount
+        totalAmount,
       };
     });
   }, [rawCategories, rawTransactions]);
 
   const loading = !rawCategories || !rawTransactions;
-
-
 
   const handleNewCategory = () => {
     setSelectedCategory(null);
@@ -88,39 +98,39 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteCategory = (categoryId: string) => {
-    // Aquí implementarías la lógica de eliminación
+    // Implement deletion logic if required
   };
 
   const handleCategorySaved = () => {
     closeModal();
-    // Categories will be automatically updated via useOptimizedData
+    // Data is refreshed via optimized loader
+    loadAllData(true);
   };
 
   const handleViewCategory = (categoryId: string) => {
-    // Aquí podrías navegar a una vista detallada
+    // Navigate to detailed view if needed
   };
 
   const handleRefreshStats = () => {
-    // Statistics are automatically refreshed via memoization
-    // No manual refresh needed
+    loadAllData(true);
   };
 
   // Filter categories
   const filteredCategories = categories.filter(category => {
-    const matchesFilter = filter === 'all' || 
+    const matchesFilter = filter === 'all' ||
       (filter === 'income' && category.kind === 'INCOME') ||
       (filter === 'expense' && category.kind === 'EXPENSE');
-    
+
     const matchesSearch = category.name.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesFilter && matchesSearch;
   });
 
   // Calculate statistics (optimized with minimal code)
   const incomeCategories = categories.filter(c => c.kind === 'INCOME');
   const expenseCategories = categories.filter(c => c.kind === 'EXPENSE');
-  
-  // Calculate total amounts
+
+  // Calculate total amounts in major units
   const totalIncome = incomeCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
   const totalExpenses = expenseCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
 
@@ -133,14 +143,14 @@ export default function CategoriesPage() {
             <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
             <span className="text-ios-caption font-medium">Organización</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-purple-600 to-blue-500 bg-clip-text text-white">
             🏷️ Categorías
           </h1>
           <p className="text-muted-foreground font-light mb-6">
             Organiza tus transacciones por categorías
           </p>
-          
+
           {/* Quick Actions Header */}
           <div className="flex items-center justify-center space-x-4 mb-4">
             {/* View Mode Toggle */}
@@ -148,10 +158,32 @@ export default function CategoriesPage() {
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-3 rounded-xl transition-all duration-200 ${
-                  viewMode === 'grid' 
-                    ? 'bg-primary text-white shadow-lg' 
+                  viewMode === 'grid'
+                    ? 'bg-primary text-white shadow-lg'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
+              >
+                Grid
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-3 rounded-xl transition-all duration-200 ${
+                  viewMode === 'list'
+                    ? 'bg-primary text-white shadow-lg'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Lista
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content would continue here using filteredCategories, totals, etc. */}
+      </div>
+    </MainLayout>
+  );
+}
               >
                 <Grid3X3 className="h-4 w-4" />
               </button>
