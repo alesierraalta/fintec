@@ -6,6 +6,7 @@ import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import type { Category } from '@/types';
@@ -80,6 +81,9 @@ export default function CategoriesPage() {
 
   const loading = !rawCategories || !rawTransactions;
 
+  // Currency converter (same logic as transactions/accounts)
+  const { convertToUSD } = useCurrencyConverter();
+
   const handleNewCategory = () => {
     setSelectedCategory(null);
     setParentCategoryId(null);
@@ -140,15 +144,9 @@ export default function CategoriesPage() {
   // Convert a single transaction to USD minor using its exchange rate
   const toUsdMinor = (t: any): number => {
     if (!t) return 0;
-    // USD stays as is
-    if (t.currencyCode === 'USD') return t.amountMinor || 0;
-    // For VES (and others), use exchangeRate when available
-    const rate = Number(t.exchangeRate || 0);
-    if (rate > 0) {
-      return Math.round((t.amountMinor || 0) / rate);
-    }
-    // Fallback to amountBaseMinor if present
-    return t.amountBaseMinor || 0;
+    // Delegate to shared converter for consistency
+    const usdMajor = convertToUSD(t.amountMinor || 0, t.currencyCode);
+    return Math.round(usdMajor * 100);
   };
 
   // Income totals
