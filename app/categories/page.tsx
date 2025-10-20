@@ -137,15 +137,29 @@ export default function CategoriesPage() {
   const sumMinor = (items: any[], selector: (t: any) => number) =>
     items.reduce((sum, t) => sum + (selector(t) || 0), 0);
 
+  // Convert a single transaction to USD minor using its exchange rate
+  const toUsdMinor = (t: any): number => {
+    if (!t) return 0;
+    // USD stays as is
+    if (t.currencyCode === 'USD') return t.amountMinor || 0;
+    // For VES (and others), use exchangeRate when available
+    const rate = Number(t.exchangeRate || 0);
+    if (rate > 0) {
+      return Math.round((t.amountMinor || 0) / rate);
+    }
+    // Fallback to amountBaseMinor if present
+    return t.amountBaseMinor || 0;
+  };
+
   // Income totals
   const totalIncomeVESMinor = sumMinor(incomeTransactions.filter(t => t.currencyCode === 'VES'), t => t.amountMinor);
   const totalIncomeUSDMinor = sumMinor(incomeTransactions.filter(t => t.currencyCode === 'USD'), t => t.amountMinor);
-  const totalIncomeEquivUSDMinor = sumMinor(incomeTransactions, t => t.amountBaseMinor);
+  const totalIncomeEquivUSDMinor = sumMinor(incomeTransactions, toUsdMinor);
 
   // Expense totals
   const totalExpensesVESMinor = sumMinor(expenseTransactions.filter(t => t.currencyCode === 'VES'), t => t.amountMinor);
   const totalExpensesUSDMinor = sumMinor(expenseTransactions.filter(t => t.currencyCode === 'USD'), t => t.amountMinor);
-  const totalExpensesEquivUSDMinor = sumMinor(expenseTransactions, t => t.amountBaseMinor);
+  const totalExpensesEquivUSDMinor = sumMinor(expenseTransactions, toUsdMinor);
 
   return (
     <MainLayout>
