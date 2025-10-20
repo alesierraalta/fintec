@@ -138,6 +138,8 @@ export function mapSupabaseCategoryToDomain(supabaseCategory: SupabaseCategory):
     icon: supabaseCategory.icon,
     parentId: supabaseCategory.parent_id,
     active: supabaseCategory.active,
+    userId: supabaseCategory.user_id,
+    isDefault: supabaseCategory.is_default,
     createdAt: supabaseCategory.created_at,
     updatedAt: supabaseCategory.updated_at,
   };
@@ -152,6 +154,8 @@ export function mapDomainCategoryToSupabase(category: Partial<Category>): Partia
     icon: category.icon,
     parent_id: category.parentId,
     active: category.active,
+    user_id: category.userId,
+    is_default: category.isDefault,
     created_at: category.createdAt,
     updated_at: category.updatedAt,
   };

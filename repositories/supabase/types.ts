@@ -41,6 +41,8 @@ export interface SupabaseCategory {
   icon: string;
   parent_id?: string;
   active: boolean;
+  user_id: string | null; // null for default categories
+  is_default: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -221,6 +223,8 @@ CREATE TABLE categories (
   color TEXT NOT NULL,
   icon TEXT NOT NULL,
   parent_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  is_default BOOLEAN NOT NULL DEFAULT FALSE,
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -307,6 +311,8 @@ CREATE INDEX idx_transactions_transfer_id ON transactions(transfer_id);
 
 CREATE INDEX idx_categories_kind ON categories(kind);
 CREATE INDEX idx_categories_parent_id ON categories(parent_id);
+CREATE INDEX idx_categories_user_id ON categories(user_id);
+CREATE INDEX idx_categories_is_default ON categories(is_default);
 
 CREATE INDEX idx_budgets_category_id ON budgets(category_id);
 CREATE INDEX idx_budgets_month_year ON budgets(month_year);
@@ -346,11 +352,20 @@ CREATE POLICY "Users can delete own transactions" ON transactions FOR DELETE USI
   auth.uid() IN (SELECT user_id FROM accounts WHERE id = account_id)
 );
 
--- Categories are global (for now - could be user-specific later)
-CREATE POLICY "Anyone can view categories" ON categories FOR SELECT TO authenticated USING (true);
-CREATE POLICY "Authenticated users can insert categories" ON categories FOR INSERT TO authenticated WITH CHECK (true);
-CREATE POLICY "Authenticated users can update categories" ON categories FOR UPDATE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete categories" ON categories FOR DELETE TO authenticated USING (true);
+-- Categories: users can see their own categories and all default categories
+ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view own and default categories" ON categories FOR SELECT USING (
+  auth.uid() = user_id OR is_default = true
+);
+CREATE POLICY "Users can insert own categories" ON categories FOR INSERT WITH CHECK (
+  auth.uid() = user_id OR is_default = false
+);
+CREATE POLICY "Users can update own categories" ON categories FOR UPDATE USING (
+  auth.uid() = user_id OR is_default = false
+);
+CREATE POLICY "Users can delete own categories" ON categories FOR DELETE USING (
+  auth.uid() = user_id
+);
 
 -- Budgets and goals are user-specific through category/account relationships
 -- (Additional policies would be added here)

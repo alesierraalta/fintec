@@ -8,6 +8,7 @@ export interface CreateCategoryDTO {
   icon: string;
   parentId?: string;
   active?: boolean;
+  isDefault?: boolean; // true for default categories, false or undefined for user-specific
 }
 
 export interface UpdateCategoryDTO extends Partial<CreateCategoryDTO> {

@@ -5,8 +5,11 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { TrendingUp, DollarSign, ShoppingCart, Car, Film, Zap, Heart, Package } from 'lucide-react';
 import { useOptimizedTransactions } from '@/hooks/use-optimized-data';
 
+import { useCurrencyConverter } from '@/hooks/use-currency-converter';
+
 function SpendingChartComponent() {
   const { expenseTransactions, categories, loading } = useOptimizedTransactions();
+  const { convert } = useCurrencyConverter();
   const [data, setData] = useState<any[]>([]);
 
   // Función memoizada para obtener colores por categoría - Paleta Minimalista
@@ -55,8 +58,10 @@ function SpendingChartComponent() {
 
   // Memoized total spending calculation
   const totalSpending = useMemo(() => {
-    return expenseTransactions.reduce((sum, t) => sum + (t.amountMinor / 100), 0);
-  }, [expenseTransactions]);
+    return expenseTransactions.reduce((sum, transaction) => {
+      return sum + convert(Math.abs(transaction.amountMinor), transaction.currencyCode, 'USD');
+    }, 0);
+  }, [expenseTransactions, convert]);
 
   // Memoized spending data by category
   const spendingData = useMemo(() => {
@@ -68,7 +73,7 @@ function SpendingChartComponent() {
     expenseTransactions.forEach(expense => {
       const category = categories.find(c => c.id === expense.categoryId);
       const categoryName = category?.name || 'Sin categoría';
-      const amount = expense.amountMinor / 100;
+      const amount = convert(Math.abs(expense.amountMinor), expense.currencyCode, 'USD');
       
       if (categoryMap.has(categoryName)) {
         categoryMap.set(categoryName, categoryMap.get(categoryName) + amount);
@@ -88,7 +93,7 @@ function SpendingChartComponent() {
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 8); // Mostrar máximo 8 categorías
-  }, [expenseTransactions, categories, totalSpending, getCategoryColor, getCategoryIcon]);
+  }, [expenseTransactions, categories, totalSpending, getCategoryColor, getCategoryIcon, convert]);
 
   // Update data when spendingData changes
   useEffect(() => {

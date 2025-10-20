@@ -59,6 +59,8 @@ export interface Category {
   icon: string;
   parentId?: string;
   active: boolean;
+  userId: string | null; // null for default categories
+  isDefault: boolean;
   createdAt: string;
   updatedAt: string;
 }

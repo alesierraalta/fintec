@@ -21,6 +21,8 @@ export class LocalCategoriesRepository implements CategoriesRepository {
       icon: data.icon,
       parentId: data.parentId,
       active: data.active ?? true,
+      userId: null,
+      isDefault: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -71,6 +73,8 @@ export class LocalCategoriesRepository implements CategoriesRepository {
       icon: item.icon,
       parentId: item.parentId,
       active: item.active ?? true,
+      userId: null,
+      isDefault: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));

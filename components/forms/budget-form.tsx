@@ -26,12 +26,12 @@ interface BudgetFormProps {
 
 // Mock categories for the form
 const mockCategories: Category[] = [
-  { id: '1', name: 'Alimentación', kind: CategoryKind.EXPENSE, color: '#10b981', icon: 'UtensilsCrossed', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
-  { id: '2', name: 'Transporte', kind: CategoryKind.EXPENSE, color: '#f59e0b', icon: 'Car', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
-  { id: '3', name: 'Entretenimiento', kind: CategoryKind.EXPENSE, color: '#8b5cf6', icon: 'Gamepad2', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
-  { id: '4', name: 'Salud', kind: CategoryKind.EXPENSE, color: '#ef4444', icon: 'Heart', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
-  { id: '5', name: 'Educación', kind: CategoryKind.EXPENSE, color: '#3b82f6', icon: 'GraduationCap', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
-  { id: '6', name: 'Hogar', kind: CategoryKind.EXPENSE, color: '#06b6d4', icon: 'Home', parentId: undefined, active: true, createdAt: '', updatedAt: '' },
+  { id: '1', name: 'Alimentación', kind: CategoryKind.EXPENSE, color: '#10b981', icon: 'UtensilsCrossed', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  { id: '2', name: 'Transporte', kind: CategoryKind.EXPENSE, color: '#f59e0b', icon: 'Car', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  { id: '3', name: 'Entretenimiento', kind: CategoryKind.EXPENSE, color: '#8b5cf6', icon: 'Gamepad2', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  { id: '4', name: 'Salud', kind: CategoryKind.EXPENSE, color: '#ef4444', icon: 'Heart', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  { id: '5', name: 'Educación', kind: CategoryKind.EXPENSE, color: '#3b82f6', icon: 'GraduationCap', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  { id: '6', name: 'Hogar', kind: CategoryKind.EXPENSE, color: '#06b6d4', icon: 'Home', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
 ];
 
 export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps) {

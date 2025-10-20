@@ -128,7 +128,7 @@ export class FinanceDB extends Dexie {
 
   // Seed default categories
   private async seedDefaultCategories(): Promise<void> {
-    const defaultCategories: Omit<Category, 'id' | 'createdAt' | 'updatedAt'>[] = [
+    const defaultCategories: Omit<Category, 'id' | 'createdAt' | 'updatedAt' | 'userId' | 'isDefault'>[] = [
       // Income categories
       { name: 'Salario', kind: CategoryKind.INCOME, color: '#22c55e', icon: 'Banknote', parentId: undefined, active: true },
       { name: 'Freelance', kind: CategoryKind.INCOME, color: '#3b82f6', icon: 'Laptop', parentId: undefined, active: true },
@@ -150,6 +150,8 @@ export class FinanceDB extends Dexie {
     const categoriesToInsert: Category[] = defaultCategories.map((cat, index) => ({
       ...cat,
       id: `cat_${index + 1}`,
+      userId: null,
+      isDefault: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     }));
