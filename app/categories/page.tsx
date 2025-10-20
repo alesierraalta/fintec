@@ -180,46 +180,6 @@ export default function CategoriesPage() {
         </div>
 
         {/* Content would continue here using filteredCategories, totals, etc. */}
-      </div>
-    </MainLayout>
-  );
-}
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                className={`p-3 rounded-xl transition-all duration-200 ${
-                  viewMode === 'list' 
-                    ? 'bg-primary text-white shadow-lg' 
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <List className="h-4 w-4" />
-              </button>
-            </div>
-            
-            <button
-              onClick={handleRefreshStats}
-              disabled={loading}
-              className="px-4 py-2 rounded-xl transition-all duration-200 flex items-center space-x-2 bg-muted hover:bg-muted/80 text-muted-foreground disabled:opacity-50"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              <span className="text-sm font-medium">Actualizar</span>
-            </button>
-            
-            <button
-              onClick={handleNewCategory}
-              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary text-ios-body"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
-              <div className="relative flex items-center space-x-2">
-                <Plus className="h-5 w-5" />
-                <span>Nueva Categoría</span>
-              </div>
-            </button>
-          </div>
-        </div>
 
         {/* iOS-style Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
