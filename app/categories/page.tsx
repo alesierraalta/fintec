@@ -5,6 +5,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import type { Category } from '@/types';
@@ -126,13 +127,25 @@ export default function CategoriesPage() {
     return matchesFilter && matchesSearch;
   });
 
-  // Calculate statistics (optimized with minimal code)
   const incomeCategories = categories.filter(c => c.kind === 'INCOME');
   const expenseCategories = categories.filter(c => c.kind === 'EXPENSE');
 
-  // Calculate total amounts in major units
-  const totalIncome = incomeCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
-  const totalExpenses = expenseCategories.reduce((sum, category) => sum + (category.totalAmount || 0), 0);
+  // Calculate statistics broken down by currency, mirroring /transactions behavior
+  const incomeTransactions = (rawTransactions || []).filter(t => t.type === 'INCOME');
+  const expenseTransactions = (rawTransactions || []).filter(t => t.type === 'EXPENSE');
+
+  const sumMinor = (items: any[], selector: (t: any) => number) =>
+    items.reduce((sum, t) => sum + (selector(t) || 0), 0);
+
+  // Income totals
+  const totalIncomeVESMinor = sumMinor(incomeTransactions.filter(t => t.currencyCode === 'VES'), t => t.amountMinor);
+  const totalIncomeUSDMinor = sumMinor(incomeTransactions.filter(t => t.currencyCode === 'USD'), t => t.amountMinor);
+  const totalIncomeEquivUSDMinor = sumMinor(incomeTransactions, t => t.amountBaseMinor);
+
+  // Expense totals
+  const totalExpensesVESMinor = sumMinor(expenseTransactions.filter(t => t.currencyCode === 'VES'), t => t.amountMinor);
+  const totalExpensesUSDMinor = sumMinor(expenseTransactions.filter(t => t.currencyCode === 'USD'), t => t.amountMinor);
+  const totalExpensesEquivUSDMinor = sumMinor(expenseTransactions, t => t.amountBaseMinor);
 
   return (
     <MainLayout>
@@ -188,12 +201,16 @@ export default function CategoriesPage() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS</h3>
             </div>
-            <p className="text-3xl font-light text-green-600 mb-2">
-              +${totalIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="flex items-center space-x-2">
+            <div className="space-y-1">
+              <p className="text-lg font-medium text-foreground">Bs. {formatCurrencyWithBCV(totalIncomeVESMinor, 'VES')}</p>
+              <p className="text-sm text-muted-foreground">VES</p>
+              <p className="text-lg font-medium text-foreground">{(totalIncomeUSDMinor/100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+              <p className="text-sm text-muted-foreground">USD</p>
+              <p className="text-sm text-green-600">Total equiv.: {(totalIncomeEquivUSDMinor/100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+            </div>
+            <div className="flex items-center space-x-2 mt-2">
               <TrendingUp className="h-4 w-4 text-green-600" />
-              <span className="text-ios-footnote text-green-600 font-medium">{incomeCategories.length} categorías</span>
+              <span className="text-ios-footnote text-green-600 font-medium">{incomeTransactions.length} ingresos</span>
             </div>
           </div>
           
@@ -202,12 +219,16 @@ export default function CategoriesPage() {
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS</h3>
             </div>
-            <p className="text-3xl font-light text-red-600 mb-2">
-              -${totalExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-            <div className="flex items-center space-x-2">
+            <div className="space-y-1">
+              <p className="text-lg font-medium text-foreground">Bs. {formatCurrencyWithBCV(totalExpensesVESMinor, 'VES')}</p>
+              <p className="text-sm text-muted-foreground">VES</p>
+              <p className="text-lg font-medium text-foreground">{(totalExpensesUSDMinor/100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+              <p className="text-sm text-muted-foreground">USD</p>
+              <p className="text-sm text-red-600">Total equiv.: {(totalExpensesEquivUSDMinor/100).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}</p>
+            </div>
+            <div className="flex items-center space-x-2 mt-2">
               <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-ios-footnote text-red-600 font-medium">{expenseCategories.length} categorías</span>
+              <span className="text-ios-footnote text-red-600 font-medium">{expenseTransactions.length} gastos</span>
             </div>
           </div>
           
