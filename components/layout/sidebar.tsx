@@ -23,13 +23,15 @@ import {
   DollarSign,
   BarChart3,
   Shield,
-  Crown
+  Crown,
+  Repeat
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Inicio', href: '/', icon: Home },
   { name: 'Cuentas', href: '/accounts', icon: Wallet },
   { name: 'Gastos', href: '/transactions', icon: ArrowUpDown },
+  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
   { name: 'Transferir', href: '/transfers', icon: ArrowRightLeft },
   { name: 'Categorías', href: '/categories', icon: PieChart },
   { name: 'Presupuestos', href: '/budgets', icon: CreditCard },

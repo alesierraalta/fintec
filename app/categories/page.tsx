@@ -11,6 +11,7 @@ import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import type { Category } from '@/types';
 import { useRepository } from '@/providers/repository-provider';
+import { useAuth } from '@/hooks/use-auth';
 import { 
   Plus, 
   Filter,
@@ -37,6 +38,7 @@ import {
 
 export default function CategoriesPage() {
   const repository = useRepository();
+  const { user } = useAuth();
   const {
     isOpen,
     openModal,
@@ -71,7 +73,19 @@ export default function CategoriesPage() {
   const categories = useMemo(() => {
     if (!rawCategories || !rawTransactions) return [] as any[];
 
-    return rawCategories.map(category => {
+    // Filter categories to show only user's categories or default categories
+    const filteredCategories = rawCategories.filter(category => {
+      // Show default categories to everyone
+      if (category.isDefault) return true;
+      
+      // Show user's own categories if authenticated
+      if (user && category.userId === user.id) return true;
+      
+      // Don't show other users' categories
+      return false;
+    });
+
+    return filteredCategories.map(category => {
       const categoryTransactions = rawTransactions.filter(t => t.categoryId === category.id);
       const transactionCount = categoryTransactions.length;
 
@@ -97,7 +111,7 @@ export default function CategoriesPage() {
         totalEquivUSDMinor,
       };
     });
-  }, [rawCategories, rawTransactions, convertToUSD]);
+  }, [rawCategories, rawTransactions, convertToUSD, user]);
 
   const loading = !rawCategories || !rawTransactions;
 

@@ -135,7 +135,7 @@ export function useOptimizedData() {
     } finally {
       setLoading(false);
     }
-  }, [repository, isCacheValid]);
+  }, [repository, isCacheValid, user]);
 
   // Load all data efficiently
   const loadAllData = useCallback(async (forceRefresh = false) => {
