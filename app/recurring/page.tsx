@@ -33,11 +33,8 @@ export default function RecurringPage() {
         if (result.success) {
           setRecurringTransactions(result.data.transactions);
           setSummary(result.data.summary);
-        } else {
-          console.error('Failed to load recurring transactions:', result.error);
         }
       } catch (error) {
-        console.error('Failed to load recurring transactions:', error);
       } finally {
         setLoading(false);
       }

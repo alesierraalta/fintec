@@ -16,20 +16,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('Fetching recurring transactions for user:', user.id);
-    
     const transactions = await repository.recurringTransactions.findByUserId(user.id);
-    console.log('Found transactions:', transactions.length);
-    
     const summary = await repository.recurringTransactions.getSummary(user.id);
-    console.log('Summary:', summary);
     
     return NextResponse.json({
       success: true,
       data: { transactions, summary }
     });
   } catch (error) {
-    console.error('Failed to fetch recurring transactions:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -74,7 +68,6 @@ export async function POST(request: NextRequest) {
       message: 'Recurring transaction created successfully'
     }, { status: 201 });
   } catch (error) {
-    console.error('Failed to create recurring transaction:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -118,7 +111,6 @@ export async function PUT(request: NextRequest) {
       message: 'Recurring transaction updated successfully'
     });
   } catch (error) {
-    console.error('Failed to update recurring transaction:', error);
     return NextResponse.json(
       { 
         success: false, 
@@ -162,7 +154,6 @@ export async function DELETE(request: NextRequest) {
       message: 'Recurring transaction deleted successfully'
     });
   } catch (error) {
-    console.error('Failed to delete recurring transaction:', error);
     return NextResponse.json(
       { 
         success: false, 

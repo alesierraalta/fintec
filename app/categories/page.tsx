@@ -146,7 +146,6 @@ export default function CategoriesPage() {
         loadAllData(true);
       }
     } catch (error) {
-      console.error("Failed to delete category", error);
       alert("Failed to delete category. Please try again.");
     }
   };

@@ -87,8 +87,7 @@ export async function POST(request: NextRequest) {
       icon: body.icon || 'Tag',
       parentId: body.parentId,
       active: body.active !== false, // Default to true
-      isDefault: body.isDefault || false,
-      userId: body.userId || null
+      isDefault: body.isDefault || false
     };
     
     const category = await repository.categories.create(categoryData);
