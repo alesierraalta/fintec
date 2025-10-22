@@ -27,14 +27,20 @@ export default function RecurringPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
+        console.log('Fetching recurring transactions...');
         const response = await fetch('/api/recurring-transactions');
         const result = await response.json();
+        console.log('API Response:', result);
         
         if (result.success) {
+          console.log('Setting transactions:', result.data.transactions);
           setRecurringTransactions(result.data.transactions);
           setSummary(result.data.summary);
+        } else {
+          console.error('API Error:', result.error);
         }
       } catch (error) {
+        console.error('Fetch Error:', error);
       } finally {
         setLoading(false);
       }

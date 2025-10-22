@@ -16,12 +16,61 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const transactions = await repository.recurringTransactions.findByUserId(user.id);
-    const summary = await repository.recurringTransactions.getSummary(user.id);
+    // Direct query to test
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (error) {
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    // Simple summary calculation
+    const transactions = data || [];
+    const summary = {
+      totalActive: transactions.filter(t => t.is_active).length,
+      totalInactive: transactions.filter(t => !t.is_active).length,
+      nextExecutions: {
+        today: 0,
+        thisWeek: 0,
+        thisMonth: 0
+      },
+      byFrequency: {
+        daily: transactions.filter(t => t.frequency === 'daily').length,
+        weekly: transactions.filter(t => t.frequency === 'weekly').length,
+        monthly: transactions.filter(t => t.frequency === 'monthly').length,
+        yearly: transactions.filter(t => t.frequency === 'yearly').length
+      }
+    };
     
     return NextResponse.json({
       success: true,
-      data: { transactions, summary }
+      data: { 
+        transactions: transactions.map(t => ({
+          id: t.id,
+          userId: t.user_id,
+          name: t.name,
+          type: t.type,
+          accountId: t.account_id,
+          categoryId: t.category_id,
+          currencyCode: t.currency_code,
+          amountMinor: t.amount_minor,
+          description: t.description,
+          note: t.note,
+          tags: t.tags,
+          frequency: t.frequency,
+          intervalCount: t.interval_count,
+          startDate: t.start_date,
+          endDate: t.end_date,
+          nextExecutionDate: t.next_execution_date,
+          isActive: t.is_active,
+          createdAt: t.created_at,
+          updatedAt: t.updated_at,
+          lastExecutedAt: t.last_executed_at
+        })),
+        summary 
+      }
     });
   } catch (error) {
     return NextResponse.json(
