@@ -162,6 +162,16 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   async create(category: CreateCategoryDTO): Promise<Category> {
     const { data: { user } } = await supabase.auth.getUser();
     
+    // Validate privacy rules: default categories cannot have user_id
+    if (category.isDefault && category.userId) {
+      throw new Error('Default categories cannot be associated with a user');
+    }
+    
+    // Validate privacy rules: user categories cannot be default
+    if (category.userId && category.isDefault) {
+      throw new Error('User categories cannot be marked as default');
+    }
+    
     const supabaseCategory = mapDomainCategoryToSupabase({
       ...category,
       active: category.active ?? true,

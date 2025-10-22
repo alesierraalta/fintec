@@ -58,13 +58,37 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Validate privacy rules: default categories cannot have user_id
+    if (body.isDefault && body.userId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Default categories cannot have a user_id' 
+        },
+        { status: 400 }
+      );
+    }
+    
+    // Validate privacy rules: user categories cannot be default
+    if (body.userId && body.isDefault) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'User categories cannot be marked as default' 
+        },
+        { status: 400 }
+      );
+    }
+    
     const categoryData: CreateCategoryDTO = {
       name: body.name,
       kind: body.kind as CategoryKind,
       color: body.color || '#6b7280',
       icon: body.icon || 'Tag',
       parentId: body.parentId,
-      active: body.active !== false // Default to true
+      active: body.active !== false, // Default to true
+      isDefault: body.isDefault || false,
+      userId: body.userId || null
     };
     
     const category = await repository.categories.create(categoryData);
