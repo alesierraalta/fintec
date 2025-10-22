@@ -7,11 +7,18 @@ const repository = new SupabaseAppRepository();
 // GET /api/recurring-transactions - Fetch recurring transactions for authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError) {
+      return NextResponse.json(
+        { success: false, error: 'Authentication error', details: authError.message },
+        { status: 401 }
+      );
+    }
     
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: 'No authenticated user' },
         { status: 401 }
       );
     }
