@@ -11,17 +11,31 @@ import { Plus, Calendar, DollarSign, TrendingUp, Clock, ArrowUp, ArrowDown } fro
 import { supabase } from '@/repositories/supabase/client';
 import { RecurringTransaction, RecurringTransactionSummary } from '@/types/recurring-transactions';
 import { getFrequencyLabel } from '@/types/recurring-transactions';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
+import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import { BCVRates } from '@/components/currency/bcv-rates';
+import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 
 export default function RecurringPage() {
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>([]);
   const [summary, setSummary] = useState<RecurringTransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedFrequency, setSelectedFrequency] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
+  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
 
   const frequencyOptions = [
     { value: 'weekly', label: 'Semanal' },
     { value: 'monthly', label: 'Mensual' },
     { value: 'yearly', label: 'Anual' }
+  ];
+
+  const rateOptions = [
+    { value: 'bcv_usd', label: 'BCV USD' },
+    { value: 'bcv_eur', label: 'BCV EUR' },
+    { value: 'binance', label: 'Binance' }
   ];
 
   useEffect(() => {
@@ -34,7 +48,6 @@ export default function RecurringPage() {
         const token = session?.access_token;
         
         if (!token) {
-          console.error('No authentication token available');
           return;
         }
         
@@ -76,10 +89,21 @@ export default function RecurringPage() {
     return selectedDays / transactionDays;
   };
 
+  // Helper function to convert USD to BS based on selected rate
+  const convertToBS = (amountUSD: number): number => {
+    if (usdEquivalentType === 'binance') {
+      return amountUSD * (binanceRates?.usdt_ves || 1);
+    } else if (usdEquivalentType === 'bcv_usd') {
+      return amountUSD * (bcvRates?.usd || 1);
+    } else {
+      return amountUSD * (bcvRates?.eur || 1);
+    }
+  };
+
   // Calculate totals based on selected frequency
   const calculateTotals = useMemo(() => {
-    let income = 0;
-    let expenses = 0;
+    let incomeUSD = 0;
+    let expensesUSD = 0;
     
     recurringTransactions.forEach(transaction => {
       if (!transaction.isActive) return;
@@ -89,14 +113,26 @@ export default function RecurringPage() {
       const total = amountInMajor * frequencyMultiplier;
       
       if (transaction.type === 'INCOME') {
-        income += total;
+        incomeUSD += total;
       } else {
-        expenses += total;
+        expensesUSD += total;
       }
     });
     
-    return { income, expenses };
-  }, [recurringTransactions, selectedFrequency]);
+    const incomeBS = convertToBS(incomeUSD);
+    const expensesBS = convertToBS(expensesUSD);
+    const netUSD = incomeUSD - expensesUSD;
+    const netBS = incomeBS - expensesBS;
+    
+    return { 
+      incomeUSD, 
+      expensesUSD, 
+      incomeBS, 
+      expensesBS,
+      netUSD,
+      netBS
+    };
+  }, [recurringTransactions, selectedFrequency, convertToBS]);
 
   if (loading) {
     return (
@@ -132,15 +168,26 @@ export default function RecurringPage() {
 
           {/* Frequency Selector and Totals */}
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Frequency Selector */}
-            <div className="lg:w-64">
-              <Select
-                label="Frecuencia de resumen"
-                value={selectedFrequency}
-                onChange={(e) => setSelectedFrequency(e.target.value as 'weekly' | 'monthly' | 'yearly')}
-                options={frequencyOptions}
-                placeholder="Selecciona frecuencia"
-              />
+            {/* Frequency and Rate Selectors */}
+            <div className="flex flex-col lg:flex-row gap-4 lg:w-96">
+              <div className="lg:w-48">
+                <Select
+                  label="Frecuencia de resumen"
+                  value={selectedFrequency}
+                  onChange={(e) => setSelectedFrequency(e.target.value as 'weekly' | 'monthly' | 'yearly')}
+                  options={frequencyOptions}
+                  placeholder="Selecciona frecuencia"
+                />
+              </div>
+              <div className="lg:w-48">
+                <Select
+                  label="Tasa de cambio"
+                  value={usdEquivalentType}
+                  onChange={(e) => setUsdEquivalentType(e.target.value as 'binance' | 'bcv_usd' | 'bcv_eur')}
+                  options={rateOptions}
+                  placeholder="Selecciona tasa"
+                />
+              </div>
             </div>
 
             {/* Total Income and Expenses */}
@@ -152,7 +199,10 @@ export default function RecurringPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    ${calculateTotals.income.toFixed(2)}
+                    ${calculateTotals.incomeUSD.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-green-600 dark:text-green-400">
+                    Bs. {calculateTotals.incomeBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                   </div>
                   <p className="text-xs text-green-600 dark:text-green-400">
                     {selectedFrequency === 'weekly' ? 'Por semana' : 
@@ -168,7 +218,10 @@ export default function RecurringPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                    ${calculateTotals.expenses.toFixed(2)}
+                    ${calculateTotals.expensesUSD.toFixed(2)}
+                  </div>
+                  <div className="text-sm text-red-600 dark:text-red-400">
+                    Bs. {calculateTotals.expensesBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                   </div>
                   <p className="text-xs text-red-600 dark:text-red-400">
                     {selectedFrequency === 'weekly' ? 'Por semana' : 
@@ -177,6 +230,28 @@ export default function RecurringPage() {
                 </CardContent>
               </Card>
             </div>
+          </div>
+
+          {/* Net Balance Card */}
+          <div className="mt-6">
+            <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Balance Neto Recurrente</CardTitle>
+                <DollarSign className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                  ${calculateTotals.netUSD.toFixed(2)}
+                </div>
+                <div className="text-sm text-blue-600 dark:text-blue-400">
+                  Bs. {calculateTotals.netBS.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  {selectedFrequency === 'weekly' ? 'Por semana' : 
+                   selectedFrequency === 'monthly' ? 'Por mes' : 'Por año'}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Summary Cards */}
