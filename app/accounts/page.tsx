@@ -1018,44 +1018,8 @@ export default function AccountsPage() {
             </div>
             
             <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
-              Seguimiento en tiempo real de las tasas oficiales del BCV y precios del mercado P2P de Binance
+              Tasas oficiales (BCV) y del mercado digital (Binance) para convertir tus cuentas
             </p>
-
-            {/* Tasas actuales visibles para el usuario */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Binance P2P</span>
-                </div>
-                <p className="text-lg font-semibold text-blue-900 dark:text-blue-100">
-                  {binanceRates.usd_ves.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USDT
-                </p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">Mercado P2P</p>
-              </div>
-
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">BCV Dólar</span>
-                </div>
-                <p className="text-lg font-semibold text-green-900 dark:text-green-100">
-                  {bcvRates.usd.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/USD
-                </p>
-                <p className="text-xs text-green-600 dark:text-green-400">Oficial</p>
-              </div>
-
-              <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-purple-700 dark:text-purple-300">BCV Euro</span>
-                </div>
-                <p className="text-lg font-semibold text-purple-900 dark:text-purple-100">
-                  {bcvRates.eur.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs/EUR
-                </p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Oficial</p>
-              </div>
-            </div>
 
             <div className="space-y-6">
               <BCVRates />
@@ -1087,12 +1051,12 @@ export default function AccountsPage() {
             >
               <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
                 <p className="mb-1 leading-relaxed">
-                  💡 <strong>BCV:</strong> Tasas oficiales del gobierno<br className="sm:hidden" />
+                  💡 <strong>BCV:</strong> Tasa oficial del gobierno<br className="sm:hidden" />
                   <span className="hidden sm:inline"> · </span>
-                  <strong className="sm:ml-1">Binance:</strong> Mercado P2P en tiempo real
+                  <strong className="sm:ml-1">Binance:</strong> Precio real del mercado digital
                 </p>
                 <p className="text-ios-footnote">
-                  Los precios pueden variar entre fuentes debido a las dinámicas del mercado
+                  ℹ️ Estas tasas te ayudan a ver tus cuentas en diferentes monedas
                 </p>
               </div>
             </motion.div>

@@ -48,7 +48,7 @@ export function BCVRates() {
   const { rates: binanceRates } = useBinanceRates();
   
   // Currency converter state
-  const [showConverter, setShowConverter] = useState(false);
+  const [showConverter, setShowConverter] = useState(false); // Already closed by default
   const [amount, setAmount] = useState<string>('1');
   const [fromCurrency, setFromCurrency] = useState<'VES' | 'USD' | 'EUR'>('USD');
   const [toCurrency, setToCurrency] = useState<'VES' | 'USD' | 'EUR'>('VES');
@@ -103,23 +103,23 @@ export function BCVRates() {
   const renderTrendIcon = (trend: BCVTrend) => {
     if (trend.trend === 'up') {
       return (
-        <div className="flex items-center space-x-1">
-          <TrendingUpIcon className="h-3 w-3 text-success-500" />
-          <span className="text-ios-footnote text-success-500 font-medium">+{Math.abs(trend.changePercent).toFixed(2)}%</span>
+        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-green-100 dark:bg-green-900/30 border border-green-400">
+          <TrendingUpIcon className="h-5 w-5 text-green-600" />
+          <span className="ml-1.5 text-base font-bold text-green-700 dark:text-green-300">+{Math.abs(trend.changePercent).toFixed(1)}%</span>
         </div>
       );
     } else if (trend.trend === 'down') {
       return (
-        <div className="flex items-center space-x-1">
-          <TrendingDownIcon className="h-3 w-3 text-error-500" />
-          <span className="text-ios-footnote text-error-500 font-medium">-{Math.abs(trend.changePercent).toFixed(2)}%</span>
+        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-red-100 dark:bg-red-900/30 border border-red-400">
+          <TrendingDownIcon className="h-5 w-5 text-red-600" />
+          <span className="ml-1.5 text-base font-bold text-red-700 dark:text-red-300">-{Math.abs(trend.changePercent).toFixed(1)}%</span>
         </div>
       );
     } else {
       return (
-        <div className="flex items-center space-x-1">
-          <Minus className="h-3 w-3 text-muted-foreground" />
-          <span className="text-ios-footnote text-muted-foreground">0.00%</span>
+        <div className="inline-flex items-center px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-gray-800 border border-gray-300">
+          <Minus className="h-5 w-5 text-gray-600" />
+          <span className="ml-1.5 text-base font-bold text-gray-700 dark:text-gray-300">0%</span>
         </div>
       );
     }
@@ -195,140 +195,70 @@ export function BCVRates() {
             <Landmark className="h-5 w-5 text-yellow-600" />
           </div>
           <div>
-            <h3 className="text-ios-title font-semibold text-foreground">Banco Central de Venezuela</h3>
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-success-500 animate-pulse' : 'bg-warning-500'}`}></div>
-              <p className="text-ios-caption text-muted-foreground tracking-wide">TASAS OFICIALES</p>
-            </div>
+            <h3 className="text-xl font-bold text-foreground">Banco Central (BCV)</h3>
+            <p className="text-sm text-muted-foreground font-medium">Tasa oficial del gobierno</p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <motion.button
             onClick={() => setShowConverter(!showConverter)}
-            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
+            className="flex items-center px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 group"
             title="Convertidor de Monedas"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Calculator className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <Calculator className="h-5 w-5 text-primary group-hover:text-primary-600 transition-colors" />
+            <span className="ml-2 font-medium text-primary group-hover:text-primary-600 transition-colors">Convertir</span>
           </motion.button>
           <motion.button
             onClick={fetchRates}
             disabled={loading}
-            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group"
+            className="flex items-center px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 border border-green-300 transition-all duration-200 disabled:opacity-50 group"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <RefreshCw className={`h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors ${loading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-5 w-5 text-green-600 group-hover:text-green-700 transition-colors ${loading ? 'animate-spin' : ''}`} />
+            <span className="ml-2 font-medium text-green-600 group-hover:text-green-700 transition-colors">Actualizar</span>
           </motion.button>
           <motion.a 
             href="https://www.bcv.org.ve" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
+            className="flex items-center px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all duration-200 group"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+            <ExternalLink className="h-5 w-5 text-gray-600 group-hover:text-gray-700 transition-colors" />
+            <span className="ml-2 font-medium text-gray-600 group-hover:text-gray-700 transition-colors">Ver más</span>
           </motion.a>
         </div>
       </div>
 
-      {/* Binance Comparison - New Section */}
-      {(usdRateComparison || eurRateComparison) && (
-        <motion.div 
-          className="bg-gradient-to-r from-primary/5 to-blue-500/5 backdrop-blur-sm rounded-2xl p-4 border border-primary/20 mb-6"
+      {/* Simple Binance Comparison */}
+      {usdRateComparison && (
+        <motion.div
+          className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 backdrop-blur-sm rounded-2xl p-4 border-2 border-orange-300 dark:border-orange-600 mb-6"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center space-x-2 mb-4">
-            <BarChart3 className="h-4 w-4 text-primary" />
-            <h4 className="text-ios-body font-medium text-foreground">Comparación con Binance P2P</h4>
+          <div className="flex items-center justify-center space-x-3">
+            <BarChart3 className="h-5 w-5 text-orange-600" />
+            <span className="text-lg font-bold text-orange-700 dark:text-orange-300">vs Binance:</span>
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400">
+              <div className="flex items-center space-x-2">
+                {usdRateComparison.isBCVHigher ? (
+                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                ) : (
+                  <TrendingDown className="h-5 w-5 text-orange-600" />
+                )}
+                <span className="text-base font-bold text-orange-700 dark:text-orange-300">
+                  BCV está {formatPercentageDifference(usdRateComparison.percentageDifference, usdRateComparison.isBCVHigher)} que Binance
+                </span>
+              </div>
+            </div>
           </div>
-          
-          {/* USD Comparison */}
-          {usdRateComparison && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <DollarSign className="h-4 w-4 text-success-500" />
-                  <span className="text-ios-body font-medium text-foreground">USD/VES vs USD/VES</span>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-ios-footnote font-medium border ${getPercentageColorClass(usdRateComparison.isBCVHigher)}`}>
-                  <div className="flex items-center space-x-1">
-                    {usdRateComparison.isBCVHigher ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    <span>{formatPercentageDifference(usdRateComparison.percentageDifference, usdRateComparison.isBCVHigher)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">BCV USD</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {usdRateComparison.bcvRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {usdRateComparison.binanceRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {usdRateComparison.absoluteDifference.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="mt-2 text-center">
-                <p className="text-ios-footnote text-muted-foreground">
-                  {usdRateComparison.comparisonText}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          {/* EUR Comparison */}
-          {eurRateComparison && (
-            <div className="border-t border-border/20 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Euro className="h-4 w-4 text-blue-500" />
-                  <span className="text-ios-body font-medium text-foreground">EUR/VES vs USD/VES</span>
-                </div>
-                <div className={`px-3 py-1 rounded-full text-ios-footnote font-medium border ${getPercentageColorClass(eurRateComparison.isBCVHigher)}`}>
-                  <div className="flex items-center space-x-1">
-                    {eurRateComparison.isBCVHigher ? (
-                      <TrendingUp className="h-3 w-3" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    <span>{formatPercentageDifference(eurRateComparison.percentageDifference, eurRateComparison.isBCVHigher)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">BCV EUR</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {eurRateComparison.bcvRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {eurRateComparison.binanceRate.toFixed(2)}</p>
-                </div>
-                <div>
-                  <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {eurRateComparison.absoluteDifference.toFixed(2)}</p>
-                </div>
-              </div>
-              <div className="mt-2 text-center">
-                <p className="text-ios-footnote text-muted-foreground">
-                  {eurRateComparison.comparisonText}
-                </p>
-              </div>
-            </div>
-          )}
         </motion.div>
       )}
 
@@ -343,7 +273,7 @@ export function BCVRates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <DollarSign className="h-4 w-4 text-success-500" />
-              <span className="text-ios-body font-medium text-foreground">USD/VES</span>
+              <span className="text-lg font-bold text-foreground">Dólar (USD)</span>
             </div>
             {trends?.usd ? renderTrendIcon(trends.usd) : (
               <div className="flex items-center space-x-1">
@@ -352,8 +282,8 @@ export function BCVRates() {
               </div>
             )}
           </div>
-          <p className="text-2xl font-light text-foreground mb-1">Bs. {rates.usd.toFixed(2)}</p>
-          <p className="text-ios-caption text-muted-foreground">por 1 USD</p>
+          <p className="text-3xl font-bold text-foreground mb-1">Bs. {rates.usd.toFixed(2)}</p>
+          <p className="text-base text-muted-foreground">1 USD = Bolívares</p>
         </motion.div>
 
         {/* EUR Rate */}
@@ -365,7 +295,7 @@ export function BCVRates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <Euro className="h-4 w-4 text-blue-500" />
-              <span className="text-ios-body font-medium text-foreground">EUR/VES</span>
+              <span className="text-lg font-bold text-foreground">Euro (EUR)</span>
             </div>
             {trends?.eur ? renderTrendIcon(trends.eur) : (
               <div className="flex items-center space-x-1">
@@ -374,8 +304,8 @@ export function BCVRates() {
               </div>
             )}
           </div>
-          <p className="text-2xl font-light text-foreground mb-1">Bs. {rates.eur.toFixed(2)}</p>
-          <p className="text-ios-caption text-muted-foreground">por 1 EUR</p>
+          <p className="text-3xl font-bold text-foreground mb-1">Bs. {rates.eur.toFixed(2)}</p>
+          <p className="text-base text-muted-foreground">1 EUR = Bolívares</p>
         </motion.div>
       </div>
 

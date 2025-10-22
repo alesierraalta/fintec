@@ -135,11 +135,8 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
             <Zap className="h-5 w-5 text-orange-600" />
           </div>
           <div>
-            <h3 className="text-ios-title font-semibold text-foreground">Binance P2P</h3>
-            <div className="flex items-center space-x-2">
-              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-success-500 animate-pulse' : 'bg-warning-500'}`}></div>
-              <p className="text-ios-caption text-muted-foreground tracking-wide text-xs sm:text-sm">USD/VES EN TIEMPO REAL</p>
-            </div>
+            <h3 className="text-xl font-bold text-foreground">Binance (Mercado Digital)</h3>
+            <p className="text-sm font-medium text-orange-600">Precio real P2P</p>
           </div>
         </div>
         
@@ -280,9 +277,10 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
               <span className="text-ios-body font-medium text-foreground">VENTA</span>
             </div>
             {isLive && (
-              <div className="flex items-center space-x-1">
-                <Activity className="h-3 w-3 text-success-500 animate-pulse" />
-                <span className="text-ios-footnote text-success-500 font-medium">VIVO</span>
+              <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-400">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
+                <Activity className="h-4 w-4 text-green-600 mr-1" />
+                <span className="text-sm font-bold text-green-700 dark:text-green-300">VIVO</span>
               </div>
             )}
           </div>
@@ -314,9 +312,10 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
               <span className="text-ios-body font-medium text-foreground">COMPRA</span>
             </div>
             {isLive && (
-              <div className="flex items-center space-x-1">
-                <Activity className="h-3 w-3 text-success-500 animate-pulse" />
-                <span className="text-ios-footnote text-success-500 font-medium">VIVO</span>
+              <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-400">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
+                <Activity className="h-4 w-4 text-green-600 mr-1" />
+                <span className="text-sm font-bold text-green-700 dark:text-green-300">VIVO</span>
               </div>
             )}
           </div>
@@ -337,56 +336,38 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
         </motion.div>
       </div>
 
-      {/* Market Summary */}
+      {/* Simplified Market Summary */}
       <motion.div 
-        className="bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20 mb-6"
+        className="bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm rounded-2xl p-6 border-2 border-primary/30 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-          <div>
-            <div className="flex items-center justify-center space-x-1 mb-2">
-              <Target className="h-4 w-4 text-primary" />
-              <p className="text-ios-caption font-medium text-muted-foreground">PROMEDIO</p>
-            </div>
-            <p className="text-xl font-light text-primary">Bs. {marketSummary?.average.toFixed(2) || '0.00'}</p>
+        <div className="text-center py-4">
+          <div className="flex items-center justify-center space-x-2 mb-3">
+            <Target className="h-5 w-5 text-primary" />
+            <p className="text-lg font-bold text-primary">💵 USDT → Bolívares</p>
           </div>
-          <div>
-            <div className="flex items-center justify-center space-x-1 mb-2">
-              <ArrowUpDown className="h-4 w-4 text-orange-500" />
-              <p className="text-ios-caption font-medium text-muted-foreground">SPREAD</p>
-            </div>
-            <p className="text-xl font-light text-orange-500">Bs. {marketSummary?.spread.toFixed(2) || '0.00'}</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center space-x-1 mb-2">
-              <Users className="h-4 w-4 text-blue-500" />
-              <p className="text-ios-caption font-medium text-muted-foreground">OFERTAS</p>
-            </div>
-            <p className="text-xl font-light text-blue-500">{marketSummary?.totalOffers || 0}</p>
-          </div>
+          <p className="text-5xl font-bold text-primary mb-3">Bs. {marketSummary?.average.toFixed(2) || '0.00'}</p>
+          <p className="text-lg font-medium text-muted-foreground">Promedio del mercado digital</p>
         </div>
       </motion.div>
 
-      {/* Market Explanation */}
+      {/* Simplified Market Explanation */}
       <motion.div 
         className="bg-primary/5 backdrop-blur-sm rounded-2xl p-4 border border-primary/10 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.6 }}
       >
-        <div className="text-center space-y-2">
-          <p className="text-ios-caption text-muted-foreground text-xs sm:text-sm leading-relaxed">
-            <strong className="text-red-500">VENTA:</strong> Si vendes USD, recibes esta cantidad en Bs.
-            <br className="sm:hidden" />
-            <span className="hidden sm:inline"> · </span>
-            <strong className="text-green-500 sm:ml-1">COMPRA:</strong> Si compras USD, pagas esta cantidad en Bs.
+        <div className="text-center">
+          <p className="text-ios-caption text-muted-foreground">
+            📊 Precio real del mercado digital (Binance P2P)
           </p>
-          <div className="flex items-center justify-center space-x-2">
+          <div className="flex items-center justify-center space-x-2 mt-2">
             <ArrowUpDown className="h-3 w-3 text-orange-500" />
             <span className="text-ios-footnote text-orange-500 font-medium">
-              Diferencia del mercado: Bs. {marketSummary?.spread.toFixed(2) || '0.00'}
+              Diferencia: Bs. {marketSummary?.spread.toFixed(2) || '0.00'}
             </span>
           </div>
         </div>
@@ -407,9 +388,9 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
           {isLive && (
-            <div className="flex items-center space-x-1 text-success-500">
-              <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-              <span className="font-medium text-xs sm:text-sm">P2P LIVE</span>
+            <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-green-100 dark:bg-green-900/30 border border-green-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2" />
+              <span className="text-sm font-bold text-green-700 dark:text-green-300">P2P LIVE</span>
             </div>
           )}
           <span className="text-orange-600 font-medium text-xs sm:text-sm">Binance Venezuela</span>
