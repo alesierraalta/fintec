@@ -11,28 +11,30 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   async findAll(): Promise<Category[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    let query = supabase
+    // First, get all categories
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('active', true)
       .order('kind', { ascending: true })
       .order('name', { ascending: true });
 
-    // Filter by user's categories or default categories
-    if (user) {
-      query = query.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      // If not authenticated, only show default categories
-      query = query.eq('is_default', true);
-    }
-
-    const { data, error } = await query;
-
     if (error) {
       throw new Error(`Failed to fetch categories: ${error.message}`);
     }
 
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    // Filter by user's categories or default categories
+    const filteredData = (data || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    return mapSupabaseCategoryArrayToDomain(filteredData);
   }
 
   async findById(id: string): Promise<Category | null> {
@@ -55,33 +57,36 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   async findByKind(kind: CategoryKind): Promise<Category[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    let query = supabase
+    // First, get all categories of this kind
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('kind', kind)
       .eq('active', true)
       .order('name', { ascending: true });
 
-    // Filter by user's categories or default categories
-    if (user) {
-      query = query.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      // If not authenticated, only show default categories
-      query = query.eq('is_default', true);
-    }
-
-    const { data, error } = await query;
-
     if (error) {
       throw new Error(`Failed to fetch categories by kind: ${error.message}`);
     }
 
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    // Filter by user's categories or default categories
+    const filteredData = (data || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    return mapSupabaseCategoryArrayToDomain(filteredData);
   }
 
   async findByParent(parentId: string | null): Promise<Category[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
+    // First, get all categories with the specified parent
     let query = supabase
       .from('categories')
       .select('*')
@@ -94,21 +99,24 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       query = query.eq('parent_id', parentId);
     }
 
-    // Filter by user's categories or default categories
-    if (user) {
-      query = query.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      // If not authenticated, only show default categories
-      query = query.eq('is_default', true);
-    }
-
     const { data, error } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch categories by parent: ${error.message}`);
     }
 
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    // Filter by user's categories or default categories
+    const filteredData = (data || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    return mapSupabaseCategoryArrayToDomain(filteredData);
   }
 
   async findWithPagination(params: PaginationParams): Promise<PaginatedResult<Category>> {
@@ -116,51 +124,34 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     const offset = (page - 1) * limit;
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Get total count
-    let countQuery = supabase
-      .from('categories')
-      .select('*', { count: 'exact', head: true })
-      .eq('active', true);
-
-    // Filter by user's categories or default categories
-    if (user) {
-      countQuery = countQuery.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      countQuery = countQuery.eq('is_default', true);
-    }
-
-    const { count, error: countError } = await countQuery;
-
-    if (countError) {
-      throw new Error(`Failed to count categories: ${countError.message}`);
-    }
-
-    // Get paginated data
-    let dataQuery = supabase
+    // Get all categories first
+    const { data: allData, error } = await supabase
       .from('categories')
       .select('*')
       .eq('active', true)
-      .order(sortBy, { ascending: sortOrder === 'asc' })
-      .range(offset, offset + limit - 1);
-
-    // Filter by user's categories or default categories
-    if (user) {
-      dataQuery = dataQuery.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      dataQuery = dataQuery.eq('is_default', true);
-    }
-
-    const { data, error } = await dataQuery;
+      .order(sortBy, { ascending: sortOrder === 'asc' });
 
     if (error) {
       throw new Error(`Failed to fetch categories: ${error.message}`);
     }
 
-    const total = count || 0;
+    // Filter by user's categories or default categories
+    const filteredData = (allData || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    const total = filteredData.length;
     const totalPages = Math.ceil(total / limit);
+    const paginatedData = filteredData.slice(offset, offset + limit);
 
     return {
-      data: mapSupabaseCategoryArrayToDomain(data || []),
+      data: mapSupabaseCategoryArrayToDomain(paginatedData),
       total,
       page,
       limit,
@@ -266,53 +257,57 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   async count(): Promise<number> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    let query = supabase
+    // Get all categories first
+    const { data, error } = await supabase
       .from('categories')
-      .select('*', { count: 'exact', head: true })
+      .select('*')
       .eq('active', true);
-
-    // Filter by user's categories or default categories
-    if (user) {
-      query = query.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      // If not authenticated, only show default categories
-      query = query.eq('is_default', true);
-    }
-
-    const { count, error } = await query;
 
     if (error) {
       throw new Error(`Failed to count categories: ${error.message}`);
     }
 
-    return count || 0;
+    // Filter by user's categories or default categories
+    const filteredData = (data || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    return filteredData.length;
   }
 
   async search(query: string): Promise<Category[]> {
     const { data: { user } } = await supabase.auth.getUser();
     
-    let searchQuery = supabase
+    // First, get all categories matching the search
+    const { data, error } = await supabase
       .from('categories')
       .select('*')
       .eq('active', true)
       .ilike('name', `%${query}%`)
       .order('name', { ascending: true });
 
-    // Filter by user's categories or default categories
-    if (user) {
-      searchQuery = searchQuery.or(`user_id.eq.${user.id},is_default.eq.true`);
-    } else {
-      // If not authenticated, only show default categories
-      searchQuery = searchQuery.eq('is_default', true);
-    }
-
-    const { data, error } = await searchQuery;
-
     if (error) {
       throw new Error(`Failed to search categories: ${error.message}`);
     }
 
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    // Filter by user's categories or default categories
+    const filteredData = (data || []).filter(category => {
+      if (user) {
+        // Show user's own categories or default categories
+        return category.user_id === user.id || category.is_default === true;
+      } else {
+        // If not authenticated, only show default categories
+        return category.is_default === true;
+      }
+    });
+
+    return mapSupabaseCategoryArrayToDomain(filteredData);
   }
 
   // Missing methods from CategoriesRepository interface
