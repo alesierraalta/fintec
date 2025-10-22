@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -24,10 +24,64 @@ export default function RecurringPage() {
   ];
 
   useEffect(() => {
-    // TODO: Implement data fetching from repository
-    // This is a placeholder implementation
-    setLoading(false);
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/recurring-transactions');
+        const result = await response.json();
+        
+        if (result.success) {
+          setRecurringTransactions(result.data.transactions);
+          setSummary(result.data.summary);
+        } else {
+          console.error('Failed to load recurring transactions:', result.error);
+        }
+      } catch (error) {
+        console.error('Failed to load recurring transactions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
   }, []);
+
+  // Helper function to get frequency multiplier
+  const getFrequencyMultiplier = (transactionFrequency: string, selectedFrequency: string): number => {
+    const frequencyMap: { [key: string]: number } = {
+      'daily': 1,
+      'weekly': 7,
+      'monthly': 30,
+      'yearly': 365
+    };
+    
+    const transactionDays = frequencyMap[transactionFrequency] || 30;
+    const selectedDays = frequencyMap[selectedFrequency] || 30;
+    
+    return selectedDays / transactionDays;
+  };
+
+  // Calculate totals based on selected frequency
+  const calculateTotals = useMemo(() => {
+    let income = 0;
+    let expenses = 0;
+    
+    recurringTransactions.forEach(transaction => {
+      if (!transaction.isActive) return;
+      
+      const amountInMajor = transaction.amountMinor / 100;
+      const frequencyMultiplier = getFrequencyMultiplier(transaction.frequency, selectedFrequency);
+      const total = amountInMajor * frequencyMultiplier;
+      
+      if (transaction.type === 'INCOME') {
+        income += total;
+      } else {
+        expenses += total;
+      }
+    });
+    
+    return { income, expenses };
+  }, [recurringTransactions, selectedFrequency]);
 
   if (loading) {
     return (
@@ -83,8 +137,7 @@ export default function RecurringPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-green-700 dark:text-green-300">
-                    {/* TODO: Calculate based on selectedFrequency and recurringTransactions */}
-                    $0.00
+                    ${calculateTotals.income.toFixed(2)}
                   </div>
                   <p className="text-xs text-green-600 dark:text-green-400">
                     {selectedFrequency === 'weekly' ? 'Por semana' : 
@@ -100,8 +153,7 @@ export default function RecurringPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold text-red-700 dark:text-red-300">
-                    {/* TODO: Calculate based on selectedFrequency and recurringTransactions */}
-                    $0.00
+                    ${calculateTotals.expenses.toFixed(2)}
                   </div>
                   <p className="text-xs text-red-600 dark:text-red-400">
                     {selectedFrequency === 'weekly' ? 'Por semana' : 

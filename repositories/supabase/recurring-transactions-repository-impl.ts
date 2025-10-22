@@ -148,15 +148,50 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async getSummary(userId: string): Promise<RecurringTransactionSummary> {
-    const { data, error } = await supabase.rpc('get_recurring_transactions_summary', {
-      user_id_input: userId,
-    });
+    const { data, error } = await supabase
+      .from('recurring_transactions')
+      .select('*')
+      .eq('user_id', userId);
 
     if (error) {
       throw new Error(`Failed to get recurring transactions summary: ${error.message}`);
     }
 
-    return data;
+    const transactions = data || [];
+    const today = new Date().toISOString().split('T')[0];
+    const thisWeek = new Date();
+    thisWeek.setDate(thisWeek.getDate() + 7);
+    const thisMonth = new Date();
+    thisMonth.setMonth(thisMonth.getMonth() + 1);
+
+    const totalActive = transactions.filter(t => t.is_active).length;
+    const totalInactive = transactions.filter(t => !t.is_active).length;
+
+    const nextExecutions = {
+      today: transactions.filter(t => t.next_execution_date === today).length,
+      thisWeek: transactions.filter(t => {
+        const execDate = new Date(t.next_execution_date);
+        return execDate <= thisWeek && execDate >= new Date();
+      }).length,
+      thisMonth: transactions.filter(t => {
+        const execDate = new Date(t.next_execution_date);
+        return execDate <= thisMonth && execDate >= new Date();
+      }).length
+    };
+
+    const byFrequency = {
+      daily: transactions.filter(t => t.frequency === 'daily').length,
+      weekly: transactions.filter(t => t.frequency === 'weekly').length,
+      monthly: transactions.filter(t => t.frequency === 'monthly').length,
+      yearly: transactions.filter(t => t.frequency === 'yearly').length
+    };
+
+    return {
+      totalActive,
+      totalInactive,
+      nextExecutions,
+      byFrequency
+    };
   }
 
   async createFromTransaction(
