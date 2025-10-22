@@ -8,6 +8,7 @@ import { Select } from '@/components/ui/select';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
 import { Plus, Calendar, DollarSign, TrendingUp, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { supabase } from '@/repositories/supabase/client';
 import { RecurringTransaction, RecurringTransactionSummary } from '@/types/recurring-transactions';
 import { getFrequencyLabel } from '@/types/recurring-transactions';
 
@@ -27,7 +28,23 @@ export default function RecurringPage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const response = await fetch('/api/recurring-transactions');
+        
+        // Get the current session token
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        
+        if (!token) {
+          console.error('No authentication token available');
+          return;
+        }
+        
+        const response = await fetch('/api/recurring-transactions', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
         const result = await response.json();
         
         if (result.success) {

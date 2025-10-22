@@ -1,39 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { supabase } from '@/repositories/supabase/client';
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 
 const repository = new SupabaseAppRepository();
 
 // GET /api/recurring-transactions - Fetch recurring transactions for authenticated user
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'No authorization token provided' },
+        { status: 401 }
+      );
+    }
+
+    // Create a Supabase client with the token
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabaseWithAuth = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            } catch {
-              // The `setAll` method was called from a Server Component.
-              // This can be ignored if you have middleware refreshing
-              // user sessions.
-            }
-          },
-        },
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
       }
     );
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser();
     
     if (authError) {
       return NextResponse.json(
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Direct query to test
-    const { data, error } = await supabase
+    const { data, error } = await supabaseWithAuth
       .from('recurring_transactions')
       .select('*')
       .eq('user_id', user.id);
