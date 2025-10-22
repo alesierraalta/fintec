@@ -43,8 +43,8 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (userData && !userError) {
-            email = userData.email || email;
-        name = userData.name || name;
+        email = (userData as any).email || email;
+        name = (userData as any).name || name;
       } else {
             
         // Try Supabase Auth as fallback

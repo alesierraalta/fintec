@@ -189,7 +189,7 @@ export default function RecurringPage() {
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                            transaction.type === 'income' 
+                            transaction.type === 'INCOME' 
                               ? 'bg-green-100 text-green-600' 
                               : 'bg-red-100 text-red-600'
                           }`}>
@@ -204,7 +204,7 @@ export default function RecurringPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <Badge variant={transaction.isActive ? 'default' : 'secondary'}>
+                        <Badge variant={transaction.isActive ? 'default' : 'outline'}>
                           {transaction.isActive ? 'Activa' : 'Inactiva'}
                         </Badge>
                         <div className="text-right">

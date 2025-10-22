@@ -31,7 +31,7 @@ const createWelcomeNotifications = async (userId: string, userName: string) => {
     ];
 
     for (const notification of welcomeNotifications) {
-      await supabase.from('notifications').insert([notification]);
+      await supabase.from('notifications').insert([notification] as any);
     }
 
   } catch (error) {
@@ -155,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: userData?.full_name || '',
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
-          }]);
+          }] as any);
 
         if (profileError) {
           // Don't fail the registration if profile creation fails
@@ -219,7 +219,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: authData.user.user_metadata?.name || authData.user.email?.split('@')[0],
             base_currency: 'USD',
             updated_at: new Date().toISOString()
-          });
+          } as any);
 
         setUser(authData.user);
         setSession(authData.session);
@@ -270,13 +270,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Update user profile in database
       if (user) {
-        const { error: profileError } = await supabase
+        const updateData = {
+          ...data,
+          updated_at: new Date().toISOString()
+        };
+        
+        const { error: profileError } = await (supabase
           .from('users')
-          .update({
-            ...data,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id);
+          .update(updateData as any)
+          .eq('id', user.id) as any);
 
         return { error: profileError };
       }

@@ -317,7 +317,7 @@ export default function TransactionsPage() {
             <span className="text-ios-caption font-medium">Tus finanzas</span>
           </div>
           
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white">
             💳 Transacciones
           </h1>
           <p className="text-muted-foreground font-light mb-6">

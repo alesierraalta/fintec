@@ -82,7 +82,7 @@ export async function POST() {
     // Insert categories
     const { data, error } = await supabase
       .from('categories')
-      .insert(categoriesToInsert)
+      .insert(categoriesToInsert as any)
       .select();
 
     if (error) {

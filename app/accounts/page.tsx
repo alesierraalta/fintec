@@ -442,7 +442,7 @@ export default function AccountsPage() {
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-green-500/10 blur-3xl rounded-full scale-150 opacity-60"></div>
               
               {/* Main Title */}
-              <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-3 sm:mb-4 tracking-tight">
+              <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-3 sm:mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white bg-size-200 animate-gradient">
                   💼 Mis Cuentas
                 </span>
