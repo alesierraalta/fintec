@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -353,6 +353,26 @@ export default function AccountsPage() {
     return symbols[currencyCode] || currencyCode;
   }, []);
 
+  // Helper function to get rate name for display
+  const getRateName = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return 'Binance';
+      case 'bcv_usd': return 'BCV USD';
+      case 'bcv_eur': return 'BCV EUR';
+      default: return 'BCV USD';
+    }
+  }, []);
+
+  // Helper function to get exchange rate
+  const getExchangeRate = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return binanceRates?.usd_ves || 1;
+      case 'bcv_usd': return bcvRates?.usd || 1;
+      case 'bcv_eur': return bcvRates?.eur || 1;
+      default: return bcvRates?.usd || 1;
+    }
+  }, [bcvRates, binanceRates]);
+
   // Convertir balance a USD
   const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
     if (currencyCode === 'USD') return balanceMinor / 100;
@@ -379,16 +399,19 @@ export default function AccountsPage() {
     return balanceMajor;
   }, [binanceRates, bcvRates]);
 
-  // Cálculo optimizado con tasas BCV reales
-  const totalBalance = accounts.reduce((sum, acc) => {
-    const balanceMinor = Number(acc.balance) || 0;
-    const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-    
-    if (acc.currencyCode === 'VES') {
-      return sum + (balanceMajor / bcvRates.usd);
-    }
-    return sum + balanceMajor;
-  }, 0);
+  // Cálculo optimizado con tasas seleccionadas
+  const totalBalance = useMemo(() => {
+    return accounts.reduce((sum, acc) => {
+      const balanceMinor = Number(acc.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+      
+      if (acc.currencyCode === 'VES') {
+        const rate = getExchangeRate(usdEquivalentType);
+        return sum + (balanceMajor / rate);
+      }
+      return sum + balanceMajor;
+    }, 0);
+  }, [accounts, usdEquivalentType, getExchangeRate]);
   
   // Default balance growth to 0 (could be calculated from transaction history if needed)
   const balanceGrowth = 0;
@@ -630,6 +653,11 @@ export default function AccountsPage() {
                   />
                 ) : '••••••'}
               </p>
+              {showBalances && (
+                <p className="text-xs text-muted-foreground">
+                  ({getRateName(usdEquivalentType)})
+                </p>
+              )}
               {balanceGrowth !== 0 && (
                 <motion.div 
                   className="flex items-center space-x-2"
@@ -886,7 +914,7 @@ export default function AccountsPage() {
                                     maximumFractionDigits: 2
                                   })} USD
                                   <span className="text-xs text-muted-foreground ml-1">
-                                    ({usdEquivalentType === 'binance' ? 'Binance' : usdEquivalentType === 'bcv_usd' ? 'BCV USD' : 'BCV EUR'})
+                                    ({getRateName(usdEquivalentType)})
                                   </span>
                                 </p>
                               )}
