@@ -1027,10 +1027,10 @@ export default function AccountsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
           >
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 sm:mb-8">
+            <div className="flex flex-col gap-4 mb-6 sm:mb-8">
               <div className="flex items-center space-x-3">
                 <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground tracking-tight">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
                   💱 Tasas de Cambio
                 </h2>
               </div>
@@ -1055,14 +1055,14 @@ export default function AccountsPage() {
               
               {/* History Button - Mobile Responsive */}
               <motion.div
-                className="flex justify-center px-4"
+                className="flex justify-center px-2 sm:px-4"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.8 }}
               >
                 <button
                   onClick={() => setShowRatesHistory(true)}
-                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base"
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-3 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base min-h-[44px]"
                 >
                   <History className="h-4 w-4" />
                   <span className="font-medium">Ver Historial y Calculadora</span>
@@ -1072,7 +1072,7 @@ export default function AccountsPage() {
 
             {/* Exchange Summary - Mobile Responsive */}
             <motion.div 
-              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-2 md:mx-0"
+              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-1 sm:mx-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 1.2 }}

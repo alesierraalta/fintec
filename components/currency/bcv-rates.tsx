@@ -189,48 +189,48 @@ export function BCVRates() {
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-red-500/20 flex items-center justify-center border border-yellow-500/20">
             <Landmark className="h-5 w-5 text-yellow-600" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground">Banco Central (BCV)</h3>
-            <p className="text-sm text-muted-foreground font-medium">Tasa oficial del gobierno</p>
+            <h3 className="text-lg sm:text-xl font-bold text-foreground">Banco Central (BCV)</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground font-medium">Tasa oficial del gobierno</p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <motion.button
             onClick={() => setShowConverter(!showConverter)}
-            className="flex items-center px-4 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 group"
+            className="flex items-center justify-center px-3 sm:px-4 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 border border-primary/30 transition-all duration-200 group min-h-[44px]"
             title="Convertidor de Monedas"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Calculator className="h-5 w-5 text-primary group-hover:text-primary-600 transition-colors" />
-            <span className="ml-2 font-medium text-primary group-hover:text-primary-600 transition-colors">Convertir</span>
+            <Calculator className="h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:text-primary-600 transition-colors" />
+            <span className="ml-2 text-sm sm:text-base font-medium text-primary group-hover:text-primary-600 transition-colors">Convertir</span>
           </motion.button>
           <motion.button
             onClick={fetchRates}
             disabled={loading}
-            className="flex items-center px-4 py-2 rounded-xl bg-green-50 hover:bg-green-100 border border-green-300 transition-all duration-200 disabled:opacity-50 group"
+            className="flex items-center justify-center px-3 sm:px-4 py-2.5 rounded-xl bg-green-50 hover:bg-green-100 border border-green-300 transition-all duration-200 disabled:opacity-50 group min-h-[44px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <RefreshCw className={`h-5 w-5 text-green-600 group-hover:text-green-700 transition-colors ${loading ? 'animate-spin' : ''}`} />
-            <span className="ml-2 font-medium text-green-600 group-hover:text-green-700 transition-colors">Actualizar</span>
+            <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 text-green-600 group-hover:text-green-700 transition-colors ${loading ? 'animate-spin' : ''}`} />
+            <span className="ml-2 text-sm sm:text-base font-medium text-green-600 group-hover:text-green-700 transition-colors">Actualizar</span>
           </motion.button>
           <motion.a 
             href="https://www.bcv.org.ve" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all duration-200 group"
+            className="flex items-center justify-center px-3 sm:px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all duration-200 group min-h-[44px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <ExternalLink className="h-5 w-5 text-gray-600 group-hover:text-gray-700 transition-colors" />
-            <span className="ml-2 font-medium text-gray-600 group-hover:text-gray-700 transition-colors">Ver más</span>
+            <ExternalLink className="h-4 w-4 sm:h-5 sm:w-5 text-gray-600 group-hover:text-gray-700 transition-colors" />
+            <span className="ml-2 text-sm sm:text-base font-medium text-gray-600 group-hover:text-gray-700 transition-colors">Ver más</span>
           </motion.a>
         </div>
       </div>
@@ -238,22 +238,24 @@ export function BCVRates() {
       {/* Simple Binance Comparison */}
       {usdRateComparison && (
         <motion.div
-          className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 backdrop-blur-sm rounded-2xl p-4 border-2 border-orange-300 dark:border-orange-600 mb-6"
+          className="bg-gradient-to-r from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border-2 border-orange-300 dark:border-orange-600 mb-6"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="flex items-center justify-center space-x-3">
-            <BarChart3 className="h-5 w-5 text-orange-600" />
-            <span className="text-lg font-bold text-orange-700 dark:text-orange-300">vs Binance:</span>
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex items-center space-x-2">
+              <BarChart3 className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
+              <span className="text-sm sm:text-lg font-bold text-orange-700 dark:text-orange-300">vs Binance:</span>
+            </div>
+            <div className="inline-flex items-center px-3 sm:px-4 py-2 rounded-full bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400">
               <div className="flex items-center space-x-2">
                 {usdRateComparison.isBCVHigher ? (
-                  <TrendingUp className="h-5 w-5 text-orange-600" />
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                 ) : (
-                  <TrendingDown className="h-5 w-5 text-orange-600" />
+                  <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" />
                 )}
-                <span className="text-base font-bold text-orange-700 dark:text-orange-300">
+                <span className="text-xs sm:text-base font-bold text-orange-700 dark:text-orange-300">
                   BCV está {formatPercentageDifference(usdRateComparison.percentageDifference, usdRateComparison.isBCVHigher)} que Binance
                 </span>
               </div>
@@ -263,7 +265,7 @@ export function BCVRates() {
       )}
 
       {/* Rates Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* USD Rate */}
         <motion.div 
           className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-success-500/30 transition-all duration-200"
@@ -273,7 +275,7 @@ export function BCVRates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <DollarSign className="h-4 w-4 text-success-500" />
-              <span className="text-lg font-bold text-foreground">Dólar (USD)</span>
+              <span className="text-base sm:text-lg font-bold text-foreground">Dólar (USD)</span>
             </div>
             {trends?.usd ? renderTrendIcon(trends.usd) : (
               <div className="flex items-center space-x-1">
@@ -282,8 +284,8 @@ export function BCVRates() {
               </div>
             )}
           </div>
-          <p className="text-3xl font-bold text-foreground mb-1">Bs. {rates.usd.toFixed(2)}</p>
-          <p className="text-base text-muted-foreground">1 USD = Bolívares</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Bs. {rates.usd.toFixed(2)}</p>
+          <p className="text-sm sm:text-base text-muted-foreground">1 USD = Bolívares</p>
         </motion.div>
 
         {/* EUR Rate */}
@@ -295,7 +297,7 @@ export function BCVRates() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-2">
               <Euro className="h-4 w-4 text-blue-500" />
-              <span className="text-lg font-bold text-foreground">Euro (EUR)</span>
+              <span className="text-base sm:text-lg font-bold text-foreground">Euro (EUR)</span>
             </div>
             {trends?.eur ? renderTrendIcon(trends.eur) : (
               <div className="flex items-center space-x-1">
@@ -304,8 +306,8 @@ export function BCVRates() {
               </div>
             )}
           </div>
-          <p className="text-3xl font-bold text-foreground mb-1">Bs. {rates.eur.toFixed(2)}</p>
-          <p className="text-base text-muted-foreground">1 EUR = Bolívares</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Bs. {rates.eur.toFixed(2)}</p>
+          <p className="text-sm sm:text-base text-muted-foreground">1 EUR = Bolívares</p>
         </motion.div>
       </div>
 
@@ -343,7 +345,7 @@ export function BCVRates() {
                 <select
                   value={fromCurrency}
                   onChange={(e) => setFromCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
-                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[44px]"
                 >
                   <option value="USD">USD - Dólar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -354,7 +356,7 @@ export function BCVRates() {
               <div className="flex justify-center col-span-1 sm:col-span-1">
                 <motion.button
                   onClick={swapCurrencies}
-                  className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200"
+                  className="p-3 rounded-xl bg-primary/10 hover:bg-primary/20 transition-all duration-200 min-h-[44px] min-w-[44px]"
                   title="Intercambiar monedas"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -368,7 +370,7 @@ export function BCVRates() {
                 <select
                   value={toCurrency}
                   onChange={(e) => setToCurrency(e.target.value as 'VES' | 'USD' | 'EUR')}
-                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50"
+                  className="w-full px-3 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 min-h-[44px]"
                 >
                   <option value="USD">USD - Dólar</option>
                   <option value="EUR">EUR - Euro</option>
@@ -397,26 +399,26 @@ export function BCVRates() {
       )}
 
       {/* Footer */}
-      <div className="flex items-center justify-between text-ios-footnote text-muted-foreground">
-        <div className="flex items-center space-x-3">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 text-ios-footnote text-muted-foreground">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           <div className="flex items-center space-x-1">
             <Clock className="h-3 w-3" />
-            <span>Actualizado: {lastUpdated}</span>
+            <span className="text-xs sm:text-sm">Actualizado: {lastUpdated}</span>
           </div>
           {error && (
-            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg">
+            <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg text-xs">
               {error}
             </span>
           )}
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-2">
           {isLive && (
             <div className="flex items-center space-x-1 text-success-500">
               <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
-              <span className="font-medium">OFICIAL</span>
+              <span className="font-medium text-xs sm:text-sm">OFICIAL</span>
             </div>
           )}
-          <span className="text-yellow-600 font-medium">bcv.org.ve</span>
+          <span className="text-yellow-600 font-medium text-xs sm:text-sm">bcv.org.ve</span>
         </div>
       </div>
     </motion.div>

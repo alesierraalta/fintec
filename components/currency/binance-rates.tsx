@@ -129,22 +129,22 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       transition={{ duration: 0.5 }}
     >
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-500/20 to-yellow-500/20 flex items-center justify-center border border-orange-500/20">
             <Zap className="h-5 w-5 text-orange-600" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-foreground">Binance (Mercado Digital)</h3>
-            <p className="text-sm font-medium text-orange-600">Precio real P2P</p>
+            <h3 className="text-lg sm:text-xl font-bold text-foreground">Binance (Mercado Digital)</h3>
+            <p className="text-xs sm:text-sm font-medium text-orange-600">Precio real P2P</p>
           </div>
         </div>
         
-        <div className="flex items-center space-x-2 self-start sm:self-auto">
+        <div className="flex items-center space-x-2">
           <motion.button
             onClick={handleRefresh}
             disabled={loading}
-            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 disabled:opacity-50 group min-h-[44px] min-w-[44px]"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -152,7 +152,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
           </motion.button>
           <motion.button
             onClick={handleOpenBinance}
-            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group"
+            className="p-3 rounded-xl bg-muted/20 hover:bg-primary/10 transition-all duration-200 group min-h-[44px] min-w-[44px]"
             title="Abrir Binance P2P directamente"
           >
             <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -192,18 +192,18 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">BCV USD</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {usdRateComparison.bcvRate.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-yellow-600">Bs. {usdRateComparison.bcvRate.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {usdRateComparison.binanceRate.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-orange-600">Bs. {usdRateComparison.binanceRate.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {usdRateComparison.absoluteDifference.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-foreground">Bs. {usdRateComparison.absoluteDifference.toFixed(2)}</p>
                 </div>
               </div>
               <div className="mt-2 text-center">
@@ -236,18 +236,18 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
                   </div>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 text-center">
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">BCV EUR</p>
-                  <p className="text-lg font-semibold text-yellow-600">Bs. {eurRateComparison.bcvRate.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-yellow-600">Bs. {eurRateComparison.bcvRate.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">Binance USD</p>
-                  <p className="text-lg font-semibold text-orange-600">Bs. {eurRateComparison.binanceRate.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-orange-600">Bs. {eurRateComparison.binanceRate.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-ios-caption text-muted-foreground mb-1">Diferencia</p>
-                  <p className="text-lg font-semibold text-foreground">Bs. {eurRateComparison.absoluteDifference.toFixed(2)}</p>
+                  <p className="text-base sm:text-lg font-semibold text-foreground">Bs. {eurRateComparison.absoluteDifference.toFixed(2)}</p>
                 </div>
               </div>
               <div className="mt-2 text-center">
@@ -264,7 +264,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       )}
 
       {/* Main Rates Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* VENTA (Sell) - Precio más alto */}
         <motion.div 
           className="bg-gradient-to-br from-red-500/10 to-red-600/5 backdrop-blur-sm rounded-2xl p-4 border border-red-500/20 hover:border-red-500/30 transition-all duration-200"
@@ -285,7 +285,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
             )}
           </div>
           <div className="space-y-1">
-            <p className="text-2xl font-light text-red-500">
+            <p className="text-xl sm:text-2xl font-light text-red-500">
               Bs. {rates.sell_rate.avg.toFixed(2)}
             </p>
             <div className="flex justify-between text-xs">
@@ -320,7 +320,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
             )}
           </div>
           <div className="space-y-1">
-            <p className="text-2xl font-light text-green-500">
+            <p className="text-xl sm:text-2xl font-light text-green-500">
               Bs. {rates.buy_rate.avg.toFixed(2)}
             </p>
             <div className="flex justify-between text-xs">
@@ -338,18 +338,18 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
 
       {/* Simplified Market Summary */}
       <motion.div 
-        className="bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm rounded-2xl p-6 border-2 border-primary/30 mb-6"
+        className="bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border-2 border-primary/30 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
       >
-        <div className="text-center py-4">
-          <div className="flex items-center justify-center space-x-2 mb-3">
-            <Target className="h-5 w-5 text-primary" />
-            <p className="text-lg font-bold text-primary">💵 USDT → Bolívares</p>
+        <div className="text-center py-2 sm:py-4">
+          <div className="flex items-center justify-center space-x-2 mb-2 sm:mb-3">
+            <Target className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+            <p className="text-base sm:text-lg font-bold text-primary">💵 USDT → Bolívares</p>
           </div>
-          <p className="text-5xl font-bold text-primary mb-3">Bs. {marketSummary?.average.toFixed(2) || '0.00'}</p>
-          <p className="text-lg font-medium text-muted-foreground">Promedio del mercado digital</p>
+          <p className="text-3xl sm:text-5xl font-bold text-primary mb-2 sm:mb-3">Bs. {marketSummary?.average.toFixed(2) || '0.00'}</p>
+          <p className="text-sm sm:text-lg font-medium text-muted-foreground">Promedio del mercado digital</p>
         </div>
       </motion.div>
 
