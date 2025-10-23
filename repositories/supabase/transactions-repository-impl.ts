@@ -22,7 +22,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   setAccountsRepository(accountsRepository: AccountsRepository) {
     this.accountsRepository = accountsRepository;
   }
-  async findAll(): Promise<Transaction[]> {
+  async findAll(limit: number = 1000): Promise<Transaction[]> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -34,24 +34,17 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     
     const userId = user.id;
 
-    // Get user's account IDs first
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!accounts || accounts.length === 0) {
-      return []; // No accounts = no transactions
-    }
-
-    const accountIds = accounts.map(acc => acc.id);
-
+    // Single query with JOIN - más eficiente que 2 queries separados
     const { data, error } = await supabase
       .from('transactions')
-      .select('*')
-      .in('account_id', accountIds)
+      .select(`
+        *,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .limit(limit); // Paginación por defecto para prevenir cargas masivas
 
     if (error) {
       throw new Error(`Failed to fetch transactions: ${error.message}`);
@@ -314,23 +307,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     
     const userId = user.id;
 
-    // Get user's account IDs first
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!accounts || accounts.length === 0) {
-      return 0; // No accounts = no transactions
-    }
-
-    const accountIds = accounts.map(acc => acc.id);
-
+    // Single query with JOIN - más eficiente
     let query = supabase
       .from('transactions')
-      .select('amount_base_minor')
-      .eq('category_id', categoryId)
-      .in('account_id', accountIds);
+      .select(`
+        amount_base_minor,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
+      .eq('category_id', categoryId);
 
     if (dateFrom) {
       query = query.gte('date', dateFrom);
@@ -506,29 +491,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     
     const userId = user.id;
 
-    // Get user's account IDs first
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!accounts || accounts.length === 0) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: pagination?.limit || 10,
-        totalPages: 0,
-      }; // No accounts = no transactions
-    }
-
-    const accountIds = accounts.map(acc => acc.id);
-
+    // Single query with JOIN - más eficiente
     const { data, error } = await supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .eq('category_id', categoryId)
-      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -579,29 +550,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     
     const userId = user.id;
 
-    // Get user's account IDs first
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!accounts || accounts.length === 0) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: pagination?.limit || 10,
-        totalPages: 0,
-      }; // No accounts = no transactions
-    }
-
-    const accountIds = accounts.map(acc => acc.id);
-
+    // Single query with JOIN - más eficiente
     const { data, error } = await supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .eq('type', type)
-      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 
@@ -652,30 +609,16 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     
     const userId = user.id;
 
-    // Get user's account IDs first
-    const { data: accounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (!accounts || accounts.length === 0) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: pagination?.limit || 10,
-        totalPages: 0,
-      }; // No accounts = no transactions
-    }
-
-    const accountIds = accounts.map(acc => acc.id);
-
+    // Single query with JOIN - más eficiente
     const { data, error } = await supabase
       .from('transactions')
-      .select('*')
+      .select(`
+        *,
+        accounts!inner(user_id)
+      `)
+      .eq('accounts.user_id', userId)
       .gte('date', startDate)
       .lte('date', endDate)
-      .in('account_id', accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
 

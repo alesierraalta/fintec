@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, memo, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, Suspense, useRef } from 'react';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -54,6 +54,11 @@ export default function TransactionsPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  // Virtual pagination state
+  const ITEMS_PER_PAGE = 50;
+  const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Memoized filtered transactions
   const filteredTransactionsMemo = useMemo(() => {
@@ -137,6 +142,39 @@ export default function TransactionsPage() {
 
     return filtered;
   }, [transactions, filters]);
+
+  // Visible transactions for virtual pagination
+  const visibleTransactions = useMemo(
+    () => filteredTransactionsMemo.slice(0, displayedCount),
+    [filteredTransactionsMemo, displayedCount]
+  );
+
+  // Load more function for infinite scroll
+  const loadMore = useCallback(() => {
+    setDisplayedCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredTransactionsMemo.length));
+  }, [filteredTransactionsMemo.length]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayedCount < filteredTransactionsMemo.length) {
+          loadMore();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    
+    const sentinel = sentinelRef.current;
+    if (sentinel) observer.observe(sentinel);
+    
+    return () => observer.disconnect();
+  }, [loadMore, displayedCount, filteredTransactionsMemo.length]);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    setDisplayedCount(ITEMS_PER_PAGE);
+  }, [filters]);
 
   // Helper functions memoized
   const getAccountName = useCallback((id?: string) => 
@@ -267,7 +305,7 @@ export default function TransactionsPage() {
   const totalesPorMoneda = useMemo(() => {
     const resultado: Record<string, { income: number, expenses: number }> = {};
     
-    filteredTransactions.forEach(t => {
+    filteredTransactionsMemo.forEach(t => {
       const currency = t.currencyCode || 'USD';
       if (!resultado[currency]) {
         resultado[currency] = { income: 0, expenses: 0 };
@@ -282,7 +320,7 @@ export default function TransactionsPage() {
     });
     
     return resultado;
-  }, [filteredTransactions]);
+  }, [filteredTransactionsMemo]);
 
   // Convertir a USD para mostrar equivalente
   const totalesEnUSD = useMemo(() => {
@@ -472,7 +510,7 @@ export default function TransactionsPage() {
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TRANSACCIONES</h3>
             </div>
             <p className="text-3xl font-light text-foreground mb-2">
-              {filteredTransactions.length}
+              {filteredTransactionsMemo.length}
             </p>
             <div className="flex items-center space-x-2">
               <Repeat className="h-4 w-4 text-blue-600" />
@@ -498,7 +536,7 @@ export default function TransactionsPage() {
             <div className="flex items-center space-x-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               <h3 className="text-ios-title font-semibold text-foreground">
-                Todas las Transacciones ({filteredTransactions.length})
+                Todas las Transacciones ({filteredTransactionsMemo.length})
               </h3>
             </div>
           </div>
@@ -509,7 +547,7 @@ export default function TransactionsPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground text-ios-body">✨ Cargando transacciones...</p>
               </div>
-            ) : filteredTransactions.length === 0 ? (
+            ) : filteredTransactionsMemo.length === 0 ? (
               <div className="p-12 text-center">
                 <div className="h-20 w-20 text-muted-foreground mx-auto mb-6">💳</div>
                 <h3 className="text-ios-title font-semibold text-foreground mb-3">
@@ -531,7 +569,7 @@ export default function TransactionsPage() {
                 </button>
               </div>
             ) : (
-              filteredTransactions.map((transaction) => (
+              visibleTransactions.map((transaction) => (
               <div key={transaction.id} className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40">
                 <div className="flex items-start justify-between min-w-0">
                   <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
@@ -598,6 +636,14 @@ export default function TransactionsPage() {
                 </div>
               </div>
             ))
+            )}
+            
+            {/* Infinite scroll sentinel */}
+            {displayedCount < filteredTransactionsMemo.length && (
+              <div ref={sentinelRef} className="p-4 text-center">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+                <p className="text-muted-foreground text-sm">Cargando más transacciones...</p>
+              </div>
             )}
           </div>
         </div>

@@ -17,8 +17,12 @@ interface DataCache {
   };
 }
 
-// Cache duration in milliseconds (5 minutes)
-const CACHE_DURATION = 5 * 60 * 1000;
+// Cache durations in milliseconds - diferenciadas por tipo de dato
+const CACHE_DURATION = {
+  transactions: 2 * 60 * 1000,  // 2 minutos (cambian frecuentemente)
+  accounts: 10 * 60 * 1000,      // 10 minutos (cambian poco)
+  categories: 30 * 60 * 1000,    // 30 minutos (casi estáticas)
+};
 
 // Global cache to persist across component unmounts
 let globalCache: DataCache = {
@@ -61,10 +65,11 @@ export function useOptimizedData() {
   const [error, setError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Check if cache is valid
+  // Check if cache is valid with differentiated durations
   const isCacheValid = useCallback((type: keyof DataCache['lastUpdated']) => {
     const lastUpdated = globalCache.lastUpdated[type];
-    return Date.now() - lastUpdated < CACHE_DURATION;
+    const duration = CACHE_DURATION[type];
+    return Date.now() - lastUpdated < duration;
   }, []);
 
   // Load transactions with caching
@@ -217,6 +222,36 @@ export function useOptimizedData() {
     return loading || (isInitialLoad && (globalCache.transactions.length === 0 || globalCache.accounts.length === 0));
   }, [loading, isInitialLoad, globalCache.transactions.length, globalCache.accounts.length]);
 
+  // Mutation functions with auto-invalidation
+  const createTransaction = useCallback(async (data: any) => {
+    const result = await repository.transactions.create(data);
+    invalidateCache('transactions'); // Auto-invalidar cache de transacciones
+    return result;
+  }, [repository, invalidateCache]);
+
+  const updateTransaction = useCallback(async (id: string, data: any) => {
+    const result = await repository.transactions.update(id, data);
+    invalidateCache('transactions'); // Auto-invalidar cache de transacciones
+    return result;
+  }, [repository, invalidateCache]);
+
+  const deleteTransaction = useCallback(async (id: string) => {
+    await repository.transactions.delete(id);
+    invalidateCache('transactions'); // Auto-invalidar cache de transacciones
+  }, [repository, invalidateCache]);
+
+  const createAccount = useCallback(async (data: any) => {
+    const result = await repository.accounts.create(data);
+    invalidateCache('accounts'); // Auto-invalidar cache de cuentas
+    return result;
+  }, [repository, invalidateCache]);
+
+  const updateAccount = useCallback(async (id: string, data: any) => {
+    const result = await repository.accounts.update(id, data);
+    invalidateCache('accounts'); // Auto-invalidar cache de cuentas
+    return result;
+  }, [repository, invalidateCache]);
+
   return {
     // Data
     ...cachedData,
@@ -241,6 +276,13 @@ export function useOptimizedData() {
     getCategoryName,
     getAccountById,
     getCategoryById,
+    
+    // Mutation functions with auto-invalidation
+    createTransaction,
+    updateTransaction,
+    deleteTransaction,
+    createAccount,
+    updateAccount,
   };
 }
 
