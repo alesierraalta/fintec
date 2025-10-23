@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { StatCard } from './stat-card';
 import { SkeletonStatCard } from '@/components/ui/skeleton-stat-card';
 import { QuickActions } from './quick-actions';
@@ -11,6 +11,7 @@ import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import type { GoalWithProgress } from '@/repositories/contracts';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import { 
@@ -21,14 +22,40 @@ import {
   Target,
   Coffee,
   Smile,
-  Plus
+  Plus,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
 
 export function DesktopDashboard() {
   const { accounts: rawAccounts, transactions: rawTransactions, loading, loadAllData } = useOptimizedData();
   const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
   const repository = useRepository();
+  
+  // Rate selector state
+  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const [showBalances, setShowBalances] = useState(true);
+  
+  // Helper functions for rate calculation
+  const getRateName = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return 'Binance';
+      case 'bcv_usd': return 'BCV USD';
+      case 'bcv_eur': return 'BCV EUR';
+      default: return 'BCV USD';
+    }
+  }, []);
+
+  const getExchangeRate = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return binanceRates?.usd_ves || 1;
+      case 'bcv_usd': return bcvRates?.usd || 1;
+      case 'bcv_eur': return bcvRates?.eur || 1;
+      default: return bcvRates?.usd || 1;
+    }
+  }, [bcvRates, binanceRates]);
   
   // Goals state
   const [goals, setGoals] = useState<GoalWithProgress[]>([]);
@@ -89,14 +116,15 @@ export function DesktopDashboard() {
       };
     }
 
-    // Calculate total balance with proper VES conversion
+    // Calculate total balance with dynamic rate conversion
     const totalBalance = rawAccounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
       
-      // Apply BCV conversion for VES currency (convert VES to USD)
+      // Apply dynamic conversion for VES currency
       if (acc.currencyCode === 'VES') {
-        return sum + (balanceMajor / bcvRates.usd);
+        const rate = getExchangeRate(usdEquivalentType);
+        return sum + (balanceMajor / rate);
       }
       return sum + balanceMajor;
     }, 0);
@@ -172,7 +200,7 @@ export function DesktopDashboard() {
       previousMonthIncome,
       previousMonthExpenses
     };
-  }, [rawTransactions, rawAccounts, bcvRates.usd]);;
+  }, [rawTransactions, rawAccounts, bcvRates.usd, usdEquivalentType, getExchangeRate]);;
 
   const { totalBalance, monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = summaryStats;
 
@@ -218,29 +246,85 @@ export function DesktopDashboard() {
         </div>
       </div>
       
+      {/* Balance Total Card with Rate Selector */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">Balance Total</h2>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowBalances(!showBalances)}
+              className="flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+            >
+              {showBalances ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              <span>{showBalances ? 'Ocultar' : 'Mostrar'}</span>
+            </button>
+          </div>
+        </div>
+        
+        <div className="text-center">
+          <p className="text-4xl font-light text-foreground mb-2">
+            {showBalances ? (
+              `$${totalBalance.toFixed(2)}`
+            ) : (
+              '••••••'
+            )}
+          </p>
+          {showBalances && (
+            <p className="text-sm text-muted-foreground mb-4">
+              ({getRateName(usdEquivalentType)})
+            </p>
+          )}
+          
+          {showBalances && (
+            <div className="flex items-center justify-center space-x-2">
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'binance'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('binance')}
+              >
+                💱 Binance
+              </button>
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'bcv_usd'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('bcv_usd')}
+              >
+                🇺🇸 BCV USD
+              </button>
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'bcv_eur'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('bcv_eur')}
+              >
+                🇪🇺 BCV EUR
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+      
       {/* iOS-style Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         {loading ? (
           <>
-            <SkeletonStatCard />
             <SkeletonStatCard />
             <SkeletonStatCard />
             <SkeletonStatCard />
           </>
         ) : (
           <>
-        {/* Total Balance Card */}
-        <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
-          <div className="flex items-center space-x-2 mb-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-            <span className="text-sm font-medium text-muted-foreground">Balance Total</span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-3xl font-light text-foreground">
-              ${totalBalance.toFixed(2)}
-            </span>
-          </div>
-        </div>
 
         {/* Monthly Income Card */}
         <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
@@ -293,7 +377,12 @@ export function DesktopDashboard() {
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">Movimientos Recientes</h2>
             </div>
-            <RecentTransactions transactions={rawTransactions} />
+            <RecentTransactions 
+              transactions={rawTransactions} 
+              bcvRates={bcvRates}
+              binanceRates={binanceRates}
+              usdEquivalentType={usdEquivalentType}
+            />
           </div>
         </div>
 

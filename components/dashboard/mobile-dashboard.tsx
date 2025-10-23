@@ -1,24 +1,51 @@
 'use client';
 
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import { 
   Sparkles, 
   TrendingUp, 
   TrendingDown, 
   Heart,
-  Smile
+  Smile,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 export function MobileDashboard() {
   const { accounts: rawAccounts, transactions: rawTransactions, loading, loadAllData } = useOptimizedData();
   const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
+  
+  // Rate selector state
+  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const [showBalances, setShowBalances] = useState(true);
+  
+  // Helper functions for rate calculation
+  const getRateName = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return 'Binance';
+      case 'bcv_usd': return 'BCV USD';
+      case 'bcv_eur': return 'BCV EUR';
+      default: return 'BCV USD';
+    }
+  }, []);
+
+  const getExchangeRate = useCallback((rateType: string) => {
+    switch(rateType) {
+      case 'binance': return binanceRates?.usd_ves || 1;
+      case 'bcv_usd': return bcvRates?.usd || 1;
+      case 'bcv_eur': return bcvRates?.eur || 1;
+      default: return bcvRates?.usd || 1;
+    }
+  }, [bcvRates, binanceRates]);
 
   // Load data on component mount
   useEffect(() => {
@@ -33,13 +60,14 @@ export function MobileDashboard() {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
       
-      // Apply BCV conversion for VES currency
+      // Apply dynamic conversion for VES currency
       if (acc.currencyCode === 'VES') {
-        return sum + (balanceMajor / bcvRates.usd);
+        const rate = getExchangeRate(usdEquivalentType);
+        return sum + (balanceMajor / rate);
       }
       return sum + balanceMajor;
     }, 0);
-  }, [rawAccounts, bcvRates.usd]);
+  }, [rawAccounts, usdEquivalentType, getExchangeRate]);
 
   // Memoized monthly calculations
   const { monthlyIncome, monthlyExpenses } = useMemo(() => {
@@ -95,21 +123,75 @@ export function MobileDashboard() {
         </div>
       </div>
 
-      {/* iOS-style Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+      {/* Balance Total Card with Rate Selector */}
+      <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
             <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE TOTAL</h3>
           </div>
-          <p className="text-3xl font-light text-foreground mb-2">
-            ${totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center space-x-2">
-            <Sparkles className="h-4 w-4 text-blue-600" />
-            <span className="text-ios-footnote text-blue-600 font-medium">Actualizado</span>
-          </div>
+          <button
+            onClick={() => setShowBalances(!showBalances)}
+            className="flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-medium transition-all bg-muted/50 hover:bg-muted text-muted-foreground hover:text-foreground"
+          >
+            {showBalances ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            <span>{showBalances ? 'Ocultar' : 'Mostrar'}</span>
+          </button>
         </div>
+        
+        <div className="text-center">
+          <p className="text-3xl font-light text-foreground mb-2">
+            {showBalances ? (
+              `$${totalBalance.toFixed(2)}`
+            ) : (
+              '••••••'
+            )}
+          </p>
+          {showBalances && (
+            <p className="text-xs text-muted-foreground mb-4">
+              ({getRateName(usdEquivalentType)})
+            </p>
+          )}
+          
+          {showBalances && (
+            <div className="flex flex-col space-y-2">
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'binance'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('binance')}
+              >
+                💱 Binance
+              </button>
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'bcv_usd'
+                    ? 'bg-green-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('bcv_usd')}
+              >
+                🇺🇸 BCV USD
+              </button>
+              <button
+                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                  usdEquivalentType === 'bcv_eur'
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
+                }`}
+                onClick={() => setUsdEquivalentType('bcv_eur')}
+              >
+                🇪🇺 BCV EUR
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* iOS-style Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
         
         <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
           <div className="flex items-center space-x-2 mb-4">
@@ -175,7 +257,12 @@ export function MobileDashboard() {
           <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
           <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">MOVIMIENTOS RECIENTES</h3>
         </div>
-        <RecentTransactions transactions={[]} />
+        <RecentTransactions 
+          transactions={rawTransactions} 
+          bcvRates={bcvRates}
+          binanceRates={binanceRates}
+          usdEquivalentType={usdEquivalentType}
+        />
       </div>
 
       {/* iOS-style Accounts Overview */}

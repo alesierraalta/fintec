@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '@/types/domain';
 import { formatCurrency } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -14,29 +14,58 @@ interface RecentTransactionsProps {
   onViewAll?: () => void;
   onTransactionClick?: (transaction: Transaction) => void;
   isLoading?: boolean;
+  bcvRates?: { usd: number; eur: number };
+  binanceRates?: { usd_ves: number };
+  usdEquivalentType?: 'binance' | 'bcv_usd' | 'bcv_eur';
 }
 
 export function RecentTransactions({
   transactions,
   onViewAll,
   onTransactionClick,
-  isLoading = false
+  isLoading = false,
+  bcvRates,
+  binanceRates,
+  usdEquivalentType = 'bcv_usd'
 }: RecentTransactionsProps) {
   const [hoveredTransaction, setHoveredTransaction] = useState<string | null>(null);
+
+  // Helper function to get exchange rate
+  const getExchangeRate = useMemo(() => {
+    if (!bcvRates || !binanceRates) return 1;
+    
+    switch(usdEquivalentType) {
+      case 'binance': return binanceRates.usd_ves || 1;
+      case 'bcv_usd': return bcvRates.usd || 1;
+      case 'bcv_eur': return bcvRates.eur || 1;
+      default: return bcvRates.usd || 1;
+    }
+  }, [bcvRates, binanceRates, usdEquivalentType]);
 
   const formatAmount = (transaction: Transaction) => {
     const isNegative = transaction.type === TransactionType.EXPENSE || 
                       transaction.type === TransactionType.TRANSFER_OUT;
     
-    // Use the proper formatCurrency function from money.ts
+    // Format in original currency
     const formattedAmount = formatCurrency(
       transaction.amountMinor,
       transaction.currencyCode,
-      { showSymbol: true, showCode: true }
+      { showSymbol: true, showCode: false }
     );
     
+    // Add USD equivalent if VES and rates are available
+    if (transaction.currencyCode === 'VES' && bcvRates && binanceRates) {
+      const amountMajor = transaction.amountMinor / 100;
+      const usdEquivalent = amountMajor / getExchangeRate;
+      const usdFormatted = `$${usdEquivalent.toFixed(2)}`;
+      
+      return isNegative 
+        ? `-${formattedAmount} (~${usdFormatted})`
+        : `${formattedAmount} (~${usdFormatted})`;
+    }
+    
     return isNegative ? `-${formattedAmount}` : formattedAmount;
-  };;
+  };
 
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
