@@ -53,10 +53,10 @@ export function MobileDashboard() {
   }, [loadAllData]);
 
   // Memoized total balance calculation
-  const totalBalance = useMemo(() => {
-    if (!rawAccounts.length) return 0;
+  const { totalBalance, totalBalanceVES, totalBalanceUSD } = useMemo(() => {
+    if (!rawAccounts.length) return { totalBalance: 0, totalBalanceVES: 0, totalBalanceUSD: 0 };
     
-    return rawAccounts.reduce((sum, acc) => {
+    const balance = rawAccounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
       
@@ -67,11 +67,34 @@ export function MobileDashboard() {
       }
       return sum + balanceMajor;
     }, 0);
+
+    const balanceVES = rawAccounts
+      .filter(acc => acc.currencyCode === 'VES')
+      .reduce((sum, acc) => {
+        const balanceMinor = Number(acc.balance) || 0;
+        return sum + fromMinorUnits(balanceMinor, acc.currencyCode);
+      }, 0);
+
+    const balanceUSD = rawAccounts
+      .filter(acc => acc.currencyCode === 'USD')
+      .reduce((sum, acc) => {
+        const balanceMinor = Number(acc.balance) || 0;
+        return sum + fromMinorUnits(balanceMinor, acc.currencyCode);
+      }, 0);
+
+    return { totalBalance: balance, totalBalanceVES: balanceVES, totalBalanceUSD: balanceUSD };
   }, [rawAccounts, usdEquivalentType, getExchangeRate]);
 
   // Memoized monthly calculations
-  const { monthlyIncome, monthlyExpenses } = useMemo(() => {
-    if (!rawTransactions.length) return { monthlyIncome: 0, monthlyExpenses: 0 };
+  const { monthlyIncome, monthlyExpenses, monthlyIncomeVES, monthlyIncomeUSD, monthlyExpensesVES, monthlyExpensesUSD } = useMemo(() => {
+    if (!rawTransactions.length) return { 
+      monthlyIncome: 0, 
+      monthlyExpenses: 0,
+      monthlyIncomeVES: 0,
+      monthlyIncomeUSD: 0,
+      monthlyExpensesVES: 0,
+      monthlyExpensesUSD: 0
+    };
     
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
@@ -83,14 +106,54 @@ export function MobileDashboard() {
 
     const income = monthTransactions
       .filter(t => t.type === 'INCOME')
-      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD using dynamic rate
+        if (t.currencyCode === 'VES') {
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (amountMajor / rate);
+        }
+        return sum + amountMajor;
+      }, 0);
     
     const expenses = monthTransactions
       .filter(t => t.type === 'EXPENSE')
-      .reduce((sum, t) => sum + (t.amountMinor / 100), 0);
+      .reduce((sum, t) => {
+        const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
+        // Convert VES to USD using dynamic rate
+        if (t.currencyCode === 'VES') {
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (Math.abs(amountMajor) / rate);
+        }
+        return sum + Math.abs(amountMajor);
+      }, 0);
 
-    return { monthlyIncome: income, monthlyExpenses: expenses };
-  }, [rawTransactions]);
+    // Calculate by currency
+    const incomeVES = monthTransactions
+      .filter(t => t.type === 'INCOME' && t.currencyCode === 'VES')
+      .reduce((sum, t) => sum + fromMinorUnits(t.amountMinor, t.currencyCode), 0);
+
+    const incomeUSD = monthTransactions
+      .filter(t => t.type === 'INCOME' && t.currencyCode === 'USD')
+      .reduce((sum, t) => sum + fromMinorUnits(t.amountMinor, t.currencyCode), 0);
+
+    const expensesVES = monthTransactions
+      .filter(t => t.type === 'EXPENSE' && t.currencyCode === 'VES')
+      .reduce((sum, t) => sum + Math.abs(fromMinorUnits(t.amountMinor, t.currencyCode)), 0);
+
+    const expensesUSD = monthTransactions
+      .filter(t => t.type === 'EXPENSE' && t.currencyCode === 'USD')
+      .reduce((sum, t) => sum + Math.abs(fromMinorUnits(t.amountMinor, t.currencyCode)), 0);
+
+    return { 
+      monthlyIncome: income, 
+      monthlyExpenses: expenses,
+      monthlyIncomeVES: incomeVES,
+      monthlyIncomeUSD: incomeUSD,
+      monthlyExpensesVES: expensesVES,
+      monthlyExpensesUSD: expensesUSD
+    };
+  }, [rawTransactions, usdEquivalentType, getExchangeRate]);
   
   return (
     <div className="space-y-6">
@@ -140,16 +203,25 @@ export function MobileDashboard() {
         </div>
         
         <div className="text-center">
-          <p className="text-3xl font-light text-foreground mb-2">
-            {showBalances ? (
-              `$${totalBalance.toFixed(2)}`
-            ) : (
-              '••••••'
-            )}
-          </p>
-          {showBalances && (
-            <p className="text-xs text-muted-foreground mb-4">
-              ({getRateName(usdEquivalentType)})
+          {showBalances ? (
+            <div className="space-y-2">
+              {totalBalanceVES > 0 && (
+                <p className="text-xl font-light text-foreground">
+                  Bs. {totalBalanceVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+              {totalBalanceUSD > 0 && (
+                <p className="text-xl font-light text-foreground">
+                  ${totalBalanceUSD.toFixed(2)}
+                </p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                Total: ${totalBalance.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </p>
+            </div>
+          ) : (
+            <p className="text-3xl font-light text-foreground mb-2">
+              ••••••
             </p>
           )}
           
@@ -198,10 +270,24 @@ export function MobileDashboard() {
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">INGRESOS MES</h3>
           </div>
-          <p className="text-3xl font-light text-foreground mb-2">
-            ${monthlyIncome.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center space-x-2">
+          <div className="space-y-1">
+            {monthlyIncomeVES > 0 && (
+              <p className="text-lg font-light text-foreground">
+                Bs. {monthlyIncomeVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </p>
+            )}
+            {monthlyIncomeUSD > 0 && (
+              <p className="text-lg font-light text-foreground">
+                ${monthlyIncomeUSD.toFixed(2)}
+              </p>
+            )}
+            {(monthlyIncomeVES > 0 || monthlyIncomeUSD > 0) && (
+              <p className="text-sm text-muted-foreground">
+                Total: ${monthlyIncome.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </p>
+            )}
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
             <TrendingUp className="h-4 w-4 text-green-600" />
             <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
           </div>
@@ -212,10 +298,24 @@ export function MobileDashboard() {
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTOS MES</h3>
           </div>
-          <p className="text-3xl font-light text-foreground mb-2">
-            ${monthlyExpenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center space-x-2">
+          <div className="space-y-1">
+            {monthlyExpensesVES > 0 && (
+              <p className="text-lg font-light text-foreground">
+                Bs. {monthlyExpensesVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </p>
+            )}
+            {monthlyExpensesUSD > 0 && (
+              <p className="text-lg font-light text-foreground">
+                ${monthlyExpensesUSD.toFixed(2)}
+              </p>
+            )}
+            {(monthlyExpensesVES > 0 || monthlyExpensesUSD > 0) && (
+              <p className="text-sm text-muted-foreground">
+                Total: ${monthlyExpenses.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </p>
+            )}
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
             <TrendingDown className="h-4 w-4 text-red-600" />
             <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
           </div>
@@ -226,10 +326,22 @@ export function MobileDashboard() {
             <div className={`w-2 h-2 ${(monthlyIncome - monthlyExpenses) >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
             <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE MES</h3>
           </div>
-          <p className={`text-3xl font-light mb-2 ${(monthlyIncome - monthlyExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            ${Math.abs(monthlyIncome - monthlyExpenses).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-          </p>
-          <div className="flex items-center space-x-2">
+          <div className="space-y-1">
+            {(monthlyIncomeVES - monthlyExpensesVES) !== 0 && (
+              <p className={`text-lg font-light ${(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                Bs. {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </p>
+            )}
+            {(monthlyIncomeUSD - monthlyExpensesUSD) !== 0 && (
+              <p className={`text-lg font-light ${(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                ${Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
+              </p>
+            )}
+            <p className={`text-sm text-muted-foreground ${(monthlyIncome - monthlyExpenses) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              Total: ${Math.abs(monthlyIncome - monthlyExpenses).toFixed(2)} ({getRateName(usdEquivalentType)})
+            </p>
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
             {(monthlyIncome - monthlyExpenses) >= 0 ? (
               <TrendingUp className="h-4 w-4 text-green-600" />
             ) : (

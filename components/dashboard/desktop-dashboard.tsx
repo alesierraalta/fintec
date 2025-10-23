@@ -56,6 +56,27 @@ export function DesktopDashboard() {
       default: return bcvRates?.usd || 1;
     }
   }, [bcvRates, binanceRates]);
+
+  // Helper function to format currency with dual display
+  const formatCurrencyDual = useCallback((amountMinor: number, currencyCode: string) => {
+    const amountMajor = fromMinorUnits(amountMinor, currencyCode);
+    
+    if (currencyCode === 'VES') {
+      const rate = getExchangeRate(usdEquivalentType);
+      const usdEquivalent = amountMajor / rate;
+      return {
+        original: `Bs. ${amountMajor.toLocaleString('es-VE', { minimumFractionDigits: 2 })}`,
+        equivalent: `$${usdEquivalent.toFixed(2)}`,
+        display: `Bs. ${amountMajor.toLocaleString('es-VE', { minimumFractionDigits: 2 })} (~$${usdEquivalent.toFixed(2)})`
+      };
+    } else {
+      return {
+        original: `$${amountMajor.toFixed(2)}`,
+        equivalent: `$${amountMajor.toFixed(2)}`,
+        display: `$${amountMajor.toFixed(2)}`
+      };
+    }
+  }, [getExchangeRate, usdEquivalentType]);
   
   // Goals state
   const [goals, setGoals] = useState<GoalWithProgress[]>([]);
@@ -112,7 +133,13 @@ export function DesktopDashboard() {
         monthlyIncome: 0,
         monthlyExpenses: 0,
         previousMonthIncome: 0,
-        previousMonthExpenses: 0
+        previousMonthExpenses: 0,
+        totalBalanceVES: 0,
+        totalBalanceUSD: 0,
+        monthlyIncomeVES: 0,
+        monthlyIncomeUSD: 0,
+        monthlyExpensesVES: 0,
+        monthlyExpensesUSD: 0
       };
     }
 
@@ -128,6 +155,21 @@ export function DesktopDashboard() {
       }
       return sum + balanceMajor;
     }, 0);
+
+    // Calculate balances by currency
+    const totalBalanceVES = rawAccounts
+      .filter(acc => acc.currencyCode === 'VES')
+      .reduce((sum, acc) => {
+        const balanceMinor = Number(acc.balance) || 0;
+        return sum + fromMinorUnits(balanceMinor, acc.currencyCode);
+      }, 0);
+
+    const totalBalanceUSD = rawAccounts
+      .filter(acc => acc.currencyCode === 'USD')
+      .reduce((sum, acc) => {
+        const balanceMinor = Number(acc.balance) || 0;
+        return sum + fromMinorUnits(balanceMinor, acc.currencyCode);
+      }, 0);
 
     const now = new Date();
     const thisMonth = now.getMonth();
@@ -147,14 +189,15 @@ export function DesktopDashboard() {
       return date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear;
     });
 
-    // Calcular ingresos y gastos actuales con conversión correcta
+    // Calcular ingresos y gastos actuales con conversión dinámica
     const monthlyIncome = monthTransactions
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => {
         const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
-        // Convert VES to USD for consistent calculation
+        // Convert VES to USD using dynamic rate
         if (t.currencyCode === 'VES') {
-          return sum + (amountMajor / bcvRates.usd);
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (amountMajor / rate);
         }
         return sum + amountMajor;
       }, 0);
@@ -163,21 +206,41 @@ export function DesktopDashboard() {
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => {
         const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
-        // Convert VES to USD for consistent calculation
+        // Convert VES to USD using dynamic rate
         if (t.currencyCode === 'VES') {
-          return sum + (Math.abs(amountMajor) / bcvRates.usd);
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (Math.abs(amountMajor) / rate);
         }
         return sum + Math.abs(amountMajor);
       }, 0);
 
-    // Calcular ingresos y gastos del mes anterior con conversión correcta
+    // Calculate monthly income by currency
+    const monthlyIncomeVES = monthTransactions
+      .filter(t => t.type === 'INCOME' && t.currencyCode === 'VES')
+      .reduce((sum, t) => sum + fromMinorUnits(t.amountMinor, t.currencyCode), 0);
+
+    const monthlyIncomeUSD = monthTransactions
+      .filter(t => t.type === 'INCOME' && t.currencyCode === 'USD')
+      .reduce((sum, t) => sum + fromMinorUnits(t.amountMinor, t.currencyCode), 0);
+
+    // Calculate monthly expenses by currency
+    const monthlyExpensesVES = monthTransactions
+      .filter(t => t.type === 'EXPENSE' && t.currencyCode === 'VES')
+      .reduce((sum, t) => sum + Math.abs(fromMinorUnits(t.amountMinor, t.currencyCode)), 0);
+
+    const monthlyExpensesUSD = monthTransactions
+      .filter(t => t.type === 'EXPENSE' && t.currencyCode === 'USD')
+      .reduce((sum, t) => sum + Math.abs(fromMinorUnits(t.amountMinor, t.currencyCode)), 0);
+
+    // Calcular ingresos y gastos del mes anterior con conversión dinámica
     const previousMonthIncome = lastMonthTransactions
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => {
         const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
-        // Convert VES to USD for consistent calculation
+        // Convert VES to USD using dynamic rate
         if (t.currencyCode === 'VES') {
-          return sum + (amountMajor / bcvRates.usd);
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (amountMajor / rate);
         }
         return sum + amountMajor;
       }, 0);
@@ -186,9 +249,10 @@ export function DesktopDashboard() {
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => {
         const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
-        // Convert VES to USD for consistent calculation
+        // Convert VES to USD using dynamic rate
         if (t.currencyCode === 'VES') {
-          return sum + (Math.abs(amountMajor) / bcvRates.usd);
+          const rate = getExchangeRate(usdEquivalentType);
+          return sum + (Math.abs(amountMajor) / rate);
         }
         return sum + Math.abs(amountMajor);
       }, 0);
@@ -198,11 +262,29 @@ export function DesktopDashboard() {
       monthlyIncome,
       monthlyExpenses,
       previousMonthIncome,
-      previousMonthExpenses
+      previousMonthExpenses,
+      totalBalanceVES,
+      totalBalanceUSD,
+      monthlyIncomeVES,
+      monthlyIncomeUSD,
+      monthlyExpensesVES,
+      monthlyExpensesUSD
     };
-  }, [rawTransactions, rawAccounts, bcvRates.usd, usdEquivalentType, getExchangeRate]);;
+  }, [rawTransactions, rawAccounts, usdEquivalentType, getExchangeRate]);;
 
-  const { totalBalance, monthlyIncome, monthlyExpenses, previousMonthIncome, previousMonthExpenses } = summaryStats;
+  const { 
+    totalBalance, 
+    monthlyIncome, 
+    monthlyExpenses, 
+    previousMonthIncome, 
+    previousMonthExpenses,
+    totalBalanceVES,
+    totalBalanceUSD,
+    monthlyIncomeVES,
+    monthlyIncomeUSD,
+    monthlyExpensesVES,
+    monthlyExpensesUSD
+  } = summaryStats;
 
   // Calcular porcentajes de cambio
   const calculatePercentageChange = (current: number, previous: number) => {
@@ -265,16 +347,25 @@ export function DesktopDashboard() {
         </div>
         
         <div className="text-center">
-          <p className="text-4xl font-light text-foreground mb-2">
-            {showBalances ? (
-              `$${totalBalance.toFixed(2)}`
-            ) : (
-              '••••••'
-            )}
-          </p>
-          {showBalances && (
-            <p className="text-sm text-muted-foreground mb-4">
-              ({getRateName(usdEquivalentType)})
+          {showBalances ? (
+            <div className="space-y-2">
+              {totalBalanceVES > 0 && (
+                <p className="text-2xl font-light text-foreground">
+                  Bs. {totalBalanceVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+                </p>
+              )}
+              {totalBalanceUSD > 0 && (
+                <p className="text-2xl font-light text-foreground">
+                  ${totalBalanceUSD.toFixed(2)}
+                </p>
+              )}
+              <p className="text-lg font-light text-muted-foreground">
+                Total: ${totalBalance.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </p>
+            </div>
+          ) : (
+            <p className="text-4xl font-light text-foreground mb-2">
+              ••••••
             </p>
           )}
           
@@ -332,23 +423,47 @@ export function DesktopDashboard() {
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-muted-foreground">Ingresos del Mes</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-3xl font-light text-foreground">
-              ${monthlyIncome.toFixed(2)}
-            </span>
+          <div className="space-y-1">
+            {monthlyIncomeVES > 0 && (
+              <div className="text-lg font-light text-foreground">
+                Bs. {monthlyIncomeVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </div>
+            )}
+            {monthlyIncomeUSD > 0 && (
+              <div className="text-lg font-light text-foreground">
+                ${monthlyIncomeUSD.toFixed(2)}
+              </div>
+            )}
+            {(monthlyIncomeVES > 0 || monthlyIncomeUSD > 0) && (
+              <div className="text-sm text-muted-foreground">
+                Total: ${monthlyIncome.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </div>
+            )}
           </div>
         </div>
 
         {/* Monthly Expenses Card */}
         <div className="bg-card/90 backdrop-blur-sm border border-border/40 rounded-3xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
           <div className="flex items-center space-x-2 mb-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
             <span className="text-sm font-medium text-muted-foreground">Gastos del Mes</span>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-3xl font-light text-foreground">
-              ${monthlyExpenses.toFixed(2)}
-            </span>
+          <div className="space-y-1">
+            {monthlyExpensesVES > 0 && (
+              <div className="text-lg font-light text-foreground">
+                Bs. {monthlyExpensesVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              </div>
+            )}
+            {monthlyExpensesUSD > 0 && (
+              <div className="text-lg font-light text-foreground">
+                ${monthlyExpensesUSD.toFixed(2)}
+              </div>
+            )}
+            {(monthlyExpensesVES > 0 || monthlyExpensesUSD > 0) && (
+              <div className="text-sm text-muted-foreground">
+                Total: ${monthlyExpenses.toFixed(2)} ({getRateName(usdEquivalentType)})
+              </div>
+            )}
           </div>
         </div>
 
