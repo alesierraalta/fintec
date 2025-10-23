@@ -26,6 +26,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<{
+    type: 'emailVerification' | 'accountCreated';
+    email?: string;
+  } | null>(null);
 
   const validateForm = () => {
     if (!formData.fullName.trim()) {
@@ -59,14 +63,28 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     });
 
     if (!error) {
-      // If email confirmation is required, store info and redirect to login
+      // If email confirmation is required, show success message and redirect to login
       if (emailConfirmationRequired) {
+        setSuccess(true);
+        setSuccessMessage({
+          type: 'emailVerification',
+          email: formData.email
+        });
+        
+        // Store in session for login page
         sessionStorage.setItem('emailConfirmationPending', 'true');
         sessionStorage.setItem('pendingEmail', formData.email);
-        router.push('/auth/login');
+        
+        // Redirect after 5 seconds to give time to read
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 5000);
       } else {
         // If no confirmation required, show success and redirect to dashboard
         setSuccess(true);
+        setSuccessMessage({
+          type: 'accountCreated'
+        });
         setTimeout(() => {
           onSuccess?.();
           router.push('/');
@@ -85,31 +103,92 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
   };
 
   if (success) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="w-full max-w-md mx-auto"
-      >
-        <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border/20 shadow-2xl text-center">
-          <motion.div 
-            className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-2xl mb-4"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 300 }}
-          >
-            <CheckCircle className="h-8 w-8 text-success" />
-          </motion.div>
-          <h2 className="text-3xl font-bold text-foreground mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-transparent">
-            ¡Cuenta Creada!
-          </h2>
-          <p className="text-muted-foreground mb-4">
-            Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
-          </p>
-          <div className="w-8 h-8 border-2 border-success border-t-transparent rounded-full animate-spin mx-auto" />
-        </div>
-      </motion.div>
-    );
+    if (successMessage?.type === 'emailVerification') {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md mx-auto"
+        >
+          <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
+            <motion.div 
+              className="inline-flex items-center justify-center w-20 h-20 bg-primary/10 rounded-2xl mb-6 mx-auto"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <Mail className="h-10 w-10 text-primary" />
+            </motion.div>
+            
+            <h2 className="text-3xl font-bold text-center mb-4 text-primary">
+              📧 ¡Revisa tu Correo!
+            </h2>
+            
+            <div className="space-y-4 mb-6">
+              <p className="text-center text-foreground">
+                Hemos enviado un correo de verificación a:
+              </p>
+              <p className="text-center font-bold text-lg text-primary bg-primary/10 px-4 py-3 rounded-lg">
+                {successMessage.email}
+              </p>
+              
+              <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-semibold text-primary">
+                  ⚠️ Importante:
+                </p>
+                <ul className="text-sm text-primary/80 space-y-1 pl-4">
+                  <li>✅ Revisa tu bandeja de entrada</li>
+                  <li>✅ Verifica la carpeta de spam</li>
+                  <li>✅ Haz clic en el enlace de verificación</li>
+                </ul>
+                <p className="text-sm font-medium text-primary mt-3">
+                  No podrás iniciar sesión hasta confirmar tu email
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm">Redirigiendo al login en 5 segundos...</span>
+            </div>
+            
+            <button
+              onClick={() => router.push('/auth/login')}
+              className="mt-4 w-full text-sm text-primary hover:text-primary/80 font-medium"
+            >
+              Ir al login ahora →
+            </button>
+          </div>
+        </motion.div>
+      );
+    } else {
+      // Account created without email verification
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-md mx-auto"
+        >
+          <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border/20 shadow-2xl text-center">
+            <motion.div 
+              className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-2xl mb-4"
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 300 }}
+            >
+              <CheckCircle className="h-8 w-8 text-success" />
+            </motion.div>
+            <h2 className="text-3xl font-bold text-foreground mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-transparent">
+              ¡Cuenta Creada!
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Tu cuenta ha sido creada exitosamente. Serás redirigido automáticamente.
+            </p>
+            <div className="w-8 h-8 border-2 border-success border-t-transparent rounded-full animate-spin mx-auto" />
+          </div>
+        </motion.div>
+      );
+    }
   }
 
   return (
@@ -119,7 +198,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <div className="bg-card/50 backdrop-blur-sm rounded-3xl p-8 border border-border/20 shadow-2xl">
+      <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
         <div className="text-center mb-8">
           <motion.div 
             className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-2xl mb-4"

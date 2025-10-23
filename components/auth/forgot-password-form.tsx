@@ -61,29 +61,29 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md mx-auto"
       >
-        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+        <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-4">
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Email Enviado</h2>
-            <p className="text-gray-600">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Email Enviado</h2>
+            <p className="text-muted-foreground">
               Te hemos enviado un link para restablecer tu contraseña a{' '}
-              <span className="font-medium text-gray-900">{email}</span>
+              <span className="font-medium text-foreground">{email}</span>
             </p>
           </div>
 
           <div className="space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <Mail className="h-5 w-5 text-blue-400" />
+                  <Mail className="h-5 w-5 text-primary" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-blue-800">
+                  <h3 className="text-sm font-medium text-primary">
                     Revisa tu email
                   </h3>
-                  <div className="mt-2 text-sm text-blue-700">
+                  <div className="mt-2 text-sm text-primary/80">
                     <p>
                       El link de restablecimiento expira en 1 hora. Si no ves el email, 
                       revisa tu carpeta de spam.
@@ -95,7 +95,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
 
             <button
               onClick={() => router.push('/auth/login')}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-border rounded-lg text-foreground hover:bg-muted/50 transition-colors"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Volver al inicio de sesión</span>
@@ -115,11 +115,11 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
     >
       <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-            <Mail className="h-8 w-8 text-purple-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <Mail className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">¿Olvidaste tu contraseña?</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">¿Olvidaste tu contraseña?</h2>
+          <p className="text-muted-foreground">
             Ingresa tu email y te enviaremos un link para restablecer tu contraseña
           </p>
         </div>
@@ -128,20 +128,20 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3"
+            className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center space-x-3"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-red-700 text-sm">{error}</p>
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <p className="text-destructive text-sm">{error}</p>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"

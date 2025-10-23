@@ -122,27 +122,27 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
         transition={{ duration: 0.5 }}
         className="w-full max-w-md mx-auto"
       >
-        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+        <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-4">
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Contraseña actualizada!</h2>
-            <p className="text-gray-600">
+            <h2 className="text-2xl font-bold text-foreground mb-2">¡Contraseña actualizada!</h2>
+            <p className="text-muted-foreground">
               Tu contraseña ha sido restablecida exitosamente. Serás redirigido al inicio de sesión.
             </p>
           </div>
 
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-success/10 border border-success/20 rounded-lg p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <CheckCircle className="h-5 w-5 text-green-400" />
+                <CheckCircle className="h-5 w-5 text-success" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">
+                <h3 className="text-sm font-medium text-success">
                   Contraseña restablecida
                 </h3>
-                <div className="mt-2 text-sm text-green-700">
+                <div className="mt-2 text-sm text-success/80">
                   <p>
                     Ya puedes iniciar sesión con tu nueva contraseña.
                   </p>
@@ -164,11 +164,11 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
     >
       <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
-            <Key className="h-8 w-8 text-blue-600" />
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+            <Key className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Restablecer Contraseña</h2>
-          <p className="text-gray-600">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Restablecer Contraseña</h2>
+          <p className="text-muted-foreground">
             Ingresa tu nueva contraseña
           </p>
         </div>
@@ -177,20 +177,20 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-3"
+            className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center space-x-3"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
-            <p className="text-red-700 text-sm">{error}</p>
+            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+            <p className="text-destructive text-sm">{error}</p>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
               Nueva Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -221,7 +221,7 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
               Confirmar Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 name="confirmPassword"

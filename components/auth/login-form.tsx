@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
@@ -23,6 +23,26 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [emailConfirmationMessage, setEmailConfirmationMessage] = useState<{
+    show: boolean;
+    email: string;
+  } | null>(null);
+
+  useEffect(() => {
+    // Check if user was just redirected from registration
+    const isPending = sessionStorage.getItem('emailConfirmationPending');
+    const pendingEmail = sessionStorage.getItem('pendingEmail');
+    
+    if (isPending === 'true' && pendingEmail) {
+      setEmailConfirmationMessage({
+        show: true,
+        email: pendingEmail
+      });
+      // Clear session storage after reading
+      sessionStorage.removeItem('emailConfirmationPending');
+      sessionStorage.removeItem('pendingEmail');
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,50 +85,99 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       transition={{ duration: 0.5 }}
       className="w-full max-w-md mx-auto"
     >
-      <GradientCard 
-        variant="primary" 
-        intensity="light"
-        className="p-8"
-      >
+      <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
         <div className="text-center mb-8">
           <motion.div 
-            className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mb-4 shadow-lg"
+            className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4 shadow-lg"
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: "spring", stiffness: 400 }}
           >
-            <LogIn className="h-8 w-8 text-white" />
+            <LogIn className="h-8 w-8 text-primary" />
           </motion.div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold text-foreground mb-2 text-primary">
             Iniciar Sesión
           </h2>
-          <p className="text-gray-600">Accede a tu cuenta para continuar</p>
+          <p className="text-muted-foreground">Accede a tu cuenta para continuar</p>
         </div>
+
+        {emailConfirmationMessage?.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-6 bg-primary/10 border-2 border-primary/20 rounded-2xl"
+          >
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0">
+                <Mail className="h-8 w-8 text-primary" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-primary mb-2">
+                  📧 ¡Verifica tu correo electrónico!
+                </h3>
+                <p className="text-primary/80 mb-3">
+                  Hemos enviado un correo de confirmación a:
+                </p>
+                <p className="text-primary font-semibold mb-3 bg-card px-3 py-2 rounded-lg">
+                  {emailConfirmationMessage.email}
+                </p>
+                <div className="space-y-2 text-sm text-primary/70">
+                  <p>✅ Revisa tu bandeja de entrada</p>
+                  <p>✅ Verifica la carpeta de spam si no lo encuentras</p>
+                  <p>✅ Haz clic en el enlace de verificación</p>
+                  <p className="font-medium mt-3 text-primary">
+                    ⚠️ No podrás iniciar sesión hasta que confirmes tu email
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {authError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3"
+            className="mb-6 p-5 bg-destructive/10 border-2 border-destructive/20 rounded-xl"
           >
-            <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-red-700 text-sm">{authError}</p>
-              {authError.includes('confirmado') || authError.includes('verificar') ? (
-                <p className="text-red-600 text-xs mt-2">
-                  💡 Revisa tu bandeja de entrada y carpeta de spam para encontrar el correo de confirmación.
-                </p>
-              ) : null}
+            <div className="flex items-start space-x-3">
+              <AlertCircle className="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-destructive font-semibold mb-2">{authError}</p>
+                {authError.includes('confirmado') || authError.includes('verificar') || authError.includes('Email') ? (
+                  <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                    <p className="text-primary text-sm font-medium mb-2">
+                      📧 ¿No recibiste el correo de verificación?
+                    </p>
+                    <ul className="text-primary/80 text-sm space-y-1 pl-4">
+                      <li>• Revisa tu carpeta de spam</li>
+                      <li>• Espera unos minutos y recarga tu bandeja</li>
+                      <li>• Verifica que escribiste bien tu email al registrarte</li>
+                    </ul>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                    <p className="text-warning text-sm font-medium mb-2">
+                      🔍 ¿Problemas para iniciar sesión?
+                    </p>
+                    <ul className="text-warning/80 text-sm space-y-1 pl-4">
+                      <li>• Verifica que tu email y contraseña sean correctos</li>
+                      <li>• Asegúrate de que tu cuenta esté verificada</li>
+                      <li>• Si olvidaste tu contraseña, usa &quot;¿Olvidaste tu contraseña?&quot;</li>
+                    </ul>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
@@ -124,11 +193,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
               Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -143,7 +212,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 disabled={loading}
               >
                 {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -159,17 +228,17 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
                 disabled={loading}
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-foreground">
                 Recordar sesión
               </label>
             </div>
             <button
               type="button"
               onClick={() => router.push('/auth/forgot-password')}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="text-sm text-primary hover:text-primary/80 font-medium"
               disabled={loading}
             >
               ¿Olvidaste tu contraseña?
@@ -190,18 +259,18 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
         </form>
 
         <div className="mt-6 text-center">
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             ¿No tienes cuenta?{' '}
             <button
               onClick={() => router.push('/auth/register')}
-              className="text-transparent bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"
+              className="text-primary font-semibold hover:text-primary/80 transition-all"
               disabled={loading}
             >
               Regístrate aquí
             </button>
           </p>
         </div>
-      </GradientCard>
+      </div>
     </motion.div>
   );
 }
