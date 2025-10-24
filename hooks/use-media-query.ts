@@ -10,9 +10,9 @@ export function useMediaQuery(query: string): boolean {
     }
     
     const listener = () => setMatches(media.matches);
-    media.addEventListener('change', listener);
+    media.addListener(listener, listener);
     
-    return () => media.removeEventListener('change', listener);
+    return () => media.removeListener(listener, listener);
   }, [matches, query]);
 
   return matches;

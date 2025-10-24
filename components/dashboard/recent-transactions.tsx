@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ChevronRight, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useMediaQuery } from '@/hooks';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -29,6 +30,7 @@ export function RecentTransactions({
   usdEquivalentType = 'bcv_usd'
 }: RecentTransactionsProps) {
   const [hoveredTransaction, setHoveredTransaction] = useState<string | null>(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   // Helper function to get exchange rate
   const getExchangeRate = useMemo(() => {
@@ -150,7 +152,7 @@ export function RecentTransactions({
           {transactions.slice(0, 5).map((transaction) => (
             <div
               key={transaction.id}
-              className={`flex items-center justify-between p-4 bg-card rounded-lg border border-border transition-all duration-200 cursor-pointer ${
+              className={`${isMobile ? 'p-4' : 'flex items-center justify-between p-4'} bg-card rounded-lg border border-border transition-all duration-200 cursor-pointer ${
                 hoveredTransaction === transaction.id 
                   ? 'shadow-md border-primary/50 bg-card/80 dark:bg-primary/10' 
                   : 'hover:shadow-sm hover:border-border/80'
@@ -159,45 +161,102 @@ export function RecentTransactions({
               onMouseLeave={() => setHoveredTransaction(null)}
               onClick={() => onTransactionClick?.(transaction)}
             >
-              <div className="flex items-center space-x-3">
-                <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full">
-                  {getTransactionIcon(transaction.type)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {transaction.description || 'Transacción sin descripción'}
-                    </p>
-                    {getTransactionBadge(transaction.type)}
+              {isMobile ? (
+                // Mobile layout: vertical stack
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full flex-shrink-0">
+                      {getTransactionIcon(transaction.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground break-words mb-2">
+                        {transaction.description || 'Transacción sin descripción'}
+                      </p>
+                      <div className="mb-2">
+                        {getTransactionBadge(transaction.type)}
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                    <span>
-                      {formatDistanceToNow(new Date(transaction.date), {
-                        addSuffix: true,
-                        locale: es
-                      })}
-                    </span>
-                    {transaction.categoryId && (
-                      <>
-                        <span>•</span>
-                        <span>Categoría</span>
-                      </>
+                  
+                  <div className="space-y-1 text-xs text-muted-foreground">
+                    <div className="flex items-center space-x-2">
+                      <span>
+                        {formatDistanceToNow(new Date(transaction.date), {
+                          addSuffix: true,
+                          locale: es
+                        })}
+                      </span>
+                      {transaction.categoryId && (
+                        <>
+                          <span>•</span>
+                          <span className="break-words">Categoría</span>
+                        </>
+                      )}
+                    </div>
+                    {transaction.accountId && (
+                      <div className="break-words">
+                        Cuenta: {transaction.accountId}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="pt-2 border-t border-border/20">
+                    <p className={`text-lg font-bold ${
+                      transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {formatAmount(transaction)}
+                    </p>
+                    {transaction.pending && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">Pendiente</p>
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="text-right">
-                <p className={`text-sm font-semibold ${
-                  transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-600 dark:text-red-400'
-                }`}>
-                  {formatAmount(transaction)}
-                </p>
-                {transaction.pending && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">Pendiente</p>
-                )}
-              </div>
+              ) : (
+                // Desktop layout: horizontal
+                <>
+                  <div className="flex items-center space-x-3">
+                    <div className="flex items-center justify-center w-8 h-8 bg-muted rounded-full">
+                      {getTransactionIcon(transaction.type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {transaction.description || 'Transacción sin descripción'}
+                        </p>
+                        {getTransactionBadge(transaction.type)}
+                      </div>
+                      <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                        <span>
+                          {formatDistanceToNow(new Date(transaction.date), {
+                            addSuffix: true,
+                            locale: es
+                          })}
+                        </span>
+                        {transaction.categoryId && (
+                          <>
+                            <span>•</span>
+                            <span>Categoría</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-sm font-semibold ${
+                      transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}>
+                      {formatAmount(transaction)}
+                    </p>
+                    {transaction.pending && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Pendiente</p>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           ))}
         </div>
