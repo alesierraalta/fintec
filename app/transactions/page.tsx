@@ -352,7 +352,7 @@ export default function TransactionsPage() {
   const handleTransactionClick = useCallback((transaction: Transaction) => {
     setSelectedDetailTransaction(transaction);
     setDetailPanelOpen(true);
-  }, []]);
+  }, []);
 
   return (
     <AuthGuard>
