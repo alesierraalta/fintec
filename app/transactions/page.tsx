@@ -8,8 +8,9 @@ import { AuthGuard } from '@/components/auth/auth-guard';
 import { TransactionForm } from '@/components/forms';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
+import { TransactionDetailPanel } from '@/components/transactions/transaction-detail-panel';
 import { Button } from '@/components/ui';
-import { useModal } from '@/hooks';
+import { useModal, useMediaQuery } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
@@ -25,6 +26,10 @@ import {
 } from 'lucide-react';
 
 export default function TransactionsPage() {
+  // Detail panel state
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [detailPanelOpen, setDetailPanelOpen] = useState(false);
+  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<Transaction | null>(null);() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
@@ -343,6 +348,11 @@ export default function TransactionsPage() {
       net: totalIncomeUSD - totalExpensesUSD
     };
   }, [totalesPorMoneda, convertToUSD]);
+  
+  const handleTransactionClick = useCallback((transaction: Transaction) => {
+    setSelectedDetailTransaction(transaction);
+    setDetailPanelOpen(true);
+  }, []]);
 
   return (
     <AuthGuard>
@@ -570,7 +580,7 @@ export default function TransactionsPage() {
               </div>
             ) : (
               visibleTransactions.map((transaction) => (
-              <div key={transaction.id} className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40">
+              <div key={transaction.id} className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40" onClick={() => handleTransactionClick(transaction)}>
                 <div className="flex items-start justify-between min-w-0">
                   <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
                     <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
@@ -583,9 +593,9 @@ export default function TransactionsPage() {
                       <div className="hidden sm:flex items-center space-x-2 text-ios-caption text-muted-foreground overflow-hidden">
                         <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
                         <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                        <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
+                        <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
                         <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                        <span className="truncate">{getAccountName(transaction.accountId)}</span>
+                        <span className="break-words">{getAccountName(transaction.accountId)}</span>
                         <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                         <span className="flex-shrink-0">{transaction.date}</span>
                       </div>
@@ -595,10 +605,10 @@ export default function TransactionsPage() {
                         <div className="flex items-center space-x-2">
                           <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
                           <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                          <span className="truncate">{getCategoryName(transaction.categoryId)}</span>
+                          <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <span className="truncate">{getAccountName(transaction.accountId)}</span>
+                          <span className="break-words">{getAccountName(transaction.accountId)}</span>
                           <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
                           <span className="flex-shrink-0">{transaction.date}</span>
                         </div>
@@ -711,6 +721,24 @@ export default function TransactionsPage() {
 
 
     </MainLayout>
+      {/* Transaction Detail Panel */}
+      {selectedDetailTransaction && (
+        <TransactionDetailPanel
+          transaction={selectedDetailTransaction}
+          isOpen={detailPanelOpen}
+          onClose={() => setDetailPanelOpen(false)}
+          onEdit={(t) => {
+            setDetailPanelOpen(false);
+            handleEditTransaction(t);
+          }}
+          isMobile={isMobile}
+          accountName={getAccountName(selectedDetailTransaction.accountId)}
+          categoryName={getCategoryName(selectedDetailTransaction.categoryId)}
+          formatAmount={formatAmount}
+          getCurrencySymbol={getCurrencySymbol}
+        />
+      )}
+
     </AuthGuard>
   );
 }

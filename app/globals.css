@@ -145,6 +145,11 @@ body {
   to { opacity: 1; }
 }
 
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 @keyframes slideUp {
   from { transform: translateY(10px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
@@ -176,6 +181,11 @@ body {
 }
 
 /* Enhanced Animation Classes */
+.animate-slide-in-right {
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* */
 .animate-gradient {
   background-size: 200% 200%;
   animation: animate-gradient 3s ease infinite;
