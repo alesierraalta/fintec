@@ -29,7 +29,7 @@ export default function TransactionsPage() {
   // Detail panel state
   const isMobile = useMediaQuery('(max-width: 768px)');
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
-  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<Transaction | null>(null);() {
+  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<Transaction | null>(null);
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
