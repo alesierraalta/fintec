@@ -15,7 +15,7 @@ export interface SelectProps
   placeholder?: string;
 }
 
-const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
+const const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ className, label, error, options, placeholder, ...props }, ref) => {
     const selectId = React.useId();
     const errorId = React.useId();
@@ -30,6 +30,42 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             {label}
           </label>
         )}
+        <select
+          id={selectId}
+          className={cn(
+            'flex h-10 w-full rounded-xl border border-white/20 bg-card/60 backdrop-blur-xl px-3 py-2 text-sm text-foreground shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-danger-500 focus-visible:ring-danger-500',
+            className
+          )}
+          ref={ref}
+          aria-invalid={error ? 'true' : 'false'}
+          aria-describedby={error ? errorId : undefined}
+          {...props}
+        >
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {options.map((option) => (
+            <option
+              key={option.value}
+              value={option.value}
+              disabled={option.disabled}
+            >
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {error && (
+          <p id={errorId} className="mt-1 text-sm text-danger-600 dark:text-danger-400">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+);}
         <select
           id={selectId}
           className={cn(
