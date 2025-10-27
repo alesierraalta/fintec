@@ -1,11 +1,5 @@
 'use client';
 
-import { useSidebar } from '@/contexts/sidebar-context';
-import { MobileDashboard } from './mobile-dashboard';
-import { DesktopDashboard } from './desktop-dashboard';
-
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileDashboard } from './mobile-dashboard';

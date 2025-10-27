@@ -1,11 +1,5 @@
 'use client';
 
-import { useSidebar } from '@/contexts/sidebar-context';
-import { MobileAddTransaction } from './mobile-add-transaction';
-import { DesktopAddTransaction } from './desktop-add-transaction';
-
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileAddTransaction } from './mobile-add-transaction';
