@@ -187,7 +187,7 @@ export function MobileTransfer() {
            !amountError; // Add balance validation
   };
 
-  const const handleTransfer = async () => {
+  const handleTransfer = async () => {
     if (!isFormValid()) {
       alert('Por favor complete cuenta origen, destino y monto');
       return;
