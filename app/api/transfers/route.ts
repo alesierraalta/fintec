@@ -1,17 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { CreateTransactionDTO } from '@/types';
-import { TransactionType } from '@/types';
-import { toMinorUnits } from '@/lib/money';
-
 import { logger } from '@/lib/utils/logger';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
+/**
+ * Helper function to extract authenticated user from request
+ * Returns userId or throws error if not authenticated
+ */
+async function getAuthenticatedUser(request: NextRequest): Promise<string> {
+  // Get the authorization header
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace('Bearer ', '');
+  
+  if (!token) {
+    throw new Error('No authorization token provided');
+  }
+
+  // Create a Supabase client with the token
+  const supabaseWithAuth = createClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    }
+  );
+  
+  const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser();
+  
+  if (authError || !user) {
+    throw new Error('Authentication failed');
+  }
+  
+  return user.id;
+}
+
+// GET /api/transfers - Fetch all transfers
 // GET /api/transfers - Fetch all transfers
 export async function GET(request: NextRequest) {
   try {
+    // Get authenticated user
+    const userId = await getAuthenticatedUser(request);
+    
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('accountId');
     const startDate = searchParams.get('startDate');
@@ -20,9 +55,6 @@ export async function GET(request: NextRequest) {
     
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    
-    // For now, skip authentication and use a hardcoded user ID for testing
-    const userId = 'afdd840d-c869-43f8-8eee-3830c0257095';
     
     let query = supabase
       .from('transactions')
@@ -93,6 +125,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error('Transfer API GET error:', error);
+    
+    // Handle authentication errors
+    if (error instanceof Error && error.message.includes('authorization') || error.message.includes('Authentication')) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Unauthorized', 
+          details: error.message
+        },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
@@ -105,17 +150,16 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/transfers - Create new transfer
+// POST /api/transfers - Create new transfer
+// POST /api/transfers - Create new transfer (Optimized with RPC)
 export async function POST(request: NextRequest) {
   try {
     logger.info('POST /api/transfers called');
     const body = await request.json();
     logger.info('Request body:', body);
     
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    
-    // For now, skip authentication and use a hardcoded user ID for testing
-    const userId = 'afdd840d-c869-43f8-8eee-3830c0257095';
+    // Get authenticated user
+    const userId = await getAuthenticatedUser(request);
     
     // Validate required fields
     if (!body.fromAccountId || !body.toAccountId || !body.amount) {
@@ -138,55 +182,87 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Get account details to determine currencies
-    const { data: fromAccount, error: fromError } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('id', body.fromAccountId)
-      .eq('user_id', userId)
-      .single();
-      
-    const { data: toAccount, error: toError } = await supabase
-      .from('accounts')
-      .select('*')
-      .eq('id', body.toAccountId)
-      .eq('user_id', userId)
-      .single();
+    // Create Supabase client
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    if (fromError || toError || !fromAccount || !toAccount) {
+    // Single RPC call handles everything atomically:
+    // - Validates accounts belong to user
+    // - Checks balance
+    // - Creates TRANSFER_OUT and TRANSFER_IN transactions
+    // - Updates account balances
+    // All in one database transaction!
+    const { data, error } = await supabase.rpc('create_transfer', {
+      p_user_id: userId,
+      p_from_account_id: body.fromAccountId,
+      p_to_account_id: body.toAccountId,
+      p_amount_major: body.amount, // Amount in major units (e.g., 100.50)
+      p_description: body.description || 'Transferencia',
+      p_date: body.date || new Date().toISOString().split('T')[0],
+      p_exchange_rate: body.exchangeRate || 1.0,
+      p_rate_source: body.rateSource || null
+    });
+    
+    if (error) {
+      logger.error('Transfer RPC error:', error);
+      
+      // Parse error messages for better user feedback
+      const errorMessage = error.message || 'Failed to create transfer';
+      let statusCode = 500;
+      
+      if (errorMessage.includes('not found') || errorMessage.includes('does not belong')) {
+        statusCode = 404;
+      } else if (errorMessage.includes('balance') || errorMessage.includes('Insufficient')) {
+        statusCode = 400;
+      } else if (errorMessage.includes('same account')) {
+        statusCode = 400;
+      }
+      
       return NextResponse.json(
         { 
           success: false, 
-          error: 'One or both accounts not found',
-          debug: {
-            fromAccountId: body.fromAccountId,
-            toAccountId: body.toAccountId,
-            fromAccountFound: !!fromAccount,
-            toAccountFound: !!toAccount,
-            fromError: fromError?.message,
-            toError: toError?.message
-          }
+          error: errorMessage,
+          details: error.details || null
         },
-        { status: 404 }
+        { status: statusCode }
       );
     }
     
-    // For now, just return success with account details
+    logger.info('Transfer created successfully:', data);
+    
     return NextResponse.json({
       success: true,
-      message: 'Transfer would be successful',
-      fromAccount: { id: fromAccount.id, name: fromAccount.name, balance: fromAccount.balance },
-      toAccount: { id: toAccount.id, name: toAccount.name, balance: toAccount.balance },
-      amount: body.amount
-    });
+      message: 'Transfer created successfully',
+      data: {
+        transferId: data.transferId,
+        fromTransactionId: data.fromTransactionId,
+        toTransactionId: data.toTransactionId,
+        fromAmount: data.fromAmount,
+        toAmount: data.toAmount,
+        fromCurrency: data.fromCurrency,
+        toCurrency: data.toCurrency,
+        exchangeRate: data.exchangeRate
+      }
+    }, { status: 201 });
   } catch (error) {
     logger.error('Transfer API error:', error);
+    
+    // Handle authentication errors
+    if (error instanceof Error && (error.message.includes('authorization') || error.message.includes('Authentication'))) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Unauthorized', 
+          details: error.message
+        },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
         error: 'Failed to create transfer', 
-        details: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
@@ -194,8 +270,12 @@ export async function POST(request: NextRequest) {
 }
 
 // DELETE /api/transfers - Delete transfer (requires id in query params)
+// DELETE /api/transfers - Delete transfer (requires id in query params)
 export async function DELETE(request: NextRequest) {
   try {
+    // Get authenticated user
+    const userId = await getAuthenticatedUser(request);
+    
     const { searchParams } = new URL(request.url);
     const transferId = searchParams.get('id');
     
@@ -212,14 +292,12 @@ export async function DELETE(request: NextRequest) {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
-    // For now, skip authentication and use a hardcoded user ID for testing
-    const userId = 'afdd840d-c869-43f8-8eee-3830c0257095';
-    
-    // Find all transactions with this transferId
+    // Find all transactions with this transferId that belong to the user
     const { data: transactions, error: fetchError } = await supabase
       .from('transactions')
       .select(`
         id,
+        account_id,
         accounts!inner(user_id)
       `)
       .eq('accounts.user_id', userId)
@@ -239,6 +317,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
     
+    // Get account IDs to update balances
+    const accountIds = [...new Set(transactions.map(t => t.account_id))];
+    
+    // Get current account balances before deletion
+    const { data: accounts, error: accountsError } = await supabase
+      .from('accounts')
+      .select('id, balance')
+      .in('id', accountIds);
+    
+    if (accountsError) {
+      logger.error('Failed to fetch account balances:', accountsError);
+    }
+    
     // Delete all transactions associated with this transfer
     const { error: deleteError } = await supabase
       .from('transactions')
@@ -249,12 +340,52 @@ export async function DELETE(request: NextRequest) {
       throw new Error(`Failed to delete transfer transactions: ${deleteError.message}`);
     }
     
+    // Recalculate account balances based on remaining transactions
+    // This is a simplified approach - in production, you might want to use an RPC function
+    if (accounts && accounts.length > 0) {
+      for (const account of accounts) {
+        const { data: accountTransactions, error: txnError } = await supabase
+          .from('transactions')
+          .select('type, amount_minor')
+          .eq('account_id', account.id);
+        
+        if (!txnError && accountTransactions) {
+          const newBalance = accountTransactions.reduce((total, txn) => {
+            if (txn.type === 'INCOME' || txn.type === 'TRANSFER_IN') {
+              return total + (txn.amount_minor || 0);
+            } else if (txn.type === 'EXPENSE' || txn.type === 'TRANSFER_OUT') {
+              return total - (txn.amount_minor || 0);
+            }
+            return total;
+          }, 0);
+          
+          await supabase
+            .from('accounts')
+            .update({ balance: newBalance })
+            .eq('id', account.id);
+        }
+      }
+    }
+    
     return NextResponse.json({
       success: true,
       message: 'Transfer deleted successfully'
     });
   } catch (error) {
     logger.error('Transfer API DELETE error:', error);
+    
+    // Handle authentication errors
+    if (error instanceof Error && (error.message.includes('authorization') || error.message.includes('Authentication'))) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Unauthorized', 
+          details: error.message
+        },
+        { status: 401 }
+      );
+    }
+    
     return NextResponse.json(
       { 
         success: false, 

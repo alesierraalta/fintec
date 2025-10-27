@@ -187,7 +187,7 @@ export function MobileTransfer() {
            !amountError; // Add balance validation
   };
 
-  const handleTransfer = async () => {
+  const const handleTransfer = async () => {
     if (!isFormValid()) {
       alert('Por favor complete cuenta origen, destino y monto');
       return;
@@ -208,11 +208,20 @@ export function MobileTransfer() {
     setLoading(true);
     
     try {
+      // Get the user's session token for authentication
+      const { supabase } = await import('@/repositories/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('Usuario no autenticado');
+      }
+      
       // Call the real API endpoint
       const response = await fetch('/api/transfers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           fromAccountId: transferData.fromAccountId,
@@ -254,7 +263,7 @@ export function MobileTransfer() {
     } finally {
       setLoading(false);
     }
-  };
+  };;
 
   return (
     <div className="space-y-6">
