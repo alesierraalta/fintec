@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     logger.error('Transfer API GET error:', error);
     
     // Handle authentication errors
-    if (error instanceof Error && error.message.includes('authorization') || error.message.includes('Authentication')) {
+    if (error instanceof Error && (error.message.includes('authorization') || error.message.includes('Authentication'))) {
       return NextResponse.json(
         { 
           success: false, 
