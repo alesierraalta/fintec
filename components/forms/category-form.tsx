@@ -171,11 +171,24 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
           onIconChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
         />
 
-        <div className="flex justify-end space-x-3 pt-4">
-          <Button variant="secondary" onClick={onClose} disabled={loading}>
+        <div 
+          className="sticky bottom-0 left-0 right-0 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 pb-4 sm:pb-4 -mx-4 sm:-mx-6 px-4 sm:px-6 mt-6 bg-card/95 backdrop-blur-md border-t border-border/20 z-10" 
+          style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        >
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            disabled={loading}
+            className="w-full sm:w-auto"
+          >
             Cancelar
           </Button>
-          <Button type="submit" disabled={loading || !formData.name.trim()}>
+          <Button
+            type="submit"
+            disabled={loading || !formData.name.trim()}
+            className="w-full sm:w-auto"
+          >
             {loading ? 'Guardando...' : (category ? 'Actualizar' : 'Crear')}
           </Button>
         </div>
