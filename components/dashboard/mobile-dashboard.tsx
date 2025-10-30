@@ -328,13 +328,13 @@ export function MobileDashboard() {
           </div>
           <div className="space-y-1">
             {(monthlyIncomeVES - monthlyExpensesVES) !== 0 && (
-              <p className={`text-lg font-semibold amount-strong ${(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                Bs. {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
+              <p className={`text-lg ${(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? 'amount-positive' : 'amount-negative'}`}>
+                {(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? '+' : ''}Bs. {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </p>
             )}
             {(monthlyIncomeUSD - monthlyExpensesUSD) !== 0 && (
-              <p className={`text-lg font-semibold amount-strong ${(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
+              <p className={`text-lg ${(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? 'amount-positive' : 'amount-negative'}`}>
+                {(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? '+' : ''}${Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
               </p>
             )}
               <p className={`text-sm ${(monthlyIncome - monthlyExpenses) >= 0 ? 'amount-positive' : 'amount-negative'}`}>

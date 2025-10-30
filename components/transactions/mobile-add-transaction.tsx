@@ -349,7 +349,7 @@ export function MobileAddTransaction() {
                         <p className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
                           {account.name}
                         </p>
-                        <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                        <p className={`text-sm amount-emphasis-white ${isSelected ? 'text-white' : 'text-white'}`}>
                           {account.currencyCode === 'VES' 
                             ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
                             : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
@@ -460,7 +460,7 @@ export function MobileAddTransaction() {
           
           <div className="bg-black/20 rounded-xl p-4 mb-4">
             <div className="text-right">
-              <div className="text-2xl font-bold text-white">
+              <div className="text-2xl font-bold amount-emphasis-white">
                 {(() => {
                   const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
                   const currencyCode = selectedAccount?.currencyCode || 'USD';

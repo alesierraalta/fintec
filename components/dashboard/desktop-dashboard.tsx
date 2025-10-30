@@ -435,7 +435,7 @@ export function DesktopDashboard() {
               </div>
             )}
             {(monthlyIncomeVES > 0 || monthlyIncomeUSD > 0) && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm amount-emphasis-white text-white">
                 Total: ${monthlyIncome.toFixed(2)} ({getRateName(usdEquivalentType)})
               </div>
             )}
@@ -460,7 +460,7 @@ export function DesktopDashboard() {
               </div>
             )}
             {(monthlyExpensesVES > 0 || monthlyExpensesUSD > 0) && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm amount-emphasis-white text-white">
                 Total: ${monthlyExpenses.toFixed(2)} ({getRateName(usdEquivalentType)})
               </div>
             )}

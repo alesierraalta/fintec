@@ -400,7 +400,7 @@ export default function TransactionsPage() {
               {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
                 totals.income > 0 && (
                   <div key={`income-${currency}`} className="flex items-baseline justify-between">
-                    <span className="text-2xl font-light text-green-600">
+                    <span className="text-2xl amount-positive">
                       {getCurrencySymbol(currency)}{totals.income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                     <span className="text-xs text-muted-foreground">{currency}</span>
@@ -408,7 +408,7 @@ export default function TransactionsPage() {
                 )
               ))}
               {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].income === 0) && (
-                <p className="text-2xl font-light text-green-600">$0.00</p>
+                <p className="text-2xl amount-positive">$0.00</p>
               )}
             </div>
             
@@ -416,7 +416,7 @@ export default function TransactionsPage() {
             {Object.keys(totalesPorMoneda).length > 1 && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                <p className="text-lg font-semibold text-green-600">
+                <p className="text-lg amount-positive">
                   ${totalesEnUSD.income.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
                 </p>
               </div>
@@ -439,7 +439,7 @@ export default function TransactionsPage() {
               {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
                 totals.expenses > 0 && (
                   <div key={`expense-${currency}`} className="flex items-baseline justify-between">
-                    <span className="text-2xl font-light text-red-600">
+                    <span className="text-2xl amount-negative">
                       {getCurrencySymbol(currency)}{totals.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                     <span className="text-xs text-muted-foreground">{currency}</span>
@@ -447,7 +447,7 @@ export default function TransactionsPage() {
                 )
               ))}
               {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].expenses === 0) && (
-                <p className="text-2xl font-light text-red-600">$0.00</p>
+                <p className="text-2xl amount-negative">$0.00</p>
               )}
             </div>
             
@@ -455,7 +455,7 @@ export default function TransactionsPage() {
             {Object.keys(totalesPorMoneda).length > 1 && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                <p className="text-lg font-semibold text-red-600">
+                <p className="text-lg amount-negative">
                   ${totalesEnUSD.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
                 </p>
               </div>
@@ -480,7 +480,7 @@ export default function TransactionsPage() {
                 if (net === 0) return null;
                 return (
                   <div key={`net-${currency}`} className="flex items-baseline justify-between">
-                    <span className={`text-2xl font-light ${net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`text-2xl ${net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
                       {net >= 0 ? '+' : ''}{getCurrencySymbol(currency)}{net.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                     <span className="text-xs text-muted-foreground">{currency}</span>
@@ -496,7 +496,7 @@ export default function TransactionsPage() {
             {Object.keys(totalesPorMoneda).length > 1 && (
               <div className="mt-3 pt-3 border-t border-border/20">
                 <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                <p className={`text-lg font-semibold ${totalesEnUSD.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-lg ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
                   {totalesEnUSD.net >= 0 ? '+' : ''}${totalesEnUSD.net.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
                 </p>
               </div>
@@ -508,7 +508,7 @@ export default function TransactionsPage() {
               ) : (
                 <ArrowUpRight className="h-4 w-4 text-red-600" />
               )}
-              <span className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
                 {totalesEnUSD.net >= 0 ? 'Positivo' : 'Negativo'}
               </span>
             </div>
@@ -519,7 +519,7 @@ export default function TransactionsPage() {
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
               <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TRANSACCIONES</h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
+            <p className="text-3xl amount-emphasis-white text-white mb-2">
               {filteredTransactionsMemo.length}
             </p>
             <div className="flex items-center space-x-2">
@@ -631,7 +631,7 @@ export default function TransactionsPage() {
                   
                   <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
                     <div className="text-right">
-                      <p className={`text-sm sm:text-xl font-semibold truncate ${getAmountColor(transaction.type)}`}>
+                      <p className={`text-sm sm:text-xl font-semibold truncate ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}>
                         {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
                       </p>
                       <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>

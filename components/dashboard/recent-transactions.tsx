@@ -203,8 +203,8 @@ export function RecentTransactions({
                   <div className="pt-2 border-t border-border/20">
                     <p className={`text-lg font-bold ${
                       transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-red-600 dark:text-red-400'
+                        ? 'amount-positive'
+                        : 'amount-negative'
                     }`}>
                       {formatAmount(transaction)}
                     </p>
@@ -246,8 +246,8 @@ export function RecentTransactions({
                   <div className="text-right">
                     <p className={`text-sm font-semibold ${
                       transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
-                        ? 'text-green-600 dark:text-green-400'
-                        : 'text-red-600 dark:text-red-400'
+                        ? 'amount-positive'
+                        : 'amount-negative'
                     }`}>
                       {formatAmount(transaction)}
                     </p>
