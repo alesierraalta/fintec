@@ -644,7 +644,7 @@ export default function AccountsPage() {
                 <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                 <h3 className="text-lg font-medium text-white tracking-wide">BALANCE TOTAL</h3>
               </div>
-              <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
+              <p className="text-2xl sm:text-3xl font-semibold amount-strong text-foreground mb-2">
                 {showBalances ? (
                   <NumberTicker 
                     value={totalBalance} 
@@ -901,7 +901,7 @@ export default function AccountsPage() {
                           
                           <div className="flex items-center space-x-4">
                             <div className="text-right flex-shrink-0">
-                              <p className="text-sm sm:text-ios-title font-light text-foreground truncate">
+                              <p className="text-sm sm:text-ios-title font-semibold amount-strong text-foreground truncate">
                                 {showBalances 
                                   ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                                   : '••••••'

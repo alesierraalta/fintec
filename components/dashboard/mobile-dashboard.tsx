@@ -206,16 +206,16 @@ export function MobileDashboard() {
           {showBalances ? (
             <div className="space-y-2">
               {totalBalanceVES > 0 && (
-                <p className="text-xl font-light text-foreground">
+                <p className="text-xl font-semibold amount-strong text-foreground">
                   Bs. {totalBalanceVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </p>
               )}
               {totalBalanceUSD > 0 && (
-                <p className="text-xl font-light text-foreground">
+                <p className="text-xl font-semibold amount-strong text-foreground">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm amount-strong text-muted-foreground">
                 Total: ${totalBalance.toFixed(2)} ({getRateName(usdEquivalentType)})
               </p>
             </div>
@@ -272,12 +272,12 @@ export function MobileDashboard() {
           </div>
           <div className="space-y-1">
             {monthlyIncomeVES > 0 && (
-              <p className="text-lg font-light text-foreground">
+              <p className="text-lg font-semibold amount-strong text-foreground">
                 Bs. {monthlyIncomeVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </p>
             )}
             {monthlyIncomeUSD > 0 && (
-              <p className="text-lg font-light text-foreground">
+              <p className="text-lg font-semibold amount-strong text-foreground">
                 ${monthlyIncomeUSD.toFixed(2)}
               </p>
             )}
@@ -300,12 +300,12 @@ export function MobileDashboard() {
           </div>
           <div className="space-y-1">
             {monthlyExpensesVES > 0 && (
-              <p className="text-lg font-light text-foreground">
+              <p className="text-lg font-semibold amount-strong text-foreground">
                 Bs. {monthlyExpensesVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </p>
             )}
             {monthlyExpensesUSD > 0 && (
-              <p className="text-lg font-light text-foreground">
+              <p className="text-lg font-semibold amount-strong text-foreground">
                 ${monthlyExpensesUSD.toFixed(2)}
               </p>
             )}
@@ -328,12 +328,12 @@ export function MobileDashboard() {
           </div>
           <div className="space-y-1">
             {(monthlyIncomeVES - monthlyExpensesVES) !== 0 && (
-              <p className={`text-lg font-light ${(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-lg font-semibold amount-strong ${(monthlyIncomeVES - monthlyExpensesVES) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 Bs. {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </p>
             )}
             {(monthlyIncomeUSD - monthlyExpensesUSD) !== 0 && (
-              <p className={`text-lg font-light ${(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <p className={`text-lg font-semibold amount-strong ${(monthlyIncomeUSD - monthlyExpensesUSD) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                 ${Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
               </p>
             )}

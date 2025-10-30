@@ -390,3 +390,9 @@ body {
   border-color: rgba(59, 130, 246, 0.6) !important;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
+
+/* Financial amount styling utility: stronger weight and tabular numbers */
+.amount-strong {
+  @apply font-semibold;
+  font-variant-numeric: tabular-nums;
+}

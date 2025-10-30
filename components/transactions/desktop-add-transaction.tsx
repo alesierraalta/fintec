@@ -499,7 +499,7 @@ export function DesktopAddTransaction() {
                             <p className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
                               {account.name}
                             </p>
-                            <p className={`text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                            <p className={`text-sm amount-strong ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
                               {account.currencyCode === 'VES' 
                                 ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
                                 : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`

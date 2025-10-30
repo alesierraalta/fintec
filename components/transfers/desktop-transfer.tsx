@@ -482,7 +482,7 @@ export function DesktopTransfer() {
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wide">Cuenta Origen</p>
                       <p className="font-bold text-neutral-900 dark:text-neutral-100 text-lg">{getFromAccount()?.name}</p>
-                      <p className="text-2xl font-black text-primary-700 dark:text-primary-300 drop-shadow-sm">
+                      <p className="text-2xl font-black amount-strong text-primary-700 dark:text-primary-300 drop-shadow-sm">
                         -{formatBalance(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'VES'), getFromAccount()?.currencyCode || 'VES')}
                       </p>
                     </div>
@@ -507,7 +507,7 @@ export function DesktopTransfer() {
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-success-600 dark:text-success-400 uppercase tracking-wide">Cuenta Destino</p>
                       <p className="font-bold text-neutral-900 dark:text-neutral-100 text-lg">{getToAccount()?.name}</p>
-                      <p className="text-2xl font-black text-success-700 dark:text-success-300 drop-shadow-sm">
+                      <p className="text-2xl font-black amount-strong text-success-700 dark:text-success-300 drop-shadow-sm">
                         +{formatBalance(toMinorUnits(
                           getFromAccount()?.currencyCode !== getToAccount()?.currencyCode && transferData.exchangeRate 
                             ? transferData.amount * transferData.exchangeRate 
