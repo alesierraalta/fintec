@@ -19,6 +19,7 @@ import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { logger } from '@/lib/utils/logger';
+import { useAuth } from '@/hooks/use-auth';
 
 interface Transfer {
   id: string;
@@ -56,6 +57,7 @@ interface TransferHistoryProps {
 }
 
 export function TransferHistory({ className = '' }: TransferHistoryProps) {
+  const { session, loading: authLoading } = useAuth();
   const [transfers, setTransfers] = useState<Transfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +83,12 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       if (dateFilter.startDate) params.append('startDate', dateFilter.startDate);
       if (dateFilter.endDate) params.append('endDate', dateFilter.endDate);
       
-      const response = await fetch(`/api/transfers?${params.toString()}`);
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
+      }
+
+      const response = await fetch(`/api/transfers?${params.toString()}` , { headers });
       const result = await response.json();
       
       if (!response.ok || !result.success) {
@@ -95,11 +102,18 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
     } finally {
       setLoading(false);
     }
-  }, [dateFilter]);
+  }, [dateFilter, session?.access_token]);
 
   useEffect(() => {
+    // Wait for auth to resolve to avoid spurious unauthorized fetches
+    if (authLoading) return;
+    // If not authenticated, skip auto-load (handled by unauth UI below)
+    if (!session?.access_token) {
+      setLoading(false);
+      return;
+    }
     loadTransfers();
-  }, [loadTransfers]);
+  }, [loadTransfers, authLoading, session?.access_token]);
 
   const filteredTransfers = transfers
     .filter(transfer => {
@@ -184,7 +198,7 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
     setSearchTerm('');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className={`space-y-6 ${className}`}>
         <div className="flex items-center justify-between">
@@ -199,6 +213,37 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
               <RefreshCw className="h-6 w-6 animate-spin text-primary-600" />
               <span className="text-neutral-600 dark:text-neutral-400">Cargando transferencias...</span>
             </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthenticated UX: show CTA to login instead of raw API error
+  if (!session?.access_token) {
+    return (
+      <div className={`space-y-6 ${className}`}>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100">
+            Historial de Transferencias
+          </h2>
+        </div>
+
+        <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
+          <div className="text-center py-12">
+            <ArrowRightLeft className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+              Inicia sesión para ver tu historial
+            </h3>
+            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+              Necesitas estar autenticado para consultar tus transferencias.
+            </p>
+            <a
+              href="/auth/login"
+              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              Ir a iniciar sesión
+            </a>
           </div>
         </div>
       </div>
