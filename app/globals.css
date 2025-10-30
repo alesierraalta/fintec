@@ -396,3 +396,22 @@ body {
   @apply font-semibold;
   font-variant-numeric: tabular-nums;
 }
+
+/* Vivid emphasis styles for monetary amounts */
+.amount-emphasis-white {
+  @apply amount-strong;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+}
+
+.amount-positive {
+  @apply amount-strong;
+  color: #34d399; /* emerald-400 */
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+}
+
+.amount-negative {
+  @apply amount-strong;
+  color: #f43f5e; /* rose-500 */
+  text-shadow: 0 0 8px rgba(244, 63, 94, 0.25);
+}

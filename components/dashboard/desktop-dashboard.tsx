@@ -350,16 +350,16 @@ export function DesktopDashboard() {
           {showBalances ? (
             <div className="space-y-2">
               {totalBalanceVES > 0 && (
-                <p className="text-2xl font-semibold amount-strong text-foreground">
+                <p className="text-2xl font-semibold amount-emphasis-white text-white">
                   Bs. {totalBalanceVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
                 </p>
               )}
               {totalBalanceUSD > 0 && (
-                <p className="text-2xl font-semibold amount-strong text-foreground">
+                <p className="text-2xl font-semibold amount-emphasis-white text-white">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="text-lg font-semibold amount-strong text-muted-foreground">
+              <p className="text-lg font-semibold amount-emphasis-white text-white">
                 Total: ${totalBalance.toFixed(2)} ({getRateName(usdEquivalentType)})
               </p>
             </div>
@@ -425,12 +425,12 @@ export function DesktopDashboard() {
           </div>
           <div className="space-y-1">
             {monthlyIncomeVES > 0 && (
-              <div className="text-lg font-semibold amount-strong text-foreground">
+              <div className="text-lg amount-positive">
                 Bs. {monthlyIncomeVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </div>
             )}
             {monthlyIncomeUSD > 0 && (
-              <div className="text-lg font-semibold amount-strong text-foreground">
+              <div className="text-lg amount-positive">
                 ${monthlyIncomeUSD.toFixed(2)}
               </div>
             )}
@@ -450,12 +450,12 @@ export function DesktopDashboard() {
           </div>
           <div className="space-y-1">
             {monthlyExpensesVES > 0 && (
-              <div className="text-lg font-semibold amount-strong text-foreground">
+              <div className="text-lg amount-negative">
                 Bs. {monthlyExpensesVES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}
               </div>
             )}
             {monthlyExpensesUSD > 0 && (
-              <div className="text-lg font-semibold amount-strong text-foreground">
+              <div className="text-lg amount-negative">
                 ${monthlyExpensesUSD.toFixed(2)}
               </div>
             )}

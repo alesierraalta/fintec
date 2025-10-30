@@ -205,7 +205,7 @@ export function AccountsOverview() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-ios-body font-semibold amount-strong text-foreground">{account.balance}</p>
+                  <p className="text-ios-body font-semibold amount-emphasis-white text-white">{account.balance}</p>
                   <div className="flex items-center justify-end mt-1">
                     {account.change !== 'Nuevo' && (
                       <>
@@ -240,7 +240,7 @@ export function AccountsOverview() {
       <div className="pt-6 border-t border-border/10">
         <div className="text-center bg-gradient-to-br from-blue-500/8 to-purple-500/8 rounded-2xl p-6 backdrop-blur-xl border border-blue-500/15 shadow-ios-sm">
           <p className="text-ios-caption font-semibold uppercase tracking-wide text-muted-foreground mb-3">Balance Total</p>
-          <p className="text-ios-large-title font-bold amount-strong bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">${totalBalance.toFixed(2)}</p>
+          <p className="text-ios-large-title font-bold amount-emphasis-white text-white">${totalBalance.toFixed(2)}</p>
           {totalBalanceChange && (
             <div className="flex items-center justify-center mt-2">
               {totalBalanceChange.startsWith('+') ? (
