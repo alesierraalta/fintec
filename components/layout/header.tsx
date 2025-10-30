@@ -134,7 +134,53 @@ export function Header() {
           className="object-contain"
           unoptimized
         />
-        <div className="w-8" />
+        <div className="relative">
+          <div
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="flex items-center black-theme-card rounded-xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
+          >
+            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
+              <User className="h-4 w-4 text-background-primary" />
+            </div>
+          </div>
+
+          {showUserMenu && (
+            <>
+              <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
+                <div className="px-4 py-3 border-b border-white/10">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white">
+                        {user?.user_metadata?.full_name || 'Usuario'}
+                      </p>
+                      <p className="text-sm text-white/70">{user?.email}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="py-2">
+                  <button
+                    onClick={handleProfile}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>Mi Perfil</span>
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>Cerrar Sesión</span>
+                  </button>
+                </div>
+              </div>
+              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+            </>
+          )}
+        </div>
       </header>
     );
   }

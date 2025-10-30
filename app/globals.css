@@ -415,3 +415,34 @@ body {
   color: #f43f5e; /* rose-500 */
   text-shadow: 0 0 8px rgba(244, 63, 94, 0.25);
 }
+
+/* iOS Safari input visibility fix (dark theme) */
+.dark input,
+.dark textarea,
+.dark select {
+  color: #ffffff;
+  caret-color: #ffffff;
+  -webkit-text-fill-color: #ffffff;
+  -webkit-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Override iOS autofill styles to keep text visible on dark backgrounds */
+.dark input:-webkit-autofill,
+.dark textarea:-webkit-autofill,
+.dark select:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+  transition: background-color 9999s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
+}
+
+/* Improve visibility of date inputs icons on iOS */
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1) opacity(0.8);
+}
