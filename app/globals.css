@@ -446,3 +446,11 @@ body {
 .dark input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.8);
 }
+
+/* Ensure disabled inputs with light backgrounds remain readable on iOS */
+.dark input:disabled,
+.dark textarea:disabled,
+.dark select:disabled {
+  -webkit-text-fill-color: #111111; /* readable on bg-gray-50 */
+  color: #111111;
+}
