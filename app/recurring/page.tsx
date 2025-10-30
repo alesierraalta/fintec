@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useAppStore } from '@/lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +23,7 @@ export default function RecurringPage() {
   const [summary, setSummary] = useState<RecurringTransactionSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedFrequency, setSelectedFrequency] = useState<'weekly' | 'monthly' | 'yearly'>('monthly');
-  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
 
@@ -32,11 +33,7 @@ export default function RecurringPage() {
     { value: 'yearly', label: 'Anual' }
   ];
 
-  const rateOptions = [
-    { value: 'bcv_usd', label: 'BCV USD' },
-    { value: 'bcv_eur', label: 'BCV EUR' },
-    { value: 'binance', label: 'Binance' }
-  ];
+  // Local rate options removed; header RateSelector is the single source
 
   useEffect(() => {
     const fetchData = async () => {
@@ -179,15 +176,7 @@ export default function RecurringPage() {
                   placeholder="Selecciona frecuencia"
                 />
               </div>
-              <div className="lg:w-48">
-                <Select
-                  label="Tasa de cambio"
-                  value={usdEquivalentType}
-                  onChange={(e) => setUsdEquivalentType(e.target.value as 'binance' | 'bcv_usd' | 'bcv_eur')}
-                  options={rateOptions}
-                  placeholder="Selecciona tasa"
-                />
-              </div>
+              {/* Rate selector removed; uses global header RateSelector */}
             </div>
 
             {/* Total Income and Expenses */}

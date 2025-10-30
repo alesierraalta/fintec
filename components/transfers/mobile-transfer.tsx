@@ -17,7 +17,7 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
-import { RateSelector } from './rate-selector';
+import { useActiveUsdVesRate } from '@/lib/rates';
 import { logger } from '@/lib/utils/logger';
 
 
@@ -51,6 +51,7 @@ export function MobileTransfer() {
     rateSource: undefined
   });
   const [amountError, setAmountError] = useState<string>('');
+  const activeUsdVes = useActiveUsdVesRate();
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -173,6 +174,24 @@ export function MobileTransfer() {
       rateSource: 'Manual'
     }));
   };
+
+  // Auto-apply global exchange rate when currencies differ (USD↔VES)
+  useEffect(() => {
+    const from = getFromAccount();
+    const to = getToAccount();
+    if (!from || !to) return;
+    if (from.currencyCode === to.currencyCode) {
+      setTransferData(prev => ({ ...prev, exchangeRate: undefined, rateSource: undefined }));
+      return;
+    }
+    if (!activeUsdVes || activeUsdVes <= 0) return;
+
+    if (from.currencyCode === 'USD' && to.currencyCode === 'VES') {
+      setTransferData(prev => ({ ...prev, exchangeRate: activeUsdVes, rateSource: 'Global' }));
+    } else if (from.currencyCode === 'VES' && to.currencyCode === 'USD') {
+      setTransferData(prev => ({ ...prev, exchangeRate: 1 / activeUsdVes, rateSource: 'Global' }));
+    }
+  }, [transferData.fromAccountId, transferData.toAccountId, activeUsdVes]);
 
   const isFormValid = () => {
     const fromAccount = getFromAccount();
@@ -441,16 +460,7 @@ export function MobileTransfer() {
         </div>
       )}
 
-      {/* Exchange Rate Selector - Show when currencies are different */}
-      {transferData.fromAccountId && transferData.toAccountId && transferData.amount > 0 && getFromAccount() && getToAccount() && getFromAccount()!.currencyCode !== getToAccount()!.currencyCode && (
-        <RateSelector
-          fromCurrency={getFromAccount()!.currencyCode}
-          toCurrency={getToAccount()!.currencyCode}
-          amount={transferData.amount}
-          onRateSelected={handleRateSelected}
-          onManualRate={handleManualRate}
-        />
-      )}
+      {/* Exchange Rate Selector removed: using global header RateSelector */}
 
       {/* Prominent Transfer Preview - Mobile */}
       {isFormValid() && (

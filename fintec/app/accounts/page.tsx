@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useAppStore } from '@/lib/store';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -111,7 +112,7 @@ export default function AccountsPage() {
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
   const [showBalances, setShowBalances] = useState(true);
-  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const [showRatesHistory, setShowRatesHistory] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -516,40 +517,7 @@ export default function AccountsPage() {
                 <span>{showBalances ? 'Ocultar Saldos' : 'Mostrar Saldos'}</span>
               </motion.button>
 
-              {showBalances && (
-                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                  <button
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      usdEquivalentType === 'binance'
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                    }`}
-                    onClick={() => setUsdEquivalentType('binance')}
-                  >
-                    💱 Binance
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      usdEquivalentType === 'bcv_usd'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                    }`}
-                    onClick={() => setUsdEquivalentType('bcv_usd')}
-                  >
-                    🇺🇸 BCV USD
-                  </button>
-                  <button
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      usdEquivalentType === 'bcv_eur'
-                        ? 'bg-purple-500 text-white'
-                        : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                    }`}
-                    onClick={() => setUsdEquivalentType('bcv_eur')}
-                  >
-                    🇪🇺 BCV EUR
-                  </button>
-                </div>
-              )}
+              {/* Local rate selector removed; global header RateSelector is the single source */}
 
               <motion.button
                 className="relative w-full sm:w-auto px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"

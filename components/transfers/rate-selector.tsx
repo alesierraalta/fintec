@@ -1,4 +1,5 @@
-'use client';
+// Deprecated legacy component. Use the global header RateSelector instead.
+export {};
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
+import { useAppStore } from '@/lib/store';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
@@ -24,8 +25,8 @@ export function MobileDashboard() {
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
   
-  // Rate selector state
-  const [usdEquivalentType, setUsdEquivalentType] = useState<'binance' | 'bcv_usd' | 'bcv_eur'>('bcv_usd');
+  // Use global rate source
+  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const [showBalances, setShowBalances] = useState(true);
   
   // Helper functions for rate calculation
@@ -225,40 +226,7 @@ export function MobileDashboard() {
             </p>
           )}
           
-          {showBalances && (
-            <div className="flex flex-col space-y-2">
-              <button
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  usdEquivalentType === 'binance'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                }`}
-                onClick={() => setUsdEquivalentType('binance')}
-              >
-                💱 Binance
-              </button>
-              <button
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  usdEquivalentType === 'bcv_usd'
-                    ? 'bg-green-500 text-white'
-                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                }`}
-                onClick={() => setUsdEquivalentType('bcv_usd')}
-              >
-                🇺🇸 BCV USD
-              </button>
-              <button
-                className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                  usdEquivalentType === 'bcv_eur'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-muted/50 hover:bg-muted text-muted-foreground'
-                }`}
-                onClick={() => setUsdEquivalentType('bcv_eur')}
-              >
-                🇪🇺 BCV EUR
-              </button>
-            </div>
-          )}
+          {/* Local rate selector removed; uses global header RateSelector */}
         </div>
       </div>
 

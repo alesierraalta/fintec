@@ -10,6 +10,8 @@ import { useRepository } from '@/providers/repository-provider';
 import type { Notification } from '@/types/notifications';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useActiveUsdVesRate } from '@/lib/rates';
+import { RateSelector } from '@/components/currency/rate-selector';
 
 export function Header() {
   const [notificationCount, setNotificationCount] = useState(0);
@@ -23,6 +25,7 @@ export function Header() {
   const router = useRouter();
   const repository = useRepository();
   const bcvRates = useBCVRates();
+  const activeUsdVes = useActiveUsdVesRate();
 
   const memoizedLoadTotalBalance = useCallback(async () => {
     if (!user) return;
@@ -33,7 +36,8 @@ export function Header() {
         const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
 
         if (acc.currencyCode === 'VES') {
-          return sum + balanceMajor / bcvRates.usd;
+          const rate = activeUsdVes || bcvRates.usd || 1;
+          return sum + balanceMajor / rate;
         }
         return sum + balanceMajor;
       }, 0);
@@ -118,7 +122,10 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="h-16 black-theme-header flex items-center justify-center px-4">
+      <header className="h-16 black-theme-header flex items-center justify-between px-4">
+        <div className="flex items-center">
+          <RateSelector />
+        </div>
         <Image
           src="/finteclogodark.jpg"
           alt="FinTec Logo"
@@ -127,13 +134,15 @@ export function Header() {
           className="object-contain"
           unoptimized
         />
+        <div className="w-8" />
       </header>
     );
   }
 
   return (
     <header className="h-16 black-theme-header flex items-center justify-between px-6">
-      <div className="flex items-center">
+      <div className="flex items-center gap-2">
+        <RateSelector />
         <button
           onClick={toggleSidebar}
           className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios mr-3"

@@ -55,6 +55,7 @@ interface AppState {
 
   // Currency & Exchange Rates
   selectedCurrency: string;
+  selectedRateSource: 'binance' | 'bcv_usd' | 'bcv_eur';
   exchangeRates: Record<string, number>;
   lastRateUpdate: number | null;
 
@@ -95,6 +96,7 @@ interface AppActions {
 
   // Currency & Exchange Rates
   setSelectedCurrency: (currency: string) => void;
+  setSelectedRateSource: (source: 'binance' | 'bcv_usd' | 'bcv_eur') => void;
   updateExchangeRates: (rates: Record<string, number>) => void;
 
   // Quick Actions
@@ -142,6 +144,7 @@ export const useAppStore = create<AppState & AppActions>()(
         unreadCount: 0,
         settings: defaultSettings,
         selectedCurrency: 'USD',
+        selectedRateSource: 'binance',
         exchangeRates: {},
         lastRateUpdate: null,
         quickActionsVisible: true,
@@ -280,6 +283,11 @@ export const useAppStore = create<AppState & AppActions>()(
             state.settings.currency = currency;
           }),
 
+        setSelectedRateSource: (source) =>
+          set((state) => {
+            state.selectedRateSource = source;
+          }),
+
         updateExchangeRates: (rates) =>
           set((state) => {
             state.exchangeRates = rates;
@@ -335,6 +343,7 @@ export const useAppStore = create<AppState & AppActions>()(
           isAuthenticated: state.isAuthenticated,
           settings: state.settings,
           selectedCurrency: state.selectedCurrency,
+          selectedRateSource: state.selectedRateSource,
           tutorialCompleted: state.tutorialCompleted,
           currentTutorialStep: state.currentTutorialStep,
           quickActionsVisible: state.quickActionsVisible,

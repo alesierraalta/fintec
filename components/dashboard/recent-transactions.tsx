@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useAppStore } from '@/lib/store';
 import { Transaction, TransactionType } from '@/types/domain';
 import { formatCurrency } from '@/lib/money';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,6 @@ interface RecentTransactionsProps {
   isLoading?: boolean;
   bcvRates?: { usd: number; eur: number };
   binanceRates?: { usd_ves: number };
-  usdEquivalentType?: 'binance' | 'bcv_usd' | 'bcv_eur';
 }
 
 export function RecentTransactions({
@@ -26,11 +26,11 @@ export function RecentTransactions({
   onTransactionClick,
   isLoading = false,
   bcvRates,
-  binanceRates,
-  usdEquivalentType = 'bcv_usd'
+  binanceRates
 }: RecentTransactionsProps) {
   const [hoveredTransaction, setHoveredTransaction] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
+  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
 
   // Helper function to get exchange rate
   const getExchangeRate = useMemo(() => {
