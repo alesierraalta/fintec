@@ -87,15 +87,17 @@ export default function RecurringPage() {
   };
 
   // Helper function to convert USD to BS based on selected rate
-  const convertToBS = (amountUSD: number): number => {
-    if (usdEquivalentType === 'binance') {
-      return amountUSD * (binanceRates?.usdt_ves || 1);
-    } else if (usdEquivalentType === 'bcv_usd') {
-      return amountUSD * (bcvRates?.usd || 1);
-    } else {
-      return amountUSD * (bcvRates?.eur || 1);
-    }
-  };
+  const convertToBS = useMemo(() => {
+    return (amountUSD: number): number => {
+      if (usdEquivalentType === 'binance') {
+        return amountUSD * (binanceRates?.usdt_ves || 1);
+      } else if (usdEquivalentType === 'bcv_usd') {
+        return amountUSD * (bcvRates?.usd || 1);
+      } else {
+        return amountUSD * (bcvRates?.eur || 1);
+      }
+    };
+  }, [usdEquivalentType, binanceRates?.usdt_ves, bcvRates?.usd, bcvRates?.eur]);
 
   // Calculate totals based on selected frequency
   const calculateTotals = useMemo(() => {

@@ -76,8 +76,8 @@ export class SupabaseAppRepository implements AppRepository {
       }
 
       // Ensure user exists in users table
-      const { error } = await supabase
-        .from('users')
+      const { error } = await (supabase
+        .from('users') as any)
         .upsert({
           id: user.id,
           email: user.email!,
@@ -85,7 +85,7 @@ export class SupabaseAppRepository implements AppRepository {
           base_currency: 'USD',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        });
+        } as any);
 
       if (error) {
         throw new Error(`Failed to initialize user: ${error.message}`);

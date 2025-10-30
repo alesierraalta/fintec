@@ -464,7 +464,6 @@ export function DesktopDashboard() {
               transactions={rawTransactions} 
               bcvRates={bcvRates}
               binanceRates={binanceRates}
-              usdEquivalentType={usdEquivalentType}
             />
           </div>
         </div>

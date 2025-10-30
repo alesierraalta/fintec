@@ -16,7 +16,7 @@ async function migrateSubscriptions() {
 
     if (usersError) throw usersError;
 
-    console.log(`Found ${users?.length || 0} users to migrate`);
+    console.log(`Found ${(users as any[])?.length || 0} users to migrate`);
 
     if (!users || users.length === 0) {
       console.log('No users to migrate');
@@ -24,21 +24,21 @@ async function migrateSubscriptions() {
     }
 
     // Update all users to free tier
-    const { error: updateError } = await supabase
-      .from('users')
+    const { error: updateError } = await (supabase
+      .from('users') as any)
       .update({
         subscription_tier: 'free',
         subscription_status: 'active',
         subscription_started_at: new Date().toISOString(),
         transaction_count_current_month: 0,
         last_transaction_reset: new Date().toISOString(),
-      })
+      } as any)
       .or('subscription_tier.is.null,subscription_tier.eq.""');
 
     if (updateError) throw updateError;
 
     // Create subscription records for all users
-    const subscriptionRecords = users.map(user => ({
+    const subscriptionRecords = (users as any[]).map((user: any) => ({
       user_id: user.id,
       tier: 'free',
       status: 'active',
@@ -46,15 +46,15 @@ async function migrateSubscriptions() {
       current_period_end: new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000).toISOString(), // 100 years (essentially forever)
     }));
 
-    const { error: insertError } = await supabase
-      .from('subscriptions')
-      .upsert(subscriptionRecords);
+    const { error: insertError } = await (supabase
+      .from('subscriptions') as any)
+      .upsert(subscriptionRecords as any);
 
     if (insertError) throw insertError;
 
     // Create initial usage tracking records
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const usageRecords = users.map(user => ({
+    const usageRecords = (users as any[]).map((user: any) => ({
       user_id: user.id,
       month_year: currentMonth,
       transaction_count: 0,
@@ -64,23 +64,23 @@ async function migrateSubscriptions() {
       ai_requests: 0,
     }));
 
-    const { error: usageError } = await supabase
-      .from('usage_tracking')
-      .upsert(usageRecords, { onConflict: 'user_id,month_year' });
+    const { error: usageError } = await (supabase
+      .from('usage_tracking') as any)
+      .upsert(usageRecords as any, { onConflict: 'user_id,month_year' });
 
     if (usageError) throw usageError;
 
     console.log(`✅ Successfully migrated ${users.length} users to Free tier`);
 
     // Send welcome notifications
-    for (const user of users) {
-      await supabase.from('notifications').insert({
-        user_id: user.id,
+    for (const user of (users as any[])) {
+      await (supabase.from('notifications') as any).insert({
+        user_id: (user as any).id,
         title: '¡Nuevo sistema de suscripciones!',
         message: 'Ahora estás en el plan gratuito con acceso a todas las funciones básicas. Explora nuestros planes pagos para desbloquear más funciones.',
         type: 'info',
         action_url: '/pricing',
-      });
+      } as any);
     }
 
     console.log('✅ Welcome notifications sent');

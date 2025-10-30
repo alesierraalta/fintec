@@ -171,8 +171,7 @@ async function handleSubscriptionActivated(
 ): Promise<void> {
   
   // Actualizar usuario
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_tier: tier,
       subscription_status: 'active',
@@ -181,8 +180,7 @@ async function handleSubscriptionActivated(
     .eq('id', userId);
   
   // Crear o actualizar subscription
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .upsert({
       user_id: userId,
       tier,
@@ -207,16 +205,14 @@ async function handleSubscriptionUpdated(
   tier: 'base' | 'premium'
 ): Promise<void> {
   
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_tier: tier,
       subscription_status: 'active',
     })
     .eq('id', userId);
   
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .update({
       tier,
       status: 'active',
@@ -235,16 +231,14 @@ async function handleSubscriptionCancelled(
   attributes: any
 ): Promise<void> {
   
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_tier: 'free',
       subscription_status: 'cancelled',
     })
     .eq('id', userId);
   
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .update({
       status: 'cancelled',
       cancelled_at: new Date().toISOString(),
@@ -261,15 +255,13 @@ async function handleSubscriptionPaused(
   attributes: any
 ): Promise<void> {
   
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_status: 'paused',
     })
     .eq('id', userId);
   
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .update({
       status: 'paused',
       updated_at: new Date().toISOString(),
@@ -287,16 +279,14 @@ async function handleSubscriptionResumed(
   tier: 'base' | 'premium'
 ): Promise<void> {
   
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_tier: tier,
       subscription_status: 'active',
     })
     .eq('id', userId);
   
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .update({
       status: 'active',
       updated_at: new Date().toISOString(),
@@ -312,15 +302,13 @@ async function handlePaymentFailed(
   attributes: any
 ): Promise<void> {
   
-  await supabase
-    .from('users')
+  await (supabase.from('users') as any)
     .update({
       subscription_status: 'past_due',
     })
     .eq('id', userId);
   
-  await supabase
-    .from('subscriptions')
+  await (supabase.from('subscriptions') as any)
     .update({
       status: 'past_due',
       updated_at: new Date().toISOString(),

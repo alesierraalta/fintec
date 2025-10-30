@@ -136,7 +136,8 @@ async function checkExchangeRates() {
     if (!data || data.length === 0) {
       addResult('Exchange Rates', 'WARNING', 'No hay tasas de cambio almacenadas (normal para DB nueva)');
     } else {
-      addResult('Exchange Rates', 'OK', `Última tasa: ${data[0].usd_ves} VES (${data[0].source})`);
+      const row: any = (data as any[])[0];
+      addResult('Exchange Rates', 'OK', `Última tasa: ${row.usd_ves} VES (${row.source})`);
     }
   } catch (error: any) {
     addResult('Exchange Rates', 'ERROR', `Error verificando tasas: ${error.message}`);

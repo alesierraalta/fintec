@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -125,8 +125,12 @@ export function DesktopTransfer() {
     return true;
   };
 
-  const getFromAccount = () => accounts.find(acc => acc.id === transferData.fromAccountId);
-  const getToAccount = () => accounts.find(acc => acc.id === transferData.toAccountId);
+  const getFromAccount = useCallback(() => (
+    accounts.find(acc => acc.id === transferData.fromAccountId)
+  ), [accounts, transferData.fromAccountId]);
+  const getToAccount = useCallback(() => (
+    accounts.find(acc => acc.id === transferData.toAccountId)
+  ), [accounts, transferData.toAccountId]);
 
   const handleFromAccountSelect = (accountId: string) => {
     // If clicking on already selected account, deselect it
@@ -190,7 +194,7 @@ export function DesktopTransfer() {
     } else if (from.currencyCode === 'VES' && to.currencyCode === 'USD') {
       setTransferData(prev => ({ ...prev, exchangeRate: 1 / activeUsdVes, rateSource: 'Global' }));
     }
-  }, [transferData.fromAccountId, transferData.toAccountId, activeUsdVes]);
+  }, [transferData.fromAccountId, transferData.toAccountId, activeUsdVes, getFromAccount, getToAccount]);
 
   const isFormValid = () => {
     const fromAccount = getFromAccount();

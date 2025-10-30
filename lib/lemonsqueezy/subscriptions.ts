@@ -22,7 +22,7 @@ export async function getUserTier(userId: string): Promise<SubscriptionTier> {
     return 'free';
   }
 
-  return data.tier as SubscriptionTier;
+  return (data as any).tier as SubscriptionTier;
 }
 
 /**
@@ -43,17 +43,18 @@ export async function getUserUsage(userId: string): Promise<UsageTracking | null
     return null;
   }
 
+  const d: any = data as any;
   return {
-    id: data.id,
-    userId: data.user_id,
-    monthYear: data.month_year,
-    transactionCount: data.transaction_count,
-    backupCount: data.backup_count,
-    apiCalls: data.api_calls,
-    exportCount: data.export_count,
-    aiRequests: data.ai_requests,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    id: d.id,
+    userId: d.user_id,
+    monthYear: d.month_year,
+    transactionCount: d.transaction_count,
+    backupCount: d.backup_count,
+    apiCalls: d.api_calls,
+    exportCount: d.export_count,
+    aiRequests: d.ai_requests,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
   };
 }
 
@@ -81,24 +82,23 @@ export async function incrementUsage(
   // Try to increment existing record
   const { data: existing } = await supabase
     .from('usage_tracking')
-    .select('id')
+    .select('*')
     .eq('user_id', userId)
     .eq('month_year', monthYear)
     .single();
 
   if (existing) {
     // Increment existing record
-    await supabase
-      .from('usage_tracking')
+    const current = (existing as any)[column] || 0;
+    await (supabase.from('usage_tracking') as any)
       .update({
-        [column]: supabase.rpc('increment', { x: 1 }),
+        [column]: current + 1,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', existing.id);
+      .eq('id', (existing as any).id);
   } else {
     // Create new record
-    await supabase
-      .from('usage_tracking')
+    await (supabase.from('usage_tracking') as any)
       .insert({
         user_id: userId,
         month_year: monthYear,
@@ -126,21 +126,22 @@ export async function getSubscriptionByUserId(userId: string) {
     return null;
   }
 
+  const d: any = data as any;
   return {
-    id: data.id,
-    userId: data.user_id,
-    tier: data.tier as SubscriptionTier,
-    status: data.status,
-    lemonSqueezySubscriptionId: data.lemonsqueezy_subscription_id,
-    lemonSqueezyCustomerId: data.lemonsqueezy_customer_id,
-    lemonSqueezyOrderId: data.lemonsqueezy_order_id,
-    customerPortalUrl: data.customer_portal_url,
-    currentPeriodStart: data.current_period_start,
-    currentPeriodEnd: data.current_period_end,
-    cancelAtPeriodEnd: data.cancel_at_period_end,
-    cancelledAt: data.cancelled_at,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    id: d.id,
+    userId: d.user_id,
+    tier: d.tier as SubscriptionTier,
+    status: d.status,
+    lemonSqueezySubscriptionId: d.lemonsqueezy_subscription_id,
+    lemonSqueezyCustomerId: d.lemonsqueezy_customer_id,
+    lemonSqueezyOrderId: d.lemonsqueezy_order_id,
+    customerPortalUrl: d.customer_portal_url,
+    currentPeriodStart: d.current_period_start,
+    currentPeriodEnd: d.current_period_end,
+    cancelAtPeriodEnd: d.cancel_at_period_end,
+    cancelledAt: d.cancelled_at,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
   };
 }
 
@@ -166,8 +167,7 @@ export async function upsertSubscription(subscriptionData: {
 
   if (existing) {
     // Update existing subscription
-    const { error } = await supabase
-      .from('subscriptions')
+    const { error } = await (supabase.from('subscriptions') as any)
       .update({
         tier: subscriptionData.tier,
         status: subscriptionData.status,
@@ -179,15 +179,14 @@ export async function upsertSubscription(subscriptionData: {
         current_period_end: subscriptionData.currentPeriodEnd,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', existing.id);
+      .eq('id', (existing as any).id);
 
     if (error) {
       throw error;
     }
   } else {
     // Create new subscription
-    const { error } = await supabase
-      .from('subscriptions')
+    const { error } = await (supabase.from('subscriptions') as any)
       .insert({
         user_id: subscriptionData.userId,
         tier: subscriptionData.tier,
@@ -211,8 +210,8 @@ export async function upsertSubscription(subscriptionData: {
  * Cancel subscription at period end
  */
 export async function cancelSubscription(userId: string) {
-  const { error } = await supabase
-    .from('subscriptions')
+  const { error } = await (supabase
+    .from('subscriptions') as any)
     .update({
       cancel_at_period_end: true,
       updated_at: new Date().toISOString(),

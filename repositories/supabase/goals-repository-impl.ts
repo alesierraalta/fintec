@@ -147,9 +147,9 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   async create(goal: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>): Promise<SavingsGoal> {
     const supabaseGoal = mapDomainGoalToSupabase(goal);
 
-    const { data, error } = await supabase
-      .from('goals')
-      .insert(supabaseGoal)
+    const { data, error } = await (supabase
+      .from('goals') as any)
+      .insert(supabaseGoal as any)
       .select()
       .single();
 
@@ -166,9 +166,9 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await supabase
-      .from('goals')
-      .update(supabaseUpdates)
+    const { data, error } = await (supabase
+      .from('goals') as any)
+      .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
       .single();
@@ -182,9 +182,9 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
   async delete(id: string): Promise<void> {
     // Soft delete by setting active to false
-    const { error } = await supabase
-      .from('goals')
-      .update({ active: false })
+    const { error } = await (supabase
+      .from('goals') as any)
+      .update({ active: false } as any)
       .eq('id', id);
 
     if (error) {
@@ -217,12 +217,12 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async updateProgress(id: string, currentBaseMinor: number): Promise<SavingsGoal> {
-    const { data, error } = await supabase
-      .from('goals')
+    const { data, error } = await (supabase
+      .from('goals') as any)
       .update({ 
         current_base_minor: currentBaseMinor,
         updated_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', id)
       .select()
       .single();
@@ -258,8 +258,9 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       return null;
     }
 
-    const target = data.target_base_minor;
-    const current = data.current_base_minor;
+    const row: any = data as any;
+    const target = row.target_base_minor;
+    const current = row.current_base_minor;
     const remaining = Math.max(0, target - current);
     const percentageComplete = target > 0 ? (current / target) * 100 : 0;
     const isCompleted = current >= target;

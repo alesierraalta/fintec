@@ -36,13 +36,13 @@ export async function categorizeTransaction(
       .order('created_at', { ascending: false })
       .limit(10);
 
-    const categoriesList = categories
-      .map(c => `${c.name} (${c.kind})`)
+    const categoriesList = (categories as any[])
+      .map((c: any) => `${c.name} (${c.kind})`)
       .join(', ');
 
-    const transactionExamples = recentTransactions
+    const transactionExamples = (recentTransactions as any[])
       ?.slice(0, 5)
-      .map(t => `"${t.description}" → ${(t as any).categories?.name || 'Sin categoría'}`)
+      .map((t: any) => `"${t?.description || ''}" → ${t?.categories?.name || 'Sin categoría'}`)
       .join('\n');
 
     const prompt = `Eres un asistente financiero experto. Categoriza la siguiente transacción:
@@ -83,8 +83,8 @@ Analiza la transacción y sugiere la categoría más apropiada. Responde ÚNICAM
     const result = JSON.parse(response.choices[0].message.content || '{}');
     
     // Find matching category
-    const matchedCategory = categories.find(
-      c => c.name.toLowerCase() === result.categoryName.toLowerCase()
+    const matchedCategory = (categories as any[]).find(
+      (c: any) => c.name?.toLowerCase() === (result.categoryName || '').toLowerCase()
     );
 
     if (!matchedCategory) {

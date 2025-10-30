@@ -20,7 +20,7 @@ async function cleanupOldData() {
 
     if (usersError) throw usersError;
 
-    console.log(`Found ${freeUsers?.length || 0} Free tier users`);
+    console.log(`Found ${(freeUsers as any[])?.length || 0} Free tier users`);
 
     if (!freeUsers || freeUsers.length === 0) {
       console.log('No Free tier users found');
@@ -29,12 +29,12 @@ async function cleanupOldData() {
 
     let totalDeleted = 0;
 
-    for (const user of freeUsers) {
-      console.log(`Processing user: ${user.email}`);
+    for (const user of (freeUsers as any[])) {
+      console.log(`Processing user: ${(user as any).email}`);
 
       // Delete old transactions
-      const { data: deleted, error: deleteError } = await supabase
-        .from('transactions')
+      const { data: deleted, error: deleteError } = await (supabase
+        .from('transactions') as any)
         .delete()
         .lt('date', cutoffDate)
         .in('account_id', [
@@ -42,7 +42,7 @@ async function cleanupOldData() {
           supabase
             .from('accounts')
             .select('id')
-            .eq('user_id', user.id)
+            .eq('user_id', (user as any).id)
         ]);
 
       if (deleteError) {
@@ -57,12 +57,12 @@ async function cleanupOldData() {
         console.log(`  Deleted ${deletedCount} old transactions`);
 
         // Send notification about cleanup
-        await supabase.from('notifications').insert({
-          user_id: user.id,
+        await (supabase.from('notifications') as any).insert({
+          user_id: (user as any).id,
           title: 'Limpieza de datos antiguos',
           message: `Se han eliminado ${deletedCount} transacciones de más de 6 meses de antigüedad como parte del plan gratuito. Actualiza a un plan pago para mantener tu historial completo.`,
           type: 'info',
-        });
+        } as any);
       }
     }
 

@@ -71,7 +71,8 @@ export async function detectAnomalies(userId: string): Promise<Anomaly[]> {
     }, {} as Record<string, { average: number; max: number }>);
 
     // Format data for AI
-    const recentData = recentTransactions.map((txn: any) => ({
+    const recent = (recentTransactions as any[]) || [];
+    const recentData = recent.map((txn: any) => ({
       id: txn.id,
       description: txn.description,
       amount: txn.amount_base_minor / 100,
@@ -128,7 +129,7 @@ Identifica transacciones anómalas (montos inusuales, patrones extraños, etc.).
     
     // Map back to full transaction data
     const anomalies: Anomaly[] = (result.anomalies || []).map((anomaly: any) => {
-      const txn = recentTransactions.find((t: any) => t.id === anomaly.transactionId);
+      const txn = recent.find((t: any) => t.id === anomaly.transactionId);
       return {
         transactionId: anomaly.transactionId,
         description: txn?.description || '',
@@ -168,7 +169,7 @@ export async function checkTransactionAnomaly(
       return { isAnomalous: false };
     }
 
-    const amounts = similar.map(t => t.amount_base_minor);
+    const amounts = (similar as any[]).map((t: any) => t.amount_base_minor);
     const avg = amounts.reduce((sum, a) => sum + a, 0) / amounts.length;
     const stdDev = Math.sqrt(
       amounts.reduce((sum, a) => sum + Math.pow(a - avg, 2), 0) / amounts.length

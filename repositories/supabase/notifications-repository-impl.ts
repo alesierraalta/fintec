@@ -81,8 +81,8 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async create(userId: string, notificationData: CreateNotificationDTO): Promise<Notification> {
-    const { data, error } = await supabase
-      .from('notifications')
+    const { data, error } = await (supabase
+      .from('notifications') as any)
       .insert([{
         user_id: userId,
         title: notificationData.title,
@@ -90,7 +90,7 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
         type: notificationData.type || 'info',
         action_url: notificationData.action_url,
         is_read: false
-      }])
+      }] as any)
       .select()
       .single();
 
@@ -102,9 +102,9 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async markAsRead(id: string): Promise<Notification | null> {
-    const { data, error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
+    const { data, error } = await (supabase
+      .from('notifications') as any)
+      .update({ is_read: true } as any)
       .eq('id', id)
       .select()
       .single();
@@ -120,9 +120,9 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async markAllAsRead(userId: string): Promise<void> {
-    const { error } = await supabase
-      .from('notifications')
-      .update({ is_read: true })
+    const { error } = await (supabase
+      .from('notifications') as any)
+      .update({ is_read: true } as any)
       .eq('user_id', userId)
       .eq('is_read', false);
 

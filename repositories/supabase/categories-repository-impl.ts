@@ -24,7 +24,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (data || []).filter(category => {
+    const filteredData = ((data as any[]) || []).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -70,7 +70,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (data || []).filter(category => {
+    const filteredData = ((data as any[]) || []).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -106,7 +106,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (data || []).filter(category => {
+    const filteredData = ((data as any[]) || []).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -136,7 +136,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (allData || []).filter(category => {
+    const filteredData = (((allData as any[]) || [])).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -174,9 +174,9 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await supabase
-      .from('categories')
-      .insert(supabaseCategory)
+    const { data, error } = await (supabase
+      .from('categories') as any)
+      .insert(supabaseCategory as any)
       .select()
       .single();
 
@@ -207,9 +207,9 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await supabase
-      .from('categories')
-      .update(supabaseUpdates)
+    const { data, error } = await (supabase
+      .from('categories') as any)
+      .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
       .single();
@@ -236,9 +236,9 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Soft delete by setting active to false
-    const { error } = await supabase
-      .from('categories')
-      .update({ active: false })
+    const { error } = await (supabase
+      .from('categories') as any)
+      .update({ active: false } as any)
       .eq('id', id);
 
     if (error) {
@@ -271,7 +271,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (data || []).filter(category => {
+    const filteredData = ((data as any[]) || []).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -300,7 +300,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Filter by user's categories or default categories
-    const filteredData = (data || []).filter(category => {
+    const filteredData = ((data as any[]) || []).filter((category: any) => {
       if (user) {
         // Show user's own categories or default categories
         return category.user_id === user.id || category.is_default === true;
@@ -387,7 +387,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       return true; // No accounts = no transactions = can delete
     }
 
-    const accountIds = accounts.map(acc => acc.id);
+    const accountIds = ((accounts as any[]) || []).map((acc: any) => acc.id);
 
     // Check if category has any transactions from user's accounts
     const { count, error } = await supabase
@@ -428,7 +428,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       return 0; // No accounts = no transactions
     }
 
-    const accountIds = accounts.map(acc => acc.id);
+    const accountIds = ((accounts as any[]) || []).map((acc: any) => acc.id);
 
     const { count, error } = await supabase
       .from('transactions')
@@ -485,9 +485,9 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     }
 
     // Soft delete by setting active to false
-    const { error } = await supabase
-      .from('categories')
-      .update({ active: false })
+    const { error } = await (supabase
+      .from('categories') as any)
+      .update({ active: false } as any)
       .in('id', ids);
 
     if (error) {

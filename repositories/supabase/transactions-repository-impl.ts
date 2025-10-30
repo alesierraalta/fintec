@@ -175,7 +175,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const supabaseTransaction = mapDomainTransactionToSupabase(transaction);
 
-    const { data, error } = await supabase.rpc('create_transaction_and_adjust_balance', {
+    const { data, error } = await (supabase as any).rpc('create_transaction_and_adjust_balance', {
       p_account_id: supabaseTransaction.account_id,
       p_category_id: supabaseTransaction.category_id,
       p_type: supabaseTransaction.type,
@@ -223,9 +223,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .update(supabaseUpdates)
+    const { data, error } = await (supabase
+      .from('transactions') as any)
+      .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
       .single();
@@ -254,7 +254,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase.rpc('delete_transaction_and_adjust_balance', {
+    const { error } = await (supabase as any).rpc('delete_transaction_and_adjust_balance', {
       transaction_id_input: id,
     });
 
@@ -285,7 +285,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get account total: ${error.message}`);
     }
 
-    return (data || []).reduce((total, transaction) => {
+    return ((data as any[]) || []).reduce((total, transaction: any) => {
       const amount = transaction.amount_base_minor;
       if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
         return total + amount;
@@ -331,7 +331,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get category total: ${error.message}`);
     }
 
-    return (data || []).reduce((total, transaction) => total + transaction.amount_base_minor, 0);
+    return ((data as any[]) || []).reduce((total, transaction: any) => total + (transaction?.amount_base_minor || 0), 0);
   }
 
   async getMonthlyTotals(year: number): Promise<{ month: number; income: number; expense: number }[]> {
@@ -355,7 +355,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       monthlyData[month] = { income: 0, expense: 0 };
     }
 
-    (data || []).forEach(transaction => {
+    ((data as any[]) || []).forEach((transaction: any) => {
       const month = new Date(transaction.date).getMonth() + 1;
       const amount = transaction.amount_base_minor;
 
@@ -720,7 +720,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get total by type: ${error.message}`);
     }
 
-    return (data || []).reduce((total, transaction) => total + transaction.amount_base_minor, 0);
+    return ((data as any[]) || []).reduce((total, transaction: any) => total + (transaction?.amount_base_minor || 0), 0);
   }
 
   async getTotalByCategory(categoryId: string, startDate?: string, endDate?: string): Promise<number> {
@@ -747,7 +747,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get total by account: ${error.message}`);
     }
 
-    return (data || []).reduce((total, transaction) => {
+    return ((data as any[]) || []).reduce((total, transaction: any) => {
       const amount = transaction.amount_base_minor;
       if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
         return total + amount;

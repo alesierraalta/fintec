@@ -275,10 +275,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           updated_at: new Date().toISOString()
         };
         
-        const { error: profileError } = await (supabase
-          .from('users')
-          .update(updateData as any)
-          .eq('id', user.id) as any);
+        const { error: profileError } = await ((supabase
+          .from('users') as any)
+          .update(updateData)
+          .eq('id', user.id));
 
         return { error: profileError };
       }

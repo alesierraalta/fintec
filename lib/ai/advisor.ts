@@ -34,10 +34,10 @@ export async function getFinancialAdvice(userId: string): Promise<FinancialAdvic
 
     const { data: budgets } = await supabase
       .from('budgets')
-      .select('amount_base_minor, spent_minor, categories(name)');
+      .select('amount_base_minor, spent_base_minor, categories(name)');
 
     const { data: goals } = await supabase
-      .from('savings_goals')
+      .from('goals')
       .select('name, target_base_minor, current_base_minor, active')
       .eq('active', true);
 
@@ -46,15 +46,16 @@ export async function getFinancialAdvice(userId: string): Promise<FinancialAdvic
     }
 
     // Calculate summary statistics
-    const income = transactions
+    const tx = (transactions as any[]) || [];
+    const income = tx
       .filter(t => t.type === 'INCOME')
       .reduce((sum, t) => sum + t.amount_base_minor, 0);
 
-    const expenses = transactions
+    const expenses = tx
       .filter(t => t.type === 'EXPENSE')
       .reduce((sum, t) => sum + t.amount_base_minor, 0);
 
-    const categoryBreakdown = transactions
+    const categoryBreakdown = tx
       .filter(t => t.type === 'EXPENSE')
       .reduce((acc: any, t: any) => {
         const cat = t.categories?.name || 'Sin categoría';
@@ -76,17 +77,17 @@ export async function getFinancialAdvice(userId: string): Promise<FinancialAdvic
         }))
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5),
-      budgets: budgets?.map(b => ({
-        category: (b as any).categories?.name,
-        budget: b.amount_base_minor / 100,
-        spent: (b.spent_minor || 0) / 100,
-        remaining: (b.amount_base_minor - (b.spent_minor || 0)) / 100
+      budgets: (budgets as any[])?.map((b: any) => ({
+        category: b?.categories?.name,
+        budget: (b?.amount_base_minor || 0) / 100,
+        spent: (b?.spent_base_minor || 0) / 100,
+        remaining: ((b?.amount_base_minor || 0) - (b?.spent_base_minor || 0)) / 100
       })),
-      goals: goals?.map(g => ({
-        name: g.name,
-        target: g.target_base_minor / 100,
-        current: g.current_base_minor / 100,
-        progress: (g.current_base_minor / g.target_base_minor * 100).toFixed(1)
+      goals: (goals as any[])?.map((g: any) => ({
+        name: g?.name,
+        target: (g?.target_base_minor || 0) / 100,
+        current: (g?.current_base_minor || 0) / 100,
+        progress: ((g?.current_base_minor || 0) / (g?.target_base_minor || 1) * 100).toFixed(1)
       }))
     };
 

@@ -181,9 +181,9 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   async create(exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>): Promise<ExchangeRate> {
     const supabaseExchangeRate = mapDomainExchangeRateToSupabase(exchangeRate);
 
-    const { data, error } = await supabase
-      .from('exchange_rates')
-      .insert(supabaseExchangeRate)
+    const { data, error } = await (supabase
+      .from('exchange_rates') as any)
+      .insert(supabaseExchangeRate as any)
       .select()
       .single();
 
@@ -197,9 +197,9 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   async update(id: string, updates: Partial<ExchangeRate>): Promise<ExchangeRate> {
     const supabaseUpdates = mapDomainExchangeRateToSupabase(updates);
 
-    const { data, error } = await supabase
-      .from('exchange_rates')
-      .update(supabaseUpdates)
+    const { data, error } = await (supabase
+      .from('exchange_rates') as any)
+      .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
       .single();
@@ -236,7 +236,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
 
   async upsert(exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>): Promise<ExchangeRate> {
     // Try to find existing rate for the same pair, date, and provider
-    const existing = await supabase
+    const existing: any = await supabase
       .from('exchange_rates')
       .select('id')
       .eq('base_currency', exchangeRate.baseCurrency)
@@ -259,9 +259,9 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       mapDomainExchangeRateToSupabase(rate)
     );
 
-    const { data, error } = await supabase
-      .from('exchange_rates')
-      .insert(supabaseExchangeRates)
+    const { data, error } = await (supabase
+      .from('exchange_rates') as any)
+      .insert(supabaseExchangeRates as any)
       .select();
 
     if (error) {
@@ -276,9 +276,9 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       mapDomainExchangeRateToSupabase(rate)
     );
 
-    const { data, error } = await supabase
-      .from('exchange_rates')
-      .upsert(supabaseExchangeRates, {
+    const { data, error } = await (supabase
+      .from('exchange_rates') as any)
+      .upsert(supabaseExchangeRates as any, {
         onConflict: 'base_currency,quote_currency,date,provider'
       })
       .select();
@@ -328,7 +328,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     const pairs = new Set<string>();
     const result: { baseCurrency: string; quoteCurrency: string }[] = [];
 
-    (data || []).forEach(item => {
+    ((data as any[]) || []).forEach((item: any) => {
       const key = `${item.base_currency}-${item.quote_currency}`;
       if (!pairs.has(key)) {
         pairs.add(key);
@@ -361,7 +361,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
 
     // Group by currency pair and get the latest for each
     const latestRates = new Map<string, any>();
-    (data || []).forEach(rate => {
+    ((data as any[]) || []).forEach((rate: any) => {
       const key = `${rate.base_currency}-${rate.quote_currency}`;
       if (!latestRates.has(key)) {
         latestRates.set(key, rate);

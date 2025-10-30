@@ -76,9 +76,9 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
       is_active: true
     };
 
-    const { data: result, error } = await supabase
-      .from('recurring_transactions')
-      .insert(insertData)
+    const { data: result, error } = await (supabase
+      .from('recurring_transactions') as any)
+      .insert(insertData as any)
       .select()
       .single();
 
@@ -107,9 +107,9 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
     if (data.endDate !== undefined) updateData.end_date = data.endDate;
     if (data.isActive !== undefined) updateData.is_active = data.isActive;
 
-    const { data: result, error } = await supabase
-      .from('recurring_transactions')
-      .update(updateData)
+    const { data: result, error } = await (supabase
+      .from('recurring_transactions') as any)
+      .update(updateData as any)
       .eq('id', id)
       .select()
       .single();
@@ -133,9 +133,9 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async toggleActive(id: string, isActive: boolean): Promise<RecurringTransaction> {
-    const { data, error } = await supabase
-      .from('recurring_transactions')
-      .update({ is_active: isActive })
+    const { data, error } = await (supabase
+      .from('recurring_transactions') as any)
+      .update({ is_active: isActive } as any)
       .eq('id', id)
       .select()
       .single();
@@ -157,7 +157,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
       throw new Error(`Failed to get recurring transactions summary: ${error.message}`);
     }
 
-    const transactions = data || [];
+    const transactions: any[] = (data as any[]) || [];
     const today = new Date().toISOString().split('T')[0];
     const thisWeek = new Date();
     thisWeek.setDate(thisWeek.getDate() + 7);
@@ -201,7 +201,7 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
     endDate?: string,
     name?: string
   ): Promise<RecurringTransaction> {
-    const { data, error } = await supabase.rpc('create_recurring_from_transaction', {
+    const { data, error } = await (supabase as any).rpc('create_recurring_from_transaction', {
       transaction_id: transactionId,
       frequency,
       interval_count: intervalCount,
@@ -222,12 +222,12 @@ export class SupabaseRecurringTransactionsRepository implements RecurringTransac
   }
 
   async updateNextExecution(id: string, nextDate: string): Promise<void> {
-    const { error } = await supabase
-      .from('recurring_transactions')
+    const { error } = await (supabase
+      .from('recurring_transactions') as any)
       .update({ 
         next_execution_date: nextDate,
         last_executed_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', id);
 
     if (error) {

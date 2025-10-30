@@ -107,9 +107,9 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await supabase
-      .from('accounts')
-      .insert(supabaseData)
+    const { data, error } = await (supabase
+      .from('accounts') as any)
+      .insert(supabaseData as any)
       .select()
       .single();
     
@@ -132,9 +132,9 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from('accounts')
-      .update(updatePayload)
+    const { data, error } = await (supabase
+      .from('accounts') as any)
+      .update(updatePayload as any)
       .eq('id', id)
       .select()
       .single();
@@ -148,9 +148,9 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async delete(id: string): Promise<void> {
     // Soft delete by setting active to false
-    const { error } = await supabase
-      .from('accounts')
-      .update({ active: false, updated_at: new Date().toISOString() })
+    const { error } = await (supabase
+      .from('accounts') as any)
+      .update({ active: false, updated_at: new Date().toISOString() } as any)
       .eq('id', id);
     
     if (error) {
@@ -209,12 +209,12 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async updateBalance(id: string, newBalance: number): Promise<Account> {
-    const { data, error } = await supabase
-      .from('accounts')
+    const { data, error } = await (supabase
+      .from('accounts') as any)
       .update({ 
         balance: newBalance,
         updated_at: new Date().toISOString()
-      })
+      } as any)
       .eq('id', id)
       .select()
       .single();
@@ -227,7 +227,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async adjustBalance(id: string, adjustment: number): Promise<Account> {
-    const { data, error } = await supabase.rpc('adjust_account_balance', {
+    const { data, error } = await (supabase as any).rpc('adjust_account_balance', {
       account_id_input: id,
       adjustment_amount: adjustment,
     }).single();
@@ -240,7 +240,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async updateBalances(updates: { id: string; newBalance: number }[]): Promise<Account[]> {
-    const { data, error } = await supabase.rpc('update_multiple_account_balances', {
+    const { data, error } = await (supabase as any).rpc('update_multiple_account_balances', {
       updates: updates.map(u => ({ id: u.id, new_balance: u.newBalance })),
     });
 
@@ -262,7 +262,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to get total balance by type: ${error.message}`);
     }
     
-    return (data || []).reduce((total, account) => total + (account.balance || 0), 0);
+    return ((data as any[]) || []).reduce((total, account: any) => total + (account?.balance || 0), 0);
   }
 
   async getTotalBalanceByCurrency(currencyCode: string): Promise<number> {
@@ -276,7 +276,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to get total balance by currency: ${error.message}`);
     }
     
-    return (data || []).reduce((total, account) => total + (account.balance || 0), 0);
+    return ((data as any[]) || []).reduce((total, account: any) => total + (account?.balance || 0), 0);
   }
 
   async getBalanceSummary(): Promise<{
@@ -304,19 +304,19 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     const totalByCurrency: Record<string, number> = {};
     let total = 0;
     
-    (data || []).forEach((account) => {
-      const balance = account.balance || 0;
+    ((data as any[]) || []).forEach((account: any) => {
+      const balance = account?.balance || 0;
       
       // Sum by type
-      if (account.type in totalByType) {
+      if (account?.type in totalByType) {
         totalByType[account.type as AccountType] += balance;
       }
       
       // Sum by currency
-      if (!totalByCurrency[account.currency_code]) {
-        totalByCurrency[account.currency_code] = 0;
+      if (!totalByCurrency[account?.currency_code]) {
+        totalByCurrency[account?.currency_code] = 0;
       }
-      totalByCurrency[account.currency_code] += balance;
+      totalByCurrency[account?.currency_code] += balance;
       
       // Total sum
       total += balance;
@@ -343,9 +343,9 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async deleteMany(ids: string[]): Promise<void> {
     // Soft delete by setting active to false
-    const { error } = await supabase
-      .from('accounts')
-      .update({ active: false, updated_at: new Date().toISOString() })
+    const { error } = await (supabase
+      .from('accounts') as any)
+      .update({ active: false, updated_at: new Date().toISOString() } as any)
       .in('id', ids);
     
     if (error) {

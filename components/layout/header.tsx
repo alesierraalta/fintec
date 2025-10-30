@@ -45,7 +45,7 @@ export function Header() {
     } catch (error) {
       setTotalBalance(0);
     }
-  }, [user, repository, bcvRates]);
+  }, [user, repository, bcvRates, activeUsdVes]);
 
   const memoizedLoadNotifications = useCallback(async () => {
     if (!user) return;
