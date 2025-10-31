@@ -62,7 +62,17 @@ function CheckoutContent() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'No se pudo obtener datos de checkout');
+        const errorMessage = errorData.error || 'No se pudo obtener datos de checkout';
+        const errorDetails = errorData.details || '';
+        
+        // Log error for debugging
+        console.error('[Paddle Checkout] API error:', {
+          status: response.status,
+          error: errorMessage,
+          details: errorDetails,
+        });
+
+        throw new Error(errorMessage + (errorDetails ? `: ${errorDetails}` : ''));
       }
 
       const checkoutData = await response.json();
@@ -72,17 +82,82 @@ function CheckoutContent() {
         throw new Error('Paddle.js no está inicializado. Por favor espera un momento y vuelve a intentar.');
       }
 
-      // Abrir checkout usando la instancia de Paddle del hook
-      paddle.Checkout.open({
+      // Validate that we have required data
+      if (!checkoutData.priceId) {
+        throw new Error('Price ID no está disponible en la respuesta del servidor.');
+      }
+
+      // Prepare checkout payload
+      const checkoutPayload = {
         items: [{ priceId: checkoutData.priceId, quantity: 1 }],
-        customer: checkoutData.customer,
-        customData: checkoutData.customData,
+        ...(checkoutData.customer && { customer: checkoutData.customer }),
+        ...(checkoutData.customData && { customData: checkoutData.customData }),
         settings: {
-          successUrl: checkoutData.successUrl,
+          ...(checkoutData.successUrl && { successUrl: checkoutData.successUrl }),
+          ...(checkoutData.cancelUrl && { cancelUrl: checkoutData.cancelUrl }),
           allowDisplayNameOverwrite: true,
           allowMarketingConsent: false,
         },
+      };
+
+      // Log checkout attempt (without sensitive data)
+      console.log('[Paddle Checkout] Opening checkout:', {
+        priceId: checkoutData.priceId,
+        hasCustomer: !!checkoutData.customer,
+        hasCustomData: !!checkoutData.customData,
+        customDataKeys: checkoutData.customData ? Object.keys(checkoutData.customData) : [],
+        successUrl: checkoutData.successUrl,
+        cancelUrl: checkoutData.cancelUrl,
+        itemCount: checkoutPayload.items.length,
       });
+
+      // Validate checkout payload structure before opening
+      if (!checkoutPayload.items || checkoutPayload.items.length === 0) {
+        throw new Error('No items provided for checkout');
+      }
+
+      if (!checkoutPayload.items[0]?.priceId) {
+        throw new Error('Price ID is missing from checkout items');
+      }
+
+      // Abrir checkout usando la instancia de Paddle del hook
+      try {
+        paddle.Checkout.open(checkoutPayload);
+        
+        // Log successful checkout opening
+        console.log('[Paddle Checkout] Checkout opened successfully');
+        
+        // Don't set loading to false here - checkout is a modal that stays open
+      } catch (paddleError: any) {
+        // Enhanced error logging
+        console.error('[Paddle Checkout] Error opening checkout:', {
+          error: paddleError,
+          message: paddleError?.message,
+          stack: paddleError?.stack,
+          priceId: checkoutData.priceId,
+          payload: {
+            itemCount: checkoutPayload.items.length,
+            hasCustomer: !!checkoutPayload.customer,
+            hasCustomData: !!checkoutPayload.customData,
+            hasSettings: !!checkoutPayload.settings,
+          },
+        });
+
+        // Provide more specific error messages
+        let errorMessage = 'Error al abrir el checkout de Paddle.';
+        
+        if (paddleError?.message?.includes('price')) {
+          errorMessage = 'Error: Price ID inválido. Por favor contacta al soporte.';
+        } else if (paddleError?.message?.includes('network') || paddleError?.code === 'NETWORK_ERROR') {
+          errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e intenta de nuevo.';
+        } else if (paddleError?.message) {
+          errorMessage = `Error: ${paddleError.message}`;
+        } else {
+          errorMessage = 'Error al abrir el checkout. Por favor verifica la configuración o intenta de nuevo.';
+        }
+
+        throw new Error(errorMessage);
+      }
     } catch (error: any) {
       setError(error.message || 'Error al procesar el pago');
       setLoading(false);

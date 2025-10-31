@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getBaseCheckoutData, getPremiumCheckoutData, getCheckoutDataForTier } from '@/lib/paddle/checkout';
+import { getCheckoutDataForTier } from '@/lib/paddle/checkout';
+import { validatePriceId } from '@/lib/paddle/validate-prices';
 import { supabase } from '@/repositories/supabase/client';
 
 /**
@@ -59,16 +60,99 @@ export async function POST(request: NextRequest) {
     // Get checkout data for the tier
     const checkoutData = getCheckoutDataForTier(tier, email, userId);
 
+    // Validate Price ID before returning checkout data
+    // eslint-disable-next-line no-console
+    console.log('[Paddle Checkout API] Validating price ID:', {
+      priceId: checkoutData.priceId,
+      tier,
+      userId,
+      environment: process.env.PADDLE_ENVIRONMENT || 'sandbox',
+    });
+
+    const priceValidation = await validatePriceId(checkoutData.priceId);
+    
+    if (!priceValidation.isValid) {
+      // eslint-disable-next-line no-console
+      console.error('[Paddle Checkout API] Price ID validation failed:', {
+        priceId: checkoutData.priceId,
+        error: priceValidation.error,
+        exists: priceValidation.exists,
+        active: priceValidation.active,
+        priceData: priceValidation.priceData,
+        tier,
+        userId,
+      });
+
+      return NextResponse.json(
+        {
+          error: priceValidation.error || 'Price ID is not valid or active',
+          details: `Price ID ${checkoutData.priceId} validation failed. ${priceValidation.exists ? 'Price exists but is not active.' : 'Price not found.'}`,
+          priceId: checkoutData.priceId,
+        },
+        { status: 400 }
+      );
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[Paddle Checkout API] Price ID validated successfully:', {
+      priceId: checkoutData.priceId,
+      productId: priceValidation.priceData?.productId,
+      status: priceValidation.priceData?.status,
+      unitPrice: priceValidation.priceData?.unitPrice,
+      tier,
+      userId,
+    });
+
+    // Validate customData format (Paddle expects flat objects with string/number/boolean values)
+    if (checkoutData.customData) {
+      const customDataKeys = Object.keys(checkoutData.customData);
+      const invalidKeys = customDataKeys.filter(key => {
+        const value = checkoutData.customData![key];
+        return !['string', 'number', 'boolean'].includes(typeof value);
+      });
+
+      if (invalidKeys.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn('[Paddle Checkout API] Invalid customData types:', {
+          invalidKeys,
+          customData: checkoutData.customData,
+        });
+        // Don't fail, but log warning - Paddle will reject if truly invalid
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('[Paddle Checkout API] customData structure:', {
+        keys: customDataKeys,
+        hasUserId: 'user_id' in checkoutData.customData,
+      });
+    }
+
+    // eslint-disable-next-line no-console
+    console.log('[Paddle Checkout API] Returning checkout data:', {
+      priceId: checkoutData.priceId,
+      hasCustomData: !!checkoutData.customData,
+      hasCustomer: !!email,
+      successUrl: checkoutData.successUrl,
+      cancelUrl: checkoutData.cancelUrl,
+    });
+
     return NextResponse.json({
       ...checkoutData,
       // Include user info for prefill (if Paddle.js supports it)
       customer: email ? { email, name } : undefined,
     });
   } catch (error: any) {
+    // eslint-disable-next-line no-console
+    console.error('[Paddle Checkout API] Unexpected error:', {
+      error: error?.message,
+      stack: error?.stack,
+      body: error?.body,
+    });
+
     return NextResponse.json(
       { 
         error: error?.message || 'Failed to get checkout data',
-        details: error?.stack
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined,
       },
       { status: 500 }
     );

@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 
 /**
  * Paddle.js instance type
+ * Based on Paddle.js SDK documentation
  */
 declare global {
   interface Window {
@@ -19,7 +20,7 @@ declare global {
             email: string;
             name?: string;
           };
-          customData?: Record<string, any>;
+          customData?: Record<string, string | number | boolean>;
           settings?: {
             successUrl?: string;
             cancelUrl?: string;
@@ -27,9 +28,23 @@ declare global {
             allowMarketingConsent?: boolean;
           };
         }) => void;
+        close: () => void;
+      };
+      Spinner: {
+        hide: () => void;
+        show: () => void;
       };
     };
   }
+}
+
+/**
+ * Paddle Checkout error types
+ */
+export interface PaddleCheckoutError {
+  code?: string;
+  message: string;
+  type?: 'validation' | 'network' | 'api' | 'unknown';
 }
 
 interface UsePaddleReturn {
