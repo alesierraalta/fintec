@@ -115,129 +115,149 @@ export function TransactionDetailPanel({
   const formattedAmount = formatAmount(amount);
   const currencySymbol = getCurrencySymbol(transaction.currencyCode || 'USD');
 
-  // Mobile: Inline expansion
+  // Mobile: Full-screen modal overlay
+  // Uses fixed positioning with z-[60] to appear above all UI elements (sidebar: z-50, floating button: z-40)
+  // Includes backdrop for click-to-close and slide-in animation from bottom
   if (isMobile) {
     return (
-      <div className="bg-card/60 backdrop-blur-sm border-t border-border/20 p-4 space-y-4 animate-fade-in">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-muted/20 rounded-xl">
-              {getIcon(transaction.type)}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-foreground">
-                {getTypeLabel(transaction.type)}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {transaction.date}
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+      <div className="fixed inset-0 z-[60] flex flex-col">
+        {/* Backdrop - click to close */}
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+          onClick={onClose}
+          aria-hidden="true"
+        />
 
-        {/* Amount */}
-        <div className="text-center py-4">
-          <p className={`text-3xl font-bold ${getAmountColor(transaction.type)}`}>
-            {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}
-            {currencySymbol}{formattedAmount}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {transaction.currencyCode}
-          </p>
-        </div>
-
-        {/* Details */}
-        <div className="space-y-4">
-          {/* Description */}
-          <div>
-            <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Descripción
-            </h4>
-            <p className="text-foreground bg-card/40 rounded-lg p-3">
-              {transaction.description || 'Sin descripción'}
-            </p>
-          </div>
-
-          {/* Account & Category */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                <Building2 className="h-4 w-4 mr-2" />
-                Cuenta
-              </h4>
-              <p className="text-foreground bg-card/40 rounded-lg p-3">
-                {accountName}
-              </p>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                <Tag className="h-4 w-4 mr-2" />
-                Categoría
-              </h4>
-              <p className="text-foreground bg-card/40 rounded-lg p-3">
-                {categoryName}
-              </p>
-            </div>
-          </div>
-
-          {/* Note */}
-          {transaction.note && (
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                <FileText className="h-4 w-4 mr-2" />
-                Nota
-              </h4>
-              <p className="text-foreground bg-card/40 rounded-lg p-3">
-                {transaction.note}
-              </p>
-            </div>
-          )}
-
-          {/* Tags */}
-          {transaction.tags && transaction.tags.length > 0 && (
-            <div>
-              <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                <Tag className="h-4 w-4 mr-2" />
-                Etiquetas
-              </h4>
-              <div className="flex flex-wrap gap-2">
-                {transaction.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-3 py-1 bg-primary/20 text-primary text-sm rounded-full"
-                  >
-                    {tag}
-                  </span>
-                ))}
+        {/* Modal Panel - full screen with iOS-style rounded top corners */}
+        <div className="relative flex-1 mt-auto bg-card/90 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-border/40 overflow-hidden flex flex-col animate-fade-in">
+          {/* Header */}
+          <div className="p-6 border-b border-border/20 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-muted/20 rounded-xl">
+                  {getIcon(transaction.type)}
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {getTypeLabel(transaction.type)}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {transaction.date}
+                  </p>
+                </div>
               </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/20"
+                aria-label="Cerrar"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Actions */}
-        <div className="flex space-x-3 pt-4 border-t border-border/20">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-          >
-            Cerrar
-          </Button>
-          <Button
-            onClick={() => onEdit(transaction)}
-            className="flex-1 bg-primary hover:bg-primary/90"
-          >
-            <Edit className="h-4 w-4 mr-2" />
-            Editar
-          </Button>
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {/* Amount */}
+            <div className="text-center py-4">
+              <p className={`text-3xl font-bold ${getAmountColor(transaction.type)}`}>
+                {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}
+                {currencySymbol}{formattedAmount}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {transaction.currencyCode}
+              </p>
+            </div>
+
+            {/* Details */}
+            <div className="space-y-4">
+              {/* Description */}
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Descripción
+                </h4>
+                <p className="text-foreground bg-card/40 rounded-lg p-3">
+                  {transaction.description || 'Sin descripción'}
+                </p>
+              </div>
+
+              {/* Account & Category */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Cuenta
+                  </h4>
+                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                    {accountName}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                    <Tag className="h-4 w-4 mr-2" />
+                    Categoría
+                  </h4>
+                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                    {categoryName}
+                  </p>
+                </div>
+              </div>
+
+              {/* Note */}
+              {transaction.note && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    Nota
+                  </h4>
+                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                    {transaction.note}
+                  </p>
+                </div>
+              )}
+
+              {/* Tags */}
+              {transaction.tags && transaction.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
+                    <Tag className="h-4 w-4 mr-2" />
+                    Etiquetas
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {transaction.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="px-3 py-1 bg-primary/20 text-primary text-sm rounded-full"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Actions Footer - fixed at bottom */}
+          <div className="p-6 border-t border-border/20 flex-shrink-0">
+            <div className="flex space-x-3">
+              <Button
+                variant="outline"
+                onClick={onClose}
+                className="flex-1"
+              >
+                Cerrar
+              </Button>
+              <Button
+                onClick={() => onEdit(transaction)}
+                className="flex-1 bg-primary hover:bg-primary/90"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Editar
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     );
