@@ -5,7 +5,7 @@
  * antes de permitir acciones en el backend.
  */
 
-import { getUserTier, getUserUsage } from '@/lib/lemonsqueezy/subscriptions';
+import { getUserTier, getUserUsage } from '@/lib/paddle/subscriptions';
 import { TIER_LIMITS } from '@/types/subscription';
 
 export interface LimitCheckResult {

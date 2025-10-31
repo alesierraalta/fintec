@@ -175,8 +175,8 @@ export function useManageSubscription() {
       if (subscription?.customerPortalUrl) {
         window.location.href = subscription.customerPortalUrl;
       } else {
-        // Fallback: redirect to Lemon Squeezy general portal
-        window.open('https://app.lemonsqueezy.com/my-orders', '_blank');
+        // Fallback: redirect to Paddle customer portal
+        window.open('https://my.paddle.com', '_blank');
       }
     } catch (error: any) {
       setError(error.message || 'Failed to open customer portal');

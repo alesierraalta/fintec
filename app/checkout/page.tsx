@@ -45,7 +45,7 @@ function CheckoutContent() {
 
     try {
       
-      const response = await fetch('/api/lemonsqueezy/checkout', {
+      const response = await fetch('/api/paddle/checkout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,19 +58,28 @@ function CheckoutContent() {
         }),
       });
 
-
       if (!response.ok) {
         const errorData = await response.json();
-          throw new Error(errorData.error || 'No se pudo crear la sesión de pago');
+        throw new Error(errorData.error || 'No se pudo obtener datos de checkout');
       }
 
-      const { url } = await response.json();
+      const checkoutData = await response.json();
 
-      if (url) {
-        // Redirect to Lemon Squeezy checkout
-        window.location.href = url;
+      // Use Paddle.js to open checkout
+      // Paddle.js must be loaded in the page (add to layout or use script tag)
+      if (typeof window !== 'undefined' && (window as any).Paddle) {
+        (window as any).Paddle.Checkout.open({
+          items: [{ priceId: checkoutData.priceId, quantity: 1 }],
+          customer: checkoutData.customer,
+          customData: checkoutData.customData,
+          settings: {
+            successUrl: checkoutData.successUrl,
+            allowDisplayNameOverwrite: true,
+            allowMarketingConsent: false,
+          },
+        });
       } else {
-        throw new Error('No se recibió URL de pago');
+        throw new Error('Paddle.js no está cargado. Por favor recarga la página.');
       }
     } catch (error: any) {
       setError(error.message || 'Error al procesar el pago');

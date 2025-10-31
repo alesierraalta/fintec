@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/lemonsqueezy/subscriptions';
+import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/paddle/subscriptions';
 import { TIER_LIMITS } from '@/types/subscription';
 
 export async function GET(request: NextRequest) {

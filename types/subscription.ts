@@ -14,9 +14,9 @@ export interface Subscription {
   userId: string;
   tier: SubscriptionTier;
   status: SubscriptionStatus;
-  lemonSqueezySubscriptionId?: string;
-  lemonSqueezyCustomerId?: string;
-  lemonSqueezyOrderId?: string;
+  paddleSubscriptionId?: string;
+  paddleCustomerId?: string;
+  paddleTransactionId?: string;
   customerPortalUrl?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;

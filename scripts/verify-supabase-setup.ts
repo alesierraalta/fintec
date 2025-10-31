@@ -144,29 +144,33 @@ async function checkExchangeRates() {
   }
 }
 
-async function checkLemonSqueezyConfig() {
-  console.log('\n🔧 Verificando configuración de Lemon Squeezy...');
+async function checkPaddleConfig() {
+  console.log('\n🔧 Verificando configuración de Paddle...');
   
-  const lemonSqueezyEnvVars = [
-    'LEMONSQUEEZY_API_KEY',
-    'LEMONSQUEEZY_STORE_ID',
-    'LEMONSQUEEZY_WEBHOOK_SECRET',
+  const paddleEnvVars = [
+    'PADDLE_API_KEY',
+    'PADDLE_WEBHOOK_SECRET',
+    'PADDLE_PRODUCT_ID_BASE',
+    'PADDLE_PRODUCT_ID_PREMIUM',
+    'PADDLE_PRICE_ID_BASE',
+    'PADDLE_PRICE_ID_PREMIUM',
+    'NEXT_PUBLIC_PADDLE_VENDOR_ID',
   ];
 
   let missingVars: string[] = [];
   
-  for (const varName of lemonSqueezyEnvVars) {
+  for (const varName of paddleEnvVars) {
     if (!process.env[varName]) {
       missingVars.push(varName);
     }
   }
 
   if (missingVars.length === 0) {
-    addResult('Lemon Squeezy Config', 'OK', 'Todas las variables de Lemon Squeezy configuradas');
-  } else if (missingVars.length === lemonSqueezyEnvVars.length) {
-    addResult('Lemon Squeezy Config', 'WARNING', 'Lemon Squeezy no configurado (ver docs/LEMON_SQUEEZY_PRICING_INTEGRATION.md)', { missingVars });
+    addResult('Paddle Config', 'OK', 'Todas las variables de Paddle configuradas');
+  } else if (missingVars.length === paddleEnvVars.length) {
+    addResult('Paddle Config', 'WARNING', 'Paddle no configurado - configura las variables de entorno', { missingVars });
   } else {
-    addResult('Lemon Squeezy Config', 'ERROR', `Faltan variables de Lemon Squeezy: ${missingVars.join(', ')}`, { missingVars });
+    addResult('Paddle Config', 'ERROR', `Faltan variables de Paddle: ${missingVars.join(', ')}`, { missingVars });
   }
 }
 
@@ -201,7 +205,7 @@ async function printResults() {
   if (!hasErrors && !hasWarnings) {
     console.log('\n✅ ¡TODO PERFECTO! La base de datos está completamente configurada.');
     console.log('\n📋 Próximos pasos:');
-    console.log('   1. Configurar Lemon Squeezy (ver docs/LEMON_SQUEEZY_PRICING_INTEGRATION.md)');
+    console.log('   1. Configurar Paddle (crear productos y precios en dashboard, configurar variables de entorno)');
     console.log('   2. Iniciar el servidor: npm run dev');
     console.log('   3. Registrar tu primer usuario');
   } else if (hasErrors) {
@@ -210,7 +214,7 @@ async function printResults() {
   } else {
     console.log('\n⚠️  HAY ADVERTENCIAS (warnings).');
     console.log('   La mayoría son normales para una DB nueva.');
-    console.log('   Revisa que Lemon Squeezy esté configurado si quieres usar suscripciones.');
+    console.log('   Revisa que Paddle esté configurado si quieres usar suscripciones.');
   }
 
   console.log('\n' + '='.repeat(80) + '\n');
@@ -227,7 +231,7 @@ async function main() {
   await checkRLS();
   await checkSubscriptionFields();
   await checkExchangeRates();
-  await checkLemonSqueezyConfig();
+    await checkPaddleConfig();
   
   await printResults();
 

@@ -4,7 +4,7 @@ import { Check, Zap, AlertCircle } from 'lucide-react';
 import { TIER_FEATURES, SubscriptionTier } from '@/types/subscription';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useLemonSqueezyProducts } from '@/hooks/use-lemon-squeezy-products';
+import { usePaddleProducts } from '@/hooks/use-paddle-products';
 import { Loading } from '@/components/ui/loading';
 
 interface PricingCardsProps {
@@ -14,43 +14,44 @@ interface PricingCardsProps {
 }
 
 export function PricingCards({ currentTier = 'free', onSelectTier, loading }: PricingCardsProps) {
-  const { products, loading: productsLoading, error } = useLemonSqueezyProducts();
+  const { products, loading: productsLoading, error } = usePaddleProducts();
 
-  // Map Lemon Squeezy products to tiers
+  // Map Paddle products to tiers
   const getTierData = (tier: SubscriptionTier) => {
     // For free tier, always use static data
     if (tier === 'free') {
       return TIER_FEATURES.free;
     }
 
-    // Find matching product from Lemon Squeezy
+    // Find matching product from Paddle
     const product = products.find((p) => {
-      const slug = p.attributes.slug.toLowerCase();
+      const name = p.name.toLowerCase();
       if (tier === 'base') {
-        return slug.includes('full') || slug.includes('base');
+        return name.includes('base') || name.includes('full');
       }
       if (tier === 'premium') {
-        return slug.includes('premium') || slug.includes('ia');
+        return name.includes('premium') || name.includes('ia');
       }
       return false;
     });
 
-    // If we have a product from Lemon Squeezy, merge with static features
-    if (product && product.variants && product.variants.length > 0) {
-      const variant = product.variants[0];
+    // If we have a product from Paddle, merge with static features
+    if (product && product.prices && product.prices.length > 0) {
+      const price = product.prices[0]; // Use first price
       const staticData = TIER_FEATURES[tier];
+      const priceAmount = price.unit_price?.amount ? parseInt(price.unit_price.amount) : staticData.price;
 
       return {
         ...staticData,
-        name: product.attributes.name,
-        price: variant.attributes.price,
-        interval: variant.attributes.interval,
+        name: product.name,
+        price: priceAmount,
+        interval: price.billing_cycle?.interval === 'year' ? 'year' : 'month',
         // Keep the static features as they are more detailed
         features: staticData.features,
       };
     }
 
-    // Fallback to static data if Lemon Squeezy data not available
+    // Fallback to static data if Paddle data not available
     return TIER_FEATURES[tier];
   };
 

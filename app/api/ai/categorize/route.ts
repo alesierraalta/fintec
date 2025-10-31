@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { categorizeTransaction, batchCategorizeTransactions } from '@/lib/ai/categorization';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
-import { incrementUsage } from '@/lib/lemonsqueezy/subscriptions';
+import { incrementUsage } from '@/lib/paddle/subscriptions';
 
 export async function POST(request: NextRequest) {
   try {

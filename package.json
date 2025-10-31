@@ -26,6 +26,7 @@
     "@fontsource/inter": "^5.2.8",
     "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^5.2.2",
+    "@paddle/paddle-node-sdk": "^3.3.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.75.1",
     "@tanstack/react-query": "^5.90.5",
@@ -72,6 +73,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@paddle/paddle-mcp": "^0.1.2",
     "@playwright/test": "^1.56.1",
     "@tailwindcss/forms": "^0.5.10",
     "@testing-library/jest-dom": "^6.9.1",

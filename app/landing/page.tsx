@@ -346,6 +346,15 @@ export default function LandingPage() {
             </div>
             
             <div className="text-muted-foreground text-center md:text-right">
+              <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-end justify-center md:justify-end mb-3">
+                <Link href="/terms" className="text-sm hover:text-foreground transition-colors">
+                  Términos de Servicio
+                </Link>
+                <span className="hidden md:inline text-muted-foreground/50">•</span>
+                <Link href="/privacy" className="text-sm hover:text-foreground transition-colors">
+                  Política de Privacidad
+                </Link>
+              </div>
               <p>&copy; 2024 FinTec. Todos los derechos reservados.</p>
               <p className="text-sm mt-1">Tasas actualizadas en tiempo real desde fuentes oficiales</p>
             </div>

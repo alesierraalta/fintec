@@ -1,5 +1,5 @@
 import { SubscriptionTier, Feature, TIER_LIMITS, FEATURE_ACCESS } from '@/types/subscription';
-import { getUserTier, getUserUsage, incrementUsage } from '@/lib/lemonsqueezy/subscriptions';
+import { getUserTier, getUserUsage, incrementUsage } from '@/lib/paddle/subscriptions';
 import { hasFeatureAccess, isWithinLimit } from './limits';
 
 export interface FeatureCheckResult {

@@ -1,7 +1,7 @@
 /**
- * Lemon Squeezy Subscription Management
+ * Paddle Subscription Management
  * 
- * This module provides subscription management functionality using Lemon Squeezy.
+ * This module provides subscription management functionality using Paddle.
  */
 
 import { supabase } from '@/repositories/supabase/client';
@@ -132,9 +132,9 @@ export async function getSubscriptionByUserId(userId: string) {
     userId: d.user_id,
     tier: d.tier as SubscriptionTier,
     status: d.status,
-    lemonSqueezySubscriptionId: d.lemonsqueezy_subscription_id,
-    lemonSqueezyCustomerId: d.lemonsqueezy_customer_id,
-    lemonSqueezyOrderId: d.lemonsqueezy_order_id,
+    paddleSubscriptionId: d.paddle_subscription_id,
+    paddleCustomerId: d.paddle_customer_id,
+    paddleTransactionId: d.paddle_transaction_id,
     customerPortalUrl: d.customer_portal_url,
     currentPeriodStart: d.current_period_start,
     currentPeriodEnd: d.current_period_end,
@@ -146,15 +146,15 @@ export async function getSubscriptionByUserId(userId: string) {
 }
 
 /**
- * Create or update subscription from Lemon Squeezy webhook
+ * Create or update subscription from Paddle webhook
  */
 export async function upsertSubscription(subscriptionData: {
   userId: string;
   tier: SubscriptionTier;
   status: string;
-  lemonSqueezySubscriptionId?: string;
-  lemonSqueezyCustomerId?: string;
-  lemonSqueezyOrderId?: string;
+  paddleSubscriptionId?: string;
+  paddleCustomerId?: string;
+  paddleTransactionId?: string;
   customerPortalUrl?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
@@ -171,9 +171,9 @@ export async function upsertSubscription(subscriptionData: {
       .update({
         tier: subscriptionData.tier,
         status: subscriptionData.status,
-        lemonsqueezy_subscription_id: subscriptionData.lemonSqueezySubscriptionId,
-        lemonsqueezy_customer_id: subscriptionData.lemonSqueezyCustomerId,
-        lemonsqueezy_order_id: subscriptionData.lemonSqueezyOrderId,
+        paddle_subscription_id: subscriptionData.paddleSubscriptionId,
+        paddle_customer_id: subscriptionData.paddleCustomerId,
+        paddle_transaction_id: subscriptionData.paddleTransactionId,
         customer_portal_url: subscriptionData.customerPortalUrl,
         current_period_start: subscriptionData.currentPeriodStart,
         current_period_end: subscriptionData.currentPeriodEnd,
@@ -191,9 +191,9 @@ export async function upsertSubscription(subscriptionData: {
         user_id: subscriptionData.userId,
         tier: subscriptionData.tier,
         status: subscriptionData.status,
-        lemonsqueezy_subscription_id: subscriptionData.lemonSqueezySubscriptionId,
-        lemonsqueezy_customer_id: subscriptionData.lemonSqueezyCustomerId,
-        lemonsqueezy_order_id: subscriptionData.lemonSqueezyOrderId,
+        paddle_subscription_id: subscriptionData.paddleSubscriptionId,
+        paddle_customer_id: subscriptionData.paddleCustomerId,
+        paddle_transaction_id: subscriptionData.paddleTransactionId,
         customer_portal_url: subscriptionData.customerPortalUrl,
         current_period_start: subscriptionData.currentPeriodStart,
         current_period_end: subscriptionData.currentPeriodEnd,
