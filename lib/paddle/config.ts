@@ -7,13 +7,17 @@
  * - Merchant of Record handling taxes and compliance
  */
 
-import { Paddle } from '@paddle/paddle-node-sdk';
+import { Paddle, Environment } from '@paddle/paddle-node-sdk';
 
 // Initialize Paddle client
+const paddleEnvironment: Environment = process.env.PADDLE_ENVIRONMENT === 'sandbox' 
+  ? Environment.sandbox 
+  : Environment.production;
+
 export const paddleClient = new Paddle(
   process.env.PADDLE_API_KEY || '',
   {
-    environment: process.env.PADDLE_ENVIRONMENT === 'sandbox' ? 'sandbox' : 'production',
+    environment: paddleEnvironment,
   }
 );
 

@@ -163,7 +163,7 @@ export default function PrivacyPage() {
               <ul className="list-disc list-inside space-y-2 text-foreground/90 ml-4">
                 <li><strong>Acceso:</strong> Solicitar una copia de tus datos personales</li>
                 <li><strong>Rectificación:</strong> Corregir datos inexactos o incompletos</li>
-                <li><strong>Eliminación:</strong> Solicitar la eliminación de tus datos ("derecho al olvido")</li>
+                <li><strong>Eliminación:</strong> Solicitar la eliminación de tus datos (&quot;derecho al olvido&quot;)</li>
                 <li><strong>Portabilidad:</strong> Recibir tus datos en un formato estructurado y portátil</li>
                 <li><strong>Oposición:</strong> Oponerte al procesamiento de tus datos en ciertas circunstancias</li>
                 <li><strong>Limitación:</strong> Solicitar la restricción del procesamiento de tus datos</li>
@@ -215,7 +215,7 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-semibold mb-4">11. Cambios a esta Política</h2>
               <p className="text-foreground/90 leading-relaxed">
                 Podemos actualizar esta Política de Privacidad periódicamente. Te notificaremos sobre cambios materiales 
-                publicando la nueva política en esta página y actualizando la fecha de "Última actualización". Te 
+                publicando la nueva política en esta página y actualizando la fecha de &quot;Última actualización&quot;. Te 
                 recomendamos revisar esta política regularmente para mantenerte informado sobre cómo protegemos tu información.
               </p>
             </div>

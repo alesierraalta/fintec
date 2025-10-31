@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
             }
             return { ...product, prices: [] };
           } catch (priceError) {
+            // eslint-disable-next-line no-console
             console.error(
               `Error fetching prices for product ${product.id}:`,
               priceError

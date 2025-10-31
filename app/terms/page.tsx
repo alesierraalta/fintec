@@ -143,7 +143,7 @@ export default function TermsPage() {
             <div>
               <h2 className="text-2xl font-semibold mb-4">8. Limitación de Responsabilidad</h2>
               <p className="text-foreground/90 leading-relaxed mb-3">
-                FinTec se proporciona "tal cual" y "según disponibilidad". No garantizamos que el servicio será:
+                FinTec se proporciona &quot;tal cual&quot; y &quot;según disponibilidad&quot;. No garantizamos que el servicio será:
               </p>
               <ul className="list-disc list-inside space-y-2 text-foreground/90 ml-4">
                 <li>Ininterrumpido, seguro o libre de errores</li>

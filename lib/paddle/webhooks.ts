@@ -125,6 +125,7 @@ export async function handlePaddleWebhook(
   const userId = data.custom_data?.user_id;
   
   if (!userId) {
+    // eslint-disable-next-line no-console
     console.warn('[Paddle Webhook] No user_id in custom_data, skipping');
     return;
   }
@@ -161,6 +162,7 @@ export async function handlePaddleWebhook(
       break;
       
     default:
+      // eslint-disable-next-line no-console
       console.log(`[Paddle Webhook] Unhandled event type: ${event_type}`);
   }
 }

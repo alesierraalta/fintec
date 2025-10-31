@@ -45,7 +45,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
         ...staticData,
         name: product.name,
         price: priceAmount,
-        interval: price.billing_cycle?.interval === 'year' ? 'year' : 'month',
+        interval: (price.billing_cycle?.interval === 'year' ? 'year' : 'month') as 'month' | 'year',
         // Keep the static features as they are more detailed
         features: staticData.features,
       };
@@ -55,7 +55,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
     return TIER_FEATURES[tier];
   };
 
-  const tiers: Array<{ key: SubscriptionTier; data: typeof TIER_FEATURES.free }> = [
+  const tiers: Array<{ key: SubscriptionTier; data: ReturnType<typeof getTierData> }> = [
     { key: 'free', data: getTierData('free') },
     { key: 'base', data: getTierData('base') },
     { key: 'premium', data: getTierData('premium') },
