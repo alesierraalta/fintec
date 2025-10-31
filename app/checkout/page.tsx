@@ -9,7 +9,24 @@ import { CheckCircle, Loader2, ArrowLeft, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { TIER_FEATURES, type SubscriptionTier } from '@/types/subscription';
 import { usePaddle } from '@/hooks/use-paddle';
+import { paddleLogger } from '@/lib/paddle/logger';
+import {
+  getUserErrorMessage,
+  getErrorCodeFromPaddleError,
+  PaddleErrorCode,
+} from '@/lib/paddle/errors';
 
+/**
+ * Main checkout page content component
+ * 
+ * Handles the checkout flow for subscription plans:
+ * - Validates tier parameter from URL
+ * - Ensures user is authenticated
+ * - Fetches checkout data from API
+ * - Opens Paddle checkout modal
+ * 
+ * @component
+ */
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,26 +36,58 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Validate tier parameter and user authentication
+   * 
+   * Validates that:
+   * - Tier parameter is valid ('base' or 'premium')
+   * - User is authenticated
+   * Redirects to login if user is not authenticated.
+   */
   useEffect(() => {
     const tierParam = searchParams.get('tier') as 'base' | 'premium' | null;
     
     if (!tierParam || (tierParam !== 'base' && tierParam !== 'premium')) {
-      setError('Plan no válido');
+      const errorMessage = getUserErrorMessage(PaddleErrorCode.TIER_INVALID);
+      setError(errorMessage);
+      paddleLogger.warn('Checkout Page', 'Invalid tier parameter', { tierParam });
       return;
     }
 
     if (!user?.id) {
-      // Redirect to login with return URL
-      router.push(`/auth/login?returnTo=/checkout?tier=${tierParam}`);
+      // Redirect to login with return URL to preserve tier selection
+      const returnUrl = `/checkout?tier=${tierParam}`;
+      paddleLogger.debug('Checkout Page', 'User not authenticated, redirecting to login', {
+        returnUrl,
+        tier: tierParam,
+      });
+      router.push(`/auth/login?returnTo=${encodeURIComponent(returnUrl)}`);
       return;
     }
 
+    paddleLogger.debug('Checkout Page', 'Checkout initialized', {
+      tier: tierParam,
+      userId: user.id,
+    });
     setTier(tierParam);
   }, [searchParams, user, router]);
 
-  const handleProceedToPayment = async () => {
+  /**
+   * Handle checkout initiation
+   * 
+   * Fetches checkout data from API and opens Paddle checkout modal.
+   * Handles errors with user-friendly messages in Spanish.
+   * 
+   * @throws Error if checkout data cannot be fetched or checkout cannot be opened
+   */
+  const handleProceedToPayment = async (): Promise<void> => {
     if (!user?.id || !tier) {
-      setError('Usuario o plan no válido');
+      const errorMessage = getUserErrorMessage(PaddleErrorCode.USER_ID_MISSING);
+      setError(errorMessage);
+      paddleLogger.warn('Checkout Page', 'Missing required data for checkout', {
+        hasUserId: !!user?.id,
+        hasTier: !!tier,
+      });
       return;
     }
 
@@ -46,7 +95,12 @@ function CheckoutContent() {
     setError(null);
 
     try {
-      
+      paddleLogger.debug('Checkout Page', 'Fetching checkout data', {
+        userId: user.id,
+        tier,
+        userEmail: user.email,
+      });
+
       const response = await fetch('/api/paddle/checkout', {
         method: 'POST',
         headers: {
@@ -62,14 +116,15 @@ function CheckoutContent() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        const errorMessage = errorData.error || 'No se pudo obtener datos de checkout';
+        const errorMessage = errorData.error || getUserErrorMessage(PaddleErrorCode.API_ERROR);
         const errorDetails = errorData.details || '';
         
-        // Log error for debugging
-        console.error('[Paddle Checkout] API error:', {
+        paddleLogger.error('Checkout Page', 'API request failed', {
           status: response.status,
           error: errorMessage,
           details: errorDetails,
+          tier,
+          userId: user.id,
         });
 
         throw new Error(errorMessage + (errorDetails ? `: ${errorDetails}` : ''));
@@ -77,37 +132,46 @@ function CheckoutContent() {
 
       const checkoutData = await response.json();
 
-      // Verificar que Paddle esté inicializado y listo
+      // Verify Paddle is initialized and ready
       if (!isPaddleReady || !paddle) {
-        throw new Error('Paddle.js no está inicializado. Por favor espera un momento y vuelve a intentar.');
+        const errorMessage = getUserErrorMessage(PaddleErrorCode.PADDLE_NOT_INITIALIZED);
+        paddleLogger.error('Checkout Page', 'Paddle not initialized when attempting checkout', {
+          isPaddleReady,
+          hasPaddle: !!paddle,
+        });
+        throw new Error(errorMessage);
       }
 
       // Validate that we have required data
       if (!checkoutData.priceId) {
-        throw new Error('Price ID no está disponible en la respuesta del servidor.');
+        const errorMessage = getUserErrorMessage(PaddleErrorCode.PRICE_ID_INVALID);
+        paddleLogger.error('Checkout Page', 'Price ID missing from checkout data', {
+          checkoutDataKeys: Object.keys(checkoutData),
+        });
+        throw new Error(errorMessage);
       }
 
       // Validate environment match if provided by server
+      // This prevents E-403 errors from environment mismatches
       if (checkoutData._metadata?.environment) {
         const clientEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox';
         const serverEnvironment = checkoutData._metadata.environment;
         
         if (clientEnvironment !== serverEnvironment) {
-          // eslint-disable-next-line no-console
-          console.error('[Paddle Checkout] Environment mismatch:', {
+          paddleLogger.error('Checkout Page', 'Environment mismatch detected', {
             clientEnvironment,
             serverEnvironment,
             priceId: checkoutData.priceId,
           });
           
-          throw new Error(
-            `Error de configuración: El entorno del cliente (${clientEnvironment}) no coincide con el del servidor (${serverEnvironment}). ` +
-            'Esto puede causar errores E-403. Por favor contacta al soporte.'
-          );
+          const errorMessage = getUserErrorMessage(PaddleErrorCode.ENVIRONMENT_MISMATCH, {
+            clientEnvironment,
+            serverEnvironment,
+          });
+          throw new Error(errorMessage);
         }
         
-        // eslint-disable-next-line no-console
-        console.log('[Paddle Checkout] Environment validated:', {
+        paddleLogger.debug('Checkout Page', 'Environment validated successfully', {
           environment: clientEnvironment,
           priceId: checkoutData.priceId,
         });
@@ -127,7 +191,7 @@ function CheckoutContent() {
       };
 
       // Log checkout attempt (without sensitive data)
-      console.log('[Paddle Checkout] Opening checkout:', {
+      paddleLogger.info('Checkout Page', 'Opening checkout', {
         priceId: checkoutData.priceId,
         hasCustomer: !!checkoutData.customer,
         hasCustomData: !!checkoutData.customData,
@@ -139,27 +203,37 @@ function CheckoutContent() {
 
       // Validate checkout payload structure before opening
       if (!checkoutPayload.items || checkoutPayload.items.length === 0) {
-        throw new Error('No items provided for checkout');
+        const errorMessage = getUserErrorMessage(PaddleErrorCode.PRICE_ID_INVALID);
+        paddleLogger.error('Checkout Page', 'No items in checkout payload');
+        throw new Error(errorMessage);
       }
 
       if (!checkoutPayload.items[0]?.priceId) {
-        throw new Error('Price ID is missing from checkout items');
+        const errorMessage = getUserErrorMessage(PaddleErrorCode.PRICE_ID_INVALID);
+        paddleLogger.error('Checkout Page', 'Price ID missing from checkout items');
+        throw new Error(errorMessage);
       }
 
-      // Abrir checkout usando la instancia de Paddle del hook
+      // Open checkout using Paddle instance from hook
       try {
         paddle.Checkout.open(checkoutPayload);
         
-        // Log successful checkout opening
-        console.log('[Paddle Checkout] Checkout opened successfully');
+        paddleLogger.info('Checkout Page', 'Checkout opened successfully', {
+          priceId: checkoutData.priceId,
+        });
         
         // Don't set loading to false here - checkout is a modal that stays open
-      } catch (paddleError: any) {
-        // Enhanced error logging
-        console.error('[Paddle Checkout] Error opening checkout:', {
+      } catch (paddleError: unknown) {
+        // Determine error code from Paddle error
+        const errorCode = getErrorCodeFromPaddleError(paddleError);
+        
+        // Enhanced error logging with structured data
+        paddleLogger.error('Checkout Page', 'Failed to open checkout', {
+          errorCode,
           error: paddleError,
-          message: paddleError?.message,
-          stack: paddleError?.stack,
+          message: paddleError && typeof paddleError === 'object' && 'message' in paddleError
+            ? String(paddleError.message)
+            : String(paddleError),
           priceId: checkoutData.priceId,
           payload: {
             itemCount: checkoutPayload.items.length,
@@ -167,42 +241,31 @@ function CheckoutContent() {
             hasCustomData: !!checkoutPayload.customData,
             hasSettings: !!checkoutPayload.settings,
           },
+          clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+          serverEnvironment: checkoutData._metadata?.environment,
         });
 
-        // Provide more specific error messages
-        let errorMessage = 'Error al abrir el checkout de Paddle.';
-        
-        // Handle specific Paddle error codes
-        if (paddleError?.code === 'E-403' || paddleError?.message?.includes('E-403') || paddleError?.message?.includes('403')) {
-          errorMessage = 
-            'Error de autenticación (E-403). Esto generalmente ocurre cuando:\n' +
-            '1. El Price ID no pertenece al Vendor ID configurado\n' +
-            '2. Hay un mismatch entre los entornos sandbox y production\n' +
-            '3. El Vendor ID no tiene permisos para acceder al Price ID\n\n' +
-            'Por favor verifica la configuración o contacta al soporte.';
-          
-          // eslint-disable-next-line no-console
-          console.error('[Paddle Checkout] E-403 Error details:', {
-            priceId: checkoutData.priceId,
-            clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
-            serverEnvironment: checkoutData._metadata?.environment,
-            hasVendorId: !!process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID,
-            paddleError: paddleError,
-          });
-        } else if (paddleError?.message?.includes('price')) {
-          errorMessage = 'Error: Price ID inválido. Por favor contacta al soporte.';
-        } else if (paddleError?.message?.includes('network') || paddleError?.code === 'NETWORK_ERROR') {
-          errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e intenta de nuevo.';
-        } else if (paddleError?.message) {
-          errorMessage = `Error: ${paddleError.message}`;
-        } else {
-          errorMessage = 'Error al abrir el checkout. Por favor verifica la configuración o intenta de nuevo.';
-        }
+        // Get user-friendly error message (Spanish)
+        const errorMessage = getUserErrorMessage(errorCode, {
+          priceId: checkoutData.priceId,
+          clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+          serverEnvironment: checkoutData._metadata?.environment,
+        });
 
         throw new Error(errorMessage);
       }
-    } catch (error: any) {
-      setError(error.message || 'Error al procesar el pago');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error
+        ? error.message
+        : getUserErrorMessage(PaddleErrorCode.UNKNOWN_ERROR);
+      
+      paddleLogger.error('Checkout Page', 'Checkout process failed', {
+        error: error instanceof Error ? error.message : String(error),
+        tier,
+        userId: user?.id,
+      });
+      
+      setError(errorMessage);
       setLoading(false);
     }
   };

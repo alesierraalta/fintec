@@ -1,10 +1,18 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { paddleLogger } from '@/lib/paddle/logger';
+import { getUserErrorMessage, PaddleErrorCode } from '@/lib/paddle/errors';
 
 /**
- * Paddle.js instance type
- * Based on Paddle.js SDK documentation
+ * Paddle.js instance type definitions
+ * 
+ * Based on Paddle.js v2 SDK documentation.
+ * 
+ * Note: In Paddle.js v2, environment is controlled by the script URL:
+ * - paddle.sandbox.js for sandbox environment
+ * - paddle.js for production environment
+ * Initialize() only accepts token, not environment parameter.
  */
 declare global {
   interface Window {
@@ -41,6 +49,8 @@ declare global {
 
 /**
  * Paddle Checkout error types
+ * 
+ * @deprecated Use PaddleErrorCode and getUserErrorMessage from '@/lib/paddle/errors' instead
  */
 export interface PaddleCheckoutError {
   code?: string;
@@ -48,18 +58,41 @@ export interface PaddleCheckoutError {
   type?: 'validation' | 'network' | 'api' | 'unknown';
 }
 
+/**
+ * Return type for usePaddle hook
+ */
 interface UsePaddleReturn {
+  /** Paddle.js instance when initialized */
   paddle: typeof window.Paddle | null;
+  /** Whether Paddle is ready to use */
   isReady: boolean;
+  /** Whether Paddle is currently loading */
   isLoading: boolean;
+  /** Error message (in Spanish for user display) or null if no error */
   error: string | null;
 }
 
 /**
- * Hook para inicializar y usar Paddle.js
+ * Hook to initialize and use Paddle.js
  * 
- * Maneja la carga del script de Paddle.js y su inicialización.
- * Retorna el estado de carga y la instancia de Paddle cuando está lista.
+ * Manages the loading of Paddle.js script and its initialization.
+ * Handles automatic initialization via script data-paddle-vendor-id attribute
+ * and manual initialization via Paddle.Initialize().
+ * 
+ * Features:
+ * - Automatic script loading detection
+ * - Retry mechanism (up to 10 seconds)
+ * - Vendor ID validation
+ * - Error handling with user-friendly messages
+ * 
+ * @returns UsePaddleReturn object with Paddle instance and state
+ * 
+ * @example
+ * const { paddle, isReady, isLoading, error } = usePaddle();
+ * 
+ * if (isReady && paddle) {
+ *   paddle.Checkout.open({ items: [{ priceId: '...', quantity: 1 }] });
+ * }
  */
 export function usePaddle(): UsePaddleReturn {
   const [paddle, setPaddle] = useState<typeof window.Paddle | null>(null);
@@ -82,22 +115,32 @@ export function usePaddle(): UsePaddleReturn {
     const environment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox';
 
     if (!vendorId) {
-      setError('PADDLE_VENDOR_ID no está configurado');
+      const errorMessage = getUserErrorMessage(PaddleErrorCode.VENDOR_ID_NOT_CONFIGURED);
+      setError(errorMessage);
       setIsLoading(false);
+      paddleLogger.error('Hook', 'Vendor ID not configured');
       return;
     }
 
     // Log configuration for debugging
-    // eslint-disable-next-line no-console
-    console.log('[Paddle Hook] Initializing with config:', {
+    paddleLogger.debug('Hook', 'Initializing with config', {
       hasVendorId: !!vendorId && vendorId.length > 0,
-      vendorIdPrefix: vendorId.substring(0, 10) + '...',
+      vendorIdPrefix: `${vendorId.substring(0, 10)}...`,
       environment,
       hasScriptAttribute: document.querySelector('script[data-paddle-vendor-id]') !== null,
     });
 
-    // Función para inicializar Paddle
-    const initPaddle = () => {
+    /**
+     * Initialize Paddle.js instance
+     * 
+     * Handles initialization of Paddle.js, checking for:
+     * - Script with data-paddle-vendor-id attribute (auto-initialization)
+     * - Manual initialization via Paddle.Initialize()
+     * - Vendor ID validation and mismatch detection
+     * 
+     * @returns true if initialization succeeded, false otherwise
+     */
+    const initPaddle = (): boolean => {
       if (!window.Paddle) {
         return false;
       }
@@ -110,27 +153,25 @@ export function usePaddle(): UsePaddleReturn {
         
         // Warn if there's a mismatch between script attribute and env var
         if (scriptVendorId && scriptVendorId !== vendorId) {
-          // eslint-disable-next-line no-console
-          console.warn('[Paddle Hook] Vendor ID mismatch:', {
-            scriptVendorId: scriptVendorId.substring(0, 10) + '...',
-            envVendorId: vendorId.substring(0, 10) + '...',
+          paddleLogger.warn('Hook', 'Vendor ID mismatch detected', {
+            scriptVendorId: `${scriptVendorId.substring(0, 10)}...`,
+            envVendorId: `${vendorId.substring(0, 10)}...`,
           });
         }
 
         // In Paddle.js v2, environment is controlled by the script URL:
-        // - paddle.sandbox.js for sandbox
-        // - paddle.js for production
-        // Initialize() only accepts token, not environment parameter
-        // If script has data-paddle-vendor-id, Paddle auto-initializes
-        // but we call Initialize() anyway to ensure our token is used
+        // - paddle.sandbox.js for sandbox environment
+        // - paddle.js for production environment
+        // Initialize() only accepts token, not environment parameter.
+        // If script has data-paddle-vendor-id, Paddle auto-initializes,
+        // but we call Initialize() anyway to ensure our token is used correctly.
         window.Paddle.Initialize({
           token: vendorId,
         });
 
-        // eslint-disable-next-line no-console
-        console.log('[Paddle Hook] Paddle initialized successfully:', {
+        paddleLogger.info('Hook', 'Paddle initialized successfully', {
           environment,
-          vendorIdPrefix: vendorId.substring(0, 10) + '...',
+          vendorIdPrefix: `${vendorId.substring(0, 10)}...`,
           scriptLoaded: !!scriptElement,
           autoInitialized: !!scriptVendorId,
         });
@@ -141,11 +182,10 @@ export function usePaddle(): UsePaddleReturn {
         setError(null);
         return true;
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Error al inicializar Paddle';
-        // eslint-disable-next-line no-console
-        console.error('[Paddle Hook] Initialization error:', {
-          error: errorMessage,
-          vendorIdPrefix: vendorId.substring(0, 10) + '...',
+        const errorMessage = err instanceof Error ? err.message : getUserErrorMessage(PaddleErrorCode.UNKNOWN_ERROR);
+        paddleLogger.error('Hook', 'Initialization failed', {
+          error: err instanceof Error ? err.message : String(err),
+          vendorIdPrefix: `${vendorId.substring(0, 10)}...`,
           environment,
         });
         setError(errorMessage);
@@ -174,7 +214,12 @@ export function usePaddle(): UsePaddleReturn {
         }
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        setError('Paddle.js no se cargó. Verifica que el script esté incluido en el layout.');
+        const errorMessage = getUserErrorMessage(PaddleErrorCode.PADDLE_SCRIPT_NOT_LOADED);
+        setError(errorMessage);
+        paddleLogger.error('Hook', 'Paddle script failed to load after max attempts', {
+          maxAttempts,
+          timeout: maxAttempts * 500,
+        });
         setIsLoading(false);
       }
     }, 500);
