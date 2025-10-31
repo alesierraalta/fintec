@@ -87,6 +87,32 @@ function CheckoutContent() {
         throw new Error('Price ID no está disponible en la respuesta del servidor.');
       }
 
+      // Validate environment match if provided by server
+      if (checkoutData._metadata?.environment) {
+        const clientEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox';
+        const serverEnvironment = checkoutData._metadata.environment;
+        
+        if (clientEnvironment !== serverEnvironment) {
+          // eslint-disable-next-line no-console
+          console.error('[Paddle Checkout] Environment mismatch:', {
+            clientEnvironment,
+            serverEnvironment,
+            priceId: checkoutData.priceId,
+          });
+          
+          throw new Error(
+            `Error de configuración: El entorno del cliente (${clientEnvironment}) no coincide con el del servidor (${serverEnvironment}). ` +
+            'Esto puede causar errores E-403. Por favor contacta al soporte.'
+          );
+        }
+        
+        // eslint-disable-next-line no-console
+        console.log('[Paddle Checkout] Environment validated:', {
+          environment: clientEnvironment,
+          priceId: checkoutData.priceId,
+        });
+      }
+
       // Prepare checkout payload
       const checkoutPayload = {
         items: [{ priceId: checkoutData.priceId, quantity: 1 }],
@@ -146,7 +172,24 @@ function CheckoutContent() {
         // Provide more specific error messages
         let errorMessage = 'Error al abrir el checkout de Paddle.';
         
-        if (paddleError?.message?.includes('price')) {
+        // Handle specific Paddle error codes
+        if (paddleError?.code === 'E-403' || paddleError?.message?.includes('E-403') || paddleError?.message?.includes('403')) {
+          errorMessage = 
+            'Error de autenticación (E-403). Esto generalmente ocurre cuando:\n' +
+            '1. El Price ID no pertenece al Vendor ID configurado\n' +
+            '2. Hay un mismatch entre los entornos sandbox y production\n' +
+            '3. El Vendor ID no tiene permisos para acceder al Price ID\n\n' +
+            'Por favor verifica la configuración o contacta al soporte.';
+          
+          // eslint-disable-next-line no-console
+          console.error('[Paddle Checkout] E-403 Error details:', {
+            priceId: checkoutData.priceId,
+            clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+            serverEnvironment: checkoutData._metadata?.environment,
+            hasVendorId: !!process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID,
+            paddleError: paddleError,
+          });
+        } else if (paddleError?.message?.includes('price')) {
           errorMessage = 'Error: Price ID inválido. Por favor contacta al soporte.';
         } else if (paddleError?.message?.includes('network') || paddleError?.code === 'NETWORK_ERROR') {
           errorMessage = 'Error de conexión. Por favor verifica tu conexión a internet e intenta de nuevo.';

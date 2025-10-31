@@ -61,12 +61,27 @@ export async function POST(request: NextRequest) {
     const checkoutData = getCheckoutDataForTier(tier, email, userId);
 
     // Validate Price ID before returning checkout data
+    // Validate environment consistency
+    const serverEnvironment = process.env.PADDLE_ENVIRONMENT || 'sandbox';
+    const paddleApiKey = process.env.PADDLE_API_KEY || '';
+    
+    // eslint-disable-next-line no-console
+    console.log('[Paddle Checkout API] Environment check:', {
+      serverEnvironment,
+      hasApiKey: !!paddleApiKey && paddleApiKey.length > 0,
+      apiKeyPrefix: paddleApiKey.substring(0, 10) + '...',
+      priceId: checkoutData.priceId,
+      tier,
+      userId,
+    });
+
+    // Validate Price ID before returning checkout data
     // eslint-disable-next-line no-console
     console.log('[Paddle Checkout API] Validating price ID:', {
       priceId: checkoutData.priceId,
       tier,
       userId,
-      environment: process.env.PADDLE_ENVIRONMENT || 'sandbox',
+      environment: serverEnvironment,
     });
 
     const priceValidation = await validatePriceId(checkoutData.priceId);
@@ -134,12 +149,18 @@ export async function POST(request: NextRequest) {
       hasCustomer: !!email,
       successUrl: checkoutData.successUrl,
       cancelUrl: checkoutData.cancelUrl,
+      environment: serverEnvironment,
     });
 
     return NextResponse.json({
       ...checkoutData,
       // Include user info for prefill (if Paddle.js supports it)
       customer: email ? { email, name } : undefined,
+      // Include environment so client can validate it matches
+      _metadata: {
+        environment: serverEnvironment,
+        validatedAt: new Date().toISOString(),
+      },
     });
   } catch (error: any) {
     // eslint-disable-next-line no-console

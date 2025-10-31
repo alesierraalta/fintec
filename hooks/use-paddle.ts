@@ -86,6 +86,15 @@ export function usePaddle(): UsePaddleReturn {
       return;
     }
 
+    // Log configuration for debugging
+    // eslint-disable-next-line no-console
+    console.log('[Paddle Hook] Initializing with config:', {
+      hasVendorId: !!vendorId && vendorId.length > 0,
+      vendorIdPrefix: vendorId.substring(0, 10) + '...',
+      environment,
+      hasScriptAttribute: document.querySelector('script[data-paddle-vendor-id]') !== null,
+    });
+
     // Función para inicializar Paddle
     const initPaddle = () => {
       if (!window.Paddle) {
@@ -93,9 +102,30 @@ export function usePaddle(): UsePaddleReturn {
       }
 
       try {
+        // Check if Paddle is already initialized by script attribute
+        // If script has data-paddle-vendor-id, Paddle might auto-initialize
+        // We should still call Initialize to ensure correct config
+        const scriptElement = document.querySelector('script[data-paddle-vendor-id]');
+        const scriptVendorId = scriptElement?.getAttribute('data-paddle-vendor-id');
+        
+        // Warn if there's a mismatch between script attribute and env var
+        if (scriptVendorId && scriptVendorId !== vendorId) {
+          // eslint-disable-next-line no-console
+          console.warn('[Paddle Hook] Vendor ID mismatch:', {
+            scriptVendorId: scriptVendorId.substring(0, 10) + '...',
+            envVendorId: vendorId.substring(0, 10) + '...',
+          });
+        }
+
         window.Paddle.Initialize({
           token: vendorId,
           environment: environment === 'production' ? 'production' : 'sandbox',
+        });
+
+        // eslint-disable-next-line no-console
+        console.log('[Paddle Hook] Paddle initialized successfully:', {
+          environment: environment === 'production' ? 'production' : 'sandbox',
+          vendorIdPrefix: vendorId.substring(0, 10) + '...',
         });
 
         setPaddle(window.Paddle);
@@ -105,6 +135,12 @@ export function usePaddle(): UsePaddleReturn {
         return true;
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error al inicializar Paddle';
+        // eslint-disable-next-line no-console
+        console.error('[Paddle Hook] Initialization error:', {
+          error: errorMessage,
+          vendorIdPrefix: vendorId.substring(0, 10) + '...',
+          environment,
+        });
         setError(errorMessage);
         setIsLoading(false);
         return false;
