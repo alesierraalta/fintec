@@ -14,6 +14,8 @@ import { useModal, useMediaQuery } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
+import { useActiveUsdVesRate } from '@/lib/rates';
+import { useAppStore } from '@/lib/store';
 import type { Transaction, TransactionType } from '@/types/domain';
 import { 
   Plus, 
@@ -35,6 +37,19 @@ export default function TransactionsPage() {
   const repository = useRepository();
   const { transactions, accounts, categories, loading, loadAllData } = useOptimizedData();
   const { convert, convertToUSD } = useCurrencyConverter();
+  const activeUsdVes = useActiveUsdVesRate();
+  const selectedRateSource = useAppStore((s) => s.selectedRateSource);
+
+  const convertMinorToUSDSelected = useCallback((amountMinor: number, currencyCode: string) => {
+    if (!amountMinor || !isFinite(amountMinor)) return 0;
+    const amount = amountMinor / 100;
+    if (currencyCode === 'USD') return amount;
+    if (currencyCode === 'VES') {
+      return activeUsdVes > 0 ? amount / activeUsdVes : 0;
+    }
+    // Fallback for other currencies to existing converter
+    return convertToUSD(amountMinor, currencyCode);
+  }, [activeUsdVes, convertToUSD]);
   
   // Load data on component mount
   useEffect(() => {
@@ -333,13 +348,8 @@ export default function TransactionsPage() {
     let totalExpensesUSD = 0;
     
     Object.entries(totalesPorMoneda).forEach(([currency, totals]) => {
-      if (currency === 'USD') {
-        totalIncomeUSD += totals.income;
-        totalExpensesUSD += totals.expenses;
-      } else {
-        totalIncomeUSD += convertToUSD(totals.income * 100, currency);
-        totalExpensesUSD += convertToUSD(totals.expenses * 100, currency);
-      }
+      totalIncomeUSD += convertMinorToUSDSelected(Math.round(totals.income * 100), currency);
+      totalExpensesUSD += convertMinorToUSDSelected(Math.round(totals.expenses * 100), currency);
     });
     
     return {
@@ -347,7 +357,7 @@ export default function TransactionsPage() {
       expenses: totalExpensesUSD,
       net: totalIncomeUSD - totalExpensesUSD
     };
-  }, [totalesPorMoneda, convertToUSD]);
+  }, [totalesPorMoneda, convertMinorToUSDSelected]);
   
   const handleTransactionClick = useCallback((transaction: Transaction) => {
     setSelectedDetailTransaction(transaction);
@@ -635,6 +645,15 @@ export default function TransactionsPage() {
                         {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
                       </p>
                       <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>
+                      {/* Selected rate equivalence */}
+                      {(transaction.currencyCode === 'VES' || transaction.currencyCode === 'USD') && (
+                        <div className="text-[11px] text-white/60 mt-1">
+                          {(() => {
+                            const usd = convertMinorToUSDSelected(Math.abs(transaction.amountMinor || 0), transaction.currencyCode);
+                            return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
+                          })()}
+                        </div>
+                      )}
                     </div>
                     
                     <TransactionActionsDropdown

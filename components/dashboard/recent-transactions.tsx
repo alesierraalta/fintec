@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
-import { Transaction, TransactionType } from '@/types/domain';
+import { Transaction, TransactionType, Account } from '@/types/domain';
 import { formatCurrency } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ interface RecentTransactionsProps {
   isLoading?: boolean;
   bcvRates?: { usd: number; eur: number };
   binanceRates?: { usd_ves: number };
+  accounts?: Account[];
 }
 
 export function RecentTransactions({
@@ -26,11 +27,21 @@ export function RecentTransactions({
   onTransactionClick,
   isLoading = false,
   bcvRates,
-  binanceRates
+  binanceRates,
+  accounts
 }: RecentTransactionsProps) {
   const [hoveredTransaction, setHoveredTransaction] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
   const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
+
+  // Map for fast accountId → accountName resolution
+  const accountIdToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    (accounts || []).forEach((acc) => {
+      map[acc.id] = acc.name;
+    });
+    return map;
+  }, [accounts]);
 
   // Helper function to get exchange rate
   const getExchangeRate = useMemo(() => {
@@ -195,7 +206,7 @@ export function RecentTransactions({
                     </div>
                     {transaction.accountId && (
                       <div className="break-words">
-                        Cuenta: {transaction.accountId}
+                        Cuenta: {accountIdToName[transaction.accountId] ?? 'Cuenta'}
                       </div>
                     )}
                   </div>

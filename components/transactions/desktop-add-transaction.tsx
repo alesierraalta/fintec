@@ -52,6 +52,8 @@ import { CategoryForm } from '@/components/forms/category-form';
 import type { Category, Account } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
 import { CURRENCIES } from '@/lib/money';
+import { useActiveUsdVesRate } from '@/lib/rates';
+import { useAppStore } from '@/lib/store';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -92,6 +94,8 @@ export function DesktopAddTransaction() {
   const [loading, setLoading] = useState(false);
   const [animateSuccess, setAnimateSuccess] = useState(false);
   const [calculatorValue, setCalculatorValue] = useState('0');
+  const activeUsdVes = useActiveUsdVesRate();
+  const selectedRateSource = useAppStore((s) => s.selectedRateSource);
 
   // Load categories and accounts from database
   useEffect(() => {
@@ -614,6 +618,24 @@ export function DesktopAddTransaction() {
               <div className="bg-black/20 rounded-xl p-4 mb-4">
                 <div className="text-right">
                   <div className="text-2xl font-bold text-white">${calculatorValue}</div>
+                  {/* Converted preview using selected rate */}
+                  <div className="text-xs text-white/70 mt-1">
+                    {(() => {
+                      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+                      const currencyCode = selectedAccount?.currencyCode || 'USD';
+                      const amt = parseFloat(calculatorValue || '0');
+                      if (!isFinite(amt) || amt <= 0) return null;
+                      if (currencyCode === 'VES') {
+                        const usd = activeUsdVes > 0 ? amt / activeUsdVes : 0;
+                        return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
+                      }
+                      if (currencyCode === 'USD') {
+                        const ves = activeUsdVes > 0 ? amt * activeUsdVes : 0;
+                        return `≈ Bs. ${ves.toLocaleString('es-VE', { minimumFractionDigits: 2 })} · ${selectedRateSource.toUpperCase()}`;
+                      }
+                      return null;
+                    })()}
+                  </div>
                 </div>
               </div>
 

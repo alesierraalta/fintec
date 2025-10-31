@@ -341,6 +341,7 @@ export function MobileDashboard() {
           transactions={rawTransactions} 
           bcvRates={bcvRates}
           binanceRates={binanceRates}
+          accounts={rawAccounts}
         />
       </div>
 
