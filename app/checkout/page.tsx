@@ -8,11 +8,13 @@ import { Button } from '@/components/ui/button';
 import { CheckCircle, Loader2, ArrowLeft, CreditCard } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { TIER_FEATURES, type SubscriptionTier } from '@/types/subscription';
+import { usePaddle } from '@/hooks/use-paddle';
 
 function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
+  const { paddle, isReady: isPaddleReady, isLoading: isPaddleLoading, error: paddleError } = usePaddle();
   const [tier, setTier] = useState<'base' | 'premium' | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,22 +67,22 @@ function CheckoutContent() {
 
       const checkoutData = await response.json();
 
-      // Use Paddle.js to open checkout
-      // Paddle.js must be loaded in the page (add to layout or use script tag)
-      if (typeof window !== 'undefined' && (window as any).Paddle) {
-        (window as any).Paddle.Checkout.open({
-          items: [{ priceId: checkoutData.priceId, quantity: 1 }],
-          customer: checkoutData.customer,
-          customData: checkoutData.customData,
-          settings: {
-            successUrl: checkoutData.successUrl,
-            allowDisplayNameOverwrite: true,
-            allowMarketingConsent: false,
-          },
-        });
-      } else {
-        throw new Error('Paddle.js no está cargado. Por favor recarga la página.');
+      // Verificar que Paddle esté inicializado y listo
+      if (!isPaddleReady || !paddle) {
+        throw new Error('Paddle.js no está inicializado. Por favor espera un momento y vuelve a intentar.');
       }
+
+      // Abrir checkout usando la instancia de Paddle del hook
+      paddle.Checkout.open({
+        items: [{ priceId: checkoutData.priceId, quantity: 1 }],
+        customer: checkoutData.customer,
+        customData: checkoutData.customData,
+        settings: {
+          successUrl: checkoutData.successUrl,
+          allowDisplayNameOverwrite: true,
+          allowMarketingConsent: false,
+        },
+      });
     } catch (error: any) {
       setError(error.message || 'Error al procesar el pago');
       setLoading(false);
@@ -193,10 +195,24 @@ function CheckoutContent() {
                   </p>
                 </div>
 
+                {paddleError && (
+                  <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-lg mb-4">
+                    <p className="text-sm font-medium">Error de inicialización</p>
+                    <p className="text-sm">{paddleError}</p>
+                  </div>
+                )}
+
                 {error && (
-                  <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-lg">
+                  <div className="bg-destructive/10 border border-destructive text-destructive p-4 rounded-lg mb-4">
                     <p className="text-sm font-medium">Error</p>
                     <p className="text-sm">{error}</p>
+                  </div>
+                )}
+
+                {isPaddleLoading && (
+                  <div className="bg-muted p-4 rounded-lg mb-4 text-center">
+                    <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">Inicializando sistema de pagos...</p>
                   </div>
                 )}
 
@@ -204,7 +220,7 @@ function CheckoutContent() {
                   size="lg"
                   className="w-full"
                   onClick={handleProceedToPayment}
-                  disabled={loading}
+                  disabled={loading || !isPaddleReady || isPaddleLoading}
                 >
                   {loading ? (
                     <>
@@ -220,7 +236,7 @@ function CheckoutContent() {
                 </Button>
 
                 <p className="text-xs text-center text-muted-foreground">
-                  Serás redirigido a Lemon Squeezy para completar el pago de forma segura
+                  Serás redirigido a Paddle para completar el pago de forma segura
                 </p>
               </div>
             </Card>
@@ -239,7 +255,7 @@ function CheckoutContent() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-3">
-                Procesado por Lemon Squeezy, un procesador de pagos certificado
+                Procesado por Paddle, un procesador de pagos certificado
               </p>
             </Card>
           </div>
