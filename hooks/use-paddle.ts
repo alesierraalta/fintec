@@ -9,9 +9,10 @@ import { useEffect, useState, useCallback } from 'react';
 declare global {
   interface Window {
     Paddle?: {
+      // Paddle.js v2 Initialize - only accepts token
+      // Environment is controlled by script URL (paddle.js vs paddle.sandbox.js)
       Initialize: (config: {
         token: string;
-        environment?: 'sandbox' | 'production';
       }) => void;
       Checkout: {
         open: (options: {
@@ -103,8 +104,7 @@ export function usePaddle(): UsePaddleReturn {
 
       try {
         // Check if Paddle is already initialized by script attribute
-        // If script has data-paddle-vendor-id, Paddle might auto-initialize
-        // We should still call Initialize to ensure correct config
+        // Paddle.js v2 with data-paddle-vendor-id auto-initializes
         const scriptElement = document.querySelector('script[data-paddle-vendor-id]');
         const scriptVendorId = scriptElement?.getAttribute('data-paddle-vendor-id');
         
@@ -117,15 +117,22 @@ export function usePaddle(): UsePaddleReturn {
           });
         }
 
+        // In Paddle.js v2, environment is controlled by the script URL:
+        // - paddle.sandbox.js for sandbox
+        // - paddle.js for production
+        // Initialize() only accepts token, not environment parameter
+        // If script has data-paddle-vendor-id, Paddle auto-initializes
+        // but we call Initialize() anyway to ensure our token is used
         window.Paddle.Initialize({
           token: vendorId,
-          environment: environment === 'production' ? 'production' : 'sandbox',
         });
 
         // eslint-disable-next-line no-console
         console.log('[Paddle Hook] Paddle initialized successfully:', {
-          environment: environment === 'production' ? 'production' : 'sandbox',
+          environment,
           vendorIdPrefix: vendorId.substring(0, 10) + '...',
+          scriptLoaded: !!scriptElement,
+          autoInitialized: !!scriptVendorId,
         });
 
         setPaddle(window.Paddle);
