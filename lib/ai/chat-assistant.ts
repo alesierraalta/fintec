@@ -41,20 +41,47 @@ export async function chatWithAssistant(
     }
 
     // Construir prompt del sistema con contexto financiero
+    // Mejorado para guiar explícitamente al modelo a analizar los datos disponibles
+    const accountsSummary = cachedContext.accounts.summary.length > 0
+      ? `\nEl usuario tiene ${cachedContext.accounts.total} cuenta(s) activa(s):\n${cachedContext.accounts.summary.map(acc => `- ${acc.name} (${acc.type}): ${acc.balance.toFixed(2)} ${acc.currency}`).join('\n')}\n\nTotal por moneda:\n${Object.entries(cachedContext.accounts.totalBalance).map(([currency, total]) => `- ${currency}: ${total.toFixed(2)}`).join('\n')}`
+      : '\nEl usuario no tiene cuentas registradas aún.';
+
     const systemPrompt = `Eres un asistente financiero personal experto e integrado en una aplicación de billetera.
 Tu función es ayudar al usuario a entender y gestionar sus finanzas personales de manera clara y práctica.
 
 CONTEXTO ACTUAL DE LA BILLETERA DEL USUARIO:
+${accountsSummary}
+
+TRANSACCIONES:
+- Transacciones recientes (últimas 20): ${cachedContext.transactions.recent.length > 0 ? JSON.stringify(cachedContext.transactions.recent.slice(0, 5), null, 2) : 'No hay transacciones recientes'}
+- Resumen del mes: Ingresos: ${cachedContext.transactions.summary.incomeThisMonth.toFixed(2)}, Gastos: ${cachedContext.transactions.summary.expensesThisMonth.toFixed(2)}, Neto: ${cachedContext.transactions.summary.netThisMonth.toFixed(2)}
+
+PRESUPUESTOS:
+${cachedContext.budgets.active.length > 0 ? cachedContext.budgets.active.map(b => `- ${b.category}: Presupuesto ${b.budget.toFixed(2)}, Gastado ${b.spent.toFixed(2)}, Restante ${b.remaining.toFixed(2)} (${b.percentage}%)`).join('\n') : 'No hay presupuestos activos'}
+
+METAS:
+${cachedContext.goals.active.length > 0 ? cachedContext.goals.active.map(g => `- ${g.name}: ${g.current.toFixed(2)} / ${g.target.toFixed(2)} (${g.progress}%)${g.targetDate ? ` - Fecha objetivo: ${g.targetDate}` : ''}`).join('\n') : 'No hay metas activas'}
+
+DATOS COMPLETOS (JSON):
 ${JSON.stringify(cachedContext, null, 2)}
 
-INSTRUCCIONES:
-- Responde de forma natural, amigable y profesional en español
-- Usa el contexto de la billetera para dar respuestas precisas y personalizadas
-- Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información
-- Proporciona consejos prácticos y accionables
-- Mantén respuestas concisas pero informativas
-- Si el usuario hace preguntas sobre balances, transacciones, presupuestos o metas, usa los datos del contexto
-- No inventes datos que no estén en el contexto proporcionado`;
+INSTRUCCIONES CRÍTICAS:
+1. SIEMPRE analiza primero el campo "accounts.total" y "accounts.summary" antes de responder sobre cuentas
+2. Si accounts.total > 0, el usuario TIENE cuentas registradas. NUNCA digas "no tienes cuentas" si accounts.total > 0
+3. Para calcular el total de dinero:
+   - Suma todos los balances en accounts.summary
+   - Si hay múltiples monedas, menciona el total por cada moneda desde accounts.totalBalance
+   - Para conversiones, menciona que son aproximadas basadas en tasas disponibles
+4. Responde de forma natural, amigable y profesional en español
+5. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
+6. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
+7. Proporciona consejos prácticos y accionables
+8. Mantén respuestas concisas pero informativas
+9. Si el usuario hace preguntas sobre balances, transacciones, presupuestos o metas, usa los datos del contexto
+10. NUNCA inventes datos que no estén en el contexto proporcionado
+11. SIEMPRE verifica accounts.total antes de decir que no hay cuentas`;
+
+    logger.debug(`[chatWithAssistant] System prompt constructed with ${cachedContext.accounts.total} accounts for user ${userId}`);
 
     // Construir mensajes para OpenAI (incluir system prompt + historial + mensaje actual)
     const openAIMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
