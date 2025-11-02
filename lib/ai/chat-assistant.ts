@@ -121,7 +121,7 @@ INSTRUCCIONES:
 
     // Guardar conversación en caché
     if (sessionId) {
-      const updatedMessages = [...messages, { role: 'assistant', content: response }];
+      const updatedMessages: ChatMessage[] = [...messages, { role: 'assistant' as const, content: response }];
       await setCachedConversation(userId, sessionId, updatedMessages);
     }
 

@@ -7,6 +7,7 @@
 
 import { supabase } from '@/repositories/supabase/client';
 import { fromMinorUnits } from '@/lib/money';
+import { logger } from '@/lib/utils/logger';
 
 export interface WalletContext {
   accounts: {
@@ -222,7 +223,7 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
     };
   } catch (error) {
     // En caso de error, retornar contexto vacío en lugar de fallar
-    console.error('Error building wallet context:', error);
+    logger.error('Error building wallet context:', error);
     return {
       accounts: { total: 0, summary: [], totalBalance: {} },
       transactions: { recent: [], summary: { incomeThisMonth: 0, expensesThisMonth: 0, netThisMonth: 0, topCategories: [] } },
