@@ -39,13 +39,30 @@ export function useSubscription() {
     try {
       setData(prev => ({ ...prev, loading: true, error: null }));
 
-      const response = await fetch(`/api/subscription/status?userId=${user.id}`);
+      // Add cache-busting to ensure fresh data
+      const cacheBuster = `t=${Date.now()}`;
+      const response = await fetch(`/api/subscription/status?userId=${user.id}&${cacheBuster}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch subscription');
       }
 
       const result = await response.json();
+
+      // Log tier detection for debugging
+      if (result.tier !== 'premium' && user?.email === 'alesierraalta@gmail.com') {
+        console.warn('[useSubscription] Tier mismatch detected:', {
+          userId: user.id,
+          returnedTier: result.tier,
+          subscription: result.subscription,
+        });
+      }
 
       setData({
         subscription: result.subscription,
@@ -79,6 +96,17 @@ export function useSubscription() {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [user?.id, fetchSubscription]);
+
+  // Force refresh subscription data when component mounts (clear any stale cache)
+  useEffect(() => {
+    if (user?.id) {
+      // Small delay to ensure auth is ready
+      const timer = setTimeout(() => {
+        fetchSubscription();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [user?.id]); // Only depend on user.id, not fetchSubscription to avoid loops
 
   const hasFeature = useCallback((feature: Feature): boolean => {
     return FEATURE_ACCESS[data.tier]?.includes(feature) || false;

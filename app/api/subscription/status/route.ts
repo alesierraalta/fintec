@@ -20,8 +20,22 @@ export async function GET(request: NextRequest) {
     const tier = await getUserTier(userId);
     const usage = await getUserUsage(userId);
 
-    // Log tier detection for debugging
-    logger.info(`Subscription status: user ${userId}, tier: ${tier}`);
+    // Log tier detection for debugging (especially for premium users)
+    logger.info(`Subscription status: user ${userId}, tier: ${tier}`, {
+      subscriptionId: subscription?.id,
+      subscriptionTier: subscription?.tier,
+      detectedTier: tier,
+    });
+    
+    // Extra logging for specific user to debug
+    if (userId === '962817cb-3fac-461b-a760-f3d294f83f54') {
+      logger.warn(`[DEBUG] Premium user tier check:`, {
+        userId,
+        subscription,
+        tier,
+        subscriptionTier: subscription?.tier,
+      });
+    }
 
     // Calculate usage percentages
     const limits = TIER_LIMITS[tier];
