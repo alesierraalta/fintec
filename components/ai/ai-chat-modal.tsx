@@ -5,7 +5,7 @@ import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
-import { useAIChat } from '@/hooks/use-ai-chat';
+import { useAIChat } from '@/contexts/ai-chat-context';
 import { Send, X, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 

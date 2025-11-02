@@ -1,7 +1,7 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
-import { useAIChat } from '@/hooks/use-ai-chat';
+import { useAIChat } from '@/contexts/ai-chat-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { cn } from '@/lib/utils';
 
@@ -19,21 +19,25 @@ export function AIChatFab() {
   }
 
   return (
-    <div className="fixed bottom-36 right-6 z-40">
+    <div className="fixed bottom-48 right-6 z-40">
       <button
-        onClick={openChat}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          openChat();
+        }}
         className={cn(
           'w-14 h-14 rounded-full shadow-ios-lg',
           'bg-gradient-to-br from-purple-500 to-purple-600',
           'hover:from-purple-600 hover:to-purple-700',
           'text-white hover:scale-110 active:scale-95',
           'transition-ios flex items-center justify-center',
-          'backdrop-blur-sm',
+          'backdrop-blur-sm cursor-pointer',
           'focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2'
         )}
         title="Asistente Financiero IA"
         aria-label="Abrir asistente financiero"
-        style={{ zIndex: 9999 }}
+        style={{ zIndex: 10000 }}
       >
         <Sparkles className="h-6 w-6" />
       </button>

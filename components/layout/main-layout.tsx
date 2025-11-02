@@ -15,6 +15,7 @@ import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
 import { AIChatFab } from '@/components/ai/ai-chat-fab';
 import { AIChatModal } from '@/components/ai/ai-chat-modal';
+import { AIChatProvider } from '@/contexts/ai-chat-context';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -126,9 +127,11 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
-      <MainLayoutContent>
-        {children}
-      </MainLayoutContent>
+      <AIChatProvider>
+        <MainLayoutContent>
+          {children}
+        </MainLayoutContent>
+      </AIChatProvider>
     </SidebarProvider>
   );
 }
