@@ -20,6 +20,25 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   }
 });
 
+// Service role client for server-side operations that need to bypass RLS
+// This should only be used in API routes and server-side code
+export function createSupabaseServiceClient() {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!serviceRoleKey) {
+    // Fallback to anon key if service role key is not available
+    // This will respect RLS but may fail for admin operations
+    return supabase;
+  }
+  
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    }
+  });
+}
+
 // Mock client removed - using real Supabase client above
 
 // Environment variables check (for when Supabase is implemented)

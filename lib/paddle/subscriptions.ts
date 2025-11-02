@@ -4,17 +4,30 @@
  * This module provides subscription management functionality using Paddle.
  */
 
-import { supabase } from '@/repositories/supabase/client';
+import { supabase, createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { SubscriptionTier, UsageTracking } from '@/types/subscription';
 import { logger } from '@/lib/utils/logger';
+
+// Helper to get authenticated Supabase client
+// Uses service role client for server-side operations (API routes)
+function getSupabaseClient() {
+  // In server-side context (API routes), use service role client to bypass RLS
+  // In client-side context, use regular client with user session
+  if (typeof window === 'undefined') {
+    return createSupabaseServiceClient();
+  }
+  return supabase;
+}
 
 /**
  * Get the current subscription tier for a user
  * Uses subscriptions table as primary source, falls back to users.subscription_tier
  */
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
+  const client = getSupabaseClient();
+  
   // Try subscriptions table first (preferred source of truth)
-  const { data: subData, error: subError } = await supabase
+  const { data: subData, error: subError } = await client
     .from('subscriptions')
     .select('tier, status')
     .eq('user_id', userId)
@@ -26,7 +39,7 @@ export async function getUserTier(userId: string): Promise<SubscriptionTier> {
   }
 
   // Fallback to users.subscription_tier if subscription record not found
-  const { data: userData, error: userError } = await supabase
+  const { data: userData, error: userError } = await client
     .from('users')
     .select('subscription_tier')
     .eq('id', userId)
@@ -52,15 +65,16 @@ export async function getUserTier(userId: string): Promise<SubscriptionTier> {
  * Get current month's usage for a user
  */
 export async function getUserUsage(userId: string): Promise<UsageTracking | null> {
+  const client = getSupabaseClient();
   const now = new Date();
   const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-  const { data, error } = await supabase
+  const { data, error } = await client
     .from('usage_tracking')
     .select('*')
     .eq('user_id', userId)
     .eq('month_year', monthYear)
-    .single();
+    .maybeSingle();
 
   if (error || !data) {
     return null;
@@ -102,18 +116,20 @@ export async function incrementUsage(
 
   const column = columnMap[resource];
 
+  const client = getSupabaseClient();
+  
   // Try to increment existing record
-  const { data: existing } = await supabase
+  const { data: existing } = await client
     .from('usage_tracking')
     .select('*')
     .eq('user_id', userId)
     .eq('month_year', monthYear)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // Increment existing record
     const current = (existing as any)[column] || 0;
-    await (supabase.from('usage_tracking') as any)
+    await (client.from('usage_tracking') as any)
       .update({
         [column]: current + 1,
         updated_at: new Date().toISOString(),
@@ -121,7 +137,7 @@ export async function incrementUsage(
       .eq('id', (existing as any).id);
   } else {
     // Create new record
-    await (supabase.from('usage_tracking') as any)
+    await (client.from('usage_tracking') as any)
       .insert({
         user_id: userId,
         month_year: monthYear,
@@ -139,13 +155,20 @@ export async function incrementUsage(
  * Get subscription by user ID
  */
 export async function getSubscriptionByUserId(userId: string) {
-  const { data, error } = await supabase
+  const client = getSupabaseClient();
+  
+  const { data, error } = await client
     .from('subscriptions')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .order('created_at', { ascending: false }) // Get the most recent subscription
+    .limit(1)
+    .maybeSingle(); // Use maybeSingle() instead of single() to avoid errors
 
   if (error || !data) {
+    if (error) {
+      logger.error('getSubscriptionByUserId: query error', { userId, error });
+    }
     return null;
   }
 
@@ -182,15 +205,17 @@ export async function upsertSubscription(subscriptionData: {
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
 }) {
-  const { data: existing } = await supabase
+  const client = getSupabaseClient();
+  
+  const { data: existing } = await client
     .from('subscriptions')
     .select('id')
     .eq('user_id', subscriptionData.userId)
-    .single();
+    .maybeSingle();
 
   if (existing) {
     // Update existing subscription
-    const { error } = await (supabase.from('subscriptions') as any)
+    const { error } = await (client.from('subscriptions') as any)
       .update({
         tier: subscriptionData.tier,
         status: subscriptionData.status,
@@ -209,7 +234,7 @@ export async function upsertSubscription(subscriptionData: {
     }
   } else {
     // Create new subscription
-    const { error } = await (supabase.from('subscriptions') as any)
+    const { error } = await (client.from('subscriptions') as any)
       .insert({
         user_id: subscriptionData.userId,
         tier: subscriptionData.tier,
@@ -233,7 +258,9 @@ export async function upsertSubscription(subscriptionData: {
  * Cancel subscription at period end
  */
 export async function cancelSubscription(userId: string) {
-  const { error } = await (supabase
+  const client = getSupabaseClient();
+  
+  const { error } = await (client
     .from('subscriptions') as any)
     .update({
       cancel_at_period_end: true,
