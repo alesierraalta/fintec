@@ -68,6 +68,18 @@ export function useSubscription() {
     fetchSubscription();
   }, [fetchSubscription]);
 
+  // Refresh subscription on window focus (in case tier changed in another tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user?.id) {
+        fetchSubscription();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user?.id, fetchSubscription]);
+
   const hasFeature = useCallback((feature: Feature): boolean => {
     return FEATURE_ACCESS[data.tier]?.includes(feature) || false;
   }, [data.tier]);

@@ -6,23 +6,46 @@
 
 import { supabase } from '@/repositories/supabase/client';
 import { SubscriptionTier, UsageTracking } from '@/types/subscription';
+import { logger } from '@/lib/utils/logger';
 
 /**
  * Get the current subscription tier for a user
+ * Uses subscriptions table as primary source, falls back to users.subscription_tier
  */
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
-  const { data, error } = await supabase
+  // Try subscriptions table first (preferred source of truth)
+  const { data: subData, error: subError } = await supabase
     .from('subscriptions')
     .select('tier, status')
     .eq('user_id', userId)
     .eq('status', 'active')
-    .single();
+    .maybeSingle(); // Use maybeSingle() instead of single() to avoid throwing errors
 
-  if (error || !data) {
-    return 'free';
+  if (subData && (subData as any).tier) {
+    return (subData as any).tier as SubscriptionTier;
   }
 
-  return (data as any).tier as SubscriptionTier;
+  // Fallback to users.subscription_tier if subscription record not found
+  const { data: userData, error: userError } = await supabase
+    .from('users')
+    .select('subscription_tier')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (userData && (userData as any).subscription_tier) {
+    logger.warn(`getUserTier: Using users.subscription_tier as fallback for user ${userId}`);
+    return (userData as any).subscription_tier as SubscriptionTier;
+  }
+
+  // Log errors for debugging
+  if (subError) {
+    logger.error('getUserTier: subscriptions query error', { userId, error: subError });
+  }
+  if (userError) {
+    logger.error('getUserTier: users query error', { userId, error: userError });
+  }
+
+  return 'free';
 }
 
 /**

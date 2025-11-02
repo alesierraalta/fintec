@@ -1,22 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/paddle/subscriptions';
 import { TIER_LIMITS } from '@/types/subscription';
+import { logger } from '@/lib/utils/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const userId = request.nextUrl.searchParams.get('userId');
+  const userId = request.nextUrl.searchParams.get('userId');
+  
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Missing userId parameter' },
+      { status: 400 }
+    );
+  }
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Missing userId parameter' },
-        { status: 400 }
-      );
-    }
+  try {
 
     // Get subscription info
     const subscription = await getSubscriptionByUserId(userId);
     const tier = await getUserTier(userId);
     const usage = await getUserUsage(userId);
+
+    // Log tier detection for debugging
+    logger.info(`Subscription status: user ${userId}, tier: ${tier}`);
 
     // Calculate usage percentages
     const limits = TIER_LIMITS[tier];
@@ -59,7 +64,7 @@ export async function GET(request: NextRequest) {
       limits,
     });
   } catch (error: any) {
-    
+    logger.error('Failed to fetch subscription status', { userId, error });
     return NextResponse.json(
       { error: error?.message || 'Failed to fetch subscription status' },
       { status: 500 }
