@@ -13,6 +13,8 @@ import { useModal } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
+import { AIChatFab } from '@/components/ai/ai-chat-fab';
+import { AIChatModal } from '@/components/ai/ai-chat-modal';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -102,6 +104,12 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           </button>
         </div>
       )}
+
+      {/* AI Chat FAB (solo para usuarios premium) */}
+      <AIChatFab />
+
+      {/* AI Chat Modal */}
+      <AIChatModal />
 
       {/* Transaction Form Modal */}
       <Suspense fallback={<FormLoading />}>

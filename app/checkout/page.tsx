@@ -214,35 +214,124 @@ function CheckoutContent() {
         throw new Error(errorMessage);
       }
 
+      // Setup global error listener for Paddle checkout errors
+      // Paddle.js can emit errors as events, not just exceptions
+      const handlePaddleCheckoutError = (event: Event): void => {
+        const detail = (event as CustomEvent)?.detail || {};
+        const errorCode = detail.code || 'UNKNOWN';
+        const errorMessage = detail.message || 'Unknown Paddle error';
+        
+        // Check if this is an E-403 error
+        if (errorCode === 'E-403' || errorMessage.includes('E-403') || errorMessage.includes('403')) {
+          paddleLogger.error('Checkout Page', 'Paddle checkout E-403 error detected', {
+            errorCode,
+            errorMessage,
+            priceId: checkoutData.priceId,
+            vendorId: process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID ? `${process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID.substring(0, 10)}...` : 'not set',
+            clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+            serverEnvironment: checkoutData._metadata?.environment,
+            payload: {
+              priceId: checkoutData.priceId,
+              hasCustomer: !!checkoutPayload.customer,
+              hasCustomData: !!checkoutPayload.customData,
+              customDataKeys: checkoutPayload.customData ? Object.keys(checkoutPayload.customData) : [],
+            },
+            diagnostic: {
+              vendorIdConfigured: !!process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID,
+              clientEnv: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+              serverEnv: checkoutData._metadata?.environment || 'unknown',
+              environmentsMatch: (process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox') === (checkoutData._metadata?.environment || 'unknown'),
+            },
+          });
+          
+          // Set error state
+          const userErrorMessage = getUserErrorMessage(PaddleErrorCode.CHECKOUT_E403);
+          setError(userErrorMessage);
+          setLoading(false);
+        } else {
+          paddleLogger.error('Checkout Page', 'Paddle checkout error event', {
+            errorCode,
+            errorMessage,
+            priceId: checkoutData.priceId,
+            detail,
+          });
+        }
+      };
+
+      // Add event listener for Paddle checkout errors
+      if (typeof window !== 'undefined') {
+        window.addEventListener('paddle:error', handlePaddleCheckoutError as EventListener);
+        window.addEventListener('paddle:checkout:error', handlePaddleCheckoutError as EventListener);
+      }
+
       // Open checkout using Paddle instance from hook
       try {
+        // Log detailed diagnostic information before opening
+        paddleLogger.debug('Checkout Page', 'Opening Paddle checkout with diagnostic info', {
+          priceId: checkoutData.priceId,
+          vendorId: process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID ? `${process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID.substring(0, 10)}...` : 'not set',
+          clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+          serverEnvironment: checkoutData._metadata?.environment,
+          payloadSummary: {
+            itemCount: checkoutPayload.items.length,
+            hasCustomer: !!checkoutPayload.customer,
+            hasCustomData: !!checkoutPayload.customData,
+            customDataKeys: checkoutPayload.customData ? Object.keys(checkoutPayload.customData) : [],
+          },
+        });
+
         paddle.Checkout.open(checkoutPayload);
         
         paddleLogger.info('Checkout Page', 'Checkout opened successfully', {
           priceId: checkoutData.priceId,
         });
         
+        // Cleanup listeners after successful open (checkout modal handles its own errors)
+        // Note: We keep them for a bit in case error happens immediately
+        setTimeout(() => {
+          if (typeof window !== 'undefined') {
+            window.removeEventListener('paddle:error', handlePaddleCheckoutError as EventListener);
+            window.removeEventListener('paddle:checkout:error', handlePaddleCheckoutError as EventListener);
+          }
+        }, 5000); // Keep listeners for 5 seconds after opening
+        
         // Don't set loading to false here - checkout is a modal that stays open
       } catch (paddleError: unknown) {
+        // Remove listeners on exception
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('paddle:error', handlePaddleCheckoutError as EventListener);
+          window.removeEventListener('paddle:checkout:error', handlePaddleCheckoutError as EventListener);
+        }
+
         // Determine error code from Paddle error
         const errorCode = getErrorCodeFromPaddleError(paddleError);
         
         // Enhanced error logging with structured data
-        paddleLogger.error('Checkout Page', 'Failed to open checkout', {
+        paddleLogger.error('Checkout Page', 'Failed to open checkout (exception)', {
           errorCode,
           error: paddleError,
           message: paddleError && typeof paddleError === 'object' && 'message' in paddleError
             ? String(paddleError.message)
             : String(paddleError),
           priceId: checkoutData.priceId,
+          vendorId: process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID ? `${process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID.substring(0, 10)}...` : 'not set',
           payload: {
             itemCount: checkoutPayload.items.length,
             hasCustomer: !!checkoutPayload.customer,
             hasCustomData: !!checkoutPayload.customData,
             hasSettings: !!checkoutPayload.settings,
+            customDataKeys: checkoutPayload.customData ? Object.keys(checkoutPayload.customData) : [],
           },
           clientEnvironment: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
           serverEnvironment: checkoutData._metadata?.environment,
+          diagnostic: {
+            vendorIdConfigured: !!process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID,
+            clientEnv: process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox',
+            serverEnv: checkoutData._metadata?.environment || 'unknown',
+            environmentsMatch: (process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox') === (checkoutData._metadata?.environment || 'unknown'),
+            paddleReady: isPaddleReady,
+            paddleInitialized: !!paddle,
+          },
         });
 
         // Get user-friendly error message (Spanish)

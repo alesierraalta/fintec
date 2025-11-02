@@ -23,17 +23,30 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
       return TIER_FEATURES.free;
     }
 
-    // Find matching product from Paddle
-    const product = products.find((p) => {
-      const name = p.name.toLowerCase();
-      if (tier === 'base') {
-        return name.includes('base') || name.includes('full');
-      }
-      if (tier === 'premium') {
-        return name.includes('premium') || name.includes('ia');
-      }
-      return false;
+    // Import paddle config to get Product IDs
+    const { paddleConfig } = require('@/lib/paddle/config');
+    
+    // First, try to find by Product ID (most reliable)
+    let product = products.find((p) => {
+      const expectedProductId = tier === 'base' 
+        ? paddleConfig.products.base 
+        : paddleConfig.products.premium;
+      return p.id === expectedProductId;
     });
+
+    // Fallback: Find by name pattern if Product ID match failed
+    if (!product) {
+      product = products.find((p) => {
+        const name = p.name.toLowerCase();
+        if (tier === 'base') {
+          return name.includes('base') || name.includes('full');
+        }
+        if (tier === 'premium') {
+          return name.includes('premium') || name.includes('ia');
+        }
+        return false;
+      });
+    }
 
     // If we have a product from Paddle, merge with static features
     if (product && product.prices && product.prices.length > 0) {
