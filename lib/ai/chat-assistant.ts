@@ -21,6 +21,7 @@ import { generateProactivePrompt } from './proactive-advisor';
 import { detectIntention, ActionType } from './intention-detector';
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
+import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts } from './query-handlers';
 import { logger } from '@/lib/utils/logger';
 
 export interface ChatMessage {
@@ -134,33 +135,92 @@ INSTRUCCIONES CRÍTICAS:
    - Suma todos los balances en accounts.summary
    - Si hay múltiples monedas, menciona el total por cada moneda desde accounts.totalBalance
    - Para conversiones, menciona que son aproximadas basadas en tasas disponibles
-4. DETECCIÓN DE INTENCIONES:
-   - Si el usuario quiere CREAR algo (ej: "agrega un gasto de 50 USD"), usa la función correspondiente
-   - Si el usuario hace una CONSULTA (ej: "cuánto tengo"), responde directamente con la información
-   - Si falta información para crear algo, pregunta amablemente antes de ejecutar
-5. ACCIONES DISPONIBLES:
+4. DIFERENCIA CLARA ENTRE ACCIONES Y CONSULTAS:
+   - CONSULTA (responder directamente): "¿cuál es mi saldo?", "muéstrame mis cuentas", "listar mis cuentas", "qué gastos tuve?"
+   - ACCIÓN (usar función): "crea una cuenta", "agrega un gasto de 50 USD", "registra una transferencia"
+   - Si dice "haz un listado de cuentas", "muéstrame cuentas", "listar cuentas" → RESPONDE DIRECTAMENTE con accounts.summary
+   - Si dice "crea/crearé una cuenta", "quiero crear una nueva cuenta" → USA la función create_account
+5. LISTADO DE CUENTAS - RESPUESTA DIRECTA:
+   - Cuando se te pida listar/mostrar cuentas (sin intención de crear), responde con:
+     - Nombre de cada cuenta
+     - Tipo de cuenta (BANK, CARD, CASH, SAVINGS, etc.)
+     - Saldo actual con moneda
+     - Total general si hay múltiples monedas
+   - NUNCA pidas parámetros para "crear cuenta" si solo quieren listar
+6. ACCIONES DISPONIBLES (solo si intención clara de crear):
    - create_transaction: Para crear gastos o ingresos
    - create_budget: Para crear presupuestos
    - create_goal: Para crear metas de ahorro
-   - create_account: Para crear nuevas cuentas
+   - create_account: Para crear nuevas cuentas (SOLO si usuario dice "crear", "crear una cuenta nueva", etc.)
    - create_transfer: Para transferir dinero entre cuentas
-6. CUANDO USAR FUNCIONES:
-   - Usa funciones cuando el usuario exprese claramente una intención de acción (crear, agregar, registrar)
+7. CUANDO USAR FUNCIONES:
+   - Usa funciones SOLO cuando el usuario exprese claramente una intención de acción (crear, agregar, registrar)
    - NO uses funciones para consultas simples (preguntas sobre datos existentes)
    - Si el usuario dice "agrega un gasto de X", llama a create_transaction
    - Si el usuario dice "cuánto tengo", responde directamente sin usar funciones
-7. Responde de forma natural, amigable y profesional en español
-8. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
-9. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
-10. Proporciona consejos prácticos y accionables
-11. Mantén respuestas concisas pero informativas
-12. NUNCA inventes datos que no estén en el contexto proporcionado
-13. SIEMPRE verifica accounts.total antes de decir que no hay cuentas`;
+8. Responde de forma natural, amigable y profesional en español
+9. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
+10. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
+11. Proporciona consejos prácticos y accionables
+12. Mantén respuestas concisas pero informativas
+13. NUNCA inventes datos que no estén en el contexto proporcionado
+14. SIEMPRE verifica accounts.total antes de decir que no hay cuentas
+15. EJEMPLOS DE CONSULTAS CON PARÁMETROS:
+   - "gastos de hoy" → QUERY_TRANSACTIONS con filtro de fecha (hoy)
+   - "transacciones del mes pasado" → QUERY_TRANSACTIONS con rango de mes anterior
+   - "gastos de comida" → QUERY_TRANSACTIONS filtrado por categoría "comida"
+   - "cuánto gané este mes" → QUERY_TRANSACTIONS tipo INCOME para mes actual
+   - "mis presupuestos" → QUERY_BUDGETS sin parámetros extra
+   - "presupuestos de comida" → QUERY_BUDGETS filtrado por categoría
+   - "mis metas" → QUERY_GOALS sin parámetros extra
+   - "¿cuál es mi saldo?" → QUERY_BALANCE sin parámetros
+   - Cuando el usuario pida datos con FECHA, CATEGORÍA, TIPO o MONEDA específicos:
+     * El sistema automáticamente extrae estos parámetros
+     * Los handlers manejan el filtrado directo desde el contexto
+     * NO necesitas preguntar por aclaraciones si los parámetros están claros
+16. Responde de forma natural, amigable y profesional en español
+17. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
+18. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
+19. Proporciona consejos prácticos y accionables
+20. Mantén respuestas concisas pero informativas
+21. NUNCA inventes datos que no estén en el contexto proporcionado
+22. SIEMPRE verifica accounts.total antes de decir que no hay cuentas`;
 
     logger.debug(`[chatWithAssistant] System prompt constructed with ${cachedContext.accounts.total} accounts for user ${userId}`);
 
     // Detectar intención del último mensaje
     const intention = detectIntention(lastMessage?.content || '');
+
+    // Handle all QUERY types directly with context data (no LLM needed)
+    if (intention.type === 'QUERY' && intention.actionType && intention.actionType !== 'UNKNOWN') {
+      let queryResult;
+
+      switch (intention.actionType) {
+        case 'QUERY_ACCOUNTS':
+          queryResult = handleQueryAccounts(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_BALANCE':
+          queryResult = handleQueryBalance(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_TRANSACTIONS':
+          queryResult = handleQueryTransactions(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_BUDGETS':
+          queryResult = handleQueryBudgets(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_GOALS':
+          queryResult = handleQueryGoals(cachedContext, intention.parameters);
+          break;
+        default:
+          queryResult = { message: '', canHandle: false };
+      }
+
+      // If handler can handle it directly, return the response
+      if (queryResult.canHandle && queryResult.message) {
+        logger.info(`[chatWithAssistant] ${intention.actionType} handled directly from context for user ${userId}`);
+        return { message: queryResult.message };
+      }
+    }
 
     // Si es una acción y tiene parámetros suficientes, ejecutarla directamente
     if (intention.type === 'ACTION' && intention.actionType && intention.actionType !== 'UNKNOWN') {
