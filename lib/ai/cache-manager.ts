@@ -41,6 +41,7 @@ setInterval(() => {
  */
 const CONTEXT_CACHE_TTL_SEC = 5 * 60; // 5 minutos
 const CONVERSATION_CACHE_TTL_SEC = 30 * 60; // 30 minutos
+const PENDING_ACTION_CACHE_TTL_SEC = 10 * 60; // 10 minutos (más largo para dar tiempo al usuario a confirmar)
 
 /**
  * Obtiene contexto cacheado
@@ -194,6 +195,109 @@ export async function invalidateConversationCache(userId: string, sessionId: str
       }
     } catch (error) {
       logger.error('Cache: Error invalidating conversation in Redis', error);
+    }
+  }
+
+  inMemoryCache.delete(key);
+}
+
+/**
+ * Interfaz para acción pendiente en caché
+ */
+export interface PendingAction {
+  type: string;
+  parameters: Record<string, any>;
+  requiresConfirmation: boolean;
+  confirmationMessage?: string;
+}
+
+/**
+ * Obtiene acción pendiente de confirmación
+ */
+/**
+ * Obtiene una acción pendiente de confirmación del caché
+ * @param userId - ID del usuario
+ * @returns La acción pendiente o null si no existe o expiró
+ */
+
+export async function getCachedPendingAction(userId: string): Promise<PendingAction | null> {
+  const key = `cache:pending-action:${userId}`;
+
+  if (isRedisConnected()) {
+    try {
+      const client = getRedisClient();
+      if (client) {
+        const cached = await client.getex(key);
+        if (cached) {
+          try {
+            const data = JSON.parse(cached);
+            logger.debug(`Cache HIT: Pending action for user ${userId}`);
+            return data;
+          } catch {
+            logger.warn(`Cache: Failed to parse cached pending action for user ${userId}`);
+            return null;
+          }
+        }
+      }
+    } catch (error) {
+      logger.error('Cache: Error retrieving pending action from Redis', error);
+    }
+  }
+
+  // Fallback in-memory
+  return getFromInMemoryCache(key);
+}
+
+/**
+ * Guarda acción pendiente en caché
+ */
+/**
+ * Guarda una acción pendiente de confirmación en el caché
+ * @param userId - ID del usuario
+ * @param action - La acción pendiente a guardar
+ */
+
+export async function setCachedPendingAction(userId: string, action: PendingAction): Promise<void> {
+  const key = `cache:pending-action:${userId}`;
+
+  if (isRedisConnected()) {
+    try {
+      const client = getRedisClient();
+      if (client) {
+        const serialized = JSON.stringify(action);
+        await client.setex(key, PENDING_ACTION_CACHE_TTL_SEC, serialized);
+        logger.debug(`Cache WRITE: Pending action for user ${userId}`);
+        return;
+      }
+    } catch (error) {
+      logger.error('Cache: Error saving pending action to Redis', error);
+    }
+  }
+
+  // Fallback in-memory
+  setToInMemoryCache(key, action, PENDING_ACTION_CACHE_TTL_SEC);
+}
+
+/**
+ * Invalida caché de acción pendiente (después de confirmar/rechazar)
+ */
+/**
+ * Invalida el caché de acción pendiente (después de confirmar o rechazar)
+ * @param userId - ID del usuario
+ */
+
+export async function invalidatePendingActionCache(userId: string): Promise<void> {
+  const key = `cache:pending-action:${userId}`;
+
+  if (isRedisConnected()) {
+    try {
+      const client = getRedisClient();
+      if (client) {
+        await client.del(key);
+        logger.debug(`Cache INVALIDATE: Pending action for user ${userId}`);
+      }
+    } catch (error) {
+      logger.error('Cache: Error invalidating pending action in Redis', error);
     }
   }
 

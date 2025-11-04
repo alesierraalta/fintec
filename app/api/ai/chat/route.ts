@@ -125,7 +125,9 @@ export async function POST(request: NextRequest) {
       await incrementUsage(userId, 'aiRequests');
 
       return {
-        message: response,
+        message: response.message,
+        action: response.action,
+        suggestions: response.suggestions,
         context: {
           hasAccounts: context.accounts.total > 0,
           hasTransactions: context.transactions.recent.length > 0,

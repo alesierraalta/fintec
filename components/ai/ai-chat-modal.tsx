@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
 import { useAIChat } from '@/contexts/ai-chat-context';
+import { ActionConfirmationButtons } from './action-confirmation-buttons';
 import { Send, X, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +14,7 @@ import { cn } from '@/lib/utils';
  * Modal de chat con el asistente IA
  */
 export function AIChatModal() {
-  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat } = useAIChat();
+  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat, pendingAction } = useAIChat();
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -94,8 +95,12 @@ export function AIChatModal() {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Área de input */}
-        <form onSubmit={handleSubmit} className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+        {/* Botones de confirmación (si hay acción pendiente) */}
+        {pendingAction && <ActionConfirmationButtons />}
+
+        {/* Área de input (ocultar si hay acción pendiente) */}
+        {!pendingAction && (
+          <form onSubmit={handleSubmit} className="border-t border-gray-200 dark:border-gray-700 px-4 py-3">
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -137,7 +142,8 @@ export function AIChatModal() {
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
             Presiona Enter para enviar, Shift+Enter para nueva línea
           </p>
-        </form>
+          </form>
+        )}
       </div>
     </Modal>
   );
