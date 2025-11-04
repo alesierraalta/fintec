@@ -7,6 +7,8 @@
 
 import { WalletContext } from './context-builder';
 import { logger } from '@/lib/utils/logger';
+import { SupabaseAppRepository } from '@/repositories/supabase';
+import { fromMinorUnits } from '@/lib/money';
 
 export interface QueryResult {
   message: string;
@@ -235,6 +237,236 @@ export function handleQueryAccounts(
   } catch (error: any) {
     logger.error('[handleQueryAccounts] Error:', error);
     return { message: '', canHandle: false };
+  }
+}
+
+/**
+ * Maneja consulta de tasas de cambio
+ */
+export async function handleQueryRates(
+  context: WalletContext,
+  params?: Record<string, any>
+): Promise<QueryResult> {
+  try {
+    // Construir URL base para fetch en servidor
+    let baseUrl = 'http://localhost:3000';
+    if (typeof window === 'undefined') {
+      // Estamos en servidor
+      if (process.env.VERCEL_URL) {
+        baseUrl = `https://${process.env.VERCEL_URL}`;
+      } else if (process.env.NEXT_PUBLIC_SITE_URL) {
+        baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+      }
+    } else {
+      // Estamos en cliente
+      baseUrl = window.location.origin;
+    }
+
+    // Obtener tasas desde las APIs
+    const [bcvResponse, binanceResponse] = await Promise.allSettled([
+      fetch(`${baseUrl}/api/bcv-rates`, { 
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store' 
+      }),
+      fetch(`${baseUrl}/api/binance-rates`, { 
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store' 
+      }),
+    ]);
+
+    let message = 'Tasas de cambio disponibles:\n\n';
+
+    // BCV Rates
+    if (bcvResponse.status === 'fulfilled' && bcvResponse.value.ok) {
+      const bcvData = await bcvResponse.value.json();
+      if (bcvData.success && bcvData.data) {
+        message += `🏦 BCV (Banco Central de Venezuela):\n`;
+        message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
+        message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
+        if (bcvData.data.lastUpdated) {
+          const updated = new Date(bcvData.data.lastUpdated);
+          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+        }
+        message += '\n';
+      }
+    }
+
+    // Binance Rates
+    if (binanceResponse.status === 'fulfilled' && binanceResponse.value.ok) {
+      const binanceData = await binanceResponse.value.json();
+      if (binanceData.success && binanceData.data) {
+        message += `💱 Binance P2P:\n`;
+        if (binanceData.data.usd_ves) {
+          message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
+        }
+        if (binanceData.data.sell_rate) {
+          const sellRate = typeof binanceData.data.sell_rate === 'object' 
+            ? binanceData.data.sell_rate.avg 
+            : binanceData.data.sell_rate;
+          message += `  • Venta (avg): ${sellRate.toFixed(2)} VES\n`;
+        }
+        if (binanceData.data.buy_rate) {
+          const buyRate = typeof binanceData.data.buy_rate === 'object'
+            ? binanceData.data.buy_rate.avg
+            : binanceData.data.buy_rate;
+          message += `  • Compra (avg): ${buyRate.toFixed(2)} VES\n`;
+        }
+        if (binanceData.data.lastUpdated) {
+          const updated = new Date(binanceData.data.lastUpdated);
+          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+        }
+      }
+    }
+
+    // Si no se pudo obtener ninguna tasa
+    if (message === 'Tasas de cambio disponibles:\n\n') {
+      return {
+        message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',
+        canHandle: true,
+      };
+    }
+
+    message += '\n💡 Nota: Las tasas se usan para calcular equivalentes en USD cuando muestro saldos en VES.';
+
+    logger.info('[handleQueryRates] Handled rates query');
+    return { message, canHandle: true };
+  } catch (error: any) {
+    logger.error('[handleQueryRates] Error:', error);
+    return {
+      message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',
+      canHandle: true,
+    };
+  }
+}
+
+/**
+ * Maneja consulta de categorías
+ */
+export async function handleQueryCategories(
+  context: WalletContext,
+  userId: string,
+  params?: Record<string, any>
+): Promise<QueryResult> {
+  try {
+    const repository = new SupabaseAppRepository();
+    
+    // Obtener categorías desde el repositorio
+    let categories;
+    if (params?.kind) {
+      categories = await repository.categories.findByKind(params.kind);
+    } else {
+      categories = await repository.categories.findActive();
+    }
+    
+    if (!categories || categories.length === 0) {
+      return {
+        message: 'No tienes categorías registradas. ¿Te gustaría crear una?',
+        canHandle: true,
+      };
+    }
+    
+    // Separar por tipo
+    const incomeCategories = categories.filter((cat) => cat.kind === 'INCOME');
+    const expenseCategories = categories.filter((cat) => cat.kind === 'EXPENSE');
+
+    let message = 'Tus categorías:\n\n';
+    
+    if (expenseCategories.length > 0) {
+      message += '📉 Gastos:\n';
+      expenseCategories.slice(0, 15).forEach((cat) => {
+        message += `  • ${cat.name}${cat.icon ? ` ${cat.icon}` : ''}\n`;
+      });
+      if (expenseCategories.length > 15) {
+        message += `  ... y ${expenseCategories.length - 15} más\n`;
+      }
+      message += '\n';
+    }
+
+    if (incomeCategories.length > 0) {
+      message += '📈 Ingresos:\n';
+      incomeCategories.slice(0, 15).forEach((cat) => {
+        message += `  • ${cat.name}${cat.icon ? ` ${cat.icon}` : ''}\n`;
+      });
+      if (incomeCategories.length > 15) {
+        message += `  ... y ${incomeCategories.length - 15} más\n`;
+      }
+    }
+
+    logger.info('[handleQueryCategories] Handled categories query');
+    return { message, canHandle: true };
+  } catch (error: any) {
+    logger.error('[handleQueryCategories] Error:', error);
+    return {
+      message: 'No pude obtener las categorías en este momento. Por favor intenta más tarde.',
+      canHandle: true,
+    };
+  }
+}
+
+/**
+ * Maneja consulta de transacciones recurrentes
+ */
+export async function handleQueryRecurring(
+  context: WalletContext,
+  userId: string,
+  params?: Record<string, any>
+): Promise<QueryResult> {
+  try {
+    const repository = new SupabaseAppRepository();
+    
+    // Obtener transacciones recurrentes desde el repositorio
+    const recurringTransactions = await repository.recurringTransactions.findByUserId(userId);
+    
+    if (!recurringTransactions || recurringTransactions.length === 0) {
+      return {
+        message: 'No tienes transacciones recurrentes configuradas. ¿Te gustaría crear una?',
+        canHandle: true,
+      };
+    }
+    
+    // Filtrar solo activas si no se especifica lo contrario
+    const activeTransactions = recurringTransactions.filter((t) => t.isActive);
+    
+    if (activeTransactions.length === 0) {
+      return {
+        message: 'No tienes transacciones recurrentes activas.',
+        canHandle: true,
+      };
+    }
+
+    let message = `Tus transacciones recurrentes (${activeTransactions.length} activas):\n\n`;
+
+    activeTransactions.slice(0, 10).forEach((tx) => {
+      const amount = fromMinorUnits(tx.amountMinor, tx.currencyCode);
+      const icon = tx.type === 'INCOME' ? '📈' : '📉';
+      const frequencyMap: Record<string, string> = {
+        daily: 'diaria',
+        weekly: 'semanal',
+        monthly: 'mensual',
+        yearly: 'anual'
+      };
+      const frequency = frequencyMap[tx.frequency] || tx.frequency;
+      const nextDate = new Date(tx.nextExecutionDate).toLocaleDateString('es-VE');
+      message += `${icon} ${tx.name}: ${amount.toFixed(2)} ${tx.currencyCode} - ${frequency} - Próxima: ${nextDate}\n`;
+    });
+
+    if (activeTransactions.length > 10) {
+      message += `\n... y ${activeTransactions.length - 10} transacciones recurrentes más`;
+    }
+
+    const inactiveCount = recurringTransactions.length - activeTransactions.length;
+    if (inactiveCount > 0) {
+      message += `\n\nResumen: ${activeTransactions.length} activas, ${inactiveCount} inactivas`;
+    }
+
+    logger.info('[handleQueryRecurring] Handled recurring transactions query');
+    return { message, canHandle: true };
+  } catch (error: any) {
+    logger.error('[handleQueryRecurring] Error:', error);
+    return {
+      message: 'No pude obtener las transacciones recurrentes en este momento. Por favor intenta más tarde.',
+      canHandle: true,
+    };
   }
 }
 

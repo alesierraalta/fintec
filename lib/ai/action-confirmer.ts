@@ -280,6 +280,9 @@ function getActionDescription(actionType: ActionType): string {
     'QUERY_BUDGETS': 'consultar los presupuestos',
     'QUERY_GOALS': 'consultar las metas',
     'QUERY_ACCOUNTS': 'consultar las cuentas',
+    'QUERY_RATES': 'consultar las tasas de cambio',
+    'QUERY_CATEGORIES': 'consultar las categorías',
+    'QUERY_RECURRING': 'consultar las transacciones recurrentes',
     'UNKNOWN': 'realizar esta acción',
   };
 

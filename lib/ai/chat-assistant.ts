@@ -21,7 +21,7 @@ import { generateProactivePrompt } from './proactive-advisor';
 import { detectIntention, ActionType } from './intention-detector';
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
-import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts } from './query-handlers';
+import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
 import { logger } from '@/lib/utils/logger';
 
 export interface ChatMessage {
@@ -174,6 +174,10 @@ INSTRUCCIONES CRÍTICAS:
    - "presupuestos de comida" → QUERY_BUDGETS filtrado por categoría
    - "mis metas" → QUERY_GOALS sin parámetros extra
    - "¿cuál es mi saldo?" → QUERY_BALANCE sin parámetros
+   - "listado de categorías" → QUERY_CATEGORIES
+   - "muéstrame mis categorías de gastos" → QUERY_CATEGORIES con filtro de tipo
+   - "transacciones recurrentes" → QUERY_RECURRING
+   - "muéstrame mis recurrentes" → QUERY_RECURRING
    - Cuando el usuario pida datos con FECHA, CATEGORÍA, TIPO o MONEDA específicos:
      * El sistema automáticamente extrae estos parámetros
      * Los handlers manejan el filtrado directo desde el contexto
@@ -210,6 +214,15 @@ INSTRUCCIONES CRÍTICAS:
           break;
         case 'QUERY_GOALS':
           queryResult = handleQueryGoals(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_RATES':
+          queryResult = await handleQueryRates(cachedContext, intention.parameters);
+          break;
+        case 'QUERY_CATEGORIES':
+          queryResult = await handleQueryCategories(cachedContext, userId, intention.parameters);
+          break;
+        case 'QUERY_RECURRING':
+          queryResult = await handleQueryRecurring(cachedContext, userId, intention.parameters);
           break;
         default:
           queryResult = { message: '', canHandle: false };

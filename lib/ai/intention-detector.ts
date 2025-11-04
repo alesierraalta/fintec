@@ -20,6 +20,9 @@ export type ActionType =
   | 'QUERY_BUDGETS'
   | 'QUERY_GOALS'
   | 'QUERY_ACCOUNTS'
+  | 'QUERY_RATES'
+  | 'QUERY_CATEGORIES'
+  | 'QUERY_RECURRING'
   | 'UNKNOWN';
 
 export type IntentionType = 'ACTION' | 'QUERY';
