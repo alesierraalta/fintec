@@ -1,5 +1,6 @@
 import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
+import { createBudgetOptimizerTemplate, budgetOptimizerSystemPrompt } from './prompts/templates/budget-optimizer';
 
 interface BudgetOptimization {
   categoryId: string;
@@ -75,29 +76,16 @@ export async function optimizeBudgets(userId: string): Promise<BudgetOptimizatio
       actualAverage: (categoryStats.find(s => s.categoryId === b.category_id)?.averageMonthly || 0) / 100
     }));
 
-    const prompt = `Eres un experto en optimización de presupuestos. Analiza los siguientes presupuestos y el gasto real, y sugiere ajustes óptimos:
-
-${JSON.stringify(budgetData, null, 2)}
-
-Proporciona recomendaciones para cada categoría. Responde ÚNICAMENTE en formato JSON:
-{
-  "optimizations": [
-    {
-      "categoryId": "id",
-      "categoryName": "nombre",
-      "suggestedBudget": número,
-      "reason": "explicación del cambio",
-      "potentialSavings": número (puede ser negativo si se aumenta)
-    }
-  ]
-}`;
+    // Usar template modular para el prompt
+    const budgetOptimizerTemplate = createBudgetOptimizerTemplate(budgetData);
+    const prompt = budgetOptimizerTemplate.content;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         {
           role: 'system',
-          content: 'Eres un experto en planificación financiera y optimización de presupuestos.',
+          content: budgetOptimizerSystemPrompt,
         },
         {
           role: 'user',

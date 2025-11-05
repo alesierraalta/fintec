@@ -1,5 +1,6 @@
 import { openai, AI_MODEL, AI_TEMPERATURE } from './config';
 import { supabase } from '@/repositories/supabase/client';
+import { createAdvisorTemplate, advisorSystemPrompt } from './prompts/templates/advisor';
 
 interface FinancialAdvice {
   summary: string;
@@ -91,31 +92,16 @@ export async function getFinancialAdvice(userId: string): Promise<FinancialAdvic
       }))
     };
 
-    const prompt = `Eres un asesor financiero personal experto. Analiza la siguiente información financiera y proporciona consejos personalizados y accionables:
-
-${JSON.stringify(financialData, null, 2)}
-
-Proporciona un análisis completo. Responde ÚNICAMENTE en formato JSON:
-{
-  "summary": "resumen general de la situación financiera",
-  "advice": [
-    {
-      "category": "categoría o área",
-      "suggestion": "consejo específico",
-      "priority": "high" | "medium" | "low",
-      "potentialSavings": número opcional
-    }
-  ],
-  "strengths": ["fortaleza 1", "fortaleza 2"],
-  "areasForImprovement": ["área 1", "área 2"]
-}`;
+    // Usar template modular para el prompt
+    const advisorTemplate = createAdvisorTemplate(financialData);
+    const prompt = advisorTemplate.content;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         {
           role: 'system',
-          content: 'Eres un asesor financiero certificado que brinda consejos prácticos y personalizados.',
+          content: advisorSystemPrompt,
         },
         {
           role: 'user',

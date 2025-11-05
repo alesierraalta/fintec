@@ -22,6 +22,7 @@ import { detectIntention, ActionType, detectCorrection } from './intention-detec
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
 import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
+import { PromptManager } from './prompts/manager';
 import { logger } from '@/lib/utils/logger';
 
 export interface ChatMessage {
@@ -90,121 +91,13 @@ export async function chatWithAssistant(
       }
     }
 
-    // Construir prompt del sistema con contexto financiero
-    const accountsSummary = cachedContext.accounts.summary.length > 0
-      ? `\nEl usuario tiene ${cachedContext.accounts.total} cuenta(s) activa(s):\n${cachedContext.accounts.summary.map(acc => `- ${acc.name} (${acc.type}): ${acc.balance.toFixed(2)} ${acc.currency}`).join('\n')}\n\nTotal por moneda:\n${Object.entries(cachedContext.accounts.totalBalance).map(([currency, total]) => `- ${currency}: ${total.toFixed(2)}`).join('\n')}`
-      : '\nEl usuario no tiene cuentas registradas aún.';
-
     // Generar sugerencias proactivas
     const proactiveSuggestions = generateProactivePrompt(cachedContext);
 
-    // Lista de cuentas disponibles para referencias
-    const availableAccounts = cachedContext.accounts.summary.map(acc => acc.name).join(', ');
+    // Generar system prompt usando PromptManager (con caché)
+    const systemPrompt = await PromptManager.generateChatSystemPrompt(cachedContext, proactiveSuggestions, userId);
 
-    const systemPrompt = `Eres un asistente financiero personal experto e integrado en una aplicación de billetera.
-Tu función es ayudar al usuario a entender y gestionar sus finanzas personales de manera clara y práctica.
-
-CAPACIDADES DEL ASISTENTE:
-- Puedes RESPONDER preguntas sobre finanzas (saldo, gastos, ingresos, presupuestos, metas)
-- Puedes CREAR transacciones, presupuestos, metas, cuentas y transferencias
-- Puedes ANALIZAR patrones y ofrecer consejos proactivos
-
-CONTEXTO ACTUAL DE LA BILLETERA DEL USUARIO:
-${accountsSummary}
-
-CUENTAS DISPONIBLES: ${availableAccounts || 'Ninguna'}
-
-TRANSACCIONES:
-- Transacciones recientes (últimas 20): ${cachedContext.transactions.recent.length > 0 ? JSON.stringify(cachedContext.transactions.recent.slice(0, 5), null, 2) : 'No hay transacciones recientes'}
-- Resumen del mes: Ingresos: ${cachedContext.transactions.summary.incomeThisMonth.toFixed(2)}, Gastos: ${cachedContext.transactions.summary.expensesThisMonth.toFixed(2)}, Neto: ${cachedContext.transactions.summary.netThisMonth.toFixed(2)}
-
-PRESUPUESTOS:
-${cachedContext.budgets.active.length > 0 ? cachedContext.budgets.active.map(b => `- ${b.category}: Presupuesto ${b.budget.toFixed(2)}, Gastado ${b.spent.toFixed(2)}, Restante ${b.remaining.toFixed(2)} (${b.percentage}%)`).join('\n') : 'No hay presupuestos activos'}
-
-METAS:
-${cachedContext.goals.active.length > 0 ? cachedContext.goals.active.map(g => `- ${g.name}: ${g.current.toFixed(2)} / ${g.target.toFixed(2)} (${g.progress}%)${g.targetDate ? ` - Fecha objetivo: ${g.targetDate}` : ''}`).join('\n') : 'No hay metas activas'}
-${proactiveSuggestions}
-
-DATOS COMPLETOS (JSON):
-${JSON.stringify(cachedContext, null, 2)}
-
-INSTRUCCIONES CRÍTICAS:
-1. SIEMPRE analiza primero el campo "accounts.total" y "accounts.summary" antes de responder sobre cuentas
-2. Si accounts.total > 0, el usuario TIENE cuentas registradas. NUNCA digas "no tienes cuentas" si accounts.total > 0
-3. Para calcular el total de dinero:
-   - Suma todos los balances en accounts.summary
-   - Si hay múltiples monedas, menciona el total por cada moneda desde accounts.totalBalance
-   - Para conversiones, menciona que son aproximadas basadas en tasas disponibles
-4. DIFERENCIA CLARA ENTRE ACCIONES Y CONSULTAS:
-   - CONSULTA (responder directamente): "¿cuál es mi saldo?", "muéstrame mis cuentas", "listar mis cuentas", "qué gastos tuve?"
-   - ACCIÓN (usar función): "crea una cuenta", "agrega un gasto de 50 USD", "registra una transferencia"
-   - Si dice "haz un listado de cuentas", "muéstrame cuentas", "listar cuentas" → RESPONDE DIRECTAMENTE con accounts.summary
-   - Si dice "crea/crearé una cuenta", "quiero crear una nueva cuenta" → USA la función create_account
-5. LISTADO DE CUENTAS - RESPUESTA DIRECTA:
-   - Cuando se te pida listar/mostrar cuentas (sin intención de crear), responde con:
-     - Nombre de cada cuenta
-     - Tipo de cuenta (BANK, CARD, CASH, SAVINGS, etc.)
-     - Saldo actual con moneda
-     - Total general si hay múltiples monedas
-   - NUNCA pidas parámetros para "crear cuenta" si solo quieren listar
-6. ACCIONES DISPONIBLES (solo si intención clara de crear):
-   - create_transaction: Para crear gastos o ingresos
-   - create_budget: Para crear presupuestos
-   - create_goal: Para crear metas de ahorro
-   - create_account: Para crear nuevas cuentas (SOLO si usuario dice "crear", "crear una cuenta nueva", etc.)
-   - create_transfer: Para transferir dinero entre cuentas
-7. CUANDO USAR FUNCIONES:
-   - Usa funciones SOLO cuando el usuario exprese claramente una intención de acción (crear, agregar, registrar)
-   - NO uses funciones para consultas simples (preguntas sobre datos existentes)
-   - Si el usuario dice "agrega un gasto de X", llama a create_transaction
-   - Si el usuario dice "cuánto tengo", responde directamente sin usar funciones
-8. Responde de forma natural, amigable y profesional en español
-9. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
-10. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
-11. Proporciona consejos prácticos y accionables
-12. Mantén respuestas concisas pero informativas
-13. NUNCA inventes datos que no estén en el contexto proporcionado
-14. SIEMPRE verifica accounts.total antes de decir que no hay cuentas
-15. EJEMPLOS DE CONSULTAS CON PARÁMETROS:
-   - "gastos de hoy" → QUERY_TRANSACTIONS con filtro de fecha (hoy)
-   - "transacciones del mes pasado" → QUERY_TRANSACTIONS con rango de mes anterior
-   - "gastos de comida" → QUERY_TRANSACTIONS filtrado por categoría "comida"
-   - "cuánto gané este mes" → QUERY_TRANSACTIONS tipo INCOME para mes actual
-   - "mis presupuestos" → QUERY_BUDGETS sin parámetros extra
-   - "presupuestos de comida" → QUERY_BUDGETS filtrado por categoría
-   - "mis metas" → QUERY_GOALS sin parámetros extra
-   - "¿cuál es mi saldo?" → QUERY_BALANCE sin parámetros
-   - "listado de categorías" → QUERY_CATEGORIES
-   - "muéstrame mis categorías de gastos" → QUERY_CATEGORIES con filtro de tipo
-   - "transacciones recurrentes" → QUERY_RECURRING
-   - "muéstrame mis recurrentes" → QUERY_RECURRING
-   - Cuando el usuario pida datos con FECHA, CATEGORÍA, TIPO o MONEDA específicos:
-     * El sistema automáticamente extrae estos parámetros
-     * Los handlers manejan el filtrado directo desde el contexto
-     * NO necesitas preguntar por aclaraciones si los parámetros están claros
-16. Responde de forma natural, amigable y profesional en español
-17. Usa el contexto de la billetera para dar respuestas precisas y personalizadas
-18. Si el usuario pregunta sobre datos que no están en el contexto, indícale amablemente que no tienes esa información específica
-19. Proporciona consejos prácticos y accionables
-20. Mantén respuestas concisas pero informativas
-21. NUNCA inventes datos que no estén en el contexto proporcionado
-22. SIEMPRE verifica accounts.total antes de decir que no hay cuentas
-23. MANEJO DE CORRECCIONES:
-   - Si el usuario corrige un parámetro (ej: "pero te pedí solo 5", "solo quiero 5 transacciones"):
-     * El sistema automáticamente detecta la corrección y re-ejecuta la consulta anterior
-     * NO necesitas hacer nada especial, solo reconocer que es una corrección
-     * Si el sistema no puede manejar la corrección automáticamente, responde amablemente que entendiste la corrección
-   - Mantén el contexto conversacional: si el usuario hace una corrección, reconoce que es una corrección de la consulta anterior
-   - Ejemplos de correcciones comunes:
-     * "pero te pedí solo 5" → el usuario quiere solo 5 elementos, no más
-     * "solo quiero 3" → el usuario corrige el límite a 3
-     * "corrige a 10" → el usuario quiere 10 elementos
-24. RESPETO DE LÍMITES:
-   - Si el usuario especifica un límite exacto (ej: "5 transacciones"), respeta ese límite exactamente
-   - NO muestres mensajes de "y X más" cuando el usuario especificó un límite exacto
-   - Solo muestra "y X más" cuando NO hay límite explícito y hay más resultados disponibles`;
-
-    logger.debug(`[chatWithAssistant] System prompt constructed with ${cachedContext.accounts.total} accounts for user ${userId}`);
+    logger.debug(`[chatWithAssistant] System prompt generated using PromptManager with ${cachedContext.accounts.total} accounts for user ${userId}`);
 
     // Detectar si es una corrección antes de procesar la intención normal
     const correction = detectCorrection(lastMessage?.content || '');
@@ -273,9 +166,59 @@ INSTRUCCIONES CRÍTICAS:
 
     // Detectar intención del último mensaje
     const intention = detectIntention(lastMessage?.content || '');
+    logger.debug(`[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
+
+    // Detectar si hay múltiples consultas en el mismo mensaje (ej: "lista de cuentas y tasa")
+    const messageContent = lastMessage?.content || '';
+    const hasMultipleQueries = /y\s+(?:me\s+)?(?:indicas|muestras|dame|muestra|show|give)\s+(?:la\s+)?(?:tasa|tasas|rates)/i.test(messageContent) ||
+                               /(?:tasa|tasas|rates).*?y.*?(?:cuentas|accounts|transacciones|transactions)/i.test(messageContent);
 
     // Handle all QUERY types directly with context data (no LLM needed)
     if (intention.type === 'QUERY' && intention.actionType && intention.actionType !== 'UNKNOWN') {
+      // Si hay múltiples consultas, manejar ambas
+      if (hasMultipleQueries) {
+        const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(messageContent);
+        const hasAccountsQuery = /cuentas?|accounts?/i.test(messageContent);
+        
+        let combinedMessage = '';
+        const queriesExecuted: string[] = [];
+        
+        // Ejecutar consulta de cuentas si está presente
+        if (hasAccountsQuery && intention.actionType === 'QUERY_ACCOUNTS') {
+          const accountsResult = handleQueryAccounts(cachedContext, intention.parameters);
+          if (accountsResult.canHandle && accountsResult.message) {
+            combinedMessage += accountsResult.message + '\n\n';
+            queriesExecuted.push('QUERY_ACCOUNTS');
+          }
+        }
+        
+        // Ejecutar consulta de tasas si está presente
+        if (hasRatesQuery) {
+          const ratesResult = await handleQueryRates(cachedContext, intention.parameters);
+          if (ratesResult.canHandle && ratesResult.message) {
+            combinedMessage += ratesResult.message;
+            queriesExecuted.push('QUERY_RATES');
+          }
+        }
+        
+        if (combinedMessage.trim()) {
+          // Guardar ambas consultas en el historial
+          for (const queryType of queriesExecuted) {
+            const historyEntry: QueryHistoryEntry = {
+              actionType: queryType,
+              parameters: intention.parameters || {},
+              timestamp: Date.now(),
+              message: lastMessage?.content || '',
+            };
+            await setCachedQueryHistory(userId, historyEntry);
+          }
+          
+          logger.info(`[chatWithAssistant] Multiple queries handled: ${queriesExecuted.join(', ')} for user ${userId}`);
+          return { message: combinedMessage.trim() };
+        }
+      }
+      
+      // Consulta única normal
       let queryResult;
 
       switch (intention.actionType) {

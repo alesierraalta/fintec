@@ -1,5 +1,6 @@
 import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
+import { createCategorizationTemplate, categorizationSystemPrompt } from './prompts/templates/categorization';
 
 interface CategorySuggestion {
   categoryId: string;
@@ -45,30 +46,22 @@ export async function categorizeTransaction(
       .map((t: any) => `"${t?.description || ''}" → ${t?.categories?.name || 'Sin categoría'}`)
       .join('\n');
 
-    const prompt = `Eres un asistente financiero experto. Categoriza la siguiente transacción:
-
-Descripción: ${description}
-Monto: $${(amount / 100).toFixed(2)}
-${merchantInfo ? `Comerciante: ${merchantInfo}` : ''}
-
-Categorías disponibles: ${categoriesList}
-
-Ejemplos de transacciones previas del usuario:
-${transactionExamples || 'No hay ejemplos previos'}
-
-Analiza la transacción y sugiere la categoría más apropiada. Responde ÚNICAMENTE en formato JSON:
-{
-  "categoryName": "nombre de la categoría",
-  "confidence": 0.0-1.0,
-  "reason": "breve explicación"
-}`;
+    // Usar template modular para el prompt
+    const categorizationTemplate = createCategorizationTemplate(
+      description,
+      amount,
+      merchantInfo,
+      categoriesList,
+      transactionExamples
+    );
+    const prompt = categorizationTemplate.content;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         {
           role: 'system',
-          content: 'Eres un experto en finanzas personales que categoriza transacciones de manera precisa.',
+          content: categorizationSystemPrompt,
         },
         {
           role: 'user',

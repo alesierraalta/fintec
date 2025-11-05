@@ -42,8 +42,13 @@ export interface DetectedIntention {
 const CREATE_KEYWORDS = [
   'crear', 'crea', 'agregar', 'agrega', 'añadir', 'añade', 
   'nuevo', 'nueva', 'registrar', 'registra', 'agreguemos',
-  'quiero crear', 'necesito crear', 'deseo crear', 'hazme', 'haz',
+  'quiero crear', 'necesito crear', 'deseo crear',
   'add', 'create', 'new', 'register'
+];
+
+// "hazme" y "haz" solo son acciones cuando NO van seguidos de palabras de consulta
+const ACTION_COMMAND_KEYWORDS = [
+  'hazme', 'haz', 'haz que', 'make me', 'make'
 ];
 
 /**
@@ -130,20 +135,41 @@ const DATE_PATTERNS = [
 export function detectIntention(message: string): DetectedIntention {
   const lowerMessage = message.toLowerCase().trim();
   
-  // Detectar si es una acción o consulta
-  const isAction = CREATE_KEYWORDS.some(kw => lowerMessage.includes(kw)) ||
-                   UPDATE_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  // Detectar palabras clave de consulta primero (prioridad)
+  const hasQueryKeywords = QUERY_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me/i.test(message);
   
-  const isQuery = !isAction && QUERY_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  // Detectar palabras clave de acción
+  const hasCreateKeywords = CREATE_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  const hasUpdateKeywords = UPDATE_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  const hasActionCommands = ACTION_COMMAND_KEYWORDS.some(kw => lowerMessage.includes(kw));
   
-  const intentionType: IntentionType = isAction ? 'ACTION' : 'QUERY';
+  // Si hay palabras de consulta/listado, priorizar como QUERY
+  // Especialmente si hay "lista", "mostrar", "dame", etc.
+  if (hasQueryKeywords || hasListingKeywords) {
+    // Verificar si realmente es una acción de creación
+    // Si tiene "hazme" o "haz" pero también tiene "lista" o palabras de consulta, es una consulta
+    if (hasActionCommands && hasListingKeywords) {
+      // "hazme la lista" es una consulta, no una acción
+      return detectQueryIntention(lowerMessage, message);
+    }
+    // Si tiene palabras de creación explícitas sin palabras de consulta, es acción
+    if (hasCreateKeywords && !hasListingKeywords) {
+      return detectActionIntention(lowerMessage, message);
+    }
+    // Por defecto, si hay palabras de consulta, es una consulta
+    return detectQueryIntention(lowerMessage, message);
+  }
   
-  // Si es acción, detectar el tipo específico
-  if (intentionType === 'ACTION') {
+  // Si no hay palabras de consulta, verificar si es acción
+  const isAction = hasCreateKeywords || hasUpdateKeywords || 
+                  (hasActionCommands && !hasListingKeywords);
+  
+  if (isAction) {
     return detectActionIntention(lowerMessage, message);
   }
   
-  // Si es consulta, detectar el tipo de consulta
+  // Por defecto, tratar como consulta
   return detectQueryIntention(lowerMessage, message);
 }
 
@@ -515,7 +541,7 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   const parameters: Record<string, any> = {};
   
   // Enhanced patterns with explicit list/show keywords for better detection
-  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar\s|ver\s|show\s|display/i.test(originalMessage);
+  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la/i.test(originalMessage);
   
   const hasBalance = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(originalMessage);
   const hasTransactions = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(originalMessage);
@@ -532,10 +558,11 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     Object.assign(parameters, queryParams);
   }
   
+  // Priorizar consultas de lista cuando hay palabras de lista y el tipo de dato
   // Boost confidence for listing patterns
   if (hasListingKeywords && hasAccounts) {
     actionType = 'QUERY_ACCOUNTS';
-    confidence = 0.95;
+    confidence = 0.98; // Muy alta confianza para listas de cuentas
   } else if (hasListingKeywords && hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.95;
@@ -551,17 +578,22 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   } else if (hasListingKeywords && hasRecurring) {
     actionType = 'QUERY_RECURRING';
     confidence = 0.95;
+  } else if (hasRates) {
+    // Detectar tasas con alta prioridad
+    actionType = 'QUERY_RATES';
+    confidence = 0.9;
   } else if (hasBalance) {
     actionType = 'QUERY_BALANCE';
-    confidence = 0.9;
-  } else if (hasRates) {
-    actionType = 'QUERY_RATES';
     confidence = 0.9;
   } else if (hasCategories) {
     actionType = 'QUERY_CATEGORIES';
     confidence = 0.85;
   } else if (hasRecurring) {
     actionType = 'QUERY_RECURRING';
+    confidence = 0.85;
+  } else if (hasAccounts) {
+    // Si hay "cuentas" sin palabras de creación, es consulta
+    actionType = 'QUERY_ACCOUNTS';
     confidence = 0.85;
   } else if (hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
@@ -571,9 +603,6 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     confidence = 0.8;
   } else if (hasGoals) {
     actionType = 'QUERY_GOALS';
-    confidence = 0.8;
-  } else if (hasAccounts) {
-    actionType = 'QUERY_ACCOUNTS';
     confidence = 0.8;
   }
   

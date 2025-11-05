@@ -1,5 +1,6 @@
 import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
+import { createPredictionsTemplate, predictionsSystemPrompt } from './prompts/templates/predictions';
 
 interface SpendingPrediction {
   nextMonth: {
@@ -58,31 +59,16 @@ export async function predictSpending(userId: string): Promise<SpendingPredictio
 
     const monthlyDataStr = JSON.stringify(monthlyData, null, 2);
 
-    const prompt = `Eres un analista financiero experto. Analiza los siguientes datos de gastos mensuales y predice el gasto para el próximo mes:
-
-Datos históricos (últimos 6 meses, montos en centavos):
-${monthlyDataStr}
-
-Proporciona una predicción detallada. Responde ÚNICAMENTE en formato JSON:
-{
-  "nextMonthTotal": número,
-  "categoryPredictions": [
-    {
-      "categoryName": "nombre",
-      "predicted": número,
-      "trend": "up" | "down" | "stable"
-    }
-  ],
-  "insights": ["insight 1", "insight 2"],
-  "recommendations": ["recomendación 1", "recomendación 2"]
-}`;
+    // Usar template modular para el prompt
+    const predictionsTemplate = createPredictionsTemplate(monthlyDataStr);
+    const prompt = predictionsTemplate.content;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: [
         {
           role: 'system',
-          content: 'Eres un analista financiero que predice gastos futuros basándose en patrones históricos.',
+          content: predictionsSystemPrompt,
         },
         {
           role: 'user',
