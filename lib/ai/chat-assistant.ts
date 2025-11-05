@@ -39,6 +39,7 @@ export interface ChatResponse {
     confirmationMessage?: string;
   };
   suggestions?: string[];
+  debugLogs?: Array<{ level: 'debug' | 'info' | 'warn' | 'error'; message: string; timestamp: number }>;
 }
 
 /**
@@ -51,6 +52,40 @@ export async function chatWithAssistant(
   context: WalletContext,
   sessionId?: string
 ): Promise<ChatResponse> {
+  // Recopilar logs para enviar al navegador (solo en desarrollo)
+  const isDev = process.env.NODE_ENV === 'development';
+  const debugLogs: Array<{ level: 'debug' | 'info' | 'warn' | 'error'; message: string; timestamp: number }> = [];
+  
+  // Logger wrapper que recopila logs y también los muestra en servidor
+  const collectLog = (level: 'debug' | 'info' | 'warn' | 'error', message: string) => {
+    if (isDev) {
+      debugLogs.push({ level, message, timestamp: Date.now() });
+      // También loggear en servidor
+      switch (level) {
+        case 'debug':
+          logger.debug(message);
+          break;
+        case 'info':
+          logger.info(message);
+          break;
+        case 'warn':
+          logger.warn(message);
+          break;
+        case 'error':
+          logger.error(message);
+          break;
+      }
+    }
+  };
+  
+  // Helper para incluir debugLogs en respuestas
+  const withDebugLogs = <T extends { message: string }>(response: T): T & { debugLogs?: typeof debugLogs } => {
+    if (isDev && debugLogs.length > 0) {
+      return { ...response, debugLogs };
+    }
+    return response;
+  };
+  
   try {
     // Intentar obtener contexto cacheado
     let cachedContext = await getCachedContext(userId);
@@ -63,31 +98,33 @@ export async function chatWithAssistant(
     // Procesar confirmaciones/rechazos de acciones pendientes
     const lastMessage = messages[messages.length - 1];
     const pendingAction = await getCachedPendingAction(userId);
+    
+    collectLog('debug', `[chatWithAssistant] Processing message for user ${userId}, sessionId: ${sessionId || 'none'}`);
 
     if (pendingAction) {
       if (isConfirmationResponse(lastMessage.content)) {
         await invalidatePendingActionCache(userId);
         try {
           const result = await executeAction(userId, pendingAction.type as ActionType, pendingAction.parameters, cachedContext);
-          return {
+          return withDebugLogs({
             message: result.message,
             action: result.success ? {
               type: pendingAction.type as ActionType,
               parameters: pendingAction.parameters,
               requiresConfirmation: false,
             } : undefined,
-          };
+          });
         } catch (error: any) {
           logger.error('[chatWithAssistant] Error executing pending action:', error);
-          return {
+          return withDebugLogs({
             message: `Error al ejecutar la acción pendiente: ${error.message}. Por favor intenta de nuevo.`,
-          };
+          });
         }
       } else if (isRejectionResponse(lastMessage.content)) {
         await invalidatePendingActionCache(userId);
-        return {
+        return withDebugLogs({
           message: 'Acción cancelada. ¿Hay algo más en lo que pueda ayudarte?',
-        };
+        });
       }
     }
 
@@ -157,7 +194,7 @@ export async function chatWithAssistant(
           await setCachedQueryHistory(userId, historyEntry);
           
           logger.info(`[chatWithAssistant] Correction handled successfully for user ${userId}`);
-          return { message: queryResult.message };
+          return withDebugLogs({ message: queryResult.message });
         }
       } else {
         logger.warn(`[chatWithAssistant] Correction detected but no previous query found in Redis for user ${userId}`);
@@ -166,7 +203,7 @@ export async function chatWithAssistant(
 
     // Detectar intención del último mensaje
     const intention = detectIntention(lastMessage?.content || '');
-    logger.debug(`[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
+    collectLog('debug', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
 
     // Handle all QUERY types directly with context data (no LLM needed)
     if (intention.type === 'QUERY' && intention.actionType && intention.actionType !== 'UNKNOWN') {
@@ -198,7 +235,7 @@ export async function chatWithAssistant(
       const isMultipleQueries = detectedQueries > 1;
       
       // Logging detallado para diagnóstico
-      logger.debug(`[chatWithAssistant] Query detection - accounts: ${hasAccountsQuery}, rates: ${hasRatesQuery}, transactions: ${hasTransactionsQuery}, budgets: ${hasBudgetsQuery}, goals: ${hasGoalsQuery}, categories: ${hasCategoriesQuery}, recurring: ${hasRecurringQuery}, balance: ${hasBalanceQuery}, multiple: ${isMultipleQueries} for user ${userId}`);
+      collectLog('debug', `[chatWithAssistant] Query detection - accounts: ${hasAccountsQuery}, rates: ${hasRatesQuery}, transactions: ${hasTransactionsQuery}, budgets: ${hasBudgetsQuery}, goals: ${hasGoalsQuery}, categories: ${hasCategoriesQuery}, recurring: ${hasRecurringQuery}, balance: ${hasBalanceQuery}, multiple: ${isMultipleQueries} for user ${userId}`);
       
       // Si hay múltiples consultas detectadas, ejecutar todas
       if (isMultipleQueries) {
@@ -299,7 +336,7 @@ export async function chatWithAssistant(
           }
           
           logger.info(`[chatWithAssistant] Multiple queries executed: ${queriesExecuted.join(', ')} for user ${userId}`);
-          return { message: combinedMessage.trim() };
+          return withDebugLogs({ message: combinedMessage.trim() });
         } else {
           logger.warn(`[chatWithAssistant] Multiple queries detected but no messages were generated for user ${userId}`);
         }
@@ -325,7 +362,12 @@ export async function chatWithAssistant(
           queryResult = handleQueryGoals(cachedContext, intention.parameters);
           break;
         case 'QUERY_RATES':
+          collectLog('debug', `[chatWithAssistant] Executing QUERY_RATES for user ${userId}, message: "${messageContent}"`);
           queryResult = await handleQueryRates(cachedContext, intention.parameters);
+          collectLog('debug', `[chatWithAssistant] handleQueryRates result: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message}, messageLength=${queryResult.message?.length || 0} for user ${userId}`);
+          if (!queryResult.canHandle || !queryResult.message) {
+            collectLog('warn', `[chatWithAssistant] handleQueryRates failed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message} for user ${userId}`);
+          }
           break;
         case 'QUERY_CATEGORIES':
           queryResult = await handleQueryCategories(cachedContext, userId, intention.parameters);
@@ -349,7 +391,7 @@ export async function chatWithAssistant(
         await setCachedQueryHistory(userId, historyEntry);
         
         logger.info(`[chatWithAssistant] ${intention.actionType} handled directly from context for user ${userId}`);
-        return { message: queryResult.message };
+        return withDebugLogs({ message: queryResult.message });
       }
     }
 
@@ -360,9 +402,9 @@ export async function chatWithAssistant(
       if (!validation.valid) {
         // Parámetros faltantes o inválidos
         const missingParamsMsg = generateMissingParametersMessage(intention.actionType, intention.missingParameters);
-        return {
+        return withDebugLogs({
           message: `${missingParamsMsg}\n\n${validation.errors.join('\n')}`,
-        };
+        });
       }
 
       // Si requiere confirmación, retornar mensaje de confirmación y guardar en caché
@@ -375,7 +417,7 @@ export async function chatWithAssistant(
           confirmationMessage: confirmation.confirmationMessage,
         });
         
-        return {
+        return withDebugLogs({
           message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
           action: {
             type: intention.actionType,
@@ -383,25 +425,25 @@ export async function chatWithAssistant(
             requiresConfirmation: true,
             confirmationMessage: confirmation.confirmationMessage,
           },
-        };
+        });
       }
 
       // Ejecutar acción directamente
       try {
         const result = await executeAction(userId, intention.actionType, intention.parameters, cachedContext);
-        return {
+        return withDebugLogs({
           message: result.message,
           action: result.success ? {
             type: intention.actionType,
             parameters: intention.parameters,
             requiresConfirmation: false,
           } : undefined,
-        };
+        });
       } catch (error: any) {
         logger.error('[chatWithAssistant] Error executing action:', error);
-        return {
+        return withDebugLogs({
           message: `Error al ejecutar la acción: ${error.message}. Por favor intenta de nuevo.`,
-        };
+        });
       }
     }
 
@@ -472,7 +514,7 @@ export async function chatWithAssistant(
                 confirmationMessage: confirmation.confirmationMessage,
               });
               
-              return {
+              return withDebugLogs({
                 message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
                 action: {
                   type: actionType,
@@ -480,19 +522,19 @@ export async function chatWithAssistant(
                   requiresConfirmation: true,
                   confirmationMessage: confirmation.confirmationMessage,
                 },
-              };
+              });
             }
 
             // Ejecutar acción
             const result = await executeAction(userId, actionType, functionArgs, cachedContext);
-            return {
+            return withDebugLogs({
               message: result.message,
               action: result.success ? {
                 type: actionType,
                 parameters: functionArgs,
                 requiresConfirmation: false,
               } : undefined,
-            };
+            });
           }
         }
 
@@ -501,7 +543,7 @@ export async function chatWithAssistant(
           throw new Error('Empty response from OpenAI');
         }
 
-        return { message: content };
+        return withDebugLogs({ message: content });
       } catch (error: any) {
         // Si el modelo no existe, intentar con fallback en cascada: mini -> nano -> fallback
         if (error?.message?.includes('model') || error?.code === 'model_not_found' || error?.status === 404) {
@@ -554,8 +596,8 @@ export async function chatWithAssistant(
   } catch (error: any) {
     logger.error('Unexpected error in chatWithAssistant', error);
     // En caso de error absoluto, retornar un mensaje genérico
-    return {
+    return withDebugLogs({
       message: 'Lo siento, tuve un problema al procesar tu solicitud. Por favor intenta de nuevo.',
-    };
+    });
   }
 }

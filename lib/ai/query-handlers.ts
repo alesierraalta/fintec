@@ -306,52 +306,72 @@ export async function handleQueryRates(
 
     // BCV Rates
     if (bcvResponse.status === 'fulfilled' && bcvResponse.value.ok) {
-      const bcvData = await bcvResponse.value.json();
-      // Aceptar datos si success: true O si hay fallback: true con data presente
-      if (bcvData.data && (bcvData.success || bcvData.fallback)) {
-        message += `🏦 BCV (Banco Central de Venezuela):\n`;
-        message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
-        message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
-        if (bcvData.data.lastUpdated) {
-          const updated = new Date(bcvData.data.lastUpdated);
-          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+      try {
+        const bcvData = await bcvResponse.value.json();
+        // Aceptar datos si success: true O si hay fallback: true con data presente
+        if (bcvData.data && (bcvData.success || bcvData.fallback)) {
+          message += `🏦 BCV (Banco Central de Venezuela):\n`;
+          message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
+          message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
+          if (bcvData.data.lastUpdated) {
+            const updated = new Date(bcvData.data.lastUpdated);
+            message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+          }
+          if (bcvData.fallback) {
+            message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
+          }
+          message += '\n';
+        } else {
+          logger.warn(`[handleQueryRates] BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
         }
-        if (bcvData.fallback) {
-          message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
-        }
-        message += '\n';
+      } catch (parseError: any) {
+        logger.error(`[handleQueryRates] Failed to parse BCV API JSON response: ${parseError.message}`);
       }
+    } else if (bcvResponse.status === 'fulfilled') {
+      logger.warn(`[handleQueryRates] BCV API returned status ${bcvResponse.value.status} ${bcvResponse.value.statusText}`);
+    } else {
+      logger.error(`[handleQueryRates] BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
     }
 
     // Binance Rates
     if (binanceResponse.status === 'fulfilled' && binanceResponse.value.ok) {
-      const binanceData = await binanceResponse.value.json();
-      // Aceptar datos si success: true O si hay fallback: true con data presente
-      if (binanceData.data && (binanceData.success || binanceData.fallback)) {
-        message += `💱 Binance P2P:\n`;
-        if (binanceData.data.usd_ves) {
-          message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
+      try {
+        const binanceData = await binanceResponse.value.json();
+        // Aceptar datos si success: true O si hay fallback: true con data presente
+        if (binanceData.data && (binanceData.success || binanceData.fallback)) {
+          message += `💱 Binance P2P:\n`;
+          if (binanceData.data.usd_ves) {
+            message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
+          }
+          if (binanceData.data.sell_rate) {
+            const sellRate = typeof binanceData.data.sell_rate === 'object' 
+              ? binanceData.data.sell_rate.avg 
+              : binanceData.data.sell_rate;
+            message += `  • Venta (avg): ${sellRate.toFixed(2)} VES\n`;
+          }
+          if (binanceData.data.buy_rate) {
+            const buyRate = typeof binanceData.data.buy_rate === 'object'
+              ? binanceData.data.buy_rate.avg
+              : binanceData.data.buy_rate;
+            message += `  • Compra (avg): ${buyRate.toFixed(2)} VES\n`;
+          }
+          if (binanceData.data.lastUpdated) {
+            const updated = new Date(binanceData.data.lastUpdated);
+            message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+          }
+          if (binanceData.fallback) {
+            message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
+          }
+        } else {
+          logger.warn(`[handleQueryRates] Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
         }
-        if (binanceData.data.sell_rate) {
-          const sellRate = typeof binanceData.data.sell_rate === 'object' 
-            ? binanceData.data.sell_rate.avg 
-            : binanceData.data.sell_rate;
-          message += `  • Venta (avg): ${sellRate.toFixed(2)} VES\n`;
-        }
-        if (binanceData.data.buy_rate) {
-          const buyRate = typeof binanceData.data.buy_rate === 'object'
-            ? binanceData.data.buy_rate.avg
-            : binanceData.data.buy_rate;
-          message += `  • Compra (avg): ${buyRate.toFixed(2)} VES\n`;
-        }
-        if (binanceData.data.lastUpdated) {
-          const updated = new Date(binanceData.data.lastUpdated);
-          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
-        }
-        if (binanceData.fallback) {
-          message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
-        }
+      } catch (parseError: any) {
+        logger.error(`[handleQueryRates] Failed to parse Binance API JSON response: ${parseError.message}`);
       }
+    } else if (binanceResponse.status === 'fulfilled') {
+      logger.warn(`[handleQueryRates] Binance API returned status ${binanceResponse.value.status} ${binanceResponse.value.statusText}`);
+    } else {
+      logger.error(`[handleQueryRates] Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
     }
 
     // Si no se pudo obtener ninguna tasa

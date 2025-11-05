@@ -89,6 +89,31 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json();
 
+      // Mostrar logs de debug en la consola del navegador (solo en desarrollo)
+      if (data.debugLogs && Array.isArray(data.debugLogs)) {
+        console.group(`[AI Chat Debug] ${new Date().toLocaleTimeString()}`);
+        data.debugLogs.forEach((log: { level: string; message: string; timestamp: number }) => {
+          const time = new Date(log.timestamp).toLocaleTimeString();
+          switch (log.level) {
+            case 'debug':
+              console.debug(`[${time}] ${log.message}`);
+              break;
+            case 'info':
+              console.info(`[${time}] ${log.message}`);
+              break;
+            case 'warn':
+              console.warn(`[${time}] ${log.message}`);
+              break;
+            case 'error':
+              console.error(`[${time}] ${log.message}`);
+              break;
+            default:
+              console.log(`[${time}] ${log.message}`);
+          }
+        });
+        console.groupEnd();
+      }
+
       if (!response.ok) {
         // Manejar errores específicos
         if (response.status === 403) {

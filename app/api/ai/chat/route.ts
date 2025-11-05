@@ -134,6 +134,7 @@ export async function POST(request: NextRequest) {
           hasBudgets: context.budgets.active.length > 0,
           hasGoals: context.goals.active.length > 0,
         },
+        ...(response.debugLogs ? { debugLogs: response.debugLogs } : {}),
       };
     })();
 

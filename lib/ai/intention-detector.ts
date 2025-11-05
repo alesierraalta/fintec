@@ -548,7 +548,8 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   const hasBudgets = /presupuestos?|budgets?/i.test(originalMessage);
   const hasGoals = /metas?|goals?|objetivos?|targets?/i.test(originalMessage);
   const hasAccounts = /cuentas?|accounts?/i.test(originalMessage);
-  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(originalMessage);
+  // Mejorar regex para detectar "a que tasa?", "a qué tasa?", "que tasa?", "qué tasa?" y variantes
+  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio|a\s+que\s+tasa|a\s+qué\s+tasa|que\s+tasa|qué\s+tasa/i.test(originalMessage);
   const hasCategories = /categorías?|categorias?|categories?/i.test(originalMessage);
   const hasRecurring = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(originalMessage);
   
@@ -579,9 +580,9 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     actionType = 'QUERY_RECURRING';
     confidence = 0.95;
   } else if (hasRates) {
-    // Detectar tasas con alta prioridad
+    // Detectar tasas con alta prioridad, incluso sin listing keywords
     actionType = 'QUERY_RATES';
-    confidence = 0.9;
+    confidence = 0.95; // Aumentar confidence para preguntas directas sobre tasas
   } else if (hasBalance) {
     actionType = 'QUERY_BALANCE';
     confidence = 0.9;
