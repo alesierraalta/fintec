@@ -10,10 +10,81 @@ import { logger } from '@/lib/utils/logger';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { fromMinorUnits } from '@/lib/money';
 
+/**
+ * Construye la URL base para llamadas API internas
+ * 
+ * Principio aplicado: Single Responsibility
+ * - Función dedicada solo a construcción de URL
+ * - Facilita testing y mantenimiento
+ * 
+ * Estrategia:
+ * 1. Verificar variables de entorno (producción)
+ * 2. Fallback a localhost solo en desarrollo
+ * 3. Validar que la URL sea válida
+ * 
+ * @returns URL base válida para llamadas API internas
+ * @throws Error si no se puede determinar una URL válida
+ */
+function getBaseUrlForInternalAPIs(): string {
+  let baseUrl: string;
+  
+  // Prioridad 1: Vercel URL (producción)
+  if (process.env.VERCEL_URL) {
+    baseUrl = `https://${process.env.VERCEL_URL}`;
+  }
+  // Prioridad 2: NEXT_PUBLIC_APP_URL configurado
+  else if (process.env.NEXT_PUBLIC_APP_URL) {
+    baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  }
+  // Prioridad 3: NEXT_PUBLIC_SITE_URL (alternativa)
+  else if (process.env.NEXT_PUBLIC_SITE_URL) {
+    baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  }
+  // Prioridad 4: Solo en desarrollo, usar localhost
+  else if (process.env.NODE_ENV === 'development') {
+    baseUrl = 'http://localhost:3000';
+  }
+  // Prioridad 5: Fallback: intentar detectar desde window si está disponible
+  else if (typeof window !== 'undefined') {
+    baseUrl = window.location.origin;
+  }
+  // Último recurso: lanzar error para que sea visible
+  else {
+    throw new Error(
+      'Cannot determine base URL for internal API calls. ' +
+      'Please set NEXT_PUBLIC_APP_URL or VERCEL_URL environment variable.'
+    );
+  }
+  
+  // Validar que la URL sea válida
+  try {
+    const url = new URL(baseUrl);
+    if (!url.protocol || !url.hostname) {
+      throw new Error(`Invalid base URL: ${baseUrl}`);
+    }
+    return baseUrl;
+  } catch (error) {
+    logger.error(`[getBaseUrlForInternalAPIs] Invalid URL constructed: ${baseUrl}`, error);
+    throw new Error(
+      `Cannot construct valid base URL for internal API calls. ` +
+      `Got: ${baseUrl}. Please check environment variables.`
+    );
+  }
+}
+
 export interface QueryResult {
   message: string;
   canHandle: boolean;
 }
+
+/**
+ * Tipo para función de logging que puede ser inyectada
+ * Permite usar collectLog de chat-assistant o logger estándar
+ * 
+ * Principio aplicado: Dependency Inversion (SOLID - D)
+ * - Abstracción que permite diferentes implementaciones de logging
+ */
+export type LogFunction = (level: 'debug' | 'info' | 'warn' | 'error', message: string) => void;
 
 /**
  * Maneja consulta de balance
@@ -270,39 +341,38 @@ export function handleQueryAccounts(
 
 /**
  * Maneja consulta de tasas de cambio
+ * 
+ * @param context - Contexto de billetera
+ * @param params - Parámetros opcionales de la consulta
+ * @param logFn - Función de logging opcional (si no se provee, usa logger estándar)
+ * 
+ * Principio aplicado: Dependency Inversion (SOLID - D)
+ * - Depende de abstracción (LogFunction) no de implementación concreta
+ * - Permite inyectar collectLog para logs en navegador
  */
 export async function handleQueryRates(
   context: WalletContext,
-  params?: Record<string, any>
+  params?: Record<string, any>,
+  logFn?: LogFunction
 ): Promise<QueryResult> {
-  // Logger para debug (solo en desarrollo)
+  // Usar logFn si está disponible, sino usar logger estándar
   const isDev = process.env.NODE_ENV === 'development';
-  const debugLog = isDev ? (level: 'debug' | 'info' | 'warn' | 'error', msg: string) => {
-    switch (level) {
-      case 'debug': logger.debug(`[handleQueryRates] ${msg}`); break;
-      case 'info': logger.info(`[handleQueryRates] ${msg}`); break;
-      case 'warn': logger.warn(`[handleQueryRates] ${msg}`); break;
-      case 'error': logger.error(`[handleQueryRates] ${msg}`); break;
+  const debugLog: LogFunction = logFn || ((level, msg) => {
+    if (isDev) {
+      switch (level) {
+        case 'debug': logger.debug(`[handleQueryRates] ${msg}`); break;
+        case 'info': logger.info(`[handleQueryRates] ${msg}`); break;
+        case 'warn': logger.warn(`[handleQueryRates] ${msg}`); break;
+        case 'error': logger.error(`[handleQueryRates] ${msg}`); break;
+      }
     }
-  } : () => {};
+  });
   
   try {
     debugLog('info', 'Starting to fetch exchange rates');
     
-    // Construir URL base para fetch en servidor
-    let baseUrl = 'http://localhost:3000';
-    if (typeof window === 'undefined') {
-      // Estamos en servidor
-      if (process.env.VERCEL_URL) {
-        baseUrl = `https://${process.env.VERCEL_URL}`;
-      } else if (process.env.NEXT_PUBLIC_SITE_URL) {
-        baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
-      }
-    } else {
-      // Estamos en cliente
-      baseUrl = window.location.origin;
-    }
-
+    // Construir URL base para fetch usando función dedicada
+    const baseUrl = getBaseUrlForInternalAPIs();
     debugLog('debug', `Using baseUrl: ${baseUrl}`);
 
     // Obtener tasas desde las APIs

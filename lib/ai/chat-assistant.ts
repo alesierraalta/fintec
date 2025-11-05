@@ -254,12 +254,36 @@ export async function chatWithAssistant(
         }
         
         if (hasRatesQuery) {
-          const ratesResult = await handleQueryRates(cachedContext, intention.parameters);
-          if (ratesResult.canHandle && ratesResult.message) {
-            combinedMessage += ratesResult.message + '\n\n';
-            queriesExecuted.push('QUERY_RATES');
-          } else {
-            logger.warn(`[chatWithAssistant] handleQueryRates returned canHandle=${ratesResult.canHandle} for user ${userId}`);
+          // Crear wrapper de collectLog para handleQueryRates
+          const ratesLogFn = (level: 'debug' | 'info' | 'warn' | 'error', msg: string) => {
+            collectLog(level, `[handleQueryRates] ${msg}`);
+          };
+          
+          try {
+            const ratesResult = await handleQueryRates(cachedContext, intention.parameters, ratesLogFn);
+            
+            // SIEMPRE agregar el mensaje si existe, incluso si es un mensaje de error
+            // Esto asegura que el usuario vea que se intentó obtener las tasas
+            if (ratesResult.canHandle && ratesResult.message) {
+              combinedMessage += ratesResult.message + '\n\n';
+              queriesExecuted.push('QUERY_RATES');
+              
+              // Log diferente si es mensaje de error vs éxito
+              const isErrorMessage = ratesResult.message.includes('No pude obtener');
+              if (isErrorMessage) {
+                collectLog('warn', `[chatWithAssistant] Rates query returned error message, but added to response for user ${userId}`);
+              } else {
+                collectLog('info', `[chatWithAssistant] Rates query successful, added to combined message for user ${userId}`);
+              }
+            } else {
+              collectLog('error', `[chatWithAssistant] handleQueryRates failed: canHandle=${ratesResult.canHandle}, hasMessage=${!!ratesResult.message} for user ${userId}`);
+              logger.error(`[chatWithAssistant] handleQueryRates failed: canHandle=${ratesResult.canHandle}, hasMessage=${!!ratesResult.message} for user ${userId}`);
+            }
+          } catch (error: any) {
+            collectLog('error', `[chatWithAssistant] Exception in handleQueryRates: ${error.message || error} for user ${userId}`);
+            logger.error(`[chatWithAssistant] Exception in handleQueryRates:`, error);
+            // Agregar mensaje de error al combinedMessage para que el usuario lo vea
+            combinedMessage += 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.\n\n';
           }
         }
         
@@ -364,7 +388,13 @@ export async function chatWithAssistant(
         case 'QUERY_RATES':
           collectLog('info', `[chatWithAssistant] Executing QUERY_RATES for user ${userId}, message: "${messageContent}"`);
           collectLog('debug', `[chatWithAssistant] Query parameters: ${JSON.stringify(intention.parameters || {})}`);
-          queryResult = await handleQueryRates(cachedContext, intention.parameters);
+          
+          // Crear wrapper de collectLog para handleQueryRates
+          const singleRatesLogFn = (level: 'debug' | 'info' | 'warn' | 'error', msg: string) => {
+            collectLog(level, `[handleQueryRates] ${msg}`);
+          };
+          
+          queryResult = await handleQueryRates(cachedContext, intention.parameters, singleRatesLogFn);
           collectLog('info', `[chatWithAssistant] handleQueryRates completed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message}, messageLength=${queryResult.message?.length || 0} for user ${userId}`);
           if (!queryResult.canHandle || !queryResult.message) {
             collectLog('warn', `[chatWithAssistant] handleQueryRates failed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message} for user ${userId}`);
