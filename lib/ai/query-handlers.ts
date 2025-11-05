@@ -378,6 +378,20 @@ export async function handleQueryRates(
     const bcvUrl = `${baseUrl}/api/bcv-rates`;
     const binanceUrl = `${baseUrl}/api/binance-rates`;
     debugLog('debug', `BCV URL: ${bcvUrl}, Binance URL: ${binanceUrl}`);
+    
+    // Validate URLs before attempting fetch
+    try {
+      new URL(bcvUrl);
+      new URL(binanceUrl);
+      debugLog('debug', 'URLs validated successfully');
+    } catch (urlError: any) {
+      debugLog('error', `Invalid URL constructed: ${urlError.message}`);
+      logger.error(`[handleQueryRates] Invalid URL: ${urlError.message}`);
+      return {
+        message: `Error de configuración: URL inválida para las APIs de tasas. Por favor contacta al soporte.`,
+        canHandle: true,
+      };
+    }
 
     // Obtener tasas desde las APIs con timeout de 5 segundos
     debugLog('debug', 'Fetching BCV and Binance rates in parallel');
@@ -399,11 +413,34 @@ export async function handleQueryRates(
     ]);
     
     debugLog('debug', `BCV fetch status: ${bcvResponse.status}, Binance fetch status: ${binanceResponse.status}`);
+    
+    // Log detailed error information for rejected fetches
     if (bcvResponse.status === 'rejected') {
-      debugLog('error', `BCV fetch rejected: ${bcvResponse.reason?.message || bcvResponse.reason}`);
+      const errorReason = bcvResponse.reason;
+      const errorMessage = errorReason instanceof Error ? errorReason.message : String(errorReason);
+      const errorStack = errorReason instanceof Error ? errorReason.stack : undefined;
+      debugLog('error', `BCV fetch rejected: ${errorMessage}`);
+      debugLog('error', `BCV URL attempted: ${bcvUrl}`);
+      if (errorStack) {
+        debugLog('debug', `BCV error stack: ${errorStack}`);
+      }
     }
+    
     if (binanceResponse.status === 'rejected') {
-      debugLog('error', `Binance fetch rejected: ${binanceResponse.reason?.message || binanceResponse.reason}`);
+      const errorReason = binanceResponse.reason;
+      const errorMessage = errorReason instanceof Error ? errorReason.message : String(errorReason);
+      const errorStack = errorReason instanceof Error ? errorReason.stack : undefined;
+      debugLog('error', `Binance fetch rejected: ${errorMessage}`);
+      debugLog('error', `Binance URL attempted: ${binanceUrl}`);
+      if (errorStack) {
+        debugLog('debug', `Binance error stack: ${errorStack}`);
+      }
+    }
+    
+    // Check if both APIs failed completely
+    if (bcvResponse.status === 'rejected' && binanceResponse.status === 'rejected') {
+      debugLog('error', `Both rate APIs failed completely. BCV: ${bcvResponse.reason}, Binance: ${binanceResponse.reason}`);
+      debugLog('error', `Attempted URLs - BCV: ${bcvUrl}, Binance: ${binanceUrl}`);
     }
 
     let message = 'Tasas de cambio disponibles:\n\n';
@@ -494,8 +531,28 @@ export async function handleQueryRates(
     if (message === 'Tasas de cambio disponibles:\n\n') {
       debugLog('warn', 'No rates data collected from either API');
       logger.warn('[handleQueryRates] No rates data collected from either API');
+      
+      // Build detailed error message with diagnostic info
+      let errorMessage = 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.';
+      
+      // Add diagnostic info in development or if both APIs failed
+      const isDev = process.env.NODE_ENV === 'development';
+      if (isDev || (bcvResponse.status === 'rejected' && binanceResponse.status === 'rejected')) {
+        const bcvError = bcvResponse.status === 'rejected' 
+          ? (bcvResponse.reason instanceof Error ? bcvResponse.reason.message : String(bcvResponse.reason))
+          : 'unknown';
+        const binanceError = binanceResponse.status === 'rejected'
+          ? (binanceResponse.reason instanceof Error ? binanceResponse.reason.message : String(binanceResponse.reason))
+          : 'unknown';
+        
+        errorMessage += `\n\n🔍 Diagnóstico:\n`;
+        errorMessage += `• BCV API: ${bcvResponse.status === 'rejected' ? 'Error' : 'OK'} - ${bcvError}\n`;
+        errorMessage += `• Binance API: ${binanceResponse.status === 'rejected' ? 'Error' : 'OK'} - ${binanceError}\n`;
+        errorMessage += `• URLs intentadas: ${bcvUrl}, ${binanceUrl}`;
+      }
+      
       return {
-        message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',
+        message: errorMessage,
         canHandle: true,
       };
     }

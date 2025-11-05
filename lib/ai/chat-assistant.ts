@@ -52,15 +52,17 @@ export async function chatWithAssistant(
   context: WalletContext,
   sessionId?: string
 ): Promise<ChatResponse> {
-  // Recopilar logs para enviar al navegador (solo en desarrollo)
+  // Recopilar logs para enviar al navegador (siempre, no solo en desarrollo)
   const isDev = process.env.NODE_ENV === 'development';
   const debugLogs: Array<{ level: 'debug' | 'info' | 'warn' | 'error'; message: string; timestamp: number }> = [];
   
   // Logger wrapper que recopila logs y también los muestra en servidor
   const collectLog = (level: 'debug' | 'info' | 'warn' | 'error', message: string) => {
+    // Siempre recopilar logs para el navegador (no solo en desarrollo)
+    debugLogs.push({ level, message, timestamp: Date.now() });
+    
+    // Solo mostrar en servidor si estamos en desarrollo
     if (isDev) {
-      debugLogs.push({ level, message, timestamp: Date.now() });
-      // También loggear en servidor
       switch (level) {
         case 'debug':
           logger.debug(message);
@@ -80,7 +82,8 @@ export async function chatWithAssistant(
   
   // Helper para incluir debugLogs en respuestas
   const withDebugLogs = <T extends { message: string }>(response: T): T & { debugLogs?: typeof debugLogs } => {
-    if (isDev && debugLogs.length > 0) {
+    // Siempre incluir logs si hay alguno (no solo en desarrollo)
+    if (debugLogs.length > 0) {
       return { ...response, debugLogs };
     }
     return response;
