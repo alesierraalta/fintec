@@ -11,7 +11,7 @@
  * - Procesamiento de confirmaciones
  */
 
-import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
+import { openai, getChatModel, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
@@ -88,6 +88,28 @@ export async function chatWithAssistant(
     }
     return response;
   };
+  
+  /**
+   * Helper function to build API parameters with correct token limit parameter
+   * gpt-5-nano requires max_completion_tokens, while gpt-5-mini uses max_tokens
+   */
+  function getModelParams(model: string, defaultTokens: number, additionalParams: Record<string, any> = {}): Record<string, any> {
+    const baseParams: Record<string, any> = {
+      model,
+      temperature: AI_TEMPERATURE,
+      ...additionalParams,
+    };
+    
+    // gpt-5-nano requiere max_completion_tokens
+    if (model === AI_CHAT_MODEL_NANO) {
+      baseParams.max_completion_tokens = defaultTokens;
+    } else {
+      // gpt-5-mini y otros usan max_tokens
+      baseParams.max_tokens = defaultTokens;
+    }
+    
+    return baseParams;
+  }
   
   try {
     // Intentar obtener contexto cacheado
@@ -415,11 +437,10 @@ No agregues información que no esté en los datos proporcionados. Solo reformat
           
           try {
             const response = await openai.chat.completions.create({
-              model: modelForSimple,
-              messages: openAIMessagesSimple as any,
-              temperature: AI_TEMPERATURE,
-              max_tokens: 600, // Un poco más de tokens para múltiples queries
-            });
+              ...getModelParams(modelForSimple, 600, {
+                messages: openAIMessagesSimple as any,
+              }),
+            } as any);
             
             if (response.usage) {
               collectLog('info', `[chatWithAssistant] ${modelForSimple} usage: prompt_tokens=${response.usage.prompt_tokens}, completion_tokens=${response.usage.completion_tokens}, total_tokens=${response.usage.total_tokens}`);
@@ -534,11 +555,10 @@ Solo reformatea y presenta los datos de manera profesional.`;
         
         try {
           const response = await openai.chat.completions.create({
-            model: modelForSimple,
-            messages: openAIMessagesSimple as any,
-            temperature: AI_TEMPERATURE,
-            max_tokens: 400, // Menos tokens para queries simples
-          });
+            ...getModelParams(modelForSimple, 400, {
+              messages: openAIMessagesSimple as any,
+            }),
+          } as any);
           
           if (response.usage) {
             collectLog('info', `[chatWithAssistant] ${modelForSimple} usage: prompt_tokens=${response.usage.prompt_tokens}, completion_tokens=${response.usage.completion_tokens}, total_tokens=${response.usage.total_tokens}`);
@@ -644,23 +664,23 @@ Solo reformatea y presenta los datos de manera profesional.`;
     // Determinar qué modelo usar - complejo = gpt-5-mini
     const modelToUse = getChatModel(true); // gpt-5-mini para queries complejas
     collectLog('info', `[chatWithAssistant] Using model: ${modelToUse} for complex query/action for user ${userId}`);
-    collectLog('debug', `[chatWithAssistant] Model configuration: nano=${AI_CHAT_MODEL_NANO}, mini=${AI_CHAT_MODEL_MINI}, fallback=${AI_CHAT_MODEL_FALLBACK}, selected=${modelToUse}`);
+    collectLog('debug', `[chatWithAssistant] Model configuration: nano=${AI_CHAT_MODEL_NANO}, mini=${AI_CHAT_MODEL_MINI}, selected=${modelToUse}`);
     collectLog('debug', `[chatWithAssistant] OpenAI API call will be made with ${openAIMessages.length} messages (system prompt + ${conversationHistory.length} conversation messages)`);
 
     // Función interna para llamar a OpenAI con retry automático y function calling
     const callOpenAI = async (model: string): Promise<ChatResponse> => {
       try {
         collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}`);
-        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, temperature=${AI_TEMPERATURE}, max_tokens=800, tools=${AI_ACTION_TOOLS.length}`);
+        const tokenParam = model === AI_CHAT_MODEL_NANO ? 'max_completion_tokens' : 'max_tokens';
+        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, temperature=${AI_TEMPERATURE}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}`);
         logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}`);
         const response = await openai.chat.completions.create({
-          model,
-          messages: openAIMessages as any,
-          temperature: AI_TEMPERATURE,
-          max_tokens: 800,
-          tools: AI_ACTION_TOOLS,
-          tool_choice: 'auto', // Dejar que el modelo decida cuándo usar herramientas
-        });
+          ...getModelParams(model, 800, {
+            messages: openAIMessages as any,
+            tools: AI_ACTION_TOOLS,
+            tool_choice: 'auto', // Dejar que el modelo decida cuándo usar herramientas
+          }),
+        } as any);
         
         // Log usage information
         if (response.usage) {
@@ -736,14 +756,8 @@ Solo reformatea y presenta los datos de manera profesional.`;
 
         return withDebugLogs({ message: content });
       } catch (error: any) {
-        // Si el modelo no existe, intentar con fallback: gpt-5-nano/gpt-5-mini -> gpt-4o-mini
-        if (error?.message?.includes('model') || error?.code === 'model_not_found' || error?.status === 404) {
-          if (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) {
-            // Si gpt-5-nano o gpt-5-mini no funcionan, usar fallback
-            collectLog('warn', `[chatWithAssistant] Model ${model} not available, using fallback ${AI_CHAT_MODEL_FALLBACK}`);
-            return callOpenAI(AI_CHAT_MODEL_FALLBACK);
-          }
-        }
+        // Si el modelo no existe o falla, no usar fallback LLM
+        // El error será manejado por el retry handler o el catch exterior
         throw error;
       }
     };
@@ -767,28 +781,9 @@ Solo reformatea y presenta los datos de manera profesional.`;
       collectLog('error', `[chatWithAssistant] OpenAI API call failed after retries: ${retryError.message || retryError} for user ${userId}`);
       logger.warn(`AI Chat: OpenAI failed after retries, using fallback extractive response for user ${userId}`);
       
-      // Usar fallback con LLM como último recurso (gpt-4o-mini)
-      try {
-        collectLog('warn', `[chatWithAssistant] Attempting fallback with ${AI_CHAT_MODEL_FALLBACK} for user ${userId}`);
-        const fallbackResponse = await openai.chat.completions.create({
-          model: AI_CHAT_MODEL_FALLBACK,
-          messages: openAIMessages as any,
-          temperature: AI_TEMPERATURE,
-          max_tokens: 400,
-        });
-        
-        if (fallbackResponse.usage) {
-          collectLog('info', `[chatWithAssistant] ${AI_CHAT_MODEL_FALLBACK} fallback usage: prompt_tokens=${fallbackResponse.usage.prompt_tokens}, completion_tokens=${fallbackResponse.usage.completion_tokens}, total_tokens=${fallbackResponse.usage.total_tokens}`);
-        }
-        
-        const fallbackMessage = fallbackResponse.choices[0]?.message?.content || getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
-        response = withDebugLogs({ message: fallbackMessage });
-      } catch (finalError: any) {
-        collectLog('error', `[chatWithAssistant] Fallback model also failed: ${finalError.message || finalError} for user ${userId}`);
-        // Último recurso: mensaje extractivo
-        const fallbackMessage = getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
-        response = withDebugLogs({ message: fallbackMessage });
-      }
+      // Usar respuesta extractiva sin LLM (no intentar otro modelo)
+      const fallbackMessage = getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
+      response = withDebugLogs({ message: fallbackMessage });
     }
 
     // Guardar conversación en caché

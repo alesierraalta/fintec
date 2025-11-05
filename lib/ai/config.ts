@@ -12,7 +12,6 @@ export const AI_MAX_TOKENS = 500; // Limit token usage
 // Chat assistant models - GPT-5 variants
 export const AI_CHAT_MODEL_NANO = 'gpt-5-nano'; // For simple queries (listings, basic info)
 export const AI_CHAT_MODEL_MINI = 'gpt-5-mini'; // For complex queries (analysis, open questions)
-export const AI_CHAT_MODEL_FALLBACK = 'gpt-4o-mini'; // Fallback if GPT-5 models not available
 
 /**
  * Get available chat model based on query complexity
