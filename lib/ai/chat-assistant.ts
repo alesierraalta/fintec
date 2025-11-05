@@ -168,41 +168,126 @@ export async function chatWithAssistant(
     const intention = detectIntention(lastMessage?.content || '');
     logger.debug(`[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
 
-    // Detectar si hay múltiples consultas en el mismo mensaje (ej: "lista de cuentas y tasa")
-    const messageContent = lastMessage?.content || '';
-    const hasMultipleQueries = /y\s+(?:me\s+)?(?:indicas|muestras|dame|muestra|show|give)\s+(?:la\s+)?(?:tasa|tasas|rates)/i.test(messageContent) ||
-                               /(?:tasa|tasas|rates).*?y.*?(?:cuentas|accounts|transacciones|transactions)/i.test(messageContent);
-
     // Handle all QUERY types directly with context data (no LLM needed)
     if (intention.type === 'QUERY' && intention.actionType && intention.actionType !== 'UNKNOWN') {
-      // Si hay múltiples consultas, manejar ambas
-      if (hasMultipleQueries) {
-        const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(messageContent);
-        const hasAccountsQuery = /cuentas?|accounts?/i.test(messageContent);
-        
+      const messageContent = lastMessage?.content || '';
+      
+      // Siempre detectar keywords presentes en el mensaje (independientemente de hasMultipleQueries)
+      // Esto asegura que ejecutemos todas las consultas detectadas, no solo intention.actionType
+      const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(messageContent);
+      const hasAccountsQuery = /cuentas?|accounts?/i.test(messageContent);
+      const hasTransactionsQuery = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(messageContent);
+      const hasBudgetsQuery = /presupuestos?|budgets?/i.test(messageContent);
+      const hasGoalsQuery = /metas?|goals?|objetivos?|targets?/i.test(messageContent);
+      const hasCategoriesQuery = /categorías?|categorias?|categories?/i.test(messageContent);
+      const hasRecurringQuery = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(messageContent);
+      const hasBalanceQuery = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(messageContent);
+      
+      // Contar cuántas consultas se detectaron
+      const detectedQueries = [
+        hasAccountsQuery,
+        hasRatesQuery,
+        hasTransactionsQuery,
+        hasBudgetsQuery,
+        hasGoalsQuery,
+        hasCategoriesQuery,
+        hasRecurringQuery,
+        hasBalanceQuery,
+      ].filter(Boolean).length;
+      
+      const isMultipleQueries = detectedQueries > 1;
+      
+      // Logging detallado para diagnóstico
+      logger.debug(`[chatWithAssistant] Query detection - accounts: ${hasAccountsQuery}, rates: ${hasRatesQuery}, transactions: ${hasTransactionsQuery}, budgets: ${hasBudgetsQuery}, goals: ${hasGoalsQuery}, categories: ${hasCategoriesQuery}, recurring: ${hasRecurringQuery}, balance: ${hasBalanceQuery}, multiple: ${isMultipleQueries} for user ${userId}`);
+      
+      // Si hay múltiples consultas detectadas, ejecutar todas
+      if (isMultipleQueries) {
         let combinedMessage = '';
         const queriesExecuted: string[] = [];
         
-        // Ejecutar consulta de cuentas si está presente
-        if (hasAccountsQuery && intention.actionType === 'QUERY_ACCOUNTS') {
+        // Ejecutar todas las consultas detectadas
+        if (hasAccountsQuery) {
           const accountsResult = handleQueryAccounts(cachedContext, intention.parameters);
           if (accountsResult.canHandle && accountsResult.message) {
             combinedMessage += accountsResult.message + '\n\n';
             queriesExecuted.push('QUERY_ACCOUNTS');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryAccounts returned canHandle=${accountsResult.canHandle} for user ${userId}`);
           }
         }
         
-        // Ejecutar consulta de tasas si está presente
         if (hasRatesQuery) {
           const ratesResult = await handleQueryRates(cachedContext, intention.parameters);
           if (ratesResult.canHandle && ratesResult.message) {
-            combinedMessage += ratesResult.message;
+            combinedMessage += ratesResult.message + '\n\n';
             queriesExecuted.push('QUERY_RATES');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryRates returned canHandle=${ratesResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasTransactionsQuery) {
+          const transactionsResult = handleQueryTransactions(cachedContext, intention.parameters);
+          if (transactionsResult.canHandle && transactionsResult.message) {
+            combinedMessage += transactionsResult.message + '\n\n';
+            queriesExecuted.push('QUERY_TRANSACTIONS');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryTransactions returned canHandle=${transactionsResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasBudgetsQuery) {
+          const budgetsResult = handleQueryBudgets(cachedContext, intention.parameters);
+          if (budgetsResult.canHandle && budgetsResult.message) {
+            combinedMessage += budgetsResult.message + '\n\n';
+            queriesExecuted.push('QUERY_BUDGETS');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryBudgets returned canHandle=${budgetsResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasGoalsQuery) {
+          const goalsResult = handleQueryGoals(cachedContext, intention.parameters);
+          if (goalsResult.canHandle && goalsResult.message) {
+            combinedMessage += goalsResult.message + '\n\n';
+            queriesExecuted.push('QUERY_GOALS');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryGoals returned canHandle=${goalsResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasCategoriesQuery) {
+          const categoriesResult = await handleQueryCategories(cachedContext, userId, intention.parameters);
+          if (categoriesResult.canHandle && categoriesResult.message) {
+            combinedMessage += categoriesResult.message + '\n\n';
+            queriesExecuted.push('QUERY_CATEGORIES');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryCategories returned canHandle=${categoriesResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasRecurringQuery) {
+          const recurringResult = await handleQueryRecurring(cachedContext, userId, intention.parameters);
+          if (recurringResult.canHandle && recurringResult.message) {
+            combinedMessage += recurringResult.message + '\n\n';
+            queriesExecuted.push('QUERY_RECURRING');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryRecurring returned canHandle=${recurringResult.canHandle} for user ${userId}`);
+          }
+        }
+        
+        if (hasBalanceQuery) {
+          const balanceResult = handleQueryBalance(cachedContext, intention.parameters);
+          if (balanceResult.canHandle && balanceResult.message) {
+            combinedMessage += balanceResult.message + '\n\n';
+            queriesExecuted.push('QUERY_BALANCE');
+          } else {
+            logger.warn(`[chatWithAssistant] handleQueryBalance returned canHandle=${balanceResult.canHandle} for user ${userId}`);
           }
         }
         
         if (combinedMessage.trim()) {
-          // Guardar ambas consultas en el historial
+          // Guardar todas las consultas ejecutadas en el historial
           for (const queryType of queriesExecuted) {
             const historyEntry: QueryHistoryEntry = {
               actionType: queryType,
@@ -213,8 +298,10 @@ export async function chatWithAssistant(
             await setCachedQueryHistory(userId, historyEntry);
           }
           
-          logger.info(`[chatWithAssistant] Multiple queries handled: ${queriesExecuted.join(', ')} for user ${userId}`);
+          logger.info(`[chatWithAssistant] Multiple queries executed: ${queriesExecuted.join(', ')} for user ${userId}`);
           return { message: combinedMessage.trim() };
+        } else {
+          logger.warn(`[chatWithAssistant] Multiple queries detected but no messages were generated for user ${userId}`);
         }
       }
       
