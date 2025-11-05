@@ -307,13 +307,17 @@ export async function handleQueryRates(
     // BCV Rates
     if (bcvResponse.status === 'fulfilled' && bcvResponse.value.ok) {
       const bcvData = await bcvResponse.value.json();
-      if (bcvData.success && bcvData.data) {
+      // Aceptar datos si success: true O si hay fallback: true con data presente
+      if (bcvData.data && (bcvData.success || bcvData.fallback)) {
         message += `🏦 BCV (Banco Central de Venezuela):\n`;
         message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
         message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
         if (bcvData.data.lastUpdated) {
           const updated = new Date(bcvData.data.lastUpdated);
           message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+        }
+        if (bcvData.fallback) {
+          message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
         }
         message += '\n';
       }
@@ -322,7 +326,8 @@ export async function handleQueryRates(
     // Binance Rates
     if (binanceResponse.status === 'fulfilled' && binanceResponse.value.ok) {
       const binanceData = await binanceResponse.value.json();
-      if (binanceData.success && binanceData.data) {
+      // Aceptar datos si success: true O si hay fallback: true con data presente
+      if (binanceData.data && (binanceData.success || binanceData.fallback)) {
         message += `💱 Binance P2P:\n`;
         if (binanceData.data.usd_ves) {
           message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
@@ -342,6 +347,9 @@ export async function handleQueryRates(
         if (binanceData.data.lastUpdated) {
           const updated = new Date(binanceData.data.lastUpdated);
           message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+        }
+        if (binanceData.fallback) {
+          message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
         }
       }
     }
