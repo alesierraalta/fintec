@@ -9,6 +9,8 @@ import { WalletContext } from './context-builder';
 import { logger } from '@/lib/utils/logger';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { fromMinorUnits } from '@/lib/money';
+import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
+import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
 
 /**
  * Construye la URL base para llamadas API internas
@@ -371,188 +373,81 @@ export async function handleQueryRates(
   try {
     debugLog('info', 'Starting to fetch exchange rates');
     
-    // Construir URL base para fetch usando función dedicada
-    const baseUrl = getBaseUrlForInternalAPIs();
-    debugLog('debug', `Using baseUrl: ${baseUrl}`);
+    // Llamar directamente a las funciones de scraping en lugar de hacer fetch HTTP
+    // Esto evita problemas de autenticación 401 en Vercel y es más eficiente
+    debugLog('debug', 'Calling BCV and Binance scrapers directly (no HTTP fetch)');
     
-    const bcvUrl = `${baseUrl}/api/bcv-rates`;
-    const binanceUrl = `${baseUrl}/api/binance-rates`;
-    debugLog('debug', `BCV URL: ${bcvUrl}, Binance URL: ${binanceUrl}`);
-    
-    // Validate URLs before attempting fetch
-    try {
-      new URL(bcvUrl);
-      new URL(binanceUrl);
-      debugLog('debug', 'URLs validated successfully');
-    } catch (urlError: any) {
-      debugLog('error', `Invalid URL constructed: ${urlError.message}`);
-      logger.error(`[handleQueryRates] Invalid URL: ${urlError.message}`);
-      return {
-        message: `Error de configuración: URL inválida para las APIs de tasas. Por favor contacta al soporte.`,
-        canHandle: true,
-      };
-    }
-
-    // Obtener tasas desde las APIs con timeout de 5 segundos
-    debugLog('debug', 'Fetching BCV and Binance rates in parallel');
-    const fetchWithTimeout = (url: string, timeoutMs: number = 5000) => {
-      return Promise.race([
-        fetch(url, { 
-          headers: { 'Content-Type': 'application/json' },
-          cache: 'no-store' 
-        }),
-        new Promise<Response>((_, reject) => 
-          setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
-        )
-      ]);
-    };
-    
-    const [bcvResponse, binanceResponse] = await Promise.allSettled([
-      fetchWithTimeout(bcvUrl, 5000),
-      fetchWithTimeout(binanceUrl, 5000),
-    ]);
-    
-    debugLog('debug', `BCV fetch status: ${bcvResponse.status}, Binance fetch status: ${binanceResponse.status}`);
-    
-    // Log detailed error information for rejected fetches
-    if (bcvResponse.status === 'rejected') {
-      const errorReason = bcvResponse.reason;
-      const errorMessage = errorReason instanceof Error ? errorReason.message : String(errorReason);
-      const errorStack = errorReason instanceof Error ? errorReason.stack : undefined;
-      debugLog('error', `BCV fetch rejected: ${errorMessage}`);
-      debugLog('error', `BCV URL attempted: ${bcvUrl}`);
-      if (errorStack) {
-        debugLog('debug', `BCV error stack: ${errorStack}`);
-      }
-    }
-    
-    if (binanceResponse.status === 'rejected') {
-      const errorReason = binanceResponse.reason;
-      const errorMessage = errorReason instanceof Error ? errorReason.message : String(errorReason);
-      const errorStack = errorReason instanceof Error ? errorReason.stack : undefined;
-      debugLog('error', `Binance fetch rejected: ${errorMessage}`);
-      debugLog('error', `Binance URL attempted: ${binanceUrl}`);
-      if (errorStack) {
-        debugLog('debug', `Binance error stack: ${errorStack}`);
-      }
-    }
-    
-    // Check if both APIs failed completely
-    if (bcvResponse.status === 'rejected' && binanceResponse.status === 'rejected') {
-      debugLog('error', `Both rate APIs failed completely. BCV: ${bcvResponse.reason}, Binance: ${binanceResponse.reason}`);
-      debugLog('error', `Attempted URLs - BCV: ${bcvUrl}, Binance: ${binanceUrl}`);
-    }
-
     let message = 'Tasas de cambio disponibles:\n\n';
 
-    // BCV Rates
-    if (bcvResponse.status === 'fulfilled') {
-      // Intentar parsear incluso si el status HTTP no es OK, ya que las APIs pueden retornar fallback
-      try {
-        const bcvData = await bcvResponse.value.json();
-        debugLog('debug', `BCV data parsed: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
-        
-        // Aceptar datos si success: true O si hay fallback: true con data presente
-        // Incluso si el HTTP status no es 200, las APIs pueden retornar datos de fallback
-        if (bcvData.data && (bcvData.success || bcvData.fallback)) {
-          debugLog('info', `BCV data accepted: USD=${bcvData.data.usd}, EUR=${bcvData.data.eur}, fallback=${bcvData.fallback}`);
-          message += `🏦 BCV (Banco Central de Venezuela):\n`;
-          message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
-          message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
-          if (bcvData.data.lastUpdated) {
-            const updated = new Date(bcvData.data.lastUpdated);
-            message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
-          }
-          if (bcvData.fallback) {
-            message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
-          }
-          message += '\n';
-        } else {
-          debugLog('warn', `BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
-          logger.warn(`[handleQueryRates] BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
+    // BCV Rates - llamar directamente a la función
+    try {
+      debugLog('debug', 'Calling scrapeBCVRates() directly');
+      const bcvResult = await scrapeBCVRates();
+      debugLog('debug', `BCV result: success=${bcvResult.success}, hasData=${!!bcvResult.data}`);
+      
+      if (bcvResult.data && bcvResult.success) {
+        debugLog('info', `BCV data accepted: USD=${bcvResult.data.usd}, EUR=${bcvResult.data.eur}`);
+        message += `🏦 BCV (Banco Central de Venezuela):\n`;
+        message += `  • USD: ${bcvResult.data.usd?.toFixed(2) || 'N/A'} VES\n`;
+        message += `  • EUR: ${bcvResult.data.eur?.toFixed(2) || 'N/A'} VES\n`;
+        if (bcvResult.data.lastUpdated) {
+          const updated = new Date(bcvResult.data.lastUpdated);
+          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
         }
-      } catch (parseError: any) {
-        debugLog('error', `Failed to parse BCV API JSON: ${parseError.message}, httpStatus=${bcvResponse.value.status}`);
-        logger.error(`[handleQueryRates] Failed to parse BCV API JSON response: ${parseError.message}, httpStatus=${bcvResponse.value.status}`);
+        message += '\n';
+      } else {
+        debugLog('warn', `BCV scraper returned no data: success=${bcvResult.success}, hasData=${!!bcvResult.data}, error=${bcvResult.error || 'none'}`);
+        logger.warn(`[handleQueryRates] BCV scraper returned no data: success=${bcvResult.success}, error=${bcvResult.error || 'none'}`);
       }
-    } else {
-      debugLog('error', `BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
-      logger.error(`[handleQueryRates] BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
+    } catch (bcvError: any) {
+      debugLog('error', `BCV scraper failed: ${bcvError.message || bcvError}`);
+      logger.error(`[handleQueryRates] BCV scraper failed: ${bcvError.message || bcvError}`);
     }
 
-    // Binance Rates
-    if (binanceResponse.status === 'fulfilled') {
-      // Intentar parsear incluso si el status HTTP no es OK, ya que las APIs pueden retornar fallback
-      try {
-        const binanceData = await binanceResponse.value.json();
-        debugLog('debug', `Binance data parsed: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
-        
-        // Aceptar datos si success: true O si hay fallback: true con data presente
-        // Incluso si el HTTP status no es 200, las APIs pueden retornar datos de fallback
-        if (binanceData.data && (binanceData.success || binanceData.fallback)) {
-          debugLog('info', `Binance data accepted: USD/VES=${binanceData.data.usd_ves}, fallback=${binanceData.fallback}`);
-          message += `💱 Binance P2P:\n`;
-          if (binanceData.data.usd_ves) {
-            message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
-          }
-          if (binanceData.data.sell_rate) {
-            const sellRate = typeof binanceData.data.sell_rate === 'object' 
-              ? binanceData.data.sell_rate.avg 
-              : binanceData.data.sell_rate;
-            message += `  • Venta (avg): ${sellRate.toFixed(2)} VES\n`;
-          }
-          if (binanceData.data.buy_rate) {
-            const buyRate = typeof binanceData.data.buy_rate === 'object'
-              ? binanceData.data.buy_rate.avg
-              : binanceData.data.buy_rate;
-            message += `  • Compra (avg): ${buyRate.toFixed(2)} VES\n`;
-          }
-          if (binanceData.data.lastUpdated) {
-            const updated = new Date(binanceData.data.lastUpdated);
-            message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
-          }
-          if (binanceData.fallback) {
-            message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
-          }
-        } else {
-          debugLog('warn', `Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
-          logger.warn(`[handleQueryRates] Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
+    // Binance Rates - llamar directamente a la función
+    try {
+      debugLog('debug', 'Calling scrapeBinanceRates() directly');
+      const binanceResult = await scrapeBinanceRates();
+      debugLog('debug', `Binance result: success=${binanceResult.success}, hasData=${!!binanceResult.data}`);
+      
+      if (binanceResult.data && binanceResult.success) {
+        debugLog('info', `Binance data accepted: USD/VES=${binanceResult.data.usd_ves}`);
+        message += `💱 Binance P2P:\n`;
+        if (binanceResult.data.usd_ves) {
+          message += `  • USD/VES: ${binanceResult.data.usd_ves.toFixed(2)} VES\n`;
         }
-      } catch (parseError: any) {
-        debugLog('error', `Failed to parse Binance API JSON: ${parseError.message}, httpStatus=${binanceResponse.value.status}`);
-        logger.error(`[handleQueryRates] Failed to parse Binance API JSON response: ${parseError.message}, httpStatus=${binanceResponse.value.status}`);
+        if (binanceResult.data.sell_rate) {
+          message += `  • Venta: ${binanceResult.data.sell_rate.toFixed(2)} VES\n`;
+        }
+        if (binanceResult.data.buy_rate) {
+          message += `  • Compra: ${binanceResult.data.buy_rate.toFixed(2)} VES\n`;
+        }
+        if (binanceResult.data.sell_avg) {
+          message += `  • Venta (avg): ${binanceResult.data.sell_avg.toFixed(2)} VES\n`;
+        }
+        if (binanceResult.data.buy_avg) {
+          message += `  • Compra (avg): ${binanceResult.data.buy_avg.toFixed(2)} VES\n`;
+        }
+        if (binanceResult.data.lastUpdated) {
+          const updated = new Date(binanceResult.data.lastUpdated);
+          message += `  • Actualizado: ${updated.toLocaleDateString('es-VE')} ${updated.toLocaleTimeString('es-VE')}\n`;
+        }
+      } else {
+        debugLog('warn', `Binance scraper returned no data: success=${binanceResult.success}, hasData=${!!binanceResult.data}, error=${binanceResult.error || 'none'}`);
+        logger.warn(`[handleQueryRates] Binance scraper returned no data: success=${binanceResult.success}, error=${binanceResult.error || 'none'}`);
       }
-    } else {
-      debugLog('error', `Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
-      logger.error(`[handleQueryRates] Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
+    } catch (binanceError: any) {
+      debugLog('error', `Binance scraper failed: ${binanceError.message || binanceError}`);
+      logger.error(`[handleQueryRates] Binance scraper failed: ${binanceError.message || binanceError}`);
     }
 
     // Si no se pudo obtener ninguna tasa
     if (message === 'Tasas de cambio disponibles:\n\n') {
-      debugLog('warn', 'No rates data collected from either API');
-      logger.warn('[handleQueryRates] No rates data collected from either API');
-      
-      // Build detailed error message with diagnostic info
-      let errorMessage = 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.';
-      
-      // Add diagnostic info in development or if both APIs failed
-      const isDev = process.env.NODE_ENV === 'development';
-      if (isDev || (bcvResponse.status === 'rejected' && binanceResponse.status === 'rejected')) {
-        const bcvError = bcvResponse.status === 'rejected' 
-          ? (bcvResponse.reason instanceof Error ? bcvResponse.reason.message : String(bcvResponse.reason))
-          : 'unknown';
-        const binanceError = binanceResponse.status === 'rejected'
-          ? (binanceResponse.reason instanceof Error ? binanceResponse.reason.message : String(binanceResponse.reason))
-          : 'unknown';
-        
-        errorMessage += `\n\n🔍 Diagnóstico:\n`;
-        errorMessage += `• BCV API: ${bcvResponse.status === 'rejected' ? 'Error' : 'OK'} - ${bcvError}\n`;
-        errorMessage += `• Binance API: ${binanceResponse.status === 'rejected' ? 'Error' : 'OK'} - ${binanceError}\n`;
-        errorMessage += `• URLs intentadas: ${bcvUrl}, ${binanceUrl}`;
-      }
+      debugLog('warn', 'No rates data collected from either scraper');
+      logger.warn('[handleQueryRates] No rates data collected from either scraper');
       
       return {
-        message: errorMessage,
+        message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',
         canHandle: true,
       };
     }
