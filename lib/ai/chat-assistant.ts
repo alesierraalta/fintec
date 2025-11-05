@@ -201,8 +201,35 @@ export async function chatWithAssistant(
       }
     }
 
+    // Detectar si es una pregunta de seguimiento (por que?, por qué?, why?)
+    const lastMessageContent = lastMessage?.content || '';
+    const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
+    
+    if (isFollowUpQuestion) {
+      collectLog('debug', `[chatWithAssistant] Detected follow-up question: "${lastMessageContent}"`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_RATES') {
+        // Si la última consulta fue sobre tasas, intentar obtener las tasas con más detalle
+        collectLog('info', `[chatWithAssistant] Re-executing QUERY_RATES due to follow-up question`);
+        const ratesLogFn = (level: 'debug' | 'info' | 'warn' | 'error', message: string) => {
+          collectLog(level, message);
+        };
+        try {
+          const ratesResult = await handleQueryRates(context, lastQuery.parameters, ratesLogFn);
+          if (ratesResult.canHandle && ratesResult.message) {
+            return withDebugLogs({
+              message: ratesResult.message + '\n\n💡 Si aún no ves las tasas, puede ser que las APIs externas no estén disponibles en este momento. Las APIs retornan datos de fallback cuando las fuentes principales no responden.',
+            });
+          }
+        } catch (error: any) {
+          collectLog('error', `[chatWithAssistant] Error re-executing QUERY_RATES: ${error.message}`);
+        }
+      }
+      // Si no es sobre tasas o no hay última consulta, continuar con detección normal
+    }
+
     // Detectar intención del último mensaje
-    const intention = detectIntention(lastMessage?.content || '');
+    const intention = detectIntention(lastMessageContent);
     collectLog('debug', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
 
     // Handle all QUERY types directly with context data (no LLM needed)
@@ -211,9 +238,9 @@ export async function chatWithAssistant(
       
       // Siempre detectar keywords presentes en el mensaje (independientemente de hasMultipleQueries)
       // Esto asegura que ejecutemos todas las consultas detectadas, no solo intention.actionType
-      const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(messageContent);
+      const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|bolivares|tipo de cambio|tasa\s+de\s+la\s+moneda|tasa\s+de\s+moneda/i.test(messageContent);
       const hasAccountsQuery = /cuentas?|accounts?/i.test(messageContent);
-      const hasTransactionsQuery = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(messageContent);
+      const hasTransactionsQuery = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income|pago|pagos|payments?|cobro|cobros/i.test(messageContent);
       const hasBudgetsQuery = /presupuestos?|budgets?/i.test(messageContent);
       const hasGoalsQuery = /metas?|goals?|objetivos?|targets?/i.test(messageContent);
       const hasCategoriesQuery = /categorías?|categorias?|categories?/i.test(messageContent);

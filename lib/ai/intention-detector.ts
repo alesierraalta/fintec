@@ -544,12 +544,12 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la/i.test(originalMessage);
   
   const hasBalance = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(originalMessage);
-  const hasTransactions = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(originalMessage);
+  const hasTransactions = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income|pago|pagos|payments?|cobro|cobros/i.test(originalMessage);
   const hasBudgets = /presupuestos?|budgets?/i.test(originalMessage);
   const hasGoals = /metas?|goals?|objetivos?|targets?/i.test(originalMessage);
   const hasAccounts = /cuentas?|accounts?/i.test(originalMessage);
-  // Mejorar regex para detectar "a que tasa?", "a qué tasa?", "que tasa?", "qué tasa?", "cual es la tasa", "cuál es la tasa de hoy", etc.
-  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio|a\s+que\s+tasa|a\s+qué\s+tasa|que\s+tasa|qué\s+tasa|cual\s+es\s+la\s+tasa|cuál\s+es\s+la\s+tasa|cual\s+es\s+la\s+tasa\s+de\s+hoy|cuál\s+es\s+la\s+tasa\s+de\s+hoy/i.test(originalMessage);
+  // Mejorar regex para detectar "a que tasa?", "a qué tasa?", "que tasa?", "qué tasa?", "cual es la tasa", "cuál es la tasa de hoy", "la tasa de la moneda", "bolivares", etc.
+  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|bolivares|tipo de cambio|a\s+que\s+tasa|a\s+qué\s+tasa|que\s+tasa|qué\s+tasa|cual\s+es\s+la\s+tasa|cuál\s+es\s+la\s+tasa|cual\s+es\s+la\s+tasa\s+de\s+hoy|cuál\s+es\s+la\s+tasa\s+de\s+hoy|tasa\s+de\s+la\s+moneda|tasa\s+de\s+moneda/i.test(originalMessage);
   const hasCategories = /categorías?|categorias?|categories?/i.test(originalMessage);
   const hasRecurring = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(originalMessage);
   

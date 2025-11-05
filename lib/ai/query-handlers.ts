@@ -374,21 +374,37 @@ export async function handleQueryRates(
     // Construir URL base para fetch usando función dedicada
     const baseUrl = getBaseUrlForInternalAPIs();
     debugLog('debug', `Using baseUrl: ${baseUrl}`);
+    
+    const bcvUrl = `${baseUrl}/api/bcv-rates`;
+    const binanceUrl = `${baseUrl}/api/binance-rates`;
+    debugLog('debug', `BCV URL: ${bcvUrl}, Binance URL: ${binanceUrl}`);
 
-    // Obtener tasas desde las APIs
+    // Obtener tasas desde las APIs con timeout de 5 segundos
     debugLog('debug', 'Fetching BCV and Binance rates in parallel');
+    const fetchWithTimeout = (url: string, timeoutMs: number = 5000) => {
+      return Promise.race([
+        fetch(url, { 
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store' 
+        }),
+        new Promise<Response>((_, reject) => 
+          setTimeout(() => reject(new Error(`Timeout after ${timeoutMs}ms`)), timeoutMs)
+        )
+      ]);
+    };
+    
     const [bcvResponse, binanceResponse] = await Promise.allSettled([
-      fetch(`${baseUrl}/api/bcv-rates`, { 
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store' 
-      }),
-      fetch(`${baseUrl}/api/binance-rates`, { 
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store' 
-      }),
+      fetchWithTimeout(bcvUrl, 5000),
+      fetchWithTimeout(binanceUrl, 5000),
     ]);
     
     debugLog('debug', `BCV fetch status: ${bcvResponse.status}, Binance fetch status: ${binanceResponse.status}`);
+    if (bcvResponse.status === 'rejected') {
+      debugLog('error', `BCV fetch rejected: ${bcvResponse.reason?.message || bcvResponse.reason}`);
+    }
+    if (binanceResponse.status === 'rejected') {
+      debugLog('error', `Binance fetch rejected: ${binanceResponse.reason?.message || binanceResponse.reason}`);
+    }
 
     let message = 'Tasas de cambio disponibles:\n\n';
 
