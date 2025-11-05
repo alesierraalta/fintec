@@ -47,8 +47,12 @@ const CREATE_KEYWORDS = [
 ];
 
 // "hazme" y "haz" solo son acciones cuando NO van seguidos de palabras de consulta
+// También incluir verbos de acción como "gaste", "spent", etc.
 const ACTION_COMMAND_KEYWORDS = [
-  'hazme', 'haz', 'haz que', 'make me', 'make'
+  'hazme', 'haz', 'haz que', 'make me', 'make',
+  'gaste', 'gasté', 'gasté', 'spent', 'gastar', 'gastar',
+  'compré', 'compre', 'bought', 'comprar',
+  'pagué', 'pague', 'paid', 'pagar'
 ];
 
 /**
@@ -162,8 +166,11 @@ export function detectIntention(message: string): DetectedIntention {
   }
   
   // Si no hay palabras de consulta, verificar si es acción
+  // Detectar verbos de acción directos (gaste, compré, pagué) como acciones
+  const hasActionVerbs = /gaste|gasté|spent|compré|compre|bought|pagué|pague|paid/i.test(message);
   const isAction = hasCreateKeywords || hasUpdateKeywords || 
-                  (hasActionCommands && !hasListingKeywords);
+                  (hasActionCommands && !hasListingKeywords) ||
+                  (hasActionVerbs && !hasListingKeywords);
   
   if (isAction) {
     return detectActionIntention(lowerMessage, message);
@@ -183,7 +190,9 @@ function detectActionIntention(lowerMessage: string, originalMessage: string): D
   const missingParameters: string[] = [];
   
   // Detectar tipo de acción
-  const hasTransaction = TRANSACTION_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  // Detectar verbos de acción directos primero (gaste, compré, pagué) como indicadores fuertes de transacción
+  const hasActionVerb = /gaste|gasté|spent|compré|compre|bought|pagué|pague|paid/i.test(originalMessage);
+  const hasTransaction = TRANSACTION_KEYWORDS.some(kw => lowerMessage.includes(kw)) || hasActionVerb;
   const hasBudget = BUDGET_KEYWORDS.some(kw => lowerMessage.includes(kw));
   const hasGoal = GOAL_KEYWORDS.some(kw => lowerMessage.includes(kw));
   const hasAccount = ACCOUNT_KEYWORDS.some(kw => lowerMessage.includes(kw));
@@ -197,7 +206,8 @@ function detectActionIntention(lowerMessage: string, originalMessage: string): D
   
   if (hasTransaction) {
     actionType = 'CREATE_TRANSACTION';
-    confidence = 0.8;
+    // Aumentar confianza si hay verbo de acción directo (gaste, compré, etc.)
+    confidence = hasActionVerb ? 0.9 : 0.8;
     
     if (amount) {
       parameters.amount = amount.value;
@@ -410,6 +420,8 @@ export function detectCorrection(message: string): DetectedCorrection {
   
   // Patrones para detectar correcciones
   const correctionPatterns = [
+    // "me mostraste X" / "you showed me X" / "me diste X" / "you gave me X"
+    /(?:me|you)\s+(?:mostraste|mostraste|mostraron|diste|dieron|gave|showed|shows)\s+(\d+)/i,
     // "pero te pedí" / "but I asked for"
     /(?:pero|but)\s+(?:te|you|me)\s+(?:pedí|pediste|asked|asked for|dije|dijiste|said)\s+(?:solo|only|just|exactamente|exactly)?\s*(\d+)/i,
     // "solo pedí" / "only asked for"

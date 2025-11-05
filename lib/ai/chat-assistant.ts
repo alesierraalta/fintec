@@ -11,7 +11,7 @@
  * - Procesamiento de confirmaciones
  */
 
-import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_CHAT_MODEL, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
+import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
@@ -235,8 +235,21 @@ export async function chatWithAssistant(
     const intention = detectIntention(lastMessageContent);
     collectLog('debug', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
 
-    // Handle all QUERY types directly with context data (no LLM needed)
-    if (intention.type === 'QUERY' && intention.actionType && intention.actionType !== 'UNKNOWN') {
+    // Determinar si es una query simple o compleja
+    // Queries simples: listas directas, consultas estructuradas con keywords claros
+    // Queries complejas: preguntas abiertas, análisis, comparaciones, explicaciones
+    const isSimpleQuery = (intention.type === 'QUERY' && 
+      intention.actionType && 
+      intention.actionType !== 'UNKNOWN' &&
+      (intention.actionType.startsWith('QUERY_') && 
+       ['QUERY_ACCOUNTS', 'QUERY_TRANSACTIONS', 'QUERY_BUDGETS', 'QUERY_GOALS', 
+        'QUERY_CATEGORIES', 'QUERY_RECURRING', 'QUERY_RATES', 'QUERY_BALANCE'].includes(intention.actionType) &&
+       // Solo si tiene keywords de lista/claridad (no preguntas abiertas)
+       (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la/i.test(lastMessageContent) ||
+        intention.confidence >= 0.9)));
+    
+    // Handle simple QUERY types - use gpt-5-nano with context data
+    if (isSimpleQuery) {
       const messageContent = lastMessage?.content || '';
       
       // Siempre detectar keywords presentes en el mensaje (independientemente de hasMultipleQueries)
@@ -267,8 +280,9 @@ export async function chatWithAssistant(
       // Logging detallado para diagnóstico
       collectLog('debug', `[chatWithAssistant] Query detection - accounts: ${hasAccountsQuery}, rates: ${hasRatesQuery}, transactions: ${hasTransactionsQuery}, budgets: ${hasBudgetsQuery}, goals: ${hasGoalsQuery}, categories: ${hasCategoriesQuery}, recurring: ${hasRecurringQuery}, balance: ${hasBalanceQuery}, multiple: ${isMultipleQueries} for user ${userId}`);
       
-      // Si hay múltiples consultas detectadas, ejecutar todas
+      // Si hay múltiples consultas detectadas, ejecutar todas y luego usar gpt-5-nano para formatear
       if (isMultipleQueries) {
+        collectLog('info', `[chatWithAssistant] Handling multiple simple queries - detected ${detectedQueries} queries, will use gpt-5-nano to format response for user ${userId}`);
         let combinedMessage = '';
         const queriesExecuted: string[] = [];
         
@@ -378,19 +392,66 @@ export async function chatWithAssistant(
         }
         
         if (combinedMessage.trim()) {
-          // Guardar todas las consultas ejecutadas en el historial
-          for (const queryType of queriesExecuted) {
-            const historyEntry: QueryHistoryEntry = {
-              actionType: queryType,
-              parameters: intention.parameters || {},
-              timestamp: Date.now(),
-              message: lastMessage?.content || '',
-            };
-            await setCachedQueryHistory(userId, historyEntry);
-          }
+          // Usar gpt-5-nano para formatear la respuesta combinada
+          const systemPromptForSimple = `Eres un asistente financiero. El usuario ha hecho múltiples consultas simples y ya tienes todos los datos. 
+Presenta la información de forma clara, concisa y amigable. Organiza los datos de manera que sea fácil de leer.
+No agregues información que no esté en los datos proporcionados. Solo reformatea y presenta los datos de manera profesional.`;
+
+          const openAIMessagesSimple: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
+            {
+              role: 'system',
+              content: systemPromptForSimple,
+            },
+            {
+              role: 'user',
+              content: `Consulta: ${lastMessage?.content || ''}\n\nDatos obtenidos:\n${combinedMessage.trim()}\n\nPresenta esta información de forma clara y profesional, organizada por secciones.`,
+            },
+          ];
+
+          const modelForSimple = getChatModel(false); // gpt-5-nano
+          collectLog('info', `[chatWithAssistant] Using ${modelForSimple} for multiple simple queries formatting for user ${userId}`);
           
-          logger.info(`[chatWithAssistant] Multiple queries executed: ${queriesExecuted.join(', ')} for user ${userId}`);
-          return withDebugLogs({ message: combinedMessage.trim() });
+          try {
+            const response = await openai.chat.completions.create({
+              model: modelForSimple,
+              messages: openAIMessagesSimple as any,
+              temperature: AI_TEMPERATURE,
+              max_tokens: 600, // Un poco más de tokens para múltiples queries
+            });
+            
+            if (response.usage) {
+              collectLog('info', `[chatWithAssistant] ${modelForSimple} usage: prompt_tokens=${response.usage.prompt_tokens}, completion_tokens=${response.usage.completion_tokens}, total_tokens=${response.usage.total_tokens}`);
+            }
+            
+            const formattedMessage = response.choices[0]?.message?.content || combinedMessage.trim();
+            
+            // Guardar todas las consultas ejecutadas en el historial
+            for (const queryType of queriesExecuted) {
+              const historyEntry: QueryHistoryEntry = {
+                actionType: queryType,
+                parameters: intention.parameters || {},
+                timestamp: Date.now(),
+                message: lastMessage?.content || '',
+              };
+              await setCachedQueryHistory(userId, historyEntry);
+            }
+            
+            logger.info(`[chatWithAssistant] Multiple queries executed with ${modelForSimple}: ${queriesExecuted.join(', ')} for user ${userId}`);
+            return withDebugLogs({ message: formattedMessage });
+          } catch (error: any) {
+            // Si gpt-5-nano falla, usar los datos directos
+            collectLog('warn', `[chatWithAssistant] ${modelForSimple} failed, using direct data: ${error.message}`);
+            for (const queryType of queriesExecuted) {
+              const historyEntry: QueryHistoryEntry = {
+                actionType: queryType,
+                parameters: intention.parameters || {},
+                timestamp: Date.now(),
+                message: lastMessage?.content || '',
+              };
+              await setCachedQueryHistory(userId, historyEntry);
+            }
+            return withDebugLogs({ message: combinedMessage.trim() });
+          }
         } else {
           logger.warn(`[chatWithAssistant] Multiple queries detected but no messages were generated for user ${userId}`);
         }
@@ -442,19 +503,69 @@ export async function chatWithAssistant(
           queryResult = { message: '', canHandle: false };
       }
 
-      // If handler can handle it directly, return the response
+      // If handler can handle it, use gpt-5-nano to format the response
       if (queryResult.canHandle && queryResult.message) {
-        // Guardar la consulta en el historial de Redis (obligatorio para contexto conversacional)
-        const historyEntry: QueryHistoryEntry = {
-          actionType: intention.actionType,
-          parameters: intention.parameters || {},
-          timestamp: Date.now(),
-          message: lastMessage?.content || '',
-        };
-        await setCachedQueryHistory(userId, historyEntry);
+        // Para queries simples, ejecutar handlers y luego usar gpt-5-nano para formatear/resumir
+        collectLog('info', `[chatWithAssistant] Simple query detected: ${intention.actionType}, will use gpt-5-nano to format response for user ${userId}`);
         
-        logger.info(`[chatWithAssistant] ${intention.actionType} handled directly from context for user ${userId}`);
-        return withDebugLogs({ message: queryResult.message });
+        // Construir mensaje con los datos obtenidos
+        const dataMessage = queryResult.message;
+        
+        // Usar gpt-5-nano para formatear/mejorar la respuesta
+        const systemPromptForSimple = `Eres un asistente financiero. El usuario ha hecho una consulta simple y ya tienes los datos. 
+Presenta la información de forma clara, concisa y amigable. No agregues información que no esté en los datos proporcionados.
+Solo reformatea y presenta los datos de manera profesional.`;
+
+        const openAIMessagesSimple: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
+          {
+            role: 'system',
+            content: systemPromptForSimple,
+          },
+          {
+            role: 'user',
+            content: `Consulta: ${lastMessage?.content || ''}\n\nDatos obtenidos:\n${dataMessage}\n\nPresenta esta información de forma clara y profesional.`,
+          },
+        ];
+
+        const modelForSimple = getChatModel(false); // gpt-5-nano
+        collectLog('info', `[chatWithAssistant] Using ${modelForSimple} for simple query formatting for user ${userId}`);
+        
+        try {
+          const response = await openai.chat.completions.create({
+            model: modelForSimple,
+            messages: openAIMessagesSimple as any,
+            temperature: AI_TEMPERATURE,
+            max_tokens: 400, // Menos tokens para queries simples
+          });
+          
+          if (response.usage) {
+            collectLog('info', `[chatWithAssistant] ${modelForSimple} usage: prompt_tokens=${response.usage.prompt_tokens}, completion_tokens=${response.usage.completion_tokens}, total_tokens=${response.usage.total_tokens}`);
+          }
+          
+          const formattedMessage = response.choices[0]?.message?.content || dataMessage;
+          
+          // Guardar la consulta en el historial
+          const historyEntry: QueryHistoryEntry = {
+            actionType: intention.actionType || 'UNKNOWN',
+            parameters: intention.parameters || {},
+            timestamp: Date.now(),
+            message: lastMessage?.content || '',
+          };
+          await setCachedQueryHistory(userId, historyEntry);
+          
+          return withDebugLogs({ message: formattedMessage });
+        } catch (error: any) {
+          // Si gpt-5-nano falla, intentar con fallback pero usar los datos directos
+          collectLog('warn', `[chatWithAssistant] ${modelForSimple} failed, using direct data: ${error.message}`);
+          const historyEntry: QueryHistoryEntry = {
+            actionType: intention.actionType || 'UNKNOWN',
+            parameters: intention.parameters || {},
+            timestamp: Date.now(),
+            message: lastMessage?.content || '',
+          };
+          await setCachedQueryHistory(userId, historyEntry);
+          return withDebugLogs({ message: dataMessage });
+        }
       }
     }
 
@@ -511,6 +622,10 @@ export async function chatWithAssistant(
     }
 
     // Construir mensajes para OpenAI (incluir system prompt + historial + mensaje actual)
+    // Para queries/acciones complejas, usar gpt-5-mini
+    collectLog('info', `[chatWithAssistant] Complex query/action detected, calling OpenAI API with gpt-5-mini for user ${userId}`);
+    collectLog('debug', `[chatWithAssistant] Intention type: ${intention.type}, actionType: ${intention.actionType}, will use LLM for response generation`);
+    
     const openAIMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
       {
         role: 'system',
@@ -522,13 +637,17 @@ export async function chatWithAssistant(
     const conversationHistory = messages.filter(m => m.role !== 'system');
     openAIMessages.push(...conversationHistory);
 
-    // Determinar qué modelo usar
-    const modelToUse = getChatModel(); // Usar gpt-5
-    collectLog('info', `[chatWithAssistant] Using model: ${modelToUse} for user ${userId}`);
+    // Determinar qué modelo usar - complejo = gpt-5-mini
+    const modelToUse = getChatModel(true); // gpt-5-mini para queries complejas
+    collectLog('info', `[chatWithAssistant] Using model: ${modelToUse} for complex query/action for user ${userId}`);
+    collectLog('debug', `[chatWithAssistant] Model configuration: nano=${AI_CHAT_MODEL_NANO}, mini=${AI_CHAT_MODEL_MINI}, fallback=${AI_CHAT_MODEL_FALLBACK}, selected=${modelToUse}`);
+    collectLog('debug', `[chatWithAssistant] OpenAI API call will be made with ${openAIMessages.length} messages (system prompt + ${conversationHistory.length} conversation messages)`);
 
     // Función interna para llamar a OpenAI con retry automático y function calling
     const callOpenAI = async (model: string): Promise<ChatResponse> => {
       try {
+        collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}`);
+        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, temperature=${AI_TEMPERATURE}, max_tokens=800, tools=${AI_ACTION_TOOLS.length}`);
         logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}`);
         const response = await openai.chat.completions.create({
           model,
@@ -538,6 +657,11 @@ export async function chatWithAssistant(
           tools: AI_ACTION_TOOLS,
           tool_choice: 'auto', // Dejar que el modelo decida cuándo usar herramientas
         });
+        
+        // Log usage information
+        if (response.usage) {
+          collectLog('info', `[chatWithAssistant] OpenAI API usage: prompt_tokens=${response.usage.prompt_tokens}, completion_tokens=${response.usage.completion_tokens}, total_tokens=${response.usage.total_tokens}`);
+        }
 
         const message = response.choices[0]?.message;
         const content = message?.content;
@@ -608,10 +732,10 @@ export async function chatWithAssistant(
 
         return withDebugLogs({ message: content });
       } catch (error: any) {
-        // Si el modelo no existe, intentar con fallback: gpt-5 -> gpt-4o-mini
+        // Si el modelo no existe, intentar con fallback: gpt-5-nano/gpt-5-mini -> gpt-4o-mini
         if (error?.message?.includes('model') || error?.code === 'model_not_found' || error?.status === 404) {
-          if (model === AI_CHAT_MODEL) {
-            // Si gpt-5 no funciona, usar fallback
+          if (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) {
+            // Si gpt-5-nano o gpt-5-mini no funcionan, usar fallback
             collectLog('warn', `[chatWithAssistant] Model ${model} not available, using fallback ${AI_CHAT_MODEL_FALLBACK}`);
             return callOpenAI(AI_CHAT_MODEL_FALLBACK);
           }
@@ -633,8 +757,10 @@ export async function chatWithAssistant(
         }
       );
 
+      collectLog('info', `[chatWithAssistant] OpenAI API call successful for user ${userId}`);
       logger.info(`AI Chat: Successful response generated for user ${userId}`);
     } catch (retryError: any) {
+      collectLog('error', `[chatWithAssistant] OpenAI API call failed after retries: ${retryError.message || retryError} for user ${userId}`);
       logger.warn(`AI Chat: OpenAI failed after retries, using fallback extractive response for user ${userId}`);
       // Usar fallback extractivo si todo falla
       const fallbackMessage = getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);

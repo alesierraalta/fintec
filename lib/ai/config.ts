@@ -9,17 +9,18 @@ export const AI_MODEL = 'gpt-4o-mini'; // Cost-effective model
 export const AI_TEMPERATURE = 0.3; // Lower temperature for more consistent results
 export const AI_MAX_TOKENS = 500; // Limit token usage
 
-// Chat assistant models - GPT-5 (fallback to GPT-4o-mini if not available)
-export const AI_CHAT_MODEL = 'gpt-5'; // Primary model
-export const AI_CHAT_MODEL_FALLBACK = 'gpt-4o-mini'; // Fallback if GPT-5 not available
+// Chat assistant models - GPT-5 variants
+export const AI_CHAT_MODEL_NANO = 'gpt-5-nano'; // For simple queries (listings, basic info)
+export const AI_CHAT_MODEL_MINI = 'gpt-5-mini'; // For complex queries (analysis, open questions)
+export const AI_CHAT_MODEL_FALLBACK = 'gpt-4o-mini'; // Fallback if GPT-5 models not available
 
 /**
- * Get available chat model, with fallback if GPT-5 not available
- * For MVP, we'll use the fallback model and test GPT-5 availability at runtime
+ * Get available chat model based on query complexity
+ * Simple queries (listings, basic info) -> gpt-5-nano
+ * Complex queries (analysis, open questions) -> gpt-5-mini
  */
-export function getChatModel(): string {
-  // Use GPT-5, fallback handled in chat-assistant
-  return AI_CHAT_MODEL;
+export function getChatModel(isComplex: boolean = false): string {
+  return isComplex ? AI_CHAT_MODEL_MINI : AI_CHAT_MODEL_NANO;
 }
 
 /**

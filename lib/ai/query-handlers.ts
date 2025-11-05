@@ -191,7 +191,7 @@ export function handleQueryTransactions(
       : 10; // Default de 10 si no se especifica o es inválido
 
     // Logging mejorado para debugging
-    logger.debug(`[handleQueryTransactions] Limit handling: explicit=${hasExplicitLimit}, rawLimit=${rawLimit}, finalLimit=${limit}, totalTransactions=${transactions.length}`);
+    logger.debug(`[handleQueryTransactions] Limit handling: explicit=${hasExplicitLimit}, rawLimit=${rawLimit}, finalLimit=${limit}, totalTransactions=${transactions.length}, willShow=${Math.min(transactions.length, limit)}`);
 
     // Formatear respuesta
     let message = '';
@@ -366,7 +366,7 @@ export async function handleQueryRates(
         case 'info': logger.info(`[handleQueryRates] ${msg}`); break;
         case 'warn': logger.warn(`[handleQueryRates] ${msg}`); break;
         case 'error': logger.error(`[handleQueryRates] ${msg}`); break;
-      }
+    }
     }
   });
   
@@ -376,7 +376,7 @@ export async function handleQueryRates(
     // Llamar directamente a las funciones de scraping en lugar de hacer fetch HTTP
     // Esto evita problemas de autenticación 401 en Vercel y es más eficiente
     debugLog('debug', 'Calling BCV and Binance scrapers directly (no HTTP fetch)');
-    
+
     let message = 'Tasas de cambio disponibles:\n\n';
 
     // BCV Rates - llamar directamente a la función
