@@ -362,11 +362,14 @@ export async function chatWithAssistant(
           queryResult = handleQueryGoals(cachedContext, intention.parameters);
           break;
         case 'QUERY_RATES':
-          collectLog('debug', `[chatWithAssistant] Executing QUERY_RATES for user ${userId}, message: "${messageContent}"`);
+          collectLog('info', `[chatWithAssistant] Executing QUERY_RATES for user ${userId}, message: "${messageContent}"`);
+          collectLog('debug', `[chatWithAssistant] Query parameters: ${JSON.stringify(intention.parameters || {})}`);
           queryResult = await handleQueryRates(cachedContext, intention.parameters);
-          collectLog('debug', `[chatWithAssistant] handleQueryRates result: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message}, messageLength=${queryResult.message?.length || 0} for user ${userId}`);
+          collectLog('info', `[chatWithAssistant] handleQueryRates completed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message}, messageLength=${queryResult.message?.length || 0} for user ${userId}`);
           if (!queryResult.canHandle || !queryResult.message) {
             collectLog('warn', `[chatWithAssistant] handleQueryRates failed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message} for user ${userId}`);
+          } else {
+            collectLog('debug', `[chatWithAssistant] handleQueryRates success, message preview: ${queryResult.message.substring(0, 100)}...`);
           }
           break;
         case 'QUERY_CATEGORIES':

@@ -275,7 +275,20 @@ export async function handleQueryRates(
   context: WalletContext,
   params?: Record<string, any>
 ): Promise<QueryResult> {
+  // Logger para debug (solo en desarrollo)
+  const isDev = process.env.NODE_ENV === 'development';
+  const debugLog = isDev ? (level: 'debug' | 'info' | 'warn' | 'error', msg: string) => {
+    switch (level) {
+      case 'debug': logger.debug(`[handleQueryRates] ${msg}`); break;
+      case 'info': logger.info(`[handleQueryRates] ${msg}`); break;
+      case 'warn': logger.warn(`[handleQueryRates] ${msg}`); break;
+      case 'error': logger.error(`[handleQueryRates] ${msg}`); break;
+    }
+  } : () => {};
+  
   try {
+    debugLog('info', 'Starting to fetch exchange rates');
+    
     // Construir URL base para fetch en servidor
     let baseUrl = 'http://localhost:3000';
     if (typeof window === 'undefined') {
@@ -290,7 +303,10 @@ export async function handleQueryRates(
       baseUrl = window.location.origin;
     }
 
+    debugLog('debug', `Using baseUrl: ${baseUrl}`);
+
     // Obtener tasas desde las APIs
+    debugLog('debug', 'Fetching BCV and Binance rates in parallel');
     const [bcvResponse, binanceResponse] = await Promise.allSettled([
       fetch(`${baseUrl}/api/bcv-rates`, { 
         headers: { 'Content-Type': 'application/json' },
@@ -301,15 +317,21 @@ export async function handleQueryRates(
         cache: 'no-store' 
       }),
     ]);
+    
+    debugLog('debug', `BCV fetch status: ${bcvResponse.status}, Binance fetch status: ${binanceResponse.status}`);
 
     let message = 'Tasas de cambio disponibles:\n\n';
 
     // BCV Rates
     if (bcvResponse.status === 'fulfilled' && bcvResponse.value.ok) {
+      debugLog('debug', `BCV API response OK, status: ${bcvResponse.value.status}`);
       try {
         const bcvData = await bcvResponse.value.json();
+        debugLog('debug', `BCV data parsed: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
+        
         // Aceptar datos si success: true O si hay fallback: true con data presente
         if (bcvData.data && (bcvData.success || bcvData.fallback)) {
+          debugLog('info', `BCV data accepted: USD=${bcvData.data.usd}, EUR=${bcvData.data.eur}, fallback=${bcvData.fallback}`);
           message += `🏦 BCV (Banco Central de Venezuela):\n`;
           message += `  • USD: ${bcvData.data.usd?.toFixed(2) || 'N/A'} VES\n`;
           message += `  • EUR: ${bcvData.data.eur?.toFixed(2) || 'N/A'} VES\n`;
@@ -322,23 +344,31 @@ export async function handleQueryRates(
           }
           message += '\n';
         } else {
+          debugLog('warn', `BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
           logger.warn(`[handleQueryRates] BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
         }
       } catch (parseError: any) {
+        debugLog('error', `Failed to parse BCV API JSON: ${parseError.message}`);
         logger.error(`[handleQueryRates] Failed to parse BCV API JSON response: ${parseError.message}`);
       }
     } else if (bcvResponse.status === 'fulfilled') {
+      debugLog('warn', `BCV API returned non-OK status: ${bcvResponse.value.status} ${bcvResponse.value.statusText}`);
       logger.warn(`[handleQueryRates] BCV API returned status ${bcvResponse.value.status} ${bcvResponse.value.statusText}`);
     } else {
+      debugLog('error', `BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
       logger.error(`[handleQueryRates] BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
     }
 
     // Binance Rates
     if (binanceResponse.status === 'fulfilled' && binanceResponse.value.ok) {
+      debugLog('debug', `Binance API response OK, status: ${binanceResponse.value.status}`);
       try {
         const binanceData = await binanceResponse.value.json();
+        debugLog('debug', `Binance data parsed: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
+        
         // Aceptar datos si success: true O si hay fallback: true con data presente
         if (binanceData.data && (binanceData.success || binanceData.fallback)) {
+          debugLog('info', `Binance data accepted: USD/VES=${binanceData.data.usd_ves}, fallback=${binanceData.fallback}`);
           message += `💱 Binance P2P:\n`;
           if (binanceData.data.usd_ves) {
             message += `  • USD/VES: ${binanceData.data.usd_ves.toFixed(2)} VES\n`;
@@ -363,19 +393,25 @@ export async function handleQueryRates(
             message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
           }
         } else {
+          debugLog('warn', `Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
           logger.warn(`[handleQueryRates] Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
         }
       } catch (parseError: any) {
+        debugLog('error', `Failed to parse Binance API JSON: ${parseError.message}`);
         logger.error(`[handleQueryRates] Failed to parse Binance API JSON response: ${parseError.message}`);
       }
     } else if (binanceResponse.status === 'fulfilled') {
+      debugLog('warn', `Binance API returned non-OK status: ${binanceResponse.value.status} ${binanceResponse.value.statusText}`);
       logger.warn(`[handleQueryRates] Binance API returned status ${binanceResponse.value.status} ${binanceResponse.value.statusText}`);
     } else {
+      debugLog('error', `Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
       logger.error(`[handleQueryRates] Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
     }
 
     // Si no se pudo obtener ninguna tasa
     if (message === 'Tasas de cambio disponibles:\n\n') {
+      debugLog('warn', 'No rates data collected from either API');
+      logger.warn('[handleQueryRates] No rates data collected from either API');
       return {
         message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',
         canHandle: true,
@@ -384,9 +420,11 @@ export async function handleQueryRates(
 
     message += '\n💡 Nota: Las tasas se usan para calcular equivalentes en USD cuando muestro saldos en VES.';
 
+    debugLog('info', `Successfully collected rates, message length: ${message.length}`);
     logger.info('[handleQueryRates] Handled rates query');
     return { message, canHandle: true };
   } catch (error: any) {
+    debugLog('error', `Exception caught: ${error.message || error}`);
     logger.error('[handleQueryRates] Error:', error);
     return {
       message: 'No pude obtener las tasas de cambio en este momento. Por favor intenta más tarde.',

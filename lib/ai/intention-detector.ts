@@ -548,8 +548,8 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   const hasBudgets = /presupuestos?|budgets?/i.test(originalMessage);
   const hasGoals = /metas?|goals?|objetivos?|targets?/i.test(originalMessage);
   const hasAccounts = /cuentas?|accounts?/i.test(originalMessage);
-  // Mejorar regex para detectar "a que tasa?", "a qué tasa?", "que tasa?", "qué tasa?" y variantes
-  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio|a\s+que\s+tasa|a\s+qué\s+tasa|que\s+tasa|qué\s+tasa/i.test(originalMessage);
+  // Mejorar regex para detectar "a que tasa?", "a qué tasa?", "que tasa?", "qué tasa?", "cual es la tasa", "cuál es la tasa de hoy", etc.
+  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio|a\s+que\s+tasa|a\s+qué\s+tasa|que\s+tasa|qué\s+tasa|cual\s+es\s+la\s+tasa|cuál\s+es\s+la\s+tasa|cual\s+es\s+la\s+tasa\s+de\s+hoy|cuál\s+es\s+la\s+tasa\s+de\s+hoy/i.test(originalMessage);
   const hasCategories = /categorías?|categorias?|categories?/i.test(originalMessage);
   const hasRecurring = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(originalMessage);
   
