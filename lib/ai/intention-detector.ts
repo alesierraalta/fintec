@@ -318,21 +318,251 @@ function detectActionIntention(lowerMessage: string, originalMessage: string): D
 }
 
 /**
+ * Extrae límite numérico del mensaje (ej: "5", "últimas 5", "primeros 10", "solo 5")
+ * Mejorado para capturar más variantes de frases en español e inglés
+ */
+function extractLimit(message: string): number | null {
+  const lowerMessage = message.toLowerCase();
+  
+  // Patrones mejorados para capturar límites en diferentes contextos
+  const patterns = [
+    // Patrones con palabras clave antes del número
+    /(?:últimas?|ultimas?|last|primeras?|primeros?|first|solo|only|únicamente|unicamente|just|exactamente|exactly)\s+(\d+)/i,
+    // Patrones con número antes de palabras clave
+    /(\d+)\s+(?:últimas?|ultimas?|last|primeras?|primeros?|first|transacciones?|transactions?|gastos?|expenses?|ingresos?|income)/i,
+    // Patrones con "dame/muestra/lista" + número
+    /(?:dame|muestra|muéstrame|listar|lista|listado|show|give|tell)\s+(?:me|una|un)?\s*(?:lista\s+de\s+)?(?:mis|las|los|the)?\s*(?:últimas?|ultimas?|last)?\s*(\d+)/i,
+    // Patrones con "solo X" o "solo quiero X"
+    /(?:solo|only|just)\s+(?:quiero|want|necesito|need)?\s*(\d+)/i,
+    // Patrones con "X transacciones/gastos/ingresos"
+    /(\d+)\s+(?:transacciones?|transactions?|gastos?|expenses?|ingresos?|income|items?|elementos?)/i,
+    // Patrón simple: cualquier número (último recurso, más restrictivo)
+    /\b(\d{1,2})\b/ // Solo números de 1-2 dígitos para evitar falsos positivos
+  ];
+  
+  // Intentar cada patrón en orden de prioridad
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const limit = parseInt(match[1], 10);
+      // Validar que el límite sea razonable (1-100)
+      if (!isNaN(limit) && limit > 0 && limit <= 100) {
+        // Si el patrón es el último (fallback), ser más estricto
+        // Solo aceptar si está cerca de palabras clave de consulta
+        if (pattern === patterns[patterns.length - 1]) {
+          const hasQueryContext = /(?:transacciones?|gastos?|ingresos?|lista|muestra|dame|show|list)/i.test(message);
+          if (!hasQueryContext) {
+            continue; // Ignorar números que no están en contexto de consulta
+          }
+        }
+        return limit;
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Interfaz para corrección detectada
+ */
+export interface DetectedCorrection {
+  isCorrection: boolean;
+  correctedParameter?: string; // Nombre del parámetro corregido (ej: "limit")
+  correctedValue?: any; // Valor corregido
+  confidence: number; // 0-1
+}
+
+/**
+ * Detecta si el mensaje es una corrección de una consulta anterior
+ * Patrones como "pero te pedí solo 5", "solo quiero 5", "corrige a 5", etc.
+ * @param message - Mensaje del usuario
+ * @returns Información sobre la corrección detectada
+ */
+export function detectCorrection(message: string): DetectedCorrection {
+  const lowerMessage = message.toLowerCase();
+  
+  // Patrones para detectar correcciones
+  const correctionPatterns = [
+    // "pero te pedí" / "but I asked for"
+    /(?:pero|but)\s+(?:te|you|me)\s+(?:pedí|pediste|asked|asked for|dije|dijiste|said)\s+(?:solo|only|just|exactamente|exactly)?\s*(\d+)/i,
+    // "solo pedí" / "only asked for"
+    /(?:solo|only|just)\s+(?:pedí|pediste|asked|asked for|quiero|want|necesito|need)\s*(\d+)/i,
+    // "corrige a X" / "correct to X"
+    /(?:corrige|correct|corrección|correction|corregir)\s+(?:a|to)?\s*(\d+)/i,
+    // "solo X" después de "pero" o al inicio
+    /(?:^|pero|but)\s+(?:solo|only|just|exactamente|exactly)\s+(\d+)/i,
+    // "solo quiero X" / "only want X"
+    /(?:solo|only|just)\s+(?:quiero|want|necesito|need)\s+(\d+)/i,
+  ];
+
+  // Intentar detectar un número en contexto de corrección
+  for (const pattern of correctionPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const value = parseInt(match[1], 10);
+      if (!isNaN(value) && value > 0 && value <= 100) {
+        logger.debug(`[detectCorrection] Detected correction with value: ${value}`);
+        return {
+          isCorrection: true,
+          correctedParameter: 'limit', // Por ahora solo detectamos correcciones de límite
+          correctedValue: value,
+          confidence: 0.9,
+        };
+      }
+    }
+  }
+
+  // Verificar si hay palabras de corrección sin número específico
+  const hasCorrectionKeywords = /(?:pero|but|corrige|correct|corrección|correction|solo|only|just|exactamente|exactly)/i.test(message);
+  const hasNumbers = /\d+/.test(message);
+  
+  if (hasCorrectionKeywords && hasNumbers) {
+    // Intentar extraer cualquier número
+    const numberMatch = message.match(/\b(\d{1,2})\b/);
+    if (numberMatch && numberMatch[1]) {
+      const value = parseInt(numberMatch[1], 10);
+      if (!isNaN(value) && value > 0 && value <= 100) {
+        logger.debug(`[detectCorrection] Detected correction with value: ${value} (lower confidence)`);
+        return {
+          isCorrection: true,
+          correctedParameter: 'limit',
+          correctedValue: value,
+          confidence: 0.7, // Menor confianza porque el patrón es más débil
+        };
+      }
+    }
+  }
+
+  return {
+    isCorrection: false,
+    confidence: 0,
+  };
+}
+
+/**
+ * Extrae parámetros de consulta del mensaje
+ */
+function extractQueryParameters(message: string): Record<string, any> {
+  const parameters: Record<string, any> = {};
+  const lowerMessage = message.toLowerCase();
+
+  // Extraer límite numérico
+  const limit = extractLimit(message);
+  if (limit) {
+    parameters.limit = limit;
+  }
+
+  // Extraer rango de fechas
+  const dateRange = extractDateRange(message);
+  if (dateRange) {
+    parameters.dateFrom = dateRange.from;
+    parameters.dateTo = dateRange.to;
+  } else {
+    // Si no hay rango, intentar fecha única
+    const singleDate = extractDate(message);
+    if (singleDate) {
+      parameters.dateFrom = singleDate;
+      parameters.dateTo = singleDate;
+    }
+  }
+
+  // Extraer categoría
+  const category = extractCategory(message, ['expense', 'income']);
+  if (category) {
+    parameters.category = category;
+  }
+
+  // Extraer tipo de transacción
+  if (/(gastos?|expenses?)/i.test(lowerMessage)) {
+    parameters.transactionType = 'EXPENSE';
+  } else if (/(ingresos?|income)/i.test(lowerMessage)) {
+    parameters.transactionType = 'INCOME';
+  }
+
+  // Extraer moneda
+  const currency = extractCurrency(message);
+  if (currency) {
+    parameters.currency = currency;
+  }
+
+  // Rango de montos
+  const amountGreaterThanMatch = message.match(/(mayor(?:es)?\s+a|más\s+de)\s*(\d+(?:\.\d+)?)/i);
+  if (amountGreaterThanMatch) {
+    parameters.amountMin = parseFloat(amountGreaterThanMatch[2]);
+  }
+
+  const amountLessThanMatch = message.match(/(menor(?:es)?\s+a|menos\s+de)\s*(\d+(?:\.\d+)?)/i);
+  if (amountLessThanMatch) {
+    parameters.amountMax = parseFloat(amountLessThanMatch[2]);
+  }
+
+  const amountBetweenMatch = message.match(/entre\s*(\d+(?:\.\d+)?)\s*y\s*(\d+(?:\.\d+)?)/i);
+  if (amountBetweenMatch) {
+    parameters.amountMin = parseFloat(amountBetweenMatch[1]);
+    parameters.amountMax = parseFloat(amountBetweenMatch[2]);
+  }
+
+  return parameters;
+}
+
+/**
  * Detecta intención de consulta específica
  */
 function detectQueryIntention(lowerMessage: string, originalMessage: string): DetectedIntention {
   let actionType: ActionType = 'UNKNOWN';
   let confidence = 0.6;
+  const parameters: Record<string, any> = {};
+  
+  // Enhanced patterns with explicit list/show keywords for better detection
+  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar\s|ver\s|show\s|display/i.test(originalMessage);
   
   const hasBalance = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(originalMessage);
   const hasTransactions = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(originalMessage);
   const hasBudgets = /presupuestos?|budgets?/i.test(originalMessage);
   const hasGoals = /metas?|goals?|objetivos?|targets?/i.test(originalMessage);
   const hasAccounts = /cuentas?|accounts?/i.test(originalMessage);
+  const hasRates = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|tipo de cambio/i.test(originalMessage);
+  const hasCategories = /categorías?|categorias?|categories?/i.test(originalMessage);
+  const hasRecurring = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(originalMessage);
   
-  if (hasBalance) {
+  // Extract query parameters for all query types
+  const queryParams = extractQueryParameters(originalMessage);
+  if (Object.keys(queryParams).length > 0) {
+    Object.assign(parameters, queryParams);
+  }
+  
+  // Boost confidence for listing patterns
+  if (hasListingKeywords && hasAccounts) {
+    actionType = 'QUERY_ACCOUNTS';
+    confidence = 0.95;
+  } else if (hasListingKeywords && hasTransactions) {
+    actionType = 'QUERY_TRANSACTIONS';
+    confidence = 0.95;
+  } else if (hasListingKeywords && hasBudgets) {
+    actionType = 'QUERY_BUDGETS';
+    confidence = 0.95;
+  } else if (hasListingKeywords && hasGoals) {
+    actionType = 'QUERY_GOALS';
+    confidence = 0.95;
+  } else if (hasListingKeywords && hasCategories) {
+    actionType = 'QUERY_CATEGORIES';
+    confidence = 0.95;
+  } else if (hasListingKeywords && hasRecurring) {
+    actionType = 'QUERY_RECURRING';
+    confidence = 0.95;
+  } else if (hasBalance) {
     actionType = 'QUERY_BALANCE';
     confidence = 0.9;
+  } else if (hasRates) {
+    actionType = 'QUERY_RATES';
+    confidence = 0.9;
+  } else if (hasCategories) {
+    actionType = 'QUERY_CATEGORIES';
+    confidence = 0.85;
+  } else if (hasRecurring) {
+    actionType = 'QUERY_RECURRING';
+    confidence = 0.85;
   } else if (hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.8;
@@ -351,7 +581,7 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     type: 'QUERY',
     actionType,
     confidence,
-    parameters: {},
+    parameters,
     requiresConfirmation: false,
     missingParameters: [],
   };
@@ -421,16 +651,72 @@ function extractDate(message: string): string | null {
     return tomorrow.toISOString().split('T')[0];
   }
   
-  // Intentar parsear formato DD/MM/YYYY o YYYY-MM-DD
-  for (const pattern of DATE_PATTERNS) {
-    const match = message.match(pattern);
-    if (match) {
-      // Por ahora, retornar null y dejar que el sistema use la fecha actual
-      // Una implementación completa parsearía la fecha correctamente
-      return null;
-    }
+  // Parse DD/MM/YYYY
+  let match = message.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (match) {
+    const [_, day, month, year] = match;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
   }
   
+  // Parse YYYY-MM-DD
+  match = message.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (match) {
+    const [_, year, month, day] = match;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  
+  return null;
+}
+
+/**
+ * Extrae rango de fechas del mensaje
+ */
+function extractDateRange(message: string): { from?: string; to?: string } | null {
+  const lowerMessage = message.toLowerCase();
+  const today = new Date();
+  const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+  const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
+  const currentWeekStart = new Date(today);
+  currentWeekStart.setDate(today.getDate() - today.getDay());
+  const lastWeekStart = new Date(today);
+  lastWeekStart.setDate(today.getDate() - today.getDay() - 7);
+  const lastWeekEnd = new Date(today);
+  lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
+
+  if (lowerMessage.includes('este mes') || lowerMessage.includes('this month')) {
+    return { from: currentMonthStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+  }
+  if (lowerMessage.includes('mes pasado') || lowerMessage.includes('last month')) {
+    return { from: lastMonthStart.toISOString().split('T')[0], to: lastMonthEnd.toISOString().split('T')[0] };
+  }
+  if (lowerMessage.includes('esta semana') || lowerMessage.includes('this week')) {
+    return { from: currentWeekStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+  }
+  if (lowerMessage.includes('semana pasada') || lowerMessage.includes('last week')) {
+    return { from: lastWeekStart.toISOString().split('T')[0], to: lastWeekEnd.toISOString().split('T')[0] };
+  }
+
+  // "hace X días/semanas/meses"
+  const agoMatch = lowerMessage.match(/hace\s+(\d+)\s+(días?|semanas?|meses?)/);
+  if (agoMatch) {
+    const value = parseInt(agoMatch[1]);
+    const unit = agoMatch[2];
+    const fromDate = new Date();
+    if (unit.includes('día')) fromDate.setDate(fromDate.getDate() - value);
+    if (unit.includes('semana')) fromDate.setDate(fromDate.getDate() - value * 7);
+    if (unit.includes('mes')) fromDate.setMonth(fromDate.getMonth() - value);
+    return { from: fromDate.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+  }
+
+  // "desde X hasta Y"
+  const rangeMatch = message.match(/desde\s+(.+?)\s+hasta\s+(.+)/i);
+  if (rangeMatch) {
+    const fromDate = extractDate(rangeMatch[1]);
+    const toDate = extractDate(rangeMatch[2]);
+    if (fromDate && toDate) return { from: fromDate, to: toDate };
+  }
+
   return null;
 }
 

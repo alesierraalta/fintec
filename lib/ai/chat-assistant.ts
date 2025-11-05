@@ -15,10 +15,10 @@ import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_TEMPERATURE, AI_LLM_TI
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
-import { getCachedContext, setCachedContext, getCachedConversation, setCachedConversation, getCachedPendingAction, setCachedPendingAction, invalidatePendingActionCache } from './cache-manager';
+import { getCachedContext, setCachedContext, getCachedConversation, setCachedConversation, getCachedPendingAction, setCachedPendingAction, invalidatePendingActionCache, getLastCachedQuery, setCachedQueryHistory, QueryHistoryEntry } from './cache-manager';
 import { AI_ACTION_TOOLS } from './action-tools';
 import { generateProactivePrompt } from './proactive-advisor';
-import { detectIntention, ActionType } from './intention-detector';
+import { detectIntention, ActionType, detectCorrection } from './intention-detector';
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
 import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
@@ -188,9 +188,88 @@ INSTRUCCIONES CRÍTICAS:
 19. Proporciona consejos prácticos y accionables
 20. Mantén respuestas concisas pero informativas
 21. NUNCA inventes datos que no estén en el contexto proporcionado
-22. SIEMPRE verifica accounts.total antes de decir que no hay cuentas`;
+22. SIEMPRE verifica accounts.total antes de decir que no hay cuentas
+23. MANEJO DE CORRECCIONES:
+   - Si el usuario corrige un parámetro (ej: "pero te pedí solo 5", "solo quiero 5 transacciones"):
+     * El sistema automáticamente detecta la corrección y re-ejecuta la consulta anterior
+     * NO necesitas hacer nada especial, solo reconocer que es una corrección
+     * Si el sistema no puede manejar la corrección automáticamente, responde amablemente que entendiste la corrección
+   - Mantén el contexto conversacional: si el usuario hace una corrección, reconoce que es una corrección de la consulta anterior
+   - Ejemplos de correcciones comunes:
+     * "pero te pedí solo 5" → el usuario quiere solo 5 elementos, no más
+     * "solo quiero 3" → el usuario corrige el límite a 3
+     * "corrige a 10" → el usuario quiere 10 elementos
+24. RESPETO DE LÍMITES:
+   - Si el usuario especifica un límite exacto (ej: "5 transacciones"), respeta ese límite exactamente
+   - NO muestres mensajes de "y X más" cuando el usuario especificó un límite exacto
+   - Solo muestra "y X más" cuando NO hay límite explícito y hay más resultados disponibles`;
 
     logger.debug(`[chatWithAssistant] System prompt constructed with ${cachedContext.accounts.total} accounts for user ${userId}`);
+
+    // Detectar si es una corrección antes de procesar la intención normal
+    const correction = detectCorrection(lastMessage?.content || '');
+    
+    // Si es una corrección, intentar re-ejecutar la consulta anterior con parámetros corregidos
+    if (correction.isCorrection && correction.correctedParameter && correction.correctedValue !== undefined) {
+      logger.info(`[chatWithAssistant] Detected correction: ${correction.correctedParameter} = ${correction.correctedValue} for user ${userId}`);
+      
+      // Obtener la última consulta desde Redis (obligatorio)
+      const lastQuery = await getLastCachedQuery(userId);
+      
+      if (lastQuery && lastQuery.actionType && lastQuery.actionType.startsWith('QUERY_')) {
+        // Re-ejecutar la consulta anterior con el parámetro corregido
+        const correctedParams = { ...lastQuery.parameters };
+        correctedParams[correction.correctedParameter] = correction.correctedValue;
+        
+        logger.info(`[chatWithAssistant] Re-executing query ${lastQuery.actionType} with corrected params:`, correctedParams);
+        
+        let queryResult;
+        switch (lastQuery.actionType as ActionType) {
+          case 'QUERY_ACCOUNTS':
+            queryResult = handleQueryAccounts(cachedContext, correctedParams);
+            break;
+          case 'QUERY_BALANCE':
+            queryResult = handleQueryBalance(cachedContext, correctedParams);
+            break;
+          case 'QUERY_TRANSACTIONS':
+            queryResult = handleQueryTransactions(cachedContext, correctedParams);
+            break;
+          case 'QUERY_BUDGETS':
+            queryResult = handleQueryBudgets(cachedContext, correctedParams);
+            break;
+          case 'QUERY_GOALS':
+            queryResult = handleQueryGoals(cachedContext, correctedParams);
+            break;
+          case 'QUERY_RATES':
+            queryResult = await handleQueryRates(cachedContext, correctedParams);
+            break;
+          case 'QUERY_CATEGORIES':
+            queryResult = await handleQueryCategories(cachedContext, userId, correctedParams);
+            break;
+          case 'QUERY_RECURRING':
+            queryResult = await handleQueryRecurring(cachedContext, userId, correctedParams);
+            break;
+          default:
+            queryResult = { message: '', canHandle: false };
+        }
+        
+        if (queryResult.canHandle && queryResult.message) {
+          // Guardar la consulta corregida en el historial
+          const historyEntry: QueryHistoryEntry = {
+            actionType: lastQuery.actionType,
+            parameters: correctedParams,
+            timestamp: Date.now(),
+            message: lastMessage?.content || '',
+          };
+          await setCachedQueryHistory(userId, historyEntry);
+          
+          logger.info(`[chatWithAssistant] Correction handled successfully for user ${userId}`);
+          return { message: queryResult.message };
+        }
+      } else {
+        logger.warn(`[chatWithAssistant] Correction detected but no previous query found in Redis for user ${userId}`);
+      }
+    }
 
     // Detectar intención del último mensaje
     const intention = detectIntention(lastMessage?.content || '');
@@ -230,6 +309,15 @@ INSTRUCCIONES CRÍTICAS:
 
       // If handler can handle it directly, return the response
       if (queryResult.canHandle && queryResult.message) {
+        // Guardar la consulta en el historial de Redis (obligatorio para contexto conversacional)
+        const historyEntry: QueryHistoryEntry = {
+          actionType: intention.actionType,
+          parameters: intention.parameters || {},
+          timestamp: Date.now(),
+          message: lastMessage?.content || '',
+        };
+        await setCachedQueryHistory(userId, historyEntry);
+        
         logger.info(`[chatWithAssistant] ${intention.actionType} handled directly from context for user ${userId}`);
         return { message: queryResult.message };
       }

@@ -70,8 +70,18 @@ export function handleQueryTransactions(
 
     let transactions = [...context.transactions.recent];
 
-    // Filtrar por fecha si se especifica
-    if (params?.dateRange) {
+    // Aplicar filtros de fecha si están presentes
+    if (params?.dateFrom && params?.dateTo) {
+      transactions = transactions.filter((tx: any) => {
+        const txDate = new Date(tx.date);
+        const fromDate = new Date(params.dateFrom);
+        const toDate = new Date(params.dateTo);
+        return txDate >= fromDate && txDate <= toDate;
+      });
+    } else if (params?.dateFrom) {
+      transactions = transactions.filter((tx: any) => tx.date === params.dateFrom);
+    } else if (params?.dateRange) {
+      // Compatibilidad con formato antiguo
       const { from, to } = params.dateRange;
       transactions = transactions.filter((tx: any) => {
         const txDate = tx.date;
@@ -86,9 +96,10 @@ export function handleQueryTransactions(
       );
     }
 
-    // Filtrar por tipo si se especifica
-    if (params?.type) {
-      transactions = transactions.filter((tx: any) => tx.type === params.type);
+    // Filtrar por tipo de transacción si está presente (priorizar transactionType sobre type)
+    const transactionType = params?.transactionType || params?.type;
+    if (transactionType) {
+      transactions = transactions.filter((tx: any) => tx.type === transactionType);
     }
 
     if (transactions.length === 0) {
@@ -98,27 +109,44 @@ export function handleQueryTransactions(
       };
     }
 
+    // Determinar límite: usar el especificado o default de 10
+    // Verificar que limit sea un número válido y esté en rango razonable
+    const hasExplicitLimit = params?.limit !== undefined && params?.limit !== null;
+    const rawLimit = hasExplicitLimit ? Number(params.limit) : null;
+    const limit = rawLimit && !isNaN(rawLimit) && rawLimit > 0 
+      ? Math.min(Math.max(Math.floor(rawLimit), 1), 100) // Entre 1 y 100
+      : 10; // Default de 10 si no se especifica o es inválido
+
+    // Logging mejorado para debugging
+    logger.debug(`[handleQueryTransactions] Limit handling: explicit=${hasExplicitLimit}, rawLimit=${rawLimit}, finalLimit=${limit}, totalTransactions=${transactions.length}`);
+
     // Formatear respuesta
     let message = '';
-    const dateRangeText = params?.dateRange
-      ? ` (${params.dateRange.from} a ${params.dateRange.to})`
+    const dateRangeText = params?.dateFrom && params?.dateTo
+      ? ` (${params.dateFrom} a ${params.dateTo})`
+      : params?.dateFrom
+      ? ` (${params.dateFrom})`
       : '';
-    const typeText = params?.type === 'INCOME' ? 'Ingresos' : params?.type === 'EXPENSE' ? 'Gastos' : 'Transacciones';
+    const typeText = transactionType === 'INCOME' ? 'Ingresos' : transactionType === 'EXPENSE' ? 'Gastos' : 'Transacciones';
     const categoryText = params?.category ? ` de ${params.category}` : '';
 
     message = `${typeText}${categoryText}${dateRangeText}:\n\n`;
 
-    transactions.slice(0, 10).forEach((tx: any) => {
+    // Aplicar límite y mostrar solo las transacciones solicitadas
+    const transactionsToShow = transactions.slice(0, limit);
+    transactionsToShow.forEach((tx: any) => {
       const sign = tx.type === 'INCOME' ? '+' : '-';
       const icon = tx.type === 'INCOME' ? '📈' : '📉';
       message += `${icon} ${tx.date} | ${sign}${tx.amount.toFixed(2)} | ${tx.category || 'Sin categoría'} | ${tx.description || 'Sin descripción'}\n`;
     });
 
-    if (transactions.length > 10) {
-      message += `\n... y ${transactions.length - 10} transacciones más`;
+    // NO mostrar mensaje de "más transacciones" si el usuario especificó un límite exacto
+    // Solo mostrar el mensaje si NO hay límite explícito Y hay más transacciones que el límite por defecto
+    if (!hasExplicitLimit && transactions.length > limit) {
+      message += `\n... y ${transactions.length - limit} transacciones más`;
     }
 
-    logger.info('[handleQueryTransactions] Handled transactions query with filters:', params);
+    logger.info(`[handleQueryTransactions] Handled transactions query: showing ${transactionsToShow.length} of ${transactions.length}, explicitLimit=${hasExplicitLimit}, params=`, params);
     return { message, canHandle: true };
   } catch (error: any) {
     logger.error('[handleQueryTransactions] Error:', error);

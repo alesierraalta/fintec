@@ -42,6 +42,7 @@ setInterval(() => {
 const CONTEXT_CACHE_TTL_SEC = 5 * 60; // 5 minutos
 const CONVERSATION_CACHE_TTL_SEC = 30 * 60; // 30 minutos
 const PENDING_ACTION_CACHE_TTL_SEC = 10 * 60; // 10 minutos (más largo para dar tiempo al usuario a confirmar)
+const QUERY_HISTORY_CACHE_TTL_SEC = 15 * 60; // 15 minutos para historial de consultas (suficiente para correcciones)
 
 /**
  * Obtiene contexto cacheado
@@ -302,6 +303,125 @@ export async function invalidatePendingActionCache(userId: string): Promise<void
   }
 
   inMemoryCache.delete(key);
+}
+
+/**
+ * Interfaz para historial de consulta
+ */
+export interface QueryHistoryEntry {
+  actionType: string;
+  parameters: Record<string, any>;
+  timestamp: number;
+  message: string; // Mensaje original del usuario
+}
+
+/**
+ * Obtiene el historial de consultas recientes del usuario desde Redis
+ * Usado para manejar correcciones y contexto conversacional
+ * @param userId - ID del usuario
+ * @returns El historial de consultas o null si no existe
+ */
+export async function getCachedQueryHistory(userId: string): Promise<QueryHistoryEntry[] | null> {
+  const key = `cache:query-history:${userId}`;
+
+  // Redis es OBLIGATORIO para contexto conversacional
+  if (!isRedisConnected()) {
+    logger.warn(`Cache: Redis not available - cannot retrieve query history for user ${userId}`);
+    return null;
+  }
+
+  try {
+    const client = getRedisClient();
+    if (client) {
+      const cached = await client.get(key);
+      if (cached) {
+        try {
+          const data = JSON.parse(cached);
+          logger.debug(`Cache HIT: Query history for user ${userId}, ${data.length} entries`);
+          return data;
+        } catch {
+          logger.warn(`Cache: Failed to parse cached query history for user ${userId}`);
+          return null;
+        }
+      }
+    }
+  } catch (error) {
+    logger.error('Cache: Error retrieving query history from Redis', error);
+  }
+
+  return null;
+}
+
+/**
+ * Guarda una entrada en el historial de consultas del usuario en Redis
+ * Mantiene solo las últimas 5 consultas para eficiencia
+ * @param userId - ID del usuario
+ * @param entry - La entrada de historial a guardar
+ */
+export async function setCachedQueryHistory(userId: string, entry: QueryHistoryEntry): Promise<void> {
+  const key = `cache:query-history:${userId}`;
+
+  // Redis es OBLIGATORIO para contexto conversacional
+  if (!isRedisConnected()) {
+    logger.warn(`Cache: Redis not available - cannot save query history for user ${userId}`);
+    return;
+  }
+
+  try {
+    const client = getRedisClient();
+    if (client) {
+      // Obtener historial existente
+      const existingHistory = await getCachedQueryHistory(userId) || [];
+      
+      // Agregar nueva entrada
+      const updatedHistory = [...existingHistory, entry];
+      
+      // Mantener solo las últimas 5 consultas para eficiencia
+      const recentHistory = updatedHistory.slice(-5);
+      
+      const serialized = JSON.stringify(recentHistory);
+      await client.setex(key, QUERY_HISTORY_CACHE_TTL_SEC, serialized);
+      logger.debug(`Cache WRITE: Query history for user ${userId}, ${recentHistory.length} entries`);
+      return;
+    }
+  } catch (error) {
+    logger.error('Cache: Error saving query history to Redis', error);
+  }
+}
+
+/**
+ * Obtiene la última consulta del usuario desde Redis
+ * Útil para manejar correcciones
+ * @param userId - ID del usuario
+ * @returns La última consulta o null si no existe
+ */
+export async function getLastCachedQuery(userId: string): Promise<QueryHistoryEntry | null> {
+  const history = await getCachedQueryHistory(userId);
+  if (!history || history.length === 0) {
+    return null;
+  }
+  // Retornar la más reciente (última del array)
+  return history[history.length - 1];
+}
+
+/**
+ * Invalida el historial de consultas del usuario
+ * @param userId - ID del usuario
+ */
+export async function invalidateQueryHistoryCache(userId: string): Promise<void> {
+  const key = `cache:query-history:${userId}`;
+
+  if (isRedisConnected()) {
+    try {
+      const client = getRedisClient();
+      if (client) {
+        await client.del(key);
+        logger.debug(`Cache INVALIDATE: Query history for user ${userId}`);
+      }
+    } catch (error) {
+      logger.error('Cache: Error invalidating query history in Redis', error);
+    }
+  }
 }
 
 /**
