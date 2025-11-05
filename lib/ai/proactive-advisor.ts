@@ -281,3 +281,4 @@ export function generateProactivePrompt(context: WalletContext): string {
   return `\n\nSUGERENCIAS PROACTIVAS (puedes mencionarlas si es relevante):\n${suggestionsText}\n\nPuedes ofrecer realizar estas acciones si el usuario está interesado.`;
 }
 
+

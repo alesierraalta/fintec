@@ -100,8 +100,10 @@ export async function chatWithAssistant(
 
     // Procesar confirmaciones/rechazos de acciones pendientes
     const lastMessage = messages[messages.length - 1];
+    const lastMessageContent = lastMessage?.content || '';
     const pendingAction = await getCachedPendingAction(userId);
     
+    collectLog('info', `[chatWithAssistant] Starting chat processing for user ${userId}, message: "${lastMessageContent.substring(0, 100)}${lastMessageContent.length > 100 ? '...' : ''}"`);
     collectLog('debug', `[chatWithAssistant] Processing message for user ${userId}, sessionId: ${sessionId || 'none'}`);
 
     if (pendingAction) {
@@ -205,7 +207,6 @@ export async function chatWithAssistant(
     }
 
     // Detectar si es una pregunta de seguimiento (por que?, por qué?, why?)
-    const lastMessageContent = lastMessage?.content || '';
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
     
     if (isFollowUpQuestion) {
@@ -233,19 +234,20 @@ export async function chatWithAssistant(
 
     // Detectar intención del último mensaje
     const intention = detectIntention(lastMessageContent);
-    collectLog('debug', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType}, confidence=${intention.confidence} for user ${userId}`);
+    collectLog('info', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType || 'UNKNOWN'}, confidence=${intention.confidence} for user ${userId}`);
 
     // Determinar si es una query simple o compleja
-    // Queries simples: listas directas, consultas estructuradas con keywords claros
-    // Queries complejas: preguntas abiertas, análisis, comparaciones, explicaciones
+    // Queries simples: listas directas, consultas estructuradas con keywords claros, queries comparativas con parámetros claros
+    // Queries complejas: preguntas abiertas, análisis, comparaciones sin contexto claro, explicaciones
     const isSimpleQuery = (intention.type === 'QUERY' && 
       intention.actionType && 
       intention.actionType !== 'UNKNOWN' &&
       (intention.actionType.startsWith('QUERY_') && 
        ['QUERY_ACCOUNTS', 'QUERY_TRANSACTIONS', 'QUERY_BUDGETS', 'QUERY_GOALS', 
         'QUERY_CATEGORIES', 'QUERY_RECURRING', 'QUERY_RATES', 'QUERY_BALANCE'].includes(intention.actionType) &&
-       // Solo si tiene keywords de lista/claridad (no preguntas abiertas)
-       (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la/i.test(lastMessageContent) ||
+       // Keywords de lista/claridad O queries comparativas con parámetros claros O alta confianza
+       (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what/i.test(lastMessageContent) ||
+        /(?:más|mas|mayor|mayores|grande|grandes|menor|menores|top|mejor|mejores|peor|peores)\s+(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(lastMessageContent) ||
         intention.confidence >= 0.9)));
     
     // Handle simple QUERY types - use gpt-5-nano with context data
@@ -622,9 +624,11 @@ Solo reformatea y presenta los datos de manera profesional.`;
     }
 
     // Construir mensajes para OpenAI (incluir system prompt + historial + mensaje actual)
-    // Para queries/acciones complejas, usar gpt-5-mini
+    // Para queries/acciones complejas o UNKNOWN, usar gpt-5-mini
+    // Si llegamos aquí, es una query/acción que no se manejó directamente
+    // SIEMPRE usar LLM (gpt-5-mini para complejas o UNKNOWN)
     collectLog('info', `[chatWithAssistant] Complex query/action detected, calling OpenAI API with gpt-5-mini for user ${userId}`);
-    collectLog('debug', `[chatWithAssistant] Intention type: ${intention.type}, actionType: ${intention.actionType}, will use LLM for response generation`);
+    collectLog('debug', `[chatWithAssistant] Intention type: ${intention.type}, actionType: ${intention.actionType || 'UNKNOWN'}, will use LLM for response generation`);
     
     const openAIMessages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
       {
@@ -762,9 +766,29 @@ Solo reformatea y presenta los datos de manera profesional.`;
     } catch (retryError: any) {
       collectLog('error', `[chatWithAssistant] OpenAI API call failed after retries: ${retryError.message || retryError} for user ${userId}`);
       logger.warn(`AI Chat: OpenAI failed after retries, using fallback extractive response for user ${userId}`);
-      // Usar fallback extractivo si todo falla
-      const fallbackMessage = getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
-      response = { message: fallbackMessage };
+      
+      // Usar fallback con LLM como último recurso (gpt-4o-mini)
+      try {
+        collectLog('warn', `[chatWithAssistant] Attempting fallback with ${AI_CHAT_MODEL_FALLBACK} for user ${userId}`);
+        const fallbackResponse = await openai.chat.completions.create({
+          model: AI_CHAT_MODEL_FALLBACK,
+          messages: openAIMessages as any,
+          temperature: AI_TEMPERATURE,
+          max_tokens: 400,
+        });
+        
+        if (fallbackResponse.usage) {
+          collectLog('info', `[chatWithAssistant] ${AI_CHAT_MODEL_FALLBACK} fallback usage: prompt_tokens=${fallbackResponse.usage.prompt_tokens}, completion_tokens=${fallbackResponse.usage.completion_tokens}, total_tokens=${fallbackResponse.usage.total_tokens}`);
+        }
+        
+        const fallbackMessage = fallbackResponse.choices[0]?.message?.content || getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
+        response = withDebugLogs({ message: fallbackMessage });
+      } catch (finalError: any) {
+        collectLog('error', `[chatWithAssistant] Fallback model also failed: ${finalError.message || finalError} for user ${userId}`);
+        // Último recurso: mensaje extractivo
+        const fallbackMessage = getFallbackResponse(messages[messages.length - 1]?.content || '', cachedContext);
+        response = withDebugLogs({ message: fallbackMessage });
+      }
     }
 
     // Guardar conversación en caché
@@ -773,7 +797,8 @@ Solo reformatea y presenta los datos de manera profesional.`;
       await setCachedConversation(userId, sessionId, updatedMessages);
     }
 
-    return response;
+    // Asegurar que siempre se incluyan logs
+    return withDebugLogs(response);
   } catch (error: any) {
     logger.error('Unexpected error in chatWithAssistant', error);
     // En caso de error absoluto, retornar un mensaje genérico

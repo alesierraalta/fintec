@@ -182,6 +182,16 @@ export function handleQueryTransactions(
       };
     }
 
+    // Aplicar ordenamiento si se especifica
+    if (params?.sortBy === 'amount') {
+      const sortOrder = params?.sortOrder || 'desc';
+      transactions.sort((a: any, b: any) => {
+        const amountA = Math.abs(a.amount || 0);
+        const amountB = Math.abs(b.amount || 0);
+        return sortOrder === 'desc' ? amountB - amountA : amountA - amountB;
+      });
+    }
+
     // Determinar límite: usar el especificado o default de 10
     // Verificar que limit sea un número válido y esté en rango razonable
     const hasExplicitLimit = params?.limit !== undefined && params?.limit !== null;

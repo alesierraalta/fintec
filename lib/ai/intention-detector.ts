@@ -491,6 +491,23 @@ function extractQueryParameters(message: string): Record<string, any> {
     parameters.limit = limit;
   }
 
+  // NUEVO: Detectar ordenamiento por monto
+  if (/(?:más|mas|mayor|mayores|grande|grandes|top|mejor|mejores|alt|superior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'desc';
+  } else if (/(?:menor|menores|pequeñ|peor|peores|baj|inferior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'asc';
+  }
+
+  // Extraer límite de "top N" si no se extrajo antes
+  if (!parameters.limit) {
+    const topMatch = message.match(/(?:top|primeras?|primeros?|últimas?|ultimas?)\s+(\d+)/i);
+    if (topMatch) {
+      parameters.limit = parseInt(topMatch[1], 10);
+    }
+  }
+
   // Extraer rango de fechas
   const dateRange = extractDateRange(message);
   if (dateRange) {
@@ -553,7 +570,12 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   const parameters: Record<string, any> = {};
   
   // Enhanced patterns with explicit list/show keywords for better detection
-  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la/i.test(originalMessage);
+  // Agregar patrones comparativos y superlativos
+  const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what/i.test(originalMessage);
+  
+  // Detectar queries comparativas/superlativas
+  const hasComparativeQuery = /(?:más|mas|mayor|mayores|grande|grandes|pequeñ|menor|menores|top|peor|peores|mejor|mejores|alt|baj|superior|inferior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(originalMessage);
+  const hasSuperlativeQuery = /(?:las|los|el|la)\s+(?:más|mas|mayor|mayores|grande|grandes|pequeñ|menor|menores|top|peor|peores|mejor|mejores)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(originalMessage);
   
   const hasBalance = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(originalMessage);
   const hasTransactions = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income|pago|pagos|payments?|cobro|cobros/i.test(originalMessage);
@@ -579,6 +601,28 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   } else if (hasListingKeywords && hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.95;
+  } else if (hasComparativeQuery || hasSuperlativeQuery) {
+    // Detectar queries comparativas/superlativas con alta prioridad
+    actionType = 'QUERY_TRANSACTIONS';
+    confidence = 0.95;
+    
+    // Extraer parámetros de ordenamiento
+    if (hasComparativeQuery || hasSuperlativeQuery) {
+      // Detectar dirección de ordenamiento
+      if (/(?:más|mas|mayor|mayores|grande|grandes|top|mejor|mejores|alt|superior)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'desc'; // Descendente (mayores primero)
+      } else if (/(?:menor|menores|pequeñ|peor|peores|baj|inferior)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'asc'; // Ascendente (menores primero)
+      }
+      
+      // Extraer límite si hay "top N" o similar
+      const topMatch = originalMessage.match(/(?:top|primeras?|primeros?|últimas?|ultimas?)\s+(\d+)/i);
+      if (topMatch) {
+        parameters.limit = parseInt(topMatch[1], 10);
+      }
+    }
   } else if (hasListingKeywords && hasBudgets) {
     actionType = 'QUERY_BUDGETS';
     confidence = 0.95;
