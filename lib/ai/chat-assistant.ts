@@ -11,7 +11,7 @@
  * - Procesamiento de confirmaciones
  */
 
-import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
+import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_CHAT_MODEL_MINI, AI_CHAT_MODEL_NANO, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
@@ -387,12 +387,14 @@ INSTRUCCIONES CRÍTICAS:
     const conversationHistory = messages.filter(m => m.role !== 'system');
     openAIMessages.push(...conversationHistory);
 
-    // Determinar qué modelo usar (preferimos mini para todas las conversaciones en MVP)
-    const modelToUse = getChatModel(true); // preferMini = true
+    // Determinar qué modelo usar (priorizamos mini como especificado)
+    const modelToUse = getChatModel(true); // preferMini = true, usar gpt-5-mini primero
+    logger.info(`[chatWithAssistant] Using model: ${modelToUse} for user ${userId}`);
 
     // Función interna para llamar a OpenAI con retry automático y function calling
     const callOpenAI = async (model: string): Promise<ChatResponse> => {
       try {
+        logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}`);
         const response = await openai.chat.completions.create({
           model,
           messages: openAIMessages as any,
@@ -471,10 +473,19 @@ INSTRUCCIONES CRÍTICAS:
 
         return { message: content };
       } catch (error: any) {
-        // Si el modelo no existe, intentar con fallback
-        if (error?.message?.includes('model') || error?.code === 'model_not_found') {
-          if (model !== AI_CHAT_MODEL_FALLBACK) {
-            logger.warn(`Model ${model} not available, using fallback ${AI_CHAT_MODEL_FALLBACK}`);
+        // Si el modelo no existe, intentar con fallback en cascada: mini -> nano -> fallback
+        if (error?.message?.includes('model') || error?.code === 'model_not_found' || error?.status === 404) {
+          if (model === AI_CHAT_MODEL_MINI) {
+            // Si mini no funciona, intentar con nano
+            logger.warn(`[chatWithAssistant] Model ${model} not available, trying ${AI_CHAT_MODEL_NANO}`);
+            return callOpenAI(AI_CHAT_MODEL_NANO);
+          } else if (model === AI_CHAT_MODEL_NANO) {
+            // Si nano tampoco funciona, usar fallback
+            logger.warn(`[chatWithAssistant] Model ${model} not available, using fallback ${AI_CHAT_MODEL_FALLBACK}`);
+            return callOpenAI(AI_CHAT_MODEL_FALLBACK);
+          } else if (model !== AI_CHAT_MODEL_FALLBACK) {
+            // Cualquier otro modelo que falle, usar fallback
+            logger.warn(`[chatWithAssistant] Model ${model} not available, using fallback ${AI_CHAT_MODEL_FALLBACK}`);
             return callOpenAI(AI_CHAT_MODEL_FALLBACK);
           }
         }
