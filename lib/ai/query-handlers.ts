@@ -393,13 +393,14 @@ export async function handleQueryRates(
     let message = 'Tasas de cambio disponibles:\n\n';
 
     // BCV Rates
-    if (bcvResponse.status === 'fulfilled' && bcvResponse.value.ok) {
-      debugLog('debug', `BCV API response OK, status: ${bcvResponse.value.status}`);
+    if (bcvResponse.status === 'fulfilled') {
+      // Intentar parsear incluso si el status HTTP no es OK, ya que las APIs pueden retornar fallback
       try {
         const bcvData = await bcvResponse.value.json();
-        debugLog('debug', `BCV data parsed: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
+        debugLog('debug', `BCV data parsed: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
         
         // Aceptar datos si success: true O si hay fallback: true con data presente
+        // Incluso si el HTTP status no es 200, las APIs pueden retornar datos de fallback
         if (bcvData.data && (bcvData.success || bcvData.fallback)) {
           debugLog('info', `BCV data accepted: USD=${bcvData.data.usd}, EUR=${bcvData.data.eur}, fallback=${bcvData.fallback}`);
           message += `🏦 BCV (Banco Central de Venezuela):\n`;
@@ -414,29 +415,27 @@ export async function handleQueryRates(
           }
           message += '\n';
         } else {
-          debugLog('warn', `BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
-          logger.warn(`[handleQueryRates] BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}`);
+          debugLog('warn', `BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
+          logger.warn(`[handleQueryRates] BCV API response missing data or not successful: success=${bcvData?.success}, fallback=${bcvData?.fallback}, hasData=${!!bcvData?.data}, httpStatus=${bcvResponse.value.status}`);
         }
       } catch (parseError: any) {
-        debugLog('error', `Failed to parse BCV API JSON: ${parseError.message}`);
-        logger.error(`[handleQueryRates] Failed to parse BCV API JSON response: ${parseError.message}`);
+        debugLog('error', `Failed to parse BCV API JSON: ${parseError.message}, httpStatus=${bcvResponse.value.status}`);
+        logger.error(`[handleQueryRates] Failed to parse BCV API JSON response: ${parseError.message}, httpStatus=${bcvResponse.value.status}`);
       }
-    } else if (bcvResponse.status === 'fulfilled') {
-      debugLog('warn', `BCV API returned non-OK status: ${bcvResponse.value.status} ${bcvResponse.value.statusText}`);
-      logger.warn(`[handleQueryRates] BCV API returned status ${bcvResponse.value.status} ${bcvResponse.value.statusText}`);
     } else {
       debugLog('error', `BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
       logger.error(`[handleQueryRates] BCV API fetch failed: ${bcvResponse.reason?.message || bcvResponse.reason}`);
     }
 
     // Binance Rates
-    if (binanceResponse.status === 'fulfilled' && binanceResponse.value.ok) {
-      debugLog('debug', `Binance API response OK, status: ${binanceResponse.value.status}`);
+    if (binanceResponse.status === 'fulfilled') {
+      // Intentar parsear incluso si el status HTTP no es OK, ya que las APIs pueden retornar fallback
       try {
         const binanceData = await binanceResponse.value.json();
-        debugLog('debug', `Binance data parsed: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
+        debugLog('debug', `Binance data parsed: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
         
         // Aceptar datos si success: true O si hay fallback: true con data presente
+        // Incluso si el HTTP status no es 200, las APIs pueden retornar datos de fallback
         if (binanceData.data && (binanceData.success || binanceData.fallback)) {
           debugLog('info', `Binance data accepted: USD/VES=${binanceData.data.usd_ves}, fallback=${binanceData.fallback}`);
           message += `💱 Binance P2P:\n`;
@@ -463,16 +462,13 @@ export async function handleQueryRates(
             message += `  • ⚠️ Nota: Tasas aproximadas (fallback)\n`;
           }
         } else {
-          debugLog('warn', `Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
-          logger.warn(`[handleQueryRates] Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}`);
+          debugLog('warn', `Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
+          logger.warn(`[handleQueryRates] Binance API response missing data or not successful: success=${binanceData?.success}, fallback=${binanceData?.fallback}, hasData=${!!binanceData?.data}, httpStatus=${binanceResponse.value.status}`);
         }
       } catch (parseError: any) {
-        debugLog('error', `Failed to parse Binance API JSON: ${parseError.message}`);
-        logger.error(`[handleQueryRates] Failed to parse Binance API JSON response: ${parseError.message}`);
+        debugLog('error', `Failed to parse Binance API JSON: ${parseError.message}, httpStatus=${binanceResponse.value.status}`);
+        logger.error(`[handleQueryRates] Failed to parse Binance API JSON response: ${parseError.message}, httpStatus=${binanceResponse.value.status}`);
       }
-    } else if (binanceResponse.status === 'fulfilled') {
-      debugLog('warn', `Binance API returned non-OK status: ${binanceResponse.value.status} ${binanceResponse.value.statusText}`);
-      logger.warn(`[handleQueryRates] Binance API returned status ${binanceResponse.value.status} ${binanceResponse.value.statusText}`);
     } else {
       debugLog('error', `Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
       logger.error(`[handleQueryRates] Binance API fetch failed: ${binanceResponse.reason?.message || binanceResponse.reason}`);
