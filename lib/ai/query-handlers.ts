@@ -143,6 +143,19 @@ export function handleQueryTransactions(
 
     let transactions = [...context.transactions.recent];
 
+    // Logging detallado de parámetros recibidos
+    logger.debug(`[handleQueryTransactions] Received params:`, {
+      dateFrom: params?.dateFrom,
+      dateTo: params?.dateTo,
+      dateRange: params?.dateRange,
+      category: params?.category,
+      transactionType: params?.transactionType || params?.type,
+      sortBy: params?.sortBy,
+      sortOrder: params?.sortOrder,
+      limit: params?.limit,
+      totalTransactions: transactions.length
+    });
+
     // Aplicar filtros de fecha si están presentes
     if (params?.dateFrom && params?.dateTo) {
       transactions = transactions.filter((tx: any) => {
@@ -161,6 +174,7 @@ export function handleQueryTransactions(
         return txDate >= from && txDate <= to;
       });
     }
+    logger.debug(`[handleQueryTransactions] After date filter: ${transactions.length} transactions`);
 
     // Filtrar por categoría si se especifica
     if (params?.category) {
@@ -168,12 +182,14 @@ export function handleQueryTransactions(
         tx.category?.toLowerCase().includes(params.category.toLowerCase())
       );
     }
+    logger.debug(`[handleQueryTransactions] After category filter: ${transactions.length} transactions`);
 
     // Filtrar por tipo de transacción si está presente (priorizar transactionType sobre type)
     const transactionType = params?.transactionType || params?.type;
     if (transactionType) {
       transactions = transactions.filter((tx: any) => tx.type === transactionType);
     }
+    logger.debug(`[handleQueryTransactions] After type filter: ${transactions.length} transactions`);
 
     if (transactions.length === 0) {
       return {

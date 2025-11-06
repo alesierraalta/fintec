@@ -508,6 +508,15 @@ function extractQueryParameters(message: string): Record<string, any> {
     }
   }
 
+  // Detectar queries singulares ("el mayor", "mi mayor", "la mayor", etc.)
+  // Si hay artículo singular antes de "mayor/menor", aplicar limit=1
+  if (!parameters.limit) {
+    const singularMatch = message.match(/\b(el|la|mi|tu|su|nuestro|nuestra)\s+(?:mayor|menor|más\s+grande|más\s+pequeñ|mejor|peor)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i);
+    if (singularMatch) {
+      parameters.limit = 1;
+    }
+  }
+
   // Extraer rango de fechas
   const dateRange = extractDateRange(message);
   if (dateRange) {
@@ -771,6 +780,10 @@ function extractDateRange(message: string): { from?: string; to?: string } | nul
   lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
 
   if (lowerMessage.includes('este mes') || lowerMessage.includes('this month')) {
+    return { from: currentMonthStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
+  }
+  // Agregar detección de "del mes" como sinónimo de "este mes" (pero no "del mes pasado")
+  if ((lowerMessage.includes('del mes') || /\bdel\s+mes\b/i.test(message)) && !lowerMessage.includes('mes pasado')) {
     return { from: currentMonthStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   }
   if (lowerMessage.includes('mes pasado') || lowerMessage.includes('last month')) {
