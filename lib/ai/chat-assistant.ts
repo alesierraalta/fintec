@@ -92,7 +92,7 @@ export async function chatWithAssistant(
   /**
    * Helper function to build API parameters with correct token limit parameter
    * gpt-5-nano: no acepta temperature personalizado (solo default 1), usa max_completion_tokens
-   * gpt-5-mini: acepta temperature, usa max_completion_tokens (NO max_tokens)
+   * gpt-5-mini: NO acepta temperature personalizado (solo default 1), usa max_completion_tokens
    */
   function getModelParams(model: string, defaultTokens: number, additionalParams: Record<string, any> = {}): Record<string, any> {
     const baseParams: Record<string, any> = {
@@ -100,14 +100,10 @@ export async function chatWithAssistant(
       ...additionalParams,
     };
     
-    // gpt-5-nano: no acepta temperature personalizado, solo default (1)
-    if (model === AI_CHAT_MODEL_NANO) {
+    // gpt-5-nano y gpt-5-mini: no aceptan temperature personalizado, solo default (1)
+    if (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) {
       baseParams.max_completion_tokens = defaultTokens;
-      // NO incluir temperature - dejar que use el default
-    } else if (model === AI_CHAT_MODEL_MINI) {
-      // gpt-5-mini: acepta temperature y usa max_completion_tokens
-      baseParams.temperature = AI_TEMPERATURE;
-      baseParams.max_completion_tokens = defaultTokens;
+      // NO incluir temperature - dejar que use el default (1)
     } else {
       // Fallback para otros modelos (si existen)
       baseParams.temperature = AI_TEMPERATURE;
@@ -686,7 +682,7 @@ Solo reformatea y presenta los datos de manera profesional.`;
       try {
         collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}`);
         const tokenParam = 'max_completion_tokens'; // Ambos modelos gpt-5 usan max_completion_tokens
-        const tempInfo = model === AI_CHAT_MODEL_NANO ? 'temperature=default(1)' : `temperature=${AI_TEMPERATURE}`;
+        const tempInfo = (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) ? 'temperature=default(1)' : `temperature=${AI_TEMPERATURE}`;
         collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, ${tempInfo}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}`);
         logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}`);
         const response = await openai.chat.completions.create({
