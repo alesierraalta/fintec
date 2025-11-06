@@ -6,7 +6,7 @@
  */
 
 import { getRedisClient, isRedisConnected } from '@/lib/redis/client';
-import { WalletContext } from './context-builder';
+import { WalletContext } from '@/lib/ai/context-builder';
 import { ChatMessage } from './chat-assistant';
 import { logger } from '@/lib/utils/logger';
 

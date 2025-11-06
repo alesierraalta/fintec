@@ -12,7 +12,7 @@
  */
 
 import { openai, getChatModel, AI_CHAT_MODEL_FALLBACK, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
-import { WalletContext } from './context-builder';
+import { WalletContext } from '@/lib/ai/context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
 import { getCachedContext, setCachedContext, getCachedConversation, setCachedConversation, getCachedPendingAction, setCachedPendingAction, invalidatePendingActionCache } from './cache-manager';

@@ -115,8 +115,12 @@ export async function POST(request: NextRequest) {
 
     // 8. PROCESAMIENTO CON TIMEOUT
     const processingPromise = (async () => {
-      // Obtener contexto de billetera
-      const context = await buildWalletContext(userId);
+      // Obtener contexto usando RAG (sistema único)
+      const lastMessage = validMessages[validMessages.length - 1];
+      const lastMessageContent = lastMessage?.content || '';
+      
+      // Construir contexto usando RAG basado en la query del usuario
+      const context = await buildWalletContext(userId, lastMessageContent);
 
       // Generar respuesta del asistente (con retry, fallback, etc internos)
       const response = await chatWithAssistant(userId, validMessages, context, sessionId);

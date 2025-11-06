@@ -1,13 +1,14 @@
 /**
  * Context Builder for AI Chat Assistant
  * 
- * Construye contexto optimizado de la billetera del usuario para el asistente IA.
- * Minimiza tokens incluyendo solo datos esenciales de los últimos 30 días.
+ * Construye contexto usando RAG (Retrieval-Augmented Generation).
+ * Solo recupera documentos relevantes según la query del usuario, reduciendo tokens significativamente.
  */
 
 import { supabase, createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { fromMinorUnits } from '@/lib/money';
 import { logger } from '@/lib/utils/logger';
+import { retrieveRelevantDocuments } from './rag/retriever';
 
 // Helper to get authenticated Supabase client
 // Uses service role client for server-side operations (API routes)
@@ -68,94 +69,112 @@ export interface WalletContext {
 }
 
 /**
- * Construye contexto completo de la billetera del usuario
- * Optimizado para minimizar tokens: solo datos esenciales de últimos 30 días
+ * Construye contexto usando RAG (solo documentos relevantes)
+ * Reduce tokens significativamente al recuperar solo documentos relevantes según la query
+ * 
+ * Patrón: RAG (Retrieval-Augmented Generation)
+ * Principio SOLID: Single Responsibility (S)
  */
-export async function buildWalletContext(userId: string): Promise<WalletContext> {
-  logger.info(`[buildWalletContext] Building context for user ${userId}`);
+export async function buildWalletContext(
+  userId: string,
+  userQuery: string
+): Promise<WalletContext> {
+  logger.info(`[buildWalletContext] Building RAG context for user ${userId}, query: "${userQuery.substring(0, 50)}..."`);
   const startTime = Date.now();
   
   try {
-    // Calcular fechas para últimos 30 días y mes actual
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    // Recuperar documentos relevantes usando RAG
+    const relevantDocs = await retrieveRelevantDocuments(
+      userId,
+      userQuery,
+      ['transaction', 'account', 'budget', 'goal'],
+      15 // top-k documentos
+    );
 
-    // Get authenticated Supabase client (service role on server, regular on client)
+    // Si no hay documentos relevantes, retornar contexto vacío
+    if (relevantDocs.length === 0) {
+      logger.warn(`[buildWalletContext] No relevant documents found for query`);
+      return {
+        accounts: { total: 0, summary: [], totalBalance: {} },
+        transactions: { recent: [], summary: { incomeThisMonth: 0, expensesThisMonth: 0, netThisMonth: 0, topCategories: [] } },
+        budgets: { active: [] },
+        goals: { active: [] },
+      };
+    }
+
+    // Agrupar documentos por tipo
+    const transactionIds = relevantDocs
+      .filter(d => d.documentType === 'transaction')
+      .map(d => d.documentId);
+    const accountIds = relevantDocs
+      .filter(d => d.documentType === 'account')
+      .map(d => d.documentId);
+    const budgetIds = relevantDocs
+      .filter(d => d.documentType === 'budget')
+      .map(d => d.documentId);
+    const goalIds = relevantDocs
+      .filter(d => d.documentType === 'goal')
+      .map(d => d.documentId);
+
     const client = getSupabaseClient();
 
-    // Obtener cuentas activas (usando service role client para bypass RLS)
-    logger.debug(`[buildWalletContext] Fetching accounts for user ${userId}`);
-    const { data: accounts, error: accountsError } = await client
-      .from('accounts')
-      .select('id, name, type, balance, currency_code')
-      .eq('user_id', userId)
-      .eq('active', true)
-      .order('created_at', { ascending: false });
-
-    if (accountsError) {
-      logger.error(`[buildWalletContext] Error fetching accounts:`, accountsError);
-    } else {
-      logger.info(`[buildWalletContext] Found ${accounts?.length || 0} active accounts for user ${userId}`);
-    }
-
-    // Obtener transacciones de últimos 30 días (filtrar por usuario a través de accounts)
-    logger.debug(`[buildWalletContext] Fetching transactions for user ${userId}`);
-    const { data: transactions, error: transactionsError } = await client
-      .from('transactions')
-      .select(`
-        id,
-        type,
-        amount_base_minor,
-        date,
-        description,
-        categories(name),
-        accounts!inner(user_id)
-      `)
-      .eq('accounts.user_id', userId)
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
-      .order('date', { ascending: false })
-      .limit(100); // Limitar para optimizar tokens
-
-    if (transactionsError) {
-      logger.error(`[buildWalletContext] Error fetching transactions:`, transactionsError);
-    } else {
-      logger.debug(`[buildWalletContext] Found ${transactions?.length || 0} transactions`);
-    }
-
-    // Obtener presupuestos del mes actual
-    logger.debug(`[buildWalletContext] Fetching budgets for month ${currentMonthYear}`);
-    const { data: budgets, error: budgetsError } = await client
-      .from('budgets')
-      .select(`
-        amount_base_minor,
-        spent_base_minor,
-        categories(name)
-      `)
-      .eq('month_year', currentMonthYear)
-      .eq('active', true);
-
-    if (budgetsError) {
-      logger.error(`[buildWalletContext] Error fetching budgets:`, budgetsError);
-    }
-
-    // Obtener metas activas
-    logger.debug(`[buildWalletContext] Fetching goals for user ${userId}`);
-    const { data: goals, error: goalsError } = await client
-      .from('goals')
-      .select('name, target_base_minor, current_base_minor, target_date, active')
-      .eq('active', true)
-      .eq('user_id', userId);
-
-    if (goalsError) {
-      logger.error(`[buildWalletContext] Error fetching goals:`, goalsError);
-    }
+    // Obtener datos completos de las entidades recuperadas
+    const [accountsData, transactionsData, budgetsData, goalsData] = await Promise.all([
+      // Cuentas
+      accountIds.length > 0
+        ? client
+            .from('accounts')
+            .select('id, name, type, balance, currency_code')
+            .in('id', accountIds)
+            .eq('user_id', userId)
+            .eq('active', true)
+        : Promise.resolve({ data: [], error: null }),
+      
+      // Transacciones
+      transactionIds.length > 0
+        ? client
+            .from('transactions')
+            .select(`
+              id,
+              type,
+              amount_base_minor,
+              date,
+              description,
+              categories(name),
+              accounts!inner(user_id)
+            `)
+            .in('id', transactionIds)
+            .eq('accounts.user_id', userId)
+        : Promise.resolve({ data: [], error: null }),
+      
+      // Presupuestos
+      budgetIds.length > 0
+        ? client
+            .from('budgets')
+            .select(`
+              id,
+              amount_base_minor,
+              spent_base_minor,
+              categories(name),
+              month_year
+            `)
+            .in('id', budgetIds)
+            .eq('active', true)
+        : Promise.resolve({ data: [], error: null }),
+      
+      // Metas
+      goalIds.length > 0
+        ? client
+            .from('goals')
+            .select('id, name, target_base_minor, current_base_minor, target_date, active')
+            .in('id', goalIds)
+            .eq('active', true)
+            .eq('user_id', userId)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
     // Procesar cuentas
-    const accountsData = (accounts || []).map((acc: any) => ({
+    const accounts = (accountsData.data || []).map((acc: any) => ({
       name: acc.name,
       type: acc.type,
       balance: fromMinorUnits(acc.balance, acc.currency_code),
@@ -164,51 +183,43 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
 
     // Calcular totales por moneda
     const totalBalanceByCurrency: Record<string, number> = {};
-    accountsData.forEach((acc) => {
+    accounts.forEach((acc) => {
       totalBalanceByCurrency[acc.currency] = (totalBalanceByCurrency[acc.currency] || 0) + acc.balance;
     });
 
-    // Log account summary for debugging
-    logger.info(`[buildWalletContext] Account summary: ${accountsData.length} accounts, totals:`, totalBalanceByCurrency);
+    // Procesar transacciones
+    const recentTxs = (transactionsData.data || []).map((tx: any) => ({
+      date: tx.date,
+      type: tx.type,
+      amount: fromMinorUnits(tx.amount_base_minor, 'USD'),
+      category: tx.categories?.name || 'Sin categoría',
+      description: tx.description ? tx.description.substring(0, 50) : undefined,
+    }));
 
-    // Defensive check: warn if we expected accounts but got none
-    if (accounts && accounts.length > 0 && accountsData.length === 0) {
-      logger.warn(`[buildWalletContext] WARNING: Found ${accounts.length} accounts in DB but processed 0. Check balance conversion.`);
-    }
-
-    // Procesar transacciones recientes (últimas 20 para contexto)
-    const recentTxs = (transactions || [])
-      .slice(0, 20)
-      .map((tx: any) => ({
-        date: tx.date,
-        type: tx.type,
-        amount: fromMinorUnits(tx.amount_base_minor, 'USD'), // Usando base currency
-        category: tx.categories?.name || 'Sin categoría',
-        description: tx.description ? tx.description.substring(0, 50) : undefined, // Truncar descripciones largas
-      }));
-
-    // Calcular estadísticas del mes actual
-    const currentMonthTxs = (transactions || []).filter((tx: any) => 
+    // Calcular estadísticas básicas de transacciones recuperadas
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthTxs = recentTxs.filter((tx: any) => 
       new Date(tx.date) >= currentMonthStart
     );
 
     const incomeThisMonth = currentMonthTxs
       .filter((tx: any) => tx.type === 'INCOME')
-      .reduce((sum: number, tx: any) => sum + fromMinorUnits(tx.amount_base_minor, 'USD'), 0);
+      .reduce((sum: number, tx: any) => sum + tx.amount, 0);
 
     const expensesThisMonth = currentMonthTxs
       .filter((tx: any) => tx.type === 'EXPENSE')
-      .reduce((sum: number, tx: any) => sum + fromMinorUnits(tx.amount_base_minor, 'USD'), 0);
+      .reduce((sum: number, tx: any) => sum + tx.amount, 0);
 
-    // Top categorías de gastos del mes
+    // Top categorías de gastos
     const categoryMap = new Map<string, { amount: number; count: number }>();
     currentMonthTxs
       .filter((tx: any) => tx.type === 'EXPENSE')
       .forEach((tx: any) => {
-        const catName = tx.categories?.name || 'Sin categoría';
+        const catName = tx.category || 'Sin categoría';
         const existing = categoryMap.get(catName) || { amount: 0, count: 0 };
         categoryMap.set(catName, {
-          amount: existing.amount + fromMinorUnits(tx.amount_base_minor, 'USD'),
+          amount: existing.amount + tx.amount,
           count: existing.count + 1,
         });
       });
@@ -216,10 +227,10 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
     const topCategories = Array.from(categoryMap.entries())
       .map(([category, data]) => ({ category, ...data }))
       .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5); // Top 5 categorías
+      .slice(0, 5);
 
     // Procesar presupuestos
-    const budgetsData = (budgets || []).map((budget: any) => {
+    const budgets = (budgetsData.data || []).map((budget: any) => {
       const budgetAmount = fromMinorUnits(budget.amount_base_minor || 0, 'USD');
       const spentAmount = fromMinorUnits(budget.spent_base_minor || 0, 'USD');
       const remaining = budgetAmount - spentAmount;
@@ -235,7 +246,7 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
     });
 
     // Procesar metas
-    const goalsData = (goals || []).map((goal: any) => {
+    const goals = (goalsData.data || []).map((goal: any) => {
       const target = fromMinorUnits(goal.target_base_minor || 0, 'USD');
       const current = fromMinorUnits(goal.current_base_minor || 0, 'USD');
       const progress = target > 0 ? (current / target) * 100 : 0;
@@ -249,10 +260,10 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
       };
     });
 
-    const context = {
+    const context: WalletContext = {
       accounts: {
-        total: accountsData.length,
-        summary: accountsData,
+        total: accounts.length,
+        summary: accounts,
         totalBalance: totalBalanceByCurrency,
       },
       transactions: {
@@ -265,27 +276,27 @@ export async function buildWalletContext(userId: string): Promise<WalletContext>
         },
       },
       budgets: {
-        active: budgetsData,
+        active: budgets,
       },
       goals: {
-        active: goalsData,
+        active: goals,
       },
     };
 
     const duration = Date.now() - startTime;
-    logger.info(`[buildWalletContext] Context built successfully in ${duration}ms for user ${userId}:`, {
+    logger.info(`[buildWalletContext] RAG context built successfully in ${duration}ms for user ${userId}:`, {
       accountsCount: context.accounts.total,
       transactionsCount: context.transactions.recent.length,
       budgetsCount: context.budgets.active.length,
       goalsCount: context.goals.active.length,
-      totalBalance: context.accounts.totalBalance,
+      relevantDocsCount: relevantDocs.length,
     });
 
     return context;
   } catch (error) {
-    // En caso de error, retornar contexto vacío en lugar de fallar
+    // En caso de error, retornar contexto vacío
     const duration = Date.now() - startTime;
-    logger.error(`[buildWalletContext] Error building wallet context after ${duration}ms for user ${userId}:`, error);
+    logger.error(`[buildWalletContext] Error building RAG context after ${duration}ms for user ${userId}:`, error);
     return {
       accounts: { total: 0, summary: [], totalBalance: {} },
       transactions: { recent: [], summary: { incomeThisMonth: 0, expensesThisMonth: 0, netThisMonth: 0, topCategories: [] } },

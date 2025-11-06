@@ -5,7 +5,7 @@
  * Genera alertas y recomendaciones basadas en patrones detectados.
  */
 
-import { WalletContext } from './context-builder';
+import { WalletContext } from '@/lib/ai/context-builder';
 import { logger } from '@/lib/utils/logger';
 
 export interface ProactiveSuggestion {

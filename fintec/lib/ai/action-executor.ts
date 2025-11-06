@@ -5,7 +5,7 @@
  * Mapea nombres de cuentas/categorías a IDs y maneja conversiones de moneda.
  */
 
-import { WalletContext } from './context-builder';
+import { WalletContext } from '@/lib/ai/context-builder';
 import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { logger } from '@/lib/utils/logger';
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';

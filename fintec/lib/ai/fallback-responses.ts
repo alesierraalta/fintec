@@ -6,7 +6,7 @@
  * Integra datos reales del contexto de billetera.
  */
 
-import { WalletContext } from './context-builder';
+import { WalletContext } from '@/lib/ai/context-builder';
 import { logger } from '@/lib/utils/logger';
 
 interface IntentionMatch {
