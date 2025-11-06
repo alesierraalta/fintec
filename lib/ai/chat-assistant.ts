@@ -43,6 +43,66 @@ export interface ChatResponse {
 }
 
 /**
+ * Extrae el contexto principal de una conversación
+ * Identifica el tema principal y el tipo de última consulta
+ */
+function extractConversationContext(messages: ChatMessage[]): {
+  mainTopic: string | null;
+  lastQueryType: string | null;
+} {
+  if (messages.length < 2) {
+    return { mainTopic: null, lastQueryType: null };
+  }
+
+  // Analizar últimos mensajes para identificar el tema principal
+  const recentMessages = messages.slice(-6); // Últimos 6 mensajes
+  const allText = recentMessages.map(m => m.content).join(' ').toLowerCase();
+
+  // Detectar temas principales
+  if (/gastos?|expenses?|transacciones?\s+de\s+gastos?/i.test(allText)) {
+    return { mainTopic: 'gastos', lastQueryType: 'QUERY_TRANSACTIONS' };
+  }
+  if (/ingresos?|income|transacciones?\s+de\s+ingresos?/i.test(allText)) {
+    return { mainTopic: 'ingresos', lastQueryType: 'QUERY_TRANSACTIONS' };
+  }
+  if (/transacciones?|transactions?/i.test(allText)) {
+    return { mainTopic: 'transacciones', lastQueryType: 'QUERY_TRANSACTIONS' };
+  }
+  if (/cuentas?|accounts?/i.test(allText)) {
+    return { mainTopic: 'cuentas', lastQueryType: 'QUERY_ACCOUNTS' };
+  }
+  if (/presupuestos?|budgets?/i.test(allText)) {
+    return { mainTopic: 'presupuestos', lastQueryType: 'QUERY_BUDGETS' };
+  }
+  if (/metas?|goals?|objetivos?/i.test(allText)) {
+    return { mainTopic: 'metas', lastQueryType: 'QUERY_GOALS' };
+  }
+  if (/tasa|tasas|cambio|exchange/i.test(allText)) {
+    return { mainTopic: 'tasas de cambio', lastQueryType: 'QUERY_RATES' };
+  }
+
+  return { mainTopic: null, lastQueryType: null };
+}
+
+/**
+ * Verifica si un mensaje tiene keywords explícitos de tema
+ */
+function hasExplicitTopicKeywords(message: string): boolean {
+  const topicKeywords = [
+    /gastos?|expenses?/i,
+    /ingresos?|income/i,
+    /transacciones?|transactions?/i,
+    /cuentas?|accounts?/i,
+    /presupuestos?|budgets?/i,
+    /metas?|goals?|objetivos?/i,
+    /tasa|tasas|cambio|exchange/i,
+    /categorías?|categorias?|categories?/i,
+  ];
+  
+  return topicKeywords.some(regex => regex.test(message));
+}
+
+/**
  * Genera respuesta del asistente IA con contexto de billetera
  * Incluye retry automático, timeout, fallback extractivo, function calling y procesamiento de confirmaciones
  */
@@ -122,8 +182,31 @@ export async function chatWithAssistant(
       await setCachedContext(userId, context);
     }
 
+    // Recuperar historial de conversación de Redis si existe sessionId
+    let fullConversationHistory: ChatMessage[] = [...messages];
+    if (sessionId) {
+      const cachedConversation = await getCachedConversation(userId, sessionId);
+      if (cachedConversation && cachedConversation.length > 0) {
+        collectLog('info', `[chatWithAssistant] Retrieved ${cachedConversation.length} messages from Redis cache`);
+        // Combinar historial de Redis con mensajes actuales
+        // Evitar duplicados: si el último mensaje del historial es igual al primero de los mensajes actuales, no duplicar
+        const lastCachedMessage = cachedConversation[cachedConversation.length - 1];
+        const firstCurrentMessage = messages[0];
+        
+        if (lastCachedMessage?.content === firstCurrentMessage?.content && 
+            lastCachedMessage?.role === firstCurrentMessage?.role) {
+          // Ya está en el historial, usar historial completo + mensajes nuevos
+          fullConversationHistory = [...cachedConversation, ...messages.slice(1)];
+        } else {
+          // Combinar historial completo
+          fullConversationHistory = [...cachedConversation, ...messages];
+        }
+        collectLog('debug', `[chatWithAssistant] Combined conversation: ${cachedConversation.length} cached + ${messages.length} current = ${fullConversationHistory.length} total`);
+      }
+    }
+
     // Procesar confirmaciones/rechazos de acciones pendientes
-    const lastMessage = messages[messages.length - 1];
+    const lastMessage = fullConversationHistory[fullConversationHistory.length - 1];
     const lastMessageContent = lastMessage?.content || '';
     const pendingAction = await getCachedPendingAction(userId);
     
@@ -160,8 +243,18 @@ export async function chatWithAssistant(
     // Generar sugerencias proactivas
     const proactiveSuggestions = generateProactivePrompt(cachedContext);
 
+    // Analizar contexto de conversación antes de generar el prompt
+    const conversationContext = extractConversationContext(fullConversationHistory);
+    
+    // Enriquecer el system prompt con contexto de conversación si existe
+    let contextNoteForPrompt = '';
+    if (conversationContext.mainTopic) {
+      contextNoteForPrompt = `\n\nCONTEXTO DE LA CONVERSACIÓN ACTUAL:\nEl usuario está preguntando sobre ${conversationContext.mainTopic}. Si una consulta es ambigua o no menciona explícitamente el tema, refiérete al contexto de la conversación anterior. Por ejemplo, si el usuario pregunta "cual fue el mayor?" después de hablar de gastos, se refiere al mayor gasto.`;
+    }
+
     // Generar system prompt usando PromptManager (con caché)
-    const systemPrompt = await PromptManager.generateChatSystemPrompt(cachedContext, proactiveSuggestions, userId);
+    const baseSystemPrompt = await PromptManager.generateChatSystemPrompt(cachedContext, proactiveSuggestions, userId);
+    const systemPrompt = baseSystemPrompt + contextNoteForPrompt;
 
     logger.debug(`[chatWithAssistant] System prompt generated using PromptManager with ${cachedContext.accounts.total} accounts for user ${userId}`);
 
@@ -231,18 +324,13 @@ export async function chatWithAssistant(
     }
 
     // Detectar si es una pregunta de seguimiento o consulta relacionada con contexto anterior
-    // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", etc.
+    // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", "en", etc.
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
-    const isContextualFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas)|de\s+(meses|mes|años|año|días|día)\s+anteriores?)/i.test(lastMessageContent.trim());
+    const isContextualFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares))/i.test(lastMessageContent.trim());
     
-    // Si es una consulta de seguimiento contextual, intentar recuperar conversación anterior
-    if (isContextualFollowUp && sessionId) {
-      collectLog('debug', `[chatWithAssistant] Detected contextual follow-up: "${lastMessageContent}"`);
-      const cachedConversation = await getCachedConversation(userId, sessionId);
-      if (cachedConversation && cachedConversation.length > 0) {
-        collectLog('info', `[chatWithAssistant] Retrieved ${cachedConversation.length} messages from conversation cache for contextual follow-up`);
-        // Los mensajes ya incluyen el historial completo, así que el LLM tendrá contexto
-      }
+    // Si es una consulta de seguimiento contextual, el historial ya está en fullConversationHistory
+    if (isContextualFollowUp) {
+      collectLog('info', `[chatWithAssistant] Detected contextual follow-up: "${lastMessageContent}" - using full conversation history (${fullConversationHistory.length} messages)`);
     }
     
     if (isFollowUpQuestion) {
@@ -268,8 +356,21 @@ export async function chatWithAssistant(
       // Si no es sobre tasas o no hay última consulta, continuar con detección normal
     }
 
-    // Detectar intención del último mensaje
-    const intention = detectIntention(lastMessageContent);
+    // conversationContext ya fue calculado arriba antes de generar el system prompt
+    // Reutilizarlo aquí para enriquecer la query si es ambigua
+    if (conversationContext.mainTopic) {
+      collectLog('info', `[chatWithAssistant] Conversation context: mainTopic=${conversationContext.mainTopic}, lastQueryType=${conversationContext.lastQueryType || 'none'}`);
+    }
+
+    // Detectar intención del último mensaje, pero enriquecer con contexto si la query es ambigua
+    let enrichedQuery = lastMessageContent;
+    if (conversationContext.mainTopic && !hasExplicitTopicKeywords(lastMessageContent)) {
+      // Si la query no tiene keywords explícitos pero hay contexto, enriquecer la query
+      enrichedQuery = `${conversationContext.mainTopic}: ${lastMessageContent}`;
+      collectLog('debug', `[chatWithAssistant] Enriched query with context: "${enrichedQuery}"`);
+    }
+    
+    const intention = detectIntention(enrichedQuery);
     collectLog('info', `[chatWithAssistant] Detected intention: type=${intention.type}, actionType=${intention.actionType || 'UNKNOWN'}, confidence=${intention.confidence} for user ${userId}`);
 
     // Determinar si es una query simple o compleja
@@ -290,16 +391,22 @@ export async function chatWithAssistant(
     if (isSimpleQuery) {
       const messageContent = lastMessage?.content || '';
       
+      // Detectar keywords en el mensaje actual Y en el contexto de la conversación
+      // Si hay contexto previo, usar ese contexto para inferir la intención
+      const contextAwareMessage = conversationContext.mainTopic && !hasExplicitTopicKeywords(messageContent)
+        ? `${conversationContext.mainTopic} ${messageContent}`
+        : messageContent;
+      
       // Siempre detectar keywords presentes en el mensaje (independientemente de hasMultipleQueries)
       // Esto asegura que ejecutemos todas las consultas detectadas, no solo intention.actionType
-      const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|bolivares|tipo de cambio|tasa\s+de\s+la\s+moneda|tasa\s+de\s+moneda/i.test(messageContent);
-      const hasAccountsQuery = /cuentas?|accounts?/i.test(messageContent);
-      const hasTransactionsQuery = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income|pago|pagos|payments?|cobro|cobros/i.test(messageContent);
-      const hasBudgetsQuery = /presupuestos?|budgets?/i.test(messageContent);
-      const hasGoalsQuery = /metas?|goals?|objetivos?|targets?/i.test(messageContent);
-      const hasCategoriesQuery = /categorías?|categorias?|categories?/i.test(messageContent);
-      const hasRecurringQuery = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(messageContent);
-      const hasBalanceQuery = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(messageContent);
+      const hasRatesQuery = /tasa|tasas|cambio|exchange|bcv|binance|dólar|dolar|bolívar|bolivar|bolivares|tipo de cambio|tasa\s+de\s+la\s+moneda|tasa\s+de\s+moneda/i.test(contextAwareMessage);
+      const hasAccountsQuery = /cuentas?|accounts?/i.test(contextAwareMessage);
+      const hasTransactionsQuery = /transacciones?|transactions?|gastos?|expenses?|ingresos?|income|pago|pagos|payments?|cobro|cobros/i.test(contextAwareMessage);
+      const hasBudgetsQuery = /presupuestos?|budgets?/i.test(contextAwareMessage);
+      const hasGoalsQuery = /metas?|goals?|objetivos?|targets?/i.test(contextAwareMessage);
+      const hasCategoriesQuery = /categorías?|categorias?|categories?/i.test(contextAwareMessage);
+      const hasRecurringQuery = /recurrentes?|recurring|automáticas?|automaticas?|periódicas?|periodicas?|programadas?/i.test(contextAwareMessage);
+      const hasBalanceQuery = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(contextAwareMessage);
       
       // Contar cuántas consultas se detectaron
       const detectedQueries = [
@@ -557,9 +664,25 @@ No agregues información que no esté en los datos proporcionados. Solo reformat
         const dataMessage = queryResult.message;
         
         // Usar gpt-5-nano para formatear/mejorar la respuesta
+        // Incluir contexto de conversación si existe
+        const contextNote = conversationContext.mainTopic 
+          ? `\n\nNota: El usuario está preguntando sobre ${conversationContext.mainTopic}. Si la consulta es ambigua, refiérete al contexto de la conversación anterior.`
+          : '';
+        
         const systemPromptForSimple = `Eres un asistente financiero. El usuario ha hecho una consulta simple y ya tienes los datos. 
 Presenta la información de forma clara, concisa y amigable. No agregues información que no esté en los datos proporcionados.
-Solo reformatea y presenta los datos de manera profesional.`;
+Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
+
+        // Incluir historial relevante en el prompt para que el LLM tenga contexto
+        const conversationContextForPrompt = fullConversationHistory
+          .filter(m => m.role !== 'system')
+          .slice(-4) // Últimos 4 mensajes para contexto
+          .map(m => `${m.role === 'user' ? 'Usuario' : 'Asistente'}: ${m.content}`)
+          .join('\n');
+        
+        const contextSection = conversationContextForPrompt 
+          ? `\n\nContexto de la conversación:\n${conversationContextForPrompt}`
+          : '';
 
         const openAIMessagesSimple: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
           {
@@ -568,7 +691,7 @@ Solo reformatea y presenta los datos de manera profesional.`;
           },
           {
             role: 'user',
-            content: `Consulta: ${lastMessage?.content || ''}\n\nDatos obtenidos:\n${dataMessage}\n\nPresenta esta información de forma clara y profesional.`,
+            content: `Consulta: ${lastMessage?.content || ''}${contextSection}\n\nDatos obtenidos:\n${dataMessage}\n\nPresenta esta información de forma clara y profesional.`,
           },
         ];
 
@@ -679,9 +802,11 @@ Solo reformatea y presenta los datos de manera profesional.`;
       },
     ];
 
-    // Agregar historial de conversación (excluir system messages del historial)
-    const conversationHistory = messages.filter(m => m.role !== 'system');
+    // Agregar historial de conversación completo (excluir system messages del historial)
+    // Usar fullConversationHistory que incluye el historial de Redis
+    const conversationHistory = fullConversationHistory.filter(m => m.role !== 'system');
     openAIMessages.push(...conversationHistory);
+    collectLog('debug', `[chatWithAssistant] Added ${conversationHistory.length} messages to OpenAI request (from full conversation history)`);
 
     // Determinar qué modelo usar - complejo = gpt-5-mini
     const modelToUse = getChatModel(true); // gpt-5-mini para queries complejas
@@ -810,11 +935,13 @@ Solo reformatea y presenta los datos de manera profesional.`;
     }
 
     // Guardar conversación en caché (siempre, incluso si sessionId fue generado)
+    // Usar fullConversationHistory + respuesta del asistente
     // Limitar a últimos 20 mensajes para evitar payloads muy grandes
-    const updatedMessages: ChatMessage[] = [...messages, { role: 'assistant' as const, content: response.message }];
+    const updatedMessages: ChatMessage[] = [...fullConversationHistory, { role: 'assistant' as const, content: response.message }];
     const messagesToCache = updatedMessages.slice(-20); // Últimos 20 mensajes
     if (sessionId) {
       await setCachedConversation(userId, sessionId, messagesToCache);
+      collectLog('debug', `[chatWithAssistant] Saved ${messagesToCache.length} messages to Redis cache`);
     }
 
     // Asegurar que siempre se incluyan logs

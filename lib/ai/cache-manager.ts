@@ -100,7 +100,7 @@ export async function setCachedContext(userId: string, context: WalletContext): 
 }
 
 /**
- * Obtiene conversación cacheada (últimos 10 mensajes)
+ * Obtiene conversación cacheada (últimos 20 mensajes)
  */
 export async function getCachedConversation(userId: string, sessionId: string): Promise<ChatMessage[] | null> {
   const key = `cache:conversation:${userId}:${sessionId}`;
@@ -131,15 +131,15 @@ export async function getCachedConversation(userId: string, sessionId: string): 
 }
 
 /**
- * Guarda conversación en caché (últimos 10 mensajes)
+ * Guarda conversación en caché (últimos 20 mensajes)
  */
 export async function setCachedConversation(
   userId: string,
   sessionId: string,
   messages: ChatMessage[]
 ): Promise<void> {
-  // Solo guardar últimos 10 mensajes para no usar demasiada memoria
-  const recentMessages = messages.slice(-10);
+  // Solo guardar últimos 20 mensajes para mantener contexto completo pero optimizar memoria
+  const recentMessages = messages.slice(-20);
   const key = `cache:conversation:${userId}:${sessionId}`;
 
   if (isRedisConnected()) {
