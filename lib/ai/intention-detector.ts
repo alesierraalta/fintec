@@ -536,6 +536,10 @@ function extractQueryParameters(message: string): Record<string, any> {
   const category = extractCategory(message, ['expense', 'income']);
   if (category) {
     parameters.category = category;
+    // Logging para debugging (solo en desarrollo)
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`[extractQueryParameters] Extracted category: ${category} from message: "${message.substring(0, 50)}"`);
+    }
   }
 
   // Extraer tipo de transacción
@@ -850,7 +854,14 @@ function extractDescription(message: string, amount: { value: number; currency?:
 }
 
 /**
- * Extrae categoría del mensaje
+ * Extrae categoría del mensaje usando word boundaries para evitar falsos positivos
+ * 
+ * Patrón: Word boundary matching
+ * Principio: Precisión sobre permisividad
+ * 
+ * @param message - Mensaje del usuario
+ * @param allowedKinds - Tipos permitidos (no usado actualmente, mantener para compatibilidad)
+ * @returns Nombre de categoría o null si no se encuentra
  */
 function extractCategory(message: string, allowedKinds: string[]): string | null {
   // Categorías comunes en español
@@ -881,8 +892,16 @@ function extractCategory(message: string, allowedKinds: string[]): string | null
   };
   
   const lowerMessage = message.toLowerCase();
+  
+  // Usar regex con word boundaries para match exacto de palabras
+  // Esto evita que "transacciones" haga match con "transporte"
   for (const [keyword, category] of Object.entries(categoryMap)) {
-    if (lowerMessage.includes(keyword)) {
+    // \b asegura que sea una palabra completa, no un substring
+    // Ejemplo: \btransporte\b NO hace match con "transacciones"
+    // Escapar caracteres especiales de regex para evitar errores
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'i');
+    if (regex.test(lowerMessage)) {
       return category;
     }
   }
