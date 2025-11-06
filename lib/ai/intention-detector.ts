@@ -357,7 +357,7 @@ function detectActionIntention(lowerMessage: string, originalMessage: string): D
  * Extrae límite numérico del mensaje (ej: "5", "últimas 5", "primeros 10", "solo 5")
  * Mejorado para capturar más variantes de frases en español e inglés
  */
-function extractLimit(message: string): number | null {
+export function extractLimit(message: string): number | null {
   const lowerMessage = message.toLowerCase();
   
   // Patrones mejorados para capturar límites en diferentes contextos
@@ -481,7 +481,7 @@ export function detectCorrection(message: string): DetectedCorrection {
 /**
  * Extrae parámetros de consulta del mensaje
  */
-function extractQueryParameters(message: string): Record<string, any> {
+export function extractQueryParameters(message: string): Record<string, any> {
   const parameters: Record<string, any> = {};
   const lowerMessage = message.toLowerCase();
 
@@ -589,6 +589,11 @@ function extractQueryParameters(message: string): Record<string, any> {
     parameters.amountMax = parseFloat(amountBetweenMatch[2]);
   }
 
+  // Logging para debugging (solo en desarrollo)
+  if (process.env.NODE_ENV === 'development' && Object.keys(parameters).length > 0) {
+    logger.debug(`[extractQueryParameters] Extracted parameters from message: "${message.substring(0, 100)}"`, parameters);
+  }
+
   return parameters;
 }
 
@@ -626,12 +631,23 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     Object.assign(parameters, queryParams);
   }
   
+  // Detectar filtros específicos para aumentar confianza
+  const hasDateFilter = !!(queryParams.dateFrom || queryParams.dateTo || queryParams.dateRange);
+  const hasCategoryFilter = !!queryParams.category;
+  const hasTypeFilter = !!(queryParams.transactionType || queryParams.type);
+  const hasCurrencyFilter = !!queryParams.currency;
+  const hasLimitFilter = !!queryParams.limit;
+  
   // Priorizar consultas de lista cuando hay palabras de lista y el tipo de dato
   // Boost confidence for listing patterns
   // Early detection for explicit sorting queries to boost confidence
   if (hasSortingQuery && hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.95; // High confidence for explicit sorting queries
+  } else if (hasTransactions && (hasDateFilter || hasCategoryFilter || hasTypeFilter || hasCurrencyFilter || hasLimitFilter)) {
+    // Si hay transacciones con filtros específicos, alta confianza
+    actionType = 'QUERY_TRANSACTIONS';
+    confidence = 0.95; // High confidence for queries with specific filters
   } else if (hasListingKeywords && hasAccounts) {
     actionType = 'QUERY_ACCOUNTS';
     confidence = 0.98; // Muy alta confianza para listas de cuentas
@@ -811,7 +827,7 @@ function extractDate(message: string): string | null {
 /**
  * Extrae rango de fechas del mensaje
  */
-function extractDateRange(message: string): { from?: string; to?: string } | null {
+export function extractDateRange(message: string): { from?: string; to?: string } | null {
   const lowerMessage = message.toLowerCase();
   const today = new Date();
   const currentMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -824,41 +840,68 @@ function extractDateRange(message: string): { from?: string; to?: string } | nul
   const lastWeekEnd = new Date(today);
   lastWeekEnd.setDate(today.getDate() - today.getDay() - 1);
 
-  if (lowerMessage.includes('este mes') || lowerMessage.includes('this month')) {
+  // Este mes - más variaciones incluyendo "de este mes", "del mes", etc.
+  if (lowerMessage.includes('este mes') || lowerMessage.includes('this month') ||
+      lowerMessage.includes('el mes actual') || lowerMessage.includes('mes corriente') ||
+      lowerMessage.includes('mes actual')) {
     return { from: currentMonthStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   }
   // Agregar detección de "del mes" como sinónimo de "este mes" (pero no "del mes pasado")
-  if ((lowerMessage.includes('del mes') || /\bdel\s+mes\b/i.test(message)) && !lowerMessage.includes('mes pasado')) {
+  if ((lowerMessage.includes('del mes') || /\bdel\s+mes\b/i.test(message) || 
+       lowerMessage.includes('de este mes') || lowerMessage.includes('de el mes')) && 
+      !lowerMessage.includes('mes pasado') && !lowerMessage.includes('mes anterior')) {
     return { from: currentMonthStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   }
-  if (lowerMessage.includes('mes pasado') || lowerMessage.includes('last month')) {
+  // Mes pasado - más variaciones
+  if (lowerMessage.includes('mes pasado') || lowerMessage.includes('last month') ||
+      lowerMessage.includes('mes anterior') || lowerMessage.includes('el mes pasado') ||
+      lowerMessage.includes('mes previo') || lowerMessage.includes('del mes pasado') ||
+      lowerMessage.includes('de mes pasado')) {
     return { from: lastMonthStart.toISOString().split('T')[0], to: lastMonthEnd.toISOString().split('T')[0] };
   }
-  if (lowerMessage.includes('esta semana') || lowerMessage.includes('this week')) {
+  // Esta semana - más variaciones
+  if (lowerMessage.includes('esta semana') || lowerMessage.includes('this week') ||
+      lowerMessage.includes('semana actual') || lowerMessage.includes('la semana actual') ||
+      lowerMessage.includes('de esta semana') || lowerMessage.includes('de la semana')) {
     return { from: currentWeekStart.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   }
-  if (lowerMessage.includes('semana pasada') || lowerMessage.includes('last week')) {
+  // Semana pasada - más variaciones
+  if (lowerMessage.includes('semana pasada') || lowerMessage.includes('last week') ||
+      lowerMessage.includes('semana anterior') || lowerMessage.includes('la semana pasada') ||
+      lowerMessage.includes('de la semana pasada') || lowerMessage.includes('de semana pasada')) {
     return { from: lastWeekStart.toISOString().split('T')[0], to: lastWeekEnd.toISOString().split('T')[0] };
   }
 
-  // "hace X días/semanas/meses"
-  const agoMatch = lowerMessage.match(/hace\s+(\d+)\s+(días?|semanas?|meses?)/);
+  // "hace X días/semanas/meses" o "últimos X días/semanas/meses"
+  const agoMatch = lowerMessage.match(/(?:hace|últimos?|ultimos?|last|de|durante)\s+(\d+)\s+(días?|days?|semanas?|weeks?|meses?|months?)/);
   if (agoMatch) {
     const value = parseInt(agoMatch[1]);
     const unit = agoMatch[2];
     const fromDate = new Date();
-    if (unit.includes('día')) fromDate.setDate(fromDate.getDate() - value);
-    if (unit.includes('semana')) fromDate.setDate(fromDate.getDate() - value * 7);
-    if (unit.includes('mes')) fromDate.setMonth(fromDate.getMonth() - value);
+    if (unit.includes('día') || unit.includes('day')) fromDate.setDate(fromDate.getDate() - value);
+    if (unit.includes('semana') || unit.includes('week')) fromDate.setDate(fromDate.getDate() - value * 7);
+    if (unit.includes('mes') || unit.includes('month')) fromDate.setMonth(fromDate.getMonth() - value);
     return { from: fromDate.toISOString().split('T')[0], to: today.toISOString().split('T')[0] };
   }
 
-  // "desde X hasta Y"
-  const rangeMatch = message.match(/desde\s+(.+?)\s+hasta\s+(.+)/i);
+  // "desde X hasta Y" - mejorado para incluir "al" y más variaciones
+  const rangeMatch = message.match(/(?:desde|from)\s+(.+?)\s+(?:hasta|to|until|al)\s+(.+?)(?:\.|$|,)/i);
   if (rangeMatch) {
     const fromDate = extractDate(rangeMatch[1]);
     const toDate = extractDate(rangeMatch[2]);
     if (fromDate && toDate) return { from: fromDate, to: toDate };
+  }
+
+  // Hoy, ayer
+  if (lowerMessage.includes('hoy') || lowerMessage.includes('today')) {
+    const todayStr = today.toISOString().split('T')[0];
+    return { from: todayStr, to: todayStr };
+  }
+  if (lowerMessage.includes('ayer') || lowerMessage.includes('yesterday')) {
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+    return { from: yesterdayStr, to: yesterdayStr };
   }
 
   return null;
@@ -903,13 +946,17 @@ function extractDescription(message: string, amount: { value: number; currency?:
  * @param allowedKinds - Tipos permitidos (no usado actualmente, mantener para compatibilidad)
  * @returns Nombre de categoría o null si no se encuentra
  */
-function extractCategory(message: string, allowedKinds: string[]): string | null {
-  // Categorías comunes en español
+export function extractCategory(message: string, allowedKinds: string[]): string | null {
+  // Categorías comunes en español con más sinónimos
   const categoryMap: Record<string, string> = {
     'comida': 'Comida',
     'food': 'Comida',
     'restaurante': 'Comida',
+    'restaurantes': 'Comida',
     'supermercado': 'Comida',
+    'supermercados': 'Comida',
+    'alimentación': 'Comida',
+    'alimentacion': 'Comida',
     'transporte': 'Transporte',
     'transport': 'Transporte',
     'gasolina': 'Transporte',
@@ -918,14 +965,29 @@ function extractCategory(message: string, allowedKinds: string[]): string | null
     'taxi': 'Transporte',
     'compras': 'Compras',
     'shopping': 'Compras',
+    'compra': 'Compras',
     'entretenimiento': 'Entretenimiento',
     'entertainment': 'Entretenimiento',
+    'cine': 'Entretenimiento',
+    'películas': 'Entretenimiento',
+    'peliculas': 'Entretenimiento',
     'salud': 'Salud',
     'health': 'Salud',
+    'farmacia': 'Salud',
+    'doctor': 'Salud',
+    'médico': 'Salud',
+    'medico': 'Salud',
     'hogar': 'Hogar',
     'home': 'Hogar',
+    'casa': 'Hogar',
+    'luz': 'Hogar',
+    'agua': 'Hogar',
+    'servicios': 'Hogar',
+    'utilities': 'Hogar',
     'educación': 'Educación',
     'education': 'Educación',
+    'escuela': 'Educación',
+    'universidad': 'Educación',
     'salario': 'Salario',
     'salary': 'Salario',
     'sueldo': 'Salario',
@@ -933,15 +995,22 @@ function extractCategory(message: string, allowedKinds: string[]): string | null
   
   const lowerMessage = message.toLowerCase();
   
-  // Usar regex con word boundaries para match exacto de palabras
-  // Esto evita que "transacciones" haga match con "transporte"
+  // Primero intentar con word boundaries (más preciso)
   for (const [keyword, category] of Object.entries(categoryMap)) {
-    // \b asegura que sea una palabra completa, no un substring
-    // Ejemplo: \btransporte\b NO hace match con "transacciones"
-    // Escapar caracteres especiales de regex para evitar errores
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'i');
     if (regex.test(lowerMessage)) {
+      return category;
+    }
+  }
+  
+  // Si no se encuentra, intentar con patrones como "de comida", "de transporte", etc.
+  // Esto es útil para follow-ups como "y las de comida"
+  for (const [keyword, category] of Object.entries(categoryMap)) {
+    const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Patrón: "de X" o "del X" o "de la X"
+    const patternRegex = new RegExp(`(?:de|del|de la)\\s+${escapedKeyword}\\b`, 'i');
+    if (patternRegex.test(lowerMessage)) {
       return category;
     }
   }

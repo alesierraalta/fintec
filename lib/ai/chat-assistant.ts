@@ -18,7 +18,7 @@ import { getFallbackResponse } from './fallback-responses';
 import { getCachedContext, setCachedContext, getCachedConversation, setCachedConversation, getCachedPendingAction, setCachedPendingAction, invalidatePendingActionCache, getLastCachedQuery, setCachedQueryHistory, QueryHistoryEntry } from './cache-manager';
 import { AI_ACTION_TOOLS } from './action-tools';
 import { generateProactivePrompt } from './proactive-advisor';
-import { detectIntention, ActionType, detectCorrection, extractCurrency } from './intention-detector';
+import { detectIntention, ActionType, detectCorrection, extractCurrency, extractDateRange, extractCategory, extractLimit, extractQueryParameters } from './intention-detector';
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
 import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
@@ -326,11 +326,66 @@ export async function chatWithAssistant(
     // Detectar si es una pregunta de seguimiento o consulta relacionada con contexto anterior
     // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", "en", etc.
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
+    // Funciones de detección de follow-ups por tipo de filtro
+    /**
+     * Detecta follow-ups de fecha: "y las de este mes", "y las de la semana pasada", etc.
+     */
+    function isDateFollowUp(message: string): boolean {
+      const trimmed = message.trim();
+      return /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:de|del|de la)\s+(?:este|el)\s+(?:mes|semana|año)/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:de|del|de la)\s+(?:mes|semana|año)\s+(?:pasado|pasada|anterior|anteriores)/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:de|del|de la)\s+(?:últimos?|ultimos?|last)\s+\d+\s+(?:días?|days?|semanas?|weeks?|meses?|months?)/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:de|del|de la)\s+(?:hoy|today|ayer|yesterday|mañana|tomorrow)/i.test(trimmed);
+    }
+
+    /**
+     * Detecta follow-ups de categoría: "y solo comida", "y las de transporte", etc.
+     */
+    function isCategoryFollowUp(message: string): boolean {
+      const trimmed = message.trim();
+      return /^(?:y|también|además)\s+(?:solo|only|just)\s+(?:comida|food|transporte|transport|compras|shopping|entretenimiento|entertainment|salud|health|hogar|home|educación|education|salario|salary)/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:de|del|de la)\s+(?:comida|food|transporte|transport|compras|shopping|entretenimiento|entertainment|salud|health|hogar|home|educación|education|salario|salary)/i.test(trimmed);
+    }
+
+    /**
+     * Detecta follow-ups de tipo: "y solo gastos", "y solo ingresos", etc.
+     */
+    function isTypeFollowUp(message: string): boolean {
+      const trimmed = message.trim();
+      return /^(?:y|también|además)\s+(?:solo|only|just)\s+(?:gastos?|expenses?|ingresos?|income)/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:solo|only|just)?\s*(?:gastos?|expenses?|ingresos?|income)/i.test(trimmed);
+    }
+
+    /**
+     * Detecta follow-ups de límite: "y solo las 5", "y dame 10", etc.
+     */
+    function isLimitFollowUp(message: string): boolean {
+      const trimmed = message.trim();
+      return /^(?:y|también|además)\s+(?:solo|only|just)\s+(?:las|los|la|el)?\s*\d+/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:dame|muestra|muéstrame|give|show)\s+\d+/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el)?\s*(?:primeras?|primeros?|últimas?|ultimas?|first|last)\s+\d+/i.test(trimmed);
+    }
+
+    /**
+     * Detecta follow-ups de rango de montos: "y las mayores a 100", etc.
+     */
+    function isAmountRangeFollowUp(message: string): boolean {
+      const trimmed = message.trim();
+      return /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:mayores?|menores?|más|menos)\s+(?:a|de|que)\s+\d+/i.test(trimmed) ||
+        /^(?:y|también|además)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)?\s*(?:entre)\s+\d+\s+y\s+\d+/i.test(trimmed);
+    }
+
     // Detectar follow-ups contextuales incluyendo consultas de moneda y ordenamiento
-    const isBasicFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas|solo|only|just)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares))/i.test(lastMessageContent.trim());
+    // Expandido para incluir más variaciones de lenguaje natural
+    const isBasicFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas|solo|only|just|las|los|la|el|mis|tus|sus|dame|muestra|muéstrame|give|show|listar|lista|listado)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares)|y\s+las\s+de|y\s+los\s+de|y\s+las|y\s+los)/i.test(lastMessageContent.trim());
     const isCurrencyFollowUp = /^(?:y\s+)?(?:solo|only|just)\s+(?:usd|dolares?|dólares?|ves|bolivares?|bolívares?|eur|euros?|gbp|libras?|jpy|yenes?|cad|aud|mxn|brl|reales?)\??$/i.test(lastMessageContent.trim());
     const isSortingFollowUp = /^(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)/i.test(lastMessageContent.trim());
-    const isContextualFollowUp = isBasicFollowUp || isCurrencyFollowUp || isSortingFollowUp;
+    const isDateFollowUpResult = isDateFollowUp(lastMessageContent);
+    const isCategoryFollowUpResult = isCategoryFollowUp(lastMessageContent);
+    const isTypeFollowUpResult = isTypeFollowUp(lastMessageContent);
+    const isLimitFollowUpResult = isLimitFollowUp(lastMessageContent);
+    const isAmountRangeFollowUpResult = isAmountRangeFollowUp(lastMessageContent);
+    const isContextualFollowUp = isBasicFollowUp || isCurrencyFollowUp || isSortingFollowUp || isDateFollowUpResult || isCategoryFollowUpResult || isTypeFollowUpResult || isLimitFollowUpResult || isAmountRangeFollowUpResult;
     
     // Si es una consulta de seguimiento contextual, el historial ya está en fullConversationHistory
     if (isContextualFollowUp) {
@@ -400,6 +455,131 @@ export async function chatWithAssistant(
       collectLog('info', `[chatWithAssistant] Detected currency query: "${lastMessageContent}"`);
     }
 
+    // Re-ejecutar query con filtros de fecha si se detecta follow-up de fecha
+    if (isDateFollowUpResult && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected date follow-up after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with date info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        const dateRange = extractDateRange(lastMessageContent);
+        const paramsWithDate = dateRange
+          ? { ...lastQuery.parameters, dateFrom: dateRange.from, dateTo: dateRange.to }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Date follow-up params: ${JSON.stringify(paramsWithDate)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithDate);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+
+    // Re-ejecutar query con filtros de categoría si se detecta follow-up de categoría
+    if (isCategoryFollowUpResult && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected category follow-up after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with category info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        const category = extractCategory(lastMessageContent, ['expense', 'income']);
+        const paramsWithCategory = category
+          ? { ...lastQuery.parameters, category }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Category follow-up params: ${JSON.stringify(paramsWithCategory)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithCategory);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+
+    // Re-ejecutar query con filtros de tipo si se detecta follow-up de tipo
+    if (isTypeFollowUpResult && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected type follow-up after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with type info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        let transactionType: 'INCOME' | 'EXPENSE' | undefined;
+        if (/(?:gastos?|expenses?)/i.test(lastMessageContent)) {
+          transactionType = 'EXPENSE';
+        } else if (/(?:ingresos?|income)/i.test(lastMessageContent)) {
+          transactionType = 'INCOME';
+        }
+        const paramsWithType = transactionType
+          ? { ...lastQuery.parameters, transactionType }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Type follow-up params: ${JSON.stringify(paramsWithType)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithType);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+
+    // Re-ejecutar query con filtros de ordenamiento si se detecta follow-up de ordenamiento
+    if (isSortingFollowUp && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected sorting follow-up after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with sorting info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        // Extraer parámetros de ordenamiento del mensaje
+        const queryParams = extractQueryParameters(lastMessageContent);
+        const paramsWithSorting = queryParams.sortBy
+          ? { ...lastQuery.parameters, sortBy: queryParams.sortBy, sortOrder: queryParams.sortOrder || 'desc' }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Sorting follow-up params: ${JSON.stringify(paramsWithSorting)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithSorting);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+
+    // Re-ejecutar query con filtros de límite si se detecta follow-up de límite
+    if (isLimitFollowUpResult && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected limit follow-up after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with limit info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        const limit = extractLimit(lastMessageContent);
+        const paramsWithLimit = limit
+          ? { ...lastQuery.parameters, limit }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Limit follow-up params: ${JSON.stringify(paramsWithLimit)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithLimit);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+
+    // Manejar combinaciones de filtros en un solo follow-up
+    if ((isDateFollowUpResult || isCategoryFollowUpResult || isTypeFollowUpResult || isLimitFollowUpResult || isAmountRangeFollowUpResult) && 
+        conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      // Contar cuántos filtros se detectaron
+      const filtersDetected = [
+        isDateFollowUpResult,
+        isCategoryFollowUpResult,
+        isTypeFollowUpResult,
+        isLimitFollowUpResult,
+        isAmountRangeFollowUpResult
+      ].filter(Boolean).length;
+      
+      // Si hay múltiples filtros, extraer todos y combinar
+      if (filtersDetected > 1) {
+        collectLog('info', `[chatWithAssistant] Detected ${filtersDetected} filters in follow-up: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with combined filters`);
+        const lastQuery = await getLastCachedQuery(userId);
+        if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+          const queryParams = extractQueryParameters(lastMessageContent);
+          const paramsWithFilters = { ...lastQuery.parameters, ...queryParams };
+          
+          collectLog('debug', `[chatWithAssistant] Combined filters params: ${JSON.stringify(paramsWithFilters)}`);
+          const transactionsResult = handleQueryTransactions(cachedContext, paramsWithFilters);
+          if (transactionsResult.canHandle && transactionsResult.message) {
+            return withDebugLogs({ message: transactionsResult.message });
+          }
+        }
+      }
+    }
+
     // Detectar intención del último mensaje, pero enriquecer con contexto si la query es ambigua
     let enrichedQuery = lastMessageContent;
     if (conversationContext.mainTopic && !hasExplicitTopicKeywords(lastMessageContent)) {
@@ -414,17 +594,26 @@ export async function chatWithAssistant(
     // Determinar si es una query simple o compleja
     // Queries simples: listas directas, consultas estructuradas con keywords claros, queries comparativas con parámetros claros
     // Queries complejas: preguntas abiertas, análisis, comparaciones sin contexto claro, explicaciones
+    const hasDateFilter = /(?:de|del|de la|de este|del mes|de la semana|de los últimos|últimos|ultimos|hace|este mes|mes pasado|esta semana|semana pasada|hoy|ayer)/i.test(lastMessageContent);
+    const hasCategoryFilter = /(?:de|del|de la)\s+(?:comida|food|transporte|transport|compras|shopping|entretenimiento|entertainment|salud|health|hogar|home|educación|education|salario|salary)/i.test(lastMessageContent);
+    const hasTypeFilter = /(?:solo|only|just)\s+(?:gastos?|expenses?|ingresos?|income)/i.test(lastMessageContent);
+    const hasLimitFilter = /(?:dame|muestra|muéstrame|give|show|solo|only|just)\s+\d+|(?:las|los|la|el)?\s*(?:primeras?|primeros?|últimas?|ultimas?|first|last)\s+\d+/i.test(lastMessageContent);
+    
     const isSimpleQuery = (intention.type === 'QUERY' && 
       intention.actionType && 
       intention.actionType !== 'UNKNOWN' &&
       (intention.actionType.startsWith('QUERY_') && 
        ['QUERY_ACCOUNTS', 'QUERY_TRANSACTIONS', 'QUERY_BUDGETS', 'QUERY_GOALS', 
         'QUERY_CATEGORIES', 'QUERY_RECURRING', 'QUERY_RATES', 'QUERY_BALANCE'].includes(intention.actionType) &&
-       // Keywords de lista/claridad O queries comparativas con parámetros claros O alta confianza
+       // Keywords de lista/claridad O queries comparativas con parámetros claros O filtros específicos O alta confianza
        (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what|ordena|ordenar|order|sort/i.test(lastMessageContent) ||
         /(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(lastMessageContent) ||
         /(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|menor|más|menos)/i.test(lastMessageContent) ||
         /(?:más|mas|mayor|mayores|grande|grandes|menor|menores|top|mejor|mejores|peor|peores)\s+(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(lastMessageContent) ||
+        hasDateFilter ||
+        hasCategoryFilter ||
+        hasTypeFilter ||
+        hasLimitFilter ||
         intention.confidence >= 0.9)));
     
     // Handle simple QUERY types - use gpt-5-nano with context data
