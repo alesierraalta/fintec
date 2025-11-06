@@ -362,6 +362,27 @@ export async function chatWithAssistant(
       collectLog('info', `[chatWithAssistant] Conversation context: mainTopic=${conversationContext.mainTopic}, lastQueryType=${conversationContext.lastQueryType || 'none'}`);
     }
 
+    // Detectar si la consulta es sobre monedas de transacciones
+    const isCurrencyQuery = /(?:cuales?|cuáles?|cuál|cuál|que|qué|which|what)\s+(?:son|están|estan)\s+(?:en|de)\s+(?:bolivares?|bolívares?|dolares?|dólares?|usd|ves|moneda|monedas?)/i.test(lastMessageContent) ||
+      /(?:debes?|debe|deberías?|deberias)\s+(?:decirme|decir|mostrarme|mostrar|indicarme|indicar)\s+(?:cuales?|cuáles?|cuál|que|qué)\s+(?:son|están|estan)\s+(?:en|de)\s+(?:bolivares?|bolívares?|dolares?|dólares?|usd|ves)/i.test(lastMessageContent);
+    
+    // Si es una consulta sobre monedas y hay contexto de transacciones, ejecutar QUERY_TRANSACTIONS con la última consulta
+    if (isCurrencyQuery && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
+      collectLog('info', `[chatWithAssistant] Detected currency query after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with currency info`);
+      const lastQuery = await getLastCachedQuery(userId);
+      if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
+        const transactionsResult = handleQueryTransactions(cachedContext, lastQuery.parameters);
+        if (transactionsResult.canHandle && transactionsResult.message) {
+          // El mensaje ya incluye la moneda ahora, solo retornarlo
+          return withDebugLogs({ message: transactionsResult.message });
+        }
+      }
+    }
+    
+    if (isCurrencyQuery) {
+      collectLog('info', `[chatWithAssistant] Detected currency query: "${lastMessageContent}"`);
+    }
+
     // Detectar intención del último mensaje, pero enriquecer con contexto si la query es ambigua
     let enrichedQuery = lastMessageContent;
     if (conversationContext.mainTopic && !hasExplicitTopicKeywords(lastMessageContent)) {

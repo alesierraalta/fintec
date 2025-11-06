@@ -10,6 +10,7 @@
 
 import { openai } from '../config';
 import { logger } from '@/lib/utils/logger';
+import { getCachedEmbedding, setCachedEmbedding } from './embedding-cache';
 
 const EMBEDDING_MODEL = 'text-embedding-3-small';
 const EMBEDDING_DIMENSIONS = 1536;
@@ -22,11 +23,32 @@ export interface EmbeddingResult {
 /**
  * Genera embedding para un texto usando OpenAI
  */
+/**
+ * Genera embedding para un texto usando OpenAI
+ * Implementa caché para reducir llamadas a la API
+ * 
+ * @param text - Texto para generar embedding
+ * @returns Embedding result con el vector y modelo usado
+ */
 export async function generateEmbedding(text: string): Promise<EmbeddingResult> {
   try {
+    // Normalizar y verificar caché primero
+    const normalizedText = text.trim();
+    
+    // Intentar obtener del caché
+    const cachedEmbedding = await getCachedEmbedding(normalizedText);
+    if (cachedEmbedding) {
+      logger.debug(`[generateEmbedding] Using cached embedding for text: "${normalizedText.substring(0, 50)}..."`);
+      return {
+        embedding: cachedEmbedding,
+        model: EMBEDDING_MODEL,
+      };
+    }
+
+    // Cache miss: generar embedding con OpenAI
     const response = await openai.embeddings.create({
       model: EMBEDDING_MODEL,
-      input: text.trim(),
+      input: normalizedText,
       dimensions: EMBEDDING_DIMENSIONS,
     });
 
@@ -35,6 +57,11 @@ export async function generateEmbedding(text: string): Promise<EmbeddingResult> 
     if (!embedding || embedding.length !== EMBEDDING_DIMENSIONS) {
       throw new Error(`Invalid embedding dimensions: expected ${EMBEDDING_DIMENSIONS}, got ${embedding?.length || 0}`);
     }
+
+    // Guardar en caché para futuras consultas
+    await setCachedEmbedding(normalizedText, embedding, 24 * 60 * 60); // 24 horas
+    
+    logger.debug(`[generateEmbedding] Generated and cached embedding for text: "${normalizedText.substring(0, 50)}..."`);
 
     return {
       embedding,

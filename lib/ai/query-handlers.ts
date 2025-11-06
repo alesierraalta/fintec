@@ -236,7 +236,8 @@ export function handleQueryTransactions(
     transactionsToShow.forEach((tx: any) => {
       const sign = tx.type === 'INCOME' ? '+' : '-';
       const icon = tx.type === 'INCOME' ? '📈' : '📉';
-      message += `${icon} ${tx.date} | ${sign}${tx.amount.toFixed(2)} | ${tx.category || 'Sin categoría'} | ${tx.description || 'Sin descripción'}\n`;
+      const currency = tx.currencyCode || 'USD';
+      message += `${icon} ${tx.date} | ${sign}${tx.amount.toFixed(2)} ${currency} | ${tx.category || 'Sin categoría'} | ${tx.description || 'Sin descripción'}\n`;
     });
 
     // NO mostrar mensaje de "más transacciones" si el usuario especificó un límite exacto

@@ -38,6 +38,7 @@ export interface WalletContext {
       date: string;
       type: string;
       amount: number;
+      currencyCode?: string;
       category?: string;
       description?: string;
     }>;
@@ -84,11 +85,12 @@ export async function buildWalletContext(
   
   try {
     // Recuperar documentos relevantes usando RAG
+    // topK se calcula automáticamente basado en la complejidad de la query
     const relevantDocs = await retrieveRelevantDocuments(
       userId,
       userQuery,
-      ['transaction', 'account', 'budget', 'goal'],
-      15 // top-k documentos
+      ['transaction', 'account', 'budget', 'goal']
+      // topK no se especifica, se calcula dinámicamente
     );
 
     // Si no hay documentos relevantes, obtener TODOS los datos del usuario directamente
@@ -134,6 +136,7 @@ export async function buildWalletContext(
               id,
               type,
               amount_base_minor,
+              currency_code,
               date,
               description,
               categories(name),
@@ -188,6 +191,7 @@ export async function buildWalletContext(
       date: tx.date,
       type: tx.type,
       amount: fromMinorUnits(tx.amount_base_minor, 'USD'),
+      currencyCode: tx.currency_code || 'USD',
       category: tx.categories?.name || 'Sin categoría',
       description: tx.description ? tx.description.substring(0, 50) : undefined,
     }));
@@ -340,6 +344,7 @@ async function buildFullContextFromDatabase(userId: string): Promise<WalletConte
           id,
           type,
           amount_base_minor,
+          currency_code,
           date,
           description,
           categories(name),
@@ -391,6 +396,7 @@ async function buildFullContextFromDatabase(userId: string): Promise<WalletConte
         date: tx.date,
         type: tx.type,
         amount: fromMinorUnits(tx.amount_base_minor, 'USD'),
+        currencyCode: tx.currency_code || 'USD',
         category: tx.categories?.name || 'Sin categoría',
         description: tx.description ? tx.description.substring(0, 50) : undefined,
       }));
