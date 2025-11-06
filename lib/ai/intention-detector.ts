@@ -977,11 +977,56 @@ function extractAccountType(message: string): string | null {
 /**
  * Extrae moneda del mensaje
  */
-function extractCurrency(message: string): string | null {
-  const currencyMatch = message.match(/\b(usd|ves|eur|gbp|jpy|cad|aud|mxn|brl)\b/i);
-  if (currencyMatch) {
-    return currencyMatch[0].toUpperCase();
+/**
+ * Extrae moneda del mensaje
+ * Soporta códigos de moneda (USD, VES, EUR, etc.) y palabras completas (dolares, dólares, bolivares, bolívares)
+ * También detecta patrones como "solo USD", "y USD", "solo dolares", etc.
+ */
+export function extractCurrency(message: string): string | null {
+  const lowerMessage = message.toLowerCase().trim();
+  
+  // Primero intentar códigos de moneda directos (USD, VES, EUR, etc.)
+  const currencyCodeMatch = lowerMessage.match(/\b(usd|ves|eur|gbp|jpy|cad|aud|mxn|brl)\b/i);
+  if (currencyCodeMatch) {
+    return currencyCodeMatch[0].toUpperCase();
   }
+  
+  // Luego intentar palabras completas y sinónimos
+  // Dólares/USD
+  if (/\b(?:dolares?|dólares?|dollar|dollars?)\b/i.test(lowerMessage)) {
+    return 'USD';
+  }
+  
+  // Bolívares/VES
+  if (/\b(?:bolivares?|bolívares?|bolivar)\b/i.test(lowerMessage)) {
+    return 'VES';
+  }
+  
+  // Euros/EUR
+  if (/\b(?:euros?|euro)\b/i.test(lowerMessage)) {
+    return 'EUR';
+  }
+  
+  // Libras/GBP
+  if (/\b(?:libras?|libra|pounds?|pound)\b/i.test(lowerMessage)) {
+    return 'GBP';
+  }
+  
+  // Yenes/JPY
+  if (/\b(?:yenes?|yen)\b/i.test(lowerMessage)) {
+    return 'JPY';
+  }
+  
+  // Pesos mexicanos/MXN
+  if (/\b(?:pesos?\s+mexicanos?|peso\s+mexicano)\b/i.test(lowerMessage)) {
+    return 'MXN';
+  }
+  
+  // Reales/BRL
+  if (/\b(?:reales?|real)\b/i.test(lowerMessage)) {
+    return 'BRL';
+  }
+  
   return null;
 }
 

@@ -18,7 +18,7 @@ import { getFallbackResponse } from './fallback-responses';
 import { getCachedContext, setCachedContext, getCachedConversation, setCachedConversation, getCachedPendingAction, setCachedPendingAction, invalidatePendingActionCache, getLastCachedQuery, setCachedQueryHistory, QueryHistoryEntry } from './cache-manager';
 import { AI_ACTION_TOOLS } from './action-tools';
 import { generateProactivePrompt } from './proactive-advisor';
-import { detectIntention, ActionType, detectCorrection } from './intention-detector';
+import { detectIntention, ActionType, detectCorrection, extractCurrency } from './intention-detector';
 import { executeAction } from './action-executor';
 import { requiresConfirmation, validateActionParameters, generateMissingParametersMessage, isConfirmationResponse, isRejectionResponse } from './action-confirmer';
 import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
@@ -326,7 +326,10 @@ export async function chatWithAssistant(
     // Detectar si es una pregunta de seguimiento o consulta relacionada con contexto anterior
     // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", "en", etc.
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
-    const isContextualFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares))/i.test(lastMessageContent.trim());
+    // Detectar follow-ups contextuales incluyendo consultas de moneda
+    const isBasicFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas|solo|only|just)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares))/i.test(lastMessageContent.trim());
+    const isCurrencyFollowUp = /^(?:y\s+)?(?:solo|only|just)\s+(?:usd|dolares?|dólares?|ves|bolivares?|bolívares?|eur|euros?|gbp|libras?|jpy|yenes?|cad|aud|mxn|brl|reales?)\??$/i.test(lastMessageContent.trim());
+    const isContextualFollowUp = isBasicFollowUp || isCurrencyFollowUp;
     
     // Si es una consulta de seguimiento contextual, el historial ya está en fullConversationHistory
     if (isContextualFollowUp) {
@@ -363,17 +366,30 @@ export async function chatWithAssistant(
     }
 
     // Detectar si la consulta es sobre monedas de transacciones
-    const isCurrencyQuery = /(?:cuales?|cuáles?|cuál|cuál|que|qué|which|what)\s+(?:son|están|estan)\s+(?:en|de)\s+(?:bolivares?|bolívares?|dolares?|dólares?|usd|ves|moneda|monedas?)/i.test(lastMessageContent) ||
+    // Patrones largos: "cuales son en/usd", "que son dolares", etc.
+    const isLongCurrencyQuery = /(?:cuales?|cuáles?|cuál|cuál|que|qué|which|what)\s+(?:son|están|estan)\s+(?:en|de)\s+(?:bolivares?|bolívares?|dolares?|dólares?|usd|ves|moneda|monedas?)/i.test(lastMessageContent) ||
       /(?:debes?|debe|deberías?|deberias)\s+(?:decirme|decir|mostrarme|mostrar|indicarme|indicar)\s+(?:cuales?|cuáles?|cuál|que|qué)\s+(?:son|están|estan)\s+(?:en|de)\s+(?:bolivares?|bolívares?|dolares?|dólares?|usd|ves)/i.test(lastMessageContent);
+    
+    // Patrones cortos para follow-ups: "y solo usd?", "solo usd", "y usd", "solo dolares", "y dolares", etc.
+    const isShortCurrencyFollowUp = /^(?:y\s+)?(?:solo|only|just)\s+(?:usd|dolares?|dólares?|ves|bolivares?|bolívares?|eur|euros?|gbp|libras?|jpy|yenes?|cad|aud|mxn|brl|reales?)\??$/i.test(lastMessageContent.trim()) ||
+      /^y\s+(?:usd|dolares?|dólares?|ves|bolivares?|bolívares?|eur|euros?|gbp|libras?|jpy|yenes?|cad|aud|mxn|brl|reales?)\??$/i.test(lastMessageContent.trim());
+    
+    const isCurrencyQuery = isLongCurrencyQuery || isShortCurrencyFollowUp;
     
     // Si es una consulta sobre monedas y hay contexto de transacciones, ejecutar QUERY_TRANSACTIONS con la última consulta
     if (isCurrencyQuery && conversationContext.lastQueryType === 'QUERY_TRANSACTIONS') {
       collectLog('info', `[chatWithAssistant] Detected currency query after transactions: "${lastMessageContent}" - re-executing QUERY_TRANSACTIONS with currency info`);
       const lastQuery = await getLastCachedQuery(userId);
       if (lastQuery && lastQuery.actionType === 'QUERY_TRANSACTIONS') {
-        const transactionsResult = handleQueryTransactions(cachedContext, lastQuery.parameters);
+        // Extraer moneda del mensaje actual
+        const currency = extractCurrency(lastMessageContent);
+        const paramsWithCurrency = currency 
+          ? { ...lastQuery.parameters, currency }
+          : lastQuery.parameters;
+        
+        collectLog('debug', `[chatWithAssistant] Currency query params: ${JSON.stringify(paramsWithCurrency)}`);
+        const transactionsResult = handleQueryTransactions(cachedContext, paramsWithCurrency);
         if (transactionsResult.canHandle && transactionsResult.message) {
-          // El mensaje ya incluye la moneda ahora, solo retornarlo
           return withDebugLogs({ message: transactionsResult.message });
         }
       }

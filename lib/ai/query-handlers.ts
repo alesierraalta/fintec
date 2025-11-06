@@ -176,6 +176,16 @@ export function handleQueryTransactions(
     }
     logger.debug(`[handleQueryTransactions] After date filter: ${transactions.length} transactions`);
 
+    // Filtrar por moneda si se especifica
+    if (params?.currency) {
+      const currencyUpper = params.currency.toUpperCase();
+      transactions = transactions.filter((tx: any) => {
+        const txCurrency = (tx.currencyCode || 'USD').toUpperCase();
+        return txCurrency === currencyUpper;
+      });
+      logger.debug(`[handleQueryTransactions] After currency filter (${params.currency}): ${transactions.length} transactions`);
+    }
+
     // Filtrar por categoría si se especifica
     if (params?.category) {
       transactions = transactions.filter((tx: any) =>
