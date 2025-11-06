@@ -326,10 +326,11 @@ export async function chatWithAssistant(
     // Detectar si es una pregunta de seguimiento o consulta relacionada con contexto anterior
     // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", "en", etc.
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
-    // Detectar follow-ups contextuales incluyendo consultas de moneda
+    // Detectar follow-ups contextuales incluyendo consultas de moneda y ordenamiento
     const isBasicFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas|solo|only|just)|de\s+(meses|mes|años|año|días|día)\s+anteriores?|en\s+(dolares|dólares|usd|ves|bolivares|bolívares))/i.test(lastMessageContent.trim());
     const isCurrencyFollowUp = /^(?:y\s+)?(?:solo|only|just)\s+(?:usd|dolares?|dólares?|ves|bolivares?|bolívares?|eur|euros?|gbp|libras?|jpy|yenes?|cad|aud|mxn|brl|reales?)\??$/i.test(lastMessageContent.trim());
-    const isContextualFollowUp = isBasicFollowUp || isCurrencyFollowUp;
+    const isSortingFollowUp = /^(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?)/i.test(lastMessageContent.trim());
+    const isContextualFollowUp = isBasicFollowUp || isCurrencyFollowUp || isSortingFollowUp;
     
     // Si es una consulta de seguimiento contextual, el historial ya está en fullConversationHistory
     if (isContextualFollowUp) {
@@ -420,7 +421,9 @@ export async function chatWithAssistant(
        ['QUERY_ACCOUNTS', 'QUERY_TRANSACTIONS', 'QUERY_BUDGETS', 'QUERY_GOALS', 
         'QUERY_CATEGORIES', 'QUERY_RECURRING', 'QUERY_RATES', 'QUERY_BALANCE'].includes(intention.actionType) &&
        // Keywords de lista/claridad O queries comparativas con parámetros claros O alta confianza
-       (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what/i.test(lastMessageContent) ||
+       (/listado|listar|lista|muéstrame|mostrar|muestra|dame|show|display|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what|ordena|ordenar|order|sort/i.test(lastMessageContent) ||
+        /(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(lastMessageContent) ||
+        /(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|menor|más|menos)/i.test(lastMessageContent) ||
         /(?:más|mas|mayor|mayores|grande|grandes|menor|menores|top|mejor|mejores|peor|peores)\s+(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(lastMessageContent) ||
         intention.confidence >= 0.9)));
     

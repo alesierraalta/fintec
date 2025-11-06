@@ -492,10 +492,27 @@ function extractQueryParameters(message: string): Record<string, any> {
   }
 
   // NUEVO: Detectar ordenamiento por monto
+  // Patrón 1: "mayor|menor" ANTES de "transacciones" (patrón original)
   if (/(?:más|mas|mayor|mayores|grande|grandes|top|mejor|mejores|alt|superior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(message)) {
     parameters.sortBy = 'amount';
     parameters.sortOrder = 'desc';
   } else if (/(?:menor|menores|pequeñ|peor|peores|baj|inferior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'asc';
+  }
+  // Patrón 2: "ordena...de mayor a menor" o "ordena...de menor a mayor"
+  else if (/(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|más|grande)\s+(?:a|hasta)\s+(?:menor|menos|pequeñ)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'desc';
+  } else if (/(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:menor|menos|pequeñ)\s+(?:a|hasta)\s+(?:mayor|más|grande)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'asc';
+  }
+  // Patrón 3: "transacciones de mayor a menor" o "transacciones de menor a mayor"
+  else if (/(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|más|grande)\s+(?:a|hasta)\s+(?:menor|menos|pequeñ)/i.test(message)) {
+    parameters.sortBy = 'amount';
+    parameters.sortOrder = 'desc';
+  } else if (/(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:menor|menos|pequeñ)\s+(?:a|hasta)\s+(?:mayor|más|grande)/i.test(message)) {
     parameters.sortBy = 'amount';
     parameters.sortOrder = 'asc';
   }
@@ -587,8 +604,10 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   // Agregar patrones comparativos y superlativos
   const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what/i.test(originalMessage);
   
-  // Detectar queries comparativas/superlativas
-  const hasComparativeQuery = /(?:más|mas|mayor|mayores|grande|grandes|pequeñ|menor|menores|top|peor|peores|mejor|mejores|alt|baj|superior|inferior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(originalMessage);
+  // Detectar queries comparativas/superlativas y de ordenamiento
+  const hasSortingQuery = /(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)/i.test(originalMessage);
+  const hasComparativeQuery = /(?:más|mas|mayor|mayores|grande|grandes|pequeñ|menor|menores|top|peor|peores|mejor|mejores|alt|baj|superior|inferior)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(originalMessage) ||
+    /(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|menor|más|menos)/i.test(originalMessage);
   const hasSuperlativeQuery = /(?:las|los|el|la)\s+(?:más|mas|mayor|mayores|grande|grandes|pequeñ|menor|menores|top|peor|peores|mejor|mejores)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i.test(originalMessage);
   
   const hasBalance = /saldo|balance|dinero|money|cuánto|cuanto|tengo/i.test(originalMessage);
@@ -609,21 +628,42 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   
   // Priorizar consultas de lista cuando hay palabras de lista y el tipo de dato
   // Boost confidence for listing patterns
-  if (hasListingKeywords && hasAccounts) {
+  // Early detection for explicit sorting queries to boost confidence
+  if (hasSortingQuery && hasTransactions) {
+    actionType = 'QUERY_TRANSACTIONS';
+    confidence = 0.95; // High confidence for explicit sorting queries
+  } else if (hasListingKeywords && hasAccounts) {
     actionType = 'QUERY_ACCOUNTS';
     confidence = 0.98; // Muy alta confianza para listas de cuentas
   } else if (hasListingKeywords && hasTransactions) {
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.95;
-  } else if (hasComparativeQuery || hasSuperlativeQuery) {
-    // Detectar queries comparativas/superlativas con alta prioridad
+  } else if (hasSortingQuery || hasComparativeQuery || hasSuperlativeQuery) {
+    // Detectar queries de ordenamiento/comparativas/superlativas con alta prioridad
     actionType = 'QUERY_TRANSACTIONS';
     confidence = 0.95;
     
     // Extraer parámetros de ordenamiento
-    if (hasComparativeQuery || hasSuperlativeQuery) {
+    if (hasSortingQuery || hasComparativeQuery || hasSuperlativeQuery) {
       // Detectar dirección de ordenamiento
-      if (/(?:más|mas|mayor|mayores|grande|grandes|top|mejor|mejores|alt|superior)/i.test(originalMessage)) {
+      // Patrón 1: "ordena...de mayor a menor" o "ordena...de menor a mayor"
+      if (/(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|más|grande)\s+(?:a|hasta)\s+(?:menor|menos|pequeñ)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'desc'; // Descendente (mayores primero)
+      } else if (/(?:ordena|ordenar|order|sort)\s+(?:las|los|la|el|mis|tus|sus)?\s*(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:menor|menos|pequeñ)\s+(?:a|hasta)\s+(?:mayor|más|grande)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'asc'; // Ascendente (menores primero)
+      }
+      // Patrón 2: "transacciones de mayor a menor" o "transacciones de menor a mayor"
+      else if (/(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:mayor|más|grande)\s+(?:a|hasta)\s+(?:menor|menos|pequeñ)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'desc'; // Descendente (mayores primero)
+      } else if (/(?:transacciones?|gastos?|ingresos?|cuentas?)\s+(?:de|del|de la)\s+(?:menor|menos|pequeñ)\s+(?:a|hasta)\s+(?:mayor|más|grande)/i.test(originalMessage)) {
+        parameters.sortBy = 'amount';
+        parameters.sortOrder = 'asc'; // Ascendente (menores primero)
+      }
+      // Patrón 3: "mayor|menor" ANTES de "transacciones" (patrón original)
+      else if (/(?:más|mas|mayor|mayores|grande|grandes|top|mejor|mejores|alt|superior)/i.test(originalMessage)) {
         parameters.sortBy = 'amount';
         parameters.sortOrder = 'desc'; // Descendente (mayores primero)
       } else if (/(?:menor|menores|pequeñ|peor|peores|baj|inferior)/i.test(originalMessage)) {
