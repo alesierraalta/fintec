@@ -510,8 +510,9 @@ function extractQueryParameters(message: string): Record<string, any> {
 
   // Detectar queries singulares ("el mayor", "mi mayor", "la mayor", etc.)
   // Si hay artículo singular antes de "mayor/menor", aplicar limit=1
+  // Buscar en cualquier parte del mensaje, no solo al inicio
   if (!parameters.limit) {
-    const singularMatch = message.match(/\b(el|la|mi|tu|su|nuestro|nuestra)\s+(?:mayor|menor|más\s+grande|más\s+pequeñ|mejor|peor)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i);
+    const singularMatch = message.match(/(?:^|\s)(el|la|mi|tu|su|nuestro|nuestra)\s+(?:mayor|menor|más\s+grande|más\s+pequeñ|mejor|peor)\s+(?:transacciones?|gastos?|ingresos?|cuentas?|pagos?)/i);
     if (singularMatch) {
       parameters.limit = 1;
     }

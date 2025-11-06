@@ -497,7 +497,15 @@ No agregues información que no esté en los datos proporcionados. Solo reformat
           queryResult = handleQueryBalance(cachedContext, intention.parameters);
           break;
         case 'QUERY_TRANSACTIONS':
+          collectLog('info', `[chatWithAssistant] Executing QUERY_TRANSACTIONS for user ${userId}, message: "${messageContent}"`);
+          collectLog('debug', `[chatWithAssistant] Query parameters: ${JSON.stringify(intention.parameters || {})}`);
           queryResult = handleQueryTransactions(cachedContext, intention.parameters);
+          collectLog('info', `[chatWithAssistant] handleQueryTransactions completed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message}, messageLength=${queryResult.message?.length || 0} for user ${userId}`);
+          if (!queryResult.canHandle || !queryResult.message) {
+            collectLog('warn', `[chatWithAssistant] handleQueryTransactions failed: canHandle=${queryResult.canHandle}, hasMessage=${!!queryResult.message} for user ${userId}`);
+          } else {
+            collectLog('debug', `[chatWithAssistant] handleQueryTransactions success, message preview: ${queryResult.message.substring(0, 100)}...`);
+          }
           break;
         case 'QUERY_BUDGETS':
           queryResult = handleQueryBudgets(cachedContext, intention.parameters);
