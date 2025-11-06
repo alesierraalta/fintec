@@ -39,8 +39,8 @@ export async function validateModel(model: string): Promise<boolean> {
 /**
  * Constantes de Timeouts (en ms)
  */
-export const AI_CLIENT_TIMEOUT_MS = 10000; // Timeout total para requests del cliente
-export const AI_LLM_TIMEOUT_MS = 8000; // Timeout para llamadas a OpenAI LLM
+export const AI_CLIENT_TIMEOUT_MS = 30000; // Timeout total para requests del cliente (aumentado para gpt-5-mini)
+export const AI_LLM_TIMEOUT_MS = 20000; // Timeout para llamadas a OpenAI LLM (aumentado para gpt-5-mini que puede ser más lento)
 
 /**
  * Rate Limiting

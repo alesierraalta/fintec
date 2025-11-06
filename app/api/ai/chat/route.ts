@@ -70,8 +70,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userId, messages, sessionId } = body;
+    const { userId, messages, sessionId: providedSessionId } = body;
     const validMessages = messages as ChatMessage[];
+    
+    // Asegurar que siempre haya un sessionId para mantener contexto de conversación
+    const sessionId = providedSessionId || `session-${userId}-${Date.now()}`;
 
     // 5. RATE LIMITING
     const rateLimitCheck = await checkRateLimit(userId);

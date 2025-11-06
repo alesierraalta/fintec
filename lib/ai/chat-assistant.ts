@@ -230,8 +230,20 @@ export async function chatWithAssistant(
       }
     }
 
-    // Detectar si es una pregunta de seguimiento (por que?, por qué?, why?)
+    // Detectar si es una pregunta de seguimiento o consulta relacionada con contexto anterior
+    // Incluye: "y", "también", "además", "y de", "y cual", "y cuál", "y qué", "y que", etc.
     const isFollowUpQuestion = /^(por\s+que|por\s+qué|why|por\s+que\??|por\s+qué\??|why\??)$/i.test(lastMessageContent.trim());
+    const isContextualFollowUp = /^(y|también|además|también|y\s+(de|cual|cuál|qué|que|cuáles|cuantos|cuántos|cuantas|cuántas|el|la|los|las|un|una|unos|unas)|de\s+(meses|mes|años|año|días|día)\s+anteriores?)/i.test(lastMessageContent.trim());
+    
+    // Si es una consulta de seguimiento contextual, intentar recuperar conversación anterior
+    if (isContextualFollowUp && sessionId) {
+      collectLog('debug', `[chatWithAssistant] Detected contextual follow-up: "${lastMessageContent}"`);
+      const cachedConversation = await getCachedConversation(userId, sessionId);
+      if (cachedConversation && cachedConversation.length > 0) {
+        collectLog('info', `[chatWithAssistant] Retrieved ${cachedConversation.length} messages from conversation cache for contextual follow-up`);
+        // Los mensajes ya incluyen el historial completo, así que el LLM tendrá contexto
+      }
+    }
     
     if (isFollowUpQuestion) {
       collectLog('debug', `[chatWithAssistant] Detected follow-up question: "${lastMessageContent}"`);
@@ -797,10 +809,12 @@ Solo reformatea y presenta los datos de manera profesional.`;
       response = withDebugLogs({ message: fallbackMessage });
     }
 
-    // Guardar conversación en caché
+    // Guardar conversación en caché (siempre, incluso si sessionId fue generado)
+    // Limitar a últimos 20 mensajes para evitar payloads muy grandes
+    const updatedMessages: ChatMessage[] = [...messages, { role: 'assistant' as const, content: response.message }];
+    const messagesToCache = updatedMessages.slice(-20); // Últimos 20 mensajes
     if (sessionId) {
-      const updatedMessages: ChatMessage[] = [...messages, { role: 'assistant' as const, content: response.message }];
-      await setCachedConversation(userId, sessionId, updatedMessages);
+      await setCachedConversation(userId, sessionId, messagesToCache);
     }
 
     // Asegurar que siempre se incluyan logs
