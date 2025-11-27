@@ -60,7 +60,7 @@ export function Modal({
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
-    xl: 'max-w-4xl',
+    xl: 'max-w-6xl',
   };
 
   return (
@@ -75,7 +75,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90vh] overflow-y-auto',
+          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90vh]',
           sizeClasses[size],
           className
         )}
@@ -83,8 +83,9 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={title ? 'modal-title' : undefined}
         aria-describedby={description ? 'modal-description' : undefined}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {/* Header - solo si hay título */}
         {(title || description) && (
           <div className="px-4 sm:px-6 py-4 border-b border-white/20">
             {title && (
@@ -106,24 +107,30 @@ export function Modal({
           </div>
         )}
 
-        {/* Close button */}
-        <button
-          type="button"
-          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          onClick={onClose}
-          aria-label="Cerrar modal"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-            <path
-              fillRule="evenodd"
-              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
-          </svg>
-        </button>
+        {/* Close button - solo si hay título */}
+        {title && (
+          <button
+            type="button"
+            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            onClick={onClose}
+            aria-label="Cerrar modal"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path
+                fillRule="evenodd"
+                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </button>
+        )}
 
-        {/* Content */}
-        <div className="px-4 sm:px-6 py-4">{children}</div>
+        {/* Content - sin padding si no hay título (para que el componente hijo controle el layout) */}
+        {title || description ? (
+          <div className="px-4 sm:px-6 py-4">{children}</div>
+        ) : (
+          children
+        )}
       </div>
     </div>
   );

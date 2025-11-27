@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { ChatMessage } from '@/lib/ai/chat-assistant';
 import { ActionType } from '@/lib/ai/intention-detector';
+import { ConversationSession } from '@/lib/ai/memory/episodic-memory';
 
 /**
  * Interfaz para acción pendiente de confirmación
@@ -21,12 +22,24 @@ interface AIChatContextType {
   error: string | null;
   isOpen: boolean;
   pendingAction: PendingAction | null;
+  // Nuevos estados para múltiples chats
+  sessions: ConversationSession[];
+  activeSessionId: string | null;
+  isLoadingSessions: boolean;
+  // Funciones existentes
   openChat: () => void;
   closeChat: () => void;
   sendMessage: (content: string) => Promise<void>;
   confirmAction: () => Promise<void>;
   rejectAction: () => Promise<void>;
   clearChat: () => void;
+  // Nuevas funciones para gestión de sesiones
+  loadSessions: () => Promise<void>;
+  createNewChat: () => Promise<void>;
+  selectSession: (sessionId: string) => Promise<void>;
+  deleteSession: (sessionId: string) => Promise<void>;
+  renameSession: (sessionId: string, title: string) => Promise<void>;
+  loadSessionMessages: (sessionId: string) => Promise<void>;
 }
 
 const AIChatContext = createContext<AIChatContextType | undefined>(undefined);
@@ -38,17 +51,218 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+  // Estados para múltiples chats
+  const [sessions, setSessions] = useState<ConversationSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  // Cache de mensajes por sesión
+  const [messagesCache, setMessagesCache] = useState<Record<string, ChatMessage[]>>({});
 
-  const openChat = useCallback(() => {
+  /**
+   * Carga las sesiones del usuario desde la API
+   */
+  const loadSessions = useCallback(async () => {
+    if (!user?.id || isLoadingSessions) return;
+
+    setIsLoadingSessions(true);
+    try {
+      const response = await fetch(`/api/ai/chat/sessions?userId=${user.id}`);
+      if (!response.ok) {
+        throw new Error('Failed to load sessions');
+      }
+      const data = await response.json();
+      setSessions(data.sessions || []);
+    } catch (err: any) {
+      console.error('Error loading sessions:', err);
+      setError('Error al cargar las conversaciones');
+    } finally {
+      setIsLoadingSessions(false);
+    }
+  }, [user?.id, isLoadingSessions]);
+
+  /**
+   * Crea una nueva sesión de chat
+   */
+  const createNewChat = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch('/api/ai/chat/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create session');
+      }
+
+      const data = await response.json();
+      const newSession = data.session;
+
+      // Agregar a la lista de sesiones
+      setSessions(prev => [newSession, ...prev]);
+      
+      // Activar la nueva sesión
+      setActiveSessionId(newSession.id);
+      
+      // Limpiar mensajes y mostrar mensaje de bienvenida
+      setMessages([{
+        role: 'assistant',
+        content: '¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre tus cuentas, transacciones, presupuestos o metas.',
+      }]);
+      setError(null);
+      setPendingAction(null);
+    } catch (err: any) {
+      console.error('Error creating new chat:', err);
+      setError('Error al crear nueva conversación');
+    }
+  }, [user?.id]);
+
+  /**
+   * Carga los mensajes de una sesión específica
+   */
+  const loadSessionMessages = useCallback(async (sessionId: string) => {
+    if (!user?.id) return;
+
+    // Verificar cache primero
+    if (messagesCache[sessionId]) {
+      setMessages(messagesCache[sessionId]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/ai/chat/messages?userId=${user.id}&sessionId=${sessionId}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to load messages');
+      }
+
+      const data = await response.json();
+      const loadedMessages = data.messages || [];
+
+      // Si no hay mensajes, mostrar mensaje de bienvenida
+      if (loadedMessages.length === 0) {
+        const welcomeMessage: ChatMessage = {
+          role: 'assistant',
+          content: '¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre tus cuentas, transacciones, presupuestos o metas.',
+        };
+        setMessages([welcomeMessage]);
+        setMessagesCache(prev => ({ ...prev, [sessionId]: [welcomeMessage] }));
+      } else {
+        setMessages(loadedMessages);
+        setMessagesCache(prev => ({ ...prev, [sessionId]: loadedMessages }));
+      }
+    } catch (err: any) {
+      console.error('Error loading session messages:', err);
+      setError('Error al cargar los mensajes');
+    }
+  }, [user?.id, messagesCache]);
+
+  /**
+   * Selecciona una sesión y carga sus mensajes
+   */
+  const selectSession = useCallback(async (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    await loadSessionMessages(sessionId);
+    setError(null);
+    setPendingAction(null);
+  }, [loadSessionMessages]);
+
+  /**
+   * Elimina una sesión
+   */
+  const deleteSession = useCallback(async (sessionId: string) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(
+        `/api/ai/chat/sessions?userId=${user.id}&sessionId=${sessionId}`,
+        { method: 'DELETE' }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to delete session');
+      }
+
+      // Remover de la lista
+      setSessions(prev => prev.filter(s => s.id !== sessionId));
+      
+      // Limpiar cache
+      setMessagesCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[sessionId];
+        return newCache;
+      });
+
+      // Si era la sesión activa, crear nueva o seleccionar otra
+      if (activeSessionId === sessionId) {
+        const remainingSessions = sessions.filter(s => s.id !== sessionId);
+        if (remainingSessions.length > 0) {
+          await selectSession(remainingSessions[0].id);
+        } else {
+          await createNewChat();
+        }
+      }
+    } catch (err: any) {
+      console.error('Error deleting session:', err);
+      setError('Error al eliminar la conversación');
+    }
+  }, [user?.id, activeSessionId, sessions, selectSession, createNewChat]);
+
+  /**
+   * Renombra una sesión
+   */
+  const renameSession = useCallback(async (sessionId: string, title: string) => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch('/api/ai/chat/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, sessionId, title }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to rename session');
+      }
+
+      const data = await response.json();
+      const updatedSession = data.session;
+
+      // Actualizar en la lista
+      setSessions(prev => 
+        prev.map(s => s.id === sessionId ? updatedSession : s)
+      );
+    } catch (err: any) {
+      console.error('Error renaming session:', err);
+      setError('Error al renombrar la conversación');
+    }
+  }, [user?.id]);
+
+  const openChat = useCallback(async () => {
     setIsOpen(true);
-    // Si no hay mensajes, agregar mensaje de bienvenida
-    if (messages.length === 0) {
+    
+    // Cargar sesiones si no están cargadas
+    if (sessions.length === 0 && !isLoadingSessions) {
+      await loadSessions();
+    }
+
+    // Si hay sesiones pero no hay sesión activa, seleccionar la más reciente
+    if (sessions.length > 0 && !activeSessionId) {
+      await selectSession(sessions[0].id);
+    }
+
+    // Si no hay sesiones ni mensajes, crear nueva o mostrar bienvenida
+    if (sessions.length === 0 && messages.length === 0) {
       setMessages([{
         role: 'assistant',
         content: '¡Hola! Soy tu asistente financiero. ¿En qué puedo ayudarte hoy? Puedes preguntarme sobre tus cuentas, transacciones, presupuestos o metas.',
       }]);
     }
-  }, [messages.length]);
+  }, [sessions, activeSessionId, messages.length, isLoadingSessions, loadSessions, selectSession]);
 
   const closeChat = useCallback(() => {
     setIsOpen(false);
@@ -76,6 +290,34 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     setError(null);
 
     try {
+      // Determinar sessionId a usar
+      let currentSessionId = activeSessionId;
+      
+      // Si no hay sesión activa, crear una nueva
+      if (!currentSessionId) {
+        try {
+          const createResponse = await fetch('/api/ai/chat/sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.id }),
+          });
+          if (createResponse.ok) {
+            const createData = await createResponse.json();
+            const newSession = createData.session;
+            setSessions(prev => [newSession, ...prev]);
+            setActiveSessionId(newSession.id);
+            currentSessionId = newSession.id;
+          } else {
+            // Fallback: generar sessionId temporal
+            currentSessionId = `session-${user.id}-${Date.now()}`;
+          }
+        } catch (err) {
+          console.error('Error creating session:', err);
+          // Fallback: generar sessionId temporal
+          currentSessionId = `session-${user.id}-${Date.now()}`;
+        }
+      }
+
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: {
@@ -84,6 +326,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           userId: user.id,
           messages: newMessages,
+          sessionId: currentSessionId,
         }),
       });
 
@@ -132,7 +375,19 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         content: data.message || 'No recibí una respuesta válida.',
       };
 
-      setMessages([...newMessages, assistantMessage]);
+      const updatedMessages = [...newMessages, assistantMessage];
+      setMessages(updatedMessages);
+      
+      // Actualizar cache de mensajes
+      if (currentSessionId) {
+        setMessagesCache(prev => ({
+          ...prev,
+          [currentSessionId]: updatedMessages,
+        }));
+
+        // Actualizar lista de sesiones (refrescar para obtener última fecha)
+        await loadSessions();
+      }
       
       // Si la respuesta incluye una acción pendiente de confirmación, guardarla
       if (data.action && data.action.requiresConfirmation) {
@@ -154,7 +409,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, messages]);
+  }, [user?.id, messages, activeSessionId, loadSessions]);
 
   const clearChat = useCallback(() => {
     setMessages([{
@@ -163,7 +418,16 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     }]);
     setError(null);
     setPendingAction(null);
-  }, []);
+    
+    // Limpiar cache de la sesión actual
+    if (activeSessionId) {
+      setMessagesCache(prev => {
+        const newCache = { ...prev };
+        delete newCache[activeSessionId];
+        return newCache;
+      });
+    }
+  }, [activeSessionId]);
 
   /**
    * Confirma una acción pendiente
@@ -197,13 +461,43 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     error,
     isOpen,
     pendingAction,
+    sessions,
+    activeSessionId,
+    isLoadingSessions,
     openChat,
     closeChat,
     sendMessage,
     confirmAction,
     rejectAction,
     clearChat,
-  }), [messages, isLoading, error, isOpen, pendingAction, openChat, closeChat, sendMessage, confirmAction, rejectAction, clearChat]);
+    loadSessions,
+    createNewChat,
+    selectSession,
+    deleteSession,
+    renameSession,
+    loadSessionMessages,
+  }), [
+    messages,
+    isLoading,
+    error,
+    isOpen,
+    pendingAction,
+    sessions,
+    activeSessionId,
+    isLoadingSessions,
+    openChat,
+    closeChat,
+    sendMessage,
+    confirmAction,
+    rejectAction,
+    clearChat,
+    loadSessions,
+    createNewChat,
+    selectSession,
+    deleteSession,
+    renameSession,
+    loadSessionMessages,
+  ]);
 
   return (
     <AIChatContext.Provider value={value}>
