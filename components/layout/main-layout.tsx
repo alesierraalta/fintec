@@ -40,13 +40,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     return null;
   }
 
-  // Solo aplicar height dinámico después del mount y cuando el height esté disponible
+  // Aplicar height dinámico después del mount y cuando el height esté disponible
   // Esto evita hydration mismatch y layout shift
+  // Mejorado: aplicar incluso sin visualViewport si tenemos el height del hook
   const dynamicHeight = 
     mounted && 
     viewportHeight !== null && 
-    typeof window !== 'undefined' && 
-    window.visualViewport
+    typeof window !== 'undefined'
       ? { height: `${viewportHeight}px` }
       : undefined;
 

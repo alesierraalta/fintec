@@ -59,7 +59,7 @@ export default function RootLayout({
       <body className={`${inter.className} dark`}>
         <AuthProvider>
           <RepositoryProvider>
-            <div id="root">
+            <div id="root" className="h-dynamic-screen w-full overflow-hidden">
               {children}
             </div>
           </RepositoryProvider>

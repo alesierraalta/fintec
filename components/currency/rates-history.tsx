@@ -201,7 +201,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
           initial="hidden"
           animate="show"
           exit="exit"
-          className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90dvh] overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-border/20">
@@ -253,7 +253,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
           </div>
 
           {/* Content */}
-          <div className="p-6 max-h-[60vh] overflow-y-auto">
+          <div className="p-6 max-h-[60dvh] overflow-y-auto">
             {activeTab === 'history' && (
               <motion.div variants={fadeInUp} initial="hidden" animate="show">
                 {/* Selector de Fuente */}

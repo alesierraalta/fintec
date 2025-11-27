@@ -75,7 +75,7 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90vh]',
+          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90dvh]',
           sizeClasses[size],
           className
         )}

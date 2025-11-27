@@ -184,8 +184,9 @@ export function MobileTransfer() {
     const from = getFromAccount();
     const to = getToAccount();
     if (!from || !to) return;
+    // When currencies are the same, use 1.0 (no conversion needed)
     if (from.currencyCode === to.currencyCode) {
-      setTransferData(prev => ({ ...prev, exchangeRate: undefined, rateSource: undefined }));
+      setTransferData(prev => ({ ...prev, exchangeRate: 1.0, rateSource: undefined }));
       return;
     }
     if (!activeUsdVes || activeUsdVes <= 0) return;

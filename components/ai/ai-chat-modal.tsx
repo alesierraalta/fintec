@@ -65,9 +65,9 @@ export function AIChatModal() {
       onClose={closeChat}
       title={undefined} // Sin título, lo manejamos internamente
       size="xl"
-      className="max-h-[90vh] max-w-[95vw] p-0"
+      className="max-h-[90dvh] max-w-[95vw] p-0"
     >
-      <div className="flex h-full max-h-[90vh]">
+      <div className="flex h-full max-h-[90dvh]">
         {/* Backdrop para mobile sidebar */}
         {isMobile && sidebarOpen && (
           <div

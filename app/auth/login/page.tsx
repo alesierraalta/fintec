@@ -43,7 +43,7 @@ export default function LoginPage() {
   // Don't render login form if user is already authenticated
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-dynamic-screen flex items-center justify-center bg-background">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -55,7 +55,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="min-h-dynamic-screen bg-background flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <LoginForm />
         </div>

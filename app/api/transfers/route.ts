@@ -185,6 +185,12 @@ export async function POST(request: NextRequest) {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
+    // Normalize exchange rate: ensure it's always a valid number
+    // If undefined, null, or invalid, default to 1.0 (same currency transfer)
+    const exchangeRate = (body.exchangeRate != null && typeof body.exchangeRate === 'number' && body.exchangeRate > 0)
+      ? body.exchangeRate
+      : 1.0;
+    
     // Single RPC call handles everything atomically:
     // - Validates accounts belong to user
     // - Checks balance
@@ -198,7 +204,7 @@ export async function POST(request: NextRequest) {
       p_amount_major: body.amount, // Amount in major units (e.g., 100.50)
       p_description: body.description || 'Transferencia',
       p_date: body.date || new Date().toISOString().split('T')[0],
-      p_exchange_rate: body.exchangeRate || 1.0,
+      p_exchange_rate: exchangeRate,
       p_rate_source: body.rateSource || null
     });
     

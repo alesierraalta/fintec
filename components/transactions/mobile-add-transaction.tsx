@@ -622,7 +622,7 @@ export function MobileAddTransaction() {
   };
 
   return (
-    <div className="min-h-screen bg-black p-4 overflow-y-auto">
+    <div className="min-h-dynamic-screen bg-black p-4 overflow-y-auto">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <button

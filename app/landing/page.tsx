@@ -91,7 +91,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+    <div className="min-h-dynamic-screen bg-gradient-to-br from-background via-background to-muted/20">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
