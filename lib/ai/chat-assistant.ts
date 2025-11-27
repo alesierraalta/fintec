@@ -1112,7 +1112,7 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
 
         const message = response.choices[0]?.message;
         const content = message?.content;
-        const toolCalls = message?.tool_calls;
+        let toolCalls = message?.tool_calls;
 
         // Si el modelo quiere llamar funciones, procesar múltiples tool calls en secuencia
         if (toolCalls && toolCalls.length > 0) {
@@ -1372,11 +1372,9 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
               }),
             } as any);
             
-            for await (const chunk of streamResponse) {
-              const chunkContent = chunk.choices[0]?.delta?.content;
-              if (chunkContent) {
-                yield { type: 'content' as const, text: chunkContent };
-              }
+            // Usar streamOpenAIResponse para convertir el stream
+            for await (const textChunk of streamOpenAIResponse(streamResponse as any)) {
+              yield { type: 'content' as const, text: textChunk };
             }
             
             yield { type: 'done' as const };
