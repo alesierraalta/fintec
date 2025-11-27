@@ -24,6 +24,10 @@ import { requiresConfirmation, validateActionParameters, generateMissingParamete
 import { handleQueryBalance, handleQueryTransactions, handleQueryBudgets, handleQueryGoals, handleQueryAccounts, handleQueryRates, handleQueryCategories, handleQueryRecurring } from './query-handlers';
 import { PromptManager } from './prompts/manager';
 import { logger } from '@/lib/utils/logger';
+import { retrieveMemoryContext, formatContextForPrompt } from './memory/memory-retriever';
+import { storeMessage, storeMessages, createOrUpdateSession } from './memory/episodic-memory';
+import { extractAndStoreMemories } from './memory/memory-extractor';
+import { storeShortTermConversation } from './memory/short-term-memory';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -243,6 +247,24 @@ export async function chatWithAssistant(
     // Generar sugerencias proactivas
     const proactiveSuggestions = generateProactivePrompt(cachedContext);
 
+    // Recuperar contexto de memoria (memoria semántica, episódica y procedimental)
+    let memoryContext = '';
+    try {
+      const retrievedContext = await retrieveMemoryContext(userId, lastMessageContent, {
+        maxSemanticMemories: 5,
+        maxConversations: 10,
+        lookbackMonths: 3,
+        minSimilarity: 0.7,
+      });
+      memoryContext = formatContextForPrompt(retrievedContext);
+      if (memoryContext) {
+        collectLog('info', `[chatWithAssistant] Retrieved memory context: ${retrievedContext.semanticMemories.length} memories, ${retrievedContext.relevantConversations.length} conversations`);
+      }
+    } catch (error) {
+      logger.warn('[chatWithAssistant] Failed to retrieve memory context:', error);
+      // Continuar sin memoria si hay error
+    }
+
     // Analizar contexto de conversación antes de generar el prompt
     const conversationContext = extractConversationContext(fullConversationHistory);
     
@@ -252,9 +274,13 @@ export async function chatWithAssistant(
       contextNoteForPrompt = `\n\nCONTEXTO DE LA CONVERSACIÓN ACTUAL:\nEl usuario está preguntando sobre ${conversationContext.mainTopic}. Si una consulta es ambigua o no menciona explícitamente el tema, refiérete al contexto de la conversación anterior. Por ejemplo, si el usuario pregunta "cual fue el mayor?" después de hablar de gastos, se refiere al mayor gasto.`;
     }
 
-    // Generar system prompt usando PromptManager (con caché)
-    const baseSystemPrompt = await PromptManager.generateChatSystemPrompt(cachedContext, proactiveSuggestions, userId);
-    const systemPrompt = baseSystemPrompt + contextNoteForPrompt;
+    // Generar system prompt usando PromptManager (con caché y memoria)
+    const systemPrompt = await PromptManager.generateChatSystemPrompt(
+      cachedContext, 
+      proactiveSuggestions, 
+      userId,
+      memoryContext
+    ) + contextNoteForPrompt;
 
     logger.debug(`[chatWithAssistant] System prompt generated using PromptManager with ${cachedContext.accounts.total} accounts for user ${userId}`);
 
@@ -1171,6 +1197,59 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
     if (sessionId) {
       await setCachedConversation(userId, sessionId, messagesToCache);
       collectLog('debug', `[chatWithAssistant] Saved ${messagesToCache.length} messages to Redis cache`);
+      
+      // Almacenar en memoria a corto plazo mejorada
+      try {
+        await storeShortTermConversation(userId, sessionId, updatedMessages);
+      } catch (error) {
+        logger.warn('[chatWithAssistant] Failed to store in short-term memory:', error);
+      }
+      
+      // Almacenar en memoria episódica (histórica)
+      try {
+        // Crear o actualizar sesión
+        await createOrUpdateSession(sessionId, userId);
+        
+        // Almacenar mensajes nuevos (solo los que no están ya almacenados)
+        const newMessages = messages.filter(msg => 
+          !fullConversationHistory.some(existing => 
+            existing.content === msg.content && existing.role === msg.role
+          )
+        );
+        
+        if (newMessages.length > 0) {
+          // Calcular importancia basada en si hay acciones o información importante
+          const importanceScores = newMessages.map(msg => {
+            // Mensajes del usuario con acciones o preguntas importantes tienen mayor importancia
+            if (msg.role === 'user') {
+              const hasAction = /crear|crea|agregar|agrega|transferir|transfiere/i.test(msg.content);
+              const hasImportantQuery = /cuánto|cuanto|cuál|cuál|qué|que|cuántos|cuantos/i.test(msg.content);
+              return hasAction ? 0.8 : hasImportantQuery ? 0.7 : 0.5;
+            }
+            // Respuestas del asistente con información útil tienen mayor importancia
+            return /importante|recomendación|sugerencia|deberías|deberias/i.test(msg.content) ? 0.7 : 0.5;
+          });
+          
+          await storeMessages(userId, sessionId, newMessages, importanceScores);
+          collectLog('debug', `[chatWithAssistant] Stored ${newMessages.length} messages in episodic memory`);
+        }
+        
+        // Almacenar respuesta del asistente
+        await storeMessage(
+          userId,
+          sessionId,
+          { role: 'assistant', content: response.message },
+          0.6, // Respuestas del asistente tienen importancia media-alta
+          { hasAction: !!response.action }
+        );
+      } catch (error) {
+        logger.warn('[chatWithAssistant] Failed to store in episodic memory:', error);
+      }
+      
+      // Extraer y almacenar memorias automáticamente (en background, no bloquea respuesta)
+      extractAndStoreMemories(userId, updatedMessages).catch(err => {
+        logger.warn('[chatWithAssistant] Failed to extract memories:', err);
+      });
     }
 
     // Asegurar que siempre se incluyan logs

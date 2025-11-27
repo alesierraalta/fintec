@@ -1,0 +1,3014 @@
+{
+  "projectId": "317d6bd2-fb10-46f9-8120-e3c4a331b7dc",
+  "entries": [
+    {
+      "path": ".cursor/.agent-tools/0c06c639-4d23-4631-ac61-029f3eca1340.txt",
+      "kind": "documentation",
+      "size": 72558,
+      "lastModified": "2025-10-21T18:57:10.068Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/5452529d-6342-4bb8-9f50-d7da04a5ae8f.txt",
+      "kind": "documentation",
+      "size": 55070,
+      "lastModified": "2025-10-22T12:47:33.935Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/5b438407-d6e4-4e37-bbda-be115581096e.txt",
+      "kind": "documentation",
+      "size": 66825,
+      "lastModified": "2025-10-20T10:35:59.238Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/739862b8-18d1-43eb-ba6c-db610993b798.txt",
+      "kind": "documentation",
+      "size": 43266,
+      "lastModified": "2025-10-21T18:57:10.958Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/9515de65-5671-416d-a81a-12b5e6c9acfd.txt",
+      "kind": "documentation",
+      "size": 53708,
+      "lastModified": "2025-10-23T13:28:00.707Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/a5107221-bca5-4c0d-b32b-a0ea8f198bfd.txt",
+      "kind": "documentation",
+      "size": 55173,
+      "lastModified": "2025-10-19T23:39:32.501Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/a91fcab7-8f8d-468c-89ee-96069c489788.txt",
+      "kind": "documentation",
+      "size": 55070,
+      "lastModified": "2025-10-22T12:47:22.580Z"
+    },
+    {
+      "path": ".cursor/.agent-tools/b6df2a42-cfb7-4ec5-8b92-ceb037257d86.txt",
+      "kind": "documentation",
+      "size": 55070,
+      "lastModified": "2025-10-22T12:47:16.327Z"
+    },
+    {
+      "path": ".cursor/worktrees.json",
+      "kind": "config",
+      "size": 48,
+      "lastModified": "2025-10-19T23:52:44.605Z"
+    },
+    {
+      "path": ".eslintrc.json",
+      "kind": "config",
+      "size": 150,
+      "lastModified": "2025-10-22T14:38:38.085Z"
+    },
+    {
+      "path": ".mcp_proj/project.yml",
+      "kind": "config",
+      "size": 189,
+      "lastModified": "2025-11-18T14:55:44.027Z"
+    },
+    {
+      "path": ".serena/memories/codebase_structure.md",
+      "kind": "documentation",
+      "size": 7213,
+      "lastModified": "2025-09-18T15:29:56.204Z"
+    },
+    {
+      "path": ".serena/memories/code_style_conventions.md",
+      "kind": "documentation",
+      "size": 4681,
+      "lastModified": "2025-09-18T15:29:56.204Z"
+    },
+    {
+      "path": ".serena/memories/project_overview.md",
+      "kind": "documentation",
+      "size": 2365,
+      "lastModified": "2025-09-18T15:29:56.204Z"
+    },
+    {
+      "path": ".serena/memories/suggested_commands.md",
+      "kind": "documentation",
+      "size": 2589,
+      "lastModified": "2025-09-18T15:29:56.205Z"
+    },
+    {
+      "path": ".serena/memories/task_completion_checklist.md",
+      "kind": "documentation",
+      "size": 4242,
+      "lastModified": "2025-09-18T15:29:56.205Z"
+    },
+    {
+      "path": ".serena/project.yml",
+      "kind": "config",
+      "size": 4507,
+      "lastModified": "2025-09-18T15:29:56.205Z"
+    },
+    {
+      "path": "AI_ASSISTANT_SETUP.md",
+      "kind": "documentation",
+      "size": 11040,
+      "lastModified": "2025-11-02T14:33:26.061Z"
+    },
+    {
+      "path": "AI_RESILIENCE_IMPLEMENTATION.md",
+      "kind": "documentation",
+      "size": 9651,
+      "lastModified": "2025-11-02T15:24:25.144Z"
+    },
+    {
+      "path": "app/accounts/page.tsx",
+      "kind": "source",
+      "size": 53418,
+      "lastModified": "2025-10-30T14:23:59.354Z"
+    },
+    {
+      "path": "app/api/accounts/route.ts",
+      "kind": "source",
+      "size": 5709,
+      "lastModified": "2025-11-06T14:04:00.258Z"
+    },
+    {
+      "path": "app/api/accounts/[id]/route.ts",
+      "kind": "source",
+      "size": 4621,
+      "lastModified": "2025-10-23T13:03:30.221Z"
+    },
+    {
+      "path": "app/api/ai/advice/route.ts",
+      "kind": "source",
+      "size": 1291,
+      "lastModified": "2025-10-31T13:20:51.445Z"
+    },
+    {
+      "path": "app/api/ai/analyze/route.ts",
+      "kind": "source",
+      "size": 1555,
+      "lastModified": "2025-10-31T13:20:51.445Z"
+    },
+    {
+      "path": "app/api/ai/categorize/route.ts",
+      "kind": "source",
+      "size": 1984,
+      "lastModified": "2025-10-31T13:20:51.444Z"
+    },
+    {
+      "path": "app/api/ai/chat/route.ts",
+      "kind": "source",
+      "size": 6781,
+      "lastModified": "2025-11-06T14:59:49.393Z"
+    },
+    {
+      "path": "app/api/ai/predict/route.ts",
+      "kind": "source",
+      "size": 1311,
+      "lastModified": "2025-10-31T13:20:51.444Z"
+    },
+    {
+      "path": "app/api/background-scraper/start/route.ts",
+      "kind": "source",
+      "size": 2174,
+      "lastModified": "2025-10-23T13:03:30.224Z"
+    },
+    {
+      "path": "app/api/background-scraper/stop/route.ts",
+      "kind": "source",
+      "size": 1190,
+      "lastModified": "2025-10-23T13:03:30.225Z"
+    },
+    {
+      "path": "app/api/bcv-rates/route.ts",
+      "kind": "source",
+      "size": 2368,
+      "lastModified": "2025-10-23T13:03:30.225Z"
+    },
+    {
+      "path": "app/api/binance-rates/route.ts",
+      "kind": "source",
+      "size": 7090,
+      "lastModified": "2025-10-23T13:03:30.226Z"
+    },
+    {
+      "path": "app/api/categories/route.ts",
+      "kind": "source",
+      "size": 5248,
+      "lastModified": "2025-10-23T13:03:30.227Z"
+    },
+    {
+      "path": "app/api/clear-account/route.ts",
+      "kind": "source",
+      "size": 4223,
+      "lastModified": "2025-10-23T13:03:30.227Z"
+    },
+    {
+      "path": "app/api/debug-binance/route.ts",
+      "kind": "source",
+      "size": 925,
+      "lastModified": "2025-10-23T13:03:30.229Z"
+    },
+    {
+      "path": "app/api/force-update/route.ts",
+      "kind": "source",
+      "size": 742,
+      "lastModified": "2025-10-23T13:03:30.229Z"
+    },
+    {
+      "path": "app/api/init-database/route.ts",
+      "kind": "source",
+      "size": 2590,
+      "lastModified": "2025-10-23T13:03:30.230Z"
+    },
+    {
+      "path": "app/api/migrate-categories/route.ts",
+      "kind": "source",
+      "size": 5113,
+      "lastModified": "2025-10-23T13:03:30.233Z"
+    },
+    {
+      "path": "app/api/paddle/checkout/route.ts",
+      "kind": "source",
+      "size": 9086,
+      "lastModified": "2025-10-31T17:38:11.576Z"
+    },
+    {
+      "path": "app/api/paddle/products/route.ts",
+      "kind": "source",
+      "size": 2805,
+      "lastModified": "2025-10-31T15:05:46.965Z"
+    },
+    {
+      "path": "app/api/paddle/webhook/route.ts",
+      "kind": "source",
+      "size": 1520,
+      "lastModified": "2025-10-31T13:20:51.440Z"
+    },
+    {
+      "path": "app/api/recurring-transactions/route.ts",
+      "kind": "source",
+      "size": 7178,
+      "lastModified": "2025-10-23T13:03:30.233Z"
+    },
+    {
+      "path": "app/api/subscription/status/route.ts",
+      "kind": "source",
+      "size": 2788,
+      "lastModified": "2025-11-02T15:53:35.846Z"
+    },
+    {
+      "path": "app/api/test/route.ts",
+      "kind": "source",
+      "size": 322,
+      "lastModified": "2025-10-23T13:03:30.234Z"
+    },
+    {
+      "path": "app/api/transactions/route.ts",
+      "kind": "source",
+      "size": 9379,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "app/api/transfers/route.ts",
+      "kind": "source",
+      "size": 12767,
+      "lastModified": "2025-10-27T12:03:50.057Z"
+    },
+    {
+      "path": "app/auth/forgot-password/page.tsx",
+      "kind": "source",
+      "size": 1111,
+      "lastModified": "2025-10-23T10:39:00.044Z"
+    },
+    {
+      "path": "app/auth/login/page.tsx",
+      "kind": "source",
+      "size": 2296,
+      "lastModified": "2025-10-23T10:27:41.037Z"
+    },
+    {
+      "path": "app/auth/register/page.tsx",
+      "kind": "source",
+      "size": 1085,
+      "lastModified": "2025-10-23T10:27:41.037Z"
+    },
+    {
+      "path": "app/auth/reset-password/page.tsx",
+      "kind": "source",
+      "size": 2238,
+      "lastModified": "2025-10-23T10:39:00.044Z"
+    },
+    {
+      "path": "app/background-scraper-test/page.tsx",
+      "kind": "source",
+      "size": 3926,
+      "lastModified": "2025-10-22T15:44:01.675Z"
+    },
+    {
+      "path": "app/backups/page.tsx",
+      "kind": "source",
+      "size": 23631,
+      "lastModified": "2025-10-22T15:44:01.685Z"
+    },
+    {
+      "path": "app/budgets/page.tsx",
+      "kind": "source",
+      "size": 13174,
+      "lastModified": "2025-10-22T15:44:01.691Z"
+    },
+    {
+      "path": "app/categories/page.tsx",
+      "kind": "source",
+      "size": 17755,
+      "lastModified": "2025-10-22T22:45:27.689Z"
+    },
+    {
+      "path": "app/checkout/page.tsx",
+      "kind": "source",
+      "size": 22232,
+      "lastModified": "2025-11-12T12:51:57.480Z"
+    },
+    {
+      "path": "app/debug/page.tsx",
+      "kind": "source",
+      "size": 784,
+      "lastModified": "2025-10-22T15:44:01.705Z"
+    },
+    {
+      "path": "app/debug-balance/page.tsx",
+      "kind": "source",
+      "size": 7527,
+      "lastModified": "2025-10-22T15:44:01.709Z"
+    },
+    {
+      "path": "app/goals/page.tsx",
+      "kind": "source",
+      "size": 15070,
+      "lastModified": "2025-10-22T15:44:01.716Z"
+    },
+    {
+      "path": "app/landing/page.tsx",
+      "kind": "source",
+      "size": 14454,
+      "lastModified": "2025-10-31T13:29:47.536Z"
+    },
+    {
+      "path": "app/layout.tsx",
+      "kind": "source",
+      "size": 2122,
+      "lastModified": "2025-10-31T15:02:36.530Z"
+    },
+    {
+      "path": "app/page.tsx",
+      "kind": "source",
+      "size": 380,
+      "lastModified": "2025-10-22T15:44:01.774Z"
+    },
+    {
+      "path": "app/pricing/page.tsx",
+      "kind": "source",
+      "size": 4005,
+      "lastModified": "2025-10-22T15:44:01.725Z"
+    },
+    {
+      "path": "app/privacy/page.tsx",
+      "kind": "source",
+      "size": 15411,
+      "lastModified": "2025-10-31T15:05:46.964Z"
+    },
+    {
+      "path": "app/profile/page.tsx",
+      "kind": "source",
+      "size": 10423,
+      "lastModified": "2025-10-22T15:44:01.730Z"
+    },
+    {
+      "path": "app/recurring/page.tsx",
+      "kind": "source",
+      "size": 15886,
+      "lastModified": "2025-10-30T15:37:43.251Z"
+    },
+    {
+      "path": "app/reports/page.tsx",
+      "kind": "source",
+      "size": 392,
+      "lastModified": "2025-10-22T15:44:01.736Z"
+    },
+    {
+      "path": "app/settings/page.tsx",
+      "kind": "source",
+      "size": 12065,
+      "lastModified": "2025-10-22T15:44:01.744Z"
+    },
+    {
+      "path": "app/subscription/page.tsx",
+      "kind": "source",
+      "size": 6869,
+      "lastModified": "2025-10-22T15:44:01.751Z"
+    },
+    {
+      "path": "app/subscription/success/page.tsx",
+      "kind": "source",
+      "size": 3811,
+      "lastModified": "2025-10-22T15:44:01.748Z"
+    },
+    {
+      "path": "app/terms/page.tsx",
+      "kind": "source",
+      "size": 12493,
+      "lastModified": "2025-10-31T15:05:46.964Z"
+    },
+    {
+      "path": "app/test/page.tsx",
+      "kind": "source",
+      "size": 1334,
+      "lastModified": "2025-10-22T15:44:01.754Z"
+    },
+    {
+      "path": "app/transactions/add/page.tsx",
+      "kind": "source",
+      "size": 371,
+      "lastModified": "2025-10-22T15:44:01.757Z"
+    },
+    {
+      "path": "app/transactions/page.tsx",
+      "kind": "source",
+      "size": 33271,
+      "lastModified": "2025-11-12T12:51:57.477Z"
+    },
+    {
+      "path": "app/transfers/page.tsx",
+      "kind": "source",
+      "size": 269,
+      "lastModified": "2025-10-22T15:44:01.770Z"
+    },
+    {
+      "path": "BUILD_SUCCESS_REPORT.md",
+      "kind": "documentation",
+      "size": 10506,
+      "lastModified": "2025-10-08T01:35:40.576Z"
+    },
+    {
+      "path": "components/accounts/account-actions-dropdown.tsx",
+      "kind": "source",
+      "size": 9389,
+      "lastModified": "2025-11-12T12:51:57.476Z"
+    },
+    {
+      "path": "components/accounts/balance-alert-indicator.tsx",
+      "kind": "source",
+      "size": 1603,
+      "lastModified": "2025-10-22T15:44:01.781Z"
+    },
+    {
+      "path": "components/ai/action-confirmation-buttons.tsx",
+      "kind": "source",
+      "size": 1554,
+      "lastModified": "2025-11-04T18:41:29.857Z"
+    },
+    {
+      "path": "components/ai/ai-chat-fab.tsx",
+      "kind": "source",
+      "size": 1473,
+      "lastModified": "2025-11-02T17:04:33.354Z"
+    },
+    {
+      "path": "components/ai/ai-chat-modal.tsx",
+      "kind": "source",
+      "size": 5129,
+      "lastModified": "2025-11-04T18:42:46.447Z"
+    },
+    {
+      "path": "components/ai/index.ts",
+      "kind": "source",
+      "size": 206,
+      "lastModified": "2025-11-04T18:43:03.954Z"
+    },
+    {
+      "path": "components/auth/auth-guard.tsx",
+      "kind": "source",
+      "size": 1226,
+      "lastModified": "2025-10-22T15:44:01.784Z"
+    },
+    {
+      "path": "components/auth/email-confirmation-modal.tsx",
+      "kind": "source",
+      "size": 2067,
+      "lastModified": "2025-11-12T12:51:57.476Z"
+    },
+    {
+      "path": "components/auth/forgot-password-form.tsx",
+      "kind": "source",
+      "size": 7047,
+      "lastModified": "2025-10-23T10:27:41.037Z"
+    },
+    {
+      "path": "components/auth/login-form.tsx",
+      "kind": "source",
+      "size": 10777,
+      "lastModified": "2025-10-23T10:27:41.036Z"
+    },
+    {
+      "path": "components/auth/register-form.tsx",
+      "kind": "source",
+      "size": 14171,
+      "lastModified": "2025-10-23T10:27:41.034Z"
+    },
+    {
+      "path": "components/auth/reset-password-form.tsx",
+      "kind": "source",
+      "size": 9911,
+      "lastModified": "2025-10-23T10:39:00.042Z"
+    },
+    {
+      "path": "components/budgets/budget-card.tsx",
+      "kind": "source",
+      "size": 7236,
+      "lastModified": "2025-10-22T15:44:01.810Z"
+    },
+    {
+      "path": "components/budgets/index.ts",
+      "kind": "source",
+      "size": 45,
+      "lastModified": "2025-10-22T15:44:01.811Z"
+    },
+    {
+      "path": "components/categories/category-card.tsx",
+      "kind": "source",
+      "size": 6426,
+      "lastModified": "2025-10-22T15:44:01.814Z"
+    },
+    {
+      "path": "components/categories/index.ts",
+      "kind": "source",
+      "size": 49,
+      "lastModified": "2025-10-22T15:44:01.817Z"
+    },
+    {
+      "path": "components/charts/echarts-wrapper.tsx",
+      "kind": "source",
+      "size": 7842,
+      "lastModified": "2025-10-22T15:44:01.822Z"
+    },
+    {
+      "path": "components/currency/bcv-rates.tsx",
+      "kind": "source",
+      "size": 18991,
+      "lastModified": "2025-10-23T11:10:36.227Z"
+    },
+    {
+      "path": "components/currency/binance-rates-backup.tsx",
+      "kind": "source",
+      "size": 12320,
+      "lastModified": "2025-10-22T15:44:01.833Z"
+    },
+    {
+      "path": "components/currency/binance-rates.tsx",
+      "kind": "source",
+      "size": 18774,
+      "lastModified": "2025-10-23T11:10:36.228Z"
+    },
+    {
+      "path": "components/currency/currency-selector.tsx",
+      "kind": "source",
+      "size": 10614,
+      "lastModified": "2025-10-22T15:44:01.845Z"
+    },
+    {
+      "path": "components/currency/rate-selector.tsx",
+      "kind": "source",
+      "size": 4418,
+      "lastModified": "2025-10-30T13:24:33.971Z"
+    },
+    {
+      "path": "components/currency/rates-history.tsx",
+      "kind": "source",
+      "size": 29747,
+      "lastModified": "2025-10-22T15:44:01.854Z"
+    },
+    {
+      "path": "components/dashboard/accounts-overview.tsx",
+      "kind": "source",
+      "size": 12316,
+      "lastModified": "2025-10-30T12:53:58.343Z"
+    },
+    {
+      "path": "components/dashboard/dashboard-content.tsx",
+      "kind": "source",
+      "size": 930,
+      "lastModified": "2025-10-27T13:59:15.464Z"
+    },
+    {
+      "path": "components/dashboard/desktop-dashboard.tsx",
+      "kind": "source",
+      "size": 27760,
+      "lastModified": "2025-10-31T10:43:57.928Z"
+    },
+    {
+      "path": "components/dashboard/index.ts",
+      "kind": "source",
+      "size": 428,
+      "lastModified": "2025-10-22T15:44:01.873Z"
+    },
+    {
+      "path": "components/dashboard/lazy-dashboard-content.tsx",
+      "kind": "source",
+      "size": 497,
+      "lastModified": "2025-10-22T15:44:01.875Z"
+    },
+    {
+      "path": "components/dashboard/lazy-spending-chart.tsx",
+      "kind": "source",
+      "size": 466,
+      "lastModified": "2025-10-22T15:44:01.877Z"
+    },
+    {
+      "path": "components/dashboard/mobile-dashboard.tsx",
+      "kind": "source",
+      "size": 16977,
+      "lastModified": "2025-10-31T10:43:58.174Z"
+    },
+    {
+      "path": "components/dashboard/quick-actions.tsx",
+      "kind": "source",
+      "size": 4791,
+      "lastModified": "2025-10-22T15:44:01.884Z"
+    },
+    {
+      "path": "components/dashboard/recent-transactions.tsx",
+      "kind": "source",
+      "size": 11336,
+      "lastModified": "2025-10-31T10:43:57.629Z"
+    },
+    {
+      "path": "components/dashboard/spending-chart.tsx",
+      "kind": "source",
+      "size": 9837,
+      "lastModified": "2025-10-22T15:44:01.891Z"
+    },
+    {
+      "path": "components/dashboard/stat-card.tsx",
+      "kind": "source",
+      "size": 2737,
+      "lastModified": "2025-10-22T15:44:01.893Z"
+    },
+    {
+      "path": "components/exchange-rate-display.tsx",
+      "kind": "source",
+      "size": 4545,
+      "lastModified": "2025-10-22T15:44:02.157Z"
+    },
+    {
+      "path": "components/filters/index.ts",
+      "kind": "source",
+      "size": 61,
+      "lastModified": "2025-10-22T15:44:01.894Z"
+    },
+    {
+      "path": "components/filters/period-selector.tsx",
+      "kind": "source",
+      "size": 6554,
+      "lastModified": "2025-10-22T15:44:01.898Z"
+    },
+    {
+      "path": "components/filters/transaction-filters.tsx",
+      "kind": "source",
+      "size": 8851,
+      "lastModified": "2025-10-22T15:44:01.904Z"
+    },
+    {
+      "path": "components/forms/account-form.tsx",
+      "kind": "source",
+      "size": 10801,
+      "lastModified": "2025-10-22T15:44:01.910Z"
+    },
+    {
+      "path": "components/forms/balance-alert-settings.tsx",
+      "kind": "source",
+      "size": 8920,
+      "lastModified": "2025-10-22T15:44:01.913Z"
+    },
+    {
+      "path": "components/forms/budget-form.tsx",
+      "kind": "source",
+      "size": 8774,
+      "lastModified": "2025-10-22T15:44:01.917Z"
+    },
+    {
+      "path": "components/forms/category-form.tsx",
+      "kind": "source",
+      "size": 6583,
+      "lastModified": "2025-10-27T13:48:41.398Z"
+    },
+    {
+      "path": "components/forms/color-picker.tsx",
+      "kind": "source",
+      "size": 1902,
+      "lastModified": "2025-10-22T15:44:01.924Z"
+    },
+    {
+      "path": "components/forms/goal-form.tsx",
+      "kind": "source",
+      "size": 10988,
+      "lastModified": "2025-10-22T15:44:01.929Z"
+    },
+    {
+      "path": "components/forms/icon-picker.tsx",
+      "kind": "source",
+      "size": 3939,
+      "lastModified": "2025-10-22T15:44:01.932Z"
+    },
+    {
+      "path": "components/forms/index.ts",
+      "kind": "source",
+      "size": 820,
+      "lastModified": "2025-10-22T15:44:01.932Z"
+    },
+    {
+      "path": "components/forms/transaction-form.tsx",
+      "kind": "source",
+      "size": 15354,
+      "lastModified": "2025-10-22T15:44:01.940Z"
+    },
+    {
+      "path": "components/goals/goal-card.tsx",
+      "kind": "source",
+      "size": 8406,
+      "lastModified": "2025-10-22T15:44:01.945Z"
+    },
+    {
+      "path": "components/goals/index.ts",
+      "kind": "source",
+      "size": 41,
+      "lastModified": "2025-10-22T15:44:01.946Z"
+    },
+    {
+      "path": "components/layout/header.tsx",
+      "kind": "source",
+      "size": 14872,
+      "lastModified": "2025-10-30T18:22:31.432Z"
+    },
+    {
+      "path": "components/layout/index.ts",
+      "kind": "source",
+      "size": 214,
+      "lastModified": "2025-10-22T15:44:01.952Z"
+    },
+    {
+      "path": "components/layout/main-layout.tsx",
+      "kind": "source",
+      "size": 4474,
+      "lastModified": "2025-11-02T17:04:33.354Z"
+    },
+    {
+      "path": "components/layout/mobile-menu-fab.tsx",
+      "kind": "source",
+      "size": 5846,
+      "lastModified": "2025-10-22T15:44:01.960Z"
+    },
+    {
+      "path": "components/layout/mobile-nav.tsx",
+      "kind": "source",
+      "size": 2394,
+      "lastModified": "2025-10-22T15:44:01.962Z"
+    },
+    {
+      "path": "components/layout/sidebar.tsx",
+      "kind": "source",
+      "size": 6616,
+      "lastModified": "2025-10-22T15:44:01.967Z"
+    },
+    {
+      "path": "components/reports/desktop-reports.tsx",
+      "kind": "source",
+      "size": 21836,
+      "lastModified": "2025-10-22T15:44:01.977Z"
+    },
+    {
+      "path": "components/reports/lazy-reports-content.tsx",
+      "kind": "source",
+      "size": 479,
+      "lastModified": "2025-10-22T15:44:01.979Z"
+    },
+    {
+      "path": "components/reports/mobile-reports.tsx",
+      "kind": "source",
+      "size": 13005,
+      "lastModified": "2025-10-22T15:44:01.984Z"
+    },
+    {
+      "path": "components/reports/reports-content.tsx",
+      "kind": "source",
+      "size": 914,
+      "lastModified": "2025-10-27T13:59:15.466Z"
+    },
+    {
+      "path": "components/subscription/feature-badge.tsx",
+      "kind": "source",
+      "size": 1495,
+      "lastModified": "2025-10-22T15:44:01.989Z"
+    },
+    {
+      "path": "components/subscription/free-limit-warning.tsx",
+      "kind": "source",
+      "size": 3544,
+      "lastModified": "2025-10-22T15:44:01.994Z"
+    },
+    {
+      "path": "components/subscription/limit-warning.tsx",
+      "kind": "source",
+      "size": 1461,
+      "lastModified": "2025-10-22T15:44:01.997Z"
+    },
+    {
+      "path": "components/subscription/pricing-cards.tsx",
+      "kind": "source",
+      "size": 6594,
+      "lastModified": "2025-11-02T15:06:32.890Z"
+    },
+    {
+      "path": "components/subscription/upgrade-button.tsx",
+      "kind": "source",
+      "size": 3035,
+      "lastModified": "2025-10-22T15:44:02.002Z"
+    },
+    {
+      "path": "components/subscription/upgrade-modal.tsx",
+      "kind": "source",
+      "size": 4383,
+      "lastModified": "2025-10-22T15:44:02.006Z"
+    },
+    {
+      "path": "components/subscription/usage-indicator.tsx",
+      "kind": "source",
+      "size": 2382,
+      "lastModified": "2025-10-22T15:44:02.008Z"
+    },
+    {
+      "path": "components/tables/transactions-table.tsx",
+      "kind": "source",
+      "size": 23810,
+      "lastModified": "2025-10-22T15:44:02.017Z"
+    },
+    {
+      "path": "components/transactions/add-transaction-content.tsx",
+      "kind": "source",
+      "size": 965,
+      "lastModified": "2025-10-27T13:59:15.466Z"
+    },
+    {
+      "path": "components/transactions/desktop-add-transaction.tsx",
+      "kind": "source",
+      "size": 37378,
+      "lastModified": "2025-11-12T12:51:57.478Z"
+    },
+    {
+      "path": "components/transactions/mobile-add-transaction.tsx",
+      "kind": "source",
+      "size": 29813,
+      "lastModified": "2025-11-12T12:51:57.479Z"
+    },
+    {
+      "path": "components/transactions/transaction-actions-dropdown.tsx",
+      "kind": "source",
+      "size": 3955,
+      "lastModified": "2025-10-22T15:44:02.049Z"
+    },
+    {
+      "path": "components/transactions/transaction-detail-panel.tsx",
+      "kind": "source",
+      "size": 14314,
+      "lastModified": "2025-10-31T12:10:57.075Z"
+    },
+    {
+      "path": "components/transfers/desktop-transfer-fixed.tsx",
+      "kind": "source",
+      "size": 17607,
+      "lastModified": "2025-10-22T15:44:02.057Z"
+    },
+    {
+      "path": "components/transfers/desktop-transfer.tsx",
+      "kind": "source",
+      "size": 26704,
+      "lastModified": "2025-10-30T15:37:43.251Z"
+    },
+    {
+      "path": "components/transfers/mobile-transfer.tsx",
+      "kind": "source",
+      "size": 28788,
+      "lastModified": "2025-10-30T15:37:43.252Z"
+    },
+    {
+      "path": "components/transfers/rate-selector.tsx",
+      "kind": "source",
+      "size": 15373,
+      "lastModified": "2025-10-30T13:55:59.134Z"
+    },
+    {
+      "path": "components/transfers/transfer-content.tsx",
+      "kind": "source",
+      "size": 2274,
+      "lastModified": "2025-10-22T15:44:02.089Z"
+    },
+    {
+      "path": "components/transfers/transfer-history.tsx",
+      "kind": "source",
+      "size": 25722,
+      "lastModified": "2025-10-30T20:30:34.109Z"
+    },
+    {
+      "path": "components/tutorial/index.ts",
+      "kind": "source",
+      "size": 108,
+      "lastModified": "2025-10-22T15:44:02.097Z"
+    },
+    {
+      "path": "components/tutorial/tutorial-button.tsx",
+      "kind": "source",
+      "size": 4775,
+      "lastModified": "2025-10-22T15:44:02.100Z"
+    },
+    {
+      "path": "components/tutorial/tutorial-overlay.tsx",
+      "kind": "source",
+      "size": 9287,
+      "lastModified": "2025-10-22T15:44:02.107Z"
+    },
+    {
+      "path": "components/ui/alert.tsx",
+      "kind": "source",
+      "size": 4103,
+      "lastModified": "2025-10-22T15:44:02.110Z"
+    },
+    {
+      "path": "components/ui/animated-container.tsx",
+      "kind": "source",
+      "size": 4356,
+      "lastModified": "2025-10-22T15:44:02.114Z"
+    },
+    {
+      "path": "components/ui/badge.tsx",
+      "kind": "source",
+      "size": 1455,
+      "lastModified": "2025-10-22T15:44:02.115Z"
+    },
+    {
+      "path": "components/ui/button.tsx",
+      "kind": "source",
+      "size": 2954,
+      "lastModified": "2025-10-22T15:44:02.117Z"
+    },
+    {
+      "path": "components/ui/card.tsx",
+      "kind": "source",
+      "size": 2260,
+      "lastModified": "2025-10-22T15:44:02.119Z"
+    },
+    {
+      "path": "components/ui/elegant-container.tsx",
+      "kind": "source",
+      "size": 4419,
+      "lastModified": "2025-10-22T15:44:02.122Z"
+    },
+    {
+      "path": "components/ui/elegant-gradient.tsx",
+      "kind": "source",
+      "size": 8883,
+      "lastModified": "2025-10-22T15:44:02.128Z"
+    },
+    {
+      "path": "components/ui/elegant-text.tsx",
+      "kind": "source",
+      "size": 3936,
+      "lastModified": "2025-10-22T15:44:02.131Z"
+    },
+    {
+      "path": "components/ui/index.ts",
+      "kind": "source",
+      "size": 240,
+      "lastModified": "2025-10-22T15:44:02.132Z"
+    },
+    {
+      "path": "components/ui/input.tsx",
+      "kind": "source",
+      "size": 2722,
+      "lastModified": "2025-10-24T12:00:51.945Z"
+    },
+    {
+      "path": "components/ui/loading.tsx",
+      "kind": "source",
+      "size": 2373,
+      "lastModified": "2025-10-22T15:44:02.137Z"
+    },
+    {
+      "path": "components/ui/modal.tsx",
+      "kind": "source",
+      "size": 4381,
+      "lastModified": "2025-10-22T15:44:02.140Z"
+    },
+    {
+      "path": "components/ui/progress.tsx",
+      "kind": "source",
+      "size": 929,
+      "lastModified": "2025-10-22T15:44:02.142Z"
+    },
+    {
+      "path": "components/ui/select.tsx",
+      "kind": "source",
+      "size": 2146,
+      "lastModified": "2025-10-24T12:00:54.307Z"
+    },
+    {
+      "path": "components/ui/skeleton-stat-card.tsx",
+      "kind": "source",
+      "size": 1093,
+      "lastModified": "2025-10-22T15:44:02.146Z"
+    },
+    {
+      "path": "components/ui/suspense-loading.tsx",
+      "kind": "source",
+      "size": 2099,
+      "lastModified": "2025-10-22T15:44:02.150Z"
+    },
+    {
+      "path": "components/ui/switch.tsx",
+      "kind": "source",
+      "size": 1586,
+      "lastModified": "2025-10-22T15:44:02.154Z"
+    },
+    {
+      "path": "contexts/ai-chat-context.tsx",
+      "kind": "source",
+      "size": 6764,
+      "lastModified": "2025-11-05T12:45:00.770Z"
+    },
+    {
+      "path": "contexts/auth-context.tsx",
+      "kind": "source",
+      "size": 12182,
+      "lastModified": "2025-10-30T15:37:43.251Z"
+    },
+    {
+      "path": "contexts/sidebar-context.tsx",
+      "kind": "source",
+      "size": 1812,
+      "lastModified": "2025-10-22T15:44:02.169Z"
+    },
+    {
+      "path": "contexts/tutorial-context.tsx",
+      "kind": "source",
+      "size": 1741,
+      "lastModified": "2025-10-22T15:44:02.171Z"
+    },
+    {
+      "path": "data/tutorials.ts",
+      "kind": "source",
+      "size": 14362,
+      "lastModified": "2025-10-22T15:44:02.179Z"
+    },
+    {
+      "path": "final_review_gate.py",
+      "kind": "source",
+      "size": 2318,
+      "lastModified": "2025-10-09T13:04:10.129Z"
+    },
+    {
+      "path": "fintec/lib/ai/action-confirmer.ts",
+      "kind": "source",
+      "size": 11272,
+      "lastModified": "2025-11-04T18:40:23.230Z"
+    },
+    {
+      "path": "fintec/lib/ai/action-executor.ts",
+      "kind": "source",
+      "size": 15167,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "fintec/lib/ai/action-tools.ts",
+      "kind": "source",
+      "size": 9856,
+      "lastModified": "2025-11-04T22:21:14.023Z"
+    },
+    {
+      "path": "fintec/lib/ai/advisor.ts",
+      "kind": "source",
+      "size": 4539,
+      "lastModified": "2025-10-30T15:37:43.252Z"
+    },
+    {
+      "path": "fintec/lib/ai/anomaly-detection.ts",
+      "kind": "source",
+      "size": 6119,
+      "lastModified": "2025-10-30T15:37:43.252Z"
+    },
+    {
+      "path": "fintec/lib/ai/budget-optimizer.ts",
+      "kind": "source",
+      "size": 3849,
+      "lastModified": "2025-10-22T15:44:02.258Z"
+    },
+    {
+      "path": "fintec/lib/ai/cache-manager.ts",
+      "kind": "source",
+      "size": 9455,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "fintec/lib/ai/categorization.ts",
+      "kind": "source",
+      "size": 4029,
+      "lastModified": "2025-10-30T15:37:43.258Z"
+    },
+    {
+      "path": "fintec/lib/ai/chat-assistant.ts",
+      "kind": "source",
+      "size": 16250,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "fintec/lib/ai/config.ts",
+      "kind": "source",
+      "size": 2498,
+      "lastModified": "2025-11-02T14:14:53.812Z"
+    },
+    {
+      "path": "fintec/lib/ai/fallback-responses.ts",
+      "kind": "source",
+      "size": 7797,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "fintec/lib/ai/intention-detector.ts",
+      "kind": "source",
+      "size": 18861,
+      "lastModified": "2025-11-04T18:23:24.326Z"
+    },
+    {
+      "path": "fintec/lib/ai/predictions.ts",
+      "kind": "source",
+      "size": 3506,
+      "lastModified": "2025-10-22T15:44:02.267Z"
+    },
+    {
+      "path": "fintec/lib/ai/proactive-advisor.ts",
+      "kind": "source",
+      "size": 10937,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "fintec/lib/ai/rag/embedding-cache.ts",
+      "kind": "source",
+      "size": 5801,
+      "lastModified": "2025-11-06T18:07:15.215Z"
+    },
+    {
+      "path": "fintec/lib/ai/rag/metrics.ts",
+      "kind": "source",
+      "size": 4853,
+      "lastModified": "2025-11-06T18:07:15.215Z"
+    },
+    {
+      "path": "fintec/lib/ai/rag/query-analyzer.ts",
+      "kind": "source",
+      "size": 7430,
+      "lastModified": "2025-11-06T18:07:15.215Z"
+    },
+    {
+      "path": "fintec/lib/ai/rate-limiter.ts",
+      "kind": "source",
+      "size": 5235,
+      "lastModified": "2025-11-02T14:18:33.225Z"
+    },
+    {
+      "path": "fintec/lib/ai/retry-handler.ts",
+      "kind": "source",
+      "size": 4070,
+      "lastModified": "2025-11-02T14:18:33.225Z"
+    },
+    {
+      "path": "fintec/lib/ai/security.ts",
+      "kind": "source",
+      "size": 5763,
+      "lastModified": "2025-11-02T14:18:33.226Z"
+    },
+    {
+      "path": "GEMINI.md",
+      "kind": "documentation",
+      "size": 1616,
+      "lastModified": "2025-10-17T12:05:17.129Z"
+    },
+    {
+      "path": "hooks/index.ts",
+      "kind": "source",
+      "size": 295,
+      "lastModified": "2025-10-31T15:20:38.742Z"
+    },
+    {
+      "path": "hooks/use-ai-chat.ts",
+      "kind": "source",
+      "size": 3578,
+      "lastModified": "2025-11-02T13:15:34.409Z"
+    },
+    {
+      "path": "hooks/use-auth.ts",
+      "kind": "source",
+      "size": 58,
+      "lastModified": "2025-10-22T15:44:02.206Z"
+    },
+    {
+      "path": "hooks/use-auto-backup.ts",
+      "kind": "source",
+      "size": 5859,
+      "lastModified": "2025-10-22T15:44:02.210Z"
+    },
+    {
+      "path": "hooks/use-balance-alerts.ts",
+      "kind": "source",
+      "size": 2516,
+      "lastModified": "2025-10-22T15:44:02.212Z"
+    },
+    {
+      "path": "hooks/use-bcv-rates.ts",
+      "kind": "source",
+      "size": 710,
+      "lastModified": "2025-10-22T15:44:02.214Z"
+    },
+    {
+      "path": "hooks/use-binance-rates.ts",
+      "kind": "source",
+      "size": 4619,
+      "lastModified": "2025-10-22T15:44:02.218Z"
+    },
+    {
+      "path": "hooks/use-check-limit.ts",
+      "kind": "source",
+      "size": 2485,
+      "lastModified": "2025-10-22T15:44:02.221Z"
+    },
+    {
+      "path": "hooks/use-currency-converter.ts",
+      "kind": "source",
+      "size": 2431,
+      "lastModified": "2025-10-22T15:44:02.223Z"
+    },
+    {
+      "path": "hooks/use-media-query.ts",
+      "kind": "source",
+      "size": 812,
+      "lastModified": "2025-10-27T12:44:33.592Z"
+    },
+    {
+      "path": "hooks/use-modal.ts",
+      "kind": "source",
+      "size": 360,
+      "lastModified": "2025-10-22T15:44:02.230Z"
+    },
+    {
+      "path": "hooks/use-optimized-data.ts",
+      "kind": "source",
+      "size": 10228,
+      "lastModified": "2025-10-23T14:08:06.284Z"
+    },
+    {
+      "path": "hooks/use-paddle-products.ts",
+      "kind": "source",
+      "size": 2217,
+      "lastModified": "2025-10-31T13:20:51.440Z"
+    },
+    {
+      "path": "hooks/use-paddle.ts",
+      "kind": "source",
+      "size": 7778,
+      "lastModified": "2025-10-31T17:38:11.575Z"
+    },
+    {
+      "path": "hooks/use-realtime-rates.ts",
+      "kind": "source",
+      "size": 1777,
+      "lastModified": "2025-10-22T15:44:02.236Z"
+    },
+    {
+      "path": "hooks/use-subscription.ts",
+      "kind": "source",
+      "size": 6583,
+      "lastModified": "2025-11-02T15:53:35.846Z"
+    },
+    {
+      "path": "hooks/use-tutorial.ts",
+      "kind": "source",
+      "size": 3726,
+      "lastModified": "2025-10-22T15:44:02.245Z"
+    },
+    {
+      "path": "jest.config.js",
+      "kind": "source",
+      "size": 1150,
+      "lastModified": "2025-10-22T15:46:17.410Z"
+    },
+    {
+      "path": "jest.setup.js",
+      "kind": "source",
+      "size": 1397,
+      "lastModified": "2025-10-22T15:46:17.412Z"
+    },
+    {
+      "path": "lib/ai/action-confirmer.ts",
+      "kind": "source",
+      "size": 11446,
+      "lastModified": "2025-11-04T23:55:25.959Z"
+    },
+    {
+      "path": "lib/ai/action-executor.ts",
+      "kind": "source",
+      "size": 14640,
+      "lastModified": "2025-11-12T12:51:57.480Z"
+    },
+    {
+      "path": "lib/ai/action-tools.ts",
+      "kind": "source",
+      "size": 9866,
+      "lastModified": "2025-11-12T12:51:57.481Z"
+    },
+    {
+      "path": "lib/ai/advisor.ts",
+      "kind": "source",
+      "size": 4058,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/anomaly-detection.ts",
+      "kind": "source",
+      "size": 5613,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/budget-optimizer.ts",
+      "kind": "source",
+      "size": 3548,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/cache-manager.ts",
+      "kind": "source",
+      "size": 13441,
+      "lastModified": "2025-11-06T15:09:44.830Z"
+    },
+    {
+      "path": "lib/ai/categorization.ts",
+      "kind": "source",
+      "size": 3766,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/chat-assistant.ts",
+      "kind": "source",
+      "size": 64216,
+      "lastModified": "2025-11-06T22:23:28.086Z"
+    },
+    {
+      "path": "lib/ai/config.ts",
+      "kind": "source",
+      "size": 2333,
+      "lastModified": "2025-11-06T14:59:49.393Z"
+    },
+    {
+      "path": "lib/ai/context-builder.ts",
+      "kind": "source",
+      "size": 17571,
+      "lastModified": "2025-11-06T17:55:59.486Z"
+    },
+    {
+      "path": "lib/ai/fallback-responses.ts",
+      "kind": "source",
+      "size": 7790,
+      "lastModified": "2025-11-02T14:18:33.226Z"
+    },
+    {
+      "path": "lib/ai/intention-detector.ts",
+      "kind": "source",
+      "size": 46177,
+      "lastModified": "2025-11-06T22:17:07.543Z"
+    },
+    {
+      "path": "lib/ai/predictions.ts",
+      "kind": "source",
+      "size": 3107,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/proactive-advisor.ts",
+      "kind": "source",
+      "size": 10940,
+      "lastModified": "2025-11-12T12:51:57.481Z"
+    },
+    {
+      "path": "lib/ai/prompts/ARCHITECTURE.md",
+      "kind": "documentation",
+      "size": 7841,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/cache.ts",
+      "kind": "source",
+      "size": 6160,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/manager.ts",
+      "kind": "source",
+      "size": 8583,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/PROMPT_TEMPLATES.md",
+      "kind": "documentation",
+      "size": 9338,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/RULES_CHECKLIST.md",
+      "kind": "documentation",
+      "size": 5969,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/advisor.ts",
+      "kind": "source",
+      "size": 1320,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/anomaly-detection.ts",
+      "kind": "source",
+      "size": 1498,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/budget-optimizer.ts",
+      "kind": "source",
+      "size": 1185,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/capabilities.ts",
+      "kind": "source",
+      "size": 592,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/categorization.ts",
+      "kind": "source",
+      "size": 1412,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/context.ts",
+      "kind": "source",
+      "size": 4321,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/examples.ts",
+      "kind": "source",
+      "size": 2267,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/identity.ts",
+      "kind": "source",
+      "size": 530,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/instructions.ts",
+      "kind": "source",
+      "size": 6898,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/predictions.ts",
+      "kind": "source",
+      "size": 1255,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/templates/system.ts",
+      "kind": "source",
+      "size": 636,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/prompts/types.ts",
+      "kind": "source",
+      "size": 3767,
+      "lastModified": "2025-11-05T11:11:23.050Z"
+    },
+    {
+      "path": "lib/ai/query-handlers.ts",
+      "kind": "source",
+      "size": 24570,
+      "lastModified": "2025-11-06T21:24:01.283Z"
+    },
+    {
+      "path": "lib/ai/rag/embedder.ts",
+      "kind": "source",
+      "size": 3278,
+      "lastModified": "2025-11-06T17:57:19.098Z"
+    },
+    {
+      "path": "lib/ai/rag/embedding-cache.ts",
+      "kind": "source",
+      "size": 3894,
+      "lastModified": "2025-11-06T18:03:26.530Z"
+    },
+    {
+      "path": "lib/ai/rag/indexer.ts",
+      "kind": "source",
+      "size": 12970,
+      "lastModified": "2025-11-06T17:54:27.837Z"
+    },
+    {
+      "path": "lib/ai/rag/metrics.ts",
+      "kind": "source",
+      "size": 2468,
+      "lastModified": "2025-11-06T18:06:34.277Z"
+    },
+    {
+      "path": "lib/ai/rag/query-analyzer.ts",
+      "kind": "source",
+      "size": 4092,
+      "lastModified": "2025-11-06T18:03:42.197Z"
+    },
+    {
+      "path": "lib/ai/rag/retriever.ts",
+      "kind": "source",
+      "size": 5742,
+      "lastModified": "2025-11-06T18:00:22.559Z"
+    },
+    {
+      "path": "lib/ai/rate-limiter.ts",
+      "kind": "source",
+      "size": 5235,
+      "lastModified": "2025-11-02T14:18:33.225Z"
+    },
+    {
+      "path": "lib/ai/retry-handler.ts",
+      "kind": "source",
+      "size": 4070,
+      "lastModified": "2025-11-02T14:18:33.225Z"
+    },
+    {
+      "path": "lib/ai/security.ts",
+      "kind": "source",
+      "size": 5763,
+      "lastModified": "2025-11-02T14:18:33.226Z"
+    },
+    {
+      "path": "lib/animations/advanced.ts",
+      "kind": "source",
+      "size": 4839,
+      "lastModified": "2025-10-22T15:44:02.272Z"
+    },
+    {
+      "path": "lib/animations/index.ts",
+      "kind": "source",
+      "size": 8710,
+      "lastModified": "2025-10-22T15:44:02.281Z"
+    },
+    {
+      "path": "lib/auth/config.ts",
+      "kind": "source",
+      "size": 7855,
+      "lastModified": "2025-10-22T15:44:02.285Z"
+    },
+    {
+      "path": "lib/charts/index.ts",
+      "kind": "source",
+      "size": 11856,
+      "lastModified": "2025-10-22T15:44:02.296Z"
+    },
+    {
+      "path": "lib/colors/elegant.ts",
+      "kind": "source",
+      "size": 7789,
+      "lastModified": "2025-10-22T15:44:02.303Z"
+    },
+    {
+      "path": "lib/csv.ts",
+      "kind": "source",
+      "size": 10228,
+      "lastModified": "2025-10-22T15:44:02.463Z"
+    },
+    {
+      "path": "lib/currency-ves.ts",
+      "kind": "source",
+      "size": 3278,
+      "lastModified": "2025-10-22T15:44:02.466Z"
+    },
+    {
+      "path": "lib/dates/dayjs.ts",
+      "kind": "source",
+      "size": 9066,
+      "lastModified": "2025-10-22T15:44:02.308Z"
+    },
+    {
+      "path": "lib/dates/period-comparison.ts",
+      "kind": "source",
+      "size": 4610,
+      "lastModified": "2025-10-22T15:44:02.311Z"
+    },
+    {
+      "path": "lib/dates/periods.ts",
+      "kind": "source",
+      "size": 3908,
+      "lastModified": "2025-10-22T15:44:02.315Z"
+    },
+    {
+      "path": "lib/dates/recurring.ts",
+      "kind": "source",
+      "size": 1416,
+      "lastModified": "2025-10-22T15:44:02.318Z"
+    },
+    {
+      "path": "lib/dates.ts",
+      "kind": "source",
+      "size": 8771,
+      "lastModified": "2025-10-22T15:44:02.471Z"
+    },
+    {
+      "path": "lib/drag-drop/index.ts",
+      "kind": "source",
+      "size": 13894,
+      "lastModified": "2025-10-22T15:44:02.327Z"
+    },
+    {
+      "path": "lib/echarts/index.ts",
+      "kind": "source",
+      "size": 16623,
+      "lastModified": "2025-10-22T15:44:02.341Z"
+    },
+    {
+      "path": "lib/fonts/index.ts",
+      "kind": "source",
+      "size": 10537,
+      "lastModified": "2025-10-22T15:44:02.348Z"
+    },
+    {
+      "path": "lib/format.ts",
+      "kind": "source",
+      "size": 1697,
+      "lastModified": "2025-10-22T15:44:02.474Z"
+    },
+    {
+      "path": "lib/hotkeys/index.ts",
+      "kind": "source",
+      "size": 9535,
+      "lastModified": "2025-10-22T15:44:02.356Z"
+    },
+    {
+      "path": "lib/money.ts",
+      "kind": "source",
+      "size": 8778,
+      "lastModified": "2025-10-22T15:44:02.479Z"
+    },
+    {
+      "path": "lib/paddle/checkout.ts",
+      "kind": "source",
+      "size": 2758,
+      "lastModified": "2025-10-31T17:14:09.257Z"
+    },
+    {
+      "path": "lib/paddle/config.ts",
+      "kind": "source",
+      "size": 2523,
+      "lastModified": "2025-10-31T15:09:49.467Z"
+    },
+    {
+      "path": "lib/paddle/errors.ts",
+      "kind": "source",
+      "size": 10319,
+      "lastModified": "2025-10-31T17:38:11.576Z"
+    },
+    {
+      "path": "lib/paddle/logger.ts",
+      "kind": "source",
+      "size": 4280,
+      "lastModified": "2025-11-12T12:51:57.479Z"
+    },
+    {
+      "path": "lib/paddle/subscriptions.ts",
+      "kind": "source",
+      "size": 8467,
+      "lastModified": "2025-11-02T16:40:48.766Z"
+    },
+    {
+      "path": "lib/paddle/validate-prices.ts",
+      "kind": "source",
+      "size": 8584,
+      "lastModified": "2025-10-31T17:38:11.576Z"
+    },
+    {
+      "path": "lib/paddle/webhooks.ts",
+      "kind": "source",
+      "size": 8823,
+      "lastModified": "2025-10-31T15:05:46.965Z"
+    },
+    {
+      "path": "lib/rate-comparison.ts",
+      "kind": "source",
+      "size": 4012,
+      "lastModified": "2025-10-22T15:44:02.484Z"
+    },
+    {
+      "path": "lib/rates.ts",
+      "kind": "source",
+      "size": 801,
+      "lastModified": "2025-10-30T13:24:33.971Z"
+    },
+    {
+      "path": "lib/redis/client.ts",
+      "kind": "source",
+      "size": 3305,
+      "lastModified": "2025-11-02T14:18:33.225Z"
+    },
+    {
+      "path": "lib/scrapers/bcv-scraper.ts",
+      "kind": "source",
+      "size": 7450,
+      "lastModified": "2025-10-22T15:44:02.376Z"
+    },
+    {
+      "path": "lib/scrapers/binance-scraper.ts",
+      "kind": "source",
+      "size": 9651,
+      "lastModified": "2025-10-22T15:44:02.382Z"
+    },
+    {
+      "path": "lib/services/background-scraper-manager.ts",
+      "kind": "source",
+      "size": 3019,
+      "lastModified": "2025-10-22T15:44:02.385Z"
+    },
+    {
+      "path": "lib/services/background-scraper.ts",
+      "kind": "source",
+      "size": 3412,
+      "lastModified": "2025-10-22T15:44:02.388Z"
+    },
+    {
+      "path": "lib/services/backup-service.ts",
+      "kind": "source",
+      "size": 13289,
+      "lastModified": "2025-10-22T15:44:02.395Z"
+    },
+    {
+      "path": "lib/services/balance-alert-service.ts",
+      "kind": "source",
+      "size": 5428,
+      "lastModified": "2025-10-22T15:44:02.400Z"
+    },
+    {
+      "path": "lib/services/bcv-history-service.ts",
+      "kind": "source",
+      "size": 5456,
+      "lastModified": "2025-10-22T15:44:02.404Z"
+    },
+    {
+      "path": "lib/services/binance-history-service.ts",
+      "kind": "source",
+      "size": 5243,
+      "lastModified": "2025-10-22T15:44:02.407Z"
+    },
+    {
+      "path": "lib/services/currency-service.ts",
+      "kind": "source",
+      "size": 13064,
+      "lastModified": "2025-10-22T15:44:02.415Z"
+    },
+    {
+      "path": "lib/services/exchange-rate-db.ts",
+      "kind": "source",
+      "size": 2943,
+      "lastModified": "2025-10-22T15:44:02.417Z"
+    },
+    {
+      "path": "lib/services/scraper-instance-manager.ts",
+      "kind": "source",
+      "size": 1259,
+      "lastModified": "2025-10-22T15:44:02.419Z"
+    },
+    {
+      "path": "lib/services/websocket-server.ts",
+      "kind": "source",
+      "size": 3104,
+      "lastModified": "2025-10-22T15:44:02.422Z"
+    },
+    {
+      "path": "lib/spacing/elegant.ts",
+      "kind": "source",
+      "size": 5126,
+      "lastModified": "2025-10-22T15:44:02.425Z"
+    },
+    {
+      "path": "lib/store/index.ts",
+      "kind": "source",
+      "size": 12446,
+      "lastModified": "2025-10-30T13:21:04.693Z"
+    },
+    {
+      "path": "lib/subscriptions/check-limit.ts",
+      "kind": "source",
+      "size": 4046,
+      "lastModified": "2025-10-31T13:20:51.445Z"
+    },
+    {
+      "path": "lib/subscriptions/feature-gate.ts",
+      "kind": "source",
+      "size": 4810,
+      "lastModified": "2025-10-31T13:20:51.445Z"
+    },
+    {
+      "path": "lib/subscriptions/limits.ts",
+      "kind": "source",
+      "size": 2224,
+      "lastModified": "2025-10-22T15:44:02.442Z"
+    },
+    {
+      "path": "lib/typography/elegant.ts",
+      "kind": "source",
+      "size": 7744,
+      "lastModified": "2025-10-22T15:44:02.448Z"
+    },
+    {
+      "path": "lib/utils/logger.ts",
+      "kind": "source",
+      "size": 1533,
+      "lastModified": "2025-10-22T15:44:02.451Z"
+    },
+    {
+      "path": "lib/utils.ts",
+      "kind": "source",
+      "size": 5076,
+      "lastModified": "2025-10-22T15:44:02.487Z"
+    },
+    {
+      "path": "lib/validations/schemas.ts",
+      "kind": "source",
+      "size": 13259,
+      "lastModified": "2025-10-22T15:44:02.457Z"
+    },
+    {
+      "path": "LOGO_FIX_IMPLEMENTATION_SUMMARY.md",
+      "kind": "documentation",
+      "size": 3710,
+      "lastModified": "2025-10-08T12:24:35.042Z"
+    },
+    {
+      "path": "MCP_PADDLE_FIX.md",
+      "kind": "documentation",
+      "size": 4920,
+      "lastModified": "2025-11-12T12:51:57.479Z"
+    },
+    {
+      "path": "next-env.d.ts",
+      "kind": "source",
+      "size": 268,
+      "lastModified": "2025-10-22T15:46:19.642Z"
+    },
+    {
+      "path": "next.config.js",
+      "kind": "source",
+      "size": 346,
+      "lastModified": "2025-10-23T13:03:30.237Z"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "config",
+      "size": 520856,
+      "lastModified": "2025-11-02T15:29:17.634Z"
+    },
+    {
+      "path": "package.json",
+      "kind": "config",
+      "size": 3186,
+      "lastModified": "2025-11-02T14:16:26.048Z"
+    },
+    {
+      "path": "PADDLE_ENV_VARIABLES.txt",
+      "kind": "documentation",
+      "size": 5186,
+      "lastModified": "2025-10-31T14:56:07.093Z"
+    },
+    {
+      "path": "playwright/.auth/user.json",
+      "kind": "config",
+      "size": 2641,
+      "lastModified": "2025-10-22T14:21:50.135Z"
+    },
+    {
+      "path": "playwright.config.ts",
+      "kind": "source",
+      "size": 2806,
+      "lastModified": "2025-10-22T15:46:17.419Z"
+    },
+    {
+      "path": "postcss.config.cjs",
+      "kind": "source",
+      "size": 82,
+      "lastModified": "2025-10-22T15:52:05.122Z"
+    },
+    {
+      "path": "providers/exchange-rate-provider.ts",
+      "kind": "source",
+      "size": 10187,
+      "lastModified": "2025-10-22T15:46:16.517Z"
+    },
+    {
+      "path": "providers/index.ts",
+      "kind": "source",
+      "size": 108,
+      "lastModified": "2025-10-22T15:46:16.519Z"
+    },
+    {
+      "path": "providers/repository-provider.tsx",
+      "kind": "source",
+      "size": 1226,
+      "lastModified": "2025-10-22T15:46:16.521Z"
+    },
+    {
+      "path": "public/manifest.json",
+      "kind": "config",
+      "size": 2220,
+      "lastModified": "2025-09-19T13:37:40.155Z"
+    },
+    {
+      "path": "public/sw.js",
+      "kind": "source",
+      "size": 10009,
+      "lastModified": "2025-10-22T15:46:16.528Z"
+    },
+    {
+      "path": "README.md",
+      "kind": "documentation",
+      "size": 7259,
+      "lastModified": "2025-10-22T17:54:58.023Z"
+    },
+    {
+      "path": "repositories/contracts/accounts-repository.ts",
+      "kind": "source",
+      "size": 1413,
+      "lastModified": "2025-10-22T15:46:16.531Z"
+    },
+    {
+      "path": "repositories/contracts/base-repository.ts",
+      "kind": "source",
+      "size": 850,
+      "lastModified": "2025-10-22T15:46:16.533Z"
+    },
+    {
+      "path": "repositories/contracts/budgets-repository.ts",
+      "kind": "source",
+      "size": 2112,
+      "lastModified": "2025-10-22T15:46:16.536Z"
+    },
+    {
+      "path": "repositories/contracts/categories-repository.ts",
+      "kind": "source",
+      "size": 1380,
+      "lastModified": "2025-10-22T15:46:16.537Z"
+    },
+    {
+      "path": "repositories/contracts/exchange-rates-repository.ts",
+      "kind": "source",
+      "size": 1675,
+      "lastModified": "2025-10-22T15:46:16.539Z"
+    },
+    {
+      "path": "repositories/contracts/goals-repository.ts",
+      "kind": "source",
+      "size": 2289,
+      "lastModified": "2025-10-22T15:46:16.542Z"
+    },
+    {
+      "path": "repositories/contracts/index.ts",
+      "kind": "source",
+      "size": 1432,
+      "lastModified": "2025-10-22T15:46:16.544Z"
+    },
+    {
+      "path": "repositories/contracts/notifications-repository.ts",
+      "kind": "source",
+      "size": 733,
+      "lastModified": "2025-10-22T15:46:16.546Z"
+    },
+    {
+      "path": "repositories/contracts/recurring-transactions-repository.ts",
+      "kind": "source",
+      "size": 1761,
+      "lastModified": "2025-10-22T15:46:16.549Z"
+    },
+    {
+      "path": "repositories/contracts/transactions-repository.ts",
+      "kind": "source",
+      "size": 2793,
+      "lastModified": "2025-10-22T15:46:16.551Z"
+    },
+    {
+      "path": "repositories/index.ts",
+      "kind": "source",
+      "size": 1918,
+      "lastModified": "2025-10-22T15:46:16.743Z"
+    },
+    {
+      "path": "repositories/local/accounts-repository-impl.ts",
+      "kind": "source",
+      "size": 8315,
+      "lastModified": "2025-10-22T15:46:16.557Z"
+    },
+    {
+      "path": "repositories/local/budgets-repository-impl.ts",
+      "kind": "source",
+      "size": 10569,
+      "lastModified": "2025-10-22T15:46:16.565Z"
+    },
+    {
+      "path": "repositories/local/categories-repository-impl.ts",
+      "kind": "source",
+      "size": 7285,
+      "lastModified": "2025-10-22T15:46:16.570Z"
+    },
+    {
+      "path": "repositories/local/db.ts",
+      "kind": "source",
+      "size": 9346,
+      "lastModified": "2025-10-22T15:46:16.574Z"
+    },
+    {
+      "path": "repositories/local/exchange-rates-repository-impl.ts",
+      "kind": "source",
+      "size": 8926,
+      "lastModified": "2025-10-22T15:46:16.591Z"
+    },
+    {
+      "path": "repositories/local/goals-repository-impl.ts",
+      "kind": "source",
+      "size": 10779,
+      "lastModified": "2025-10-22T15:46:16.599Z"
+    },
+    {
+      "path": "repositories/local/index.ts",
+      "kind": "source",
+      "size": 4561,
+      "lastModified": "2025-10-22T15:46:16.605Z"
+    },
+    {
+      "path": "repositories/local/notifications-repository-impl.ts",
+      "kind": "source",
+      "size": 2376,
+      "lastModified": "2025-10-22T15:46:16.607Z"
+    },
+    {
+      "path": "repositories/local/recurring-transactions-repository-impl.ts",
+      "kind": "source",
+      "size": 2667,
+      "lastModified": "2025-10-22T15:46:16.609Z"
+    },
+    {
+      "path": "repositories/local/transactions-repository-impl.ts",
+      "kind": "source",
+      "size": 19840,
+      "lastModified": "2025-10-22T15:46:16.630Z"
+    },
+    {
+      "path": "repositories/supabase/accounts-repository-impl.ts",
+      "kind": "source",
+      "size": 11748,
+      "lastModified": "2025-10-30T15:37:43.258Z"
+    },
+    {
+      "path": "repositories/supabase/budgets-repository-impl.ts",
+      "kind": "source",
+      "size": 9516,
+      "lastModified": "2025-10-30T14:47:01.021Z"
+    },
+    {
+      "path": "repositories/supabase/categories-repository-impl.ts",
+      "kind": "source",
+      "size": 16096,
+      "lastModified": "2025-10-30T15:37:43.259Z"
+    },
+    {
+      "path": "repositories/supabase/client.ts",
+      "kind": "source",
+      "size": 3668,
+      "lastModified": "2025-11-02T16:40:48.766Z"
+    },
+    {
+      "path": "repositories/supabase/exchange-rates-repository-impl.ts",
+      "kind": "source",
+      "size": 11799,
+      "lastModified": "2025-10-30T15:37:43.259Z"
+    },
+    {
+      "path": "repositories/supabase/goals-repository-impl.ts",
+      "kind": "source",
+      "size": 12359,
+      "lastModified": "2025-10-30T15:37:43.259Z"
+    },
+    {
+      "path": "repositories/supabase/index.ts",
+      "kind": "source",
+      "size": 6243,
+      "lastModified": "2025-10-30T15:37:43.259Z"
+    },
+    {
+      "path": "repositories/supabase/mappers.ts",
+      "kind": "source",
+      "size": 9437,
+      "lastModified": "2025-10-22T15:46:16.695Z"
+    },
+    {
+      "path": "repositories/supabase/notifications-repository-impl.ts",
+      "kind": "source",
+      "size": 4384,
+      "lastModified": "2025-10-30T15:37:43.259Z"
+    },
+    {
+      "path": "repositories/supabase/recurring-transactions-repository-impl.ts",
+      "kind": "source",
+      "size": 8988,
+      "lastModified": "2025-10-30T15:37:43.260Z"
+    },
+    {
+      "path": "repositories/supabase/transactions-repository-impl.ts",
+      "kind": "source",
+      "size": 24828,
+      "lastModified": "2025-10-30T15:37:43.260Z"
+    },
+    {
+      "path": "repositories/supabase/types.ts",
+      "kind": "source",
+      "size": 14358,
+      "lastModified": "2025-10-22T15:46:16.739Z"
+    },
+    {
+      "path": "resolve-lemon-squeezy-checkout-404.plan.md",
+      "kind": "documentation",
+      "size": 8164,
+      "lastModified": "2025-10-09T15:51:35.073Z"
+    },
+    {
+      "path": "scripts/apply-all-migrations-dev.ts",
+      "kind": "source",
+      "size": 7260,
+      "lastModified": "2025-10-22T15:46:16.749Z"
+    },
+    {
+      "path": "scripts/apply-categories-rls.ts",
+      "kind": "source",
+      "size": 1595,
+      "lastModified": "2025-10-22T15:46:16.751Z"
+    },
+    {
+      "path": "scripts/apply-migration-direct.ts",
+      "kind": "source",
+      "size": 4078,
+      "lastModified": "2025-10-22T15:46:16.764Z"
+    },
+    {
+      "path": "scripts/apply-migration.ts",
+      "kind": "source",
+      "size": 3308,
+      "lastModified": "2025-10-22T15:46:16.768Z"
+    },
+    {
+      "path": "scripts/apply-recurring-transactions.js",
+      "kind": "source",
+      "size": 8378,
+      "lastModified": "2025-10-22T15:46:16.772Z"
+    },
+    {
+      "path": "scripts/auto-login.js",
+      "kind": "source",
+      "size": 3168,
+      "lastModified": "2025-10-22T15:46:16.775Z"
+    },
+    {
+      "path": "scripts/bcv_scraper.py",
+      "kind": "source",
+      "size": 3255,
+      "lastModified": "2025-09-18T15:29:56.310Z"
+    },
+    {
+      "path": "scripts/binance_config.json",
+      "kind": "config",
+      "size": 848,
+      "lastModified": "2025-09-30T00:33:32.234Z"
+    },
+    {
+      "path": "scripts/binance_scraper.py",
+      "kind": "source",
+      "size": 20313,
+      "lastModified": "2025-09-30T00:33:32.235Z"
+    },
+    {
+      "path": "scripts/BINANCE_SCRAPERS_ANALYSIS.md",
+      "kind": "documentation",
+      "size": 3773,
+      "lastModified": "2025-09-30T00:44:12.087Z"
+    },
+    {
+      "path": "scripts/BINANCE_SCRAPERS_DOCUMENTATION.md",
+      "kind": "documentation",
+      "size": 10374,
+      "lastModified": "2025-10-02T11:28:51.014Z"
+    },
+    {
+      "path": "scripts/binance_scraper_fallback.py",
+      "kind": "source",
+      "size": 19982,
+      "lastModified": "2025-09-30T00:59:57.472Z"
+    },
+    {
+      "path": "scripts/binance_scraper_production.py",
+      "kind": "source",
+      "size": 51110,
+      "lastModified": "2025-10-08T00:35:09.860Z"
+    },
+    {
+      "path": "scripts/binance_scraper_ultra_fast.py",
+      "kind": "source",
+      "size": 16061,
+      "lastModified": "2025-10-07T15:41:33.219Z"
+    },
+    {
+      "path": "scripts/check-browser-auth-state.js",
+      "kind": "source",
+      "size": 3835,
+      "lastModified": "2025-10-22T15:46:16.779Z"
+    },
+    {
+      "path": "scripts/check-browser-auth.js",
+      "kind": "source",
+      "size": 6096,
+      "lastModified": "2025-10-22T15:46:16.782Z"
+    },
+    {
+      "path": "scripts/check-database-amounts.js",
+      "kind": "source",
+      "size": 3024,
+      "lastModified": "2025-10-22T15:46:16.785Z"
+    },
+    {
+      "path": "scripts/check-table-structure.js",
+      "kind": "source",
+      "size": 3472,
+      "lastModified": "2025-10-22T15:46:16.796Z"
+    },
+    {
+      "path": "scripts/check-users-schema.js",
+      "kind": "source",
+      "size": 2833,
+      "lastModified": "2025-10-22T15:46:16.799Z"
+    },
+    {
+      "path": "scripts/cleanup-old-data.ts",
+      "kind": "source",
+      "size": 2664,
+      "lastModified": "2025-10-30T15:37:43.260Z"
+    },
+    {
+      "path": "scripts/create-auth-bypass.js",
+      "kind": "source",
+      "size": 4955,
+      "lastModified": "2025-10-22T15:46:16.808Z"
+    },
+    {
+      "path": "scripts/create-auth-user.js",
+      "kind": "source",
+      "size": 5071,
+      "lastModified": "2025-10-22T15:46:16.812Z"
+    },
+    {
+      "path": "scripts/create-test-user-manual.js",
+      "kind": "source",
+      "size": 4391,
+      "lastModified": "2025-10-22T15:46:16.816Z"
+    },
+    {
+      "path": "scripts/create-test-user.js",
+      "kind": "source",
+      "size": 6214,
+      "lastModified": "2025-10-22T15:46:16.822Z"
+    },
+    {
+      "path": "scripts/create-user-with-uuid.js",
+      "kind": "source",
+      "size": 5400,
+      "lastModified": "2025-10-22T15:46:16.833Z"
+    },
+    {
+      "path": "scripts/debug-auth-detailed.js",
+      "kind": "source",
+      "size": 3851,
+      "lastModified": "2025-10-22T15:46:16.836Z"
+    },
+    {
+      "path": "scripts/debug-balance-issue.js",
+      "kind": "source",
+      "size": 4584,
+      "lastModified": "2025-10-22T15:46:16.840Z"
+    },
+    {
+      "path": "scripts/debug-browser-transaction-amounts.js",
+      "kind": "source",
+      "size": 4407,
+      "lastModified": "2025-10-22T15:46:16.843Z"
+    },
+    {
+      "path": "scripts/debug-categories-page.js",
+      "kind": "source",
+      "size": 4490,
+      "lastModified": "2025-10-22T15:46:16.846Z"
+    },
+    {
+      "path": "scripts/debug-form-after-click.js",
+      "kind": "source",
+      "size": 5947,
+      "lastModified": "2025-10-22T15:46:16.850Z"
+    },
+    {
+      "path": "scripts/debug-login-page.js",
+      "kind": "source",
+      "size": 3230,
+      "lastModified": "2025-10-22T15:46:16.853Z"
+    },
+    {
+      "path": "scripts/debug-nan-specific.js",
+      "kind": "source",
+      "size": 3976,
+      "lastModified": "2025-10-22T15:46:16.861Z"
+    },
+    {
+      "path": "scripts/debug-page-elements.js",
+      "kind": "source",
+      "size": 5358,
+      "lastModified": "2025-10-22T15:46:16.872Z"
+    },
+    {
+      "path": "scripts/debug-transaction-amounts.js",
+      "kind": "source",
+      "size": 4435,
+      "lastModified": "2025-10-22T15:46:16.875Z"
+    },
+    {
+      "path": "scripts/debug-transaction-forms.js",
+      "kind": "source",
+      "size": 7470,
+      "lastModified": "2025-10-22T15:46:16.879Z"
+    },
+    {
+      "path": "scripts/debug-transfers-api-error.js",
+      "kind": "source",
+      "size": 4729,
+      "lastModified": "2025-10-22T15:46:16.883Z"
+    },
+    {
+      "path": "scripts/debug-transfers-page.js",
+      "kind": "source",
+      "size": 4476,
+      "lastModified": "2025-10-22T15:46:16.886Z"
+    },
+    {
+      "path": "scripts/debug-useOptimizedData.js",
+      "kind": "source",
+      "size": 5198,
+      "lastModified": "2025-10-22T15:46:16.889Z"
+    },
+    {
+      "path": "scripts/debug_binance_offers.py",
+      "kind": "source",
+      "size": 7491,
+      "lastModified": "2025-10-08T00:42:46.337Z"
+    },
+    {
+      "path": "scripts/diagnose-account-creation.js",
+      "kind": "source",
+      "size": 5298,
+      "lastModified": "2025-10-22T15:46:16.892Z"
+    },
+    {
+      "path": "scripts/diagnose-auth.js",
+      "kind": "source",
+      "size": 5184,
+      "lastModified": "2025-10-22T15:46:16.902Z"
+    },
+    {
+      "path": "scripts/diagnose-reports-issue.js",
+      "kind": "source",
+      "size": 5834,
+      "lastModified": "2025-10-22T15:46:16.905Z"
+    },
+    {
+      "path": "scripts/diagnose-reports-specific.js",
+      "kind": "source",
+      "size": 5875,
+      "lastModified": "2025-10-22T15:46:16.908Z"
+    },
+    {
+      "path": "scripts/direct-fix-nan.js",
+      "kind": "source",
+      "size": 3996,
+      "lastModified": "2025-10-22T15:46:16.911Z"
+    },
+    {
+      "path": "scripts/EXHAUSTIVE_SEARCH_DOCUMENTATION.md",
+      "kind": "documentation",
+      "size": 9219,
+      "lastModified": "2025-09-30T02:17:10.018Z"
+    },
+    {
+      "path": "scripts/fix-auth-context.js",
+      "kind": "source",
+      "size": 6373,
+      "lastModified": "2025-10-22T15:46:16.914Z"
+    },
+    {
+      "path": "scripts/fix-auth-permissions.js",
+      "kind": "source",
+      "size": 4552,
+      "lastModified": "2025-10-22T15:46:16.919Z"
+    },
+    {
+      "path": "scripts/fix-database.ts",
+      "kind": "source",
+      "size": 792,
+      "lastModified": "2025-10-22T15:46:16.921Z"
+    },
+    {
+      "path": "scripts/fix-users-rls-policy.ts",
+      "kind": "source",
+      "size": 4515,
+      "lastModified": "2025-10-22T15:46:16.933Z"
+    },
+    {
+      "path": "scripts/index-existing-data-rag.ts",
+      "kind": "source",
+      "size": 3639,
+      "lastModified": "2025-11-06T14:12:28.234Z"
+    },
+    {
+      "path": "scripts/init-database.ts",
+      "kind": "source",
+      "size": 2087,
+      "lastModified": "2025-10-22T15:46:16.935Z"
+    },
+    {
+      "path": "scripts/insert-categories.js",
+      "kind": "source",
+      "size": 5110,
+      "lastModified": "2025-10-22T15:46:16.938Z"
+    },
+    {
+      "path": "scripts/manual-auth-setup.js",
+      "kind": "source",
+      "size": 5086,
+      "lastModified": "2025-10-22T15:46:16.942Z"
+    },
+    {
+      "path": "scripts/manual-login-guide.js",
+      "kind": "source",
+      "size": 2435,
+      "lastModified": "2025-10-22T15:46:16.945Z"
+    },
+    {
+      "path": "scripts/manual-user-creation.js",
+      "kind": "source",
+      "size": 4271,
+      "lastModified": "2025-10-22T15:46:16.948Z"
+    },
+    {
+      "path": "scripts/migrate-categories.ts",
+      "kind": "source",
+      "size": 4571,
+      "lastModified": "2025-10-22T15:46:16.951Z"
+    },
+    {
+      "path": "scripts/migrate-subscriptions.ts",
+      "kind": "source",
+      "size": 3369,
+      "lastModified": "2025-10-30T15:37:43.260Z"
+    },
+    {
+      "path": "scripts/playwright-debug-nan.js",
+      "kind": "source",
+      "size": 6924,
+      "lastModified": "2025-10-22T15:46:16.966Z"
+    },
+    {
+      "path": "scripts/README-database-setup.md",
+      "kind": "documentation",
+      "size": 2470,
+      "lastModified": "2025-09-18T15:29:56.307Z"
+    },
+    {
+      "path": "scripts/README-supabase-setup.md",
+      "kind": "documentation",
+      "size": 4530,
+      "lastModified": "2025-09-18T15:29:56.309Z"
+    },
+    {
+      "path": "scripts/requirements.txt",
+      "kind": "documentation",
+      "size": 92,
+      "lastModified": "2025-09-25T15:31:07.243Z"
+    },
+    {
+      "path": "scripts/reset-db.js",
+      "kind": "source",
+      "size": 424,
+      "lastModified": "2025-10-22T15:46:16.968Z"
+    },
+    {
+      "path": "scripts/run-migration.ts",
+      "kind": "source",
+      "size": 2024,
+      "lastModified": "2025-10-22T15:46:16.969Z"
+    },
+    {
+      "path": "scripts/setup-database.js",
+      "kind": "source",
+      "size": 4365,
+      "lastModified": "2025-10-22T15:46:16.973Z"
+    },
+    {
+      "path": "scripts/simple-auth-test.js",
+      "kind": "source",
+      "size": 2971,
+      "lastModified": "2025-10-22T15:46:16.976Z"
+    },
+    {
+      "path": "scripts/test-all-pages-auth.js",
+      "kind": "source",
+      "size": 2057,
+      "lastModified": "2025-10-22T15:46:16.980Z"
+    },
+    {
+      "path": "scripts/test-amount-formatting.js",
+      "kind": "source",
+      "size": 3376,
+      "lastModified": "2025-10-22T15:46:16.983Z"
+    },
+    {
+      "path": "scripts/test-auth.js",
+      "kind": "source",
+      "size": 1255,
+      "lastModified": "2025-10-22T15:46:16.986Z"
+    },
+    {
+      "path": "scripts/test-checkout-endpoint.ts",
+      "kind": "source",
+      "size": 5756,
+      "lastModified": "2025-10-22T15:46:16.993Z"
+    },
+    {
+      "path": "scripts/test-existing-user.js",
+      "kind": "source",
+      "size": 4069,
+      "lastModified": "2025-10-22T15:46:17.010Z"
+    },
+    {
+      "path": "scripts/test-reports-data-loading.js",
+      "kind": "source",
+      "size": 6126,
+      "lastModified": "2025-10-22T15:46:17.016Z"
+    },
+    {
+      "path": "scripts/test-reports-fix.js",
+      "kind": "source",
+      "size": 5638,
+      "lastModified": "2025-10-22T15:46:17.021Z"
+    },
+    {
+      "path": "scripts/test-supabase-integration.js",
+      "kind": "source",
+      "size": 6466,
+      "lastModified": "2025-10-22T15:46:17.025Z"
+    },
+    {
+      "path": "scripts/test-transfers-backend.js",
+      "kind": "source",
+      "size": 6732,
+      "lastModified": "2025-10-22T15:46:17.031Z"
+    },
+    {
+      "path": "scripts/test_binance_connection.py",
+      "kind": "source",
+      "size": 3024,
+      "lastModified": "2025-10-07T18:22:39.780Z"
+    },
+    {
+      "path": "scripts/test_binance_direct.py",
+      "kind": "source",
+      "size": 3742,
+      "lastModified": "2025-10-08T00:35:09.876Z"
+    },
+    {
+      "path": "scripts/test_binance_scraper.py",
+      "kind": "source",
+      "size": 9545,
+      "lastModified": "2025-09-30T00:33:32.247Z"
+    },
+    {
+      "path": "scripts/test_binance_simple.py",
+      "kind": "source",
+      "size": 3844,
+      "lastModified": "2025-09-30T00:33:32.248Z"
+    },
+    {
+      "path": "scripts/validate-database-only.js",
+      "kind": "source",
+      "size": 6683,
+      "lastModified": "2025-10-22T15:46:17.037Z"
+    },
+    {
+      "path": "scripts/verify-migration.ts",
+      "kind": "source",
+      "size": 2358,
+      "lastModified": "2025-10-22T15:46:17.049Z"
+    },
+    {
+      "path": "scripts/verify-notifications-simple.js",
+      "kind": "source",
+      "size": 1442,
+      "lastModified": "2025-10-22T15:46:17.050Z"
+    },
+    {
+      "path": "scripts/verify-notifications-table.ts",
+      "kind": "source",
+      "size": 2244,
+      "lastModified": "2025-10-22T15:46:17.053Z"
+    },
+    {
+      "path": "scripts/verify-reports-fix.js",
+      "kind": "source",
+      "size": 3124,
+      "lastModified": "2025-10-22T15:46:17.056Z"
+    },
+    {
+      "path": "scripts/verify-supabase-setup.ts",
+      "kind": "source",
+      "size": 8590,
+      "lastModified": "2025-10-31T13:20:51.446Z"
+    },
+    {
+      "path": "tailwind.config.ts",
+      "kind": "source",
+      "size": 6178,
+      "lastModified": "2025-10-27T13:47:59.101Z"
+    },
+    {
+      "path": "test-results/.last-run.json",
+      "kind": "config",
+      "size": 45,
+      "lastModified": "2025-10-22T14:22:00.384Z"
+    },
+    {
+      "path": "tests/01-core-functionality.spec.ts",
+      "kind": "test",
+      "size": 11771,
+      "lastModified": "2025-10-22T15:46:17.136Z"
+    },
+    {
+      "path": "tests/02-transaction-system.spec.ts",
+      "kind": "test",
+      "size": 15707,
+      "lastModified": "2025-10-22T15:46:17.150Z"
+    },
+    {
+      "path": "tests/03-accounts-system.spec.ts",
+      "kind": "test",
+      "size": 18413,
+      "lastModified": "2025-10-22T15:46:17.159Z"
+    },
+    {
+      "path": "tests/04-transactions-detailed.spec.ts",
+      "kind": "test",
+      "size": 17389,
+      "lastModified": "2025-10-22T15:46:17.168Z"
+    },
+    {
+      "path": "tests/05-transfers-detailed.spec.ts",
+      "kind": "test",
+      "size": 17925,
+      "lastModified": "2025-10-22T15:46:17.188Z"
+    },
+    {
+      "path": "tests/06-categories-detailed.spec.ts",
+      "kind": "test",
+      "size": 18556,
+      "lastModified": "2025-10-22T15:46:17.197Z"
+    },
+    {
+      "path": "tests/07-integration-complete-flow.spec.ts",
+      "kind": "test",
+      "size": 21008,
+      "lastModified": "2025-10-22T15:46:17.204Z"
+    },
+    {
+      "path": "tests/08-backend-integration.spec.ts",
+      "kind": "test",
+      "size": 15514,
+      "lastModified": "2025-10-22T15:46:17.210Z"
+    },
+    {
+      "path": "tests/09-integration-optimized.spec.ts",
+      "kind": "test",
+      "size": 15502,
+      "lastModified": "2025-10-22T15:46:17.220Z"
+    },
+    {
+      "path": "tests/10-authentication-analysis.spec.ts",
+      "kind": "test",
+      "size": 10349,
+      "lastModified": "2025-10-22T15:46:17.238Z"
+    },
+    {
+      "path": "tests/11-category-lifecycle-complete.spec.ts",
+      "kind": "test",
+      "size": 19607,
+      "lastModified": "2025-10-22T15:46:17.248Z"
+    },
+    {
+      "path": "tests/12-transaction-lifecycle-complete.spec.ts",
+      "kind": "test",
+      "size": 24295,
+      "lastModified": "2025-10-22T15:46:17.268Z"
+    },
+    {
+      "path": "tests/13-category-lifecycle-fixed.spec.ts",
+      "kind": "test",
+      "size": 14713,
+      "lastModified": "2025-10-22T15:46:17.277Z"
+    },
+    {
+      "path": "tests/14-category-form-analysis.spec.ts",
+      "kind": "test",
+      "size": 12989,
+      "lastModified": "2025-10-22T15:46:17.283Z"
+    },
+    {
+      "path": "tests/15-category-complete-workflow.spec.ts",
+      "kind": "test",
+      "size": 15283,
+      "lastModified": "2025-10-22T15:46:17.295Z"
+    },
+    {
+      "path": "tests/16-reports-debugging.spec.ts",
+      "kind": "test",
+      "size": 3312,
+      "lastModified": "2025-10-22T15:46:17.298Z"
+    },
+    {
+      "path": "tests/17-transaction-amounts-fix.spec.ts",
+      "kind": "test",
+      "size": 3320,
+      "lastModified": "2025-10-22T15:46:17.300Z"
+    },
+    {
+      "path": "tests/18-clear-account.spec.ts",
+      "kind": "test",
+      "size": 6858,
+      "lastModified": "2025-10-22T15:46:17.304Z"
+    },
+    {
+      "path": "tests/18-reports-nan-fix.spec.ts",
+      "kind": "test",
+      "size": 2767,
+      "lastModified": "2025-10-22T15:46:17.306Z"
+    },
+    {
+      "path": "tests/19-binance-scraper-system.spec.ts",
+      "kind": "test",
+      "size": 12304,
+      "lastModified": "2025-10-22T15:46:17.311Z"
+    },
+    {
+      "path": "tests/20-binance-api-integration.spec.ts",
+      "kind": "test",
+      "size": 2799,
+      "lastModified": "2025-10-22T15:46:17.313Z"
+    },
+    {
+      "path": "tests/20-binance-rate-limiting-protection.spec.ts",
+      "kind": "test",
+      "size": 8844,
+      "lastModified": "2025-10-22T15:46:17.323Z"
+    },
+    {
+      "path": "tests/21-reports-period-selector.spec.ts",
+      "kind": "test",
+      "size": 9740,
+      "lastModified": "2025-10-22T15:46:17.328Z"
+    },
+    {
+      "path": "tests/22-logo-visibility-fix.spec.ts",
+      "kind": "test",
+      "size": 11665,
+      "lastModified": "2025-10-22T15:46:17.334Z"
+    },
+    {
+      "path": "tests/23-logo-vercel-fix.spec.ts",
+      "kind": "test",
+      "size": 13651,
+      "lastModified": "2025-10-22T15:46:17.339Z"
+    },
+    {
+      "path": "tests/24-checkout-flow-complete.spec.ts",
+      "kind": "test",
+      "size": 7746,
+      "lastModified": "2025-10-22T15:46:17.349Z"
+    },
+    {
+      "path": "tests/25-mobile-calculator-amount-fix.spec.ts",
+      "kind": "test",
+      "size": 9517,
+      "lastModified": "2025-10-22T15:46:17.353Z"
+    },
+    {
+      "path": "tests/26-recent-transactions-display.spec.ts",
+      "kind": "test",
+      "size": 5951,
+      "lastModified": "2025-10-22T15:46:17.357Z"
+    },
+    {
+      "path": "tests/auth.setup.ts",
+      "kind": "source",
+      "size": 3884,
+      "lastModified": "2025-10-22T15:46:17.359Z"
+    },
+    {
+      "path": "tests/components/reports-category-calculations.test.ts",
+      "kind": "test",
+      "size": 2619,
+      "lastModified": "2025-10-22T15:46:17.069Z"
+    },
+    {
+      "path": "tests/components/subscription/pricing-cards.test.tsx",
+      "kind": "test",
+      "size": 5604,
+      "lastModified": "2025-10-22T15:46:17.066Z"
+    },
+    {
+      "path": "tests/currency-breakdown.spec.ts",
+      "kind": "test",
+      "size": 10636,
+      "lastModified": "2025-10-22T15:46:17.363Z"
+    },
+    {
+      "path": "tests/currency-display.spec.ts",
+      "kind": "test",
+      "size": 10127,
+      "lastModified": "2025-10-22T15:46:17.375Z"
+    },
+    {
+      "path": "tests/currency-fix-validation.spec.ts",
+      "kind": "test",
+      "size": 3225,
+      "lastModified": "2025-10-22T15:46:17.378Z"
+    },
+    {
+      "path": "tests/currency-transaction-fix.spec.ts",
+      "kind": "test",
+      "size": 11035,
+      "lastModified": "2025-10-22T15:46:17.384Z"
+    },
+    {
+      "path": "tests/e2e/scrapers-real-data.spec.ts",
+      "kind": "test",
+      "size": 3195,
+      "lastModified": "2025-10-22T15:46:17.084Z"
+    },
+    {
+      "path": "tests/hooks/use-lemon-squeezy-products.test.ts",
+      "kind": "test",
+      "size": 3337,
+      "lastModified": "2025-10-22T15:46:17.087Z"
+    },
+    {
+      "path": "tests/lib/lemonsqueezy-config.test.ts",
+      "kind": "test",
+      "size": 5224,
+      "lastModified": "2025-10-22T15:46:17.093Z"
+    },
+    {
+      "path": "tests/lib/period-comparison.test.ts",
+      "kind": "test",
+      "size": 4063,
+      "lastModified": "2025-10-22T15:46:17.097Z"
+    },
+    {
+      "path": "tests/logo-landing-test.spec.ts",
+      "kind": "test",
+      "size": 3,
+      "lastModified": "2025-10-22T15:46:17.384Z"
+    },
+    {
+      "path": "tests/README.md",
+      "kind": "documentation",
+      "size": 15098,
+      "lastModified": "2025-10-03T01:36:26.878Z"
+    },
+    {
+      "path": "tests/scrapers/bcv-scraper.test.ts",
+      "kind": "test",
+      "size": 2808,
+      "lastModified": "2025-10-22T15:46:17.101Z"
+    },
+    {
+      "path": "tests/scrapers/binance-scraper.test.ts",
+      "kind": "test",
+      "size": 5600,
+      "lastModified": "2025-10-22T15:46:17.106Z"
+    },
+    {
+      "path": "tests/subscriptions/ai-features.spec.ts",
+      "kind": "test",
+      "size": 2359,
+      "lastModified": "2025-10-22T15:46:17.108Z"
+    },
+    {
+      "path": "tests/subscriptions/data-retention.spec.ts",
+      "kind": "test",
+      "size": 1925,
+      "lastModified": "2025-10-22T15:46:17.110Z"
+    },
+    {
+      "path": "tests/subscriptions/feature-gates.spec.ts",
+      "kind": "test",
+      "size": 3723,
+      "lastModified": "2025-10-22T15:46:17.122Z"
+    },
+    {
+      "path": "tests/subscriptions/README.md",
+      "kind": "documentation",
+      "size": 2420,
+      "lastModified": "2025-10-08T13:14:46.925Z"
+    },
+    {
+      "path": "tests/subscriptions/usage-limits.spec.ts",
+      "kind": "test",
+      "size": 2306,
+      "lastModified": "2025-10-22T15:46:17.125Z"
+    },
+    {
+      "path": "tests/utils/database-cleanup.ts",
+      "kind": "source",
+      "size": 5416,
+      "lastModified": "2025-10-22T15:46:17.129Z"
+    },
+    {
+      "path": "tsconfig.json",
+      "kind": "config",
+      "size": 1145,
+      "lastModified": "2025-10-22T15:46:19.639Z"
+    },
+    {
+      "path": "types/domain.ts",
+      "kind": "source",
+      "size": 6371,
+      "lastModified": "2025-10-22T15:46:17.390Z"
+    },
+    {
+      "path": "types/index.ts",
+      "kind": "source",
+      "size": 1385,
+      "lastModified": "2025-10-22T15:46:17.392Z"
+    },
+    {
+      "path": "types/notifications.ts",
+      "kind": "source",
+      "size": 487,
+      "lastModified": "2025-10-22T15:46:17.394Z"
+    },
+    {
+      "path": "types/recurring-transactions.ts",
+      "kind": "source",
+      "size": 2891,
+      "lastModified": "2025-10-22T15:46:17.402Z"
+    },
+    {
+      "path": "types/subscription.ts",
+      "kind": "source",
+      "size": 5250,
+      "lastModified": "2025-10-31T13:20:51.440Z"
+    },
+    {
+      "path": "ZERO_WARNINGS_SUCCESS_REPORT.md",
+      "kind": "documentation",
+      "size": 8417,
+      "lastModified": "2025-10-08T01:35:41.595Z"
+    }
+  ],
+  "indexedAt": "2025-11-18T14:55:55.734Z",
+  "totalFiles": 501,
+  "totalSize": 4367202
+}

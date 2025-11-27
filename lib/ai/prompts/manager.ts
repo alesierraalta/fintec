@@ -238,18 +238,26 @@ export class PromptManager {
   /**
    * Genera el system prompt para el chat assistant
    * Con soporte para caché y userId
+   * Ahora incluye contexto de memoria si está disponible
    */
   static async generateChatSystemPrompt(
     context: WalletContext,
     proactiveSuggestions?: string,
-    userId?: string
+    userId?: string,
+    memoryContext?: string
   ): Promise<string> {
     const config = this.createDefaultChatConfig(context, proactiveSuggestions);
     const composed = await this.composePrompt(config, context, proactiveSuggestions, userId);
     
-    logger.debug(`[PromptManager] Generated system prompt with ${composed.estimatedTokens} estimated tokens, components: ${composed.components.join(', ')}`);
+    // Agregar contexto de memoria si está disponible
+    let finalContent = composed.content;
+    if (memoryContext) {
+      finalContent = composed.content + '\n\n' + memoryContext;
+    }
     
-    return composed.content;
+    logger.debug(`[PromptManager] Generated system prompt with ${composed.estimatedTokens} estimated tokens, components: ${composed.components.join(', ')}${memoryContext ? ', with memory context' : ''}`);
+    
+    return finalContent;
   }
 }
 
