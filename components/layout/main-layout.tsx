@@ -9,7 +9,7 @@ import { MobileNav } from './mobile-nav';
 import { MobileMenuFAB } from './mobile-menu-fab';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 import { TransactionForm } from '@/components/forms';
-import { useModal } from '@/hooks';
+import { useModal, useViewportHeight } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
@@ -27,6 +27,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const { isOpen, isMobile, closeSidebar } = useSidebar();
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const [mounted, setMounted] = useState(false);
+  const viewportHeight = useViewportHeight();
 
   useEffect(() => {
     setMounted(true);
@@ -39,11 +40,19 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     return null;
   }
 
+  // Usar height dinámico cuando Visual Viewport API está disponible
+  const dynamicHeight = typeof window !== 'undefined' && window.visualViewport 
+    ? { height: `${viewportHeight}px` }
+    : undefined;
+
   return (
-    <div className={cn(
-      "h-screen bg-background text-foreground overflow-hidden transition-ios no-horizontal-scroll",
-      isMobile && "mobile-app"
-    )}>
+    <div 
+      className={cn(
+        "h-dynamic-screen bg-background text-foreground overflow-hidden transition-ios no-horizontal-scroll",
+        isMobile && "mobile-app"
+      )}
+      style={dynamicHeight}
+    >
       <div className="flex h-full relative no-horizontal-scroll">
         {/* Mobile Backdrop */}
         {isMobile && isOpen && (

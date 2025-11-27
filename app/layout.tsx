@@ -30,6 +30,7 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover', // For iOS safe areas
+  interactiveWidget: 'resizes-visual', // Ajusta viewport cuando aparece el teclado
 };
 
 export default function RootLayout({
