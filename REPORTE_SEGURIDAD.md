@@ -482,3 +482,4 @@ Este reporte identifica vulnerabilidades basadas en análisis estático del cód
 *Reporte generado automáticamente - Revisar y validar manualmente*
 
 
+

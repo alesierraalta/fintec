@@ -475,3 +475,4 @@ Mover lógica simple a Edge para menor latencia.
 **Herramientas utilizadas:** MCP itok para análisis de código
 
 
+

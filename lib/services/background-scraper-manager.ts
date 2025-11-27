@@ -2,6 +2,7 @@ import { Server as HTTPServer } from 'http';
 import BackgroundScraperService from './background-scraper';
 import WebSocketService from './websocket-server';
 import ExchangeRateDatabase from './exchange-rate-db';
+import { healthMonitor } from '@/lib/scrapers/health-monitor';
 
 import { logger } from '@/lib/utils/logger';
 
@@ -60,6 +61,9 @@ class BackgroundScraperManager {
   }
 
   private async handleScraperUpdate(data: any): Promise<void> {
+    const startTime = Date.now();
+    const responseTime = Date.now() - startTime;
+
     if (data.success && data.data) {
       try {
         // Lógica correcta: 
@@ -74,11 +78,18 @@ class BackgroundScraperManager {
           source: data.data.source
         });
 
+        // Record success in health monitor
+        healthMonitor.recordSuccess('binance-background', responseTime);
+
         logger.info('Exchange rate updated and stored in database');
       } catch (error) {
+        // Record failure in health monitor
+        healthMonitor.recordFailure('binance-background', responseTime);
         logger.error('Error handling scraper update:', error);
       }
     } else {
+      // Record failure in health monitor
+      healthMonitor.recordFailure('binance-background', responseTime);
       logger.error('Scraper update failed:', data.error);
     }
   }
