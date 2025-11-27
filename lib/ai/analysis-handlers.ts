@@ -15,6 +15,7 @@ import { logger } from '@/lib/utils/logger';
 import { calculateMetricsForPeriod, calculateTrend, filterTransactionsByPeriod, getPreviousPeriod, TrendData } from '@/lib/dates/period-comparison';
 import { TimePeriod, getTimePeriods } from '@/lib/dates/periods';
 import { percentage } from '@/lib/utils';
+import { toMinorUnits } from '@/lib/money';
 
 /**
  * Resultado de un análisis financiero
@@ -72,7 +73,7 @@ export function analyzeSpending(
     // Filtrar transacciones por período
     let transactions = context.transactions.recent.map(tx => ({
       ...tx,
-      amountBaseMinor: Math.abs(tx.amount) * 100, // Convertir a minor units
+      amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'), // Convertir a minor units con decimales específicos de la moneda
       type: tx.type,
       categoryId: tx.category || 'uncategorized',
     }));
@@ -200,7 +201,7 @@ export function calculatePercentages(
 
     let transactions = context.transactions.recent.map(tx => ({
       ...tx,
-      amountBaseMinor: Math.abs(tx.amount) * 100,
+      amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
       type: tx.type,
       categoryId: tx.category || 'uncategorized',
     }));
@@ -280,7 +281,7 @@ export function getFinancialSummary(
 
     let currentTransactions = context.transactions.recent.map(tx => ({
       ...tx,
-      amountBaseMinor: Math.abs(tx.amount) * 100,
+      amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
       type: tx.type,
       categoryId: tx.category || 'uncategorized',
     }));
@@ -292,7 +293,7 @@ export function getFinancialSummary(
     if (params?.includeTrends) {
       let previousTransactions = context.transactions.recent.map(tx => ({
         ...tx,
-        amountBaseMinor: Math.abs(tx.amount) * 100,
+        amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
         type: tx.type,
         categoryId: tx.category || 'uncategorized',
       }));
@@ -391,7 +392,7 @@ export function comparePeriods(
 
     let currentTransactions = context.transactions.recent.map(tx => ({
       ...tx,
-      amountBaseMinor: Math.abs(tx.amount) * 100,
+      amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
       type: tx.type,
       categoryId: tx.category || 'uncategorized',
     }));
@@ -489,7 +490,7 @@ export function analyzeByCategory(
 
     let transactions = context.transactions.recent.map(tx => ({
       ...tx,
-      amountBaseMinor: Math.abs(tx.amount) * 100,
+      amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
       type: tx.type,
       categoryId: tx.category || 'uncategorized',
     }));
@@ -608,7 +609,7 @@ export function getSpendingTrends(
     for (let i = 0; i < numPeriods; i++) {
       let transactions = context.transactions.recent.map(tx => ({
         ...tx,
-        amountBaseMinor: Math.abs(tx.amount) * 100,
+        amountBaseMinor: toMinorUnits(Math.abs(tx.amount), tx.currencyCode || 'USD'),
         type: tx.type,
         categoryId: tx.category || 'uncategorized',
       }));

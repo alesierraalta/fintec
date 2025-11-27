@@ -501,7 +501,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
               })
               .catch(err => {
                 setError(err?.message || 'Error de conexión. Por favor intenta de nuevo.');
-                setMessages(messages);
+                // Usar newMessages en lugar de messages para preservar el mensaje del usuario
+                setMessages(newMessages);
                 setIsLoading(false);
               });
           }

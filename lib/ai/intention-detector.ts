@@ -1001,6 +1001,13 @@ export function extractDateRange(message: string): { from?: string; to?: string 
  * Extrae descripción del mensaje
  * Mejorado para capturar descripciones en lenguaje natural como "compré X en Y a Z precio"
  */
+/**
+ * Escapa caracteres especiales de regex para uso seguro en patrones
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function extractDescription(message: string, amount: { value: number; currency?: string } | null): string | null {
   let desc = message;
   
@@ -1023,8 +1030,9 @@ function extractDescription(message: string, amount: { value: number; currency?:
       
       // Remover monto si está al final o en medio
       if (amount) {
-        const amountStr = amount.value.toString();
-        const currencyStr = amount.currency || '';
+        // Escapar caracteres especiales de regex en el monto
+        const amountStr = escapeRegex(amount.value.toString());
+        const currencyStr = amount.currency ? escapeRegex(amount.currency) : '';
         
         // Remover patrones de precio comunes
         extracted = extracted.replace(new RegExp(`\\s*(?:a|por|de|del|de la|por el|por la|con|al|a precio de|por precio de|costó|costo|valió|valio|valía|valia|pag[oó]|pag[oó] por|pag[oó] el|pag[oó] la)\\s*${amountStr}\\s*${currencyStr}\\b`, 'gi'), '');
@@ -1056,9 +1064,12 @@ function extractDescription(message: string, amount: { value: number; currency?:
   
   // Remover monto si existe
   if (amount) {
-    desc = desc.replace(new RegExp(`\\b${amount.value}\\b`, 'g'), '');
+    // Escapar caracteres especiales de regex en el monto
+    const escapedAmount = escapeRegex(amount.value.toString());
+    desc = desc.replace(new RegExp(`\\b${escapedAmount}\\b`, 'g'), '');
     if (amount.currency) {
-      desc = desc.replace(new RegExp(`\\b${amount.currency}\\b`, 'gi'), '');
+      const escapedCurrency = escapeRegex(amount.currency);
+      desc = desc.replace(new RegExp(`\\b${escapedCurrency}\\b`, 'gi'), '');
     }
     // Remover patrones de precio comunes
     desc = desc.replace(/\s*(?:a|por|de|del|de la|por el|por la|con|al|a precio de|por precio de|costó|costo|valió|valio|valía|valia|pag[oó])\s*(?:\d+(?:\.\d+)?)\s*(?:usd|dólar|dolares|dollar|dollars?|ves|bolívar|bolivares?|eur|euro|euros?)\s*/gi, '');
