@@ -24,7 +24,7 @@ const USER_AGENT =
 const USD_MIN = 150;
 const USD_MAX = 250;
 const EUR_MIN = 180;
-const EUR_MAX = 280;
+const EUR_MAX = 300; // Increased to accommodate current EUR rates (~283)
 
 /**
  * BCV Scraper implementation
@@ -138,85 +138,53 @@ class BCVScraper extends BaseScraper<BCVData> {
     let usd: number | null = null;
     let eur: number | null = null;
 
-    // Strategy 1: Look for structured HTML with span and strong tags
-    // Common BCV structure: <span>USD</span> ... <strong>189.00</strong>
-    $('span').each((_, element) => {
-      const spanText = $(element).text().trim().toUpperCase();
+    // Strategy 1: Look for strong tags containing rate numbers and check parent context
+    // BCV structure: <div>...EUR...<strong>283,49843701</strong></div>
+    $('strong').each((_, element) => {
+      const strongText = $(element).text().trim();
+      // Check if this strong contains a rate number (format: digits,comma/dot,digits)
+      const rateMatch = strongText.match(/^\d{1,3}[,.]\d{2,}$/);
       
-      if (spanText === 'USD' || spanText.includes('USD')) {
-        // Look for strong tag nearby
-        const strong = $(element).next('strong');
-        if (strong.length === 0) {
-          // Try parent or sibling
-          const parent = $(element).parent();
-          const strongInParent = parent.find('strong').first();
-          if (strongInParent.length > 0) {
-            const rateText = strongInParent.text().trim();
-            const rate = this.parseRate(rateText);
-            if (rate && rate >= USD_MIN && rate <= USD_MAX) {
-              usd = rate;
-            }
-          }
-        } else {
-          const rateText = strong.text().trim();
-          const rate = this.parseRate(rateText);
-          if (rate && rate >= USD_MIN && rate <= USD_MAX) {
+      if (rateMatch) {
+        // Get parent container to check for currency context
+        const parent = $(element).parent();
+        const container = parent.parent();
+        const containerText = container.text().toUpperCase();
+        
+        // Parse the rate
+        const rate = this.parseRate(strongText);
+        
+        if (rate) {
+          // Check if this is USD rate
+          if (!usd && /USD/.test(containerText) && rate >= USD_MIN && rate <= USD_MAX) {
             usd = rate;
           }
-        }
-      }
-
-      if (spanText === 'EUR' || spanText.includes('EUR')) {
-        const strong = $(element).next('strong');
-        if (strong.length === 0) {
-          const parent = $(element).parent();
-          const strongInParent = parent.find('strong').first();
-          if (strongInParent.length > 0) {
-            const rateText = strongInParent.text().trim();
-            const rate = this.parseRate(rateText);
-            if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
-              eur = rate;
-            }
-          }
-        } else {
-          const rateText = strong.text().trim();
-          const rate = this.parseRate(rateText);
-          if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
+          // Check if this is EUR rate
+          if (!eur && /EUR/.test(containerText) && rate >= EUR_MIN && rate <= EUR_MAX) {
             eur = rate;
           }
         }
       }
     });
 
-    // Strategy 2: Look for divs/tables with class names containing "tasa", "rate", "cambio"
+    // Strategy 2: Look for divs containing currency labels and their associated strong tags
     if (!usd || !eur) {
-      $('div, table').each((_, element) => {
-        const classes = $(element).attr('class') || '';
-        const text = $(element).text();
-
-        if (
-          /tasa|rate|cambio|dolar|euro/i.test(classes) ||
-          /tasa|rate|cambio|dolar|euro/i.test(text)
-        ) {
-          // Look for numbers in this container
-          const numbers = text.match(/\d{1,3}[,.]\d{2,}/g);
-          if (numbers) {
-            for (const numStr of numbers) {
-              const rate = this.parseRate(numStr);
-              if (rate) {
-                if (!usd && rate >= USD_MIN && rate <= USD_MAX) {
-                  // Check if USD context
-                  if (/usd|dolar|dólar/i.test(text)) {
-                    usd = rate;
-                  }
-                }
-                if (!eur && rate >= EUR_MIN && rate <= EUR_MAX) {
-                  // Check if EUR context
-                  if (/eur|euro/i.test(text)) {
-                    eur = rate;
-                  }
-                }
-              }
+      $('div').each((_, element) => {
+        const divText = $(element).text().toUpperCase();
+        const strong = $(element).find('strong').first();
+        
+        if (strong.length > 0) {
+          const rateText = strong.text().trim();
+          const rate = this.parseRate(rateText);
+          
+          if (rate) {
+            // Check for USD
+            if (!usd && /USD/.test(divText) && rate >= USD_MIN && rate <= USD_MAX) {
+              usd = rate;
+            }
+            // Check for EUR
+            if (!eur && /EUR/.test(divText) && rate >= EUR_MIN && rate <= EUR_MAX) {
+              eur = rate;
             }
           }
         }
