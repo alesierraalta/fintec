@@ -10,6 +10,14 @@ import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { logger } from '@/lib/utils/logger';
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { ActionType } from './intention-detector';
+import {
+  analyzeSpending,
+  calculatePercentages,
+  getFinancialSummary,
+  comparePeriods,
+  analyzeByCategory,
+  getSpendingTrends,
+} from './analysis-handlers';
 
 export interface ActionResult {
   success: boolean;
@@ -45,6 +53,25 @@ export async function executeAction(
       
       case 'CREATE_TRANSFER':
         return await executeCreateTransfer(userId, parameters, context);
+      
+      // Acciones de análisis (no requieren confirmación)
+      case 'ANALYZE_SPENDING':
+        return formatAnalysisResult(analyzeSpending(context, parameters));
+      
+      case 'CALCULATE_PERCENTAGES':
+        return formatAnalysisResult(calculatePercentages(context, parameters));
+      
+      case 'GET_FINANCIAL_SUMMARY':
+        return formatAnalysisResult(getFinancialSummary(context, parameters));
+      
+      case 'COMPARE_PERIODS':
+        return formatAnalysisResult(comparePeriods(context, parameters));
+      
+      case 'ANALYZE_BY_CATEGORY':
+        return formatAnalysisResult(analyzeByCategory(context, parameters));
+      
+      case 'GET_SPENDING_TRENDS':
+        return formatAnalysisResult(getSpendingTrends(context, parameters));
       
       default:
         return {
@@ -516,5 +543,24 @@ async function getCategoryIdByName(
     .maybeSingle();
 
   return (data as { id: string } | null)?.id || null;
+}
+
+/**
+ * Formatea el resultado de un análisis para el formato ActionResult
+ */
+function formatAnalysisResult(analysisResult: { success: boolean; data: any; message?: string; error?: string }): ActionResult {
+  if (analysisResult.success) {
+    return {
+      success: true,
+      message: analysisResult.message || 'Análisis completado exitosamente',
+      data: analysisResult.data,
+    };
+  } else {
+    return {
+      success: false,
+      message: analysisResult.message || analysisResult.error || 'Error al realizar el análisis',
+      error: analysisResult.error,
+    };
+  }
 }
 

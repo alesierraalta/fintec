@@ -107,6 +107,21 @@ function hasExplicitTopicKeywords(message: string): boolean {
 }
 
 /**
+ * Convierte un stream de OpenAI a AsyncGenerator de chunks de texto
+ * Extrae el contenido incremental de cada chunk del stream
+ */
+async function* streamOpenAIResponse(
+  stream: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>
+): AsyncGenerator<string, void, unknown> {
+  for await (const chunk of stream) {
+    const content = chunk.choices[0]?.delta?.content;
+    if (content) {
+      yield content;
+    }
+  }
+}
+
+/**
  * Genera respuesta del asistente IA con contexto de billetera
  * Incluye retry automático, timeout, fallback extractivo, function calling y procesamiento de confirmaciones
  */
@@ -187,10 +202,12 @@ export async function chatWithAssistant(
     }
 
     // Recuperar historial de conversación de Redis si existe sessionId
+    // Guardar cachedConversation por separado para usarlo en el filtrado de mensajes nuevos
+    let cachedConversation: ChatMessage[] = [];
     let fullConversationHistory: ChatMessage[] = [...messages];
     if (sessionId) {
-      const cachedConversation = await getCachedConversation(userId, sessionId);
-      if (cachedConversation && cachedConversation.length > 0) {
+      cachedConversation = await getCachedConversation(userId, sessionId) || [];
+      if (cachedConversation.length > 0) {
         collectLog('info', `[chatWithAssistant] Retrieved ${cachedConversation.length} messages from Redis cache`);
         // Combinar historial de Redis con mensajes actuales
         // Evitar duplicados: si el último mensaje del historial es igual al primero de los mensajes actuales, no duplicar
@@ -1070,18 +1087,20 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
     collectLog('debug', `[chatWithAssistant] OpenAI API call will be made with ${openAIMessages.length} messages (system prompt + ${conversationHistory.length} conversation messages)`);
 
     // Función interna para llamar a OpenAI con retry automático y function calling
-    const callOpenAI = async (model: string): Promise<ChatResponse> => {
+    const callOpenAI = async (model: string, stream: boolean = false): Promise<ChatResponse | AsyncGenerator<{ type: 'content' | 'done'; text?: string }, void, unknown>> => {
       try {
-        collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}`);
+        collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}, stream: ${stream}`);
         const tokenParam = 'max_completion_tokens'; // Ambos modelos gpt-5 usan max_completion_tokens
         const tempInfo = (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) ? 'temperature=default(1)' : `temperature=${AI_TEMPERATURE}`;
-        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, ${tempInfo}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}`);
-        logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}`);
+        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, ${tempInfo}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}, stream=${stream}`);
+        logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}, stream: ${stream}`);
+        
         const response = await openai.chat.completions.create({
           ...getModelParams(model, 800, {
             messages: openAIMessages as any,
             tools: AI_ACTION_TOOLS,
             tool_choice: 'auto', // Dejar que el modelo decida cuándo usar herramientas
+            ...(stream ? { stream: false } : {}), // No hacer streaming en la primera llamada (tool calls primero)
           }),
         } as any);
         
@@ -1094,18 +1113,9 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
         const content = message?.content;
         const toolCalls = message?.tool_calls;
 
-        // Si el modelo quiere llamar una función
+        // Si el modelo quiere llamar funciones, procesar múltiples tool calls en secuencia
         if (toolCalls && toolCalls.length > 0) {
-          const toolCall = toolCalls[0];
-          if (!('function' in toolCall)) {
-            throw new Error('Tool call does not have function property');
-          }
-          const functionName = toolCall.function.name;
-          const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
-
-          logger.info(`[chatWithAssistant] Model requested function call: ${functionName}`, functionArgs);
-
-          // Mapear nombre de función a ActionType
+          // Mapear nombre de función a ActionType (incluye nuevas herramientas de análisis)
           const actionTypeMap: Record<string, ActionType> = {
             'create_transaction': 'CREATE_TRANSACTION',
             'create_budget': 'CREATE_BUDGET',
@@ -1114,40 +1124,231 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
             'create_transfer': 'CREATE_TRANSFER',
             'get_account_balance': 'QUERY_BALANCE',
             'get_category_spending': 'QUERY_TRANSACTIONS',
+            'analyze_spending': 'ANALYZE_SPENDING',
+            'calculate_percentages': 'CALCULATE_PERCENTAGES',
+            'get_financial_summary': 'GET_FINANCIAL_SUMMARY',
+            'compare_periods': 'COMPARE_PERIODS',
+            'analyze_by_category': 'ANALYZE_BY_CATEGORY',
+            'get_spending_trends': 'GET_SPENDING_TRENDS',
           };
 
-          const actionType = actionTypeMap[functionName];
-          if (actionType && actionType.startsWith('CREATE_')) {
-            // Es una acción de creación
-            const confirmation = requiresConfirmation(actionType, functionArgs);
-            if (confirmation.required) {
-              await setCachedPendingAction(userId, {
-                type: actionType,
-                parameters: functionArgs,
-                requiresConfirmation: true,
-                confirmationMessage: confirmation.confirmationMessage,
-              });
-              
-              return withDebugLogs({
-                message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
-                action: {
-                  type: actionType,
-                  parameters: functionArgs,
-                  requiresConfirmation: true,
-                  confirmationMessage: confirmation.confirmationMessage,
-                },
-              });
+          // Procesar múltiples tool calls en secuencia
+          // Implementar loop de tool calls hasta que el modelo tenga toda la información (max 5 rounds)
+          const MAX_TOOL_CALL_ROUNDS = 5;
+          let currentRound = 0;
+          let conversationMessages = [...openAIMessages];
+          let lastToolResults: Array<{ toolCallId: string; result: any }> = [];
+
+          while (currentRound < MAX_TOOL_CALL_ROUNDS) {
+            currentRound++;
+            collectLog('info', `[chatWithAssistant] Processing tool calls round ${currentRound}/${MAX_TOOL_CALL_ROUNDS}, ${toolCalls.length} tool calls`);
+
+            // Ejecutar todos los tool calls de esta ronda
+            const toolResults: Array<{ toolCallId: string; role: 'tool'; content: string; name?: string }> = [];
+            
+            for (const toolCall of toolCalls) {
+              if (!('function' in toolCall)) {
+                collectLog('warn', `[chatWithAssistant] Tool call does not have function property, skipping`);
+                continue;
+              }
+
+              const functionName = toolCall.function.name;
+              const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
+              const toolCallId = toolCall.id;
+
+              collectLog('info', `[chatWithAssistant] Executing tool call: ${functionName}`, functionArgs);
+
+              try {
+                const actionType = actionTypeMap[functionName];
+                
+                if (!actionType) {
+                  collectLog('warn', `[chatWithAssistant] Unknown function: ${functionName}`);
+                  toolResults.push({
+                    toolCallId,
+                    role: 'tool',
+                    content: JSON.stringify({ error: `Función desconocida: ${functionName}` }),
+                    name: functionName,
+                  });
+                  continue;
+                }
+
+                // Verificar si requiere confirmación (solo para acciones de creación críticas)
+                if (actionType.startsWith('CREATE_')) {
+                  const confirmation = requiresConfirmation(actionType, functionArgs);
+                  if (confirmation.required) {
+                    await setCachedPendingAction(userId, {
+                      type: actionType,
+                      parameters: functionArgs,
+                      requiresConfirmation: true,
+                      confirmationMessage: confirmation.confirmationMessage,
+                    });
+                    
+                    return withDebugLogs({
+                      message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
+                      action: {
+                        type: actionType,
+                        parameters: functionArgs,
+                        requiresConfirmation: true,
+                        confirmationMessage: confirmation.confirmationMessage,
+                      },
+                    });
+                  }
+
+                  // Ejecutar acción de creación
+                  const result = await executeAction(userId, actionType, functionArgs, cachedContext);
+                  toolResults.push({
+                    toolCallId,
+                    role: 'tool',
+                    content: JSON.stringify({ 
+                      success: result.success, 
+                      message: result.message,
+                      data: result.data 
+                    }),
+                    name: functionName,
+                  });
+                  
+                  if (!result.success) {
+                    collectLog('warn', `[chatWithAssistant] Action ${actionType} failed: ${result.message}`);
+                  }
+                } else {
+                  // Es una acción de análisis o query (no requiere confirmación)
+                  const result = await executeAction(userId, actionType, functionArgs, cachedContext);
+                  toolResults.push({
+                    toolCallId,
+                    role: 'tool',
+                    content: JSON.stringify({ 
+                      success: result.success, 
+                      message: result.message,
+                      data: result.data 
+                    }),
+                    name: functionName,
+                  });
+                  
+                  if (!result.success) {
+                    collectLog('warn', `[chatWithAssistant] Analysis/Query ${actionType} failed: ${result.message}`);
+                  }
+                }
+              } catch (error: any) {
+                collectLog('error', `[chatWithAssistant] Error executing tool call ${functionName}: ${error.message}`);
+                toolResults.push({
+                  toolCallId,
+                  role: 'tool',
+                  content: JSON.stringify({ error: error.message || 'Error al ejecutar la herramienta' }),
+                  name: functionName,
+                });
+              }
             }
 
-            // Ejecutar acción
-            const result = await executeAction(userId, actionType, functionArgs, cachedContext);
-            return withDebugLogs({
-              message: result.message,
-              action: result.success ? {
-                type: actionType,
-                parameters: functionArgs,
-                requiresConfirmation: false,
-              } : undefined,
+            // Agregar resultados de tool calls a la conversación
+            // Incluir el mensaje del asistente con tool_calls estructurado correctamente
+            const assistantMessageWithToolCalls: any = {
+              role: 'assistant',
+              content: message?.content || null,
+              tool_calls: toolCalls.map(tc => {
+                if (!('function' in tc)) {
+                  return null;
+                }
+                return {
+                  id: tc.id,
+                  type: 'function',
+                  function: {
+                    name: tc.function.name,
+                    arguments: tc.function.arguments || '{}',
+                  },
+                };
+              }).filter(Boolean), // Remover nulls
+            };
+            
+            conversationMessages.push(
+              assistantMessageWithToolCalls,
+              ...toolResults as any
+            );
+
+            // Llamar nuevamente a OpenAI con los resultados de los tool calls
+            collectLog('info', `[chatWithAssistant] Calling OpenAI again with ${toolResults.length} tool results`);
+            const nextResponse = await openai.chat.completions.create({
+              ...getModelParams(model, 800, {
+                messages: conversationMessages as any,
+                tools: AI_ACTION_TOOLS,
+                tool_choice: 'auto',
+              }),
+            } as any);
+
+            const nextMessage = nextResponse.choices[0]?.message;
+            const nextContent = nextMessage?.content;
+            const nextToolCalls = nextMessage?.tool_calls;
+
+            // Si no hay más tool calls, retornar la respuesta final
+            if (!nextToolCalls || nextToolCalls.length === 0) {
+              if (nextContent) {
+                collectLog('info', `[chatWithAssistant] Tool call loop completed after ${currentRound} rounds, returning final response`);
+                
+                // Si streaming está habilitado, hacer streaming del texto final
+                if (stream) {
+                  return (async function* () {
+                    // Hacer streaming del texto final
+                    const finalMessages = [
+                      ...conversationMessages,
+                      { role: 'assistant', content: '' },
+                      ...toolResults as any,
+                    ];
+                    
+                    const streamResponse = await openai.chat.completions.create({
+                      ...getModelParams(model, 800, {
+                        messages: finalMessages as any,
+                        stream: true,
+                      }),
+                    } as any);
+                    
+                    for await (const chunk of streamResponse) {
+                      const chunkContent = chunk.choices[0]?.delta?.content;
+                      if (chunkContent) {
+                        yield { type: 'content' as const, text: chunkContent };
+                      }
+                    }
+                    
+                    yield { type: 'done' as const };
+                  })();
+                }
+                
+                return withDebugLogs({ message: nextContent });
+              } else {
+                // Si no hay contenido ni tool calls, usar el último resultado de tool
+                const lastResult = toolResults[toolResults.length - 1];
+                if (lastResult) {
+                  const parsed = JSON.parse(lastResult.content);
+                  const message = parsed.message || 'Operación completada';
+                  
+                  // Si streaming está habilitado, hacer streaming del mensaje
+                  if (stream) {
+                    return (async function* () {
+                      // Simular streaming del mensaje palabra por palabra
+                      const words = message.split(' ');
+                      for (let i = 0; i < words.length; i++) {
+                        yield { type: 'content' as const, text: (i > 0 ? ' ' : '') + words[i] };
+                        // Pequeño delay para simular streaming real
+                        await new Promise(resolve => setTimeout(resolve, 20));
+                      }
+                      yield { type: 'done' as const };
+                    })();
+                  }
+                  
+                  return withDebugLogs({ message });
+                }
+              }
+            }
+
+            // Continuar con la siguiente ronda de tool calls
+            toolCalls = nextToolCalls;
+            lastToolResults = toolResults.map(tr => ({ toolCallId: tr.toolCallId, result: JSON.parse(tr.content) }));
+          }
+
+          // Si llegamos al límite de rounds, usar el último resultado o mensaje
+          collectLog('warn', `[chatWithAssistant] Reached max tool call rounds (${MAX_TOOL_CALL_ROUNDS}), using last result`);
+          if (lastToolResults.length > 0) {
+            const lastResult = lastToolResults[lastToolResults.length - 1];
+            return withDebugLogs({ 
+              message: lastResult.result.message || 'Análisis completado. Si necesitas más información, por favor pregunta de forma más específica.' 
             });
           }
         }
@@ -1155,6 +1356,28 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
         // Respuesta normal de texto
         if (!content) {
           throw new Error('Empty response from OpenAI');
+        }
+
+        // Si streaming está habilitado, hacer streaming del texto
+        if (stream) {
+          return (async function* () {
+            // Hacer streaming del texto final
+            const streamResponse = await openai.chat.completions.create({
+              ...getModelParams(model, 800, {
+                messages: openAIMessages as any,
+                stream: true,
+              }),
+            } as any);
+            
+            for await (const chunk of streamResponse) {
+              const chunkContent = chunk.choices[0]?.delta?.content;
+              if (chunkContent) {
+                yield { type: 'content' as const, text: chunkContent };
+              }
+            }
+            
+            yield { type: 'done' as const };
+          })();
         }
 
         return withDebugLogs({ message: content });
@@ -1169,7 +1392,7 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
     let response: ChatResponse;
     try {
       response = await withRetry(
-        () => callOpenAI(modelToUse),
+        () => callOpenAI(modelToUse, false) as Promise<ChatResponse>,
         {
           maxRetries: AI_MAX_RETRIES,
           baseDelay: 1000,
@@ -1210,9 +1433,11 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
         // Crear o actualizar sesión
         await createOrUpdateSession(sessionId, userId);
         
-        // Almacenar mensajes nuevos (solo los que no están ya almacenados)
+        // Almacenar mensajes nuevos (solo los que no están ya almacenados en cachedConversation)
+        // Filtrar contra cachedConversation, no fullConversationHistory, porque fullConversationHistory
+        // ya contiene todos los mensajes de messages, lo que resultaría en una lista vacía
         const newMessages = messages.filter(msg => 
-          !fullConversationHistory.some(existing => 
+          !cachedConversation.some(existing => 
             existing.content === msg.content && existing.role === msg.role
           )
         );
@@ -1261,4 +1486,34 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
       message: 'Lo siento, tuve un problema al procesar tu solicitud. Por favor intenta de nuevo.',
     });
   }
+}
+
+/**
+ * Genera respuesta del asistente IA con streaming
+ * Similar a chatWithAssistant pero retorna AsyncGenerator para streaming del texto final
+ * Ejecuta tool calls normalmente (sin streaming) y luego hace streaming del texto final
+ */
+export async function* chatWithAssistantStream(
+  userId: string,
+  messages: ChatMessage[],
+  context: WalletContext,
+  sessionId?: string
+): AsyncGenerator<{ type: 'content' | 'done'; text?: string }, void, unknown> {
+  // Usar la misma lógica que chatWithAssistant pero con streaming habilitado
+  // La función callOpenAI ya maneja el streaming cuando stream: true
+  
+  // Por ahora, llamar a chatWithAssistant y luego hacer streaming del resultado
+  // Esto es una implementación simplificada - en el futuro se puede optimizar
+  const response = await chatWithAssistant(userId, messages, context, sessionId);
+  
+  // Hacer streaming del mensaje palabra por palabra como fallback
+  // En una implementación completa, esto se haría directamente en callOpenAI
+  const words = response.message.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    yield { type: 'content', text: (i > 0 ? ' ' : '') + words[i] };
+    // Pequeño delay para simular streaming real
+    await new Promise(resolve => setTimeout(resolve, 20));
+  }
+  
+  yield { type: 'done' };
 }

@@ -22,12 +22,35 @@ export interface ValidationResult {
 
 /**
  * Determina si una acción requiere confirmación
+ * 
+ * Regla: Solo acciones críticas requieren confirmación
+ * - Todas las herramientas de análisis NO requieren confirmación
+ * - Consultas y queries NO requieren confirmación
  */
 export function requiresConfirmation(
   actionType: ActionType,
   parameters: Record<string, any>
 ): ConfirmationRequired {
-  // Transferencias siempre requieren confirmación
+  // Herramientas de análisis NUNCA requieren confirmación
+  const analysisActions: ActionType[] = [
+    'ANALYZE_SPENDING',
+    'CALCULATE_PERCENTAGES',
+    'GET_FINANCIAL_SUMMARY',
+    'COMPARE_PERIODS',
+    'ANALYZE_BY_CATEGORY',
+    'GET_SPENDING_TRENDS',
+  ];
+  
+  if (analysisActions.includes(actionType)) {
+    return { required: false };
+  }
+
+  // Queries NO requieren confirmación
+  if (actionType.startsWith('QUERY_')) {
+    return { required: false };
+  }
+
+  // Transferencias siempre requieren confirmación (acción crítica)
   if (actionType === 'CREATE_TRANSFER') {
     return {
       required: true,
@@ -36,7 +59,7 @@ export function requiresConfirmation(
     };
   }
 
-  // Transacciones grandes requieren confirmación
+  // Transacciones grandes requieren confirmación (>= $100 USD)
   if (actionType === 'CREATE_TRANSACTION' && parameters.amount) {
     const amountValue = parameters.amount;
     const currency = parameters.currency || 'USD';
@@ -60,13 +83,23 @@ export function requiresConfirmation(
     };
   }
 
-  // Crear cuentas requiere confirmación (puede tener balance inicial)
-  if (actionType === 'CREATE_ACCOUNT' && parameters.initialBalance && parameters.initialBalance > 0) {
+  // Crear cuentas con balance inicial grande requiere confirmación (> $1000)
+  if (actionType === 'CREATE_ACCOUNT' && parameters.initialBalance && parameters.initialBalance > 1000) {
     return {
       required: true,
-      reason: 'Crear cuenta con balance inicial requiere confirmación',
+      reason: 'Crear cuenta con balance inicial grande requiere confirmación',
       confirmationMessage: generateConfirmationMessage(actionType, parameters),
     };
+  }
+
+  // Crear cuentas sin balance inicial NO requiere confirmación
+  if (actionType === 'CREATE_ACCOUNT') {
+    return { required: false };
+  }
+
+  // Crear presupuestos y metas NO requieren confirmación
+  if (actionType === 'CREATE_BUDGET' || actionType === 'CREATE_GOAL') {
+    return { required: false };
   }
 
   // Otras acciones no requieren confirmación por defecto

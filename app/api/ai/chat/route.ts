@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithAssistant } from '@/lib/ai/chat-assistant';
+import { chatWithAssistant, chatWithAssistantStream } from '@/lib/ai/chat-assistant';
 import { buildWalletContext } from '@/lib/ai/context-builder';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
 import { incrementUsage } from '@/lib/paddle/subscriptions';
@@ -8,6 +8,50 @@ import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { validateChatRequest, validatePayloadSize, logSafeError, AI_SECURITY_CONFIG } from '@/lib/ai/security';
 import { AI_CLIENT_TIMEOUT_MS } from '@/lib/ai/config';
 import { logger } from '@/lib/utils/logger';
+
+/**
+ * Convierte un AsyncGenerator a ReadableStream con formato Server-Sent Events (SSE)
+ */
+function createSSEStream(
+  generator: AsyncGenerator<{ type: 'content' | 'done'; text?: string }, void, unknown>
+): ReadableStream {
+  const encoder = new TextEncoder();
+  return new ReadableStream({
+    async start(controller) {
+      try {
+        for await (const chunk of generator) {
+          const data = JSON.stringify(chunk);
+          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+        }
+        controller.close();
+      } catch (error: any) {
+        logger.error('[createSSEStream] Error in stream:', error);
+        const errorData = JSON.stringify({ type: 'error', message: error.message || 'Error en el stream' });
+        controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+        controller.close();
+      }
+    },
+  });
+}
+
+/**
+ * Detecta si el cliente solicita streaming
+ */
+function shouldStream(request: NextRequest): boolean {
+  // Verificar query param
+  const url = new URL(request.url);
+  if (url.searchParams.get('stream') === 'true') {
+    return true;
+  }
+  
+  // Verificar header Accept
+  const acceptHeader = request.headers.get('accept');
+  if (acceptHeader && acceptHeader.includes('text/event-stream')) {
+    return true;
+  }
+  
+  return false;
+}
 
 /**
  * POST /api/ai/chat
@@ -21,6 +65,7 @@ import { logger } from '@/lib/utils/logger';
  * - Timeout global (10s)
  * - Suscripción premium requerida
  * - Logging seguro (sin datos sensibles)
+ * - Streaming de respuestas (opcional, con ?stream=true o Accept: text/event-stream)
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -75,6 +120,9 @@ export async function POST(request: NextRequest) {
     
     // Asegurar que siempre haya un sessionId para mantener contexto de conversación
     const sessionId = providedSessionId || `session-${userId}-${Date.now()}`;
+    
+    // Detectar si se solicita streaming
+    const useStreaming = shouldStream(request);
 
     // 5. RATE LIMITING
     const rateLimitCheck = await checkRateLimit(userId);
@@ -117,6 +165,37 @@ export async function POST(request: NextRequest) {
     );
 
     // 8. PROCESAMIENTO CON TIMEOUT
+    // Si streaming está habilitado, retornar stream directamente
+    if (useStreaming) {
+      const lastMessage = validMessages[validMessages.length - 1];
+      const lastMessageContent = lastMessage?.content || '';
+      const context = await buildWalletContext(userId, lastMessageContent);
+      
+      // Crear stream
+      const streamGenerator = chatWithAssistantStream(userId, validMessages, context, sessionId);
+      const stream = createSSEStream(streamGenerator);
+      
+      // Incrementar usage tracking (al iniciar, no al finalizar)
+      incrementUsage(userId, 'aiRequests').catch(err => {
+        logger.warn('[POST /api/ai/chat] Failed to increment usage:', err);
+      });
+      
+      // Retornar Response con stream
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          'Connection': 'keep-alive',
+          'X-RateLimit-Remaining': String(rateLimitCheck.remaining),
+          'X-RateLimit-Reset': String(rateLimitCheck.resetAt),
+          'X-Content-Type-Options': 'nosniff',
+          'X-Frame-Options': 'DENY',
+          'X-XSS-Protection': '1; mode=block',
+        },
+      });
+    }
+    
+    // Comportamiento normal sin streaming
     const processingPromise = (async () => {
       // Obtener contexto usando RAG (sistema único)
       const lastMessage = validMessages[validMessages.length - 1];

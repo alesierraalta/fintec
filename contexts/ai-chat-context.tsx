@@ -26,6 +26,9 @@ interface AIChatContextType {
   sessions: ConversationSession[];
   activeSessionId: string | null;
   isLoadingSessions: boolean;
+  // Estados para streaming
+  streamingMessage: string;
+  isStreaming: boolean;
   // Funciones existentes
   openChat: () => void;
   closeChat: () => void;
@@ -57,6 +60,9 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   // Cache de mensajes por sesión
   const [messagesCache, setMessagesCache] = useState<Record<string, ChatMessage[]>>({});
+  // Estados para streaming
+  const [streamingMessage, setStreamingMessage] = useState<string>('');
+  const [isStreaming, setIsStreaming] = useState(false);
 
   /**
    * Carga las sesiones del usuario desde la API
@@ -268,6 +274,100 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     setIsOpen(false);
   }, []);
 
+  /**
+   * Lee y parsea Server-Sent Events (SSE) desde un ReadableStream
+   * Incluye buffering para agrupar chunks y reducir actualizaciones de UI
+   */
+  const readSSEStream = useCallback(async (
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    onChunk: (data: { type: string; text?: string }) => void,
+    onDone: () => void,
+    onError: (error: Error) => void
+  ) => {
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let textBuffer = '';
+    let lastUpdateTime = Date.now();
+    const BUFFER_DELAY_MS = 50; // Agrupar chunks cada 50ms
+    
+    // Función para flush del buffer de texto
+    const flushTextBuffer = () => {
+      if (textBuffer) {
+        onChunk({ type: 'content', text: textBuffer });
+        textBuffer = '';
+        lastUpdateTime = Date.now();
+      }
+    };
+    
+    // Usar requestAnimationFrame para actualizaciones suaves
+    let rafId: number | null = null;
+    const scheduleFlush = () => {
+      if (rafId === null) {
+        rafId = requestAnimationFrame(() => {
+          flushTextBuffer();
+          rafId = null;
+        });
+      }
+    };
+    
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          // Flush cualquier texto pendiente antes de terminar
+          flushTextBuffer();
+          break;
+        }
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.type === 'done') {
+                flushTextBuffer();
+                onDone();
+                return;
+              }
+              if (data.type === 'error') {
+                flushTextBuffer();
+                onError(new Error(data.message || 'Error en el stream'));
+                return;
+              }
+              if (data.type === 'content' && data.text) {
+                // Acumular texto en buffer
+                textBuffer += data.text;
+                
+                // Flush si ha pasado suficiente tiempo o si el buffer es grande
+                const timeSinceLastUpdate = Date.now() - lastUpdateTime;
+                if (timeSinceLastUpdate >= BUFFER_DELAY_MS || textBuffer.length > 100) {
+                  flushTextBuffer();
+                } else {
+                  scheduleFlush();
+                }
+              } else {
+                // Otros tipos de datos se procesan inmediatamente
+                onChunk(data);
+              }
+            } catch (e) {
+              // Ignorar JSON inválido
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      flushTextBuffer();
+      onError(error);
+    } finally {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    }
+  }, []);
+
   const sendMessage = useCallback(async (content: string) => {
     if (!user?.id) {
       setError('Debes estar autenticado para usar el asistente');
@@ -288,6 +388,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     setMessages(newMessages);
     setIsLoading(true);
     setError(null);
+    setIsStreaming(true);
+    setStreamingMessage('');
 
     try {
       // Determinar sessionId a usar
@@ -318,10 +420,12 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      const response = await fetch('/api/ai/chat', {
+      // Usar streaming por defecto
+      const response = await fetch(`/api/ai/chat?stream=true`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
         },
         body: JSON.stringify({
           userId: user.id,
@@ -330,6 +434,82 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         }),
       });
 
+      // Verificar si la respuesta es un stream
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('text/event-stream') && response.body) {
+        // Leer stream
+        const reader = response.body.getReader();
+        let accumulatedText = '';
+        
+        await readSSEStream(
+          reader,
+          (data) => {
+            if (data.type === 'content' && data.text) {
+              accumulatedText += data.text;
+              setStreamingMessage(accumulatedText);
+            }
+          },
+          () => {
+            // Stream completado
+            setIsStreaming(false);
+            const assistantMessage: ChatMessage = {
+              role: 'assistant',
+              content: accumulatedText || 'No recibí una respuesta válida.',
+            };
+            
+            const updatedMessages = [...newMessages, assistantMessage];
+            setMessages(updatedMessages);
+            setStreamingMessage('');
+            
+            // Actualizar cache de mensajes
+            if (currentSessionId) {
+              setMessagesCache(prev => ({
+                ...prev,
+                [currentSessionId]: updatedMessages,
+              }));
+              
+              // Actualizar lista de sesiones
+              loadSessions().catch(err => console.error('Error loading sessions:', err));
+            }
+            
+            setIsLoading(false);
+          },
+          (error) => {
+            // Error en el stream, hacer fallback a modo normal
+            console.error('Stream error, falling back to normal mode:', error);
+            setIsStreaming(false);
+            setStreamingMessage('');
+            
+            // Intentar modo normal como fallback
+            fetch('/api/ai/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.id,
+                messages: newMessages,
+                sessionId: currentSessionId,
+              }),
+            })
+              .then(res => res.json())
+              .then(data => {
+                const assistantMessage: ChatMessage = {
+                  role: 'assistant',
+                  content: data.message || 'No recibí una respuesta válida.',
+                };
+                setMessages([...newMessages, assistantMessage]);
+                setIsLoading(false);
+              })
+              .catch(err => {
+                setError(err?.message || 'Error de conexión. Por favor intenta de nuevo.');
+                setMessages(messages);
+                setIsLoading(false);
+              });
+          }
+        );
+        return;
+      }
+
+      // Fallback a modo normal si no es stream
       const data = await response.json();
 
       // Mostrar logs de debug en la consola del navegador (solo en desarrollo)
@@ -464,6 +644,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     sessions,
     activeSessionId,
     isLoadingSessions,
+    streamingMessage,
+    isStreaming,
     openChat,
     closeChat,
     sendMessage,
@@ -485,6 +667,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     sessions,
     activeSessionId,
     isLoadingSessions,
+    streamingMessage,
+    isStreaming,
     openChat,
     closeChat,
     sendMessage,

@@ -23,6 +23,12 @@ export type ActionType =
   | 'QUERY_RATES'
   | 'QUERY_CATEGORIES'
   | 'QUERY_RECURRING'
+  | 'ANALYZE_SPENDING'
+  | 'CALCULATE_PERCENTAGES'
+  | 'GET_FINANCIAL_SUMMARY'
+  | 'COMPARE_PERIODS'
+  | 'ANALYZE_BY_CATEGORY'
+  | 'GET_SPENDING_TRENDS'
   | 'UNKNOWN';
 
 export type IntentionType = 'ACTION' | 'QUERY';
@@ -52,7 +58,11 @@ const ACTION_COMMAND_KEYWORDS = [
   'hazme', 'haz', 'haz que', 'make me', 'make',
   'gaste', 'gasté', 'gasté', 'spent', 'gastar', 'gastar',
   'compré', 'compre', 'bought', 'comprar',
-  'pagué', 'pague', 'paid', 'pagar'
+  'pagué', 'pague', 'paid', 'pagar',
+  'registra', 'registrar', 'register', 'record',
+  'agrega', 'agregar', 'add', 'añade', 'añadir',
+  'haz esta transacción', 'haz esta transaccion', 'make this transaction',
+  'registra esta transacción', 'registra esta transaccion', 'record this transaction'
 ];
 
 /**
@@ -118,6 +128,23 @@ const QUERY_KEYWORDS = [
 ];
 
 /**
+ * Palabras clave para detectar intenciones de análisis
+ */
+const ANALYSIS_KEYWORDS = [
+  'porcentaje', 'porcentajes', 'percentage', 'percentages',
+  'análisis', 'analisis', 'analyze', 'analysis',
+  'estadística', 'estadisticas', 'statistics', 'stats',
+  'tendencia', 'tendencias', 'trend', 'trends',
+  'comparar', 'comparación', 'compare', 'comparison',
+  'resumen', 'summary', 'summarize',
+  'distribución', 'distribucion', 'distribution',
+  'ratio', 'ratios', 'proporción', 'proporcion',
+  'evolución', 'evolucion', 'evolution',
+  'histórico', 'historico', 'historical',
+  'métrica', 'metricas', 'metrics',
+];
+
+/**
  * Expresiones regulares para extraer parámetros
  */
 const AMOUNT_PATTERNS = [
@@ -165,12 +192,16 @@ export function detectIntention(message: string): DetectedIntention {
     return detectQueryIntention(lowerMessage, message);
   }
   
+  // Detectar comandos directos de acción como "haz esta transacción:", "registra:", etc.
+  const hasDirectActionCommand = /(?:haz|hazme|make|make me|registra|registrar|register|record)\s+(?:esta\s+)?(?:transacción|transaccion|transaction)\s*:?/i.test(message);
+  
   // Si no hay palabras de consulta, verificar si es acción
   // Detectar verbos de acción directos (gaste, compré, pagué) como acciones
   const hasActionVerbs = /gaste|gasté|spent|compré|compre|bought|pagué|pague|paid/i.test(message);
   const isAction = hasCreateKeywords || hasUpdateKeywords || 
                   (hasActionCommands && !hasListingKeywords) ||
-                  (hasActionVerbs && !hasListingKeywords);
+                  (hasActionVerbs && !hasListingKeywords) ||
+                  hasDirectActionCommand;
   
   if (isAction) {
     return detectActionIntention(lowerMessage, message);
@@ -605,6 +636,65 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
   let confidence = 0.6;
   const parameters: Record<string, any> = {};
   
+  // Detectar intenciones de análisis PRIMERO (alta prioridad)
+  const hasAnalysisKeywords = ANALYSIS_KEYWORDS.some(kw => lowerMessage.includes(kw));
+  const hasPercentageQuery = /porcentaje|percentage|por\s+ciento|percent/i.test(lowerMessage);
+  const hasCompareQuery = /comparar|compare|comparación|comparison|vs|versus/i.test(lowerMessage);
+  const hasTrendQuery = /tendencia|trend|evolución|evolution|histórico|historico|historical/i.test(lowerMessage);
+  const hasSummaryQuery = /resumen|summary|summarize|resumir/i.test(lowerMessage);
+  const hasDistributionQuery = /distribución|distribucion|distribution|por\s+categoría|por\s+categoria/i.test(lowerMessage);
+  
+  if (hasAnalysisKeywords || hasPercentageQuery || hasCompareQuery || hasTrendQuery || hasSummaryQuery || hasDistributionQuery) {
+    // Extraer parámetros de período
+    const queryParams = extractQueryParameters(originalMessage);
+    if (queryParams.dateFrom || queryParams.dateTo) {
+      parameters.dateFrom = queryParams.dateFrom;
+      parameters.dateTo = queryParams.dateTo;
+      parameters.period = 'custom';
+    } else if (/mes|month/i.test(originalMessage)) {
+      parameters.period = 'month';
+    } else if (/semana|week/i.test(originalMessage)) {
+      parameters.period = 'week';
+    } else if (/año|year/i.test(originalMessage)) {
+      parameters.period = 'year';
+    } else {
+      parameters.period = 'month'; // Default
+    }
+    
+    // Detectar tipo específico de análisis
+    if (hasPercentageQuery || /porcentaje\s+de\s+gasto|porcentaje\s+de\s+ahorro|porcentaje\s+de\s+ingreso/i.test(lowerMessage)) {
+      actionType = 'CALCULATE_PERCENTAGES';
+      confidence = 0.95;
+    } else if (hasCompareQuery || /comparar|compare|este\s+mes\s+vs|mes\s+anterior/i.test(lowerMessage)) {
+      actionType = 'COMPARE_PERIODS';
+      confidence = 0.95;
+    } else if (hasTrendQuery || /tendencias|trends|evolución|evolution/i.test(lowerMessage)) {
+      actionType = 'GET_SPENDING_TRENDS';
+      confidence = 0.95;
+    } else if (hasSummaryQuery || /resumen\s+financiero|financial\s+summary/i.test(lowerMessage)) {
+      actionType = 'GET_FINANCIAL_SUMMARY';
+      parameters.includeTrends = /tendencias|trends|comparar|compare/i.test(lowerMessage);
+      confidence = 0.95;
+    } else if (hasDistributionQuery || /por\s+categoría|por\s+categoria|distribución|distribution|en\s+qué\s+gasto/i.test(lowerMessage)) {
+      actionType = 'ANALYZE_BY_CATEGORY';
+      confidence = 0.95;
+    } else if (hasAnalysisKeywords && /gasto|spending|expense/i.test(lowerMessage)) {
+      actionType = 'ANALYZE_SPENDING';
+      confidence = 0.9;
+    }
+    
+    if (actionType !== 'UNKNOWN') {
+      return {
+        type: 'QUERY',
+        actionType,
+        confidence,
+        parameters,
+        requiresConfirmation: false,
+        missingParameters: [],
+      };
+    }
+  }
+  
   // Enhanced patterns with explicit list/show keywords for better detection
   // Agregar patrones comparativos y superlativos
   const hasListingKeywords = /listado|listar|lista\s|muéstrame|mostrar|muestra|ver|show|display|dame|give me|hazme|haz la|cuales?|cuáles?|qué|que|which|what/i.test(originalMessage);
@@ -909,27 +999,76 @@ export function extractDateRange(message: string): { from?: string; to?: string 
 
 /**
  * Extrae descripción del mensaje
+ * Mejorado para capturar descripciones en lenguaje natural como "compré X en Y a Z precio"
  */
 function extractDescription(message: string, amount: { value: number; currency?: string } | null): string | null {
-  // Remover palabras clave y números para obtener la descripción
   let desc = message;
   
-  // Remover palabras clave de acción
-  desc = desc.replace(/\b(crear|crea|agregar|agrega|nuevo|nueva|gasto|ingreso|transacción|transaccion)\b/gi, '');
+  // Detectar patrones de lenguaje natural como "compré X en Y", "gasté X en Y", etc.
+  const naturalPatterns = [
+    // "compré X en Y" o "compré X por Y precio"
+    /(?:compré|compre|bought|compra|comprar)\s+(.+?)(?:\s+en\s+|\s+a\s+|\s+por\s+|\s+de\s+|\s+al\s+precio\s+de\s+|\s+a\s+precio\s+de\s+|\s+por\s+precio\s+de\s+|\s+costó\s+|\s+costo\s+|\s+valió\s+|\s+valio\s+|\s+pag[oó]\s+)/i,
+    // "gasté X en Y"
+    /(?:gasté|gaste|spent|gasto|gastar)\s+(.+?)(?:\s+en\s+|\s+a\s+|\s+por\s+|\s+de\s+|\s+al\s+precio\s+de\s+|\s+a\s+precio\s+de\s+|\s+por\s+precio\s+de\s+|\s+costó\s+|\s+costo\s+)/i,
+    // "haz esta transacción: X"
+    /(?:haz|hazme|make|make me)\s+(?:esta\s+)?(?:transacción|transaccion|transaction)\s*:?\s*(.+)/i,
+    // "registra: X" o "registra esta transacción: X"
+    /(?:registra|registrar|register|record)\s+(?:esta\s+)?(?:transacción|transaccion|transaction)?\s*:?\s*(.+)/i,
+  ];
   
-  // Remover monto si existe
-  if (amount) {
-    desc = desc.replace(amount.value.toString(), '');
-    if (amount.currency) {
-      desc = desc.replace(new RegExp(amount.currency, 'gi'), '');
+  for (const pattern of naturalPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      let extracted = match[1].trim();
+      
+      // Remover monto si está al final o en medio
+      if (amount) {
+        const amountStr = amount.value.toString();
+        const currencyStr = amount.currency || '';
+        
+        // Remover patrones de precio comunes
+        extracted = extracted.replace(new RegExp(`\\s*(?:a|por|de|del|de la|por el|por la|con|al|a precio de|por precio de|costó|costo|valió|valio|valía|valia|pag[oó]|pag[oó] por|pag[oó] el|pag[oó] la)\\s*${amountStr}\\s*${currencyStr}\\b`, 'gi'), '');
+        extracted = extracted.replace(new RegExp(`\\s*${amountStr}\\s*${currencyStr}\\s*$`, 'i'), '');
+        extracted = extracted.replace(new RegExp(`\\s*${currencyStr}\\s*${amountStr}\\s*$`, 'i'), '');
+        extracted = extracted.replace(new RegExp(`\\s*\\$${amountStr}\\s*$`, 'i'), '');
+        extracted = extracted.replace(new RegExp(`\\s*${amountStr}\\$\\s*$`, 'i'), '');
+      }
+      
+      // Remover palabras comunes al final relacionadas con precio
+      extracted = extracted.replace(/\s+(?:a|por|de|del|de la|por el|por la|con|al|a precio de|por precio de|costó|costo|valió|valio|valía|valia|pag[oó]|pag[oó] por|pag[oó] el|pag[oó] la)\s*$/i, '');
+      
+      extracted = extracted.trim();
+      
+      if (extracted.length > 3 && extracted.length < 200) {
+        return extracted;
+      }
     }
   }
   
-  // Remover palabras vacías
-  desc = desc.replace(/\b(de|en|para|por|con|el|la|los|las|un|una|unos|unas)\b/gi, '');
-  desc = desc.trim();
+  // Fallback: método original mejorado
+  desc = message;
   
-  if (desc.length > 3 && desc.length < 100) {
+  // Remover prefijos comunes de acción
+  desc = desc.replace(/^(?:haz|hazme|make|make me|registra|registrar|register|record|crear|crea|agregar|agrega|nuevo|nueva)\s+(?:esta\s+)?(?:transacción|transaccion|transaction)\s*:?\s*/i, '');
+  
+  // Remover palabras clave de acción
+  desc = desc.replace(/\b(crear|crea|agregar|agrega|nuevo|nueva|gasto|ingreso|transacción|transaccion|haz|hazme|make|make me|registra|registrar|register|record)\b/gi, '');
+  
+  // Remover monto si existe
+  if (amount) {
+    desc = desc.replace(new RegExp(`\\b${amount.value}\\b`, 'g'), '');
+    if (amount.currency) {
+      desc = desc.replace(new RegExp(`\\b${amount.currency}\\b`, 'gi'), '');
+    }
+    // Remover patrones de precio comunes
+    desc = desc.replace(/\s*(?:a|por|de|del|de la|por el|por la|con|al|a precio de|por precio de|costó|costo|valió|valio|valía|valia|pag[oó])\s*(?:\d+(?:\.\d+)?)\s*(?:usd|dólar|dolares|dollar|dollars?|ves|bolívar|bolivares?|eur|euro|euros?)\s*/gi, '');
+  }
+  
+  // Remover palabras vacías comunes
+  desc = desc.replace(/\b(de|en|para|por|con|el|la|los|las|un|una|unos|unas|a|al|del|de la|por el|por la)\b/gi, ' ');
+  desc = desc.replace(/\s+/g, ' ').trim();
+  
+  if (desc.length > 3 && desc.length < 200) {
     return desc;
   }
   

@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils';
  * Incluye sidebar para múltiples conversaciones
  */
 export function AIChatModal() {
-  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat, pendingAction } = useAIChat();
+  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat, pendingAction, streamingMessage, isStreaming } = useAIChat();
   const [inputValue, setInputValue] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -38,10 +38,10 @@ export function AIChatModal() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auto-scroll al final cuando hay nuevos mensajes
+  // Auto-scroll al final cuando hay nuevos mensajes o cuando se actualiza el streaming
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, streamingMessage]);
 
   // Focus en input cuando se abre el modal
   useEffect(() => {
@@ -146,8 +146,20 @@ export function AIChatModal() {
             </div>
           ))}
 
-          {/* Indicador de carga */}
-          {isLoading && (
+          {/* Mensaje en streaming */}
+          {isStreaming && streamingMessage && (
+            <div className="flex justify-start">
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3 max-w-[80%]">
+                <div className="text-sm whitespace-pre-wrap break-words">
+                  {streamingMessage}
+                  <span className="inline-block w-2 h-4 ml-1 bg-gray-600 dark:bg-gray-400 animate-pulse">▋</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Indicador de carga (solo si no hay streaming) */}
+          {isLoading && !isStreaming && (
             <div className="flex justify-start">
               <div className="bg-gray-100 dark:bg-gray-800 rounded-2xl px-4 py-3">
                 <Loading size="sm" />
@@ -191,7 +203,7 @@ export function AIChatModal() {
                 />
                 <Button
                   type="submit"
-                  disabled={!inputValue.trim() || isLoading}
+                  disabled={!inputValue.trim() || isLoading || isStreaming}
                   className="px-4"
                 >
                   {isLoading ? (

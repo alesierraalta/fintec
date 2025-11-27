@@ -562,7 +562,11 @@ export function MobileTransfer() {
                         {getFromAccount() ? formatBalance(getFromAccount()!.balance, getFromAccount()!.currencyCode) : '--'}
                       </p>
                       <p className="font-bold text-error-500 dark:text-error-400 text-sm">
-                        → {getFromAccount() ? formatBalance(getFromAccount()!.balance - transferData.amount, getFromAccount()!.currencyCode) : '--'}
+                        {/* Resta el monto en la moneda de origen (convertido a minor units) */}
+                        → {getFromAccount() ? formatBalance(
+                          getFromAccount()!.balance - toMinorUnits(transferData.amount, getFromAccount()!.currencyCode), 
+                          getFromAccount()!.currencyCode
+                        ) : '--'}
                       </p>
                     </div>
                   </div>
@@ -580,7 +584,16 @@ export function MobileTransfer() {
                         {getToAccount() ? formatBalance(getToAccount()!.balance, getToAccount()!.currencyCode) : '--'}
                       </p>
                       <p className="font-bold text-success-500 dark:text-success-400 text-sm">
-                        → {getToAccount() ? formatBalance(getToAccount()!.balance + transferData.amount, getToAccount()!.currencyCode) : '--'}
+                        {/* Suma el monto convertido (si hay exchangeRate) en la moneda de destino (convertido a minor units) */}
+                        → {getToAccount() ? formatBalance(
+                          getToAccount()!.balance + toMinorUnits(
+                            getFromAccount()?.currencyCode !== getToAccount()?.currencyCode && transferData.exchangeRate 
+                              ? transferData.amount * transferData.exchangeRate 
+                              : transferData.amount, 
+                            getToAccount()!.currencyCode
+                          ), 
+                          getToAccount()!.currencyCode
+                        ) : '--'}
                       </p>
                     </div>
                   </div>

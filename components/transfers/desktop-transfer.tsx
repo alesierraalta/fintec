@@ -217,7 +217,14 @@ export function DesktopTransfer() {
 
     const fromAccount = getFromAccount();
     const toAccount = getToAccount();
-    if (!fromAccount || fromAccount.balance < transferData.amount) {
+    if (!fromAccount) {
+      alert('Error: No se pudo encontrar la cuenta origen');
+      return;
+    }
+    
+    // Convert amount to minor units for comparison
+    const amountInMinorUnits = toMinorUnits(transferData.amount, fromAccount.currencyCode);
+    if (fromAccount.balance < amountInMinorUnits) {
       alert('Saldo insuficiente en la cuenta origen');
       return;
     }

@@ -56,6 +56,8 @@ export async function storeMemory(
     
     // Generar embedding para la memoria
     const { embedding } = await generateEmbedding(content);
+    // PostgREST/Supabase convierte automáticamente el formato string '[0.1,0.2,0.3]' a vector type
+    // Este formato es compatible con pgvector cuando se inserta en una columna vector(1536)
     const embeddingStr = `[${embedding.join(',')}]`;
 
     const { data, error } = await (client
@@ -64,7 +66,7 @@ export async function storeMemory(
         user_id: userId,
         memory_type: memoryType,
         content: content.trim(),
-        embedding: embeddingStr,
+        embedding: embeddingStr, // Formato string que PostgREST convierte a vector(1536)
         metadata: metadata || {},
         importance_score: Math.max(0, Math.min(1, importanceScore)),
       })
@@ -97,11 +99,15 @@ export async function searchMemories(
     
     // Generar embedding de la query
     const { embedding } = await generateEmbedding(query);
+    // Para RPC calls, PostgREST necesita el formato string que se convierte a vector(1536)
+    // El formato '[0.1,0.2,0.3]' es compatible con el tipo vector en PostgreSQL
     const embeddingStr = `[${embedding.join(',')}]`;
 
     // Llamar a función RPC para búsqueda vectorial
+    // Nota: PostgREST convierte automáticamente el string a vector(1536) cuando el parámetro
+    // de la función RPC está tipado como vector(1536)
     const { data, error } = await (client.rpc as any)('search_semantic_memories', {
-      query_embedding: embeddingStr,
+      query_embedding: embeddingStr, // PostgREST convierte string a vector(1536) para el RPC
       user_id_param: userId,
       memory_types: options.memoryTypes || null,
       match_threshold: options.minSimilarity || 0.7,

@@ -50,9 +50,16 @@ export const availableActionsInstructions = `6. ACCIONES DISPONIBLES (solo si in
  * Instrucciones sobre cuándo usar funciones
  */
 export const whenToUseFunctionsInstructions = `7. CUANDO USAR FUNCIONES:
-   - Usa funciones SOLO cuando el usuario exprese claramente una intención de acción (crear, agregar, registrar)
+   - Usa funciones cuando el usuario exprese claramente una intención de acción (crear, agregar, registrar)
+   - EJECUTA ACCIONES AUTOMÁTICAMENTE cuando el usuario las describe en lenguaje natural
+   - Ejemplos de ejecución automática:
+     * "haz esta transacción: compré X en Y a Z precio" → Ejecuta create_transaction automáticamente
+     * "registra: gasté 50 USD en comida" → Ejecuta create_transaction automáticamente
+     * "compré un libro en Amazon por 25 USD" → Ejecuta create_transaction automáticamente
+     * "gasté 30 USD en gasolina" → Ejecuta create_transaction automáticamente
+   - Extrae toda la información posible del mensaje (descripción, monto, categoría, lugar)
+   - Si falta información crítica (monto), pregunta solo por eso
    - NO uses funciones para consultas simples (preguntas sobre datos existentes)
-   - Si el usuario dice "agrega un gasto de X", llama a create_transaction
    - Si el usuario dice "cuánto tengo", responde directamente sin usar funciones`;
 
 /**
@@ -110,6 +117,56 @@ export const limitsInstructions = `24. RESPETO DE LÍMITES:
    - Solo muestra "y X más" cuando NO hay límite explícito y hay más resultados disponibles`;
 
 /**
+ * Instrucciones sobre ejecución automática y proactividad
+ */
+export const proactivityInstructions = `25. EJECUCIÓN AUTOMÁTICA DE HERRAMIENTAS DE ANÁLISIS:
+   - Tienes libertad casi total para ejecutar herramientas de análisis y consultas sin preguntar
+   - Cuando el usuario pregunte por porcentajes, estadísticas, análisis o comparaciones, DEBES usar las herramientas de análisis automáticamente
+   - NO solo listes datos cuando el usuario pide análisis: EJECUTA las herramientas de análisis
+   - Puedes llamar múltiples herramientas en secuencia si es necesario para responder completamente
+   
+26. HERRAMIENTAS DE ANÁLISIS DISPONIBLES (ejecutar automáticamente):
+   - analyze_spending: Analiza gastos por período con porcentajes y estadísticas
+     * Usar cuando: "¿cuál es mi porcentaje de gasto mensual?", "analiza mis gastos", "estadísticas de gastos"
+   - calculate_percentages: Calcula porcentajes financieros específicos
+     * Usar cuando: "¿qué porcentaje de mis ingresos gasto?", "porcentaje de ahorro", "porcentajes por categoría"
+   - get_financial_summary: Obtiene resumen financiero completo con métricas clave
+     * Usar cuando: "resumen financiero", "dame un resumen", "cómo están mis finanzas"
+   - compare_periods: Compara períodos para detectar tendencias
+     * Usar cuando: "comparar este mes con el anterior", "cómo cambiaron mis gastos", "tendencias"
+   - analyze_by_category: Análisis de gastos por categoría con porcentajes
+     * Usar cuando: "gastos por categoría", "en qué gasto más", "distribución de gastos"
+   - get_spending_trends: Obtiene tendencias de gasto a lo largo del tiempo
+     * Usar cuando: "tendencias de gasto", "evolución de gastos", "histórico de gastos"
+   
+27. EJEMPLOS DE USO AUTOMÁTICO:
+   - Usuario: "¿cuál es mi porcentaje de gasto mensual?"
+     → Ejecutar automáticamente: analyze_spending(period: "month")
+     → Presentar resultados con porcentajes calculados
+   
+   - Usuario: "analiza mis gastos por categoría"
+     → Ejecutar automáticamente: analyze_by_category(period: "month")
+     → Mostrar desglose por categoría con porcentajes
+   
+   - Usuario: "comparar este mes con el anterior"
+     → Ejecutar automáticamente: compare_periods(currentPeriod: "month")
+     → Mostrar comparación con tendencias y cambios porcentuales
+   
+   - Usuario: "dame un resumen financiero"
+     → Ejecutar automáticamente: get_financial_summary(period: "month", includeTrends: true)
+     → Presentar resumen completo con todas las métricas
+   
+28. MÚLTIPLES HERRAMIENTAS EN SECUENCIA:
+   - Puedes llamar múltiples herramientas si es necesario para responder completamente
+   - Ejemplo: Si el usuario pregunta "analiza mis finanzas y compara con el mes pasado"
+     → Ejecutar: get_financial_summary() y luego compare_periods()
+     → Combinar resultados en una respuesta completa
+   
+29. CONFIRMACIONES SOLO PARA ACCIONES CRÍTICAS:
+   - NO requieres confirmación para: análisis, consultas, crear transacciones pequeñas (< $100), crear presupuestos/metas
+   - SÍ requieres confirmación para: transferencias, transacciones grandes (>= $100), crear cuentas con balance inicial > $1000`;
+
+/**
  * Obtiene las instrucciones críticas según el contexto del usuario
  */
 export function getInstructionsTemplate(userContext?: {
@@ -129,6 +186,7 @@ export function getInstructionsTemplate(userContext?: {
     queryExamplesInstructions,
     correctionsInstructions,
     limitsInstructions,
+    proactivityInstructions,
   ].join('\n\n');
 
   return {

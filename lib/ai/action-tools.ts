@@ -230,6 +230,170 @@ export const AI_ACTION_TOOLS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_spending',
+      description: 'Analiza gastos por período con porcentajes, estadísticas y desglose por categoría. USA ESTO cuando el usuario pregunte por porcentajes de gasto, análisis de gastos, o estadísticas financieras. Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['today', 'week', 'month', 'year', 'custom'],
+            description: 'Período de tiempo para el análisis',
+            default: 'month',
+          },
+          dateFrom: {
+            type: 'string',
+            format: 'date',
+            description: 'Fecha de inicio (solo si period es "custom")',
+          },
+          dateTo: {
+            type: 'string',
+            format: 'date',
+            description: 'Fecha de fin (solo si period es "custom")',
+          },
+          currency: {
+            type: 'string',
+            enum: ['USD', 'VES', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'MXN', 'BRL'],
+            description: 'Moneda para el análisis (opcional)',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'calculate_percentages',
+      description: 'Calcula porcentajes financieros específicos (gasto, ahorro, por categoría). USA ESTO cuando el usuario pregunte por porcentajes específicos. Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['today', 'week', 'month', 'year'],
+            description: 'Período de tiempo',
+            default: 'month',
+          },
+          metric: {
+            type: 'string',
+            enum: ['expense', 'savings', 'category', 'all'],
+            description: 'Tipo de porcentaje a calcular',
+            default: 'all',
+          },
+          category: {
+            type: 'string',
+            description: 'Categoría específica (solo si metric es "category")',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_financial_summary',
+      description: 'Obtiene un resumen financiero completo con todas las métricas clave (ingresos, gastos, ahorros, presupuestos, metas). USA ESTO cuando el usuario pida un resumen general o visión completa de sus finanzas. Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['month', 'year'],
+            description: 'Período para el resumen',
+            default: 'month',
+          },
+          includeTrends: {
+            type: 'boolean',
+            description: 'Incluir comparación con período anterior',
+            default: false,
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'compare_periods',
+      description: 'Compara dos períodos para detectar tendencias y cambios. USA ESTO cuando el usuario quiera comparar períodos (ej: "este mes vs el anterior", "comparar trimestres"). Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          currentPeriod: {
+            type: 'string',
+            enum: ['month', 'year'],
+            description: 'Período actual a comparar',
+            default: 'month',
+          },
+          previousPeriod: {
+            type: 'string',
+            enum: ['month', 'year'],
+            description: 'Período anterior a comparar (opcional, se calcula automáticamente)',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'analyze_by_category',
+      description: 'Analiza gastos por categoría con porcentajes y estadísticas. USA ESTO cuando el usuario pregunte por gastos por categoría, distribución de gastos, o qué categoría gasta más. Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          period: {
+            type: 'string',
+            enum: ['today', 'week', 'month', 'year'],
+            description: 'Período de tiempo',
+            default: 'month',
+          },
+          limit: {
+            type: 'number',
+            description: 'Número máximo de categorías a mostrar',
+            default: 10,
+          },
+          currency: {
+            type: 'string',
+            enum: ['USD', 'VES', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'MXN', 'BRL'],
+            description: 'Moneda para el análisis (opcional)',
+          },
+        },
+        required: [],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_spending_trends',
+      description: 'Obtiene tendencias de gasto a lo largo del tiempo (múltiples períodos). USA ESTO cuando el usuario pregunte por tendencias, evolución de gastos, o análisis histórico. Ejecuta automáticamente sin preguntar.',
+      parameters: {
+        type: 'object',
+        properties: {
+          periods: {
+            type: 'number',
+            description: 'Número de períodos a analizar (ej: 3 para últimos 3 meses)',
+            default: 3,
+          },
+          periodType: {
+            type: 'string',
+            enum: ['month', 'week'],
+            description: 'Tipo de período (mes o semana)',
+            default: 'month',
+          },
+        },
+        required: [],
+      },
+    },
+  },
 ];
 
 /**
@@ -243,6 +407,12 @@ export const FUNCTION_ACTION_MAP: Record<string, string> = {
   'create_transfer': 'CREATE_TRANSFER',
   'get_account_balance': 'QUERY_BALANCE',
   'get_category_spending': 'QUERY_TRANSACTIONS',
+  'analyze_spending': 'ANALYZE_SPENDING',
+  'calculate_percentages': 'CALCULATE_PERCENTAGES',
+  'get_financial_summary': 'GET_FINANCIAL_SUMMARY',
+  'compare_periods': 'COMPARE_PERIODS',
+  'analyze_by_category': 'ANALYZE_BY_CATEGORY',
+  'get_spending_trends': 'GET_SPENDING_TRENDS',
 };
 
 /**
@@ -254,14 +424,34 @@ export function getToolByName(name: string): ChatCompletionTool | undefined {
 
 /**
  * Verifica si una función requiere confirmación
+ * 
+ * Regla: Solo acciones críticas requieren confirmación
+ * - Todas las herramientas de análisis NO requieren confirmación
+ * - Consultas y queries NO requieren confirmación
  */
 export function requiresConfirmation(functionName: string, parameters: Record<string, any>): boolean {
-  // Transferencias siempre requieren confirmación
+  // Herramientas de análisis NUNCA requieren confirmación
+  const analysisTools = [
+    'analyze_spending',
+    'calculate_percentages',
+    'get_financial_summary',
+    'compare_periods',
+    'analyze_by_category',
+    'get_spending_trends',
+    'get_account_balance',
+    'get_category_spending',
+  ];
+  
+  if (analysisTools.includes(functionName)) {
+    return false;
+  }
+  
+  // Transferencias siempre requieren confirmación (acción crítica)
   if (functionName === 'create_transfer') {
     return true;
   }
   
-  // Transacciones grandes requieren confirmación
+  // Transacciones grandes requieren confirmación (>= $100 USD)
   if (functionName === 'create_transaction' && parameters.amount) {
     const amountValue = parameters.amount;
     const threshold = parameters.currency === 'USD' ? 100 : 1000;
@@ -270,9 +460,19 @@ export function requiresConfirmation(functionName: string, parameters: Record<st
     }
   }
   
-  // Crear cuentas requiere confirmación
-  if (functionName === 'create_account') {
+  // Crear cuentas con balance inicial grande requiere confirmación (> $1000)
+  if (functionName === 'create_account' && parameters.initialBalance && parameters.initialBalance > 1000) {
     return true;
+  }
+  
+  // Crear cuentas sin balance inicial NO requiere confirmación
+  if (functionName === 'create_account') {
+    return false;
+  }
+  
+  // Crear presupuestos y metas NO requieren confirmación
+  if (functionName === 'create_budget' || functionName === 'create_goal') {
+    return false;
   }
   
   // Otras acciones no requieren confirmación por defecto
