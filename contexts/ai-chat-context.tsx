@@ -545,8 +545,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
         } else {
           setError(data.error || 'Error al enviar mensaje');
         }
-        // Remover el mensaje del usuario si falló
-        setMessages(messages);
+        // Usar newMessages en lugar de messages para preservar el mensaje del usuario
+        setMessages(newMessages);
         return;
       }
 

@@ -12,6 +12,7 @@
  */
 
 import { openai, getChatModel, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
+import type OpenAI from 'openai';
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
 import { getFallbackResponse } from './fallback-responses';
@@ -1141,10 +1142,14 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
 
           while (currentRound < MAX_TOOL_CALL_ROUNDS) {
             currentRound++;
-            collectLog('info', `[chatWithAssistant] Processing tool calls round ${currentRound}/${MAX_TOOL_CALL_ROUNDS}, ${toolCalls.length} tool calls`);
+            collectLog('info', `[chatWithAssistant] Processing tool calls round ${currentRound}/${MAX_TOOL_CALL_ROUNDS}, ${toolCalls?.length || 0} tool calls`);
 
             // Ejecutar todos los tool calls de esta ronda
             const toolResults: Array<{ toolCallId: string; role: 'tool'; content: string; name?: string }> = [];
+            
+            if (!toolCalls || toolCalls.length === 0) {
+              break;
+            }
             
             for (const toolCall of toolCalls) {
               if (!('function' in toolCall)) {
@@ -1156,7 +1161,7 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
               const functionArgs = JSON.parse(toolCall.function.arguments || '{}');
               const toolCallId = toolCall.id;
 
-              collectLog('info', `[chatWithAssistant] Executing tool call: ${functionName}`, functionArgs);
+              collectLog('info', `[chatWithAssistant] Executing tool call: ${functionName} with args: ${JSON.stringify(functionArgs)}`);
 
               try {
                 const actionType = actionTypeMap[functionName];
@@ -1300,11 +1305,9 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
                       }),
                     } as any);
                     
-                    for await (const chunk of streamResponse) {
-                      const chunkContent = chunk.choices[0]?.delta?.content;
-                      if (chunkContent) {
-                        yield { type: 'content' as const, text: chunkContent };
-                      }
+                    // Usar streamOpenAIResponse para convertir el stream
+                    for await (const textChunk of streamOpenAIResponse(streamResponse as any)) {
+                      yield { type: 'content' as const, text: textChunk };
                     }
                     
                     yield { type: 'done' as const };

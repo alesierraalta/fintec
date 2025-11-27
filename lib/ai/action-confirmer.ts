@@ -316,6 +316,12 @@ function getActionDescription(actionType: ActionType): string {
     'QUERY_RATES': 'consultar las tasas de cambio',
     'QUERY_CATEGORIES': 'consultar las categorías',
     'QUERY_RECURRING': 'consultar las transacciones recurrentes',
+    'ANALYZE_SPENDING': 'analizar gastos',
+    'CALCULATE_PERCENTAGES': 'calcular porcentajes',
+    'GET_FINANCIAL_SUMMARY': 'obtener resumen financiero',
+    'COMPARE_PERIODS': 'comparar períodos',
+    'ANALYZE_BY_CATEGORY': 'analizar por categoría',
+    'GET_SPENDING_TRENDS': 'obtener tendencias de gasto',
     'UNKNOWN': 'realizar esta acción',
   };
 
