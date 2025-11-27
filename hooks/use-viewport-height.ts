@@ -10,21 +10,9 @@ import { useState, useEffect, useCallback } from 'react';
  * 
  * @returns Height actual del viewport en píxeles
  */
-export function useViewportHeight(): number {
-  const [height, setHeight] = useState<number>(() => {
-    // Inicializar con el height actual del viewport
-    if (typeof window === 'undefined') {
-      return 0;
-    }
-    
-    // Preferir Visual Viewport API si está disponible
-    if (window.visualViewport) {
-      return window.visualViewport.height;
-    }
-    
-    // Fallback a window.innerHeight
-    return window.innerHeight;
-  });
+export function useViewportHeight(): number | null {
+  // Inicializar como null para SSR - se actualizará en el cliente
+  const [height, setHeight] = useState<number | null>(null);
 
   // Función para actualizar el height
   const updateHeight = useCallback(() => {
@@ -44,6 +32,11 @@ export function useViewportHeight(): number {
 
     // Solo actualizar si el height cambió (evita re-renders innecesarios)
     setHeight(prevHeight => {
+      // Si prevHeight es null (primera vez), siempre actualizar
+      if (prevHeight === null) {
+        return newHeight;
+      }
+      // Solo actualizar si el cambio es significativo (> 1px)
       if (Math.abs(prevHeight - newHeight) > 1) {
         return newHeight;
       }
@@ -56,7 +49,7 @@ export function useViewportHeight(): number {
       return;
     }
 
-    // Inicializar height
+    // Inicializar height inmediatamente al montar (solo en cliente)
     updateHeight();
 
     // Preferir Visual Viewport API si está disponible
