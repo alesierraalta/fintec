@@ -16,7 +16,9 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(true); // Start open by default for desktop
   const [isMobile, setIsMobile] = useState(false);
 
-  // Check if we're on mobile
+  // Check if we're on mobile - only after mount to avoid hydration mismatch
+  // This ensures isMobile is consistent during initial hydration (always false)
+  // and only updates after the component is mounted on the client
   useEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
@@ -29,10 +31,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
+    // Only check after mount to ensure consistent hydration
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, [isOpen]);
+  }, []); // Empty deps - only run once on mount, not when isOpen changes
 
   const toggleSidebar = useCallback(() => setIsOpen(!isOpen), [isOpen]);
   const closeSidebar = useCallback(() => setIsOpen(false), []);
