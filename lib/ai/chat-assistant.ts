@@ -11,7 +11,7 @@
  * - Procesamiento de confirmaciones
  */
 
-import { openai, getChatModel, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES } from './config';
+import { openai, getChatModel, AI_CHAT_MODEL_NANO, AI_CHAT_MODEL_MINI, AI_TEMPERATURE, AI_LLM_TIMEOUT_MS, AI_MAX_RETRIES, AI_DISABLE_TOOLS } from './config';
 import type OpenAI from 'openai';
 import { WalletContext } from './context-builder';
 import { withRetry } from './retry-handler';
@@ -130,8 +130,12 @@ export async function chatWithAssistant(
   userId: string,
   messages: ChatMessage[],
   context: WalletContext,
-  sessionId?: string
+  sessionId?: string,
+  disableTools?: boolean
 ): Promise<ChatResponse> {
+  // Determinar si se deben deshabilitar las herramientas (parámetro tiene prioridad sobre variable de entorno)
+  const shouldDisableTools = disableTools ?? AI_DISABLE_TOOLS;
+  
   // Recopilar logs para enviar al navegador (siempre, no solo en desarrollo)
   const isDev = process.env.NODE_ENV === 'development';
   const debugLogs: Array<{ level: 'debug' | 'info' | 'warn' | 'error'; message: string; timestamp: number }> = [];
@@ -1125,14 +1129,23 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
         collectLog('info', `[chatWithAssistant] Making OpenAI API call with model: ${model}, stream: ${stream}`);
         const tokenParam = 'max_completion_tokens'; // Ambos modelos gpt-5 usan max_completion_tokens
         const tempInfo = (model === AI_CHAT_MODEL_NANO || model === AI_CHAT_MODEL_MINI) ? 'temperature=default(1)' : `temperature=${AI_TEMPERATURE}`;
-        collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, ${tempInfo}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}, stream=${stream}`);
-        logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}, stream: ${stream}`);
+        
+        // Configurar herramientas según shouldDisableTools
+        const toolsConfig = shouldDisableTools 
+          ? {} 
+          : { tools: AI_ACTION_TOOLS, tool_choice: 'auto' as const };
+        
+        if (shouldDisableTools) {
+          collectLog('info', `[chatWithAssistant] Tools are DISABLED - model will respond with text only`);
+        } else {
+          collectLog('debug', `[chatWithAssistant] API request: model=${model}, messages=${openAIMessages.length}, ${tempInfo}, ${tokenParam}=800, tools=${AI_ACTION_TOOLS.length}, stream=${stream}`);
+        }
+        logger.debug(`[chatWithAssistant] Calling OpenAI API with model: ${model}, stream: ${stream}, tools_disabled=${shouldDisableTools}`);
         
         const response = await openai.chat.completions.create({
           ...getModelParams(model, 800, {
             messages: openAIMessages as any,
-            tools: AI_ACTION_TOOLS,
-            tool_choice: 'auto', // Dejar que el modelo decida cuándo usar herramientas
+            ...toolsConfig,
             ...(stream ? { stream: false } : {}), // No hacer streaming en la primera llamada (tool calls primero)
           }),
         } as any);
@@ -1145,6 +1158,24 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
         const message = response.choices[0]?.message;
         const content = message?.content;
         let toolCalls = message?.tool_calls;
+
+        // Si las herramientas están deshabilitadas, ignorar tool calls y retornar solo el contenido
+        if (shouldDisableTools) {
+          if (content) {
+            collectLog('info', `[chatWithAssistant] Tools disabled - returning text response only`);
+            if (stream) {
+              return (async function* () {
+                const words = content.split(' ');
+                for (let i = 0; i < words.length; i++) {
+                  yield { type: 'content' as const, text: (i > 0 ? ' ' : '') + words[i] };
+                  await new Promise(resolve => setTimeout(resolve, 20));
+                }
+                yield { type: 'done' as const };
+              })();
+            }
+            return withDebugLogs({ message: content });
+          }
+        }
 
         // Si el modelo quiere llamar funciones, procesar múltiples tool calls en secuencia
         if (toolCalls && toolCalls.length > 0) {
@@ -1303,11 +1334,16 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
 
             // Llamar nuevamente a OpenAI con los resultados de los tool calls
             collectLog('info', `[chatWithAssistant] Calling OpenAI again with ${toolResults.length} tool results`);
+            
+            // Configurar herramientas según shouldDisableTools
+            const nextToolsConfig = shouldDisableTools 
+              ? {} 
+              : { tools: AI_ACTION_TOOLS, tool_choice: 'auto' as const };
+            
             const nextResponse = await openai.chat.completions.create({
               ...getModelParams(model, 800, {
                 messages: conversationMessages as any,
-                tools: AI_ACTION_TOOLS,
-                tool_choice: 'auto',
+                ...nextToolsConfig,
               }),
             } as any);
 
@@ -1530,14 +1566,18 @@ export async function* chatWithAssistantStream(
   userId: string,
   messages: ChatMessage[],
   context: WalletContext,
-  sessionId?: string
+  sessionId?: string,
+  disableTools?: boolean
 ): AsyncGenerator<{ type: 'content' | 'done'; text?: string }, void, unknown> {
+  // Determinar si se deben deshabilitar las herramientas (parámetro tiene prioridad sobre variable de entorno)
+  const shouldDisableTools = disableTools ?? AI_DISABLE_TOOLS;
+  
   // Usar la misma lógica que chatWithAssistant pero con streaming habilitado
   // La función callOpenAI ya maneja el streaming cuando stream: true
   
   // Por ahora, llamar a chatWithAssistant y luego hacer streaming del resultado
   // Esto es una implementación simplificada - en el futuro se puede optimizar
-  const response = await chatWithAssistant(userId, messages, context, sessionId);
+  const response = await chatWithAssistant(userId, messages, context, sessionId, shouldDisableTools);
   
   // Hacer streaming del mensaje palabra por palabra como fallback
   // En una implementación completa, esto se haría directamente en callOpenAI

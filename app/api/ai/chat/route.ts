@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { userId, messages, sessionId: providedSessionId } = body;
+    const { userId, messages, sessionId: providedSessionId, disableTools = false } = body;
     const validMessages = messages as ChatMessage[];
     
     // Asegurar que siempre haya un sessionId para mantener contexto de conversación
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
       const context = await buildWalletContext(userId, lastMessageContent);
       
       // Crear stream
-      const streamGenerator = chatWithAssistantStream(userId, validMessages, context, sessionId);
+      const streamGenerator = chatWithAssistantStream(userId, validMessages, context, sessionId, disableTools);
       const stream = createSSEStream(streamGenerator);
       
       // Incrementar usage tracking (al iniciar, no al finalizar)
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       const context = await buildWalletContext(userId, lastMessageContent);
 
       // Generar respuesta del asistente (con retry, fallback, etc internos)
-      const response = await chatWithAssistant(userId, validMessages, context, sessionId);
+      const response = await chatWithAssistant(userId, validMessages, context, sessionId, disableTools);
 
       // Incrementar usage tracking (solo después de éxito)
       await incrementUsage(userId, 'aiRequests');

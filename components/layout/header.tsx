@@ -26,6 +26,10 @@ export function Header() {
   const repository = useRepository();
   const bcvRates = useBCVRates();
   const activeUsdVes = useActiveUsdVesRate();
+  
+  // Estado local sincronizado para evitar problemas de hidratación
+  // Se inicializa como false (consistente con SSR) y se sincroniza después del mount
+  const [clientIsMobile, setClientIsMobile] = useState(false);
 
   const memoizedLoadTotalBalance = useCallback(async () => {
     if (!user) return;
@@ -71,6 +75,12 @@ export function Header() {
       memoizedLoadTotalBalance();
     }
   }, [user, memoizedLoadNotifications, memoizedLoadTotalBalance]);
+
+  // Sincronizar clientIsMobile con isMobile después del mount
+  // Esto asegura consistencia durante la hidratación inicial
+  useEffect(() => {
+    setClientIsMobile(isMobile);
+  }, [isMobile]);
 
   const handleNotificationClick = useCallback(async () => {
     if (!showNotifications) {
@@ -120,7 +130,7 @@ export function Header() {
     }).format(totalBalance);
   }, [totalBalance]);
 
-  if (isMobile) {
+  if (clientIsMobile) {
     return (
       <header className="h-16 black-theme-header flex items-center justify-between px-4">
         <div className="flex items-center">

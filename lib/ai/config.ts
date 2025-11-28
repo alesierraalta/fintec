@@ -58,6 +58,12 @@ export const AI_MAX_RETRIES = 2; // Máximo 2 intentos para errores retryables
 export const AI_MAX_PAYLOAD_SIZE_KB = 100; // Límite de tamaño de payload
 
 /**
+ * Configuración de herramientas (function calling)
+ * Si está en true, deshabilita el uso de herramientas y el modelo solo responderá con texto conversacional
+ */
+export const AI_DISABLE_TOOLS = process.env.AI_DISABLE_TOOLS === 'true';
+
+/**
  * Configuración de Redis
  */
 export const REDIS_CONFIG = {

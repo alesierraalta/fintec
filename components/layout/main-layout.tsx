@@ -14,7 +14,6 @@ import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
 import { AIChatFab } from '@/components/ai/ai-chat-fab';
-import { AIChatModal } from '@/components/ai/ai-chat-modal';
 import { AIChatProvider } from '@/contexts/ai-chat-context';
 
 interface MainLayoutProps {
@@ -28,10 +27,21 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const [mounted, setMounted] = useState(false);
   const viewportHeight = useViewportHeight();
+  
+  // Estado local sincronizado para evitar problemas de hidratación
+  // Se inicializa como false (consistente con SSR) y se sincroniza después del mount
+  const [clientIsMobile, setClientIsMobile] = useState(false);
 
+  // Efecto para establecer mounted solo una vez al montar
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Efecto separado para sincronizar clientIsMobile cuando isMobile cambia
+  // Esto evita que el componente se desmonte/remonte al cambiar el breakpoint
+  useEffect(() => {
+    setClientIsMobile(isMobile);
+  }, [isMobile]);
 
   // Hide floating button on add transaction page
   const shouldShowFloatingButton = !pathname.includes('/transactions/add');
@@ -54,13 +64,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     <div 
       className={cn(
         "h-dynamic-screen bg-background text-foreground overflow-hidden transition-ios no-horizontal-scroll",
-        isMobile && "mobile-app"
+        clientIsMobile && "mobile-app"
       )}
       style={dynamicHeight}
     >
       <div className="flex h-full relative no-horizontal-scroll">
         {/* Mobile Backdrop */}
-        {isMobile && isOpen && (
+        {clientIsMobile && isOpen && (
           <div 
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
             onClick={closeSidebar}
@@ -70,9 +80,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         {/* Sidebar */}
         <div 
           className={`
-            ${isMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}
-            ${isMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-            ${isMobile ? 'w-64' : (isOpen ? 'w-64' : 'w-16')}
+            ${clientIsMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}
+            ${clientIsMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
+            ${clientIsMobile ? 'w-64' : (isOpen ? 'w-64' : 'w-16')}
             transition-all duration-300 ease-in-out overflow-hidden
           `}
           data-tutorial="sidebar"
@@ -87,10 +97,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           {/* Page Content */}
           <main className={cn(
             "flex-1 overflow-auto bg-background no-horizontal-scroll",
-            isMobile ? "pb-24" : ""
+            clientIsMobile ? "pb-24" : ""
           )}>
             <div className={cn(
-              isMobile 
+              clientIsMobile 
                 ? "px-4 py-6 no-horizontal-scroll" // Mobile app-like padding
                 : "px-6 py-8 max-w-7xl mx-auto no-horizontal-scroll" // Desktop padding
             )}>
@@ -122,9 +132,6 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
       {/* AI Chat FAB (solo para usuarios premium) */}
       <AIChatFab />
-
-      {/* AI Chat Modal */}
-      <AIChatModal />
 
       {/* Transaction Form Modal */}
       <Suspense fallback={<FormLoading />}>

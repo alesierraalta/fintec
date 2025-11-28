@@ -24,7 +24,8 @@ import {
   BarChart3,
   Shield,
   Crown,
-  Repeat
+  Repeat,
+  MessageSquare
 } from 'lucide-react';
 
 const navigation = [
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Metas', href: '/goals', icon: Target },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
   { name: 'Respaldos', href: '/backups', icon: Shield },
+  { name: 'Chats', href: '/chats', icon: MessageSquare, premium: true },
   { name: 'Ajustes', href: '/settings', icon: Settings },
 ];
 
@@ -57,7 +59,10 @@ export function Sidebar() {
   const isMinimized = !isMobile && !isOpen;
 
   return (
-    <div className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col black-theme-sidebar transition-ios`}>
+    <div 
+      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col black-theme-sidebar transition-ios`}
+      suppressHydrationWarning
+    >
       {/* Logo */}
       <div className="flex h-16 items-center px-4 lg:px-6 border-b border-white/10">
         <div className="flex items-center justify-center w-full">
@@ -112,6 +117,11 @@ export function Sidebar() {
       {/* Navigation - More friendly spacing */}
       <nav className="flex-1 px-4 space-y-2">
         {navigation.map((item) => {
+          // Solo mostrar items premium si el usuario es premium
+          if (item.premium && !isPremium) {
+            return null;
+          }
+          
           const isActive = pathname === item.href;
           return (
             <Link

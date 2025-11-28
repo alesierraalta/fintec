@@ -10,13 +10,14 @@ import { ActionConfirmationButtons } from './action-confirmation-buttons';
 import { ChatSidebar } from './chat-sidebar';
 import { Send, X, RotateCcw, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Switch } from '@/components/ui/switch';
 
 /**
  * Modal de chat con el asistente IA
  * Incluye sidebar para múltiples conversaciones
  */
 export function AIChatModal() {
-  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat, pendingAction, streamingMessage, isStreaming } = useAIChat();
+  const { isOpen, messages, isLoading, error, closeChat, sendMessage, clearChat, pendingAction, streamingMessage, isStreaming, toolsEnabled, setToolsEnabled } = useAIChat();
   const [inputValue, setInputValue] = useState('');
   const [isMobile, setIsMobile] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -111,14 +112,32 @@ export function AIChatModal() {
               )}
               <h2 className="text-lg font-semibold">Asistente Financiero</h2>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={closeChat}
-              className="p-2"
-            >
-              <X className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Toggle de herramientas */}
+              <div className="flex items-center gap-2">
+                <label 
+                  htmlFor="tools-toggle" 
+                  className="text-sm text-muted-foreground cursor-pointer"
+                  title="Activa/desactiva las herramientas avanzadas del asistente (function calling)"
+                >
+                  Herramientas
+                </label>
+                <Switch
+                  id="tools-toggle"
+                  checked={toolsEnabled}
+                  onCheckedChange={setToolsEnabled}
+                  disabled={isLoading || isStreaming}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeChat}
+                className="p-2"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
           </div>
 
           {/* Área de mensajes */}

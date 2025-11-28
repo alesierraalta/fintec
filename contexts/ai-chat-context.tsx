@@ -29,6 +29,9 @@ interface AIChatContextType {
   // Estados para streaming
   streamingMessage: string;
   isStreaming: boolean;
+  // Estado para herramientas
+  toolsEnabled: boolean;
+  setToolsEnabled: (enabled: boolean) => void;
   // Funciones existentes
   openChat: () => void;
   closeChat: () => void;
@@ -63,6 +66,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   // Estados para streaming
   const [streamingMessage, setStreamingMessage] = useState<string>('');
   const [isStreaming, setIsStreaming] = useState(false);
+  // Estado para herramientas (habilitadas por defecto)
+  const [toolsEnabled, setToolsEnabled] = useState<boolean>(true);
 
   /**
    * Carga las sesiones del usuario desde la API
@@ -431,6 +436,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
           userId: user.id,
           messages: newMessages,
           sessionId: currentSessionId,
+          disableTools: !toolsEnabled,
         }),
       });
 
@@ -647,6 +653,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     isLoadingSessions,
     streamingMessage,
     isStreaming,
+    toolsEnabled,
+    setToolsEnabled,
     openChat,
     closeChat,
     sendMessage,
@@ -670,6 +678,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     isLoadingSessions,
     streamingMessage,
     isStreaming,
+    toolsEnabled,
+    setToolsEnabled,
     openChat,
     closeChat,
     sendMessage,

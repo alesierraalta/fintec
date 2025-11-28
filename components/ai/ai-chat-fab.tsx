@@ -1,17 +1,17 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
-import { useAIChat } from '@/contexts/ai-chat-context';
+import { useRouter } from 'next/navigation';
 import { useSubscription } from '@/hooks/use-subscription';
 import { cn } from '@/lib/utils';
 
 /**
- * FAB (Floating Action Button) para abrir el chat del asistente IA
+ * FAB (Floating Action Button) para navegar a la página de chats del asistente IA
  * Solo visible para usuarios premium
  */
 export function AIChatFab() {
   const { isPremium, loading: subscriptionLoading } = useSubscription();
-  const { openChat } = useAIChat();
+  const router = useRouter();
 
   // No mostrar si no es premium o está cargando
   if (subscriptionLoading || !isPremium) {
@@ -24,7 +24,7 @@ export function AIChatFab() {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          openChat();
+          router.push('/chats');
         }}
         className={cn(
           'w-14 h-14 rounded-full shadow-ios-lg',
