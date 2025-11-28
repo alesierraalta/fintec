@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithAgent, ChatMessage } from '@/lib/ai/chat/chat-handler';
+import { chatWithAgent, chatWithAgentStream, ChatMessage } from '@/lib/ai/chat/chat-handler';
 import { buildWalletContext } from '@/lib/ai/context-builder';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
 import { incrementUsage } from '@/lib/paddle/subscriptions';
@@ -7,6 +7,52 @@ import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { validateChatRequest, validatePayloadSize, logSafeError, AI_SECURITY_CONFIG } from '@/lib/ai/security';
 import { AI_CLIENT_TIMEOUT_MS } from '@/lib/ai/config';
 import { logger } from '@/lib/utils/logger';
+
+/**
+ * Aplica timeout a un AsyncGenerator, cancelándolo si excede el tiempo límite
+ */
+async function* withTimeout<T>(
+  generator: AsyncGenerator<T, void, unknown>,
+  timeoutMs: number
+): AsyncGenerator<T, void, unknown> {
+  const startTime = Date.now();
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), timeoutMs);
+  });
+
+  try {
+    const iterator = generator[Symbol.asyncIterator]();
+    
+    while (true) {
+      // Race entre el siguiente valor del generator y el timeout
+      const nextPromise = iterator.next();
+      const result = await Promise.race([
+        nextPromise.then(r => ({ done: r.done, value: r.value, timedOut: false })),
+        timeoutPromise.then(() => ({ done: true, value: undefined, timedOut: true })),
+      ]);
+
+      if (result.timedOut) {
+        logger.warn(`[withTimeout] Generator timed out after ${timeoutMs}ms`);
+        break;
+      }
+
+      if (result.done) {
+        break;
+      }
+
+      yield result.value as T;
+    }
+  } catch (error: any) {
+    if (error.message === 'Request timeout') {
+      logger.warn(`[withTimeout] Stream timeout after ${timeoutMs}ms`);
+      // Yield mensaje de timeout antes de terminar
+      yield { type: 'content', text: 'La solicitud excedió el tiempo límite. Por favor, intenta de nuevo.' } as T;
+      yield { type: 'done' } as T;
+    } else {
+      throw error;
+    }
+  }
+}
 
 /**
  * Convierte un AsyncGenerator a ReadableStream con formato Server-Sent Events (SSE)
@@ -164,15 +210,45 @@ export async function POST(request: NextRequest) {
     );
 
     // 8. PROCESAMIENTO CON TIMEOUT
-    // Nota: Streaming no está implementado aún en la nueva arquitectura agéntica
-    // Por ahora, solo soportamos respuestas no-streaming
     if (useStreaming) {
-      logger.warn('[POST /api/ai/chat] Streaming requested but not yet implemented in agentic architecture');
-      // Retornar error o implementar streaming básico
-      return NextResponse.json(
-        { error: 'Streaming not yet implemented in agentic architecture' },
-        { status: 501 }
-      );
+      // Streaming: usar chatWithAgentStream
+      logger.info('[POST /api/ai/chat] Processing with streaming');
+      
+      try {
+        // Crear stream del agente con timeout aplicado
+        const streamGenerator = chatWithAgentStream(userId, validMessages, sessionId, disableTools);
+        const streamWithTimeout = withTimeout(streamGenerator, AI_CLIENT_TIMEOUT_MS);
+        
+        // Convertir a ReadableStream con formato SSE
+        const stream = createSSEStream(streamWithTimeout);
+        
+        // Incrementar usage tracking después de iniciar el stream (await para consistencia)
+        try {
+          await incrementUsage(userId, 'aiRequests');
+        } catch (err: any) {
+          logger.error('[POST /api/ai/chat] Error incrementing usage:', err);
+          // No fallar la request si incrementUsage falla, solo loguear
+        }
+        
+        // Retornar respuesta streaming con headers SSE
+        return new NextResponse(stream, {
+          headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-RateLimit-Remaining': String(rateLimitCheck.remaining),
+            'X-RateLimit-Reset': String(rateLimitCheck.resetAt),
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
+          },
+        });
+      } catch (error: any) {
+        logger.error('[POST /api/ai/chat] Error in streaming:', error);
+        return NextResponse.json(
+          { error: `Error en streaming: ${error.message}` },
+          { status: 500 }
+        );
+      }
     }
     
     // Comportamiento normal sin streaming

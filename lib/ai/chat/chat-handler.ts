@@ -126,3 +126,79 @@ export async function chatWithAgent(
   }
 }
 
+/**
+ * Maneja una conversación con el agente agéntico usando streaming
+ */
+export async function* chatWithAgentStream(
+  userId: string,
+  messages: ChatMessage[],
+  sessionId?: string,
+  disableTools?: boolean
+): AsyncGenerator<{ type: 'content' | 'done'; text?: string }> {
+  try {
+    logger.info(`[chat-handler] Processing chat with streaming for user ${userId}`);
+
+    // Obtener último mensaje del usuario
+    const lastUserMessage = messages.filter(m => m.role === 'user').pop();
+    if (!lastUserMessage) {
+      yield {
+        type: 'content',
+        text: 'No se recibió ningún mensaje del usuario.',
+      };
+      yield { type: 'done' };
+      return;
+    }
+
+    const userMessage = lastUserMessage.content;
+    logger.debug(`[chat-handler] User message: "${userMessage.substring(0, 50)}..."`);
+
+    // Construir o recuperar contexto
+    let context: WalletContext;
+    const cachedContext = await getCachedContext(userId);
+    
+    if (cachedContext) {
+      logger.debug('[chat-handler] Using cached context');
+      context = cachedContext;
+    } else {
+      logger.info('[chat-handler] Building new context');
+      context = await buildWalletContext(userId, userMessage);
+      await setCachedContext(userId, context);
+    }
+
+    // Procesar mensaje
+    const processedMessage = processMessage(userMessage, context);
+    logger.debug(`[chat-handler] Processed message - intent: ${processedMessage.intent}`);
+
+    // Crear agente con configuración
+    const agentConfig = {
+      ...DEFAULT_AGENT_CONFIG,
+      enableAutoExecution: !disableTools, // Si disableTools es true, deshabilitar auto-ejecución
+    };
+    const agent = new Agent(context, agentConfig);
+
+    // Procesar mensaje con streaming
+    logger.info('[chat-handler] Agent processing message with streaming');
+    const agentStream = agent.processMessageStream(userMessage, userId);
+
+    // Yield chunks del agente
+    for await (const chunk of agentStream) {
+      // Yield el chunk (sin requiresConfirmation, ya que el frontend no lo espera en el stream)
+      yield {
+        type: chunk.type,
+        text: chunk.text,
+      };
+    }
+
+    logger.info('[chat-handler] Streaming completed');
+  } catch (error: any) {
+    logger.error('[chat-handler] Error in streaming:', error);
+    
+    // En caso de error, yield mensaje de error
+    yield {
+      type: 'content',
+      text: `Lo siento, ocurrió un error al procesar tu mensaje: ${error.message}`,
+    };
+    yield { type: 'done' };
+  }
+}
+

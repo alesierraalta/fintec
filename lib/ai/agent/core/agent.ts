@@ -12,6 +12,7 @@ import { AgentState, AgentConfig, ReasoningResult, TaskPlan } from './types';
 import { reasonAboutIntent } from './reasoner';
 import { createPlan, validatePlan, optimizeTaskOrder } from './planner';
 import { executePlan, shouldReplan } from './executor';
+import { generateStreamingResponse } from './response-generator';
 
 /**
  * Configuración por defecto del agente
@@ -119,6 +120,108 @@ export class Agent {
       return {
         message: `Lo siento, ocurrió un error al procesar tu mensaje: ${error.message}`,
       };
+    }
+  }
+
+  /**
+   * Procesa un mensaje del usuario y genera una respuesta con streaming
+   */
+  async *processMessageStream(
+    userMessage: string,
+    userId: string
+  ): AsyncGenerator<{ type: 'content' | 'done'; text?: string; requiresConfirmation?: boolean }> {
+    logger.info(`[agent] Processing message with streaming: "${userMessage.substring(0, 50)}..."`);
+
+    try {
+      // Paso 1: Razonamiento
+      const reasoning = await reasonAboutIntent(
+        userMessage,
+        this.state.context,
+        this.config
+      );
+
+      this.state.reasoningHistory.push(reasoning);
+      logger.info(`[agent] Reasoning completed: ${reasoning.intention} (confidence: ${reasoning.confidence})`);
+
+      // Si la confianza es muy baja, preguntar al usuario
+      if (reasoning.confidence < 0.5) {
+        yield {
+          type: 'content',
+          text: `No estoy seguro de entender tu solicitud. ¿Podrías ser más específico?`,
+        };
+        yield { type: 'done' };
+        return;
+      }
+
+      // Paso 2: Planificación
+      const plan = await createPlan(reasoning, this.state.context, this.config);
+      const validation = validatePlan(plan);
+
+      if (!validation.valid) {
+        logger.error(`[agent] Plan validation failed:`, validation.errors);
+        yield {
+          type: 'content',
+          text: `No pude crear un plan válido para tu solicitud. ${validation.errors.join(', ')}`,
+        };
+        yield { type: 'done' };
+        return;
+      }
+
+      // Optimizar orden de tareas
+      const optimizedPlan = optimizeTaskOrder(plan);
+      this.state.currentPlan = optimizedPlan;
+
+      logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`);
+
+      // Si requiere confirmación, retornar sin ejecutar
+      if (optimizedPlan.requiresConfirmation && !this.config.enableAutoExecution) {
+        yield {
+          type: 'content',
+          text: `Para completar tu solicitud, necesito ejecutar las siguientes acciones:\n${optimizedPlan.tasks.map(t => `- ${t.description}`).join('\n')}\n¿Deseas continuar?`,
+        };
+        yield {
+          type: 'done',
+          requiresConfirmation: true,
+        };
+        return;
+      }
+
+      // Paso 3: Ejecución
+      const executionResult = await executePlan(
+        optimizedPlan,
+        userId,
+        this.state.context,
+        this.config
+      );
+
+      // Actualizar estado
+      this.state.completedTasks.push(...optimizedPlan.tasks);
+      this.state.currentPlan = undefined;
+
+      // Si debe replanificar
+      if (shouldReplan(optimizedPlan, executionResult.results)) {
+        logger.info('[agent] Replanning due to failures');
+        // Por ahora, continuar con la respuesta de error
+      }
+
+      // Paso 4: Generar respuesta streaming usando OpenAI
+      const streamingGenerator = generateStreamingResponse(
+        userMessage,
+        executionResult.results,
+        this.state.context
+      );
+
+      // Yield chunks del stream
+      for await (const chunk of streamingGenerator) {
+        yield chunk;
+      }
+    } catch (error: any) {
+      logger.error('[agent] Error processing message with streaming:', error);
+      yield {
+        type: 'content',
+        text: `Lo siento, ocurrió un error al procesar tu mensaje: ${error.message}`,
+      };
+      yield { type: 'done' };
     }
   }
 
