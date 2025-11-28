@@ -18,5 +18,5 @@ export * from './memory-consolidator';
 export * from './short-term-memory';
 
 // Re-exportar tipos comunes
-export type { ChatMessage } from '../chat-assistant';
+export type { ChatMessage } from '../chat/chat-handler';
 

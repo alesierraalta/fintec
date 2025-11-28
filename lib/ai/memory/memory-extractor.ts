@@ -7,7 +7,7 @@
 
 import { openai } from '../config';
 import { logger } from '@/lib/utils/logger';
-import { ChatMessage } from '../chat-assistant';
+import { ChatMessage } from '../chat/chat-handler';
 import { storeMemory, MemoryType } from './semantic-memory';
 import { upsertUserProfile, addLearnedRule } from './procedural-memory';
 

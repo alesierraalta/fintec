@@ -2,15 +2,15 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { ChatMessage } from '@/lib/ai/chat-assistant';
-import { ActionType } from '@/lib/ai/intention-detector';
+import { ChatMessage } from '@/lib/ai/chat/chat-handler';
+import { AgentActionType } from '@/lib/ai/agent/core/types';
 import { ConversationSession } from '@/lib/ai/memory/episodic-memory';
 
 /**
  * Interfaz para acción pendiente de confirmación
  */
 export interface PendingAction {
-  type: ActionType;
+  type: AgentActionType;
   parameters: Record<string, any>;
   requiresConfirmation: boolean;
   confirmationMessage?: string;

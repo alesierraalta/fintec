@@ -1,6 +1,7 @@
 import { openai, AI_MODEL, AI_TEMPERATURE } from './config';
 import { supabase } from '@/repositories/supabase/client';
-import { createAdvisorTemplate, advisorSystemPrompt } from './prompts/templates/advisor';
+
+const advisorSystemPrompt = `Eres un asesor financiero personal. Analiza los datos financieros del usuario y proporciona consejos personalizados en formato JSON.`;
 
 interface FinancialAdvice {
   summary: string;
@@ -92,9 +93,25 @@ export async function getFinancialAdvice(userId: string): Promise<FinancialAdvic
       }))
     };
 
-    // Usar template modular para el prompt
-    const advisorTemplate = createAdvisorTemplate(financialData);
-    const prompt = advisorTemplate.content;
+    // Crear prompt simple
+    const prompt = `Analiza los siguientes datos financieros del usuario y proporciona consejos personalizados:
+
+Período: ${financialData.period}
+Ingresos totales: $${financialData.totalIncome.toFixed(2)}
+Gastos totales: $${financialData.totalExpenses.toFixed(2)}
+Ahorros netos: $${financialData.netSavings.toFixed(2)}
+Tasa de ahorro: ${financialData.savingsRate}%
+
+Desglose por categoría:
+${financialData.categoryBreakdown.map(c => `- ${c.name}: $${c.amount.toFixed(2)} (${c.percentage}%)`).join('\n')}
+
+Presupuestos:
+${financialData.budgets?.map((b: any) => `- ${b.category}: Presupuesto $${b.budget.toFixed(2)}, Gastado $${b.spent.toFixed(2)}, Restante $${b.remaining.toFixed(2)}`).join('\n') || 'Ninguno'}
+
+Metas:
+${financialData.goals?.map((g: any) => `- ${g.name}: $${g.current.toFixed(2)} / $${g.target.toFixed(2)} (${g.progress}%)`).join('\n') || 'Ninguna'}
+
+Proporciona un análisis en formato JSON con: summary, advice (array con category, suggestion, priority, potentialSavings), strengths, areasForImprovement.`;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,

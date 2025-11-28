@@ -1,6 +1,7 @@
 import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
-import { createAnomalyDetectionTemplate, anomalyDetectionSystemPrompt } from './prompts/templates/anomaly-detection';
+
+const anomalyDetectionSystemPrompt = `Eres un sistema de detección de anomalías financieras. Analiza transacciones y detecta patrones inusuales en formato JSON.`;
 
 interface Anomaly {
   transactionId: string;
@@ -88,9 +89,16 @@ export async function detectAnomalies(userId: string): Promise<Anomaly[]> {
       maxAmount: stats.max / 100
     }));
 
-    // Usar template modular para el prompt
-    const anomalyTemplate = createAnomalyDetectionTemplate(recentData, historicalStats);
-    const prompt = anomalyTemplate.content;
+    // Crear prompt simple
+    const prompt = `Analiza las siguientes transacciones recientes y detecta anomalías comparándolas con el historial:
+
+Transacciones recientes (últimos 30 días):
+${recentData.map(t => `- ${t.date}: $${t.amount.toFixed(2)} - ${t.description} (${t.category})`).join('\n')}
+
+Estadísticas históricas por categoría:
+${historicalStats.map(s => `- ${s.category}: Promedio $${s.averageAmount.toFixed(2)}, Máximo $${s.maxAmount.toFixed(2)}`).join('\n')}
+
+Detecta transacciones inusuales y retorna en formato JSON con: anomalies (array con transactionId, type, severity, explanation, recommendation).`;
 
     const response = await openai.chat.completions.create({
       model: AI_MODEL,

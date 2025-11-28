@@ -7,7 +7,7 @@
 
 import { getRedisClient, isRedisConnected } from '@/lib/redis/client';
 import { WalletContext } from './context-builder';
-import { ChatMessage } from './chat-assistant';
+import { ChatMessage } from './chat/chat-handler';
 import { logger } from '@/lib/utils/logger';
 
 interface CacheEntry<T> {

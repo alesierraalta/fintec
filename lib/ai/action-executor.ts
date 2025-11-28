@@ -9,7 +9,7 @@ import { WalletContext } from './context-builder';
 import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { logger } from '@/lib/utils/logger';
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';
-import { ActionType } from './intention-detector';
+import { AgentActionType } from './agent/core/types';
 import {
   analyzeSpending,
   calculatePercentages,
@@ -18,6 +18,16 @@ import {
   analyzeByCategory,
   getSpendingTrends,
 } from './analysis-handlers';
+import {
+  handleQueryBalance,
+  handleQueryTransactions,
+  handleQueryBudgets,
+  handleQueryGoals,
+  handleQueryAccounts,
+  handleQueryRates,
+  handleQueryCategories,
+  handleQueryRecurring,
+} from './query-handlers';
 
 export interface ActionResult {
   success: boolean;
@@ -31,7 +41,7 @@ export interface ActionResult {
  */
 export async function executeAction(
   userId: string,
-  actionType: ActionType,
+  actionType: AgentActionType,
   parameters: Record<string, any>,
   context: WalletContext
 ): Promise<ActionResult> {
@@ -72,6 +82,31 @@ export async function executeAction(
       
       case 'GET_SPENDING_TRENDS':
         return formatAnalysisResult(getSpendingTrends(context, parameters));
+      
+      // Query handlers
+      case 'QUERY_BALANCE':
+        return formatQueryResult(handleQueryBalance(context, parameters));
+      
+      case 'QUERY_TRANSACTIONS':
+        return formatQueryResult(handleQueryTransactions(context, parameters));
+      
+      case 'QUERY_BUDGETS':
+        return formatQueryResult(handleQueryBudgets(context, parameters));
+      
+      case 'QUERY_GOALS':
+        return formatQueryResult(handleQueryGoals(context, parameters));
+      
+      case 'QUERY_ACCOUNTS':
+        return formatQueryResult(handleQueryAccounts(context, parameters));
+      
+      case 'QUERY_RATES':
+        return formatQueryResult(await handleQueryRates(context, parameters));
+      
+      case 'QUERY_CATEGORIES':
+        return formatQueryResult(await handleQueryCategories(context, userId, parameters));
+      
+      case 'QUERY_RECURRING':
+        return formatQueryResult(await handleQueryRecurring(context, userId, parameters));
       
       default:
         return {
@@ -606,6 +641,17 @@ function formatPercentageResult(data: any, period: string): string {
   }
 
   return parts.join(' ') || 'Análisis completado exitosamente';
+}
+
+/**
+ * Formatea el resultado de una consulta para el formato ActionResult
+ */
+function formatQueryResult(queryResult: { message: string; canHandle: boolean }): ActionResult {
+  return {
+    success: queryResult.canHandle,
+    message: queryResult.message,
+    data: queryResult,
+  };
 }
 
 /**

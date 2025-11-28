@@ -6,7 +6,7 @@
 
 import { useState, useCallback } from 'react';
 import { useAuth } from './use-auth';
-import { ChatMessage } from '@/lib/ai/chat-assistant';
+import { ChatMessage } from '@/lib/ai/chat/chat-handler';
 
 interface UseAIChatReturn {
   messages: ChatMessage[];

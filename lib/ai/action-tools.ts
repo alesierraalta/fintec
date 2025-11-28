@@ -1,8 +1,9 @@
 /**
- * Action Tools for OpenAI Function Calling
+ * Agentic Tools for OpenAI Function Calling
  * 
- * Define las herramientas (funciones) que el modelo de OpenAI puede llamar
- * para realizar acciones en lugar de solo responder con texto.
+ * Define las herramientas (funciones) disponibles para el agente agéntico.
+ * Estas herramientas serán usadas por el agente para razonar, planificar y ejecutar tareas.
+ * Simplificado para la nueva arquitectura agéntica.
  */
 
 import { ChatCompletionTool } from 'openai/resources/chat/completions';

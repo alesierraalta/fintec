@@ -9,7 +9,7 @@
 
 import { getRedisClient, isRedisConnected } from '@/lib/redis/client';
 import { logger } from '@/lib/utils/logger';
-import { ChatMessage } from '../chat-assistant';
+import { ChatMessage } from '../chat/chat-handler';
 
 const MAX_MESSAGES_PER_SESSION = 50;
 const COMPRESSION_THRESHOLD = 30; // Comprimir cuando hay más de 30 mensajes

@@ -7,7 +7,7 @@
 
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { logger } from '@/lib/utils/logger';
-import { ChatMessage } from '../chat-assistant';
+import { ChatMessage } from '../chat/chat-handler';
 
 export interface ConversationSession {
   id: string;

@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { chatWithAssistant, chatWithAssistantStream } from '@/lib/ai/chat-assistant';
+import { chatWithAgent, ChatMessage } from '@/lib/ai/chat/chat-handler';
 import { buildWalletContext } from '@/lib/ai/context-builder';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
 import { incrementUsage } from '@/lib/paddle/subscriptions';
-import { ChatMessage } from '@/lib/ai/chat-assistant';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { validateChatRequest, validatePayloadSize, logSafeError, AI_SECURITY_CONFIG } from '@/lib/ai/security';
 import { AI_CLIENT_TIMEOUT_MS } from '@/lib/ai/config';
@@ -165,63 +164,37 @@ export async function POST(request: NextRequest) {
     );
 
     // 8. PROCESAMIENTO CON TIMEOUT
-    // Si streaming está habilitado, retornar stream directamente
+    // Nota: Streaming no está implementado aún en la nueva arquitectura agéntica
+    // Por ahora, solo soportamos respuestas no-streaming
     if (useStreaming) {
-      const lastMessage = validMessages[validMessages.length - 1];
-      const lastMessageContent = lastMessage?.content || '';
-      const context = await buildWalletContext(userId, lastMessageContent);
-      
-      // Crear stream
-      const streamGenerator = chatWithAssistantStream(userId, validMessages, context, sessionId, disableTools);
-      const stream = createSSEStream(streamGenerator);
-      
-      // Incrementar usage tracking (al iniciar, no al finalizar)
-      incrementUsage(userId, 'aiRequests').catch(err => {
-        logger.warn('[POST /api/ai/chat] Failed to increment usage:', err);
-      });
-      
-      // Retornar Response con stream
-      return new Response(stream, {
-        headers: {
-          'Content-Type': 'text/event-stream',
-          'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-          'X-RateLimit-Remaining': String(rateLimitCheck.remaining),
-          'X-RateLimit-Reset': String(rateLimitCheck.resetAt),
-          'X-Content-Type-Options': 'nosniff',
-          'X-Frame-Options': 'DENY',
-          'X-XSS-Protection': '1; mode=block',
-        },
-      });
+      logger.warn('[POST /api/ai/chat] Streaming requested but not yet implemented in agentic architecture');
+      // Retornar error o implementar streaming básico
+      return NextResponse.json(
+        { error: 'Streaming not yet implemented in agentic architecture' },
+        { status: 501 }
+      );
     }
     
     // Comportamiento normal sin streaming
     const processingPromise = (async () => {
-      // Obtener contexto usando RAG (sistema único)
-      const lastMessage = validMessages[validMessages.length - 1];
-      const lastMessageContent = lastMessage?.content || '';
-      
-      // Construir contexto usando RAG basado en la query del usuario
-      const context = await buildWalletContext(userId, lastMessageContent);
-
-      // Generar respuesta del asistente (con retry, fallback, etc internos)
-      const response = await chatWithAssistant(userId, validMessages, context, sessionId, disableTools);
+      // Usar el nuevo chat handler agéntico
+      const response = await chatWithAgent(userId, validMessages, sessionId, disableTools);
 
       // Incrementar usage tracking (solo después de éxito)
       await incrementUsage(userId, 'aiRequests');
 
-      return {
+      // Estructurar respuesta para compatibilidad con frontend
+      const result: any = {
         message: response.message,
-        action: response.action,
-        suggestions: response.suggestions,
-        context: {
-          hasAccounts: context.accounts.total > 0,
-          hasTransactions: context.transactions.recent.length > 0,
-          hasBudgets: context.budgets.active.length > 0,
-          hasGoals: context.goals.active.length > 0,
-        },
         ...(response.debugLogs ? { debugLogs: response.debugLogs } : {}),
       };
+
+      // Si hay acción pendiente de confirmación, incluirla en el formato esperado
+      if (response.requiresConfirmation && response.action) {
+        result.action = response.action;
+      }
+
+      return result;
     })();
 
     const result = await Promise.race([processingPromise, timeoutPromise]);

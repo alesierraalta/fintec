@@ -1,8 +1,9 @@
 /**
- * Context Builder for AI Chat Assistant
+ * Context Builder for Agentic AI System
  * 
  * Construye contexto usando RAG (Retrieval-Augmented Generation).
  * Solo recupera documentos relevantes según la query del usuario, reduciendo tokens significativamente.
+ * Simplificado para la nueva arquitectura agéntica.
  */
 
 import { supabase, createSupabaseServiceClient } from '@/repositories/supabase/client';

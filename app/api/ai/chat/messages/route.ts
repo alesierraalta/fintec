@@ -3,7 +3,7 @@ import { searchConversations } from '@/lib/ai/memory/episodic-memory';
 import { canUseAI } from '@/lib/subscriptions/feature-gate';
 import { logger } from '@/lib/utils/logger';
 import { logSafeError } from '@/lib/ai/security';
-import { ChatMessage } from '@/lib/ai/chat-assistant';
+import { ChatMessage } from '@/lib/ai/chat/chat-handler';
 
 /**
  * GET /api/ai/chat/messages
