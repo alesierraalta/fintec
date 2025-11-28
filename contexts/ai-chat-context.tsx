@@ -89,7 +89,7 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoadingSessions(false);
     }
-  }, [user?.id, isLoadingSessions]);
+  }, [user?.id]);
 
   /**
    * Crea una nueva sesión de chat
