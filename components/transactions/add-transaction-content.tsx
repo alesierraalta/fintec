@@ -1,9 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileAddTransaction } from './mobile-add-transaction';
-import { DesktopAddTransaction } from './desktop-add-transaction';
+
+// Disable SSR for DesktopAddTransaction to prevent hydration errors
+const DesktopAddTransaction = dynamic(
+  () => import('./desktop-add-transaction').then((mod) => ({ default: mod.DesktopAddTransaction })),
+  { ssr: false }
+);
 
 export function AddTransactionContent() {
   const { isMobile } = useSidebar();

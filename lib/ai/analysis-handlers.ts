@@ -209,7 +209,13 @@ export function calculatePercentages(
     transactions = filterTransactionsByPeriod(transactions, period);
     const metrics = calculateMetricsForPeriod(transactions);
 
-    const result: any = {};
+    const result: any = {
+      // Incluir montos base para formateo de mensajes
+      income: metrics.income,
+      expenses: metrics.expenses,
+      savings: metrics.savings,
+      period: params?.period || 'month',
+    };
 
     // Porcentaje de gasto (expense ratio)
     if (!params?.metric || params.metric === 'expense' || params.metric === 'all') {

@@ -662,7 +662,9 @@ function detectQueryIntention(lowerMessage: string, originalMessage: string): De
     }
     
     // Detectar tipo específico de análisis
-    if (hasPercentageQuery || /porcentaje\s+de\s+gasto|porcentaje\s+de\s+ahorro|porcentaje\s+de\s+ingreso/i.test(lowerMessage)) {
+    if (hasPercentageQuery || 
+        /porcentaje\s+de\s+gasto|porcentaje\s+de\s+ahorro|porcentaje\s+de\s+ingreso/i.test(lowerMessage) ||
+        /porcentaje.*gasto.*mensual|gasto.*mensual.*porcentaje|porcentaje.*gasto.*semanal|gasto.*semanal.*porcentaje/i.test(lowerMessage)) {
       actionType = 'CALCULATE_PERCENTAGES';
       confidence = 0.95;
     } else if (hasCompareQuery || /comparar|compare|este\s+mes\s+vs|mes\s+anterior/i.test(lowerMessage)) {

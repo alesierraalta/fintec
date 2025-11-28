@@ -546,10 +546,84 @@ async function getCategoryIdByName(
 }
 
 /**
+ * Formatea el resultado de porcentajes para un mensaje amigable al usuario
+ */
+function formatPercentageResult(data: any, period: string): string {
+  const periodNames: Record<string, string> = {
+    'today': 'hoy',
+    'week': 'esta semana',
+    'month': 'mensual',
+    'year': 'anual',
+  };
+  const periodName = periodNames[period] || 'mensual';
+
+  // Si no hay datos de porcentaje, retornar mensaje genérico
+  if (data.expensePercentage === undefined && data.savingsPercentage === undefined) {
+    return 'No se pudieron calcular los porcentajes solicitados.';
+  }
+
+  const parts: string[] = [];
+
+  // Formatear porcentaje de gasto
+  if (data.expensePercentage !== undefined) {
+    const expensePct = Math.round(data.expensePercentage * 10) / 10; // Redondear a 1 decimal
+    const income = data.income || 0;
+    const expenses = data.expenses || 0;
+
+    if (income > 0) {
+      parts.push(`Tu porcentaje de gasto ${periodName} es del ${expensePct}%. Gastaste $${expenses.toFixed(2)} de $${income.toFixed(2)} en ingresos.`);
+    } else {
+      parts.push(`Tus gastos ${periodName} son de $${expenses.toFixed(2)}, pero no tienes ingresos registrados para calcular el porcentaje.`);
+    }
+  }
+
+  // Formatear porcentaje de ahorro
+  if (data.savingsPercentage !== undefined && data.income > 0) {
+    const savingsPct = Math.round(data.savingsPercentage * 10) / 10;
+    const savings = data.savings || 0;
+    
+    if (savingsPct > 0) {
+      parts.push(`Tu tasa de ahorro es del ${savingsPct}% ($${savings.toFixed(2)}).`);
+    } else if (savingsPct < 0) {
+      parts.push(`⚠️ Tus gastos superan tus ingresos en $${Math.abs(savings).toFixed(2)}.`);
+    } else {
+      // savingsPct === 0: gastos igualan ingresos exactamente
+      parts.push(`Tu tasa de ahorro es del 0%. Tus gastos igualan tus ingresos ($${data.expenses?.toFixed(2) || '0.00'}).`);
+    }
+  }
+
+  // Agregar porcentajes por categoría si están disponibles
+  if (data.categoryPercentages && Object.keys(data.categoryPercentages).length > 0) {
+    const topCategories = Object.entries(data.categoryPercentages)
+      .sort(([, a], [, b]) => (b as number) - (a as number))
+      .slice(0, 3)
+      .map(([cat, pct]) => `${cat}: ${Math.round((pct as number) * 10) / 10}%`)
+      .join(', ');
+    
+    if (topCategories) {
+      parts.push(`Principales categorías: ${topCategories}.`);
+    }
+  }
+
+  return parts.join(' ') || 'Análisis completado exitosamente';
+}
+
+/**
  * Formatea el resultado de un análisis para el formato ActionResult
  */
 function formatAnalysisResult(analysisResult: { success: boolean; data: any; message?: string; error?: string }): ActionResult {
   if (analysisResult.success) {
+    // Si es un resultado de porcentajes, formatear especialmente
+    if (analysisResult.data && (analysisResult.data.expensePercentage !== undefined || analysisResult.data.savingsPercentage !== undefined)) {
+      const period = analysisResult.data.period || 'month';
+      const formattedMessage = formatPercentageResult(analysisResult.data, period);
+      return {
+        success: true,
+        message: formattedMessage,
+        data: analysisResult.data,
+      };
+    }
+
     return {
       success: true,
       message: analysisResult.message || 'Análisis completado exitosamente',

@@ -1009,6 +1009,38 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
       }
     }
 
+    // Acciones de análisis: ejecutar directamente incluso si type es 'QUERY'
+    // Estas acciones no requieren confirmación y deben ejecutarse inmediatamente
+    const ANALYSIS_ACTION_TYPES: ActionType[] = [
+      'CALCULATE_PERCENTAGES',
+      'ANALYZE_SPENDING',
+      'GET_FINANCIAL_SUMMARY',
+      'COMPARE_PERIODS',
+      'ANALYZE_BY_CATEGORY',
+      'GET_SPENDING_TRENDS',
+    ];
+
+    if (intention.actionType && ANALYSIS_ACTION_TYPES.includes(intention.actionType)) {
+      // Ejecutar análisis directamente sin validación de parámetros (son opcionales)
+      try {
+        collectLog('info', `[chatWithAssistant] Executing analysis action directly: ${intention.actionType} for user ${userId}`);
+        const result = await executeAction(userId, intention.actionType, intention.parameters, cachedContext);
+        return withDebugLogs({
+          message: result.message,
+          action: result.success ? {
+            type: intention.actionType,
+            parameters: intention.parameters,
+            requiresConfirmation: false,
+          } : undefined,
+        });
+      } catch (error: any) {
+        logger.error('[chatWithAssistant] Error executing analysis action:', error);
+        return withDebugLogs({
+          message: `Error al ejecutar el análisis: ${error.message}. Por favor intenta de nuevo.`,
+        });
+      }
+    }
+
     // Si es una acción y tiene parámetros suficientes, ejecutarla directamente
     if (intention.type === 'ACTION' && intention.actionType && intention.actionType !== 'UNKNOWN') {
       const validation = validateActionParameters(intention.actionType, intention.parameters);
