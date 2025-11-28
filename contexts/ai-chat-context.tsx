@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { ChatMessage } from '@/lib/ai/chat-assistant';
 import { ActionType } from '@/lib/ai/intention-detector';
@@ -61,6 +61,8 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   const [sessions, setSessions] = useState<ConversationSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  // Ref para evitar stale closure en loadSessions
+  const isLoadingSessionsRef = useRef(false);
   // Cache de mensajes por sesión
   const [messagesCache, setMessagesCache] = useState<Record<string, ChatMessage[]>>({});
   // Estados para streaming
@@ -69,11 +71,16 @@ export function AIChatProvider({ children }: { children: React.ReactNode }) {
   // Estado para herramientas (habilitadas por defecto)
   const [toolsEnabled, setToolsEnabled] = useState<boolean>(true);
 
+  // Sincronizar ref con estado para evitar stale closures
+  useEffect(() => {
+    isLoadingSessionsRef.current = isLoadingSessions;
+  }, [isLoadingSessions]);
+
   /**
    * Carga las sesiones del usuario desde la API
    */
   const loadSessions = useCallback(async () => {
-    if (!user?.id || isLoadingSessions) return;
+    if (!user?.id || isLoadingSessionsRef.current) return;
 
     setIsLoadingSessions(true);
     try {
