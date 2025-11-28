@@ -1196,7 +1196,7 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
               collectLog('info', `[chatWithAssistant] Executing tool call: ${functionName} with args: ${JSON.stringify(functionArgs)}`);
 
               try {
-                const actionType = actionTypeMap[functionName];
+          const actionType = actionTypeMap[functionName];
                 
                 if (!actionType) {
                   collectLog('warn', `[chatWithAssistant] Unknown function: ${functionName}`);
@@ -1211,34 +1211,34 @@ Solo reformatea y presenta los datos de manera profesional.${contextNote}`;
 
                 // Verificar si requiere confirmación (solo para acciones de creación críticas)
                 if (actionType.startsWith('CREATE_')) {
-                  const confirmation = requiresConfirmation(actionType, functionArgs);
-                  if (confirmation.required) {
-                    await setCachedPendingAction(userId, {
-                      type: actionType,
-                      parameters: functionArgs,
-                      requiresConfirmation: true,
-                      confirmationMessage: confirmation.confirmationMessage,
-                    });
-                    
-                    return withDebugLogs({
-                      message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
-                      action: {
-                        type: actionType,
-                        parameters: functionArgs,
-                        requiresConfirmation: true,
-                        confirmationMessage: confirmation.confirmationMessage,
-                      },
-                    });
-                  }
+            const confirmation = requiresConfirmation(actionType, functionArgs);
+            if (confirmation.required) {
+              await setCachedPendingAction(userId, {
+                type: actionType,
+                parameters: functionArgs,
+                requiresConfirmation: true,
+                confirmationMessage: confirmation.confirmationMessage,
+              });
+              
+              return withDebugLogs({
+                message: confirmation.confirmationMessage || '¿Confirmas esta acción?',
+                action: {
+                  type: actionType,
+                  parameters: functionArgs,
+                  requiresConfirmation: true,
+                  confirmationMessage: confirmation.confirmationMessage,
+                },
+              });
+            }
 
                   // Ejecutar acción de creación
-                  const result = await executeAction(userId, actionType, functionArgs, cachedContext);
+            const result = await executeAction(userId, actionType, functionArgs, cachedContext);
                   toolResults.push({
                     toolCallId,
                     role: 'tool',
                     content: JSON.stringify({ 
                       success: result.success, 
-                      message: result.message,
+              message: result.message,
                       data: result.data 
                     }),
                     name: functionName,

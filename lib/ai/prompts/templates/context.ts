@@ -112,23 +112,24 @@ export function createContextTemplate(context: WalletContext, proactiveSuggestio
   const budgets = formatBudgets(context);
   const goals = formatGoals(context);
 
-  const contextContent = `CONTEXTO ACTUAL DE LA BILLETERA DEL USUARIO:
+  const contextContent = `Aquí tienes información sobre tu situación financiera actual:
+
 ${accountsSummary}
 
-CUENTAS DISPONIBLES: ${availableAccounts}
+Cuentas disponibles: ${availableAccounts}
 
-TRANSACCIONES:
+Transacciones recientes:
 ${recentTransactions}
 ${transactionsSummary}
 
-PRESUPUESTOS:
+Presupuestos:
 ${budgets}
 
-METAS:
+Metas:
 ${goals}
 ${proactiveSuggestions || ''}
 
-DATOS COMPLETOS (JSON):
+Datos completos (para referencia):
 ${JSON.stringify(context, null, 2)}`;
 
   return {
