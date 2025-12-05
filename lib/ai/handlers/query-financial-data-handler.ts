@@ -59,6 +59,22 @@ export async function handleQueryFinancialData(
 
     const appRepository = new SupabaseAppRepository();
     const repository = appRepository.transactions;
+    const categoriesRepository = appRepository.categories;
+    let categoryMap = new Map<string, string>();
+
+    try {
+      const categories = await categoriesRepository.findAll();
+      categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
+    } catch (err) {
+      logger.warn('[handleQueryFinancialData] Could not load categories, falling back to defaults', err);
+    }
+
+    const getCategoryName = (categoryId?: string | null) => {
+      if (!categoryId) {
+        return 'Sin categoría';
+      }
+      return categoryMap.get(categoryId) || 'Sin categoría';
+    };
     const { type, period = 'month', months = 6, startDate, endDate, category, currency, aggregation = 'raw', groupBy = 'none' } = params;
 
     // Determinar rango de fechas
@@ -102,9 +118,14 @@ export async function handleQueryFinancialData(
     }
 
     if (category) {
-      transactions = transactions.filter(t => 
-        t.category?.toLowerCase().includes(category.toLowerCase())
-      );
+      const targetCategory = category.toLowerCase();
+      if (categoryMap.size === 0) {
+        logger.warn('[handleQueryFinancialData] Category filter requested but category map is empty; skipping filter');
+      } else {
+        transactions = transactions.filter(t => 
+          getCategoryName(t.categoryId).toLowerCase().includes(targetCategory)
+        );
+      }
     }
 
     if (currency) {
@@ -164,7 +185,7 @@ export async function handleQueryFinancialData(
       const byCategory = new Map<string, { income: number[]; expense: number[] }>();
       
       transactions.forEach(txn => {
-        const catKey = txn.category || 'Sin categoría';
+        const catKey = getCategoryName(txn.categoryId);
         if (!byCategory.has(catKey)) {
           byCategory.set(catKey, { income: [], expense: [] });
         }
@@ -184,6 +205,7 @@ export async function handleQueryFinancialData(
         const count = values.income.length + values.expense.length;
         
         resultData.push({
+          period: catKey,
           category: catKey,
           income: income > 0 ? income : undefined,
           expense: expense > 0 ? expense : undefined,
@@ -201,7 +223,7 @@ export async function handleQueryFinancialData(
             period: txn.date,
             income: txn.type === 'INCOME' ? amount : undefined,
             expense: txn.type === 'EXPENSE' ? Math.abs(amount) : undefined,
-            category: txn.category,
+            category: getCategoryName(txn.categoryId),
             count: 1,
           });
         });
