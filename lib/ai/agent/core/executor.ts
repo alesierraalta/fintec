@@ -92,6 +92,7 @@ export async function executePlan(
               success: false,
               message: `Error: ${error.message}`,
               error: error.message,
+              data: undefined,
             },
           };
         }
@@ -107,7 +108,7 @@ export async function executePlan(
         if (result) {
           const toolResult: ToolResult = {
             success: result.success,
-            data: result.data,
+            data: result.data ?? undefined,
             message: result.message,
             error: result.error,
           };
