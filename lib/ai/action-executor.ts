@@ -28,6 +28,7 @@ import {
   handleQueryCategories,
   handleQueryRecurring,
 } from './query-handlers';
+import { handleQueryFinancialData } from './handlers/query-financial-data-handler';
 
 export interface ActionResult {
   success: boolean;
@@ -107,6 +108,9 @@ export async function executeAction(
 
       case 'QUERY_RECURRING':
         return formatQueryResult(await handleQueryRecurring(context, userId, parameters));
+
+      case 'QUERY_FINANCIAL_DATA':
+        return await handleQueryFinancialData(userId, parameters, context);
 
       default:
         return {

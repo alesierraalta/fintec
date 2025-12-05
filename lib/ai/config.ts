@@ -76,3 +76,21 @@ export function validateAIConfig(): boolean {
   return !!process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.length > 0;
 }
 
+/**
+ * Retorna configuración de temperature según el modelo
+ * GPT-5 models solo soportan temperature=1 (default)
+ * 
+ * @returns Objeto con temperature si el modelo lo soporta, o objeto vacío para usar default
+ */
+export function getTemperatureConfig(): { temperature?: number } {
+  const model = AI_MODEL.toLowerCase();
+  
+  // GPT-5 models no soportan temperature personalizado
+  if (model.includes('gpt-5')) {
+    return {}; // Omitir temperature, usar default (1)
+  }
+  
+  // Otros modelos pueden usar temperature personalizado
+  return { temperature: AI_TEMPERATURE };
+}
+

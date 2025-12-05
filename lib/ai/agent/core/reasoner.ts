@@ -67,15 +67,26 @@ async function reasonEnhanced(
 
     // Detectar consultas sobre promedios
     if (/promedio|average|media|mean/i.test(lowerMessage)) {
-        if (/gasto|expense|spending/i.test(lowerMessage) && /mensual|monthly/i.test(lowerMessage)) {
+        if (/ingreso|income/i.test(lowerMessage) && /mensual|monthly/i.test(lowerMessage)) {
+            intention = 'CALCULATE_AVERAGE_MONTHLY_INCOME';
+            confidence = 0.95;
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        } else if (/gasto|expense|spending/i.test(lowerMessage) && /mensual|monthly/i.test(lowerMessage)) {
             intention = 'CALCULATE_AVERAGE_MONTHLY_EXPENSES';
             confidence = 0.95;
-            suggestedTools.push('get_spending_trends');
+            suggestedTools.push('query_financial_data');
             requiresPlanning = false;
         } else if (/gasto|expense|spending/i.test(lowerMessage)) {
             intention = 'CALCULATE_AVERAGE_EXPENSES';
             confidence = 0.9;
-            suggestedTools.push('get_spending_trends');
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        } else {
+            // Promedio general
+            intention = 'CALCULATE_AVERAGE';
+            confidence = 0.85;
+            suggestedTools.push('query_financial_data');
             requiresPlanning = false;
         }
     }

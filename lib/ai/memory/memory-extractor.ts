@@ -5,7 +5,7 @@
  * que deben almacenarse en la memoria semántica y procedimental.
  */
 
-import { openai } from '../config';
+import { openai, getTemperatureConfig } from '../config';
 import { logger } from '@/lib/utils/logger';
 import { ChatMessage } from '../chat/chat-handler';
 import { storeMemory, MemoryType } from './semantic-memory';
@@ -99,7 +99,7 @@ Si no hay información importante, retorna {"memories": []}.`;
           content: extractionPrompt,
         },
       ],
-      temperature: 0.3,
+      ...getTemperatureConfig(),
       max_completion_tokens: 2000,
     });
 

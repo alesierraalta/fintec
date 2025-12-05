@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/lib/utils/logger';
-import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_COMPLETION_TOKENS } from '../../config';
+import { openai, AI_MODEL, getTemperatureConfig, AI_MAX_COMPLETION_TOKENS } from '../../config';
 import { SYSTEM_PROMPT } from '../prompts/system-prompt';
 import { WalletContext } from '../../context-builder';
 import { ToolResult } from './types';
@@ -48,6 +48,28 @@ export function formatToolResultsForPrompt(
         }
         if (result.data.averageMonthlyIncome !== undefined) {
           resultText += `\n  - Promedio mensual de ingresos: $${result.data.averageMonthlyIncome.toFixed(2)}`;
+        }
+        
+        // Para query_financial_data - datos estructurados
+        if (result.data.summary && result.data.data) {
+          const summary = result.data.summary;
+          resultText += `\n  - Período: ${summary.period}`;
+          resultText += `\n  - Total ingresos: $${summary.totalIncome.toFixed(2)}`;
+          resultText += `\n  - Total gastos: $${summary.totalExpense.toFixed(2)}`;
+          resultText += `\n  - Transacciones: ${summary.totalTransactions}`;
+          
+          // Si hay datos agrupados, incluir resumen
+          if (result.data.data.length > 0 && result.data.data.length <= 12) {
+            resultText += `\n  - Datos por período:`;
+            result.data.data.slice(0, 6).forEach((item: any) => {
+              if (item.income !== undefined || item.expense !== undefined) {
+                const period = item.period || item.category || 'N/A';
+                const income = item.income ? ` Ingresos: $${item.income.toFixed(2)}` : '';
+                const expense = item.expense ? ` Gastos: $${item.expense.toFixed(2)}` : '';
+                resultText += `\n    ${period}:${income}${expense}`;
+              }
+            });
+          }
         }
       }
       
@@ -105,7 +127,7 @@ Genera una respuesta conversacional, natural y útil en español basada en los r
     const stream = await openai.chat.completions.create({
       model: AI_MODEL,
       messages: messages as any,
-      temperature: AI_TEMPERATURE,
+      ...getTemperatureConfig(),
       max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
       stream: true,
     });

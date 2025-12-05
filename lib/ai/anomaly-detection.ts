@@ -1,4 +1,4 @@
-import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_COMPLETION_TOKENS } from './config';
+import { openai, AI_MODEL, getTemperatureConfig, AI_MAX_COMPLETION_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
 
 const anomalyDetectionSystemPrompt = `Eres un sistema de detección de anomalías financieras. Analiza transacciones y detecta patrones inusuales en formato JSON.`;
@@ -112,7 +112,7 @@ Detecta transacciones inusuales y retorna en formato JSON con: anomalies (array 
           content: prompt,
         },
       ],
-      temperature: AI_TEMPERATURE,
+      ...getTemperatureConfig(),
       max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
       response_format: { type: 'json_object' },
     });

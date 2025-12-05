@@ -1,4 +1,4 @@
-import { openai, AI_MODEL, AI_TEMPERATURE } from './config';
+import { openai, AI_MODEL, getTemperatureConfig } from './config';
 import { supabase } from '@/repositories/supabase/client';
 
 const advisorSystemPrompt = `Eres un asesor financiero personal. Analiza los datos financieros del usuario y proporciona consejos personalizados en formato JSON.`;
@@ -125,7 +125,7 @@ Proporciona un análisis en formato JSON con: summary, advice (array con categor
           content: prompt,
         },
       ],
-      temperature: AI_TEMPERATURE,
+      ...getTemperatureConfig(),
       max_completion_tokens: 800,
       response_format: { type: 'json_object' },
     });

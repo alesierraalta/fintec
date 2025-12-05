@@ -10,6 +10,7 @@
 import { getRedisClient, isRedisConnected } from '@/lib/redis/client';
 import { logger } from '@/lib/utils/logger';
 import { ChatMessage } from '../chat/chat-handler';
+import { openai, getTemperatureConfig } from '../config';
 
 const MAX_MESSAGES_PER_SESSION = 50;
 const COMPRESSION_THRESHOLD = 30; // Comprimir cuando hay más de 30 mensajes
@@ -110,7 +111,7 @@ async function summarizeMessages(messages: ChatMessage[]): Promise<string> {
           content: conversationText,
         },
       ],
-      temperature: 0.3,
+      ...getTemperatureConfig(),
       max_completion_tokens: 150,
     });
 

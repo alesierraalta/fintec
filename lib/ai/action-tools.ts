@@ -395,6 +395,66 @@ export const AI_ACTION_TOOLS: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'query_financial_data',
+      description: 'Consulta datos financieros históricos de manera flexible. Permite filtrar por tipo (income/expense), período (mes, año, rango), categoría, moneda, y calcular agregaciones (suma, promedio, conteo, etc.). El Agent debe razonar sobre qué datos necesita y cómo calcularlos. USA ESTO cuando el usuario pregunte por datos históricos, promedios, estadísticas, o cualquier análisis que requiera consultar transacciones.',
+      parameters: {
+        type: 'object',
+        properties: {
+          type: {
+            type: 'string',
+            enum: ['income', 'expense', 'both'],
+            description: 'Tipo de transacción a consultar',
+          },
+          period: {
+            type: 'string',
+            enum: ['month', 'year', 'custom', 'all'],
+            description: 'Período de tiempo',
+          },
+          months: {
+            type: 'number',
+            description: 'Número de meses a considerar (para cálculos de promedio)',
+            minimum: 1,
+            maximum: 24,
+          },
+          startDate: {
+            type: 'string',
+            format: 'date',
+            description: 'Fecha de inicio (si period es custom)',
+          },
+          endDate: {
+            type: 'string',
+            format: 'date',
+            description: 'Fecha de fin (si period es custom)',
+          },
+          category: {
+            type: 'string',
+            description: 'Filtrar por categoría específica',
+          },
+          currency: {
+            type: 'string',
+            enum: ['USD', 'VES', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'MXN', 'BRL'],
+            description: 'Filtrar por moneda',
+          },
+          aggregation: {
+            type: 'string',
+            enum: ['sum', 'average', 'count', 'min', 'max', 'raw'],
+            description: 'Tipo de agregación a calcular. "raw" retorna datos sin agregar para que el Agent calcule lo necesario',
+            default: 'raw',
+          },
+          groupBy: {
+            type: 'string',
+            enum: ['month', 'category', 'account', 'none'],
+            description: 'Agrupar resultados por',
+            default: 'none',
+          },
+        },
+        required: ['type'],
+      },
+    },
+  },
 ];
 
 /**
@@ -408,6 +468,7 @@ export const FUNCTION_ACTION_MAP: Record<string, string> = {
   'create_transfer': 'CREATE_TRANSFER',
   'get_account_balance': 'QUERY_BALANCE',
   'get_category_spending': 'QUERY_TRANSACTIONS',
+  'query_financial_data': 'QUERY_FINANCIAL_DATA',
   'analyze_spending': 'ANALYZE_SPENDING',
   'calculate_percentages': 'CALCULATE_PERCENTAGES',
   'get_financial_summary': 'GET_FINANCIAL_SUMMARY',
@@ -433,6 +494,7 @@ export function getToolByName(name: string): ChatCompletionTool | undefined {
 export function requiresConfirmation(functionName: string, parameters: Record<string, any>): boolean {
   // Herramientas de análisis NUNCA requieren confirmación
   const analysisTools = [
+    'query_financial_data',
     'analyze_spending',
     'calculate_percentages',
     'get_financial_summary',
