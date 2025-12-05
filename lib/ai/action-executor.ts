@@ -28,7 +28,7 @@ import {
   handleQueryCategories,
   handleQueryRecurring,
 } from './query-handlers';
-import { handleQueryFinancialData } from './handlers/query-financial-data-handler';
+import { handleQueryFinancialData, QueryFinancialDataParams } from './handlers/query-financial-data-handler';
 
 export interface ActionResult {
   success: boolean;
@@ -110,7 +110,7 @@ export async function executeAction(
         return formatQueryResult(await handleQueryRecurring(context, userId, parameters));
 
       case 'QUERY_FINANCIAL_DATA':
-        return await handleQueryFinancialData(userId, parameters, context);
+        return await handleQueryFinancialData(userId, toQueryFinancialDataParams(parameters), context);
 
       default:
         return {
@@ -714,3 +714,27 @@ function formatAnalysisResult(analysisResult: { success: boolean; data: any; mes
   }
 }
 
+/**
+ * Normaliza los parÇ­metros de QUERY_FINANCIAL_DATA al tipo esperado
+ */
+function toQueryFinancialDataParams(params: Record<string, any>): QueryFinancialDataParams {
+  const typeOptions = ['income', 'expense', 'both'] as const;
+  const periodOptions = ['month', 'year', 'custom', 'all'] as const;
+  const aggregationOptions = ['sum', 'average', 'count', 'min', 'max', 'raw'] as const;
+  const groupByOptions = ['month', 'category', 'account', 'none'] as const;
+
+  const normalize = <Options extends readonly string[]>(value: any, allowed: Options, fallback: Options[number]) =>
+    typeof value === 'string' && allowed.includes(value as Options[number]) ? (value as Options[number]) : fallback;
+
+  return {
+    type: normalize(params.type, typeOptions, 'both'),
+    period: params.period ? normalize(params.period, periodOptions, 'month') : undefined,
+    months: typeof params.months === 'number' ? params.months : undefined,
+    startDate: typeof params.startDate === 'string' ? params.startDate : undefined,
+    endDate: typeof params.endDate === 'string' ? params.endDate : undefined,
+    category: typeof params.category === 'string' ? params.category : undefined,
+    currency: typeof params.currency === 'string' ? params.currency : undefined,
+    aggregation: params.aggregation ? normalize(params.aggregation, aggregationOptions, 'raw') : undefined,
+    groupBy: params.groupBy ? normalize(params.groupBy, groupByOptions, 'none') : undefined,
+  };
+}

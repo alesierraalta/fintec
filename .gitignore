@@ -172,3 +172,4 @@ docs/SETUP_FINTEC.md
 # Documentation files with sensitive info
 PADDLE_ENV_VARIABLES.txt
 MCP_PADDLE_FIX.md
+toml/test.toml
