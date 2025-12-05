@@ -399,7 +399,7 @@ export const AI_ACTION_TOOLS: ChatCompletionTool[] = [
     type: 'function',
     function: {
       name: 'query_financial_data',
-      description: 'Consulta datos financieros históricos de manera flexible. Permite filtrar por tipo (income/expense), período (mes, año, rango), categoría, moneda, y calcular agregaciones (suma, promedio, conteo, etc.). El Agent debe razonar sobre qué datos necesita y cómo calcularlos. USA ESTO cuando el usuario pregunte por datos históricos, promedios, estadísticas, o cualquier análisis que requiera consultar transacciones.',
+      description: 'Consulta datos financieros históricos de manera flexible. Permite filtrar por tipo (income/expense), período (hoy, mes, año, rango), categoría, moneda, y calcular agregaciones (suma, promedio, conteo, etc.). USA ESTO cuando el usuario pregunte por gastos/ingresos de hoy, datos históricos, promedios, estadísticas, o cualquier análisis que requiera consultar transacciones. El Agent debe razonar sobre qué datos necesita y cómo calcularlos.',
       parameters: {
         type: 'object',
         properties: {
@@ -410,8 +410,8 @@ export const AI_ACTION_TOOLS: ChatCompletionTool[] = [
           },
           period: {
             type: 'string',
-            enum: ['month', 'year', 'custom', 'all'],
-            description: 'Período de tiempo',
+            enum: ['today', 'month', 'year', 'custom', 'all'],
+            description: 'Período de tiempo. Usa "today" para consultas del día actual.',
           },
           months: {
             type: 'number',

@@ -82,7 +82,11 @@ export async function handleQueryFinancialData(
     let dateTo: string;
     const now = new Date();
     
-    if (period === 'custom' && startDate && endDate) {
+    if (period === 'today') {
+      const today = now.toISOString().split('T')[0];
+      dateFrom = today;
+      dateTo = today;
+    } else if (period === 'custom' && startDate && endDate) {
       dateFrom = startDate;
       dateTo = endDate;
     } else if (period === 'all') {

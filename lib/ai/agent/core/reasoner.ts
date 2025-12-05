@@ -119,10 +119,29 @@ async function reasonEnhanced(
     }
     // Detectar consultas de transacciones
     else if (/transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(lowerMessage)) {
-        intention = 'QUERY_TRANSACTIONS';
-        confidence = 0.8;
-        suggestedTools.push('get_category_spending');
-        requiresPlanning = false;
+        // Detectar si menciona "hoy" o "today"
+        const hasToday = /hoy|today/i.test(lowerMessage);
+        const hasCategory = /categoria|category/i.test(lowerMessage);
+        
+        if (hasToday && !hasCategory) {
+            // Para "gastos de hoy" sin categoría específica, usar query_financial_data
+            intention = 'QUERY_TODAY_TRANSACTIONS';
+            confidence = 0.95;
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        } else if (hasCategory) {
+            // Si hay categoría específica, usar get_category_spending
+            intention = 'QUERY_CATEGORY_SPENDING';
+            confidence = 0.9;
+            suggestedTools.push('get_category_spending');
+            requiresPlanning = false;
+        } else {
+            // Consulta general de transacciones
+            intention = 'QUERY_TRANSACTIONS';
+            confidence = 0.8;
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        }
     }
     // Detectar acciones de creacion
     else if (/crear|create|agregar|add|nuevo|new|registrar|register/i.test(lowerMessage)) {
@@ -165,8 +184,8 @@ async function reasonEnhanced(
     }
 
     const reasoning = `Intencion detectada: ${intention} con confianza ${confidence}. 
-Herramientas sugeridas: ${suggestedTools.join(', ')}.
-${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
+    Herramientas sugeridas: ${suggestedTools.join(', ')}.
+    ${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
 
     return {
         intention,
@@ -227,10 +246,29 @@ async function reasonSimple(
     }
     // Detectar consultas de transacciones
     else if (/transacciones?|transactions?|gastos?|expenses?|ingresos?|income/i.test(lowerMessage)) {
-        intention = 'QUERY_TRANSACTIONS';
-        confidence = 0.8;
-        suggestedTools.push('get_category_spending');
-        requiresPlanning = false;
+        // Detectar si menciona "hoy" o "today"
+        const hasToday = /hoy|today/i.test(lowerMessage);
+        const hasCategory = /categoria|category/i.test(lowerMessage);
+        
+        if (hasToday && !hasCategory) {
+            // Para "gastos de hoy" sin categoría específica, usar query_financial_data
+            intention = 'QUERY_TODAY_TRANSACTIONS';
+            confidence = 0.95;
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        } else if (hasCategory) {
+            // Si hay categoría específica, usar get_category_spending
+            intention = 'QUERY_CATEGORY_SPENDING';
+            confidence = 0.9;
+            suggestedTools.push('get_category_spending');
+            requiresPlanning = false;
+        } else {
+            // Consulta general de transacciones
+            intention = 'QUERY_TRANSACTIONS';
+            confidence = 0.8;
+            suggestedTools.push('query_financial_data');
+            requiresPlanning = false;
+        }
     }
     // Detectar acciones de creacion
     else if (/crear|create|agregar|add|nuevo|new|registrar|register/i.test(lowerMessage)) {
@@ -272,8 +310,8 @@ async function reasonSimple(
     }
 
     const reasoning = `Intencion detectada: ${intention} con confianza ${confidence}. 
-Herramientas sugeridas: ${suggestedTools.join(', ')}.
-${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
+    Herramientas sugeridas: ${suggestedTools.join(', ')}.
+    ${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
 
     return {
         intention,
