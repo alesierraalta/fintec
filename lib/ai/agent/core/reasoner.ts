@@ -137,10 +137,10 @@ async function reasonEnhanced(
             requiresPlanning = false;
         } else {
             // Consulta general de transacciones
-            intention = 'QUERY_TRANSACTIONS';
-            confidence = 0.8;
+        intention = 'QUERY_TRANSACTIONS';
+        confidence = 0.8;
             suggestedTools.push('query_financial_data');
-            requiresPlanning = false;
+        requiresPlanning = false;
         }
     }
     // Detectar acciones de creacion
@@ -184,8 +184,8 @@ async function reasonEnhanced(
     }
 
     const reasoning = `Intencion detectada: ${intention} con confianza ${confidence}. 
-    Herramientas sugeridas: ${suggestedTools.join(', ')}.
-    ${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
+Herramientas sugeridas: ${suggestedTools.join(', ')}.
+${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
 
     return {
         intention,
@@ -264,10 +264,10 @@ async function reasonSimple(
             requiresPlanning = false;
         } else {
             // Consulta general de transacciones
-            intention = 'QUERY_TRANSACTIONS';
-            confidence = 0.8;
+        intention = 'QUERY_TRANSACTIONS';
+        confidence = 0.8;
             suggestedTools.push('query_financial_data');
-            requiresPlanning = false;
+        requiresPlanning = false;
         }
     }
     // Detectar acciones de creacion
@@ -310,8 +310,8 @@ async function reasonSimple(
     }
 
     const reasoning = `Intencion detectada: ${intention} con confianza ${confidence}. 
-    Herramientas sugeridas: ${suggestedTools.join(', ')}.
-    ${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
+Herramientas sugeridas: ${suggestedTools.join(', ')}.
+${requiresPlanning ? 'Requiere planificacion de multiples pasos.' : 'Puede ejecutarse directamente.'}`;
 
     return {
         intention,

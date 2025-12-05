@@ -187,6 +187,16 @@ Puedo ayudarte con:
 
       this.state.currentPlan = undefined;
 
+      // Detectar NO_DATA específicamente
+      const hasNoData = executionResult.results.some(r => r.error === 'NO_DATA');
+      if (hasNoData) {
+        const noDataMessage = 'No encontré transacciones que coincidan con tu consulta.';
+        return {
+          message: noDataMessage,
+          requiresConfirmation: false,
+        };
+      }
+
       // Generar respuesta real basada en los datos de las herramientas
       let finalMessage: string;
       if (executionResult.success && executionResult.results.length > 0) {
@@ -197,6 +207,12 @@ Puedo ayudarte con:
             this.state.context
           );
           
+          // Validar que el mensaje no esté vacío
+          if (!finalMessage || finalMessage.trim().length === 0) {
+            logger.warn('[agent] Generated message is empty, using fallback');
+            finalMessage = executionResult.finalMessage || 'No pude generar una respuesta. Por favor, intenta reformular tu pregunta.';
+          }
+          
           // Agregar información sobre replanificación si ocurrió
           if (replanAttempts > 0) {
             finalMessage = `✓ Completado después de ${replanAttempts} reintento(s).\n\n${finalMessage}`;
@@ -204,7 +220,7 @@ Puedo ayudarte con:
         } catch (error: any) {
           logger.error('[agent] Error generating response:', error);
           // Fallback al mensaje genérico del executor
-          finalMessage = executionResult.finalMessage;
+          finalMessage = executionResult.finalMessage || 'Ocurrió un error al procesar tu consulta. Por favor, intenta de nuevo.';
           if (replanAttempts > 0) {
             if (executionResult.success) {
               finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
@@ -215,7 +231,7 @@ Puedo ayudarte con:
         }
       } else {
         // Si no hay resultados o falló, usar mensaje genérico
-        finalMessage = executionResult.finalMessage;
+        finalMessage = executionResult.finalMessage || 'No se pudo completar la consulta. Por favor, intenta de nuevo.';
         if (replanAttempts > 0) {
           if (executionResult.success) {
             finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
@@ -223,6 +239,12 @@ Puedo ayudarte con:
             finalMessage = `⚠ Intenté ${replanAttempts} reintento(s) pero no pude completar la tarea. ${finalMessage}`;
           }
         }
+      }
+
+      // Validación final: asegurar que nunca retornemos mensaje vacío
+      if (!finalMessage || finalMessage.trim().length === 0) {
+        logger.error('[agent] Final message is still empty after all fallbacks');
+        finalMessage = 'No pude generar una respuesta. Por favor, intenta reformular tu pregunta.';
       }
 
       return {

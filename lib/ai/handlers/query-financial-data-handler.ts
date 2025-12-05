@@ -146,10 +146,53 @@ export async function handleQueryFinancialData(
       };
     }
 
-    // Procesar datos según groupBy
+    // Procesar datos según groupBy y aggregation
     const resultData: QueryFinancialDataResult['data'] = [];
-    
-    if (groupBy === 'month') {
+
+    // Manejar aggregation: 'max' antes de otros procesamientos
+    if (aggregation === 'max') {
+      if (type === 'expense' || type === 'both') {
+        const expenses = transactions.filter(t => t.type === 'EXPENSE');
+        if (expenses.length > 0) {
+          const maxExpense = expenses.reduce((max, t) => {
+            const amount = Math.abs(fromMinorUnits(t.amountBaseMinor, t.currencyCode || 'USD'));
+            const maxAmount = max.transaction 
+              ? Math.abs(fromMinorUnits(max.transaction.amountBaseMinor, max.transaction.currencyCode || 'USD'))
+              : 0;
+            return amount > maxAmount ? { amount, transaction: t } : max;
+          }, { amount: 0, transaction: null as any });
+          
+          if (maxExpense.transaction) {
+            resultData.push({
+              period: maxExpense.transaction.date,
+              expense: maxExpense.amount,
+              category: getCategoryName(maxExpense.transaction.categoryId),
+            });
+          }
+        }
+      }
+      
+      if (type === 'income' || type === 'both') {
+        const incomes = transactions.filter(t => t.type === 'INCOME');
+        if (incomes.length > 0) {
+          const maxIncome = incomes.reduce((max, t) => {
+            const amount = fromMinorUnits(t.amountBaseMinor, t.currencyCode || 'USD');
+            const maxAmount = max.transaction 
+              ? fromMinorUnits(max.transaction.amountBaseMinor, max.transaction.currencyCode || 'USD')
+              : 0;
+            return amount > maxAmount ? { amount, transaction: t } : max;
+          }, { amount: 0, transaction: null as any });
+          
+          if (maxIncome.transaction) {
+            resultData.push({
+              period: maxIncome.transaction.date,
+              income: maxIncome.amount,
+              category: getCategoryName(maxIncome.transaction.categoryId),
+            });
+          }
+        }
+      }
+    } else if (groupBy === 'month') {
       // Agrupar por mes
       const byMonth = new Map<string, { income: number[]; expense: number[] }>();
       

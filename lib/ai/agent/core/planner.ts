@@ -80,6 +80,11 @@ function createSimplePlan(reasoning: ReasoningResult, userMessage?: string): Tas
       parameters.period = 'year';
     }
     // Si no se especifica, el handler usará el default 'month'
+    
+    // Detectar consultas de máximo/mayor
+    if (/mayor|máximo|max|highest|top/i.test(messageToAnalyze)) {
+      parameters.aggregation = 'max';
+    }
   }
 
   const task: Task = {

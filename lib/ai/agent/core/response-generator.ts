@@ -94,8 +94,20 @@ export async function generateResponse(
   systemPrompt?: string
 ): Promise<string> {
   try {
+    // Validar que hay resultados
+    if (!toolResults || toolResults.length === 0) {
+      logger.warn('[response-generator] No tool results provided');
+      return 'No se ejecutaron herramientas para procesar tu consulta.';
+    }
+
     // Formatear resultados de herramientas
     const toolResultsText = formatToolResultsForPrompt(toolResults);
+    
+    // Validar que el texto formateado no esté vacío
+    if (!toolResultsText || toolResultsText.trim().length === 0 || toolResultsText === 'No se ejecutaron herramientas.') {
+      logger.warn('[response-generator] Tool results text is empty or indicates no tools executed');
+      return 'No se obtuvieron resultados de las herramientas ejecutadas.';
+    }
     
     // Construir mensajes para OpenAI
     const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
@@ -133,16 +145,17 @@ Genera una respuesta conversacional, natural y útil en español basada en los r
 
     const content = response.choices[0]?.message?.content;
     
-    if (!content) {
+    if (!content || content.trim().length === 0) {
       logger.warn('[response-generator] Empty response from OpenAI');
-      return 'No pude generar una respuesta. Por favor, intenta de nuevo.';
+      return 'No pude generar una respuesta basada en los datos. Por favor, intenta de nuevo.';
     }
 
     logger.info('[response-generator] OpenAI completion completed');
     return content;
   } catch (error: any) {
     logger.error('[response-generator] Error in completion:', error);
-    throw error; // Re-lanzar para que el caller maneje el fallback
+    // Retornar mensaje de error útil en lugar de lanzar
+    return `Ocurrió un error al generar la respuesta: ${error.message || 'Error desconocido'}. Por favor, intenta de nuevo.`;
   }
 }
 
