@@ -88,7 +88,7 @@ Responde SOLO con un JSON válido en este formato:
 Si no hay información importante, retorna {"memories": []}.`;
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-nano',
       messages: [
         {
           role: 'system',

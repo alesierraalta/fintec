@@ -99,7 +99,7 @@ async function summarizeMessages(messages: ChatMessage[]): Promise<string> {
       .substring(0, 2000); // Limitar tamaño
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5-nano',
       messages: [
         {
           role: 'system',

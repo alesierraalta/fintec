@@ -5,7 +5,7 @@ export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || 'placeholder',
 });
 
-export const AI_MODEL = 'gpt-4o-mini'; // Cost-effective model
+export const AI_MODEL = 'gpt-5-nano'; // Cost-effective model
 export const AI_TEMPERATURE = 0.3; // Lower temperature for more consistent results
 export const AI_MAX_TOKENS = 500; // Limit token usage
 
