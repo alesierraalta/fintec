@@ -16,7 +16,7 @@ import { AgentState, AgentConfig } from './types';
 import { reasonAboutIntent } from './reasoner';
 import { createPlan, validatePlan, optimizeTaskOrder } from './planner';
 import { executePlan, shouldReplan } from './executor';
-import { generateStreamingResponse } from './response-generator';
+import { generateStreamingResponse, generateResponse } from './response-generator';
 
 /**
  * Configuración por defecto del agente
@@ -187,13 +187,41 @@ Puedo ayudarte con:
 
       this.state.currentPlan = undefined;
 
-      // Agregar información sobre replanificación al mensaje si ocurrió
-      let finalMessage = executionResult.finalMessage;
-      if (replanAttempts > 0) {
-        if (executionResult.success) {
-          finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
-        } else {
-          finalMessage = `⚠ Intenté ${replanAttempts} reintento(s) pero no pude completar la tarea. ${finalMessage}`;
+      // Generar respuesta real basada en los datos de las herramientas
+      let finalMessage: string;
+      if (executionResult.success && executionResult.results.length > 0) {
+        try {
+          finalMessage = await generateResponse(
+            userMessage,
+            executionResult.results,
+            this.state.context
+          );
+          
+          // Agregar información sobre replanificación si ocurrió
+          if (replanAttempts > 0) {
+            finalMessage = `✓ Completado después de ${replanAttempts} reintento(s).\n\n${finalMessage}`;
+          }
+        } catch (error: any) {
+          logger.error('[agent] Error generating response:', error);
+          // Fallback al mensaje genérico del executor
+          finalMessage = executionResult.finalMessage;
+          if (replanAttempts > 0) {
+            if (executionResult.success) {
+              finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
+            } else {
+              finalMessage = `⚠ Intenté ${replanAttempts} reintento(s) pero no pude completar la tarea. ${finalMessage}`;
+            }
+          }
+        }
+      } else {
+        // Si no hay resultados o falló, usar mensaje genérico
+        finalMessage = executionResult.finalMessage;
+        if (replanAttempts > 0) {
+          if (executionResult.success) {
+            finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
+          } else {
+            finalMessage = `⚠ Intenté ${replanAttempts} reintento(s) pero no pude completar la tarea. ${finalMessage}`;
+          }
         }
       }
 

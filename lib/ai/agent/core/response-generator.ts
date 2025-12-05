@@ -84,6 +84,69 @@ export function formatToolResultsForPrompt(
 }
 
 /**
+ * Genera respuesta conversacional usando OpenAI (no-streaming)
+ * Retorna un string con la respuesta generada basada en los resultados de herramientas
+ */
+export async function generateResponse(
+  userMessage: string,
+  toolResults: ToolResult[],
+  context: WalletContext,
+  systemPrompt?: string
+): Promise<string> {
+  try {
+    // Formatear resultados de herramientas
+    const toolResultsText = formatToolResultsForPrompt(toolResults);
+    
+    // Construir mensajes para OpenAI
+    const messages: Array<{ role: 'user' | 'assistant' | 'system'; content: string }> = [
+      {
+        role: 'system',
+        content: systemPrompt || SYSTEM_PROMPT,
+      },
+      {
+        role: 'user',
+        content: `Consulta del usuario: "${userMessage}"
+
+Resultados de herramientas ejecutadas:
+${toolResultsText}
+
+Contexto financiero disponible:
+- Cuentas: ${context.accounts.total} cuentas activas
+- Ingresos del mes: $${context.transactions.summary.incomeThisMonth.toFixed(2)}
+- Gastos del mes: $${context.transactions.summary.expensesThisMonth.toFixed(2)}
+- Presupuestos activos: ${context.budgets.active.length}
+- Metas activas: ${context.goals.active.length}
+
+Genera una respuesta conversacional, natural y útil en español basada en los resultados de las herramientas. Explica los datos de forma clara y proporciona insights prácticos cuando sea relevante.`,
+      },
+    ];
+
+    logger.info('[response-generator] Starting OpenAI completion (non-streaming)');
+
+    // Crear completion de OpenAI sin streaming
+    const response = await openai.chat.completions.create({
+      model: AI_MODEL,
+      messages: messages as any,
+      ...getTemperatureConfig(),
+      max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      logger.warn('[response-generator] Empty response from OpenAI');
+      return 'No pude generar una respuesta. Por favor, intenta de nuevo.';
+    }
+
+    logger.info('[response-generator] OpenAI completion completed');
+    return content;
+  } catch (error: any) {
+    logger.error('[response-generator] Error in completion:', error);
+    throw error; // Re-lanzar para que el caller maneje el fallback
+  }
+}
+
+/**
  * Genera respuesta streaming usando OpenAI
  * Retorna un AsyncGenerator que yield chunks en formato SSE
  */
