@@ -6,7 +6,7 @@
  */
 
 import { logger } from '@/lib/utils/logger';
-import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from '../../config';
+import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_COMPLETION_TOKENS } from '../../config';
 import { SYSTEM_PROMPT } from '../prompts/system-prompt';
 import { WalletContext } from '../../context-builder';
 import { ToolResult } from './types';
@@ -106,7 +106,7 @@ Genera una respuesta conversacional, natural y útil en español basada en los r
       model: AI_MODEL,
       messages: messages as any,
       temperature: AI_TEMPERATURE,
-      max_tokens: AI_MAX_TOKENS,
+      max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
       stream: true,
     });
 

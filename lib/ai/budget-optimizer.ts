@@ -1,4 +1,4 @@
-import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
+import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_COMPLETION_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
 
 const budgetOptimizerSystemPrompt = `Eres un optimizador de presupuestos. Analiza patrones de gasto y sugiere ajustes de presupuesto en formato JSON.`;
@@ -98,7 +98,7 @@ Sugiere ajustes de presupuesto en formato JSON con: optimizations (array con cat
         },
       ],
       temperature: AI_TEMPERATURE,
-      max_tokens: AI_MAX_TOKENS,
+      max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
       response_format: { type: 'json_object' },
     });
 

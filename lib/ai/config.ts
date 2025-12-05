@@ -7,7 +7,7 @@ export const openai = new OpenAI({
 
 export const AI_MODEL = 'gpt-5-nano'; // Cost-effective model
 export const AI_TEMPERATURE = 0.3; // Lower temperature for more consistent results
-export const AI_MAX_TOKENS = 500; // Limit token usage
+export const AI_MAX_COMPLETION_TOKENS = 500; // Limit completion token usage (GPT-5 API parameter)
 
 // Chat assistant models - GPT-5 variants
 export const AI_CHAT_MODEL_NANO = 'gpt-5-nano'; // For simple queries (listings, basic info)

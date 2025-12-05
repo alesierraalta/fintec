@@ -1,4 +1,4 @@
-import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_TOKENS } from './config';
+import { openai, AI_MODEL, AI_TEMPERATURE, AI_MAX_COMPLETION_TOKENS } from './config';
 import { supabase } from '@/repositories/supabase/client';
 
 const predictionsSystemPrompt = `Eres un sistema de predicción de gastos. Analiza datos históricos y predice gastos futuros en formato JSON.`;
@@ -81,7 +81,7 @@ Predice el gasto del próximo mes en formato JSON con: nextMonthTotal, categoryP
         },
       ],
       temperature: AI_TEMPERATURE,
-      max_tokens: AI_MAX_TOKENS,
+      max_completion_tokens: AI_MAX_COMPLETION_TOKENS,
       response_format: { type: 'json_object' },
     });
 

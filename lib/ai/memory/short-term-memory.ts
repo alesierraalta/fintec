@@ -111,7 +111,7 @@ async function summarizeMessages(messages: ChatMessage[]): Promise<string> {
         },
       ],
       temperature: 0.3,
-      max_tokens: 150,
+      max_completion_tokens: 150,
     });
 
     return response.choices[0]?.message?.content || 'Conversación anterior';

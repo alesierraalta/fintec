@@ -126,7 +126,7 @@ Proporciona un análisis en formato JSON con: summary, advice (array con categor
         },
       ],
       temperature: AI_TEMPERATURE,
-      max_tokens: 800,
+      max_completion_tokens: 800,
       response_format: { type: 'json_object' },
     });
 
