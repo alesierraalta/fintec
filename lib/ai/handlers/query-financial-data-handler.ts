@@ -12,7 +12,7 @@ import { fromMinorUnits } from '@/lib/money';
 
 export interface QueryFinancialDataParams {
   type: 'income' | 'expense' | 'both';
-  period?: 'month' | 'year' | 'custom' | 'all';
+  period?: 'today' | 'month' | 'year' | 'custom' | 'all';
   months?: number;
   startDate?: string;
   endDate?: string;

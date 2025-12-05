@@ -719,7 +719,7 @@ function formatAnalysisResult(analysisResult: { success: boolean; data: any; mes
  */
 function toQueryFinancialDataParams(params: Record<string, any>): QueryFinancialDataParams {
   const typeOptions = ['income', 'expense', 'both'] as const;
-  const periodOptions = ['month', 'year', 'custom', 'all'] as const;
+  const periodOptions = ['today', 'month', 'year', 'custom', 'all'] as const;
   const aggregationOptions = ['sum', 'average', 'count', 'min', 'max', 'raw'] as const;
   const groupByOptions = ['month', 'category', 'account', 'none'] as const;
 
