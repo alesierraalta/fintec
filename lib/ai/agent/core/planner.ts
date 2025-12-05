@@ -3,6 +3,8 @@
  * 
  * Descompone tareas complejas en pasos ejecutables.
  * Crea planes optimizados y valida su viabilidad.
+ * 
+ * MEJORA: Maneja consultas conversacionales sin herramientas
  */
 
 import { logger } from '@/lib/utils/logger';
@@ -18,6 +20,17 @@ export async function createPlan(
   config: AgentConfig
 ): Promise<TaskPlan> {
   logger.info(`[planner] Creating plan for intention: ${reasoning.intention}`);
+
+  // Si no hay herramientas sugeridas, es una consulta conversacional
+  if (reasoning.suggestedTools.length === 0) {
+    logger.info(`[planner] No tools needed, conversational query`);
+    return {
+      id: `plan-${Date.now()}`,
+      tasks: [],
+      estimatedSteps: 0,
+      requiresConfirmation: false,
+    };
+  }
 
   // Si no requiere planificación, crear plan simple de un solo paso
   if (!reasoning.requiresPlanning && reasoning.suggestedTools.length === 1) {
@@ -70,7 +83,7 @@ function createMultiStepPlan(
   // Crear tarea para cada herramienta sugerida
   for (const toolName of reasoning.suggestedTools) {
     const actionType = FUNCTION_ACTION_MAP[toolName] || 'UNKNOWN';
-    
+
     const task: Task = {
       id: `task-${taskIdCounter++}`,
       type: actionType as any,
@@ -79,8 +92,8 @@ function createMultiStepPlan(
       description: `Ejecutar ${toolName}`,
       status: 'pending',
       // Las tareas de análisis pueden ejecutarse en paralelo
-      dependsOn: toolName.startsWith('analyze_') || toolName.startsWith('get_') 
-        ? undefined 
+      dependsOn: toolName.startsWith('analyze_') || toolName.startsWith('get_')
+        ? undefined
         : tasks.length > 0 ? [tasks[tasks.length - 1].id] : undefined,
     };
 
@@ -88,7 +101,7 @@ function createMultiStepPlan(
   }
 
   // Determinar si requiere confirmación
-  const requiresConfirmation = tasks.some(t => 
+  const requiresConfirmation = tasks.some(t =>
     config.requireConfirmationFor.includes(t.type)
   );
 
@@ -106,13 +119,14 @@ function createMultiStepPlan(
 export function validatePlan(plan: TaskPlan): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
 
+  // Permitir planes vacíos (consultas conversacionales)
   if (plan.tasks.length === 0) {
-    errors.push('El plan no tiene tareas');
+    return { valid: true, errors: [] };
   }
 
   // Validar que todas las herramientas existen
   for (const task of plan.tasks) {
-    const tool = AI_ACTION_TOOLS.find(t => 
+    const tool = AI_ACTION_TOOLS.find(t =>
       'function' in t && t.function.name === task.toolName
     );
     if (!tool) {
@@ -142,6 +156,11 @@ export function validatePlan(plan: TaskPlan): { valid: boolean; errors: string[]
  * Optimiza el orden de ejecución de las tareas
  */
 export function optimizeTaskOrder(plan: TaskPlan): TaskPlan {
+  // Si no hay tareas, retornar el plan tal cual
+  if (plan.tasks.length === 0) {
+    return plan;
+  }
+
   // Ordenar tareas por dependencias (topological sort simple)
   const sorted: Task[] = [];
   const remaining = [...plan.tasks];
@@ -152,7 +171,7 @@ export function optimizeTaskOrder(plan: TaskPlan): TaskPlan {
 
     for (let i = remaining.length - 1; i >= 0; i--) {
       const task = remaining[i];
-      
+
       // Si no tiene dependencias o todas sus dependencias están completadas
       if (!task.dependsOn || task.dependsOn.every(depId => completed.has(depId))) {
         sorted.push(task);
@@ -175,4 +194,3 @@ export function optimizeTaskOrder(plan: TaskPlan): TaskPlan {
     tasks: sorted,
   };
 }
-

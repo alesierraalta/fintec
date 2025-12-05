@@ -2,17 +2,17 @@
  * Agent Core - Núcleo del Agente Agéntico
  * 
  * Orquesta razonamiento, planificación y ejecución.
- * Usa Sequential Thinking MCP para razonamiento paso a paso.
  * Mantiene estado de la conversación y gestiona contexto.
  * 
  * MEJORAS IMPLEMENTADAS:
  * - Replanificación automática (hasta 2 intentos)
  * - Sistema de confianza gradual (3 niveles)
+ * - Manejo de consultas conversacionales
  */
 
 import { logger } from '@/lib/utils/logger';
 import { WalletContext } from '../../context-builder';
-import { AgentState, AgentConfig, ReasoningResult, TaskPlan } from './types';
+import { AgentState, AgentConfig } from './types';
 import { reasonAboutIntent } from './reasoner';
 import { createPlan, validatePlan, optimizeTaskOrder } from './planner';
 import { executePlan, shouldReplan } from './executor';
@@ -42,6 +42,26 @@ export class Agent {
       reasoningHistory: [],
     };
     this.config = { ...DEFAULT_AGENT_CONFIG, ...config };
+  }
+
+  /**
+   * Genera respuesta conversacional para consultas generales
+   */
+  private generateConversationalResponse(intention: string): string {
+    const responses: Record<string, string> = {
+      CONVERSATIONAL: `¡Hola! Soy tu asistente financiero personal. Mi propósito es ayudarte a gestionar tus finanzas de manera inteligente.
+
+Puedo ayudarte con:
+• 📊 Analizar tus gastos e ingresos
+• 💰 Consultar saldos y transacciones
+• 📈 Ver tendencias y estadísticas
+• 🎯 Gestionar presupuestos y metas
+• 💸 Crear y categorizar transacciones
+
+¿En qué puedo ayudarte hoy?`,
+    };
+
+    return responses[intention] || '¿En qué puedo ayudarte?';
   }
 
   /**
@@ -90,9 +110,15 @@ export class Agent {
       let optimizedPlan = optimizeTaskOrder(plan);
       this.state.currentPlan = optimizedPlan;
 
-      logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`)
+      logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`);
 
-        ;
+      // Si no hay tareas, es una consulta conversacional
+      if (optimizedPlan.tasks.length === 0) {
+        logger.info(`[agent] Conversational query, generating direct response`);
+        return {
+          message: this.generateConversationalResponse(reasoning.intention),
+        };
+      }
 
       // Si requiere confirmación (por plan o por baja confianza), retornar sin ejecutar
       if ((optimizedPlan.requiresConfirmation || requiresConfirmationDueToLowConfidence) && !this.config.enableAutoExecution) {
@@ -234,6 +260,16 @@ export class Agent {
       this.state.currentPlan = optimizedPlan;
 
       logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`);
+
+      // Si no hay tareas, es una consulta conversacional
+      if (optimizedPlan.tasks.length === 0) {
+        yield {
+          type: 'content',
+          text: this.generateConversationalResponse(reasoning.intention),
+        };
+        yield { type: 'done' };
+        return;
+      }
 
       // Si requiere confirmación, retornar sin ejecutar
       if ((optimizedPlan.requiresConfirmation || requiresConfirmationDueToLowConfidence) && !this.config.enableAutoExecution) {
