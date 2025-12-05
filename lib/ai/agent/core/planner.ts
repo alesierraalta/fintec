@@ -17,7 +17,8 @@ import { AI_ACTION_TOOLS, FUNCTION_ACTION_MAP } from '../../action-tools';
 export async function createPlan(
   reasoning: ReasoningResult,
   context: any,
-  config: AgentConfig
+  config: AgentConfig,
+  userMessage?: string
 ): Promise<TaskPlan> {
   logger.info(`[planner] Creating plan for intention: ${reasoning.intention}`);
 
@@ -34,30 +35,58 @@ export async function createPlan(
 
   // Si no requiere planificación, crear plan simple de un solo paso
   if (!reasoning.requiresPlanning && reasoning.suggestedTools.length === 1) {
-    return createSimplePlan(reasoning);
+    return createSimplePlan(reasoning, userMessage);
   }
 
   // Si requiere planificación, crear plan multi-paso
   if (reasoning.requiresPlanning || reasoning.suggestedTools.length > 1) {
-    return createMultiStepPlan(reasoning, config);
+    return createMultiStepPlan(reasoning, config, userMessage);
   }
 
   // Fallback: plan simple
-  return createSimplePlan(reasoning);
+  return createSimplePlan(reasoning, userMessage);
 }
 
 /**
  * Crea un plan simple de un solo paso
+ * Extrae parámetros básicos del mensaje del usuario cuando es posible
  */
-function createSimplePlan(reasoning: ReasoningResult): TaskPlan {
+function createSimplePlan(reasoning: ReasoningResult, userMessage?: string): TaskPlan {
   const toolName = reasoning.suggestedTools[0] || 'UNKNOWN';
   const actionType = FUNCTION_ACTION_MAP[toolName] || 'UNKNOWN';
+
+  // Extraer parámetros básicos del mensaje para query_financial_data
+  const parameters: Record<string, any> = {};
+  
+  if (toolName === 'query_financial_data') {
+    // Usar el mensaje del usuario si está disponible, sino usar el reasoning
+    const messageToAnalyze = (userMessage || reasoning.reasoning || '').toLowerCase();
+    
+    // Extraer type del mensaje
+    if (/gasto|expense|gastos|expenses/i.test(messageToAnalyze)) {
+      parameters.type = 'expense';
+    } else if (/ingreso|income|ingresos/i.test(messageToAnalyze)) {
+      parameters.type = 'income';
+    } else {
+      parameters.type = 'both';
+    }
+    
+    // Extraer period del mensaje
+    if (/hoy|today/i.test(messageToAnalyze)) {
+      parameters.period = 'today';
+    } else if (/mes|month|mensual|monthly/i.test(messageToAnalyze)) {
+      parameters.period = 'month';
+    } else if (/año|year|anual|annual/i.test(messageToAnalyze)) {
+      parameters.period = 'year';
+    }
+    // Si no se especifica, el handler usará el default 'month'
+  }
 
   const task: Task = {
     id: `task-${Date.now()}`,
     type: actionType as any,
     toolName,
-    parameters: {},
+    parameters,
     description: `Ejecutar ${toolName} para ${reasoning.intention}`,
     status: 'pending',
   };
@@ -75,7 +104,8 @@ function createSimplePlan(reasoning: ReasoningResult): TaskPlan {
  */
 function createMultiStepPlan(
   reasoning: ReasoningResult,
-  config: AgentConfig
+  config: AgentConfig,
+  userMessage?: string
 ): TaskPlan {
   const tasks: Task[] = [];
   let taskIdCounter = 0;

@@ -163,7 +163,7 @@ Puedo ayudarte con:
         );
 
         // Crear nuevo plan
-        const newPlan = await createPlan(replanReasoning, this.state.context, this.config);
+        const newPlan = await createPlan(replanReasoning, this.state.context, this.config, userMessage);
         const newValidation = validatePlan(newPlan);
 
         if (!newValidation.valid) {
@@ -242,7 +242,7 @@ Puedo ayudarte con:
       const requiresConfirmationDueToLowConfidence = reasoning.confidence < 0.6;
 
       // Paso 2: Planificación
-      const plan = await createPlan(reasoning, this.state.context, this.config);
+      const plan = await createPlan(reasoning, this.state.context, this.config, userMessage);
       const validation = validatePlan(plan);
 
       if (!validation.valid) {
