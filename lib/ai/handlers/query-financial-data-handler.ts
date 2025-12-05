@@ -71,7 +71,11 @@ export async function handleQueryFinancialData(
       dateTo = endDate;
     } else if (period === 'all') {
       // Obtener fecha de la primera transacción
-      const allTransactions = await repository.findByDateRange('2000-01-01', now.toISOString().split('T')[0], { limit: 1 });
+      const allTransactions = await repository.findByDateRange(
+        '2000-01-01',
+        now.toISOString().split('T')[0],
+        { page: 1, limit: 1, sortBy: 'date', sortOrder: 'asc' }
+      );
       dateFrom = allTransactions.data.length > 0 
         ? allTransactions.data[allTransactions.data.length - 1].date 
         : new Date(now.getFullYear() - 1, 0, 1).toISOString().split('T')[0];
