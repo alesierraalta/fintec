@@ -4,6 +4,10 @@
  * Orquesta razonamiento, planificación y ejecución.
  * Usa Sequential Thinking MCP para razonamiento paso a paso.
  * Mantiene estado de la conversación y gestiona contexto.
+ * 
+ * MEJORAS IMPLEMENTADAS:
+ * - Replanificación automática (hasta 2 intentos)
+ * - Sistema de confianza gradual (3 niveles)
  */
 
 import { logger } from '@/lib/utils/logger';
@@ -60,12 +64,16 @@ export class Agent {
       this.state.reasoningHistory.push(reasoning);
       logger.info(`[agent] Reasoning completed: ${reasoning.intention} (confidence: ${reasoning.confidence})`);
 
-      // Si la confianza es muy baja, preguntar al usuario
-      if (reasoning.confidence < 0.5) {
+      // Sistema de confianza gradual (3 niveles)
+      // Nivel 1: Muy baja confianza (<0.3) - Pedir clarificación
+      if (reasoning.confidence < 0.3) {
         return {
-          message: `No estoy seguro de entender tu solicitud. ¿Podrías ser más específico?`,
+          message: `No estoy seguro de entender tu solicitud. ¿Podrías reformularla o darme más detalles?`,
         };
       }
+
+      // Nivel 2: Confianza baja-media (0.3-0.6) - Pedir confirmación antes de ejecutar
+      const requiresConfirmationDueToLowConfidence = reasoning.confidence < 0.6;
 
       // Paso 2: Planificación
       const plan = await createPlan(reasoning, this.state.context, this.config);
@@ -79,40 +87,92 @@ export class Agent {
       }
 
       // Optimizar orden de tareas
-      const optimizedPlan = optimizeTaskOrder(plan);
+      let optimizedPlan = optimizeTaskOrder(plan);
       this.state.currentPlan = optimizedPlan;
 
-      logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`);
+      logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`)
 
-      // Si requiere confirmación, retornar sin ejecutar
-      if (optimizedPlan.requiresConfirmation && !this.config.enableAutoExecution) {
+        ;
+
+      // Si requiere confirmación (por plan o por baja confianza), retornar sin ejecutar
+      if ((optimizedPlan.requiresConfirmation || requiresConfirmationDueToLowConfidence) && !this.config.enableAutoExecution) {
+        const confidenceNote = requiresConfirmationDueToLowConfidence
+          ? `\n\n(Nota: Tengo ${Math.round(reasoning.confidence * 100)}% de confianza en esta interpretación)`
+          : '';
+
         return {
-          message: `Para completar tu solicitud, necesito ejecutar las siguientes acciones:\n${optimizedPlan.tasks.map(t => `- ${t.description}`).join('\n')}\n¿Deseas continuar?`,
+          message: `Para completar tu solicitud, necesito ejecutar las siguientes acciones:\n${optimizedPlan.tasks.map(t => `- ${t.description}`).join('\n')}\n¿Deseas continuar?${confidenceNote}`,
           requiresConfirmation: true,
         };
       }
 
-      // Paso 3: Ejecución
-      const executionResult = await executePlan(
+      // Paso 3: Ejecución con replanificación automática
+      let executionResult = await executePlan(
         optimizedPlan,
         userId,
         this.state.context,
         this.config
       );
 
-      // Actualizar estado
-      this.state.completedTasks.push(...optimizedPlan.tasks);
+      // Actualizar estado con tareas completadas
+      this.state.completedTasks.push(...optimizedPlan.tasks.filter(t => t.status === 'completed'));
+
+      // Si debe replanificar, intentar hasta 2 veces
+      let replanAttempts = 0;
+      const MAX_REPLAN_ATTEMPTS = 2;
+
+      while (shouldReplan(optimizedPlan, executionResult.results) && replanAttempts < MAX_REPLAN_ATTEMPTS) {
+        replanAttempts++;
+        logger.info(`[agent] Replanning attempt ${replanAttempts}/${MAX_REPLAN_ATTEMPTS} due to failures`);
+
+        // Analizar qué falló y por qué
+        const failedTasks = optimizedPlan.tasks.filter(t => t.status === 'failed');
+        const failureReasons = failedTasks.map(t => t.error || 'Unknown error').join('; ');
+
+        // Crear un nuevo razonamiento considerando los errores
+        const replanReasoning = await reasonAboutIntent(
+          `${userMessage} (anterior intento falló: ${failureReasons})`,
+          this.state.context,
+          this.config
+        );
+
+        // Crear nuevo plan
+        const newPlan = await createPlan(replanReasoning, this.state.context, this.config);
+        const newValidation = validatePlan(newPlan);
+
+        if (!newValidation.valid) {
+          logger.error(`[agent] Replan validation failed:`, newValidation.errors);
+          break; // No podemos crear un plan válido, salir del loop
+        }
+
+        // Optimizar y ejecutar nuevo plan
+        const newOptimizedPlan = optimizeTaskOrder(newPlan);
+        executionResult = await executePlan(
+          newOptimizedPlan,
+          userId,
+          this.state.context,
+          this.config
+        );
+
+        // Actualizar estado con nuevas tareas completadas
+        this.state.completedTasks.push(...newOptimizedPlan.tasks.filter(t => t.status === 'completed'));
+        optimizedPlan = newOptimizedPlan; // Actualizar referencia para siguiente iteración
+      }
+
       this.state.currentPlan = undefined;
 
-      // Si debe replanificar
-      if (shouldReplan(optimizedPlan, executionResult.results)) {
-        logger.info('[agent] Replanning due to failures');
-        // Por ahora, retornar el mensaje de error
-        // En el futuro, podríamos intentar replanificar automáticamente
+      // Agregar información sobre replanificación al mensaje si ocurrió
+      let finalMessage = executionResult.finalMessage;
+      if (replanAttempts > 0) {
+        if (executionResult.success) {
+          finalMessage = `✓ Completado después de ${replanAttempts} reintento(s). ${finalMessage}`;
+        } else {
+          finalMessage = `⚠ Intenté ${replanAttempts} reintento(s) pero no pude completar la tarea. ${finalMessage}`;
+        }
       }
 
       return {
-        message: executionResult.finalMessage,
+        message: finalMessage,
         requiresConfirmation: false,
       };
     } catch (error: any) {
@@ -143,15 +203,17 @@ export class Agent {
       this.state.reasoningHistory.push(reasoning);
       logger.info(`[agent] Reasoning completed: ${reasoning.intention} (confidence: ${reasoning.confidence})`);
 
-      // Si la confianza es muy baja, preguntar al usuario
-      if (reasoning.confidence < 0.5) {
+      // Sistema de confianza gradual
+      if (reasoning.confidence < 0.3) {
         yield {
           type: 'content',
-          text: `No estoy seguro de entender tu solicitud. ¿Podrías ser más específico?`,
+          text: `No estoy seguro de entender tu solicitud. ¿Podrías reformularla o darme más detalles?`,
         };
         yield { type: 'done' };
         return;
       }
+
+      const requiresConfirmationDueToLowConfidence = reasoning.confidence < 0.6;
 
       // Paso 2: Planificación
       const plan = await createPlan(reasoning, this.state.context, this.config);
@@ -174,10 +236,14 @@ export class Agent {
       logger.info(`[agent] Plan created: ${optimizedPlan.tasks.length} task(s)`);
 
       // Si requiere confirmación, retornar sin ejecutar
-      if (optimizedPlan.requiresConfirmation && !this.config.enableAutoExecution) {
+      if ((optimizedPlan.requiresConfirmation || requiresConfirmationDueToLowConfidence) && !this.config.enableAutoExecution) {
+        const confidenceNote = requiresConfirmationDueToLowConfidence
+          ? `\n\n(Nota: Tengo ${Math.round(reasoning.confidence * 100)}% de confianza en esta interpretación)`
+          : '';
+
         yield {
           type: 'content',
-          text: `Para completar tu solicitud, necesito ejecutar las siguientes acciones:\n${optimizedPlan.tasks.map(t => `- ${t.description}`).join('\n')}\n¿Deseas continuar?`,
+          text: `Para completar tu solicitud, necesito ejecutar las siguientes acciones:\n${optimizedPlan.tasks.map(t => `- ${t.description}`).join('\n')}\n¿Deseas continuar?${confidenceNote}`,
         };
         yield {
           type: 'done',
@@ -195,13 +261,12 @@ export class Agent {
       );
 
       // Actualizar estado
-      this.state.completedTasks.push(...optimizedPlan.tasks);
+      this.state.completedTasks.push(...optimizedPlan.tasks.filter(t => t.status === 'completed'));
       this.state.currentPlan = undefined;
 
-      // Si debe replanificar
+      // Si debe replanificar (en streaming no replanificamos automáticamente por ahora)
       if (shouldReplan(optimizedPlan, executionResult.results)) {
-        logger.info('[agent] Replanning due to failures');
-        // Por ahora, continuar con la respuesta de error
+        logger.info('[agent] Replanning needed but skipped in streaming mode');
       }
 
       // Paso 4: Generar respuesta streaming usando OpenAI
@@ -239,4 +304,3 @@ export class Agent {
     return { ...this.state };
   }
 }
-

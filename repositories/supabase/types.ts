@@ -99,6 +99,23 @@ export interface SupabaseUser {
   updated_at: string;
 }
 
+export interface SupabasePaymentOrder {
+  id: string;
+  user_id: string;
+  amount_minor: number;
+  currency_code: string;
+  description?: string;
+  status: 'pending' | 'pending_review' | 'approved' | 'rejected' | 'expired';
+  receipt_url?: string;
+  receipt_filename?: string;
+  admin_notes?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  transaction_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Database interface for TypeScript with Supabase
 export interface Database {
   public: {
@@ -171,6 +188,15 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<SupabaseTransfer>;
+      };
+      payment_orders: {
+        Row: SupabasePaymentOrder;
+        Insert: Omit<SupabasePaymentOrder, 'id' | 'created_at' | 'updated_at'> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<SupabasePaymentOrder>;
       };
     };
     Views: {
@@ -298,6 +324,24 @@ CREATE TABLE exchange_rates (
   UNIQUE(base_currency, quote_currency, date, provider)
 );
 
+-- Payment orders table
+CREATE TABLE payment_orders (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
+  amount_minor BIGINT NOT NULL,
+  currency_code TEXT NOT NULL DEFAULT 'VES',
+  description TEXT,
+  status TEXT NOT NULL CHECK (status IN ('pending', 'pending_review', 'approved', 'rejected', 'expired')) DEFAULT 'pending',
+  receipt_url TEXT,
+  receipt_filename TEXT,
+  admin_notes TEXT,
+  reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMP WITH TIME ZONE,
+  transaction_id UUID REFERENCES transactions(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexes for better performance
 CREATE INDEX idx_accounts_user_id ON accounts(user_id);
 CREATE INDEX idx_accounts_type ON accounts(type);
@@ -323,12 +367,17 @@ CREATE INDEX idx_goals_target_date ON goals(target_date);
 CREATE INDEX idx_exchange_rates_pair ON exchange_rates(base_currency, quote_currency);
 CREATE INDEX idx_exchange_rates_date ON exchange_rates(date);
 
+CREATE INDEX idx_payment_orders_user_id ON payment_orders(user_id);
+CREATE INDEX idx_payment_orders_status ON payment_orders(status);
+CREATE INDEX idx_payment_orders_created_at ON payment_orders(created_at);
+
 -- Row Level Security (RLS) policies
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE goals ENABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_orders ENABLE ROW LEVEL SECURITY;
 
 -- Users can only access their own data
 CREATE POLICY "Users can view own profile" ON users FOR SELECT USING (auth.uid() = id);
@@ -364,6 +413,17 @@ CREATE POLICY "Users can update own categories" ON categories FOR UPDATE USING (
   auth.uid() = user_id OR is_default = false
 );
 CREATE POLICY "Users can delete own categories" ON categories FOR DELETE USING (
+  auth.uid() = user_id
+);
+
+-- Payment orders: users can view and manage their own orders
+CREATE POLICY "Users can view own payment orders" ON payment_orders FOR SELECT USING (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can insert own payment orders" ON payment_orders FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can update own payment orders" ON payment_orders FOR UPDATE USING (
   auth.uid() = user_id
 );
 
@@ -423,4 +483,5 @@ CREATE TRIGGER update_transactions_updated_at BEFORE UPDATE ON transactions FOR 
 CREATE TRIGGER update_categories_updated_at BEFORE UPDATE ON categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_budgets_updated_at BEFORE UPDATE ON budgets FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_payment_orders_updated_at BEFORE UPDATE ON payment_orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 `;

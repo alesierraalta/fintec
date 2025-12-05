@@ -51,63 +51,63 @@ export async function executeAction(
     switch (actionType) {
       case 'CREATE_TRANSACTION':
         return await executeCreateTransaction(userId, parameters, context);
-      
+
       case 'CREATE_BUDGET':
         return await executeCreateBudget(userId, parameters, context);
-      
+
       case 'CREATE_GOAL':
         return await executeCreateGoal(userId, parameters, context);
-      
+
       case 'CREATE_ACCOUNT':
         return await executeCreateAccount(userId, parameters, context);
-      
+
       case 'CREATE_TRANSFER':
         return await executeCreateTransfer(userId, parameters, context);
-      
+
       // Acciones de análisis (no requieren confirmación)
       case 'ANALYZE_SPENDING':
         return formatAnalysisResult(analyzeSpending(context, parameters));
-      
+
       case 'CALCULATE_PERCENTAGES':
         return formatAnalysisResult(calculatePercentages(context, parameters));
-      
+
       case 'GET_FINANCIAL_SUMMARY':
         return formatAnalysisResult(getFinancialSummary(context, parameters));
-      
+
       case 'COMPARE_PERIODS':
         return formatAnalysisResult(comparePeriods(context, parameters));
-      
+
       case 'ANALYZE_BY_CATEGORY':
         return formatAnalysisResult(analyzeByCategory(context, parameters));
-      
+
       case 'GET_SPENDING_TRENDS':
         return formatAnalysisResult(getSpendingTrends(context, parameters));
-      
+
       // Query handlers
       case 'QUERY_BALANCE':
         return formatQueryResult(handleQueryBalance(context, parameters));
-      
+
       case 'QUERY_TRANSACTIONS':
         return formatQueryResult(handleQueryTransactions(context, parameters));
-      
+
       case 'QUERY_BUDGETS':
         return formatQueryResult(handleQueryBudgets(context, parameters));
-      
+
       case 'QUERY_GOALS':
         return formatQueryResult(handleQueryGoals(context, parameters));
-      
+
       case 'QUERY_ACCOUNTS':
         return formatQueryResult(handleQueryAccounts(context, parameters));
-      
+
       case 'QUERY_RATES':
         return formatQueryResult(await handleQueryRates(context, parameters));
-      
+
       case 'QUERY_CATEGORIES':
         return formatQueryResult(await handleQueryCategories(context, userId, parameters));
-      
+
       case 'QUERY_RECURRING':
         return formatQueryResult(await handleQueryRecurring(context, userId, parameters));
-      
+
       default:
         return {
           success: false,
@@ -165,41 +165,35 @@ async function executeCreateTransaction(
     const currency = params.currency || 'USD';
     const amountMinor = toMinorUnits(params.amount, currency);
 
-    // Preparar datos de transacción
-    const transactionData = {
-      accountId,
-      amount: amountMinor,
-      type: params.type,
-      categoryId,
-      description: params.description,
-      currencyCode: currency,
-      date: params.date || new Date().toISOString().split('T')[0],
-      userId, // Para validación de límites
-    };
+    // Llamar directamente a Supabase (sin fetch interno)
+    const client = createSupabaseServiceClient();
 
-    // Llamar a la API
-    const response = await fetch('/api/transactions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(transactionData),
-    });
+    const { data, error } = await client
+      .from('transactions')
+      .insert({
+        account_id: accountId,
+        amount_base_minor: amountMinor,
+        type: params.type,
+        category_id: categoryId || null,
+        description: params.description,
+        currency_code: currency,
+        date: params.date || new Date().toISOString().split('T')[0],
+      } as any)
+      .select()
+      .single();
 
-    const result = await response.json();
-
-    if (!response.ok) {
+    if (error) {
       return {
         success: false,
-        message: result.error || 'Error al crear la transacción',
-        error: result.error,
+        message: error.message || 'Error al crear la transacción',
+        error: error.message,
       };
     }
 
     return {
       success: true,
       message: `✓ Transacción creada exitosamente: ${params.description} - ${params.amount.toFixed(2)} ${currency}`,
-      data: result.data,
+      data,
     };
   } catch (error: any) {
     logger.error('[executeCreateTransaction] Error:', error);
@@ -248,7 +242,7 @@ async function executeCreateBudget(
 
     // Llamar al repositorio directamente (no hay API endpoint para budgets)
     const client = createSupabaseServiceClient();
-    
+
     const { data, error } = await client
       .from('budgets')
       .insert({
@@ -328,7 +322,7 @@ async function executeCreateGoal(
 
     // Llamar al repositorio directamente
     const client = createSupabaseServiceClient();
-    
+
     const { data, error } = await client
       .from('goals')
       .insert({
@@ -385,39 +379,38 @@ async function executeCreateAccount(
     }
 
     // Convertir balance inicial a minor units
-    const initialBalanceMinor = params.initialBalance 
+    const initialBalanceMinor = params.initialBalance
       ? toMinorUnits(params.initialBalance, params.currency)
       : 0;
 
-    // Llamar a la API
-    const response = await fetch('/api/accounts', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    // Llamar directamente a Supabase
+    const client = createSupabaseServiceClient();
+
+    const { data, error } = await client
+      .from('accounts')
+      .insert({
+        user_id: userId,
         name: params.name,
         type: params.type,
-        currencyCode: params.currency,
+        currency_code: params.currency,
         balance: initialBalanceMinor,
         active: true,
-      }),
-    });
+      } as any)
+      .select()
+      .single();
 
-    const result = await response.json();
-
-    if (!response.ok) {
+    if (error) {
       return {
         success: false,
-        message: result.error || 'Error al crear la cuenta',
-        error: result.error,
+        message: error.message || 'Error al crear la cuenta',
+        error: error.message,
       };
     }
 
     return {
       success: true,
       message: `✓ Cuenta creada exitosamente: ${params.name} (${params.type}) - ${params.currency}`,
-      data: result.data,
+      data,
     };
   } catch (error: any) {
     logger.error('[executeCreateAccount] Error:', error);
@@ -474,35 +467,68 @@ async function executeCreateTransfer(
       };
     }
 
-    // Llamar a la API
-    const response = await fetch('/api/transfers', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        fromAccountId,
-        toAccountId,
-        amount: params.amount,
-        description: params.description || 'Transferencia',
-        date: params.date || new Date().toISOString().split('T')[0],
-      }),
-    });
+    // Convertir monto a minor units
+    const currency = params.currency || 'USD';
+    const amountMinor = toMinorUnits(params.amount, currency);
 
-    const result = await response.json();
+    // Llamar directamente a Supabase para crear transferencia
+    // Una transferencia son 2 transacciones: una salida y una entrada
+    const client = createSupabaseServiceClient();
+    const date = params.date || new Date().toISOString().split('T')[0];
+    const description = params.description || 'Transferencia';
 
-    if (!response.ok) {
+    // Crear transacción de salida
+    const { data: outgoingTx, error: outgoingError } = await client
+      .from('transactions')
+      .insert({
+        account_id: fromAccountId,
+        amount_base_minor: amountMinor,
+        type: 'EXPENSE',
+        description: `${description} (a ${params.toAccountName})`,
+        currency_code: currency,
+        date,
+      } as any)
+      .select()
+      .single();
+
+    if (outgoingError) {
       return {
         success: false,
-        message: result.error || 'Error al crear la transferencia',
-        error: result.error,
+        message: outgoingError.message || 'Error al crear la transferencia de salida',
+        error: outgoingError.message,
+      };
+    }
+
+    // Crear transacción de entrada
+    const { data: incomingTx, error: incomingError } = await client
+      .from('transactions')
+      .insert({
+        account_id: toAccountId,
+        amount_base_minor: amountMinor,
+        type: 'INCOME',
+        description: `${description} (de ${params.fromAccountName})`,
+        currency_code: currency,
+        date,
+      } as any)
+      .select()
+      .single();
+
+    if (incomingError) {
+      // Rollback: eliminar la transacción de salida
+      if (outgoingTx && 'id' in outgoingTx) {
+        await client.from('transactions').delete().eq('id', (outgoingTx as any).id);
+      }
+      return {
+        success: false,
+        message: incomingError.message || 'Error al crear la transferencia de entrada',
+        error: incomingError.message,
       };
     }
 
     return {
       success: true,
-      message: `✓ Transferencia realizada exitosamente: ${params.amount.toFixed(2)} ${params.currency || 'USD'} de ${params.fromAccountName} a ${params.toAccountName}`,
-      data: result.data,
+      message: `✓ Transferencia realizada exitosamente: ${params.amount.toFixed(2)} ${currency} de ${params.fromAccountName} a ${params.toAccountName}`,
+      data: { outgoingTx, incomingTx },
     };
   } catch (error: any) {
     logger.error('[executeCreateTransfer] Error:', error);
@@ -535,7 +561,7 @@ async function getAccountIdByName(
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      
+
       return (data as { id: string } | null)?.id || null;
     }
     return null;
@@ -565,7 +591,7 @@ async function getCategoryIdByName(
   context: WalletContext
 ): Promise<string | null> {
   const client = createSupabaseServiceClient();
-  
+
   // Buscar categoría por nombre (case-insensitive) y tipo
   const { data } = await client
     .from('categories')
@@ -616,7 +642,7 @@ function formatPercentageResult(data: any, period: string): string {
   if (data.savingsPercentage !== undefined && data.income > 0) {
     const savingsPct = Math.round(data.savingsPercentage * 10) / 10;
     const savings = data.savings || 0;
-    
+
     if (savingsPct > 0) {
       parts.push(`Tu tasa de ahorro es del ${savingsPct}% ($${savings.toFixed(2)}).`);
     } else if (savingsPct < 0) {
@@ -634,7 +660,7 @@ function formatPercentageResult(data: any, period: string): string {
       .slice(0, 3)
       .map(([cat, pct]) => `${cat}: ${Math.round((pct as number) * 10) / 10}%`)
       .join(', ');
-    
+
     if (topCategories) {
       parts.push(`Principales categorías: ${topCategories}.`);
     }

@@ -476,3 +476,4 @@ Mover lógica simple a Edge para menor latencia.
 
 
 
+

@@ -37,6 +37,7 @@ export async function reasonAboutIntent(
 
 /**
  * Razonamiento usando Sequential Thinking MCP
+ * TODO: Integrar con LLM classification para mejor robustez
  */
 async function reasonWithSequentialThinking(
   userMessage: string,
@@ -44,32 +45,13 @@ async function reasonWithSequentialThinking(
 ): Promise<ReasoningResult> {
   // Construir contexto para el razonamiento
   const contextSummary = buildContextSummary(context);
-  
+
   try {
-    // Usar Sequential Thinking MCP para razonamiento estructurado
-    // El MCP procesará el pensamiento paso a paso
-    const reasoningPrompt = `Analiza la siguiente consulta del usuario y determina:
-1. ¿Cuál es la intención principal?
-2. ¿Qué herramientas necesitas usar?
-3. ¿Requiere planificación de múltiples pasos?
-
-Consulta del usuario: "${userMessage}"
-
-Contexto disponible:
-${contextSummary}
-
-Responde con razonamiento paso a paso.`;
-
-    // Llamar a Sequential Thinking MCP
-    // Nota: En el entorno actual, el MCP se llama desde el contexto del asistente
-    // Por ahora, usamos el razonamiento simple mejorado
-    // En producción, esto se integraría directamente con el MCP
-    
-    // Intentar usar Sequential Thinking si está disponible
-    // Por ahora, mejoramos el razonamiento simple con más lógica
+    // Por ahora, usar razonamiento mejorado con regex
+    // En el futuro, integrar con OpenAI para clasificación más robusta
     return await reasonEnhanced(userMessage, context);
   } catch (error: any) {
-    logger.warn('[reasoner] Sequential Thinking MCP not available, falling back to simple reasoning');
+    logger.warn('[reasoner] Sequential Thinking failed, falling back to simple reasoning');
     return await reasonSimple(userMessage, context);
   }
 }
@@ -82,7 +64,7 @@ async function reasonEnhanced(
   context: WalletContext
 ): Promise<ReasoningResult> {
   const lowerMessage = userMessage.toLowerCase();
-  
+
   // Detectar intención con más precisión
   let intention = 'UNKNOWN';
   let confidence = 0.5;
@@ -190,7 +172,7 @@ async function reasonSimple(
   context: WalletContext
 ): Promise<ReasoningResult> {
   const lowerMessage = userMessage.toLowerCase();
-  
+
   // Detectar intención básica
   let intention = 'UNKNOWN';
   let confidence = 0.5;
@@ -296,4 +278,3 @@ function buildContextSummary(context: WalletContext): string {
 - Metas activas: ${context.goals.active.length}
 `;
 }
-
