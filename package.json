@@ -21,6 +21,11 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
+  "overrides": {
+    "next-auth": {
+      "next": "$next"
+    }
+  },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "@formkit/drag-and-drop": "^0.5.3",
