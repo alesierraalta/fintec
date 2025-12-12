@@ -129,7 +129,15 @@ Contexto financiero disponible:
 - Presupuestos activos: ${context.budgets.active.length}
 - Metas activas: ${context.goals.active.length}
 
-Genera una respuesta conversacional, natural y útil en español basada en los resultados de las herramientas. Explica los datos de forma clara y proporciona insights prácticos cuando sea relevante.`,
+Genera una respuesta conversacional, natural y útil en español basada en los resultados de las herramientas. 
+
+Incluye:
+- Resumen de los datos principales
+- Tendencias y patrones identificados (si aplica)
+- Comparaciones relevantes (si aplica)
+- Insights clave y recomendaciones prácticas
+
+Explica los datos de forma clara y proporciona insights prácticos cuando sea relevante. Si se muestran resultados limitados (ej: top 5), menciona que son los principales y ofrece contexto sobre el total si es relevante.`,
       },
     ];
 
@@ -193,7 +201,15 @@ Contexto financiero disponible:
 - Presupuestos activos: ${context.budgets.active.length}
 - Metas activas: ${context.goals.active.length}
 
-Genera una respuesta conversacional, natural y útil en español basada en los resultados de las herramientas. Explica los datos de forma clara y proporciona insights prácticos cuando sea relevante.`,
+Genera una respuesta conversacional, natural y útil en español basada en los resultados de las herramientas. 
+
+Incluye:
+- Resumen de los datos principales
+- Tendencias y patrones identificados (si aplica)
+- Comparaciones relevantes (si aplica)
+- Insights clave y recomendaciones prácticas
+
+Explica los datos de forma clara y proporciona insights prácticos cuando sea relevante. Si se muestran resultados limitados (ej: top 5), menciona que son los principales y ofrece contexto sobre el total si es relevante.`,
       },
     ];
 

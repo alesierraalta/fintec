@@ -450,6 +450,23 @@ export const AI_ACTION_TOOLS: ChatCompletionTool[] = [
             description: 'Agrupar resultados por',
             default: 'none',
           },
+          limit: {
+            type: 'number',
+            description: 'Número máximo de resultados a retornar (ej: 5 para top 5)',
+            minimum: 1,
+            maximum: 100,
+          },
+          orderBy: {
+            type: 'string',
+            enum: ['amount', 'date', 'category'],
+            description: 'Campo por el cual ordenar resultados',
+          },
+          orderDirection: {
+            type: 'string',
+            enum: ['asc', 'desc'],
+            description: 'Dirección del ordenamiento (asc para menor a mayor, desc para mayor a menor)',
+            default: 'desc',
+          },
         },
         required: ['type'],
       },

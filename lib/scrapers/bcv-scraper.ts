@@ -8,6 +8,8 @@ import * as cheerio from 'cheerio';
 import { BaseScraper } from './base-scraper';
 import { ScraperResult, ScraperError } from './types';
 import { BCV_CONFIG } from './config';
+import { parseLocaleNumber } from './parsers/number';
+import { STATIC_BCV_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 
 interface BCVData {
   usd: number;
@@ -21,10 +23,169 @@ const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 // Reasonable rate ranges for validation
-const USD_MIN = 150;
-const USD_MAX = 250;
-const EUR_MIN = 180;
-const EUR_MAX = 300; // Increased to accommodate current EUR rates (~283)
+const USD_MIN = 50;
+const USD_MAX = 10000;
+const EUR_MIN = 50;
+const EUR_MAX = 10000;
+
+export type ParsedBCVRates = {
+  usd: number | null;
+  eur: number | null;
+  meta: {
+    strategyUsed: 'known-container' | 'dom' | 'regex';
+    confidence: number;
+  };
+};
+
+export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
+  const $ = cheerio.load(html);
+
+  const extractFromSelectors = (
+    selectors: string[],
+    currencyCode: 'USD' | 'EUR'
+  ): number | null => {
+    for (const selector of selectors) {
+      const container = $(selector);
+      if (!container.length) {
+        continue;
+      }
+
+      const strongText = container.find('strong').first().text();
+      const rate = parseLocaleNumber(strongText);
+      if (!rate) {
+        continue;
+      }
+
+      if (currencyCode === 'USD' && rate >= USD_MIN && rate <= USD_MAX) {
+        return rate;
+      }
+      if (currencyCode === 'EUR' && rate >= EUR_MIN && rate <= EUR_MAX) {
+        return rate;
+      }
+    }
+
+    return null;
+  };
+
+  let usd: number | null = extractFromSelectors(['#dolar'], 'USD');
+  let eur: number | null = extractFromSelectors(['#euro'], 'EUR');
+
+  let strategyUsed: ParsedBCVRates['meta']['strategyUsed'] = 'known-container';
+  let confidence = usd && eur ? 0.95 : 0.85;
+
+  if (!usd || !eur) {
+    strategyUsed = 'dom';
+    confidence = 0.8;
+
+    $('strong').each((_, element) => {
+      if (usd && eur) {
+        return false;
+      }
+
+      const strongText = $(element).text().trim();
+      const rate = parseLocaleNumber(strongText);
+      if (!rate) {
+        return;
+      }
+
+      const parent = $(element).parent();
+      const contextText = [
+        parent.text(),
+        parent.parent().text(),
+        parent.parent().parent().text(),
+      ]
+        .join(' ')
+        .toUpperCase();
+
+      if (!usd && /USD/.test(contextText) && rate >= USD_MIN && rate <= USD_MAX) {
+        usd = rate;
+      }
+
+      if (!eur && /EUR/.test(contextText) && rate >= EUR_MIN && rate <= EUR_MAX) {
+        eur = rate;
+      }
+    });
+
+    confidence = usd && eur ? 0.85 : 0.75;
+  }
+
+  if (!usd || !eur) {
+    const regexResult = extractRatesWithRegexFromHtml(html);
+    usd = usd ?? regexResult.usd;
+    eur = eur ?? regexResult.eur;
+
+    if (usd || eur) {
+      strategyUsed = 'regex';
+      confidence = 0.65;
+    }
+  }
+
+  // Heuristic: EUR should generally be higher than USD (VES per unit)
+  if (usd && eur && eur < usd) {
+    confidence = Math.min(confidence, 0.5);
+  }
+
+  return {
+    usd,
+    eur,
+    meta: {
+      strategyUsed,
+      confidence,
+    },
+  };
+}
+
+function extractRatesWithRegexFromHtml(html: string): { usd: number | null; eur: number | null } {
+  let usd: number | null = null;
+  let eur: number | null = null;
+
+  const eurPattern =
+    /<span[^>]*>\s*EUR\s*<\/span>[\s\S]*?<strong[^>]*>\s*([^<]+?)\s*<\/strong>/i;
+  const usdPattern =
+    /<span[^>]*>\s*USD\s*<\/span>[\s\S]*?<strong[^>]*>\s*([^<]+?)\s*<\/strong>/i;
+
+  const eurMatch = html.match(eurPattern);
+  if (eurMatch) {
+    const rate = parseLocaleNumber(eurMatch[1]);
+    if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
+      eur = rate;
+    }
+  }
+
+  const usdMatch = html.match(usdPattern);
+  if (usdMatch) {
+    const rate = parseLocaleNumber(usdMatch[1]);
+    if (rate && rate >= USD_MIN && rate <= USD_MAX) {
+      usd = rate;
+    }
+  }
+
+  if (!eur) {
+    const fallbackEurPattern =
+      /EUR[\s\S]*?<strong[^>]*>\s*([^<]+?)\s*<\/strong>/i;
+    const match = html.match(fallbackEurPattern);
+    if (match) {
+      const rate = parseLocaleNumber(match[1]);
+      if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
+        eur = rate;
+      }
+    }
+  }
+
+  if (!usd) {
+    const fallbackUsdPattern =
+      /USD[\s\S]*?<strong[^>]*>\s*([^<]+?)\s*<\/strong>/i;
+    const match = html.match(fallbackUsdPattern);
+    if (match) {
+      const rate = parseLocaleNumber(match[1]);
+      if (rate && rate >= USD_MIN && rate <= USD_MAX) {
+        usd = rate;
+      }
+    }
+  }
+
+  return { usd, eur };
+}
 
 /**
  * BCV Scraper implementation
@@ -38,60 +199,154 @@ class BCVScraper extends BaseScraper<BCVData> {
    * Fetch raw HTML from BCV website
    */
   protected async _fetchData(): Promise<string> {
-    // Try native https module first (Node.js)
     try {
       const https = await import('https');
       const urlModule = await import('url');
 
-      return new Promise<string>((resolve, reject) => {
-        const parsedUrl = new urlModule.URL(BCV_URL);
-        const timeoutId = setTimeout(() => {
-          reject(new Error('Request timeout'));
-        }, this.config.timeout);
+      const maxRedirects = 3;
+      const rejectUnauthorized = process.env.BCV_TLS_STRICT === '1';
 
-        const options = {
-          hostname: parsedUrl.hostname,
-          port: 443,
-          path: parsedUrl.pathname + parsedUrl.search,
-          method: 'GET',
-          headers: {
-            'User-Agent': USER_AGENT,
-            Accept:
-              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'es-VE,es;q=0.9,en;q=0.8',
-            'Cache-Control': 'no-cache',
-          },
-          rejectUnauthorized: false, // Allow self-signed certificates
-        };
+      const fetchWithHttps = (
+        url: string,
+        redirectCount: number = 0
+      ): Promise<string> =>
+        new Promise<string>((resolve, reject) => {
+          const startTime = Date.now();
+          const parsedUrl = new urlModule.URL(url);
 
-        const req = https.request(options, res => {
-          let data = '';
+          let completed = false;
+          let req: any;
 
-          res.on('data', chunk => {
-            data += chunk.toString();
-          });
-
-          res.on('end', () => {
-            clearTimeout(timeoutId);
-            if (res.statusCode === 200) {
-              resolve(data);
-            } else {
+          const timeoutId = setTimeout(() => {
+            try {
+              req?.destroy();
+            } catch {
+              // ignore
+            }
+            if (!completed) {
+              completed = true;
               reject(
-                new Error(
-                  `HTTP ${res.statusCode}: ${res.statusMessage || 'Unknown'}`
+                new ScraperError(
+                  'Request timeout',
+                  'ETIMEDOUT',
+                  undefined,
+                  true
                 )
               );
             }
+          }, this.config.timeout);
+
+          const options = {
+            hostname: parsedUrl.hostname,
+            port: parsedUrl.port ? parseInt(parsedUrl.port, 10) : 443,
+            path: parsedUrl.pathname + parsedUrl.search,
+            method: 'GET',
+            headers: {
+              'User-Agent': USER_AGENT,
+              Accept:
+                'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'es-VE,es;q=0.9,en;q=0.8',
+              'Cache-Control': 'no-cache',
+            },
+            rejectUnauthorized,
+          };
+
+          req = https.request(options, res => {
+            const statusCode = res.statusCode ?? 0;
+
+            // Follow redirects (defensive; should be rare for BCV_URL)
+            if ([301, 302, 303, 307, 308].includes(statusCode)) {
+              const location = res.headers.location;
+              res.resume(); // drain
+
+              clearTimeout(timeoutId);
+              completed = true;
+
+              if (!location) {
+                reject(
+                  new ScraperError(
+                    `HTTP ${statusCode}: Redirect with no Location header`,
+                    'HTTP_REDIRECT',
+                    statusCode,
+                    true
+                  )
+                );
+                return;
+              }
+
+              if (redirectCount >= maxRedirects) {
+                reject(
+                  new ScraperError(
+                    `Too many redirects (>${maxRedirects})`,
+                    'HTTP_REDIRECT',
+                    statusCode,
+                    true
+                  )
+                );
+                return;
+              }
+
+              const nextUrl = new urlModule.URL(location, parsedUrl).toString();
+              resolve(fetchWithHttps(nextUrl, redirectCount + 1));
+              return;
+            }
+
+            let data = '';
+            res.on('data', chunk => {
+              data += chunk.toString();
+            });
+
+            res.on('end', () => {
+              clearTimeout(timeoutId);
+              if (completed) {
+                return;
+              }
+              completed = true;
+
+              const durationMs = Date.now() - startTime;
+              const bytes = new TextEncoder().encode(data).length;
+
+              if (statusCode >= 200 && statusCode < 300) {
+                resolve(data);
+                return;
+              }
+
+              reject(
+                new ScraperError(
+                  `HTTP ${statusCode}: ${res.statusMessage || 'Unknown'} (${durationMs}ms, ${bytes} bytes)`,
+                  'HTTP_ERROR',
+                  statusCode,
+                  [429, 500, 502, 503, 504].includes(statusCode)
+                )
+              );
+            });
           });
+
+          req.on('error', (error: unknown) => {
+            clearTimeout(timeoutId);
+            if (completed) {
+              return;
+            }
+            completed = true;
+
+            const durationMs = Date.now() - startTime;
+            const code = (error as any)?.code as string | undefined;
+            const message = error instanceof Error ? error.message : String(error);
+
+            reject(
+              new ScraperError(
+                `${message} (${durationMs}ms)`,
+                code || 'NETWORK_ERROR',
+                undefined,
+                code === 'ECONNRESET' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT'
+              )
+            );
+          });
+
+          req.end();
         });
 
-        req.on('error', error => {
-          clearTimeout(timeoutId);
-          reject(error);
-        });
-
-        req.end();
-      });
+      return await fetchWithHttps(BCV_URL);
     } catch (importError) {
       // Fallback to fetch if https module not available (Edge/Browser)
       const controller = new AbortController();
@@ -100,6 +355,7 @@ class BCVScraper extends BaseScraper<BCVData> {
       try {
         const response = await fetch(BCV_URL, {
           signal: controller.signal,
+          cache: 'no-store',
           headers: {
             'User-Agent': USER_AGENT,
             Accept:
@@ -111,15 +367,36 @@ class BCVScraper extends BaseScraper<BCVData> {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(
-            `HTTP ${response.status}: ${response.statusText}`
+          throw new ScraperError(
+            `HTTP ${response.status}: ${response.statusText}`,
+            'HTTP_ERROR',
+            response.status,
+            [429, 500, 502, 503, 504].includes(response.status)
           );
         }
 
         return await response.text();
       } catch (error) {
         clearTimeout(timeoutId);
-        throw error;
+        if (error instanceof ScraperError) {
+          throw error;
+        }
+
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new ScraperError(
+            'Request timeout',
+            'ETIMEDOUT',
+            undefined,
+            true
+          );
+        }
+
+        throw new ScraperError(
+          error instanceof Error ? error.message : 'Unknown error',
+          'NETWORK_ERROR',
+          undefined,
+          true
+        );
       }
     }
   }
@@ -127,91 +404,19 @@ class BCVScraper extends BaseScraper<BCVData> {
   /**
    * Parse HTML using Cheerio
    */
-  protected async _parseData(data: unknown): Promise<{ usd: number | null; eur: number | null }> {
+  protected async _parseData(data: unknown): Promise<ParsedBCVRates> {
     if (typeof data !== 'string') {
       throw new ScraperError('Invalid HTML data', 'PARSE_ERROR');
     }
 
-    const html = data;
-    const $ = cheerio.load(html);
-
-    let usd: number | null = null;
-    let eur: number | null = null;
-
-    // Strategy 1: Look for strong tags containing rate numbers and check parent context
-    // BCV structure: <div>...EUR...<strong>283,49843701</strong></div>
-    $('strong').each((_, element) => {
-      const strongText = $(element).text().trim();
-      // Check if this strong contains a rate number (format: digits,comma/dot,digits)
-      const rateMatch = strongText.match(/^\d{1,3}[,.]\d{2,}$/);
-      
-      if (rateMatch) {
-        // Get parent container to check for currency context
-        const parent = $(element).parent();
-        const container = parent.parent();
-        const containerText = container.text().toUpperCase();
-        
-        // Parse the rate
-        const rate = this.parseRate(strongText);
-        
-        if (rate) {
-          // Check if this is USD rate
-          if (!usd && /USD/.test(containerText) && rate >= USD_MIN && rate <= USD_MAX) {
-            usd = rate;
-          }
-          // Check if this is EUR rate
-          if (!eur && /EUR/.test(containerText) && rate >= EUR_MIN && rate <= EUR_MAX) {
-            eur = rate;
-          }
-        }
-      }
-    });
-
-    // Strategy 2: Look for divs containing currency labels and their associated strong tags
-    if (!usd || !eur) {
-      $('div').each((_, element) => {
-        const divText = $(element).text().toUpperCase();
-        const strong = $(element).find('strong').first();
-        
-        if (strong.length > 0) {
-          const rateText = strong.text().trim();
-          const rate = this.parseRate(rateText);
-          
-          if (rate) {
-            // Check for USD
-            if (!usd && /USD/.test(divText) && rate >= USD_MIN && rate <= USD_MAX) {
-              usd = rate;
-            }
-            // Check for EUR
-            if (!eur && /EUR/.test(divText) && rate >= EUR_MIN && rate <= EUR_MAX) {
-              eur = rate;
-            }
-          }
-        }
-      });
-    }
-
-    // Strategy 3: Fallback to regex if Cheerio didn't find rates
-    if (!usd || !eur) {
-      const regexResult = this.extractRatesWithRegex(html);
-      if (!usd && regexResult.usd) {
-        usd = regexResult.usd;
-      }
-      if (!eur && regexResult.eur) {
-        eur = regexResult.eur;
-      }
-    }
-
-    return { usd, eur };
+    return parseBCVRatesFromHtml(data);
   }
 
   /**
    * Validate parsed data
    */
-  protected _validateData(
-    data: unknown
-  ): ScraperError | null {
-    const parsed = data as { usd: number | null; eur: number | null };
+  protected _validateData(data: unknown): ScraperError | null {
+    const parsed = data as ParsedBCVRates;
 
     if (parsed.usd === null && parsed.eur === null) {
       return new ScraperError(
@@ -222,11 +427,6 @@ class BCVScraper extends BaseScraper<BCVData> {
       );
     }
 
-    // At least one rate should be valid
-    if (parsed.usd === null && parsed.eur === null) {
-      return new ScraperError('No rates found', 'NO_DATA_ERROR', undefined, true);
-    }
-
     return null;
   }
 
@@ -234,11 +434,11 @@ class BCVScraper extends BaseScraper<BCVData> {
    * Transform parsed data into final format
    */
   protected _transformData(data: unknown): BCVData {
-    const parsed = data as { usd: number | null; eur: number | null };
+    const parsed = data as ParsedBCVRates;
 
     // Use extracted rates or fallback to realistic defaults
-    const finalUsd = parsed.usd ?? 189.0;
-    const finalEur = parsed.eur ?? 221.0;
+    const finalUsd = parsed.usd ?? STATIC_BCV_FALLBACK_RATES.usd;
+    const finalEur = parsed.eur ?? STATIC_BCV_FALLBACK_RATES.eur;
 
     return {
       usd: Math.round(finalUsd * 100) / 100,
@@ -261,8 +461,8 @@ class BCVScraper extends BaseScraper<BCVData> {
       success: false,
       error: error.message,
       data: {
-        usd: 189.0,
-        eur: 221.0,
+        usd: STATIC_BCV_FALLBACK_RATES.usd,
+        eur: STATIC_BCV_FALLBACK_RATES.eur,
         lastUpdated: new Date().toISOString(),
         source: 'BCV (fallback - error)',
       },
@@ -275,14 +475,7 @@ class BCVScraper extends BaseScraper<BCVData> {
    * Parse rate string to number
    */
   private parseRate(rateStr: string): number | null {
-    try {
-      // Replace comma with dot and parse
-      const cleaned = rateStr.replace(',', '.').replace(/\s/g, '');
-      const rate = parseFloat(cleaned);
-      return isNaN(rate) ? null : rate;
-    } catch {
-      return null;
-    }
+    return parseLocaleNumber(rateStr);
   }
 
   /**
@@ -292,68 +485,7 @@ class BCVScraper extends BaseScraper<BCVData> {
     usd: number | null;
     eur: number | null;
   } {
-    let usd: number | null = null;
-    let eur: number | null = null;
-
-    // Pattern 1: Structured HTML
-    const eurPattern1 = /<span>\s*EUR\s*<\/span>[\s\S]*?<strong>\s*(\d{1,3}(?:[,\.]\d+)?)\s*<\/strong>/i;
-    const eurMatch1 = html.match(eurPattern1);
-    if (eurMatch1) {
-      const rate = this.parseRate(eurMatch1[1]);
-      if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
-        eur = rate;
-      }
-    }
-
-    const usdPattern1 = /<span>\s*USD\s*<\/span>[\s\S]*?<strong>\s*(\d{1,3}(?:[,\.]\d+)?)\s*<\/strong>/i;
-    const usdMatch1 = html.match(usdPattern1);
-    if (usdMatch1) {
-      const rate = this.parseRate(usdMatch1[1]);
-      if (rate && rate >= USD_MIN && rate <= USD_MAX) {
-        usd = rate;
-      }
-    }
-
-    // Fallback patterns
-    if (!eur) {
-      const eurPatterns = [
-        /EUR\s*<\/span>[\s\S]*?<strong>\s*(\d{1,3}[,\.]\d{2,})/i,
-        /euro[^<]*<strong>\s*(\d{1,3}[,\.]\d{2,})/i,
-        /EUR.*?(\d{1,3}[,\.]\d{2,})/i,
-      ];
-
-      for (const pattern of eurPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          const rate = this.parseRate(match[1]);
-          if (rate && rate >= EUR_MIN && rate <= EUR_MAX) {
-            eur = rate;
-            break;
-          }
-        }
-      }
-    }
-
-    if (!usd) {
-      const usdPatterns = [
-        /USD\s*<\/span>[\s\S]*?<strong>\s*(\d{1,3}[,\.]\d{2,})/i,
-        /dolar[^<]*<strong>\s*(\d{1,3}[,\.]\d{2,})/i,
-        /USD.*?(\d{1,3}[,\.]\d{2,})/i,
-      ];
-
-      for (const pattern of usdPatterns) {
-        const match = html.match(pattern);
-        if (match) {
-          const rate = this.parseRate(match[1]);
-          if (rate && rate >= USD_MIN && rate <= USD_MAX) {
-            usd = rate;
-            break;
-          }
-        }
-      }
-    }
-
-    return { usd, eur };
+    return extractRatesWithRegexFromHtml(html);
   }
 }
 

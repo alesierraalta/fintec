@@ -23,6 +23,7 @@ import { currencyService } from '@/lib/services/currency-service';
 import type { BCVRates } from '@/lib/services/currency-service';
 import { BCVTrend } from '@/lib/services/bcv-history-service';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
+import { Badge } from '@/components/ui/badge';
 import { 
   calculateAverageRateDifference, 
   calculateEurUsdRateDifference,
@@ -53,20 +54,30 @@ export function BCVRates() {
   const [fromCurrency, setFromCurrency] = useState<'VES' | 'USD' | 'EUR'>('USD');
   const [toCurrency, setToCurrency] = useState<'VES' | 'USD' | 'EUR'>('VES');
 
+  const formatAge = (seconds: number): string => {
+    if (!Number.isFinite(seconds) || seconds < 0) return '';
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours}h`;
+    const days = Math.round(hours / 24);
+    return `${days}d`;
+  };
+
   const fetchRates = async () => {
     setLoading(true);
     setError('');
     try {
       const bcvRates = await currencyService.fetchBCVRates();
       setRates(bcvRates);
-      setLastUpdated(new Date().toLocaleString('es-VE'));
-      setIsLive(true);
+      setLastUpdated(new Date(bcvRates.lastUpdated).toLocaleString('es-VE'));
       
       // Check if rates are very recent (less than 1 hour old)
       const rateTime = new Date(bcvRates.lastUpdated);
       const now = new Date();
       const hoursDiff = (now.getTime() - rateTime.getTime()) / (1000 * 60 * 60);
-      setIsLive(hoursDiff < 1);
+      setIsLive(hoursDiff < 1 && bcvRates.fallback !== true);
       
       // Fetch trends
       try {
@@ -405,6 +416,41 @@ export function BCVRates() {
             <Clock className="h-3 w-3" />
             <span className="text-xs sm:text-sm">Actualizado: {lastUpdated}</span>
           </div>
+          {rates?.cached && !rates?.fallback && (
+            <Badge
+              variant="info"
+              size="sm"
+              title={
+                typeof rates.cacheAge === 'number'
+                  ? `Cache age: ${formatAge(rates.cacheAge)}`
+                  : 'Cache'
+              }
+            >
+              CACHE
+              {typeof rates.cacheAge === 'number' &&
+                ` · ${formatAge(rates.cacheAge)}`}
+            </Badge>
+          )}
+          {rates?.fallback && (
+            <Badge
+              variant="warning"
+              size="sm"
+              title={
+                rates.fallbackReason
+                  ? `Fallback: ${rates.fallbackReason}`
+                  : 'Fallback'
+              }
+            >
+              FALLBACK
+              {typeof rates.dataAge === 'number' &&
+                ` · ${formatAge(rates.dataAge)}`}
+            </Badge>
+          )}
+          {!rates?.fallback && !isLive && rates?.lastUpdated && (
+            <Badge variant="outline" size="sm" title="Datos no recientes">
+              STALE
+            </Badge>
+          )}
           {error && (
             <span className="text-error-500 bg-error-500/10 px-2 py-1 rounded-lg text-xs">
               {error}

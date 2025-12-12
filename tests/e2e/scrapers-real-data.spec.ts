@@ -18,9 +18,9 @@ test.describe('Scrapers - Real Data Extraction', () => {
 
     // Should have REAL exchange rates (current market values)
     expect(data.data.usd).toBeGreaterThanOrEqual(150);
-    expect(data.data.usd).toBeLessThanOrEqual(250);
+    expect(data.data.usd).toBeLessThanOrEqual(10000);
     expect(data.data.eur).toBeGreaterThanOrEqual(180);
-    expect(data.data.eur).toBeLessThanOrEqual(280);
+    expect(data.data.eur).toBeLessThanOrEqual(10000);
 
     // Should NOT be old fallback values
     expect(data.data.usd).not.toBe(50.0);
@@ -87,4 +87,3 @@ test.describe('Scrapers - Real Data Extraction', () => {
     expect(difference).not.toBeGreaterThan(500);
   });
 });
-

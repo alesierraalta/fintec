@@ -13,7 +13,7 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', loading = false, icon, children, disabled, ...props }, ref) => {
-    const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-250 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus:outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none micro-bounce hover-lift shadow-sm hover:shadow-lg backdrop-blur-sm animate-fade-in-up';
+    const baseStyles = 'inline-flex items-center justify-center font-medium transition-ios ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus:outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none micro-bounce hover-lift shadow-sm hover:shadow-lg backdrop-blur-sm animate-fade-in-up';
     
     const variants = {
       primary: 'bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:from-primary/90 hover:to-primary/80 shadow-lg hover:shadow-xl glass-light border border-primary/30',
@@ -28,7 +28,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const sizes = {
       sm: 'h-9 px-4 text-sm rounded-lg',
       md: 'h-11 px-6 text-base rounded-xl',
-      lg: 'h-13 px-8 text-lg rounded-xl',
+      lg: 'h-12 px-8 text-lg rounded-xl',
     };
 
     return (

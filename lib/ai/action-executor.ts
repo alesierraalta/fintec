@@ -722,6 +722,8 @@ function toQueryFinancialDataParams(params: Record<string, any>): QueryFinancial
   const periodOptions = ['today', 'month', 'year', 'custom', 'all'] as const;
   const aggregationOptions = ['sum', 'average', 'count', 'min', 'max', 'raw'] as const;
   const groupByOptions = ['month', 'category', 'account', 'none'] as const;
+  const orderByOptions = ['amount', 'date', 'category'] as const;
+  const orderDirectionOptions = ['asc', 'desc'] as const;
 
   const normalize = <Options extends readonly string[]>(value: any, allowed: Options, fallback: Options[number]) =>
     typeof value === 'string' && allowed.includes(value as Options[number]) ? (value as Options[number]) : fallback;
@@ -736,5 +738,8 @@ function toQueryFinancialDataParams(params: Record<string, any>): QueryFinancial
     currency: typeof params.currency === 'string' ? params.currency : undefined,
     aggregation: params.aggregation ? normalize(params.aggregation, aggregationOptions, 'raw') : undefined,
     groupBy: params.groupBy ? normalize(params.groupBy, groupByOptions, 'none') : undefined,
+    limit: typeof params.limit === 'number' && params.limit > 0 && params.limit <= 100 ? params.limit : undefined,
+    orderBy: params.orderBy ? normalize(params.orderBy, orderByOptions, 'amount') : undefined,
+    orderDirection: params.orderDirection ? normalize(params.orderDirection, orderDirectionOptions, 'desc') : undefined,
   };
 }

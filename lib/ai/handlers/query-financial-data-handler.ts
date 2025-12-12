@@ -20,6 +20,9 @@ export interface QueryFinancialDataParams {
   currency?: string;
   aggregation?: 'sum' | 'average' | 'count' | 'min' | 'max' | 'raw';
   groupBy?: 'month' | 'category' | 'account' | 'none';
+  limit?: number;
+  orderBy?: 'amount' | 'date' | 'category';
+  orderDirection?: 'asc' | 'desc';
 }
 
 export interface QueryFinancialDataResult {
@@ -75,7 +78,7 @@ export async function handleQueryFinancialData(
       }
       return categoryMap.get(categoryId) || 'Sin categoría';
     };
-    const { type, period = 'month', months = 6, startDate, endDate, category, currency, aggregation = 'raw', groupBy = 'none' } = params;
+    const { type, period = 'month', months = 6, startDate, endDate, category, currency, aggregation = 'raw', groupBy = 'none', limit, orderBy, orderDirection = 'desc' } = params;
 
     // Determinar rango de fechas
     let dateFrom: string;

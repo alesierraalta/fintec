@@ -275,7 +275,7 @@ Para hacer premium a un usuario específico (por ejemplo, para testing o adminis
 1. Ve a [Supabase Dashboard](https://supabase.com/dashboard)
 2. Selecciona tu proyecto
 3. Ve a **SQL Editor** → **New Query**
-4. Copia y pega el contenido de `scripts/make-user-premium.sql`
+4. Copia y pega el SQL de la **Opción 2** (abajo)
 5. Modifica el email en el script si necesitas otro usuario:
    ```sql
    WHERE email = 'tu-email@ejemplo.com'
@@ -353,5 +353,4 @@ Deberías ver:
 ---
 
 **Última actualización:** Enero 2025
-
 

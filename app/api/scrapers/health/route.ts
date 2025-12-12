@@ -6,10 +6,13 @@
 import { NextResponse } from 'next/server';
 import { healthMonitor } from '@/lib/scrapers/health-monitor';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const allStatuses = healthMonitor.getAllHealthStatuses();
     const areAllHealthy = healthMonitor.areAllHealthy();
+    const scraperCount = allStatuses.size;
 
     // Convert Map to object for JSON serialization
     const statusesObject: Record<string, any> = {};
@@ -26,8 +29,9 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      healthy: areAllHealthy,
+      healthy: scraperCount > 0 && areAllHealthy,
       timestamp: new Date().toISOString(),
+      scraperCount,
       scrapers: statusesObject,
     });
   } catch (error) {
@@ -41,5 +45,4 @@ export async function GET() {
     );
   }
 }
-
 

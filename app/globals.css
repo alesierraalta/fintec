@@ -2,48 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Typography Styles */
-.text-display-2xl {
-  @apply text-6xl font-bold tracking-tight;
-}
-
-.text-display-xl {
-  @apply text-3xl font-bold tracking-tight;
-}
-
-.text-display-lg {
-  @apply text-lg font-semibold;
-}
-
-.text-display-md {
-  @apply text-sm font-normal;
-}
-
-.text-display-sm {
-  @apply text-xs font-normal;
-}
-
-.text-body-xl {
-  @apply text-xs font-light;
-}
-
-/* iOS-style Components */
-.ios-card {
-  @apply bg-white/80 backdrop-blur-xl rounded-2xl border border-gray-200/50;
-  @apply shadow-lg shadow-gray-900/5;
-}
-
-.ios-button {
-  @apply bg-blue-500 text-white rounded-xl px-6 py-3 font-medium;
-  @apply shadow-lg shadow-blue-500/25 active:scale-95 transition-all duration-200;
-}
-
-.ios-input {
-  @apply bg-gray-50 border border-gray-200 rounded-xl px-4 py-3;
-  @apply focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20;
-  @apply transition-all duration-200;
-}
-
 /* CSS Variables for Theme */
 :root {
   /* Base Colors - Clean and Minimal */
@@ -157,53 +115,47 @@ body {
   @apply bg-white/10 backdrop-blur-md border border-white/20;
 }
 
-.gradient-primary {
-  @apply bg-gradient-to-r from-primary-500 to-primary-600;
+/* Foundation utilities (FinTec) */
+.transition-ios {
+  @apply transition-all duration-200 ease-out;
 }
 
-.gradient-accent {
-  @apply bg-gradient-to-r from-accent-500 to-accent-600;
+.transition-smooth {
+  @apply transition-ios;
+}
+
+.focus-ring {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+}
+
+.focus-glow {
+  @apply focus-ring;
+}
+
+.glass-card {
+  @apply backdrop-blur-xl;
+}
+
+.glass-light {
+  @apply backdrop-blur-md;
+}
+
+.hover-lift {
+  @apply transform-gpu transition-ios hover:-translate-y-0.5 active:translate-y-0;
+}
+
+.micro-bounce {
+  @apply active:scale-[0.98];
+}
+
+.hover-glow {
+  @apply hover:shadow-glow;
 }
 
 /* Animation Classes */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
 @keyframes slideInRight {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideUp {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-
-@keyframes bounceGentle {
-  0%, 100% { transform: translateY(-5%); }
-  50% { transform: translateY(0); }
-}
-
-@keyframes pulseSoft {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-
-@keyframes glow {
-  0% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
-  100% { box-shadow: 0 0 30px rgba(59, 130, 246, 0.2); }
-}
-
-@keyframes gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-}
-
-@keyframes animate-gradient {
-  0%, 100% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
 }
 
 /* Enhanced Animation Classes */
@@ -211,210 +163,29 @@ body {
   animation: slideInRight 0.3s ease-out;
 }
 
-/* */
-.animate-gradient {
-  background-size: 200% 200%;
-  animation: animate-gradient 3s ease infinite;
-}
-
-.bg-size-200 {
-  background-size: 200% 200%;
-}
-
-/* iOS-style Typography */
-.ios-title {
-  @apply text-2xl font-semibold tracking-tight;
-}
-
-.ios-subtitle {
-  @apply text-xl font-medium tracking-tight;
-}
-
-.ios-body {
-  @apply text-base font-normal leading-relaxed;
-}
-
-.ios-caption {
-  @apply text-sm font-normal;
-}
-
-.ios-footnote {
-  @apply text-xs font-normal;
-}
-
-/* Spacing System */
-.space-y-ios > * + * {
-  margin-top: 1rem;
-}
-
-.space-y-ios-sm > * + * {
-  margin-top: 0.5rem;
-}
-
-.space-y-ios-lg > * + * {
-  margin-top: 1.5rem;
-}
-
-/* Color System Utilities */
-.text-primary-elegant {
-  @apply text-primary-600;
-}
-
-.text-secondary-elegant {
-  @apply text-gray-600;
-}
-
-.bg-primary-elegant {
-  @apply bg-primary-50;
-}
-
-.bg-secondary-elegant {
-  @apply bg-gray-50;
-}
-
-/* Interactive Elements */
-.btn-ios {
-  @apply px-6 py-3 rounded-xl font-medium transition-all duration-200 ease-out;
-  @apply active:scale-95 hover:shadow-lg;
-}
-
-.btn-primary {
-  @apply btn-ios;
-  @apply bg-primary-500 text-white;
-  @apply hover:bg-primary-600;
-  @apply shadow-lg shadow-primary-500/25;
-  @apply focus:ring-2 focus:ring-primary-500/50;
-}
-
-.btn-secondary {
-  @apply btn-ios;
-  @apply bg-gray-100 text-gray-900;
-  @apply hover:bg-gray-200;
-  @apply shadow-md shadow-gray-900/10;
-  @apply focus:ring-2 focus:ring-gray-500/50;
-}
-
-/* Card Components */
-.card-ios {
-  @apply bg-card rounded-2xl border shadow-sm hover:shadow-md transition-all duration-300 backdrop-blur-sm;
-}
-
-/* Form Elements */
-.input-ios {
-  @apply w-full px-4 py-3 rounded-xl border;
-  @apply bg-input text-foreground;
-  @apply placeholder:text-muted-foreground;
-  @apply focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200;
-}
-
-/* Gradient Backgrounds */
-.bg-gradient-primary {
-  background: linear-gradient(135deg, rgb(59 130 246) 0%, rgb(37 99 235) 100%);
-}
-
-.bg-gradient-accent {
-  background: linear-gradient(135deg, rgb(168 85 247) 0%, rgb(147 51 234) 100%);
-}
-
-.bg-gradient-success {
-  background: linear-gradient(135deg, rgb(34 197 94) 0%, rgb(22 163 74) 100%);
-}
-
-.bg-gradient-warning {
-  background: linear-gradient(135deg, rgb(245 158 11) 0%, rgb(217 119 6) 100%);
-}
-
-.bg-gradient-error {
-  background: linear-gradient(135deg, rgb(239 68 68) 0%, rgb(220 38 38) 100%);
-}
-
-/* Shadow Utilities */
-.shadow-primary {
-  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.15);
-}
-
-.shadow-primary-lg {
-  box-shadow: 0 10px 25px -3px rgba(59, 130, 246, 0.2), 0 4px 6px -2px rgba(59, 130, 246, 0.1);
-}
-
-.shadow-accent {
-  box-shadow: 0 4px 14px 0 rgba(217, 70, 239, 0.15);
-}
-
-.shadow-accent-lg {
-  box-shadow: 0 10px 25px -3px rgba(217, 70, 239, 0.2), 0 4px 6px -2px rgba(217, 70, 239, 0.1);
-}
-
-.shadow-success {
-  box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.15);
-}
-
-.shadow-warning {
-  box-shadow: 0 4px 14px 0 rgba(245, 158, 11, 0.15);
-}
-
-.shadow-error {
-  box-shadow: 0 4px 14px 0 rgba(239, 68, 68, 0.15);
-}
-
-/* Responsive Container Utilities */
 .no-horizontal-scroll {
   overflow-x: hidden;
   max-width: 100%;
   box-sizing: border-box;
 }
 
-.container-responsive {
-  width: 100%;
-  max-width: 100%;
-  margin: 0 auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  box-sizing: border-box;
-}
-
-@media (min-width: 640px) {
-  .container-responsive {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .container-responsive {
-    padding-left: 2rem;
-    padding-right: 2rem;
-  }
-}
-
 /* Black Theme Utilities */
+.black-theme-header {
+  background-color: rgba(8, 8, 8, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px);
+}
+
+.black-theme-sidebar {
+  background-color: rgba(8, 8, 8, 0.95) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(20px);
+}
+
 .black-theme-card {
   background-color: rgba(8, 8, 8, 0.95) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
   backdrop-filter: blur(20px);
-}
-
-.black-theme-text {
-  color: #f8f8f8 !important;
-}
-
-.black-theme-muted {
-  color: #b0b0b0 !important;
-}
-
-.black-theme-border {
-  border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.black-theme-input {
-  background-color: rgba(12, 12, 12, 0.8) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
-  color: #f8f8f8 !important;
-}
-
-.black-theme-input:focus {
-  border-color: rgba(59, 130, 246, 0.6) !important;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
 }
 
 /* Financial amount styling utility: stronger weight and tabular numbers */
@@ -479,6 +250,32 @@ body {
 .dark select:disabled {
   -webkit-text-fill-color: #111111; /* readable on bg-gray-50 */
   color: #111111;
+}
+
+/* Reduced motion: keep the iOS-like feel, but respect accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .transition-ios {
+    transition-duration: 0ms !important;
+  }
+
+  .hover-lift,
+  .micro-bounce {
+    transform: none !important;
+  }
+
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .animate-slide-up,
+  .animate-scale-in,
+  .animate-wiggle,
+  .animate-slide-in-right,
+  .animate-gradient,
+  .animate-bounce-gentle,
+  .animate-pulse-soft,
+  .animate-glow {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
 
 /* Dynamic viewport height support - previene área negra cuando el teclado se cierra */

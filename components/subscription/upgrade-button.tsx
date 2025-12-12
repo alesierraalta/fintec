@@ -35,7 +35,7 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
           title="Upgrade to Premium"
         >
           {/* Gradient background with animation */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-primary to-purple-500 animate-gradient" />
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-primary to-purple-500 animate-gradient [background-size:200%_200%]" />
           
           {/* Glow effect on hover */}
           <div className="absolute inset-0 bg-gradient-to-br from-purple-400/0 via-white/0 to-purple-400/0 opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
@@ -59,7 +59,7 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
         )}
       >
         {/* Animated gradient background */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-primary to-purple-500 animate-gradient" />
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600 via-primary to-purple-500 animate-gradient [background-size:200%_200%]" />
         
         {/* Shimmer effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-1000" />
@@ -77,4 +77,3 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
     </div>
   );
 }
-

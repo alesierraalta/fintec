@@ -25,7 +25,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={selectId}
-            className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="mb-2 block text-sm font-medium text-foreground"
           >
             {label}
           </label>
@@ -33,8 +33,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           id={selectId}
           className={cn(
-            'flex h-10 w-full rounded-xl border border-white/20 bg-card/60 backdrop-blur-xl px-3 py-2 text-sm text-foreground shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
-            error && 'border-danger-500 focus-visible:ring-danger-500',
+            'flex h-11 w-full rounded-xl border border-border/50 bg-card/60 glass-card px-3 py-2 text-sm text-foreground shadow-lg focus-ring disabled:cursor-not-allowed disabled:opacity-50',
+            error && 'border-destructive/60 focus-visible:ring-destructive',
             className
           )}
           ref={ref}
@@ -58,7 +58,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           ))}
         </select>
         {error && (
-          <p id={errorId} className="mt-1 text-sm text-danger-600 dark:text-danger-400">
+          <p id={errorId} className="mt-1 text-sm text-destructive animate-fade-in">
             {error}
           </p>
         )}

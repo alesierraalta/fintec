@@ -173,3 +173,12 @@ docs/SETUP_FINTEC.md
 PADDLE_ENV_VARIABLES.txt
 MCP_PADDLE_FIX.md
 toml/test.toml
+
+# Tooling caches (keep repo lean)
+.cursor/
+.mcp_proj/
+.playwright-mcp/
+.serena/cache/
+.serena/memories/
+.swc/
+*.tsbuildinfo

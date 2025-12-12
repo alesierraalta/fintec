@@ -1,6 +1,7 @@
 import Dexie, { Table } from 'dexie';
 
 import { logger } from '@/lib/utils/logger';
+import { formatCaracasDayKey } from '@/lib/utils/date-key';
 
 export interface BinanceHistoryRecord {
   id?: number;
@@ -45,7 +46,7 @@ class BinanceHistoryService {
   async saveRates(usd: number): Promise<void> {
     try {
       const now = new Date();
-      const dateStr = now.toISOString().split('T')[0];
+      const dateStr = formatCaracasDayKey(now);
       const timestamp = now.toISOString();
 
       // Verificar si ya existe un registro para hoy
@@ -73,7 +74,7 @@ class BinanceHistoryService {
       // Limpiar registros antiguos (mantener solo últimos 90 días)
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - 90);
-      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+      const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
       await this.db.binanceRates
         .where('date')
@@ -101,7 +102,7 @@ class BinanceHistoryService {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - days);
-      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+      const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
       return await this.db.binanceRates
         .where('date')

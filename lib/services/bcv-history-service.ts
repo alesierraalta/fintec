@@ -1,5 +1,7 @@
 import Dexie, { Table } from 'dexie';
 
+import { formatCaracasDayKey } from '@/lib/utils/date-key';
+
 export interface BCVHistoryRecord {
   id?: number;
   date: string; // YYYY-MM-DD format
@@ -46,19 +48,34 @@ export class BCVHistoryService {
 
   // Save today's rates
   async saveRates(usd: number, eur: number, source: string = 'BCV'): Promise<void> {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const timestamp = new Date().toISOString();
+    const now = new Date();
+    const today = formatCaracasDayKey(now); // YYYY-MM-DD (America/Caracas)
+    const todayUtc = now.toISOString().split('T')[0];
+    const timestamp = now.toISOString();
+    const incomingIsFallback = source.toLowerCase().includes('fallback');
 
     try {
       // Check if we already have rates for today
-      const existingRecord = await this.db.bcvHistory
-        .where('date')
-        .equals(today)
-        .first();
+      const existingRecord =
+        (await this.db.bcvHistory.where('date').equals(today).first()) ??
+        // Backward-compat: migrate UTC-keyed record if present
+        (todayUtc !== today
+          ? await this.db.bcvHistory.where('date').equals(todayUtc).first()
+          : null);
 
       if (existingRecord) {
+        const existingIsFallback = existingRecord.source
+          .toLowerCase()
+          .includes('fallback');
+
+        // Do not overwrite a good record with fallback data
+        if (!existingIsFallback && incomingIsFallback) {
+          return;
+        }
+
         // Update existing record
         await this.db.bcvHistory.update(existingRecord.id!, {
+          date: today,
           usd: Math.round(usd * 100) / 100, // Ensure 2 decimals
           eur: Math.round(eur * 100) / 100, // Ensure 2 decimals
           timestamp,
@@ -74,6 +91,9 @@ export class BCVHistoryService {
           source
         });
       }
+
+      // Keep history bounded
+      await this.cleanOldRecords(365);
     } catch (error) {
       throw error;
     }
@@ -95,16 +115,34 @@ export class BCVHistoryService {
 
   // Get today's rates
   async getTodaysRates(): Promise<BCVHistoryRecord | null> {
-    const today = new Date().toISOString().split('T')[0];
-    return this.getRatesForDate(today);
+    const now = new Date();
+    const today = formatCaracasDayKey(now);
+    const record = await this.getRatesForDate(today);
+    if (record) return record;
+
+    const todayUtc = now.toISOString().split('T')[0];
+    if (todayUtc !== today) {
+      return this.getRatesForDate(todayUtc);
+    }
+
+    return null;
   }
 
   // Get yesterday's rates
   async getYesterdaysRates(): Promise<BCVHistoryRecord | null> {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toISOString().split('T')[0];
-    return this.getRatesForDate(yesterdayStr);
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    const yesterdayStr = formatCaracasDayKey(yesterday);
+    const record = await this.getRatesForDate(yesterdayStr);
+    if (record) return record;
+
+    const yesterdayUtc = yesterday.toISOString().split('T')[0];
+    if (yesterdayUtc !== yesterdayStr) {
+      return this.getRatesForDate(yesterdayUtc);
+    }
+
+    return null;
   }
 
   // Calculate trends by comparing today vs yesterday
@@ -156,11 +194,10 @@ export class BCVHistoryService {
   async getHistoricalRates(days: number = 30): Promise<BCVHistoryRecord[]> {
     try {
       const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+      const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
 
-      const startDateStr = startDate.toISOString().split('T')[0];
-      const endDateStr = endDate.toISOString().split('T')[0];
+      const startDateStr = formatCaracasDayKey(startDate);
+      const endDateStr = formatCaracasDayKey(endDate);
 
       const records = await this.db.bcvHistory
         .where('date')
@@ -173,12 +210,23 @@ export class BCVHistoryService {
     }
   }
 
+  // Get latest available rate record (by timestamp)
+  async getLatestRate(): Promise<BCVHistoryRecord | null> {
+    try {
+      return (
+        (await this.db.bcvHistory.orderBy('timestamp').reverse().first()) || null
+      );
+    } catch (error) {
+      return null;
+    }
+  }
+
   // Clean old records (keep only last N days)
   async cleanOldRecords(keepDays: number = 90): Promise<void> {
     try {
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - keepDays);
-      const cutoffDateStr = cutoffDate.toISOString().split('T')[0];
+      const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
       await this.db.bcvHistory
         .where('date')
@@ -190,4 +238,3 @@ export class BCVHistoryService {
 }
 
 export const bcvHistoryService = BCVHistoryService.getInstance();
-

@@ -22,6 +22,8 @@ export function Modal({
   className,
 }: ModalProps) {
   const [mounted, setMounted] = React.useState(false);
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const lastActiveElementRef = React.useRef<HTMLElement | null>(null);
 
   React.useEffect(() => {
     setMounted(true);
@@ -52,6 +54,26 @@ export function Modal({
     }
   }, [open, onClose]);
 
+  React.useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const active = document.activeElement;
+    lastActiveElementRef.current = active instanceof HTMLElement ? active : null;
+
+    // Move focus into the dialog for keyboard users.
+    requestAnimationFrame(() => {
+      modalRef.current?.focus();
+    });
+
+    return () => {
+      // Restore focus to the previously focused element (best effort).
+      lastActiveElementRef.current?.focus?.();
+      lastActiveElementRef.current = null;
+    };
+  }, [open]);
+
   if (!mounted || !open) {
     return null;
   }
@@ -74,6 +96,7 @@ export function Modal({
 
       {/* Modal */}
       <div
+        ref={modalRef}
         className={cn(
           'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90dvh]',
           sizeClasses[size],
@@ -84,6 +107,7 @@ export function Modal({
         aria-labelledby={title ? 'modal-title' : undefined}
         aria-describedby={description ? 'modal-description' : undefined}
         onClick={(e) => e.stopPropagation()}
+        tabIndex={-1}
       >
         {/* Header - solo si hay título */}
         {(title || description) && (
@@ -91,7 +115,7 @@ export function Modal({
             {title && (
               <h2
                 id="modal-title"
-                className="text-lg font-semibold text-gray-900 dark:text-gray-100"
+                className="text-lg font-semibold text-foreground"
               >
                 {title}
               </h2>
@@ -99,7 +123,7 @@ export function Modal({
             {description && (
               <p
                 id="modal-description"
-                className="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                className="mt-1 text-sm text-muted-foreground"
               >
                 {description}
               </p>
@@ -111,7 +135,7 @@ export function Modal({
         {title && (
           <button
             type="button"
-            className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            className="absolute top-4 right-4 rounded-xl p-2 text-muted-foreground hover:text-foreground hover:bg-white/5 focus-ring"
             onClick={onClose}
             aria-label="Cerrar modal"
           >

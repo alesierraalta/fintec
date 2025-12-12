@@ -485,7 +485,7 @@ export function DesktopTransfer() {
 
         {/* Prominent Transfer Preview - Full Width */}
         {isFormValid() && (
-          <div className="bg-gradient-to-r from-primary-50 via-secondary-50 to-success-50 dark:from-primary-900/20 dark:via-secondary-900/20 dark:to-success-900/20 rounded-3xl p-8 border-2 border-primary-200/50 dark:border-primary-700/50 shadow-lg shadow-primary-500/10">
+          <div className="bg-gradient-to-r from-primary-50 via-gray-50 to-success-50 dark:from-primary-900/20 dark:via-gray-900/20 dark:to-success-900/20 rounded-3xl p-8 border-2 border-primary-200/50 dark:border-primary-700/50 shadow-lg shadow-primary-500/10">
             <div className="text-center mb-6">
               <h3 className="text-2xl font-bold text-neutral-900 dark:text-neutral-100 mb-2">Confirmar Transferencia</h3>
               <p className="text-neutral-600 dark:text-neutral-400">Revisa los datos antes de continuar</p>

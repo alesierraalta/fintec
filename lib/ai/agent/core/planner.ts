@@ -85,6 +85,30 @@ function createSimplePlan(reasoning: ReasoningResult, userMessage?: string): Tas
     if (/mayor|máximo|max|highest|top/i.test(messageToAnalyze)) {
       parameters.aggregation = 'max';
     }
+    
+    // Detectar "top N" o rankings
+    const topMatch = messageToAnalyze.match(/(?:top|primeros?|mayores?|ranking)\s*(\d+)/i);
+    if (topMatch) {
+      parameters.limit = parseInt(topMatch[1], 10);
+    }
+    
+    // Detectar ordenamiento
+    if (/mayor|más|máximo|highest/i.test(messageToAnalyze)) {
+      parameters.orderBy = 'amount';
+      parameters.orderDirection = 'desc';
+    } else if (/menor|menos|mínimo|lowest/i.test(messageToAnalyze)) {
+      parameters.orderBy = 'amount';
+      parameters.orderDirection = 'asc';
+    }
+    
+    // Detectar agrupación por categoría
+    if (/categoría|categoria|category/i.test(messageToAnalyze) && /con más|con mayor|por/i.test(messageToAnalyze)) {
+      parameters.groupBy = 'category';
+      if (!parameters.orderBy) {
+        parameters.orderBy = 'amount';
+        parameters.orderDirection = 'desc';
+      }
+    }
   }
 
   const task: Task = {

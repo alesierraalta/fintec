@@ -14,7 +14,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
       info: 'bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950 dark:border-blue-800 dark:text-blue-200',
       success: 'bg-success-50 border-success-200 text-success-800 dark:bg-success-950 dark:border-success-800 dark:text-success-200',
       warning: 'bg-warning-50 border-warning-200 text-warning-800 dark:bg-warning-950 dark:border-warning-800 dark:text-warning-200',
-      error: 'bg-danger-50 border-danger-200 text-danger-800 dark:bg-danger-950 dark:border-danger-800 dark:text-danger-200',
+      error: 'bg-error-50 border-error-200 text-error-800 dark:bg-error-950 dark:border-error-800 dark:text-error-200',
     };
 
     const iconMap = {
@@ -79,7 +79,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             <div className="ml-auto pl-3">
               <button
                 type="button"
-                className="inline-flex rounded-md p-1.5 hover:bg-black/10 focus:outline-none focus:ring-2 focus:ring-offset-2"
+                className="inline-flex rounded-md p-1.5 hover:bg-white/5 focus-ring"
                 onClick={onClose}
               >
                 <span className="sr-only">Cerrar</span>

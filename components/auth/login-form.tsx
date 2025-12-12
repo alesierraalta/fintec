@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button, Input } from '@/components/ui';
-import { GradientCard } from '@/components/ui/elegant-gradient';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -274,6 +273,5 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     </motion.div>
   );
 }
-
 
 

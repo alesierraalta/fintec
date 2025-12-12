@@ -24,6 +24,11 @@ interface RetryableError extends Error {
  * Determina si un error es retryable
  */
 function isRetryableError(error: any): boolean {
+  // Respect ScraperError.retryable (used by internal scrapers)
+  if (error?.name === 'ScraperError' && error?.retryable === true) {
+    return true;
+  }
+
   // Errores HTTP retryables: 429 (rate limit), 500, 502, 503, 504
   const retryableStatusCodes = [429, 500, 502, 503, 504];
   
@@ -120,10 +125,11 @@ async function executeWithTimeout<T>(fn: () => Promise<T>, timeoutMs: number): P
   return Promise.race([
     fn(),
     new Promise<T>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Operation timeout after ${timeoutMs}ms`)),
-        timeoutMs
-      )
+      setTimeout(() => {
+        const error = new Error(`Operation timeout after ${timeoutMs}ms`);
+        (error as any).code = 'ETIMEDOUT';
+        reject(error);
+      }, timeoutMs)
     ),
   ]);
 }

@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
+import { buildBCVFallbackData } from '@/lib/services/rates-fallback';
+
+export const runtime = 'nodejs';
 
 // Cache optimizado para datos exitosos y errores
 let lastSuccessfulData: any = null;
 let lastSuccessfulTime = 0;
-let lastFallbackTime = 0;
 const SUCCESS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutos para datos exitosos
-const FALLBACK_CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 export async function GET() {
   try {
@@ -17,7 +18,8 @@ export async function GET() {
       return NextResponse.json({
         ...lastSuccessfulData,
         cached: true,
-        cacheAge: Math.round((now - lastSuccessfulTime) / 1000)
+        cacheAge: Math.round((now - lastSuccessfulTime) / 1000),
+        fallback: false,
       });
     }
     
@@ -27,33 +29,44 @@ export async function GET() {
     if (result.success) {
       lastSuccessfulData = result;
       lastSuccessfulTime = now;
-      return NextResponse.json(result);
-    } else {
-      // Usar fallback
-      lastFallbackTime = now;
-      
-      // Si tenemos datos exitosos antiguos, usarlos como fallback mejorado
-      if (lastSuccessfulData) {
-        return NextResponse.json({
-          ...lastSuccessfulData,
-          fallback: true,
-          fallbackReason: result.error || 'BCV scraper failed',
-          dataAge: Math.round((now - lastSuccessfulTime) / 1000)
-        });
-      }
-      
-      return NextResponse.json(result);
+      return NextResponse.json({ ...result, fallback: false });
     }
+
+    // 3. Fallback: last known good (módulo) o fallback estático
+    if (lastSuccessfulData?.data) {
+      return NextResponse.json({
+        success: false,
+        data: {
+          ...lastSuccessfulData.data,
+          source: 'BCV (fallback - last-known-good)',
+        },
+        error: result.error || 'BCV scraper failed',
+        fallback: true,
+        fallbackReason: result.error || 'BCV scraper failed',
+        dataAge: Math.round((now - lastSuccessfulTime) / 1000),
+        circuitBreakerState: result.circuitBreakerState,
+      });
+    }
+
+    return NextResponse.json({
+      ...result,
+      fallback: true,
+      fallbackReason: result.error || 'BCV scraper failed',
+    });
   } catch (error) {
-    lastFallbackTime = Date.now();
-    
     // Si tenemos datos exitosos antiguos, usarlos
     if (lastSuccessfulData) {
       return NextResponse.json({
-        ...lastSuccessfulData,
+        success: false,
+        data: {
+          ...lastSuccessfulData.data,
+          source: 'BCV (fallback - last-known-good)',
+        },
+        error: error instanceof Error ? error.message : 'Unknown error',
         fallback: true,
         fallbackReason: 'Failed to run BCV scraper',
-        dataAge: Math.round((Date.now() - lastSuccessfulTime) / 1000)
+        dataAge: Math.round((Date.now() - lastSuccessfulTime) / 1000),
+        circuitBreakerState: lastSuccessfulData.circuitBreakerState,
       });
     }
     
@@ -61,13 +74,9 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
-      data: {
-        usd: 50.0,
-        eur: 58.0,
-        lastUpdated: new Date().toISOString(),
-        source: 'BCV (fallback)'
-      },
-      fallback: true
+      data: buildBCVFallbackData('static-default'),
+      fallback: true,
+      fallbackReason: 'Unhandled error',
     });
   }
 }

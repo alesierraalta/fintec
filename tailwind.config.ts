@@ -20,6 +20,8 @@ const config: Config = {
       colors: {
         // Minimalist Color Palette
         primary: {
+          DEFAULT: 'hsl(var(--primary) / <alpha-value>)',
+          foreground: 'hsl(var(--primary-foreground) / <alpha-value>)',
           50: '#eff6ff',
           100: '#dbeafe',
           200: '#bfdbfe',
@@ -46,6 +48,8 @@ const config: Config = {
           950: '#030712',
         },
         accent: {
+          DEFAULT: 'hsl(var(--accent) / <alpha-value>)',
+          foreground: 'hsl(var(--accent-foreground) / <alpha-value>)',
           50: '#fdf4ff',
           100: '#fae8ff',
           200: '#f5d0fe',
@@ -58,7 +62,16 @@ const config: Config = {
           900: '#701a75',
           950: '#4a044e',
         },
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary) / <alpha-value>)',
+          foreground: 'hsl(var(--secondary-foreground) / <alpha-value>)',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive) / <alpha-value>)',
+          foreground: 'hsl(var(--destructive-foreground) / <alpha-value>)',
+        },
         success: {
+          DEFAULT: '#22c55e',
           50: '#f0fdf4',
           100: '#dcfce7',
           200: '#bbf7d0',
@@ -72,6 +85,7 @@ const config: Config = {
           950: '#052e16',
         },
         warning: {
+          DEFAULT: '#f59e0b',
           50: '#fffbeb',
           100: '#fef3c7',
           200: '#fde68a',
@@ -85,6 +99,7 @@ const config: Config = {
           950: '#451a03',
         },
         error: {
+          DEFAULT: '#ef4444',
           50: '#fef2f2',
           100: '#fee2e2',
           200: '#fecaca',
@@ -98,17 +113,25 @@ const config: Config = {
           950: '#450a0a',
         },
         // Semantic colors
-        background: 'hsl(var(--background))',
-        foreground: 'hsl(var(--foreground))',
-        card: 'hsl(var(--card))',
-        'card-foreground': 'hsl(var(--card-foreground))',
-        popover: 'hsl(var(--popover))',
-        'popover-foreground': 'hsl(var(--popover-foreground))',
-        muted: 'hsl(var(--muted))',
-        'muted-foreground': 'hsl(var(--muted-foreground))',
-        border: 'hsl(var(--border))',
-        input: 'hsl(var(--input))',
-        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background) / <alpha-value>)',
+        foreground: 'hsl(var(--foreground) / <alpha-value>)',
+        card: 'hsl(var(--card) / <alpha-value>)',
+        'card-foreground': 'hsl(var(--card-foreground) / <alpha-value>)',
+        popover: 'hsl(var(--popover) / <alpha-value>)',
+        'popover-foreground': 'hsl(var(--popover-foreground) / <alpha-value>)',
+        muted: 'hsl(var(--muted) / <alpha-value>)',
+        'muted-foreground': 'hsl(var(--muted-foreground) / <alpha-value>)',
+        border: 'hsl(var(--border) / <alpha-value>)',
+        input: 'hsl(var(--input) / <alpha-value>)',
+        ring: 'hsl(var(--ring) / <alpha-value>)',
+
+        // Legacy alias tokens used across the app shell
+        'background-primary': 'hsl(var(--background) / <alpha-value>)',
+        'background-secondary': 'hsl(var(--secondary) / <alpha-value>)',
+        'background-tertiary': 'hsl(var(--muted) / <alpha-value>)',
+        'text-primary': 'hsl(var(--foreground) / <alpha-value>)',
+        'text-muted': 'hsl(var(--muted-foreground) / <alpha-value>)',
+        'border-primary': 'hsl(var(--border) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -120,6 +143,14 @@ const config: Config = {
         'display-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.025em' }],
         'display-md': ['3rem', { lineHeight: '1.25', letterSpacing: '-0.025em' }],
         'display-sm': ['2.25rem', { lineHeight: '1.25', letterSpacing: '0em' }],
+
+        // iOS-like typography tokens (used as `text-ios-*`)
+        'ios-large-title': ['2rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        'ios-title': ['1.5rem', { lineHeight: '1.25', letterSpacing: '-0.01em' }],
+        'ios-headline': ['1.125rem', { lineHeight: '1.3', letterSpacing: '-0.005em' }],
+        'ios-body': ['1rem', { lineHeight: '1.5', letterSpacing: '0em' }],
+        'ios-caption': ['0.875rem', { lineHeight: '1.4', letterSpacing: '0em' }],
+        'ios-footnote': ['0.75rem', { lineHeight: '1.35', letterSpacing: '0em' }],
       },
       letterSpacing: {
         'tighter': '-0.05em',
@@ -138,7 +169,7 @@ const config: Config = {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, var(--primary-500) 0%, var(--accent-500) 100%)',
+        'hero-gradient': 'linear-gradient(135deg, hsl(var(--primary) / 1) 0%, hsl(var(--accent) / 1) 100%)',
         'card-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
       },
       boxShadow: {
@@ -147,23 +178,40 @@ const config: Config = {
         'strong': '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 25px -5px rgba(0, 0, 0, 0.1)',
         'glow': '0 0 20px rgba(59, 130, 246, 0.15)',
         'accent-glow': '0 0 20px rgba(168, 85, 247, 0.15)',
+
+        // iOS-like shadows (used as `shadow-ios-*`)
+        'ios': '0 10px 24px rgba(0, 0, 0, 0.28)',
+        'ios-sm': '0 4px 12px rgba(0, 0, 0, 0.22)',
+        'ios-md': '0 10px 24px rgba(0, 0, 0, 0.28)',
+        'ios-lg': '0 18px 40px rgba(0, 0, 0, 0.35)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
+        'fade-in-up': 'fadeInUp 0.35s ease-out',
         'slide-up': 'slideUp 0.3s ease-out',
+        'scale-in': 'scaleIn 0.15s ease-out',
         'bounce-gentle': 'bounceGentle 2s infinite',
         'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
         'gradient': 'gradient 3s ease infinite',
+        'wiggle': 'wiggle 0.2s ease-in-out',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
+        fadeInUp: {
+          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
         slideUp: {
           '0%': { transform: 'translateY(10px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
+        },
+        scaleIn: {
+          '0%': { transform: 'scale(0.98)', opacity: '0' },
+          '100%': { transform: 'scale(1)', opacity: '1' },
         },
         bounceGentle: {
           '0%, 100%': { transform: 'translateY(-5%)' },
@@ -180,6 +228,11 @@ const config: Config = {
         gradient: {
           '0%, 100%': { backgroundPosition: '0% 50%' },
           '50%': { backgroundPosition: '100% 50%' },
+        },
+        wiggle: {
+          '0%, 100%': { transform: 'translateX(0)' },
+          '25%': { transform: 'translateX(-2px)' },
+          '75%': { transform: 'translateX(2px)' },
         },
       },
     },

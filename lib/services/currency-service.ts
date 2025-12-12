@@ -2,6 +2,7 @@
 import { bcvHistoryService, BCVTrend } from './bcv-history-service';
 import { binanceHistoryService, BinanceTrend } from './binance-history-service';
 import { logger } from '@/lib/utils/logger';
+import { STATIC_BCV_FALLBACK_RATES, isFallbackSource } from './rates-fallback';
 
 export interface ExchangeRate {
   currency: string;
@@ -22,6 +23,12 @@ export interface BCVRates {
   usd: number;
   eur: number;
   lastUpdated: string;
+  source?: string;
+  cached?: boolean;
+  cacheAge?: number;
+  fallback?: boolean;
+  fallbackReason?: string;
+  dataAge?: number;
 }
 
 export interface BinanceRates {
@@ -70,6 +77,67 @@ class CurrencyService {
 
   // Scrape BCV rates (Banco Central de Venezuela)
   async fetchBCVRates(): Promise<BCVRates> {
+    const nowIso = () => new Date().toISOString();
+
+    const parseTimestampMs = (iso: string | undefined): number => {
+      if (!iso) return 0;
+      const ms = new Date(iso).getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    };
+
+    const buildRatesFromApi = (result: any): BCVRates => {
+      const data = result?.data;
+      const usd = Number(data?.usd);
+      const eur = Number(data?.eur);
+
+      if (!Number.isFinite(usd) || !Number.isFinite(eur)) {
+        throw new Error('Invalid BCV rates payload');
+      }
+
+      const source = typeof data?.source === 'string' ? data.source : 'BCV';
+      const isFallback = result?.fallback === true || isFallbackSource(source);
+
+      const cacheAge = Number(result?.cacheAge);
+      const dataAge = Number(result?.dataAge);
+
+      return {
+        usd,
+        eur,
+        lastUpdated: data?.lastUpdated || nowIso(),
+        source,
+        cached: result?.cached === true ? true : undefined,
+        cacheAge: Number.isFinite(cacheAge) ? cacheAge : undefined,
+        fallback: isFallback ? true : undefined,
+        fallbackReason:
+          typeof result?.fallbackReason === 'string'
+            ? result.fallbackReason
+            : undefined,
+        dataAge: Number.isFinite(dataAge) ? dataAge : undefined,
+      };
+    };
+
+    const tryHistoryFallback = async (): Promise<BCVRates | null> => {
+      const hasIndexedDb = typeof (globalThis as any).indexedDB !== 'undefined';
+      if (!hasIndexedDb) return null;
+
+      const latest = await bcvHistoryService.getLatestRate();
+      if (!latest) return null;
+
+      const lastUpdatedMs = parseTimestampMs(latest.timestamp);
+
+      return {
+        usd: latest.usd,
+        eur: latest.eur,
+        lastUpdated: latest.timestamp || nowIso(),
+        source: 'BCV (fallback - history)',
+        fallback: true,
+        fallbackReason: 'history',
+        dataAge: lastUpdatedMs
+          ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
+          : undefined,
+      };
+    };
+
     try {
       const response = await fetch('/api/bcv-rates', {
         method: 'GET',
@@ -83,52 +151,60 @@ class CurrencyService {
       }
 
       const result = await response.json();
-      
-      if (result.success && result.data) {
-        const rates: BCVRates = {
-          usd: result.data.usd,
-          eur: result.data.eur,
-          lastUpdated: result.data.lastUpdated || new Date().toISOString()
-        };
-        
-        this.bcvRates = rates;
-        
-        // Save rates to history for trend analysis
-        try {
-          await bcvHistoryService.saveRates(rates.usd, rates.eur, result.data.source || 'BCV');
-        } catch (error) {
+
+      if (result?.data) {
+        const apiRates = buildRatesFromApi(result);
+        this.bcvRates = apiRates;
+
+        const isFreshSuccess = result?.success === true && apiRates.fallback !== true;
+        if (isFreshSuccess) {
+          try {
+            await bcvHistoryService.saveRates(
+              apiRates.usd,
+              apiRates.eur,
+              result.data.source || 'BCV'
+            );
+          } catch {
+            // ignore
+          }
         }
-        
-        return rates;
-      } else {
-        // Use fallback data if API returns error but has fallback
-        if (result.fallback && result.data) {
-          const fallbackRates: BCVRates = {
-            usd: result.data.usd,
-            eur: result.data.eur,
-            lastUpdated: result.data.lastUpdated || new Date().toISOString()
-          };
-          
-          this.bcvRates = fallbackRates;
-          return fallbackRates;
-        }
-        
-        throw new Error(result.error || 'Unknown error fetching BCV rates');
+
+        return apiRates;
       }
+
+      throw new Error(result?.error || 'Unknown error fetching BCV rates');
     } catch (error) {
-      
-      // Return cached rates if available
       if (this.bcvRates) {
-        return this.bcvRates;
+        const lastUpdatedMs = parseTimestampMs(this.bcvRates.lastUpdated);
+        const computedAge = lastUpdatedMs
+          ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
+          : undefined;
+
+        return {
+          ...this.bcvRates,
+          cached: true,
+          fallback: true,
+          fallbackReason: 'cache',
+          dataAge: this.bcvRates.dataAge ?? computedAge,
+          source: this.bcvRates.source || 'BCV (fallback - cache)',
+        };
       }
-      
-      // Last resort: hardcoded fallback
+
+      const historyRates = await tryHistoryFallback();
+      if (historyRates) {
+        this.bcvRates = historyRates;
+        return historyRates;
+      }
+
       const fallbackRates: BCVRates = {
-        usd: 36.50,
-        eur: 39.80,
-        lastUpdated: new Date().toISOString()
+        usd: STATIC_BCV_FALLBACK_RATES.usd,
+        eur: STATIC_BCV_FALLBACK_RATES.eur,
+        lastUpdated: nowIso(),
+        source: 'BCV (fallback - static)',
+        fallback: true,
+        fallbackReason: 'static',
       };
-      
+
       this.bcvRates = fallbackRates;
       return fallbackRates;
     }
@@ -205,14 +281,14 @@ class CurrencyService {
     try {
       // Use BCV rates for VES and fallback rates for others
       const bcvRates = await this.fetchBCVRates();
-      
+
       const rates: ExchangeRate[] = [
         {
           currency: 'VES',
           rate: bcvRates.usd,
           lastUpdated: bcvRates.lastUpdated,
-          source: 'BCV'
-        }
+          source: bcvRates.source || 'BCV',
+        },
       ];
 
       rates.forEach(rate => {
@@ -222,12 +298,15 @@ class CurrencyService {
       return rates;
     } catch (error) {
       // Return minimal fallback
-      return [{
-        currency: 'VES',
-        rate: 36.50,
-        lastUpdated: new Date().toISOString(),
-        source: 'Fallback'
-      }];
+      const lastUpdated = this.bcvRates?.lastUpdated || new Date().toISOString();
+      return [
+        {
+          currency: 'VES',
+          rate: this.bcvRates?.usd ?? STATIC_BCV_FALLBACK_RATES.usd,
+          lastUpdated,
+          source: 'Fallback',
+        },
+      ];
     }
   }
 
