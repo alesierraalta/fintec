@@ -135,6 +135,7 @@ function getFallbackData(reason: string) {
     data: {
       usd_ves: 300.00,
       usdt_ves: 300.00,
+      busd_ves: 300.00,
       sell_rate: 302.00,
       buy_rate: 298.00,
       sell_min: 300.00,

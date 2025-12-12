@@ -6,6 +6,7 @@ import { logger } from '@/lib/utils/logger';
 interface ExchangeRateData {
   usd_ves: number;
   usdt_ves: number;
+  busd_ves: number;
   sell_rate: number;
   buy_rate: number;
   lastUpdated: string;
@@ -67,6 +68,7 @@ class WebSocketService {
       const rateData: ExchangeRateData = {
         usd_ves: data.data.usd_ves,
         usdt_ves: data.data.usdt_ves,
+        busd_ves: data.data.busd_ves || data.data.usdt_ves,
         sell_rate: data.data.sell_rate, // SELL del scraper = precio de VENTA para usuario
         buy_rate: data.data.buy_rate,   // BUY del scraper = precio de COMPRA para usuario
         lastUpdated: data.data.lastUpdated,
@@ -86,6 +88,7 @@ class WebSocketService {
     socket.emit('exchange-rate-update', {
       usd_ves: 228.25,
       usdt_ves: 228.25,
+      busd_ves: 228.25,
       sell_rate: 228.50, // Precio de VENTA para usuario (SELL del scraper)
       buy_rate: 228.00,  // Precio de COMPRA para usuario (BUY del scraper)
       lastUpdated: new Date().toISOString(),

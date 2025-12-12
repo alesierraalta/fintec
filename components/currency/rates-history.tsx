@@ -29,8 +29,8 @@ interface RatesHistoryProps {
 
 interface CalculatorState {
   amount: string;
-  fromCurrency: 'VES' | 'USD' | 'EUR';
-  toCurrency: 'VES' | 'USD' | 'EUR';
+  fromCurrency: 'VES' | 'USD' | 'EUR' | 'BUSD';
+  toCurrency: 'VES' | 'USD' | 'EUR' | 'BUSD';
   selectedBCVRate: BCVHistoryRecord | null;
   selectedBinanceRate: BinanceHistoryRecord | null;
   result: number;
@@ -93,9 +93,9 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
         result = numAmount; // Same currency
       }
     } else if (source === 'Binance' && binanceRate) {
-      if (from === 'USD' && to === 'VES') {
+      if ((from === 'USD' || from === 'BUSD') && to === 'VES') {
         result = numAmount * binanceRate.usd;
-      } else if (from === 'VES' && to === 'USD') {
+      } else if (from === 'VES' && (to === 'USD' || to === 'BUSD')) {
         result = numAmount / binanceRate.usd;
       } else {
         result = numAmount; // Same currency or unsupported conversion
@@ -547,6 +547,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
                       >
                         <option value="USD">USD (Dólar)</option>
                         <option value="EUR">EUR (Euro)</option>
+                        <option value="BUSD">BUSD (Binance USD)</option>
                         <option value="VES">VES (Bolívar)</option>
                       </select>
                     </div>
@@ -561,6 +562,7 @@ export function RatesHistory({ isOpen, onClose }: RatesHistoryProps) {
                       >
                         <option value="VES">VES (Bolívar)</option>
                         <option value="USD">USD (Dólar)</option>
+                        <option value="BUSD">BUSD (Binance USD)</option>
                         {calculator.activeSource === 'BCV' && <option value="EUR">EUR (Euro)</option>}
                       </select>
                     </div>

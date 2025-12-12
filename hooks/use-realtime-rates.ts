@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 interface ExchangeRateData {
   usd_ves: number;
   usdt_ves: number;
+  busd_ves: number;
   sell_rate: number;
   buy_rate: number;
   lastUpdated: string;

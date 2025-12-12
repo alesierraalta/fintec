@@ -34,6 +34,7 @@ export interface BCVRates {
 export interface BinanceRates {
   usd_ves: number;
   usdt_ves: number;
+  busd_ves: number;
   sell_rate: {
     min: number;
     avg: number;
@@ -361,6 +362,7 @@ class CurrencyService {
         const rates: BinanceRates = {
           usd_ves: result.data.usd_ves,
           usdt_ves: result.data.usdt_ves,
+          busd_ves: result.data.busd_ves || result.data.usdt_ves,
           sell_rate: {
             min: result.data.sell_min || result.data.sell_rate || 228.50,
             avg: result.data.sell_avg || result.data.sell_rate || 228.50,
@@ -395,6 +397,7 @@ class CurrencyService {
           const fallbackRates: BinanceRates = {
             usd_ves: result.data.usd_ves || 228.25,
             usdt_ves: result.data.usdt_ves || 228.25,
+            busd_ves: result.data.busd_ves || result.data.usdt_ves || 228.25,
             sell_rate: {
               min: result.data.sell_min || result.data.sell_rate || 228.50,
               avg: result.data.sell_avg || result.data.sell_rate || 228.50,
@@ -433,6 +436,7 @@ class CurrencyService {
       const fallbackRates: BinanceRates = {
         usd_ves: 228.50,
         usdt_ves: 228.50,
+        busd_ves: 228.50,
         sell_rate: {
           min: 228.50,
           avg: 228.50,
@@ -469,9 +473,10 @@ class CurrencyService {
   }
 
   // Get Binance trends
-  async getBinanceTrends(): Promise<{ usdVes: BinanceTrend } | null> {
+  async getBinanceTrends(): Promise<{ usdVes: { '1d': BinanceTrend; '1w': BinanceTrend; '1m': BinanceTrend } } | null> {
     try {
-      const trends = await binanceHistoryService.calculateTrends();
+      const trends = await binanceHistoryService.getMultiPeriodTrends();
+      if (!trends) return null;
       return { usdVes: trends };
     } catch (error) {
       logger.error('Error getting Binance trends:', error);
@@ -513,7 +518,7 @@ class CurrencyService {
   getSupportedCurrencies(): { fiat: string[], crypto: string[] } {
     return {
       fiat: ['USD', 'EUR', 'GBP', 'JPY', 'CAD', 'AUD', 'VES'],
-      crypto: ['BTC', 'ETH', 'BNB', 'ADA', 'SOL', 'USDT', 'USDC']
+      crypto: ['BTC', 'ETH', 'BNB', 'ADA', 'SOL', 'USDT', 'BUSD', 'USDC']
     };
   }
 }

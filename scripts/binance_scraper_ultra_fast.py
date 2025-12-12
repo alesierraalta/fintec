@@ -36,7 +36,7 @@ class UltraFastBinanceScraper:
         self.min_data_points = 10  # Reduced minimum
         self.quality_threshold = 0.7  # Minimum quality score
         
-    async def _make_request_async(self, session: aiohttp.ClientSession, payload: Dict, trade_type: str, page: int) -> Optional[Dict]:
+    async def _make_request_async(self, session: aiohttp.ClientSession, payload: Dict, trade_type: str, page: int, asset: str) -> Optional[Dict]:
         """Make async request with minimal retry"""
         data = json.dumps(payload)
         
@@ -72,32 +72,60 @@ class UltraFastBinanceScraper:
         
         return None
     
-    async def _get_offers_concurrent(self, trade_types: List[str]) -> Dict[str, List[Dict]]:
+        def _calculate_asset_rates(self, asset_results: Dict[str, List[Dict]], asset_name: str) -> Dict:
+        sell_prices = self._fast_simple_filtering(asset_results.get("SELL", []))
+        buy_prices = self._fast_simple_filtering(asset_results.get("BUY", []))
+
+        sell_values = [p['price'] for p in sell_prices] if sell_prices else []
+        buy_values = [p['price'] for p in buy_prices] if buy_values else []
+
+        sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else None
+        buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else None
+        
+        general_avg = None
+        if sell_avg is not None and buy_avg is not None:
+            general_avg = (sell_avg + buy_avg) / 2
+        elif sell_avg is not None:
+            general_avg = sell_avg
+        elif buy_avg is not None:
+            general_avg = buy_avg
+        
+        return {
+            'sell_avg': sell_avg,
+            'buy_avg': buy_avg,
+            'general_avg': general_avg,
+            'sell_prices': sell_prices,
+            'buy_prices': buy_prices,
+            'has_data': sell_avg is not None or buy_avg is not None
+        }
+
+    async def _get_offers_concurrent(self, trade_types: List[str], assets: List[str]) -> Dict[str, Dict[str, List[Dict]]]:
         """Get offers for multiple trade types concurrently"""
-        results = {trade_type: [] for trade_type in trade_types}
+        results = {asset: {trade_type: [] for trade_type in trade_types} for asset in assets}
         
         async with aiohttp.ClientSession() as session:
             # Create all tasks
             tasks = []
-            for trade_type in trade_types:
-                for page in range(1, self.max_pages + 1):
-                    payload = {
-                        "proMerchantAds": False,
-                        "page": page,
-                        "rows": self.rows_per_page,
-                        "payTypes": [],
-                        "countries": [],
-                        "publisherType": None,
-                        "asset": "USDT",
-                        "fiat": "VES",
-                        "tradeType": trade_type
-                    }
-                    task = self._make_request_async(session, payload, trade_type, page)
-                    tasks.append((trade_type, page, task))
+            for asset in assets:
+                for trade_type in trade_types:
+                    for page in range(1, self.max_pages + 1):
+                        payload = {
+                            "proMerchantAds": False,
+                            "page": page,
+                            "rows": self.rows_per_page,
+                            "payTypes": [],
+                            "countries": [],
+                            "publisherType": None,
+                            "asset": asset, # Dynamically set asset
+                            "fiat": "VES",
+                            "tradeType": trade_type
+                        }
+                        task = self._make_request_async(session, payload, trade_type, page, asset) # Pass asset
+                        tasks.append((asset, trade_type, page, task)) # Store asset
             
             # Execute all requests concurrently
             completed = 0
-            for trade_type, page, task in tasks:
+            for asset, trade_type, page, task in tasks: # Extract asset
                 try:
                     data = await task
                     if data and 'data' in data and data['data']:
@@ -113,7 +141,7 @@ class UltraFastBinanceScraper:
                                             'page_number': page,
                                             'ad_id': str(ad.get('adv', {}).get('advNo', ''))
                                         }
-                                        results[trade_type].append(price_data)
+                                        results[asset][trade_type].append(price_data) # Use asset in results
                                 except (ValueError, TypeError):
                                     continue
                         completed += 1
@@ -202,41 +230,35 @@ class UltraFastBinanceScraper:
         try:
             # Get SELL and BUY prices concurrently
             trade_types = ["SELL", "BUY"]
-            results = await self._get_offers_concurrent(trade_types)
+            assets = ["USDT", "BUSD"]
+            all_asset_results = await self._get_offers_concurrent(trade_types, assets)
             
-            sell_prices = results["SELL"]
-            buy_prices = results["BUY"]
+            usdt_rates = self._calculate_asset_rates(all_asset_results.get("USDT", {}), "USDT")
+            busd_rates = self._calculate_asset_rates(all_asset_results.get("BUSD", {}), "BUSD")
             
-            # Apply fast filtering
-            sell_prices = self._fast_simple_filtering(sell_prices)
-            buy_prices = self._fast_simple_filtering(buy_prices)
+            # Fallback for BUSD if no data
+            if not busd_rates['has_data']:
+                busd_rates = usdt_rates
+                if usdt_rates['has_data']:
+                    logger.warning("BUSD data unavailable, falling back to USDT rates.")
+                else:
+                    raise Exception("Could not get valid P2P prices for USDT or BUSD")
+            elif not usdt_rates['has_data']:
+                raise Exception("Could not get valid P2P prices for USDT")
             
-            if not sell_prices and not buy_prices:
-                raise Exception("Could not get valid P2P prices")
+            # Use USDT as the primary reference for general averages
+            sell_avg = usdt_rates['sell_avg']
+            buy_avg = usdt_rates['buy_avg']
+            general_avg = usdt_rates['general_avg']
+
+            sell_prices = usdt_rates['sell_prices']
+            buy_prices = usdt_rates['buy_prices']
+
+            # Recalculate overall min/max and quality score based on the available data
+            all_values = [p['price'] for p in sell_prices + buy_prices]
+            overall_min = round(min(all_values), 2) if all_values else min(usdt_rates['sell_avg'] or 0, usdt_rates['buy_avg'] or 0)
+            overall_max = round(max(all_values), 2) if all_values else max(usdt_rates['sell_avg'] or 0, usdt_rates['buy_avg'] or 0)
             
-            # Calculate statistics
-            sell_values = [p['price'] for p in sell_prices] if sell_prices else []
-            buy_values = [p['price'] for p in buy_prices] if buy_prices else []
-            
-            # Calculate min, avg, max for SELL
-            sell_min = round(min(sell_values), 2) if sell_values else 228.50
-            sell_avg = round(sum(sell_values) / len(sell_values), 2) if sell_values else 228.50
-            sell_max = round(max(sell_values), 2) if sell_values else 228.50
-            
-            # Calculate min, avg, max for BUY
-            buy_min = round(min(buy_values), 2) if buy_values else 228.00
-            buy_avg = round(sum(buy_values) / len(buy_values), 2) if buy_values else 228.00
-            buy_max = round(max(buy_values), 2) if buy_values else 228.00
-            
-            # General average
-            general_avg = (sell_avg + buy_avg) / 2 if sell_values and buy_values else (sell_avg if sell_values else buy_avg)
-            
-            # Calculate overall min/max
-            all_values = sell_values + buy_values
-            overall_min = round(min(all_values), 2) if all_values else min(sell_min, buy_min)
-            overall_max = round(max(all_values), 2) if all_values else max(sell_max, buy_max)
-            
-            # Fast quality score
             quality_score = self._calculate_fast_quality_score(sell_prices, buy_prices)
             
             execution_time = time.time() - start_time
@@ -244,8 +266,9 @@ class UltraFastBinanceScraper:
             return {
                 'success': True,
                 'data': {
-                    'usd_ves': round(general_avg, 2),
-                    'usdt_ves': round(general_avg, 2),
+                    'usd_ves': round(usdt_rates['general_avg'], 2), # Using USDT as the general USD proxy
+                    'usdt_ves': round(usdt_rates['general_avg'], 2),
+                    'busd_ves': round(busd_rates['general_avg'], 2),
                     # Main values (for compatibility)
                     'sell_rate': sell_avg,
                     'buy_rate': buy_avg,

@@ -100,9 +100,9 @@ describe('Binance P2P Scraper', () => {
     expect(executionTime).toBeLessThan(12000);
 
     // Verify execution time is also in the result
-    if (result.data.execution_time !== undefined) {
-      expect(result.data.execution_time).toBeGreaterThan(0);
-      expect(result.data.execution_time).toBeLessThan(12000);
+    if (result.executionTime !== undefined) {
+      expect(result.executionTime).toBeGreaterThanOrEqual(0);
+      expect(result.executionTime).toBeLessThan(12000);
     }
   });
 

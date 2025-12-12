@@ -154,6 +154,19 @@ class BinanceHistoryService {
     }
   }
 
+  async getMultiPeriodTrends(): Promise<{ '1d': BinanceTrend; '1w': BinanceTrend; '1m': BinanceTrend } | null> {
+    try {
+      const trend1d = await this.calculateTrends(1);
+      const trend1w = await this.calculateTrends(7);
+      const trend1m = await this.calculateTrends(30);
+
+      return { '1d': trend1d, '1w': trend1w, '1m': trend1m };
+    } catch (error) {
+      logger.error('Error getting multi-period Binance trends:', error);
+      return null;
+    }
+  }
+
   async getLatestRate(): Promise<BinanceHistoryRecord | null> {
     try {
       return await this.db.binanceRates

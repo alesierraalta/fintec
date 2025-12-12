@@ -17,6 +17,7 @@ interface PriceData {
 interface BinanceData {
   usd_ves: number;
   usdt_ves: number;
+  busd_ves: number;
   sell_rate: number;
   buy_rate: number;
   sell_min: number;
@@ -72,14 +73,19 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   /**
    * Fetch raw data from Binance API
    */
-  protected async _fetchData(): Promise<{ sell: PriceData[]; buy: PriceData[] }> {
-    // Fetch SELL and BUY offers concurrently
-    const [sellPrices, buyPrices] = await Promise.all([
-      this.fetchOffers('SELL'),
-      this.fetchOffers('BUY'),
+  protected async _fetchData(): Promise<{ usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } }> {
+    // Fetch SELL and BUY offers concurrently for both assets
+    const [usdtSell, usdtBuy, busdSell, busdBuy] = await Promise.all([
+      this.fetchOffers('SELL', 'USDT'),
+      this.fetchOffers('BUY', 'USDT'),
+      this.fetchOffers('SELL', 'BUSD'),
+      this.fetchOffers('BUY', 'BUSD'),
     ]);
 
-    return { sell: sellPrices, buy: buyPrices };
+    return {
+      usdt: { sell: usdtSell, buy: usdtBuy },
+      busd: { sell: busdSell, buy: busdBuy }
+    };
   }
 
   /**
@@ -87,17 +93,17 @@ class BinanceScraper extends BaseScraper<BinanceData> {
    */
   protected async _parseData(
     data: unknown
-  ): Promise<{ sell: PriceData[]; buy: PriceData[] }> {
+  ): Promise<{ usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } }> {
     if (
       !data ||
       typeof data !== 'object' ||
-      !('sell' in data) ||
-      !('buy' in data)
+      !('usdt' in data) ||
+      !('busd' in data)
     ) {
       throw new ScraperError('Invalid data structure', 'PARSE_ERROR');
     }
 
-    return data as { sell: PriceData[]; buy: PriceData[] };
+    return data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
   }
 
   /**
@@ -106,14 +112,14 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   protected _validateData(
     data: unknown
   ): ScraperError | null {
-    const parsed = data as { sell: PriceData[]; buy: PriceData[] };
+    const parsed = data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
 
-    if (!parsed.sell || !parsed.buy) {
-      return new ScraperError('Missing sell or buy data', 'VALIDATION_ERROR');
+    if (!parsed.usdt?.sell || !parsed.usdt?.buy) {
+      return new ScraperError('Missing USDT data', 'VALIDATION_ERROR');
     }
 
-    if (parsed.sell.length === 0 && parsed.buy.length === 0) {
-      return new ScraperError('No valid prices found', 'NO_DATA_ERROR', undefined, true);
+    if (parsed.usdt.sell.length === 0 && parsed.usdt.buy.length === 0) {
+      return new ScraperError('No valid USDT prices found', 'NO_DATA_ERROR', undefined, true);
     }
 
     return null;
@@ -125,56 +131,70 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   protected _transformData(
     data: unknown
   ): BinanceData {
-    const parsed = data as { sell: PriceData[]; buy: PriceData[] };
+    const parsed = data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
 
-    // Filter outliers
-    const filteredSell = this.filterOutliers(parsed.sell);
-    const filteredBuy = this.filterOutliers(parsed.buy);
+    // --- Process USDT ---
+    const usdtFilteredSell = this.filterOutliers(parsed.usdt.sell);
+    const usdtFilteredBuy = this.filterOutliers(parsed.usdt.buy);
+    const usdtSellStats = this.calculateStats(usdtFilteredSell);
+    const usdtBuyStats = this.calculateStats(usdtFilteredBuy);
+    const usdtGeneralAvg =
+      usdtFilteredSell.length > 0 && usdtFilteredBuy.length > 0
+        ? (usdtSellStats.avg + usdtBuyStats.avg) / 2
+        : usdtFilteredSell.length > 0
+        ? usdtSellStats.avg
+        : usdtBuyStats.avg;
 
-    // Calculate statistics
-    const sellStats = this.calculateStats(filteredSell);
-    const buyStats = this.calculateStats(filteredBuy);
+    // --- Process BUSD ---
+    const busdFilteredSell = this.filterOutliers(parsed.busd.sell);
+    const busdFilteredBuy = this.filterOutliers(parsed.busd.buy);
+    const busdSellStats = this.calculateStats(busdFilteredSell);
+    const busdBuyStats = this.calculateStats(busdFilteredBuy);
+    let busdGeneralAvg =
+      busdFilteredSell.length > 0 && busdFilteredBuy.length > 0
+        ? (busdSellStats.avg + busdBuyStats.avg) / 2
+        : busdFilteredSell.length > 0
+        ? busdSellStats.avg
+        : busdBuyStats.avg;
 
-    // General average
-    const generalAvg =
-      filteredSell.length > 0 && filteredBuy.length > 0
-        ? (sellStats.avg + buyStats.avg) / 2
-        : filteredSell.length > 0
-        ? sellStats.avg
-        : buyStats.avg;
+    // Fallback: If BUSD has no data (avg is 0), use USDT avg
+    if (busdGeneralAvg === 0) {
+        busdGeneralAvg = usdtGeneralAvg;
+    }
 
-    // Overall min/max
-    const allPrices = [...filteredSell, ...filteredBuy];
+    // Overall min/max (using USDT as reference)
+    const allPrices = [...usdtFilteredSell, ...usdtFilteredBuy];
     const overallMin =
       allPrices.length > 0 ? Math.min(...allPrices.map(p => p.price)) : 0;
     const overallMax =
       allPrices.length > 0 ? Math.max(...allPrices.map(p => p.price)) : 0;
 
-    // Calculate spread
-    const spread = Math.abs(sellStats.avg - buyStats.avg);
+    // Calculate spread (USDT)
+    const spread = Math.abs(usdtSellStats.avg - usdtBuyStats.avg);
 
     return {
-      usd_ves: Math.round(generalAvg * 100) / 100,
-      usdt_ves: Math.round(generalAvg * 100) / 100,
-      sell_rate: sellStats.avg,
-      buy_rate: buyStats.avg,
-      sell_min: sellStats.min || 300.0,
-      sell_avg: sellStats.avg || 302.0,
-      sell_max: sellStats.max || 304.0,
-      buy_min: buyStats.min || 296.0,
-      buy_avg: buyStats.avg || 298.0,
-      buy_max: buyStats.max || 300.0,
+      usd_ves: Math.round(usdtGeneralAvg * 100) / 100,
+      usdt_ves: Math.round(usdtGeneralAvg * 100) / 100,
+      busd_ves: Math.round(busdGeneralAvg * 100) / 100,
+      sell_rate: usdtSellStats.avg,
+      buy_rate: usdtBuyStats.avg,
+      sell_min: usdtSellStats.min || 300.0,
+      sell_avg: usdtSellStats.avg || 302.0,
+      sell_max: usdtSellStats.max || 304.0,
+      buy_min: usdtBuyStats.min || 296.0,
+      buy_avg: usdtBuyStats.avg || 298.0,
+      buy_max: usdtBuyStats.max || 300.0,
       overall_min: Math.round(overallMin * 100) / 100 || 296.0,
       overall_max: Math.round(overallMax * 100) / 100 || 304.0,
       spread: Math.round(spread * 100) / 100,
-      sell_prices_used: filteredSell.length,
-      buy_prices_used: filteredBuy.length,
-      prices_used: filteredSell.length + filteredBuy.length,
+      sell_prices_used: usdtFilteredSell.length,
+      buy_prices_used: usdtFilteredBuy.length,
+      prices_used: usdtFilteredSell.length + usdtFilteredBuy.length,
       price_range: {
-        sell_min: sellStats.min || 300.0,
-        sell_max: sellStats.max || 304.0,
-        buy_min: buyStats.min || 296.0,
-        buy_max: buyStats.max || 300.0,
+        sell_min: usdtSellStats.min || 300.0,
+        sell_max: usdtSellStats.max || 304.0,
+        buy_min: usdtBuyStats.min || 296.0,
+        buy_max: usdtBuyStats.max || 300.0,
         min: Math.round(overallMin * 100) / 100 || 296.0,
         max: Math.round(overallMax * 100) / 100 || 304.0,
       },
@@ -198,6 +218,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       data: {
         usd_ves: 300.0,
         usdt_ves: 300.0,
+        busd_ves: 300.0,
         sell_rate: 302.0,
         buy_rate: 298.0,
         sell_min: 300.0,
@@ -232,7 +253,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   /**
    * Fetch offers for a specific trade type
    */
-  private async fetchOffers(tradeType: 'SELL' | 'BUY'): Promise<PriceData[]> {
+  private async fetchOffers(tradeType: 'SELL' | 'BUY', asset: string = 'USDT'): Promise<PriceData[]> {
     const allPrices: PriceData[] = [];
 
     for (let page = 1; page <= MAX_PAGES; page++) {
@@ -243,7 +264,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
           payTypes: [],
           countries: [],
           publisherType: null,
-          asset: 'USDT',
+          asset,
           fiat: 'VES',
           tradeType,
           proMerchantAds: false,
