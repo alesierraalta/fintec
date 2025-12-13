@@ -182,3 +182,6 @@ toml/test.toml
 .serena/memories/
 .swc/
 *.tsbuildinfo
+
+# stryker temp files
+.stryker-tmp

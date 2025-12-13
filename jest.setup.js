@@ -60,6 +60,18 @@ afterAll(() => {
   console.error = originalError
 })
 
+import { TextEncoder, TextDecoder } from 'util'
+import { ReadableStream } from 'stream/web'
+
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
+global.ReadableStream = ReadableStream
+
+// Mock MessagePort for environments where it's not available (e.g., JSDOM)
+if (typeof MessagePort === 'undefined') {
+  global.MessagePort = class MessagePort {};
+}
+
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
   constructor() {}
@@ -67,3 +79,14 @@ global.IntersectionObserver = class IntersectionObserver {
   observe() {}
   unobserve() {}
 }
+
+// Global fetch mock
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    statusText: 'OK',
+    json: () => Promise.resolve({ data: [], products: [] }), // Return structure expected by most tests (Paddle uses products, LemonSqueezy uses data)
+    text: () => Promise.resolve(''),
+  })
+);

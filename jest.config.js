@@ -7,31 +7,65 @@ const createJestConfig = nextJest({
 
 // Add any custom config to be passed to Jest
 const customJestConfig = {
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testEnvironment: 'jsdom',
-  testMatch: [
-    '<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}',
-    '<rootDir>/**/*.test.{js,jsx,ts,tsx}'
+  projects: [
+    {
+      displayName: 'dom',
+      testEnvironment: 'jsdom',
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      testMatch: [
+        '<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}',
+        '<rootDir>/**/*.test.{js,jsx,ts,tsx}',
+        '!<rootDir>/tests/node/**/*.test.{js,jsx,ts,tsx}', // Exclude node tests
+      ],
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+        '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/index.js'
+      },
+      testPathIgnorePatterns: [
+        '<rootDir>/.next/',
+        '<rootDir>/node_modules/',
+        '<rootDir>/tests/e2e/',
+        '<rootDir>/.stryker-tmp/'
+      ],
+      collectCoverageFrom: [
+        'components/**/*.{js,jsx,ts,tsx}',
+        'lib/!(*scrapers*)/**/*.{js,jsx,ts,tsx}',
+        'repositories/**/*.{js,jsx,ts,tsx}',
+        'hooks/**/*.{js,jsx,ts,tsx}',
+        '!**/*.d.ts',
+      ],
+      moduleDirectories: ['node_modules', '<rootDir>/'],
+      transform: {
+        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
+      }
+    },
+    {
+      displayName: 'node',
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
+      testMatch: ['<rootDir>/tests/node/**/*.test.{js,jsx,ts,tsx}'], // Only include node tests
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+        '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/index.js'
+      },
+      testPathIgnorePatterns: [
+        '<rootDir>/.next/',
+        '<rootDir>/node_modules/',
+        '<rootDir>/tests/e2e/',
+        '<rootDir>/.stryker-tmp/'
+      ],
+      collectCoverageFrom: [
+        'lib/scrapers/**/*.{js,jsx,ts,tsx}',
+        '!**/*.d.ts',
+      ],
+      moduleDirectories: ['node_modules', '<rootDir>/'],
+      transform: {
+        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
+      }
+    }
   ],
-  moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1'
-  },
-  testPathIgnorePatterns: [
-    '<rootDir>/.next/',
-    '<rootDir>/node_modules/',
-    '<rootDir>/tests/e2e/'
-  ],
-  collectCoverageFrom: [
-    'components/**/*.{js,jsx,ts,tsx}',
-    'lib/**/*.{js,jsx,ts,tsx}',
-    'repositories/**/*.{js,jsx,ts,tsx}',
-    'hooks/**/*.{js,jsx,ts,tsx}',
-    '!**/*.d.ts',
-  ],
-  moduleDirectories: ['node_modules', '<rootDir>/'],
-  transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
-  }
+  // Default for other tests
+  testPathIgnorePatterns: ['<rootDir>/tests/e2e/', '<rootDir>/.stryker-tmp/'] // Ignored globally
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

@@ -313,6 +313,10 @@ class CurrencyService {
 
   // Convert amount between currencies
   convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
+    if (!Number.isFinite(amount)) {
+      throw new Error(`Invalid amount for conversion: ${amount}`);
+    }
+
     if (fromCurrency === toCurrency) return amount;
 
     const fromRate = this.exchangeRates.get(fromCurrency);

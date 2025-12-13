@@ -2,20 +2,31 @@
  * Tests for PricingCards component
  * 
  * This test ensures that the pricing cards correctly display
- * Lemon Squeezy product data and handle loading/error states
+ * Paddle product data and handle loading/error states
  */
 
 import { render, screen, waitFor } from '@testing-library/react';
 import { PricingCards } from '@/components/subscription/pricing-cards';
-import * as useLemonSqueezyProductsModule from '@/hooks/use-lemon-squeezy-products';
+import * as usePaddleProductsModule from '@/hooks/use-paddle-products';
+
 
 // Mock the hook
-jest.mock('@/hooks/use-lemon-squeezy-products', () => ({
-  useLemonSqueezyProducts: jest.fn(),
+jest.mock('@/hooks/use-paddle-products', () => ({
+  usePaddleProducts: jest.fn(),
 }));
 
-const mockUseLemonSqueezyProducts = useLemonSqueezyProductsModule.useLemonSqueezyProducts as jest.MockedFunction<
-  typeof useLemonSqueezyProductsModule.useLemonSqueezyProducts
+// Mock the config
+jest.mock('@/lib/paddle/config', () => ({
+  paddleConfig: {
+    products: {
+      base: 'pro_base_123',
+      premium: 'pro_premium_456',
+    },
+  },
+}));
+
+const mockUsePaddleProducts = usePaddleProductsModule.usePaddleProducts as jest.MockedFunction<
+  typeof usePaddleProductsModule.usePaddleProducts
 >;
 
 describe('PricingCards', () => {
@@ -26,7 +37,7 @@ describe('PricingCards', () => {
   });
 
   it('should show loading state while fetching products', () => {
-    mockUseLemonSqueezyProducts.mockReturnValue({
+    mockUsePaddleProducts.mockReturnValue({
       products: [],
       loading: true,
       error: null,
@@ -46,7 +57,7 @@ describe('PricingCards', () => {
   });
 
   it('should show error state when fetching fails', () => {
-    mockUseLemonSqueezyProducts.mockReturnValue({
+    mockUsePaddleProducts.mockReturnValue({
       products: [],
       loading: false,
       error: 'Failed to fetch',
@@ -65,87 +76,35 @@ describe('PricingCards', () => {
     ).toBeInTheDocument();
   });
 
-  it('should display pricing cards with Lemon Squeezy data', async () => {
-    const mockProducts = [
+  it('should display pricing cards with Paddle data', async () => {
+    const mockProducts: any[] = [
       {
-        id: '656807',
-        type: 'products',
-        attributes: {
-          store_id: 229057,
-          name: 'Plan Full',
-          slug: 'plan-full',
-          description: 'Test description',
-          status: 'published',
-          price: 599,
-          price_formatted: '$5.99/month',
-          buy_now_url: 'https://test.com',
-          created_at: '2025-10-09T10:59:18.000000Z',
-          updated_at: '2025-10-09T10:59:55.000000Z',
-          test_mode: true,
-        },
-        variants: [
+        id: 'pro_base_123',
+        name: 'Plan Full',
+        description: 'Test description',
+        status: 'active',
+        prices: [
           {
-            id: '1031352',
-            type: 'variants',
-            attributes: {
-              price: 599,
-              is_subscription: true,
-              interval: 'month' as const,
-              interval_count: 1,
-              has_free_trial: true,
-              trial_interval: 'day',
-              trial_interval_count: 14,
-              product_id: 656807,
-              name: 'Default',
-              slug: 'test-slug',
-              description: '',
-              status: 'pending',
-              test_mode: true,
-            },
+            unit_price: { amount: '599', currency_code: 'USD' },
+            billing_cycle: { interval: 'month', frequency: 1 },
           },
         ],
       },
       {
-        id: '656822',
-        type: 'products',
-        attributes: {
-          store_id: 229057,
-          name: 'Plan Premium IA',
-          slug: 'plan-premium-ia',
-          description: 'Test premium description',
-          status: 'published',
-          price: 999,
-          price_formatted: '$9.99/month',
-          buy_now_url: 'https://test.com',
-          created_at: '2025-10-09T11:18:44.000000Z',
-          updated_at: '2025-10-09T11:19:25.000000Z',
-          test_mode: true,
-        },
-        variants: [
+        id: 'pro_premium_456',
+        name: 'Plan Premium IA',
+        description: 'Test premium description',
+        status: 'active',
+        prices: [
           {
-            id: '1031375',
-            type: 'variants',
-            attributes: {
-              price: 999,
-              is_subscription: true,
-              interval: 'month' as const,
-              interval_count: 1,
-              has_free_trial: true,
-              trial_interval: 'day',
-              trial_interval_count: 14,
-              product_id: 656822,
-              name: 'Default',
-              slug: 'test-slug-2',
-              description: '',
-              status: 'pending',
-              test_mode: true,
-            },
+            unit_price: { amount: '999', currency_code: 'USD' },
+            billing_cycle: { interval: 'month', frequency: 1 },
           },
         ],
       },
     ];
 
-    mockUseLemonSqueezyProducts.mockReturnValue({
+    mockUsePaddleProducts.mockReturnValue({
       products: mockProducts,
       loading: false,
       error: null,
@@ -165,14 +124,14 @@ describe('PricingCards', () => {
       expect(screen.getByText('Plan Full')).toBeInTheDocument();
       expect(screen.getByText('Plan Premium IA')).toBeInTheDocument();
 
-      // Check pricing from Lemon Squeezy
+      // Check pricing from Paddle
       expect(screen.getByText('$5.99')).toBeInTheDocument();
       expect(screen.getByText('$9.99')).toBeInTheDocument();
     });
   });
 
-  it('should fall back to static data when Lemon Squeezy data is not available', () => {
-    mockUseLemonSqueezyProducts.mockReturnValue({
+  it('should fall back to static data when Paddle data is not available', () => {
+    mockUsePaddleProducts.mockReturnValue({
       products: [],
       loading: false,
       error: null,
@@ -187,9 +146,8 @@ describe('PricingCards', () => {
     );
 
     // Should display static data
-    expect(screen.getByText('Base')).toBeInTheDocument();
-    expect(screen.getByText('Premium')).toBeInTheDocument();
-    expect(screen.getByText('$4.99')).toBeInTheDocument();
+    expect(screen.getByText('Plan Full')).toBeInTheDocument();
+    expect(screen.getByText('Premium IA')).toBeInTheDocument();
+    expect(screen.getByText('$5.99')).toBeInTheDocument();
   });
 });
-

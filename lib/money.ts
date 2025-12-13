@@ -29,6 +29,7 @@ export class Money {
 
   constructor(amountMinor: number, currencyCode: string) {
     this.amountMinor = Math.round(amountMinor);
+    if (Object.is(this.amountMinor, -0)) this.amountMinor = 0;
     this.currency = CURRENCIES[currencyCode] || {
       code: currencyCode,
       symbol: currencyCode,
@@ -69,7 +70,11 @@ export class Money {
     if (this.currency.code !== other.currency.code) {
       throw new Error('Cannot add different currencies without exchange rate');
     }
-    return new Money(this.amountMinor + other.amountMinor, this.currency.code);
+    const result = this.amountMinor + other.amountMinor;
+    if (!Number.isFinite(result)) {
+        throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
+    }
+    return new Money(result, this.currency.code);
   }
 
   // Subtract money (must be same currency)
@@ -77,18 +82,34 @@ export class Money {
     if (this.currency.code !== other.currency.code) {
       throw new Error('Cannot subtract different currencies without exchange rate');
     }
-    return new Money(this.amountMinor - other.amountMinor, this.currency.code);
+    const result = this.amountMinor - other.amountMinor;
+    if (!Number.isFinite(result)) {
+        throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
+    }
+    return new Money(result, this.currency.code);
   }
 
   // Multiply by a number
   multiply(factor: number): Money {
+    if (!Number.isFinite(this.amountMinor)) {
+        throw new Error('Cannot perform operation with NaN or Infinity amounts');
+    }
+    if (!Number.isFinite(factor)) {
+        throw new Error('Cannot multiply by NaN or Infinity');
+    }
     return new Money(Math.round(this.amountMinor * factor), this.currency.code);
   }
 
   // Divide by a number
   divide(divisor: number): Money {
+    if (!Number.isFinite(this.amountMinor)) {
+        throw new Error('Cannot perform operation with NaN or Infinity amounts');
+    }
     if (divisor === 0) {
       throw new Error('Cannot divide by zero');
+    }
+    if (!Number.isFinite(divisor)) {
+        throw new Error('Cannot divide by NaN or Infinity');
     }
     return new Money(Math.round(this.amountMinor / divisor), this.currency.code);
   }
@@ -207,6 +228,9 @@ export class Money {
       const currentAmount = results[i % results.length].getMinorAmount();
       results[i % results.length] = new Money(currentAmount + 1, this.currency.code);
     }
+    
+    // Normalize -0 to 0
+    if (Object.is(remainder, -0)) remainder = 0;
 
     return results;
   }
