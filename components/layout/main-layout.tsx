@@ -64,7 +64,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   return (
     <div 
       className={cn(
-        "h-dynamic-screen bg-background text-foreground overflow-hidden transition-ios no-horizontal-scroll",
+        "h-dynamic-screen bg-background text-foreground overflow-hidden no-horizontal-scroll",
         clientIsMobile && "mobile-app"
       )}
       style={dynamicHeight}

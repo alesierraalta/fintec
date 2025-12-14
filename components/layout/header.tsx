@@ -132,7 +132,7 @@ export function Header() {
 
   if (clientIsMobile) {
     return (
-      <header className="h-16 black-theme-header flex items-center justify-between px-4">
+      <header className="h-16 black-theme-header flex items-center justify-between px-4 sticky top-0 z-50">
         <div className="flex items-center">
           <RateSelector />
         </div>
@@ -150,7 +150,7 @@ export function Header() {
             className="flex items-center black-theme-card rounded-xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-              <User className="h-4 w-4 text-background-primary" />
+              <User className="h-4 w-4 text-white" />
             </div>
           </div>
 
@@ -196,7 +196,7 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 black-theme-header flex items-center justify-between px-6">
+    <header className="h-16 black-theme-header flex items-center justify-between px-6 sticky top-0 z-50">
       <div className="flex items-center gap-2">
         <RateSelector />
         <button
@@ -300,7 +300,7 @@ export function Header() {
             className="flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
           >
             <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-              <User className="h-4 w-4 lg:h-5 lg:w-5 text-background-primary" />
+              <User className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
             </div>
             <div className="hidden lg:block text-left">
               <p className="text-sm font-semibold text-text-primary">

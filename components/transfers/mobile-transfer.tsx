@@ -17,6 +17,8 @@ import { useAuth } from '@/hooks/use-auth';
 import type { Account } from '@/types/domain';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
+import { useBCVRates } from '@/hooks/use-bcv-rates';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { logger } from '@/lib/utils/logger';
 
@@ -52,6 +54,8 @@ export function MobileTransfer() {
   });
   const [amountError, setAmountError] = useState<string>('');
   const activeUsdVes = useActiveUsdVesRate();
+  const bcvRates = useBCVRates();
+  const { rates: binanceRates } = useBinanceRates();
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -179,24 +183,42 @@ export function MobileTransfer() {
     }));
   };
 
-  // Auto-apply global exchange rate when currencies differ (USD↔VES)
+  // Auto-apply rate logic
   useEffect(() => {
     const from = getFromAccount();
     const to = getToAccount();
     if (!from || !to) return;
-    // When currencies are the same, use 1.0 (no conversion needed)
+    
+    // Same currency
     if (from.currencyCode === to.currencyCode) {
-      setTransferData(prev => ({ ...prev, exchangeRate: 1.0, rateSource: undefined }));
+      if (transferData.exchangeRate !== 1.0) {
+        setTransferData(prev => ({ ...prev, exchangeRate: 1.0, rateSource: undefined }));
+      }
       return;
     }
-    if (!activeUsdVes || activeUsdVes <= 0) return;
 
-    if (from.currencyCode === 'USD' && to.currencyCode === 'VES') {
-      setTransferData(prev => ({ ...prev, exchangeRate: activeUsdVes, rateSource: 'Global' }));
-    } else if (from.currencyCode === 'VES' && to.currencyCode === 'USD') {
-      setTransferData(prev => ({ ...prev, exchangeRate: 1 / activeUsdVes, rateSource: 'Global' }));
+    // If Custom, respect it (don't auto update rate from sources)
+    if (transferData.rateSource === 'Custom') return;
+
+    // Determine the base rate to use
+    let baseRate = activeUsdVes;
+    if (transferData.rateSource === 'BCV') baseRate = bcvRates.usd;
+    else if (transferData.rateSource === 'Euro') baseRate = bcvRates.eur;
+    else if (transferData.rateSource === 'Binance') baseRate = binanceRates?.usd_ves || 0;
+    
+    // If we have a baseRate, apply it with correct direction
+    if (baseRate > 0) {
+        let finalRate = baseRate;
+        if (from.currencyCode === 'VES' && to.currencyCode === 'USD') {
+            finalRate = 1 / baseRate;
+        }
+        
+        // Only update if different (with tolerance) or if undefined
+        if (!transferData.exchangeRate || Math.abs(transferData.exchangeRate - finalRate) > 0.000001) {
+             setTransferData(prev => ({ ...prev, exchangeRate: finalRate, rateSource: prev.rateSource || 'Global' }));
+        }
     }
-  }, [transferData.fromAccountId, transferData.toAccountId, activeUsdVes, getFromAccount, getToAccount]);
+  }, [transferData.fromAccountId, transferData.toAccountId, transferData.rateSource, activeUsdVes, bcvRates, binanceRates, getFromAccount, getToAccount]);
 
   const isFormValid = () => {
     const fromAccount = getFromAccount();
@@ -465,7 +487,79 @@ export function MobileTransfer() {
         </div>
       )}
 
-      {/* Exchange Rate Selector removed: using global header RateSelector */}
+      {/* Exchange Rate Selector */}
+      {getFromAccount() && getToAccount() && 
+        getFromAccount()!.currencyCode !== getToAccount()!.currencyCode && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">Tasa de Cambio</h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { id: 'Global', label: 'Global', value: activeUsdVes },
+              { id: 'BCV', label: 'BCV (USD)', value: bcvRates.usd },
+              { id: 'Euro', label: 'BCV (EUR)', value: bcvRates.eur },
+              { id: 'Binance', label: 'Binance', value: binanceRates?.usd_ves || 0 },
+              { id: 'Custom', label: 'Personalizada', value: 0 }
+            ].map((option) => (
+              <button
+                key={option.id}
+                onClick={() => {
+                  if (option.id === 'Custom') {
+                    setTransferData(prev => ({ ...prev, rateSource: 'Custom' }));
+                  } else {
+                    setTransferData(prev => ({ ...prev, rateSource: option.id }));
+                  }
+                }}
+                className={`p-3 rounded-xl border-2 transition-all text-center ${
+                  (transferData.rateSource === option.id || (!transferData.rateSource && option.id === 'Global'))
+                    ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-900 dark:text-primary-100'
+                    : 'border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400'
+                } ${option.id === 'Custom' ? 'col-span-2' : ''}`}
+              >
+                <div className="font-semibold text-sm">{option.label}</div>
+                {option.id !== 'Custom' && (
+                  <div className="text-xs opacity-80">
+                    {option.value.toFixed(2)}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {transferData.rateSource === 'Custom' && (
+            <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="relative">
+                  <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-neutral-500 dark:text-neutral-400 font-semibold">Bs.</div>
+                  <input
+                    type="number"
+                    value={transferData.exchangeRate ? (
+                      (getFromAccount()?.currencyCode === 'VES' && getToAccount()?.currencyCode === 'USD') 
+                      ? (1 / transferData.exchangeRate) 
+                      : transferData.exchangeRate
+                    ) : ''}
+                    onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        if (!val) {
+                          setTransferData(prev => ({ ...prev, exchangeRate: undefined }));
+                          return;
+                        }
+                        const from = getFromAccount();
+                        const to = getToAccount();
+                        let finalRate = val;
+                        if (from?.currencyCode === 'VES' && to?.currencyCode === 'USD') {
+                          finalRate = 1 / val;
+                        }
+                        setTransferData(prev => ({ ...prev, exchangeRate: finalRate }));
+                    }}
+                    placeholder="0.00"
+                    step="0.01"
+                    className="w-full pl-12 pr-4 py-4 rounded-xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-neutral-900 dark:text-neutral-100 text-lg font-semibold placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400 transition-colors"
+                  />
+                </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Prominent Transfer Preview - Mobile */}
       {isFormValid() && (

@@ -44,7 +44,7 @@ export default function ExchangeRateDisplay() {
                 Conectado
               </Badge>
             ) : (
-              <Badge variant="destructive">
+              <Badge variant="danger">
                 <WifiOff className="h-4 w-4 mr-1" />
                 Desconectado
               </Badge>
