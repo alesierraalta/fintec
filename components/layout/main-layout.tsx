@@ -84,7 +84,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
             ${clientIsMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}
             ${clientIsMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
             ${clientIsMobile ? 'w-64' : (isOpen ? 'w-64' : 'w-16')}
-            transition-all duration-300 ease-in-out overflow-hidden
+            overflow-hidden
           `}
           data-tutorial="sidebar"
         >
