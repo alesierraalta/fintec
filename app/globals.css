@@ -95,10 +95,7 @@ body {
   height: 100%;
   height: 100dvh; /* Asegurar height dinámico también */
   overflow: hidden; /* Previene scroll no deseado */
-  position: fixed; /* Previene que el body se expanda más allá del viewport */
   width: 100%;
-  top: 0;
-  left: 0;
 }
 
 /* Contenedor raíz - debe usar viewport dinámico */

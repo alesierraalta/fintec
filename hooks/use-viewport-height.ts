@@ -71,8 +71,13 @@ export function useViewportHeight(): number | null {
     // Esto es especialmente importante en iOS Safari donde el viewport puede tardar en actualizarse
     forceUpdateTimeoutRef.current = setTimeout(() => {
       updateHeight(true);
+      // Forzar scroll al top para evitar que el contenido se quede "empujado" hacia arriba
+      window.scrollTo(0, 0);
       // Actualización adicional después de más tiempo para asegurar que se aplicó
-      setTimeout(() => updateHeight(true), 100);
+      setTimeout(() => {
+        updateHeight(true);
+        window.scrollTo(0, 0);
+      }, 100);
     }, 150);
   }, [updateHeight]);
 
