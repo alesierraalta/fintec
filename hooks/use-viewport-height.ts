@@ -19,7 +19,7 @@ export function useViewportHeight(): number | null {
   // Ref para timeout de actualización forzada
   const forceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Función para actualizar el height
+  // * Función para actualizar el height y la CSS variable --app-height
   const updateHeight = useCallback((force = false) => {
     if (typeof window === 'undefined') {
       return;
@@ -27,13 +27,17 @@ export function useViewportHeight(): number | null {
 
     let newHeight: number;
 
-    // Usar Visual Viewport API si está disponible (mejor para mobile)
+    // * Usar Visual Viewport API si está disponible (mejor para mobile)
     if (window.visualViewport) {
       newHeight = window.visualViewport.height;
     } else {
       // Fallback a window.innerHeight
       newHeight = window.innerHeight;
     }
+
+    // * Actualizar CSS variable --app-height para uso en estilos globales
+    // Esto permite usar var(--app-height) en CSS para height dinámico
+    document.documentElement.style.setProperty('--app-height', `${newHeight}px`);
 
     // Solo actualizar si el height cambió (evita re-renders innecesarios)
     setHeight(prevHeight => {

@@ -25,7 +25,7 @@ export default function LoginPage() {
   useEffect(() => {
     const emailConfirmationPending = sessionStorage.getItem('emailConfirmationPending');
     const email = sessionStorage.getItem('pendingEmail');
-    
+
     if (emailConfirmationPending === 'true' && email) {
       setPendingEmail(email);
       setShowEmailConfirmationModal(true);
@@ -55,13 +55,15 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="min-h-dynamic-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <LoginForm />
+      <div className="min-h-dynamic-screen bg-background overflow-y-auto p-4">
+        <div className="min-h-full flex items-center justify-center">
+          <div className="w-full max-w-md py-8">
+            <LoginForm />
+          </div>
         </div>
       </div>
-      
-      <EmailConfirmationModal 
+
+      <EmailConfirmationModal
         open={showEmailConfirmationModal}
         onClose={handleCloseModal}
         email={pendingEmail}

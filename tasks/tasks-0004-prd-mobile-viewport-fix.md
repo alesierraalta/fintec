@@ -10,24 +10,27 @@ Mobile users experience a "stuck" viewport after closing the keyboard, leaving d
 - [ ] **Review `MainLayout`:** Check how the main container handles height. It currently uses a `useViewportHeight` hook (seen in previous context) - verify its implementation.
 
 ### 2. Implementation: Viewport Hook & CSS
-- [ ] **Enhance/Fix `useViewportHeight` Hook:**
-    -   Ensure it listens to the `visualViewport` `resize` event (not just window resize).
-    -   Ensure it forces a scroll reset (`window.scrollTo(0, 0)`) when the keyboard closes (if the layout shouldn't be scrolled).
-- [ ] **Create `useMobileViewportFix` Hook (if needed):**
-    -   If the existing hook is insufficient, create a specialized hook that:
-        1.  Sets a `--app-height` CSS variable to `window.visualViewport.height`.
-        2.  Adds a listener for `focusout` (blur) on inputs to trigger a layout refresh.
-- [ ] **Update Global Styles:**
-    -   Modify `globals.css` to use the dynamic height variable (e.g., `height: var(--app-height, 100dvh)`) for the root container.
-    -   Evaluate if removing `overflow: hidden` from `body` (and applying it only to the app wrapper) helps native recovery.
+- [x] **Enhance/Fix `useViewportHeight` Hook:**
+    -   ✅ Ensure it listens to the `visualViewport` `resize` event (not just window resize).
+    -   ✅ Ensure it forces a scroll reset (`window.scrollTo(0, 0)`) when the keyboard closes (if the layout shouldn't be scrolled).
+- [x] **Create `useMobileViewportFix` Hook (if needed):**
+    -   ✅ Enhanced existing hook instead - Sets a `--app-height` CSS variable to `window.visualViewport.height`.
+    -   ✅ Already has listener for `focusout` (blur) on inputs to trigger layout refresh.
+- [x] **Update Global Styles:**
+    -   ✅ Modified `globals.css` to use the dynamic height variable (`height: var(--app-height, 100dvh)`) for the root container.
+    -   ✅ Removed `overflow: hidden` from `body` and changed to `overflow-y: auto` to allow native scroll recovery.
 
 ### 3. Implementation: Layout Integration
-- [ ] **Apply to `MainLayout`:** Import and use the fix hook in `components/layout/main-layout.tsx`.
-- [ ] **Fix Form Containers:** Ensure pages with forms (Login, Add Transaction) allow internal scrolling even if the main container is fixed height.
+- [x] **Apply to `MainLayout`:** ✅ MainLayout already imports and uses the enhanced `useViewportHeight` hook in `components/layout/main-layout.tsx`.
+- [x] **Fix Form Containers:** ✅ Verified and enhanced pages with forms:
+    - **Login Page**: Added `overflow-y-auto` to allow scrolling when keyboard is open
+    - **Add Transaction (Mobile)**: Already has `overflow-y-auto` on main container
+    - All form containers now properly scroll while maintaining fixed viewport height
 
 ### 4. Verification
-- [ ] **Test Mobile Flow:**
-    1.  Open page on Mobile.
+- [ ] **Test Mobile Flow:** ⚠️ Requires actual mobile devices - See detailed testing guide at `tasks-0004-mobile-testing-guide.md`
+    1.  Open page on Mobile (iOS Safari or Android Chrome recommended)
     2.  Tap input (keyboard opens, view resizes).
     3.  Tap "Done" or outside (keyboard closes).
     4.  Verify view returns to full height and no white space remains.
+- [x] **Build Verification:** ✅ Production build completed successfully with no errors
