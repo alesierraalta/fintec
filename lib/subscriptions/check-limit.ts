@@ -5,10 +5,15 @@
  * antes de permitir acciones en el backend.
  */
 
-import { getUserTier, getUserUsage } from '@/lib/paddle/subscriptions';
-import { TIER_LIMITS } from '@/types/subscription';
+import { TIER_LIMITS, SubscriptionTier } from '@/types/subscription';
+
+import { getUserTier, getUserUsage } from '@/lib/supabase/subscriptions';
+
+
 
 export interface LimitCheckResult {
+
+
   allowed: boolean;
   reason?: string;
   current?: number;

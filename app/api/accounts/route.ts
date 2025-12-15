@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SupabaseAppRepository } from '@/repositories/supabase';
 import { CreateAccountDTO } from '@/repositories/contracts';
 import { AccountType } from '@/types';
-import { indexDocument, formatAccountContent } from '@/lib/ai/rag/indexer';
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { logger } from '@/lib/utils/logger';
 
@@ -71,28 +70,6 @@ export async function POST(request: NextRequest) {
     
     const account = await repository.accounts.create(accountData);
     
-    // Indexar en RAG (on-demand)
-    if (account.id && account.userId) {
-      try {
-        const content = formatAccountContent({
-          name: account.name,
-          type: account.type,
-          balance: account.balance,
-          currencyCode: account.currencyCode,
-        });
-        
-        await indexDocument({
-          userId: account.userId,
-          documentType: 'account',
-          documentId: account.id,
-          content,
-        });
-      } catch (error) {
-        // Log pero no fallar la operación principal
-        logger.error('[Account API] Failed to index in RAG:', error);
-      }
-    }
-    
     return NextResponse.json({
       success: true,
       data: account,
@@ -126,28 +103,6 @@ export async function PUT(request: NextRequest) {
     }
     
     const account = await repository.accounts.update(body.id, body);
-    
-    // Re-indexar en RAG después de actualizar (on-demand)
-    if (account.id && account.userId) {
-      try {
-        const content = formatAccountContent({
-          name: account.name,
-          type: account.type,
-          balance: account.balance,
-          currencyCode: account.currencyCode,
-        });
-        
-        await indexDocument({
-          userId: account.userId,
-          documentType: 'account',
-          documentId: account.id,
-          content,
-        });
-      } catch (error) {
-        // Log pero no fallar la operación principal
-        logger.error('[Account API] Failed to re-index in RAG:', error);
-      }
-    }
     
     return NextResponse.json({
       success: true,

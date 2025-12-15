@@ -13,9 +13,6 @@ import { useModal, useViewportHeight } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
-import { AIChatFab } from '@/components/ai/ai-chat-fab';
-import { AIChatModal } from '@/components/ai/ai-chat-modal';
-import { AIChatProvider } from '@/contexts/ai-chat-context';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -131,12 +128,6 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         </div>
       )}
 
-      {/* AI Chat FAB (solo para usuarios premium) */}
-      <AIChatFab />
-
-      {/* AI Chat Modal (oculto en página de chats) */}
-      {pathname !== '/chats' && <AIChatModal />}
-
       {/* Transaction Form Modal */}
       <Suspense fallback={<FormLoading />}>
         <TransactionForm
@@ -152,11 +143,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
-      <AIChatProvider>
-        <MainLayoutContent>
+      <MainLayoutContent>
           {children}
-        </MainLayoutContent>
-      </AIChatProvider>
+      </MainLayoutContent>
     </SidebarProvider>
   );
 }

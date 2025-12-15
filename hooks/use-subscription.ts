@@ -20,7 +20,7 @@ interface SubscriptionData {
 }
 
 export function useSubscription() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [data, setData] = useState<SubscriptionData>({
     subscription: null,
     tier: 'free',
@@ -31,7 +31,7 @@ export function useSubscription() {
   });
 
   const fetchSubscription = useCallback(async () => {
-    if (!user?.id) {
+    if (!user?.id || !session?.access_token) {
       setData(prev => ({ ...prev, loading: false }));
       return;
     }
@@ -46,12 +46,14 @@ export function useSubscription() {
         headers: {
           'Cache-Control': 'no-cache, no-store, must-revalidate',
           'Pragma': 'no-cache',
+          'Authorization': `Bearer ${session.access_token}`,
         },
       });
       
       if (!response.ok) {
         throw new Error('Failed to fetch subscription');
       }
+
 
       const result = await response.json();
 
@@ -79,11 +81,12 @@ export function useSubscription() {
         error: error.message || 'Error loading subscription',
       }));
     }
-  }, [user?.id]);
+  }, [user?.id, session?.access_token]);
 
   useEffect(() => {
     fetchSubscription();
   }, [fetchSubscription]);
+
 
   // Refresh subscription on window focus (in case tier changed in another tab)
   useEffect(() => {
@@ -147,32 +150,14 @@ export function useSubscription() {
  */
 export function useUpgrade() {
   const { user } = useAuth();
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const upgrade = useCallback(async (tier: 'base' | 'premium') => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      // Redirect to login with return URL
-      router.push(`/auth/login?returnTo=/checkout?tier=${tier}`);
-      return null;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Redirect to checkout page instead of calling API directly
-      router.push(`/checkout?tier=${tier}`);
-      return null;
-    } catch (error: any) {
-      setError(error.message || 'Failed to initiate upgrade');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id, router]);
+    // Checkout is currently disabled.
+    alert("Please contact support to upgrade your plan.");
+    return null;
+  }, []);
 
   return {
     upgrade,
@@ -182,11 +167,7 @@ export function useUpgrade() {
 }
 
 /**
- * Hook to manage subscription (access Lemon Squeezy customer portal)
- * 
- * With Lemon Squeezy, customers can manage their subscriptions directly
- * through the Lemon Squeezy dashboard. The customer portal URL can be
- * found in the subscription data or accessed directly via Lemon Squeezy.
+ * Hook to manage subscription
  */
 export function useManageSubscription() {
   const { user } = useAuth();
@@ -194,36 +175,9 @@ export function useManageSubscription() {
   const [error, setError] = useState<string | null>(null);
 
   const openPortal = useCallback(async () => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Get the subscription data to find the customer portal URL
-      const response = await fetch(`/api/subscription/status?userId=${user.id}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription data');
-      }
-
-      const { subscription } = await response.json();
-      
-      if (subscription?.customerPortalUrl) {
-        window.location.href = subscription.customerPortalUrl;
-      } else {
-        // Fallback: redirect to Paddle customer portal
-        window.open('https://my.paddle.com', '_blank');
-      }
-    } catch (error: any) {
-      setError(error.message || 'Failed to open customer portal');
-    } finally {
-      setLoading(false);
-    }
-  }, [user?.id]);
+    // Portal is currently disabled.
+    alert("Please contact support to manage your subscription.");
+  }, []);
 
   return {
     openPortal,
@@ -231,4 +185,5 @@ export function useManageSubscription() {
     error,
   };
 }
+
 

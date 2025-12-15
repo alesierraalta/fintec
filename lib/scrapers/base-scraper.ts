@@ -7,7 +7,7 @@
 import { ScraperResult, ScraperConfig, ScraperError } from './types';
 import { CircuitBreaker } from './circuit-breaker';
 import { healthMonitor } from './health-monitor';
-import { withRetry, RetryOptions } from '@/lib/ai/retry-handler';
+import { withRetry, RetryOptions } from '@/lib/scrapers/retry-handler';
 import { logger } from '@/lib/utils/logger';
 
 /**

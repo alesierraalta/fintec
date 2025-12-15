@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/paddle/subscriptions';
 import { TIER_LIMITS } from '@/types/subscription';
 import { logger } from '@/lib/utils/logger';
+import { getSubscriptionByUserId, getUserTier, getUserUsage } from '@/lib/supabase/subscriptions';
+import { createClient } from '@/lib/supabase/server';
 
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId');
-  
-  if (!userId) {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
     return NextResponse.json(
-      { error: 'Missing userId parameter' },
-      { status: 400 }
+      { error: 'Unauthorized' },
+      { status: 401 }
     );
   }
 
-  try {
+  const userId = user.id;
 
+  try {
     // Get subscription info
     const subscription = await getSubscriptionByUserId(userId);
     const tier = await getUserTier(userId);
@@ -22,21 +25,9 @@ export async function GET(request: NextRequest) {
 
     // Log tier detection for debugging (especially for premium users)
     logger.info(`Subscription status: user ${userId}, tier: ${tier}`, {
-      subscriptionId: subscription?.id,
-      subscriptionTier: subscription?.tier,
       detectedTier: tier,
     });
     
-    // Extra logging for specific user to debug
-    if (userId === '962817cb-3fac-461b-a760-f3d294f83f54') {
-      logger.warn(`[DEBUG] Premium user tier check:`, {
-        userId,
-        subscription,
-        tier,
-        subscriptionTier: subscription?.tier,
-      });
-    }
-
     // Calculate usage percentages
     const limits = TIER_LIMITS[tier];
     const usageStatus = {
@@ -85,4 +76,5 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 

@@ -185,3 +185,5 @@ toml/test.toml
 
 # stryker temp files
 .stryker-tmp
+.vercel
+.env*.local

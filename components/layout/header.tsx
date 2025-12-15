@@ -1,11 +1,12 @@
 'use client';
 
-import { Bell, Sparkles, Menu, X, User, LogOut } from 'lucide-react';
+import { Bell, Sparkles, Menu, X, User, LogOut, Crown } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useAuth } from '@/hooks/use-auth';
+import { useSubscription } from '@/hooks/use-subscription';
 import { useRepository } from '@/providers/repository-provider';
 import type { Notification } from '@/types/notifications';
 import { fromMinorUnits } from '@/lib/money';
@@ -22,11 +23,12 @@ export function Header() {
   const [totalBalance, setTotalBalance] = useState(0);
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
   const { user, signOut } = useAuth();
+  const { tier, isPremium } = useSubscription();
   const router = useRouter();
   const repository = useRepository();
   const bcvRates = useBCVRates();
   const activeUsdVes = useActiveUsdVesRate();
-  
+
   // Estado local sincronizado para evitar problemas de hidratación
   // Se inicializa como false (consistente con SSR) y se sincroniza después del mount
   const [clientIsMobile, setClientIsMobile] = useState(false);
@@ -130,6 +132,14 @@ export function Header() {
     }).format(totalBalance);
   }, [totalBalance]);
 
+  // * Format tier name for display
+  const tierName = useMemo(() => {
+    if (tier === 'free') return 'Gratis';
+    if (tier === 'base') return 'Base';
+    if (tier === 'premium') return 'Premium';
+    return 'Gratis';
+  }, [tier]);
+
   if (clientIsMobile) {
     return (
       <header className="h-16 black-theme-header flex items-center justify-between px-4 sticky top-0 z-50">
@@ -139,34 +149,54 @@ export function Header() {
         <Image
           src="/finteclogodark.jpg"
           alt="FinTec Logo"
-          width={120}
-          height={40}
-          className="object-contain"
+          fill
+          className="object-contain h-full w-auto"
           unoptimized
         />
         <div className="relative">
-          <div
+          <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center black-theme-card rounded-xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            className="flex items-center black-theme-card rounded-xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer focus:outline-none"
           >
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-              <User className="h-4 w-4 text-white" />
+            <div className={`h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg ${isPremium ? 'ring-2 ring-amber-400' : ''
+              }`}>
+              {isPremium ? (
+                <Crown className="h-4 w-4 text-white" />
+              ) : (
+                <User className="h-4 w-4 text-white" />
+              )}
             </div>
-          </div>
+          </button>
 
           {showUserMenu && (
             <>
               <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
                 <div className="px-4 py-3 border-b border-white/10">
                   <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center ${isPremium ? 'ring-2 ring-amber-400' : ''
+                      }`}>
+                      {isPremium ? (
+                        <Crown className="h-5 w-5 text-white" />
+                      ) : (
+                        <User className="h-5 w-5 text-white" />
+                      )}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-white">
                         {user?.user_metadata?.full_name || 'Usuario'}
                       </p>
                       <p className="text-sm text-white/70">{user?.email}</p>
+                      {/* * Display tier name */}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <p className="text-xs text-white/60">Plan:</p>
+                        <p className={`text-xs font-semibold ${isPremium ? 'text-amber-400' : 'text-white/80'
+                          }`}>
+                          {tierName}
+                        </p>
+                        {isPremium && (
+                          <Crown className="h-3 w-3 text-amber-400" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -238,11 +268,10 @@ export function Header() {
                       {notifications.slice(0, 5).map((notification) => (
                         <div
                           key={notification.id}
-                          className={`p-3 rounded-xl cursor-pointer transition-colors ${
-                            notification.is_read
-                              ? 'bg-background-tertiary'
-                              : 'bg-blue-50 border border-blue-200'
-                          }`}
+                          className={`p-3 rounded-xl cursor-pointer transition-colors ${notification.is_read
+                            ? 'bg-background-tertiary'
+                            : 'bg-blue-50 border border-blue-200'
+                            }`}
                           onClick={() => markNotificationAsRead(notification.id)}
                         >
                           <div className="flex items-start justify-between">
@@ -295,34 +324,61 @@ export function Header() {
         </div>
 
         <div className="relative">
-          <div
+          <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer"
+            className="flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer focus:outline-none"
           >
-            <div className="h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg">
-              <User className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+            <div className={`h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg ${isPremium ? 'ring-2 ring-amber-400' : ''
+              }`}>
+              {isPremium ? (
+                <Crown className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+              ) : (
+                <User className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+              )}
             </div>
             <div className="hidden lg:block text-left">
               <p className="text-sm font-semibold text-text-primary">
                 {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'}
               </p>
-              <p className="text-xs text-text-muted">Ver perfil</p>
+              <div className="flex items-center gap-1">
+                <p className="text-xs text-text-muted">Plan: {tierName}</p>
+                {isPremium && (
+                  <Crown className="h-3 w-3 text-amber-400" />
+                )}
+              </div>
             </div>
-          </div>
+          </button>
+
 
           {showUserMenu && (
             <>
               <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
                 <div className="px-4 py-3 border-b border-white/10">
                   <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
+                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center ${isPremium ? 'ring-2 ring-amber-400' : ''
+                      }`}>
+                      {isPremium ? (
+                        <Crown className="h-5 w-5 text-white" />
+                      ) : (
+                        <User className="h-5 w-5 text-white" />
+                      )}
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-white">
                         {user?.user_metadata?.full_name || 'Usuario'}
                       </p>
                       <p className="text-sm text-white/70">{user?.email}</p>
+                      {/* * Display tier name */}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <p className="text-xs text-white/60">Plan:</p>
+                        <p className={`text-xs font-semibold ${isPremium ? 'text-amber-400' : 'text-white/80'
+                          }`}>
+                          {tierName}
+                        </p>
+                        {isPremium && (
+                          <Crown className="h-3 w-3 text-amber-400" />
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

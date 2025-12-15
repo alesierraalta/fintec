@@ -14,12 +14,13 @@ interface UpgradeButtonProps {
  * Links to the pricing page and adapts to sidebar state (expanded/minimized).
  */
 export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
-  const { isFree, loading } = useSubscription();
+  const { isPremium, loading } = useSubscription();
 
-  // Only show for free-tier users
-  if (!isFree || loading) {
+  // Only hide for premium users
+  if (isPremium || loading) {
     return null;
   }
+
 
   if (isMinimized) {
     return (

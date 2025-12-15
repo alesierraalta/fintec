@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  DollarSign, 
-  TrendingUp, 
-  Smartphone, 
-  Shield, 
-  Zap, 
+import {
+  DollarSign,
+  TrendingUp,
+  Smartphone,
+  Shield,
+  Zap,
   BarChart3,
   Users,
   Star,
@@ -96,13 +96,13 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <motion.div 
+            <motion.div
               className="flex items-center"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="relative w-24 h-24">
+              <div className="relative w-auto h-24">
                 {logoError ? (
                   <div className="flex items-center justify-center h-full text-white font-bold text-2xl">FinTec</div>
                 ) : (
@@ -114,13 +114,13 @@ export default function LandingPage() {
                     priority
                     unoptimized
                     onError={(e) => {
-                                  setLogoError(true);
+                      setLogoError(true);
                     }}
                   />
                 )}
               </div>
             </motion.div>
-            
+
             <motion.div
               className="flex items-center space-x-3"
               initial={{ opacity: 0, x: 20 }}
@@ -132,7 +132,7 @@ export default function LandingPage() {
                   Iniciar Sesión
                 </button>
               </Link>
-              
+
               <Link href="/auth/register">
                 <button className="border border-border px-6 py-2 rounded-xl font-medium hover:bg-muted/50 transition-all duration-200">
                   Registrarse
@@ -146,15 +146,15 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             variants={staggerContainer}
             initial="hidden"
             animate={isVisible ? "show" : "hidden"}
           >
 
-            
-            <motion.h1 
+
+            <motion.h1
               variants={fadeInUp}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold text-foreground mb-6 leading-tight"
             >
@@ -163,16 +163,16 @@ export default function LandingPage() {
                 Tasas Actualizadas
               </span>
             </motion.h1>
-            
-            <motion.p 
+
+            <motion.p
               variants={fadeInUp}
               className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto leading-relaxed"
             >
-              La aplicación financiera más completa de Venezuela. Accede a tasas oficiales del BCV, 
+              La aplicación financiera más completa de Venezuela. Accede a tasas oficiales del BCV,
               precios P2P de Binance y gestiona todas tus finanzas en un solo lugar.
             </motion.p>
-            
-            <motion.div 
+
+            <motion.div
               variants={fadeInUp}
               className="flex flex-col sm:flex-row gap-4 justify-center items-center"
             >
@@ -182,7 +182,7 @@ export default function LandingPage() {
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
-              
+
               <button className="border border-border px-8 py-4 rounded-xl font-semibold text-lg hover:bg-muted/50 transition-all duration-200 flex items-center space-x-2">
                 <Play className="h-5 w-5" />
                 <span>Ver Demo</span>
@@ -191,7 +191,7 @@ export default function LandingPage() {
           </motion.div>
 
           {/* Live Rates Preview */}
-          <motion.div 
+          <motion.div
             className="max-w-7xl mx-auto"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -202,7 +202,7 @@ export default function LandingPage() {
                 <h3 className="text-2xl font-bold text-foreground mb-2">Tasas en Vivo</h3>
                 <p className="text-muted-foreground">Datos actualizados en tiempo real</p>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 xl:gap-10">
                 <BCVRates />
                 <BinanceRatesComponent />
@@ -215,7 +215,7 @@ export default function LandingPage() {
       {/* Stats Section */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/20">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
+          <motion.div
             className="grid grid-cols-2 lg:grid-cols-4 gap-8"
             variants={staggerContainer}
             initial="hidden"
@@ -225,7 +225,7 @@ export default function LandingPage() {
             {stats.map((stat, index) => {
               const IconComponent = stat.icon;
               return (
-                <motion.div 
+                <motion.div
                   key={index}
                   variants={scaleIn}
                   className="text-center"
@@ -245,7 +245,7 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <motion.div 
+          <motion.div
             className="text-center mb-16"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -259,8 +259,8 @@ export default function LandingPage() {
               Herramientas profesionales diseñadas para el mercado venezolano
             </p>
           </motion.div>
-          
-          <motion.div 
+
+          <motion.div
             className="grid grid-cols-1 md:grid-cols-2 gap-8"
             variants={staggerContainer}
             initial="hidden"
@@ -270,7 +270,7 @@ export default function LandingPage() {
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <motion.div 
+                <motion.div
                   key={index}
                   variants={fadeInUp}
                   className={`${feature.bgColor} ${feature.borderColor} border rounded-3xl p-8 hover:shadow-xl transition-all duration-300 group`}
@@ -302,7 +302,7 @@ export default function LandingPage() {
             <p className="text-xl text-muted-foreground mb-8">
               Únete a miles de usuarios que ya confían en FinTec
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <Link href="/auth/register">
                 <button className="bg-gradient-to-r from-primary to-blue-500 text-white px-10 py-4 rounded-xl font-semibold text-lg hover:shadow-xl hover:shadow-primary/20 transition-all duration-300 flex items-center space-x-2 group">
@@ -310,7 +310,7 @@ export default function LandingPage() {
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
-              
+
               <Link href="/auth/login">
                 <button className="border border-border px-10 py-4 rounded-xl font-semibold text-lg hover:bg-muted/50 transition-all duration-200">
                   Ya tengo cuenta
@@ -326,7 +326,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="relative w-32 h-32">
+              <div className="relative w-auto h-32">
                 {logoError ? (
                   <div className="flex items-center justify-center h-full text-white font-bold text-3xl">FinTec</div>
                 ) : (
@@ -338,13 +338,13 @@ export default function LandingPage() {
                     priority
                     unoptimized
                     onError={(e) => {
-                                  setLogoError(true);
+                      setLogoError(true);
                     }}
                   />
                 )}
               </div>
             </div>
-            
+
             <div className="text-muted-foreground text-center md:text-right">
               <div className="flex flex-col md:flex-row gap-4 md:gap-6 items-center md:items-end justify-center md:justify-end mb-3">
                 <Link href="/terms" className="text-sm hover:text-foreground transition-colors">

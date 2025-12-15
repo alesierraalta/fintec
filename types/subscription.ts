@@ -14,10 +14,6 @@ export interface Subscription {
   userId: string;
   tier: SubscriptionTier;
   status: SubscriptionStatus;
-  paddleSubscriptionId?: string;
-  paddleCustomerId?: string;
-  paddleTransactionId?: string;
-  customerPortalUrl?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd: boolean;
@@ -25,6 +21,7 @@ export interface Subscription {
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface UsageTracking {
   id: string;

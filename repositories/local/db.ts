@@ -166,12 +166,15 @@ export class FinanceDB extends Dexie {
       email: 'usuario@local.app',
       name: 'Usuario Local',
       baseCurrency: 'USD',
+      tier: 'free',
+      subscriptionStatus: 'active',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     await this.users.add(defaultUser);
   }
+
 
   // Clear all data
   async clearAllData(): Promise<void> {

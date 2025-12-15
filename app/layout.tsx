@@ -38,23 +38,9 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Paddle vendor ID - should be set in environment variables
-  const paddleVendorId = process.env.NEXT_PUBLIC_PADDLE_VENDOR_ID || '';
-  const paddleEnvironment = process.env.NEXT_PUBLIC_PADDLE_ENVIRONMENT || 'sandbox';
-
   return (
     <html lang="es" suppressHydrationWarning className="dark">
       <head>
-        {/* Paddle.js - Load for checkout functionality */}
-        {paddleVendorId && (
-          <script
-            src={`https://cdn.paddle.com/paddle/v2/paddle${
-              paddleEnvironment === 'production' ? '' : '.sandbox'
-            }.js`}
-            data-paddle-vendor-id={paddleVendorId}
-            async
-          />
-        )}
       </head>
       <body className={`${inter.className} dark`}>
         <AuthProvider>

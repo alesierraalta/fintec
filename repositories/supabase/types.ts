@@ -95,9 +95,15 @@ export interface SupabaseUser {
   email: string;
   name?: string;
   base_currency: string;
+  tier: string;
+  subscription_tier?: string; // Existing legacy column
+  subscription_status: string;
+  subscription_id?: string;
   created_at: string;
   updated_at: string;
 }
+
+
 
 export interface SupabasePaymentOrder {
   id: string;

@@ -9,7 +9,8 @@ import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { FeatureBadge } from '@/components/subscription/feature-badge';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
-import { 
+import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
+import {
   Home,
   CreditCard,
   ArrowUpDown,
@@ -59,7 +60,7 @@ export function Sidebar() {
   const isMinimized = !isMobile && !isOpen;
 
   return (
-    <div 
+    <div
       className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col black-theme-sidebar transition-ios`}
       suppressHydrationWarning
     >
@@ -75,11 +76,12 @@ export function Sidebar() {
                 alt="FinTec Logo"
                 width={isMinimized ? 40 : 120}
                 height={isMinimized ? 40 : 40}
-                className="object-contain transition-all duration-300"
+                className={`object-contain transition-all duration-300 h-10 ${isMinimized ? 'w-10' : 'w-auto'
+                  }`}
                 priority
                 unoptimized
                 onError={(e) => {
-                      setLogoError(true);
+                  setLogoError(true);
                 }}
               />
             )}
@@ -90,7 +92,7 @@ export function Sidebar() {
       {/* Quick Action - More casual */}
       {!isMinimized && (
         <div className="p-4">
-          <button 
+          <button
             onClick={() => router.push('/transactions/add')}
             className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-ios shadow-ios-lg backdrop-blur-sm"
             style={{ zIndex: 9999 }}
@@ -104,7 +106,7 @@ export function Sidebar() {
       {/* Minimized Quick Action */}
       {isMinimized && (
         <div className="p-2">
-          <button 
+          <button
             onClick={() => router.push('/transactions/add')}
             className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-ios flex items-center justify-center shadow-ios-md backdrop-blur-sm"
             title="Agregar Transacción"
@@ -121,7 +123,7 @@ export function Sidebar() {
           if (item.premium && !isPremium) {
             return null;
           }
-          
+
           const isActive = pathname === item.href;
           return (
             <Link
@@ -153,6 +155,9 @@ export function Sidebar() {
       {/* Upgrade Button - Only for free users */}
       <UpgradeButton isMinimized={isMinimized} />
 
+      {/* Premium Status Card - Only for premium users */}
+      <PremiumStatusCard isMinimized={isMinimized} />
+
       {/* User Profile - More friendly */}
       <div className="p-4 border-t border-white/10">
         <div className={`flex items-center p-3 rounded-2xl black-theme-card shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}>
@@ -169,9 +174,9 @@ export function Sidebar() {
               <div className="flex items-center gap-2 mt-1">
                 <p className="text-ios-caption text-white/70">Plan {tier === 'free' ? 'Gratis' : tier === 'base' ? 'Base' : 'Premium'}</p>
                 {(isPremium || isBase) && (
-                  <FeatureBadge 
-                    tier={isPremium ? 'premium' : 'base'} 
-                    variant="compact" 
+                  <FeatureBadge
+                    tier={isPremium ? 'premium' : 'base'}
+                    variant="compact"
                   />
                 )}
               </div>

@@ -1,3 +1,5 @@
+import { SubscriptionTier, SubscriptionStatus } from './subscription';
+
 // Domain models for personal finance application
 // All monetary amounts are stored in minor units (e.g., cents for USD)
 
@@ -6,9 +8,13 @@ export interface User {
   email: string;
   name?: string;
   baseCurrency: string;
+  tier: SubscriptionTier;
+  subscriptionStatus: SubscriptionStatus;
+  subscriptionId?: string;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export interface Account {
   id: string;

@@ -1,8 +1,9 @@
 import { SubscriptionTier, Feature, TIER_LIMITS, FEATURE_ACCESS } from '@/types/subscription';
-import { getUserTier, getUserUsage, incrementUsage } from '@/lib/paddle/subscriptions';
 import { hasFeatureAccess, isWithinLimit } from './limits';
+import { getUserTier, getUserUsage, incrementUsage } from '@/lib/supabase/subscriptions';
 
 export interface FeatureCheckResult {
+
   allowed: boolean;
   reason?: string;
   upgradeRequired?: 'base' | 'premium';

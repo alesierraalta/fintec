@@ -3,7 +3,6 @@ import { SupabaseAppRepository } from '@/repositories/supabase';
 import { CreateTransactionDTO } from '@/types';
 import { TransactionType } from '@/types';
 import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
-import { indexDocument, formatTransactionContent } from '@/lib/ai/rag/indexer';
 import { createSupabaseServiceClient } from '@/repositories/supabase/client';
 import { logger } from '@/lib/utils/logger';
 
@@ -113,54 +112,6 @@ export async function POST(request: NextRequest) {
     
     const transaction = await repository.transactions.create(transactionData);
     
-    // Indexar en RAG (on-demand)
-    if (userId && transaction.id) {
-      try {
-        const client = createSupabaseServiceClient();
-        // Obtener información completa de la transacción incluyendo categoría
-        const { data: txData } = await client
-          .from('transactions')
-          .select(`
-            id,
-            type,
-            amount_base_minor,
-            currency_code,
-            date,
-            description,
-            categories(name)
-          `)
-          .eq('id', transaction.id)
-          .single();
-        
-        if (txData) {
-          const tx = txData as any;
-          const content = formatTransactionContent({
-            description: tx.description,
-            amountBaseMinor: tx.amount_base_minor,
-            currencyCode: tx.currency_code,
-            date: tx.date,
-            categoryName: tx.categories?.name || null,
-            type: tx.type,
-          });
-          
-          await indexDocument({
-            userId,
-            documentType: 'transaction',
-            documentId: transaction.id,
-            content,
-            metadata: {
-              accountId: transaction.accountId,
-              categoryId: transaction.categoryId,
-              date: transaction.date,
-            },
-          });
-        }
-      } catch (error) {
-        // Log pero no fallar la operación principal
-        logger.error('[Transaction API] Failed to index in RAG:', error);
-      }
-    }
-    
     return NextResponse.json({
       success: true,
       data: transaction,
@@ -194,59 +145,6 @@ export async function PUT(request: NextRequest) {
     }
     
     const transaction = await repository.transactions.update(body.id, body);
-    
-    // Re-indexar en RAG después de actualizar (on-demand)
-    if (transaction.id) {
-      try {
-        const client = createSupabaseServiceClient();
-        // Obtener userId desde la transacción (a través de account)
-        const { data: txData } = await client
-          .from('transactions')
-          .select(`
-            id,
-            type,
-            amount_base_minor,
-            currency_code,
-            date,
-            description,
-            account_id,
-            category_id,
-            accounts!inner(user_id),
-            categories(name)
-          `)
-          .eq('id', transaction.id)
-          .single();
-        
-        if (txData) {
-          const tx = txData as any;
-          if (tx.accounts?.user_id) {
-            const content = formatTransactionContent({
-              description: tx.description,
-              amountBaseMinor: tx.amount_base_minor,
-              currencyCode: tx.currency_code,
-              date: tx.date,
-              categoryName: tx.categories?.name || null,
-              type: tx.type,
-            });
-            
-            await indexDocument({
-              userId: tx.accounts.user_id,
-              documentType: 'transaction',
-              documentId: transaction.id,
-              content,
-              metadata: {
-                accountId: tx.account_id,
-                categoryId: tx.category_id,
-                date: tx.date,
-              },
-            });
-          }
-        }
-      } catch (error) {
-        // Log pero no fallar la operación principal
-        logger.error('[Transaction API] Failed to re-index in RAG:', error);
-      }
-    }
     
     return NextResponse.json({
       success: true,

@@ -14,6 +14,8 @@ import {
   CategoryKind,
 } from '@/types';
 
+import { SubscriptionTier, SubscriptionStatus } from '@/types/subscription';
+
 import {
   SupabaseAccount,
   SupabaseTransaction,
@@ -32,6 +34,9 @@ export function mapSupabaseUserToDomain(supabaseUser: SupabaseUser): User {
     email: supabaseUser.email,
     name: supabaseUser.name,
     baseCurrency: supabaseUser.base_currency,
+    tier: (supabaseUser.tier as SubscriptionTier) || 'free',
+    subscriptionStatus: (supabaseUser.subscription_status as SubscriptionStatus) || 'active',
+    subscriptionId: supabaseUser.subscription_id,
     createdAt: supabaseUser.created_at,
     updatedAt: supabaseUser.updated_at,
   };
@@ -43,10 +48,14 @@ export function mapDomainUserToSupabase(user: Partial<User>): Partial<SupabaseUs
     email: user.email,
     name: user.name,
     base_currency: user.baseCurrency,
+    tier: user.tier,
+    subscription_status: user.subscriptionStatus,
+    subscription_id: user.subscriptionId,
     created_at: user.createdAt,
     updated_at: user.updatedAt,
   };
 }
+
 
 // Account mappers
 export function mapSupabaseAccountToDomain(supabaseAccount: SupabaseAccount): Account {
