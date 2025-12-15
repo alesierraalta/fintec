@@ -47,6 +47,7 @@ import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indic
 import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
 import { logger } from '@/lib/utils/logger';
 import { useAppStore } from '@/lib/store';
+import { AccountsSkeleton } from '@/components/skeletons/accounts-skeleton';
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
@@ -129,61 +130,47 @@ export default function AccountsPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
-  const [loadingTransactions, setLoadingTransactions] = useState(false);
 
-  const loadAccounts = useCallback(async () => {
+  const loadAllData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
       if (!user?.id) {
-        // No user authenticated, show empty state or redirect to login
         setAccounts([]);
         setError('Debes iniciar sesión para ver tus cuentas');
         return;
       }
       
-      const userAccounts = await repository.accounts.findByUserId(user.id);
+      const [userAccounts, transactionsData, categoriesData] = await Promise.all([
+        repository.accounts.findByUserId(user.id),
+        repository.transactions.findAll(),
+        repository.categories.findAll()
+      ]);
+
       setAccounts(userAccounts);
+      setTransactions(transactionsData);
+      setCategories(categoriesData);
       
       // Check for balance alerts after loading accounts
       await checkAlerts(userAccounts);
     } catch (err) {
-      logger.error('Error loading accounts:', err);
-      setError('Error al cargar las cuentas');
+      logger.error('Error loading data:', err);
+      setError('Error al cargar los datos');
     } finally {
       setLoading(false);
     }
-  }, [user, repository.accounts, checkAlerts]);
+  }, [user, repository, checkAlerts]);
 
-  // Load accounts from database
+  // Load all data on mount
   useEffect(() => {
-    loadAccounts();
-  }, [loadAccounts]);
-
-  // Load transactions and categories
-  useEffect(() => {
-    const loadTransactionsAndCategories = async () => {
-      try {
-        setLoadingTransactions(true);
-        const [transactionsData, categoriesData] = await Promise.all([
-          repository.transactions.findAll(),
-          repository.categories.findAll()
-        ]);
-        setTransactions(transactionsData);
-        setCategories(categoriesData);
-      } catch (error) {
-        // eslint-disable-next-line no-console
-        logger.error('Error loading transactions and categories:', error);
-      } finally {
-        setLoadingTransactions(false);
-      }
-    };;
-
     if (user?.id) {
-      loadTransactionsAndCategories();
+      loadAllData();
     }
-  }, [user?.id, repository.transactions, repository.categories]);
+  }, [loadAllData, user?.id]);
+
+  // Helper for manual reload
+  const loadAccounts = loadAllData;
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -429,6 +416,16 @@ export default function AccountsPage() {
   useEffect(() => {
     showCurrentRates();
   }, [showCurrentRates]);
+
+  if (loading && accounts.length === 0) {
+    return (
+      <AuthGuard>
+        <MainLayout>
+          <AccountsSkeleton />
+        </MainLayout>
+      </AuthGuard>
+    );
+  }
 
   return (
     <AuthGuard>
@@ -930,12 +927,7 @@ export default function AccountsPage() {
                                 </span>
                               </div>
                               
-                              {loadingTransactions ? (
-                                <div className="flex items-center justify-center py-4">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                                  <span className="ml-2 text-xs text-muted-foreground">Cargando estadísticas...</span>
-                                </div>
-                              ) : getAccountCategoryStats(account.id).length === 0 ? (
+                              {getAccountCategoryStats(account.id).length === 0 ? (
                                 <div className="text-center py-4">
                                   <p className="text-xs text-muted-foreground">No hay transacciones en esta cuenta</p>
                                 </div>

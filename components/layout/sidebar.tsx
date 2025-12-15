@@ -91,7 +91,7 @@ export function Sidebar() {
       {!isMinimized && (
         <div className="p-4">
           <button 
-            onClick={() => window.location.href = '/transactions/add'}
+            onClick={() => router.push('/transactions/add')}
             className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-ios shadow-ios-lg backdrop-blur-sm"
             style={{ zIndex: 9999 }}
           >
@@ -105,7 +105,7 @@ export function Sidebar() {
       {isMinimized && (
         <div className="p-2">
           <button 
-            onClick={() => window.location.href = '/transactions/add'}
+            onClick={() => router.push('/transactions/add')}
             className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-ios flex items-center justify-center shadow-ios-md backdrop-blur-sm"
             title="Agregar Transacción"
           >
