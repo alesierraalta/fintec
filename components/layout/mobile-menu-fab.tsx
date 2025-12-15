@@ -165,7 +165,7 @@ export function MobileMenuFAB() {
             'w-14 h-14 rounded-full shadow-ios-lg transition-ios flex items-center justify-center backdrop-blur-sm focus:outline-none overflow-hidden',
             isOpen
               ? 'bg-accent-primary hover:bg-accent-primary/90 rotate-90'
-              : 'bg-purple-500 hover:bg-purple-600 active:scale-95'
+              : 'bg-gray-900 hover:bg-gray-800 active:scale-95'
           )}
           title="Más opciones"
           aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -177,10 +177,10 @@ export function MobileMenuFAB() {
             <X className="h-6 w-6 text-text-primary" />
           ) : (
             <Image
-              src="/fintecminilogodark.jpg"
+              src="/fintecminilogodark.png"
               alt="FinTec Menu"
-              width={56}
-              height={56}
+              width={44}
+              height={44}
               className="object-contain"
               unoptimized
             />
