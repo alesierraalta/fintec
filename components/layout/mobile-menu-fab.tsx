@@ -162,7 +162,7 @@ export function MobileMenuFAB() {
         <button
           onClick={toggleMenu}
           className={cn(
-            'w-14 h-14 rounded-full shadow-ios-lg transition-ios flex items-center justify-center backdrop-blur-sm',
+            'w-14 h-14 rounded-full shadow-ios-lg transition-ios flex items-center justify-center backdrop-blur-sm focus:outline-none overflow-hidden',
             isOpen
               ? 'bg-accent-primary hover:bg-accent-primary/90 rotate-90'
               : 'bg-purple-500 hover:bg-purple-600 active:scale-95'
@@ -171,14 +171,16 @@ export function MobileMenuFAB() {
           aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
           aria-expanded={isOpen}
         >
+
+
           {isOpen ? (
             <X className="h-6 w-6 text-text-primary" />
           ) : (
             <Image
               src="/fintecminilogodark.jpg"
               alt="FinTec Menu"
-              width={32}
-              height={32}
+              width={56}
+              height={56}
               className="object-contain"
               unoptimized
             />

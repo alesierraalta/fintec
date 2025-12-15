@@ -58,9 +58,10 @@ export function RateSelector() {
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios"
+        className="flex items-center gap-1 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios focus:outline-none"
         title="Seleccionar fuente de tasa"
       >
+
         {triggerIcon}
         <ChevronDown className="h-3 w-3 opacity-70" />
       </button>
