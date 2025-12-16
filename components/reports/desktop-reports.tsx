@@ -80,7 +80,7 @@ export function DesktopReports() {
       .filter(t => t.type === 'EXPENSE')
       .forEach(t => {
         const catId = t.categoryId || 'uncategorized';
-        spending[catId] = (spending[catId] || 0) + (t.amountMinor / 100);
+        spending[catId] = (spending[catId] || 0) + ((t.amountBaseMinor || 0) / 100);
       });
     const totalSpent = Object.values(spending).reduce((sum, val) => sum + val, 0);
     return { spending, totalSpent };
