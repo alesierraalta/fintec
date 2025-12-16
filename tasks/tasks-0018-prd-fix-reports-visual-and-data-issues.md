@@ -19,11 +19,11 @@
   - [x] 2.3 Update `categoryTotals` logic: Inside the `forEach` loop, change `t.amountMinor` to `t.amountBaseMinor` for the aggregation.
   - [x] 2.4 Update `Top Transactions` logic (if displayed with mixed currencies): Verify if `amountMinor` is appropriate here (showing original currency) or if it should also be normalized. PRD goal implies "Total amounts", but top transactions usually show the specific transaction value. *Decision: Keep Top Transactions as is (showing specific transaction amount) unless specifically asked to change, but ensuring the "Total" stats above use the normalized values.* -> *Re-reading PRD: Goal is "Total sums". I will strictly focus on the aggregate totals first.*
 
-- [ ] 3.0 Fix Data Logic in Desktop Reports
+- [x] 3.0 Fix Data Logic in Desktop Reports
   - [x] 3.1 In `components/reports/desktop-reports.tsx`, locate the `categorySpending` useMemo hook.
   - [x] 3.2 Update the accumulation logic to use `t.amountBaseMinor` instead of `t.amountMinor`.
 
 - [ ] 4.0 Verification & Testing
-  - [ ] 4.1 Manual Verification (Visual): Check that "Mensual", "Resumen", etc., are readable when selected on mobile view.
-  - [ ] 4.2 Manual Verification (Data): Check that the total Income/Expenses match the expected sum of converted values (e.g. check against a known mixed-currency dataset if possible, or verify the logic change via code review).
-  - [ ] 4.3 Run existing tests to ensure no regressions: `npm test tests/components/reports-category-calculations.test.ts`.
+  - [x] 4.1 Manual Verification (Visual): Check that "Mensual", "Resumen", etc., are readable when selected on mobile view.
+  - [x] 4.2 Manual Verification (Data): Check that the total Income/Expenses match the expected sum of converted values (e.g. check against a known mixed-currency dataset if possible, or verify the logic change via code review).
+  - [x] 4.3 Run existing tests to ensure no regressions: `npm test tests/components/reports-category-calculations.test.ts`.
