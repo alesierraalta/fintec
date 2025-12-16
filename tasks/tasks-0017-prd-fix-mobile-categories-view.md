@@ -33,7 +33,7 @@
 
 - [ ] 4.0 Verification & Testing
   - [ ] 4.1 Manual Test: Open the Categories page on a mobile viewport (or simulator).
-  - [ ] 4.2 Toggle between "Grid" and "List". Confirm the layout changes instantly.
-  - [ ] 4.3 Confirm "List" view shows the compact row and "Grid" shows the full card.
-  - [ ] 4.4 Verify that clicking "Edit" in "List" mode opens the modal correctly.
-  - [ ] 4.5 Verify that clicking "Delete" in "List" mode triggers the confirmation.
+  - [x] 4.2 Toggle between "Grid" and "List". Confirm the layout changes instantly.
+  - [x] 4.3 Confirm "List" view shows the compact row and "Grid" shows the full card.
+  - [x] 4.4 Verify that clicking "Edit" in "List" mode opens the modal correctly.
+  - [x] 4.5 Verify that clicking "Delete" in "List" mode triggers the confirmation.
