@@ -378,6 +378,7 @@ export default function CategoriesPage() {
                 onDelete={handleDeleteCategory}
                 onView={handleViewCategory}
                 onAddSubcategory={handleAddSubcategory}
+                viewMode={viewMode}
               />
             ))}
           </div>

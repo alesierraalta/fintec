@@ -9,7 +9,7 @@
 - Use `cn()` or template literals for clean conditional class application.
 
 ## Tasks
-- [ ] 1.0 Update CategoryCard Component
+- [x] 1.0 Update CategoryCard Component
   - [x] 1.1 Modify `CategoryCard` props interface to include optional `viewMode: 'grid' | 'list'`.
   - [x] 1.2 Implement the conditional rendering structure within `CategoryCard`. If `viewMode` is 'list', render the new compact row layout. If 'grid', render the existing full card layout.
   - [x] 1.3 Design the "List" view layout:
@@ -21,9 +21,9 @@
   - [x] 1.5 Verify that `onEdit`, `onDelete`, and `onView` handlers are correctly attached to the interactive elements in the new "List" layout.
 
 - [ ] 2.0 Integrate View Mode in Categories Page
-  - [ ] 2.1 In `app/categories/page.tsx`, locate the mapping of `filteredCategories`.
-  - [ ] 2.2 Pass the existing `viewMode` state variable as a prop to the `CategoryCard` component: `<CategoryCard viewMode={viewMode} ... />`.
-  - [ ] 2.3 Update the container's CSS classes in `app/categories/page.tsx`.
+  - [x] 2.1 In `app/categories/page.tsx`, locate the mapping of `filteredCategories`.
+  - [x] 2.2 Pass the existing `viewMode` state variable as a prop to the `CategoryCard` component: `<CategoryCard viewMode={viewMode} ... />`.
+  - [x] 2.3 Update the container's CSS classes in `app/categories/page.tsx`.
     - [ ] Currently, it switches between `grid-cols-...` and `space-y-4`. Ensure `space-y-4` (or `space-y-2`) is active when `viewMode === 'list'` and effectively stacks the new compact cards.
 
 - [ ] 3.0 Mobile UX & Design Refinement
