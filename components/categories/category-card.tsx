@@ -1,4 +1,4 @@
-import {
+import { 
   MoreVertical, 
   Edit, 
   Trash2, 
@@ -18,12 +18,6 @@ import {
   TrendingUp,
   Plus
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface CategoryCardProps {
   category: {
@@ -85,47 +79,53 @@ export function CategoryCard({ category, onEdit, onDelete, onView, onAddSubcateg
           </div>
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {category.totalAmount !== undefined && (
-            <div className={`font-medium text-sm ${
+            <div className={`font-medium text-sm hidden sm:block ${
               category.kind === 'INCOME' ? 'text-green-400' : 'text-red-400'
             }`}>
               {category.kind === 'INCOME' ? '+' : '-'}${Math.abs(category.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
             </div>
           )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full transition-colors">
-                <MoreVertical className="h-5 w-5" />
+          
+          <div className="flex items-center space-x-1">
+            {onView && (
+              <button
+                onClick={() => onView(category.id)}
+                className="p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-400/10 rounded-lg transition-colors"
+                title="Ver detalles"
+              >
+                <Eye className="h-4 w-4" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-40">
-              {onView && (
-                <DropdownMenuItem onClick={() => onView(category.id)} className="cursor-pointer">
-                  <Eye className="mr-2 h-4 w-4" />
-                  <span>Ver</span>
-                </DropdownMenuItem>
-              )}
-              {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(category)} className="cursor-pointer">
-                  <Edit className="mr-2 h-4 w-4" />
-                  <span>Editar</span>
-                </DropdownMenuItem>
-              )}
-              {onDelete && (
-                <DropdownMenuItem onClick={() => onDelete(category.id)} className="cursor-pointer">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  <span>Eliminar</span>
-                </DropdownMenuItem>
-              )}
-              {!category.parentId && onAddSubcategory && (
-                <DropdownMenuItem onClick={() => onAddSubcategory(category.id)} className="cursor-pointer">
-                  <Plus className="mr-2 h-4 w-4" />
-                  <span>Subcategoría</span>
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            )}
+            {onEdit && (
+              <button
+                onClick={() => onEdit(category)}
+                className="p-2 text-gray-400 hover:text-yellow-400 hover:bg-yellow-400/10 rounded-lg transition-colors"
+                title="Editar"
+              >
+                <Edit className="h-4 w-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={() => onDelete(category.id)}
+                className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                title="Eliminar"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+            {!category.parentId && onAddSubcategory && (
+              <button
+                 onClick={() => onAddSubcategory(category.id)}
+                 className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-lg transition-colors"
+                 title="Agregar subcategoría"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
