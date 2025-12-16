@@ -270,9 +270,7 @@ export function MobileReports() {
             key={period.id}
             onClick={() => setSelectedPeriod(period.id)}
             className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-              selectedPeriod === period.id
-                ? 'bg-accent-primary text-background-primary'
-                : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+            ${selectedPeriod === period.id ? 'bg-accent-primary text-white' : 'bg-background-elevated text-text-secondary hover:text-text-primary'}
             }`}
           >
             {period.label}
@@ -290,7 +288,7 @@ export function MobileReports() {
               onClick={() => setSelectedTab(tab.id)}
               className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
                 selectedTab === tab.id
-                  ? 'bg-accent-primary text-background-primary'
+                  ? 'bg-accent-primary text-white'
                   : 'text-text-secondary hover:text-text-primary hover:bg-background-tertiary'
               }`}
             >
