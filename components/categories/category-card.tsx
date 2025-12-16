@@ -1,4 +1,4 @@
-import { 
+import {
   MoreVertical, 
   Edit, 
   Trash2, 
@@ -18,6 +18,12 @@ import {
   TrendingUp,
   Plus
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface CategoryCardProps {
   category: {
@@ -35,6 +41,7 @@ interface CategoryCardProps {
   onDelete?: (categoryId: string) => void;
   onView?: (categoryId: string) => void;
   onAddSubcategory?: (parentCategoryId: string) => void;
+  viewMode?: 'grid' | 'list';
 }
 
 // Icon mapping
@@ -55,12 +62,77 @@ const iconMap: Record<string, any> = {
   Folder,
 };
 
-export function CategoryCard({ category, onEdit, onDelete, onView, onAddSubcategory }: CategoryCardProps) {
+export function CategoryCard({ category, onEdit, onDelete, onView, onAddSubcategory, viewMode }: CategoryCardProps) {
   const IconComponent = iconMap[category.icon] || Folder;
 
+  if (viewMode === 'list') {
+    return (
+      <div className="flex items-center justify-between p-4 bg-card/90 backdrop-blur-xl border border-border/40 rounded-xl h-[70px] relative">
+        <div className="flex items-center space-x-3 flex-1 min-w-0">
+          <div 
+            className="p-2 rounded-lg"
+            style={{ backgroundColor: category.color }}
+          >
+            <IconComponent className="h-5 w-5 text-white" />
+          </div>
+          <div className="flex flex-col min-w-0 flex-1">
+            <h3 className="text-base font-semibold text-white truncate">{category.name}</h3>
+            {category.subcategories && category.subcategories.length > 0 && (
+              <span className="text-xs text-gray-400 truncate">
+                {category.subcategories.length} subcategorías
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          {category.totalAmount !== undefined && (
+            <div className={`font-medium text-sm ${
+              category.kind === 'INCOME' ? 'text-green-400' : 'text-red-400'
+            }`}>
+              {category.kind === 'INCOME' ? '+' : '-'}${Math.abs(category.totalAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            </div>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700/50 rounded-full transition-colors">
+                <MoreVertical className="h-5 w-5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-40">
+              {onView && (
+                <DropdownMenuItem onClick={() => onView(category.id)} className="cursor-pointer">
+                  <Eye className="mr-2 h-4 w-4" />
+                  <span>Ver</span>
+                </DropdownMenuItem>
+              )}
+              {onEdit && (
+                <DropdownMenuItem onClick={() => onEdit(category)} className="cursor-pointer">
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span>Editar</span>
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <DropdownMenuItem onClick={() => onDelete(category.id)} className="cursor-pointer">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  <span>Eliminar</span>
+                </DropdownMenuItem>
+              )}
+              {!category.parentId && onAddSubcategory && (
+                <DropdownMenuItem onClick={() => onAddSubcategory(category.id)} className="cursor-pointer">
+                  <Plus className="mr-2 h-4 w-4" />
+                  <span>Subcategoría</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:bg-gray-800/50 transition-all group">
-      <div className="flex items-start justify-between">
+    <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 hover:bg-gray-800/50 transition-all group">      <div className="flex items-start justify-between">
         {/* Category Info */}
         <div className="flex items-center space-x-4 flex-1">
           <div 
