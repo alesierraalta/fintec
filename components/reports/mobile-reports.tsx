@@ -270,7 +270,9 @@ export function MobileReports() {
             key={period.id}
             onClick={() => setSelectedPeriod(period.id)}
             className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-            ${selectedPeriod === period.id ? 'bg-accent-primary text-white' : 'bg-background-elevated text-text-secondary hover:text-text-primary'}
+                        selectedPeriod === period.id
+                            ? 'bg-accent-primary text-white'
+                            : 'bg-background-elevated text-text-secondary hover:text-text-primary'
             }`}
           >
             {period.label}
