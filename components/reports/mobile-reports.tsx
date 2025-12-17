@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { formatCurrency } from '@/lib/money';
 import { 
   PieChart,
   BarChart3,
@@ -61,14 +62,14 @@ export function MobileReports() {
     return transactions.filter(t => new Date(t.date) >= start);
   })();
 
-  const totalIncome = filteredTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + ((t.amountBaseMinor || 0) / 100), 0);
-  const totalExpenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + ((t.amountBaseMinor || 0) / 100), 0);
+  const totalIncome = filteredTransactions.filter(t => t.type === 'INCOME').reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
+  const totalExpenses = filteredTransactions.filter(t => t.type === 'EXPENSE').reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
 
   const categoryTotals = (() => {
     const map: Record<string, number> = {};
     filteredTransactions.filter(t => t.type === 'EXPENSE').forEach(t => {
       const key = t.categoryId || 'uncategorized';
-      map[key] = (map[key] || 0) + ((t.amountBaseMinor || 0) / 100);
+      map[key] = (map[key] || 0) + (t.amountBaseMinor || 0);
     });
     const total = Object.values(map).reduce((s, v) => s + v, 0);
     const idToName: Record<string, string> = {};
@@ -82,6 +83,11 @@ export function MobileReports() {
   })();
 
   const renderOverview = () => {
+    const baseCurrency = user?.baseCurrency || 'USD';
+    const netBalance = totalIncome - totalExpenses;
+    const daysInPeriod = Math.max(1, Math.ceil((new Date().getTime() - getPeriodStartDate(selectedPeriod).getTime()) / (24 * 60 * 60 * 1000)));
+    const avgDailyExpense = Math.round(totalExpenses / daysInPeriod);
+
     return (
       <div className="space-y-4">
         {/* Summary Cards */}
@@ -91,7 +97,7 @@ export function MobileReports() {
               <span className="text-sm text-text-muted">Ingresos</span>
               <ArrowUpRight className="h-4 w-4 text-green-500" />
             </div>
-            <p className="text-xl font-bold text-text-primary">${totalIncome.toFixed(2)}</p>
+            <p className="text-xl font-bold text-text-primary">{formatCurrency(totalIncome, baseCurrency)}</p>
             <p className="text-xs text-green-500">+12% vs mes anterior</p>
           </div>
           
@@ -100,7 +106,7 @@ export function MobileReports() {
               <span className="text-sm text-text-muted">Gastos</span>
               <ArrowDownRight className="h-4 w-4 text-red-500" />
             </div>
-            <p className="text-xl font-bold text-text-primary">${totalExpenses.toFixed(2)}</p>
+            <p className="text-xl font-bold text-text-primary">{formatCurrency(totalExpenses, baseCurrency)}</p>
             <p className="text-xs text-red-500">+5% vs mes anterior</p>
           </div>
         </div>
@@ -112,7 +118,7 @@ export function MobileReports() {
             <Wallet className="h-4 w-4 text-text-muted" />
           </div>
           <p className="text-2xl font-bold text-text-primary">
-            ${(totalIncome - totalExpenses).toFixed(2)}
+            {formatCurrency(netBalance, baseCurrency)}
           </p>
           <p className={`text-xs ${totalIncome > totalExpenses ? 'text-green-500' : 'text-red-500'}`}>
             {totalIncome > totalExpenses ? 'Superávit' : 'Déficit'} este período
@@ -130,7 +136,7 @@ export function MobileReports() {
             <div className="flex justify-between">
               <span className="text-sm text-text-muted">Promedio por día</span>
               <span className="text-sm font-medium text-text-primary">
-                ${(totalExpenses / Math.max(1, Math.ceil((new Date().getTime() - getPeriodStartDate(selectedPeriod).getTime()) / (24 * 60 * 60 * 1000)))).toFixed(2)}
+                {formatCurrency(avgDailyExpense, baseCurrency)}
               </span>
             </div>
             <div className="flex justify-between">
@@ -157,7 +163,9 @@ export function MobileReports() {
                   <span className="text-sm font-medium text-text-primary">{category.category}</span>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-semibold text-text-primary">${category.amount && !isNaN(category.amount) && isFinite(category.amount) ? category.amount.toFixed(2) : '0.00'}</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {formatCurrency(category.amount, user?.baseCurrency || 'USD')}
+                  </p>
                   <p className="text-xs text-text-muted">{category.percentage}%</p>
                 </div>
               </div>
@@ -194,7 +202,7 @@ export function MobileReports() {
                   </div>
                 </div>
                 <span className="text-sm font-semibold text-text-primary">
-                  ${transaction.amountMinor && !isNaN(transaction.amountMinor) && isFinite(transaction.amountMinor) ? Math.abs(transaction.amountMinor / 100).toFixed(2) : '0.00'}
+                  {formatCurrency(Math.abs(transaction.amountMinor), transaction.currencyCode)}
                 </span>
               </div>
             ))}
@@ -270,34 +278,33 @@ export function MobileReports() {
             key={period.id}
             onClick={() => setSelectedPeriod(period.id)}
             className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
-                        selectedPeriod === period.id
-                            ? 'bg-accent-primary text-white'
-                            : 'bg-background-elevated text-text-secondary hover:text-text-primary'
-            }`}
-          >
-            {period.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className="flex space-x-1 bg-background-elevated rounded-2xl p-1 border border-border-primary">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setSelectedTab(tab.id)}
-              className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
-                selectedTab === tab.id
-                  ? 'bg-accent-primary text-white'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-background-tertiary'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              <span>{tab.label}</span>
-            </button>
-          );
+                                    selectedPeriod === period.id
+                                        ? 'bg-primary text-white'
+                                        : 'bg-background-elevated text-text-secondary hover:text-text-primary'
+                                    }`}
+                                  >
+                                    {period.label}
+                                  </button>
+                                ))}
+                              </div>
+                        
+                              {/* Tabs */}
+                              <div className="flex space-x-1 bg-background-elevated rounded-2xl p-1 border border-border-primary">
+                                {tabs.map((tab) => {
+                                  const Icon = tab.icon;
+                                  return (
+                                    <button
+                                      key={tab.id}
+                                      onClick={() => setSelectedTab(tab.id)}
+                                      className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors ${
+                                        selectedTab === tab.id
+                                          ? 'bg-primary text-white'
+                                          : 'text-text-secondary hover:text-text-primary hover:bg-background-tertiary'
+                                      }`}
+                                    >
+                                      <Icon className="h-4 w-4" />
+                                      <span>{tab.label}</span>
+                                    </button>          );
         })}
       </div>
 
