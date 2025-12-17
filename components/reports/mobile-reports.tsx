@@ -83,7 +83,9 @@ export function MobileReports() {
   })();
 
   const renderOverview = () => {
-    const baseCurrency = user?.baseCurrency || 'USD';
+    // Cast to any to avoid TS error since Supabase User type doesn't have baseCurrency directly
+    // In the future, we should merge the DB profile into the auth user context
+    const baseCurrency = (user as any)?.baseCurrency || 'USD';
     const netBalance = totalIncome - totalExpenses;
     const daysInPeriod = Math.max(1, Math.ceil((new Date().getTime() - getPeriodStartDate(selectedPeriod).getTime()) / (24 * 60 * 60 * 1000)));
     const avgDailyExpense = Math.round(totalExpenses / daysInPeriod);
@@ -164,7 +166,7 @@ export function MobileReports() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-text-primary">
-                    {formatCurrency(category.amount, user?.baseCurrency || 'USD')}
+                    {formatCurrency(category.amount, (user as any)?.baseCurrency || 'USD')}
                   </p>
                   <p className="text-xs text-text-muted">{category.percentage}%</p>
                 </div>
