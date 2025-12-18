@@ -14,7 +14,7 @@ export class LocalAccountsRepository implements AccountsRepository {
 
   async create(data: CreateAccountDTO): Promise<Account> {
     try {
-      
+
       const account: Account = {
         id: generateId('acc'),
         userId: 'local-user', // For local storage, we use a fixed user ID
@@ -27,24 +27,24 @@ export class LocalAccountsRepository implements AccountsRepository {
         updatedAt: new Date().toISOString(),
       };
 
-      
+
       // Intentar agregar la cuenta a IndexedDB
       const addResult = await db.accounts.add(account);
-      
+
       // Verificar que la cuenta se guardó correctamente
       const savedAccount = await db.accounts.get(account.id);
       if (!savedAccount) {
         throw new Error(`La cuenta con ID ${account.id} no se pudo guardar en IndexedDB`);
       }
-      
-      
+
+
       // Verificar que el conteo de cuentas aumentó
       const totalAccounts = await db.accounts.count();
-      
+
       return savedAccount;
-      
+
     } catch (error) {
-      
+
       // Proporcionar errores más específicos
       if (error instanceof Error) {
         if (error.name === 'ConstraintError') {
@@ -57,7 +57,7 @@ export class LocalAccountsRepository implements AccountsRepository {
           throw new Error(`Error al crear la cuenta: ${error.message}`);
         }
       }
-      
+
       throw new Error('Error desconocido al crear la cuenta');
     }
   }
@@ -237,6 +237,7 @@ export class LocalAccountsRepository implements AccountsRepository {
       [AccountType.CARD]: 0,
       [AccountType.INVESTMENT]: 0,
       [AccountType.SAVINGS]: 0,
+      [AccountType.CRYPTO]: 0,
     };
 
     const totalByCurrency: Record<string, number> = {};

@@ -7,6 +7,7 @@
 import { BaseScraper } from './base-scraper';
 import { ScraperResult, ScraperError } from './types';
 import { BINANCE_CONFIG } from './config';
+import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 
 interface PriceData {
   price: number;
@@ -142,8 +143,8 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       usdtFilteredSell.length > 0 && usdtFilteredBuy.length > 0
         ? (usdtSellStats.avg + usdtBuyStats.avg) / 2
         : usdtFilteredSell.length > 0
-        ? usdtSellStats.avg
-        : usdtBuyStats.avg;
+          ? usdtSellStats.avg
+          : usdtBuyStats.avg;
 
     // --- Process BUSD ---
     const busdFilteredSell = this.filterOutliers(parsed.busd.sell);
@@ -154,12 +155,12 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       busdFilteredSell.length > 0 && busdFilteredBuy.length > 0
         ? (busdSellStats.avg + busdBuyStats.avg) / 2
         : busdFilteredSell.length > 0
-        ? busdSellStats.avg
-        : busdBuyStats.avg;
+          ? busdSellStats.avg
+          : busdBuyStats.avg;
 
     // Fallback: If BUSD has no data (avg is 0), use USDT avg
     if (busdGeneralAvg === 0) {
-        busdGeneralAvg = usdtGeneralAvg;
+      busdGeneralAvg = usdtGeneralAvg;
     }
 
     // Overall min/max (using USDT as reference)
@@ -211,35 +212,36 @@ class BinanceScraper extends BaseScraper<BinanceData> {
     startTime: number
   ): ScraperResult<BinanceData> {
     const executionTime = Date.now() - startTime;
+    const fb = STATIC_BINANCE_FALLBACK_RATES;
 
     return {
       success: false,
       error: error.message,
       data: {
-        usd_ves: 300.0,
-        usdt_ves: 300.0,
-        busd_ves: 300.0,
-        sell_rate: 302.0,
-        buy_rate: 298.0,
-        sell_min: 300.0,
-        sell_avg: 302.0,
-        sell_max: 304.0,
-        buy_min: 296.0,
-        buy_avg: 298.0,
-        buy_max: 300.0,
-        overall_min: 296.0,
-        overall_max: 304.0,
-        spread: 4.0,
+        usd_ves: fb.usd_ves,
+        usdt_ves: fb.usdt_ves,
+        busd_ves: fb.busd_ves,
+        sell_rate: fb.sell_rate,
+        buy_rate: fb.buy_rate,
+        sell_min: fb.buy_rate,
+        sell_avg: fb.sell_rate,
+        sell_max: fb.sell_rate + fb.spread,
+        buy_min: fb.buy_rate - fb.spread,
+        buy_avg: fb.buy_rate,
+        buy_max: fb.buy_rate,
+        overall_min: fb.buy_rate - fb.spread,
+        overall_max: fb.sell_rate + fb.spread,
+        spread: fb.spread,
         sell_prices_used: 0,
         buy_prices_used: 0,
         prices_used: 0,
         price_range: {
-          sell_min: 300.0,
-          sell_max: 304.0,
-          buy_min: 296.0,
-          buy_max: 300.0,
-          min: 296.0,
-          max: 304.0,
+          sell_min: fb.buy_rate,
+          sell_max: fb.sell_rate + fb.spread,
+          buy_min: fb.buy_rate - fb.spread,
+          buy_max: fb.buy_rate,
+          min: fb.buy_rate - fb.spread,
+          max: fb.sell_rate + fb.spread,
         },
         lastUpdated: new Date().toISOString(),
         source: 'Binance P2P (fallback)',

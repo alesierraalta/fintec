@@ -21,6 +21,9 @@ export const CURRENCIES: Record<string, Currency> = {
   COP: { code: 'COP', symbol: '$', name: 'Colombian Peso', decimals: 0 },
   PEN: { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol', decimals: 2 },
   VES: { code: 'VES', symbol: 'Bs.', name: 'Venezuelan Bolívar', decimals: 2, requiresBCVRate: true },
+  // * Cryptocurrencies
+  BTC: { code: 'BTC', symbol: '₿', name: 'Bitcoin', decimals: 8 },
+  ETH: { code: 'ETH', symbol: 'Ξ', name: 'Ethereum', decimals: 8 },
 };
 
 export class Money {
@@ -72,7 +75,7 @@ export class Money {
     }
     const result = this.amountMinor + other.amountMinor;
     if (!Number.isFinite(result)) {
-        throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
+      throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
     }
     return new Money(result, this.currency.code);
   }
@@ -84,7 +87,7 @@ export class Money {
     }
     const result = this.amountMinor - other.amountMinor;
     if (!Number.isFinite(result)) {
-        throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
+      throw new Error('Operation resulted in invalid amount (NaN or Infinity)');
     }
     return new Money(result, this.currency.code);
   }
@@ -92,10 +95,10 @@ export class Money {
   // Multiply by a number
   multiply(factor: number): Money {
     if (!Number.isFinite(this.amountMinor)) {
-        throw new Error('Cannot perform operation with NaN or Infinity amounts');
+      throw new Error('Cannot perform operation with NaN or Infinity amounts');
     }
     if (!Number.isFinite(factor)) {
-        throw new Error('Cannot multiply by NaN or Infinity');
+      throw new Error('Cannot multiply by NaN or Infinity');
     }
     return new Money(Math.round(this.amountMinor * factor), this.currency.code);
   }
@@ -103,13 +106,13 @@ export class Money {
   // Divide by a number
   divide(divisor: number): Money {
     if (!Number.isFinite(this.amountMinor)) {
-        throw new Error('Cannot perform operation with NaN or Infinity amounts');
+      throw new Error('Cannot perform operation with NaN or Infinity amounts');
     }
     if (divisor === 0) {
       throw new Error('Cannot divide by zero');
     }
     if (!Number.isFinite(divisor)) {
-        throw new Error('Cannot divide by NaN or Infinity');
+      throw new Error('Cannot divide by NaN or Infinity');
     }
     return new Money(Math.round(this.amountMinor / divisor), this.currency.code);
   }
@@ -165,7 +168,7 @@ export class Money {
     } = options || {};
 
     const amount = this.getMajorAmount();
-    
+
     let formatted = new Intl.NumberFormat(locale, {
       minimumFractionDigits: this.currency.decimals,
       maximumFractionDigits: this.currency.decimals,
@@ -228,7 +231,7 @@ export class Money {
       const currentAmount = results[i % results.length].getMinorAmount();
       results[i % results.length] = new Money(currentAmount + 1, this.currency.code);
     }
-    
+
     // Normalize -0 to 0
     if (Object.is(remainder, -0)) remainder = 0;
 

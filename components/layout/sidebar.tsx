@@ -75,11 +75,12 @@ export function Sidebar() {
                 src="/finteclogodark.jpg"
                 alt="FinTec Logo"
                 width={isMinimized ? 40 : 120}
-                height={isMinimized ? 40 : 40}
-                className={`object-contain transition-all duration-300 h-10 ${isMinimized ? 'w-10' : 'w-auto'
-                  }`}
+                height={40}
+                className="object-contain transition-all duration-300"
+                style={{ width: isMinimized ? 40 : 'auto', height: 40 }}
                 priority
                 unoptimized
+                loading="eager"
                 onError={(e) => {
                   setLogoError(true);
                 }}

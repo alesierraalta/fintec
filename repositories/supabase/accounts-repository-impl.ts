@@ -2,10 +2,10 @@ import { Account, AccountType, PaginatedResult, PaginationParams } from '@/types
 import { AccountsRepository, CreateAccountDTO, UpdateAccountDTO } from '@/repositories/contracts';
 import { supabase } from './client';
 import { SupabaseAccount } from './types';
-import { 
-  mapSupabaseAccountToDomain, 
+import {
+  mapSupabaseAccountToDomain,
   mapDomainAccountToSupabase,
-  mapSupabaseAccountArrayToDomain 
+  mapSupabaseAccountArrayToDomain
 } from './mappers';
 
 export class SupabaseAccountsRepository implements AccountsRepository {
@@ -15,19 +15,19 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .select('*')
       .eq('id', id)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return null; // Not found
       throw new Error(`Failed to find account: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountToDomain(data);
   }
 
   async findAll(): Promise<Account[]> {
     // Get current session to obtain user_id
     const { data: { session } } = await supabase.auth.getSession();
-    
+
     if (!session?.user?.id) {
       // No authenticated user, return empty array
       return [];
@@ -39,11 +39,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .eq('active', true)
       .eq('user_id', session.user.id) // Filter by current user
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       throw new Error(`Failed to fetch accounts: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountArrayToDomain(data || []);
   }
 
@@ -52,18 +52,18 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     if (!userId || userId === 'local-user' || userId === 'undefined' || userId === 'null') {
       return []; // Return empty array for invalid user IDs
     }
-    
+
     const { data, error } = await supabase
       .from('accounts')
       .select('*')
       .eq('user_id', userId)
       .eq('active', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       throw new Error(`Failed to fetch user accounts: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountArrayToDomain(data || []);
   }
 
@@ -74,11 +74,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .eq('type', type)
       .eq('active', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       throw new Error(`Failed to fetch accounts by type: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountArrayToDomain(data || []);
   }
 
@@ -89,11 +89,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .eq('currency_code', currencyCode)
       .eq('active', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       throw new Error(`Failed to fetch accounts by currency: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountArrayToDomain(data || []);
   }
 
@@ -112,11 +112,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .insert(supabaseData as any)
       .select()
       .single();
-    
+
     if (error) {
       throw new Error(`Failed to create account: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountToDomain(data);
   }
 
@@ -138,11 +138,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
       throw new Error(`Failed to update account: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountToDomain(data);
   }
 
@@ -152,7 +152,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .from('accounts') as any)
       .update({ active: false, updated_at: new Date().toISOString() } as any)
       .eq('id', id);
-    
+
     if (error) {
       throw new Error(`Failed to delete account: ${error.message}`);
     }
@@ -161,23 +161,23 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   async findPaginated(params: PaginationParams): Promise<PaginatedResult<Account>> {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
-    
+
     const query = supabase
       .from('accounts')
       .select('*', { count: 'exact' })
       .eq('active', true)
       .range(offset, offset + limit - 1);
-    
+
     // Apply sorting
     const sortColumn = sortBy === 'createdAt' ? 'created_at' : sortBy;
     query.order(sortColumn, { ascending: sortOrder === 'asc' });
-    
+
     const { data, error, count } = await query;
-    
+
     if (error) {
       throw new Error(`Failed to fetch paginated accounts: ${error.message}`);
     }
-    
+
     return {
       data: mapSupabaseAccountArrayToDomain(data || []),
       total: count || 0,
@@ -200,29 +200,29 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .select('*')
       .eq('active', true)
       .order('created_at', { ascending: false });
-    
+
     if (error) {
       throw new Error(`Failed to fetch active accounts: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountArrayToDomain(data || []);
   }
 
   async updateBalance(id: string, newBalance: number): Promise<Account> {
     const { data, error } = await (supabase
       .from('accounts') as any)
-      .update({ 
+      .update({
         balance: newBalance,
         updated_at: new Date().toISOString()
       } as any)
       .eq('id', id)
       .select()
       .single();
-    
+
     if (error) {
       throw new Error(`Failed to update account balance: ${error.message}`);
     }
-    
+
     return mapSupabaseAccountToDomain(data);
   }
 
@@ -257,11 +257,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .select('balance')
       .eq('type', type)
       .eq('active', true);
-    
+
     if (error) {
       throw new Error(`Failed to get total balance by type: ${error.message}`);
     }
-    
+
     return ((data as any[]) || []).reduce((total, account: any) => total + (account?.balance || 0), 0);
   }
 
@@ -271,11 +271,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .select('balance')
       .eq('currency_code', currencyCode)
       .eq('active', true);
-    
+
     if (error) {
       throw new Error(`Failed to get total balance by currency: ${error.message}`);
     }
-    
+
     return ((data as any[]) || []).reduce((total, account: any) => total + (account?.balance || 0), 0);
   }
 
@@ -288,40 +288,41 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .from('accounts')
       .select('type, currency_code, balance')
       .eq('active', true);
-    
+
     if (error) {
       throw new Error(`Failed to get balance summary: ${error.message}`);
     }
-    
+
     const totalByType: Record<AccountType, number> = {
       [AccountType.CASH]: 0,
       [AccountType.BANK]: 0,
       [AccountType.CARD]: 0,
       [AccountType.SAVINGS]: 0,
       [AccountType.INVESTMENT]: 0,
+      [AccountType.CRYPTO]: 0,
     };
-    
+
     const totalByCurrency: Record<string, number> = {};
     let total = 0;
-    
+
     ((data as any[]) || []).forEach((account: any) => {
       const balance = account?.balance || 0;
-      
+
       // Sum by type
       if (account?.type in totalByType) {
         totalByType[account.type as AccountType] += balance;
       }
-      
+
       // Sum by currency
       if (!totalByCurrency[account?.currency_code]) {
         totalByCurrency[account?.currency_code] = 0;
       }
       totalByCurrency[account?.currency_code] += balance;
-      
+
       // Total sum
       total += balance;
     });
-    
+
     return {
       totalByType,
       totalByCurrency,
@@ -331,13 +332,13 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async createMany(data: CreateAccountDTO[]): Promise<Account[]> {
     const results: Account[] = [];
-    
+
     // Process each create sequentially to maintain consistency
     for (const accountData of data) {
       const result = await this.create(accountData);
       results.push(result);
     }
-    
+
     return results;
   }
 
@@ -347,7 +348,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .from('accounts') as any)
       .update({ active: false, updated_at: new Date().toISOString() } as any)
       .in('id', ids);
-    
+
     if (error) {
       throw new Error(`Failed to delete accounts: ${error.message}`);
     }
@@ -358,11 +359,11 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .from('accounts')
       .select('*', { count: 'exact', head: true })
       .eq('active', true);
-    
+
     if (error) {
       throw new Error(`Failed to count accounts: ${error.message}`);
     }
-    
+
     return count || 0;
   }
 
@@ -373,12 +374,12 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .eq('id', id)
       .eq('active', true)
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') return false; // Not found
       throw new Error(`Failed to check account existence: ${error.message}`);
     }
-    
+
     return !!data;
   }
 }

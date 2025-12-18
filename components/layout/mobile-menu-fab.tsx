@@ -67,7 +67,7 @@ const menuItems: MenuItem[] = [
     icon: Repeat,
     description: 'Gestiona transacciones recurrentes'
   },
-    {
+  {
     name: 'Configuración',
     href: '/settings',
     icon: Settings,
@@ -182,6 +182,7 @@ export function MobileMenuFAB() {
               width={44}
               height={44}
               className="object-contain"
+              style={{ width: 44, height: 'auto' }}
               unoptimized
             />
           )}

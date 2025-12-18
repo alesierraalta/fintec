@@ -15,11 +15,11 @@ import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Account } from '@/types';
 import { fromMinorUnits } from '@/lib/money';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
-import { 
-  Plus, 
-  Wallet, 
-  CreditCard, 
-  Banknote, 
+import {
+  Plus,
+  Wallet,
+  CreditCard,
+  Banknote,
   TrendingUp,
   TrendingDown,
   PiggyBank,
@@ -57,15 +57,15 @@ const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
   isVisible?: boolean;
 }) => {
   const [displayValue, setDisplayValue] = useState(0);
-  
+
   useEffect(() => {
     if (!isVisible) return;
-    
+
     const duration = 1000;
     const steps = 50;
     const stepValue = value / steps;
     let current = 0;
-    
+
     const timer = setInterval(() => {
       current += stepValue;
       if (current >= value) {
@@ -75,10 +75,10 @@ const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
         setDisplayValue(current);
       }
     }, duration / steps);
-    
+
     return () => clearInterval(timer);
   }, [value, isVisible]);
-  
+
   return (
     <span>
       {prefix}{isVisible ? displayValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '••••••'}{suffix}
@@ -135,13 +135,13 @@ export default function AccountsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (!user?.id) {
         setAccounts([]);
         setError('Debes iniciar sesión para ver tus cuentas');
         return;
       }
-      
+
       const [userAccounts, transactionsData, categoriesData] = await Promise.all([
         repository.accounts.findByUserId(user.id),
         repository.transactions.findAll(),
@@ -151,7 +151,7 @@ export default function AccountsPage() {
       setAccounts(userAccounts);
       setTransactions(transactionsData);
       setCategories(categoriesData);
-      
+
       // Check for balance alerts after loading accounts
       await checkAlerts(userAccounts);
     } catch (err) {
@@ -196,13 +196,13 @@ export default function AccountsPage() {
 
       // Get the scrollable container (main element with overflow-auto)
       const scrollContainer = document.querySelector('main');
-      
+
       if (scrollContainer) {
         scrollContainer.addEventListener('scroll', handleScroll);
       }
       window.addEventListener('scroll', handleScroll);
       window.addEventListener('resize', handleScroll);
-      
+
       return () => {
         if (scrollContainer) {
           scrollContainer.removeEventListener('scroll', handleScroll);
@@ -232,7 +232,7 @@ export default function AccountsPage() {
     if (!confirm(`¿Estás seguro de que quieres eliminar la cuenta "${account.name}"?`)) {
       return;
     }
-    
+
     try {
       await repository.accounts.delete(account.id);
       setOpenDropdown(null);
@@ -286,7 +286,7 @@ export default function AccountsPage() {
     accountTransactions.forEach(transaction => {
       const categoryId = transaction.categoryId || 'uncategorized';
       const categoryName = getCategoryName(categoryId);
-      
+
       if (!categoryStats[categoryName]) {
         categoryStats[categoryName] = { income: 0, expenses: 0, count: 0 };
       }
@@ -337,13 +337,15 @@ export default function AccountsPage() {
       'ARS': 'AR$',
       'COP': 'CO$',
       'CLP': 'CL$',
+      'BTC': '₿',
+      'ETH': 'Ξ',
     };
     return symbols[currencyCode] || currencyCode;
   }, []);
 
   // Helper function to get rate name for display
   const getRateName = useCallback((rateType: string) => {
-    switch(rateType) {
+    switch (rateType) {
       case 'binance': return 'Binance';
       case 'bcv_usd': return 'BCV USD';
       case 'bcv_eur': return 'BCV EUR';
@@ -353,7 +355,7 @@ export default function AccountsPage() {
 
   // Helper function to get exchange rate
   const getExchangeRate = useCallback((rateType: string) => {
-    switch(rateType) {
+    switch (rateType) {
       case 'binance': return binanceRates?.usd_ves || 1;
       case 'bcv_usd': return bcvRates?.usd || 1;
       case 'bcv_eur': return bcvRates?.eur || 1;
@@ -364,6 +366,16 @@ export default function AccountsPage() {
   // Convertir balance a USD
   const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
     if (currencyCode === 'USD') return balanceMinor / 100;
+
+    // * Handle cryptocurrencies with proper decimal places
+    if (currencyCode === 'BTC' || currencyCode === 'ETH') {
+      // Cryptocurrencies use 8 decimal places
+      const balanceMajor = balanceMinor / 100000000;
+      // ! Cryptocurrencies need their own exchange rates (BTC/USD, ETH/USD)
+      // For now, return the crypto amount as-is (not converted)
+      // TODO: Implement crypto exchange rate API integration
+      return balanceMajor;
+    }
 
     const balanceMajor = balanceMinor / 100;
 
@@ -392,7 +404,12 @@ export default function AccountsPage() {
     return accounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-      
+
+      // * Exclude cryptocurrencies from total balance (they need their own exchange rates)
+      if (acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH') {
+        return sum; // Skip crypto accounts
+      }
+
       if (acc.currencyCode === 'VES') {
         const rate = getExchangeRate(usdEquivalentType);
         return sum + (balanceMajor / rate);
@@ -400,9 +417,42 @@ export default function AccountsPage() {
       return sum + balanceMajor;
     }, 0);
   }, [accounts, usdEquivalentType, getExchangeRate]);
-  
-  // Default balance growth to 0 (could be calculated from transaction history if needed)
-  const balanceGrowth = 0;
+
+  // Calculate balance growth based on current month transactions
+  const balanceGrowth = useMemo(() => {
+    if (!transactions?.length || totalBalance === 0) return 0;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const netChange = transactions.reduce((acc, t) => {
+      const d = new Date(t.date);
+      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+        // * Skip cryptocurrency transactions (they need their own exchange rates)
+        if (t.currencyCode === 'BTC' || t.currencyCode === 'ETH') {
+          return acc;
+        }
+
+        const amountMajor = (t.amountMinor || 0) / 100;
+        let amountUSD = amountMajor;
+
+        if (t.currencyCode === 'VES') {
+          const rate = getExchangeRate(usdEquivalentType);
+          amountUSD = amountMajor / rate;
+        }
+
+        if (t.type === 'INCOME') return acc + amountUSD;
+        if (t.type === 'EXPENSE') return acc - amountUSD;
+      }
+      return acc;
+    }, 0);
+
+    const startBalance = totalBalance - netChange;
+    if (startBalance <= 0) return 0; // Avoid division by zero or negative start balance weirdness
+
+    return Number(((netChange / startBalance) * 100).toFixed(1));
+  }, [transactions, totalBalance, usdEquivalentType, getExchangeRate]);
 
   // Función para mostrar tasas actuales
   const showCurrentRates = useCallback(() => {
@@ -434,7 +484,7 @@ export default function AccountsPage() {
           {/* iOS-style Header - Enhanced Mobile Optimized */}
           <div className="text-center py-6 px-4 sm:py-8 md:py-10">
             {/* Status Indicator with Enhanced Animation */}
-            <motion.div 
+            <motion.div
               className="inline-flex items-center space-x-3 text-muted-foreground mb-4 sm:mb-6"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -451,7 +501,7 @@ export default function AccountsPage() {
                 <div className="w-1 h-1 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
               </div>
             </motion.div>
-            
+
             {/* Enhanced Title with Visual Elements */}
             <motion.div
               className="relative mb-6 sm:mb-8"
@@ -461,17 +511,17 @@ export default function AccountsPage() {
             >
               {/* Background Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-blue-500/10 to-green-500/10 blur-3xl rounded-full scale-150 opacity-60"></div>
-              
+
               {/* Main Title */}
               <h1 className="relative text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-3 sm:mb-4 tracking-tight">
                 <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white animate-gradient [background-size:200%_200%]">
                   💼 Mis Cuentas
                 </span>
               </h1>
-              
+
               {/* Decorative Elements */}
               <div className="flex items-center justify-center space-x-4 mb-4">
-                <motion.div 
+                <motion.div
                   className="w-12 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
                   initial={{ width: 0 }}
                   animate={{ width: 48 }}
@@ -485,7 +535,7 @@ export default function AccountsPage() {
                 >
                   <Wallet className="h-4 w-4 text-primary" />
                 </motion.div>
-                <motion.div 
+                <motion.div
                   className="w-12 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent"
                   initial={{ width: 0 }}
                   animate={{ width: 48 }}
@@ -493,7 +543,7 @@ export default function AccountsPage() {
                 ></motion.div>
               </div>
             </motion.div>
-            
+
             {/* Enhanced Description with Stats Preview */}
             <motion.div
               className="space-y-3 mb-6"
@@ -504,10 +554,10 @@ export default function AccountsPage() {
               <p className="text-base sm:text-lg text-muted-foreground font-light leading-relaxed px-4 max-w-2xl mx-auto">
                 Controla y optimiza tu patrimonio financiero desde un solo lugar
               </p>
-              
+
               {/* Quick Stats Badges */}
               <div className="flex flex-wrap items-center justify-center gap-3 mt-4">
-                <motion.div 
+                <motion.div
                   className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary/10 to-blue-500/10 backdrop-blur-sm rounded-full px-4 py-2 border border-primary/20"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -516,8 +566,8 @@ export default function AccountsPage() {
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-ios-caption font-medium text-foreground">{accounts.length} Cuenta{accounts.length !== 1 ? 's' : ''}</span>
                 </motion.div>
-                
-                <motion.div 
+
+                <motion.div
                   className="inline-flex items-center space-x-2 bg-gradient-to-r from-green-500/10 to-emerald-500/10 backdrop-blur-sm rounded-full px-4 py-2 border border-green-500/20"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -528,20 +578,19 @@ export default function AccountsPage() {
                 </motion.div>
               </div>
             </motion.div>
-            
+
             {/* Quick Actions Header - Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-4 px-4"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               <motion.button
-                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm font-medium ${
-                  showBalances 
-                    ? 'bg-muted hover:bg-muted/80 text-muted-foreground' 
-                    : 'bg-primary hover:bg-primary/90 text-white shadow-sm'
-                }`}
+                className={`w-full sm:w-auto px-4 py-2.5 sm:py-2 rounded-xl transition-all duration-200 flex items-center justify-center space-x-2 text-sm font-medium ${showBalances
+                  ? 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                  : 'bg-primary hover:bg-primary/90 text-white shadow-sm'
+                  }`}
                 onClick={() => setShowBalances(!showBalances)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -570,7 +619,7 @@ export default function AccountsPage() {
 
             {/* Achievement Badge */}
             {accounts.length > 0 && (
-              <motion.div 
+              <motion.div
                 className="inline-flex items-center space-x-2 bg-card/80 backdrop-blur-sm rounded-2xl px-4 py-2 border border-border/40"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -578,16 +627,16 @@ export default function AccountsPage() {
               >
                 <Star className="h-4 w-4 text-warning-500" />
                 <span className="text-ios-caption text-muted-foreground font-medium">
-                  {accounts.length >= 5 ? '🏆 Maestro Financiero' : 
-                   accounts.length >= 3 ? '🥉 Organizador Avanzado' : 
-                   accounts.length >= 1 ? '🌟 ¡Buen Comienzo!' : ''}
+                  {accounts.length >= 5 ? '🏆 Maestro Financiero' :
+                    accounts.length >= 3 ? '🥉 Organizador Avanzado' :
+                      accounts.length >= 1 ? '🌟 ¡Buen Comienzo!' : ''}
                 </span>
               </motion.div>
             )}
           </div>
 
           {/* iOS-style Summary Cards - Mobile First Responsive */}
-          <motion.div 
+          <motion.div
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:gap-8 w-full no-horizontal-scroll"
             variants={{
               hidden: { opacity: 0 },
@@ -600,7 +649,7 @@ export default function AccountsPage() {
             animate="show"
           >
             {/* Balance Total Card - iOS Style Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
@@ -611,10 +660,10 @@ export default function AccountsPage() {
               </div>
               <p className="text-2xl sm:text-3xl font-semibold amount-emphasis-white text-white mb-2">
                 {showBalances ? (
-                  <NumberTicker 
-                    value={totalBalance} 
-                    prefix="$" 
-                    isVisible={showBalances} 
+                  <NumberTicker
+                    value={totalBalance}
+                    prefix="$"
+                    isVisible={showBalances}
                   />
                 ) : '••••••'}
               </p>
@@ -624,7 +673,7 @@ export default function AccountsPage() {
                 </p>
               )}
               {balanceGrowth !== 0 && (
-                <motion.div 
+                <motion.div
                   className="flex items-center space-x-2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -643,7 +692,7 @@ export default function AccountsPage() {
             </motion.div>
 
             {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
@@ -659,7 +708,7 @@ export default function AccountsPage() {
                 <p className="text-ios-body text-muted-foreground">de {accounts.length}</p>
               </div>
               <div className="w-full bg-muted/30 rounded-full h-2 mb-2">
-                <motion.div 
+                <motion.div
                   className="bg-gradient-to-r from-success-500 to-success-600 h-2 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${accounts.length > 0 ? (accounts.filter(acc => acc.active).length / accounts.length) * 100 : 0}%` }}
@@ -673,7 +722,7 @@ export default function AccountsPage() {
             </motion.div>
 
             {/* Criptomonedas Card - iOS Style Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
@@ -683,14 +732,14 @@ export default function AccountsPage() {
                 <h3 className="text-lg font-medium text-white tracking-wide">CRIPTOMONEDAS</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length} 
-                  isVisible={true} 
+                <NumberTicker
+                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length}
+                  isVisible={true}
                 />
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
               {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
-                <motion.div 
+                <motion.div
                   className="flex items-center space-x-2"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -703,7 +752,7 @@ export default function AccountsPage() {
             </motion.div>
 
             {/* Diversificación Card - iOS Style Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 group"
               variants={fadeInUp}
               {...cardHover}
@@ -713,14 +762,14 @@ export default function AccountsPage() {
                 <h3 className="text-lg font-medium text-white tracking-wide">DIVERSIFICACIÓN</h3>
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
-                <NumberTicker 
-                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length} 
-                  isVisible={true} 
+                <NumberTicker
+                  value={Array.from(new Set(accounts.map(acc => acc.currencyCode))).length}
+                  isVisible={true}
                 />
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">divisas diferentes</p>
               {Array.from(new Set(accounts.map(acc => acc.currencyCode))).length >= 3 && (
-                <motion.div 
+                <motion.div
                   className="flex items-center space-x-2"
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -741,16 +790,16 @@ export default function AccountsPage() {
                 <h3 className="text-2xl font-semibold text-foreground">Todas las Cuentas</h3>
               </div>
             </div>
-            
+
             <div className="divide-y divide-border/40">
               {loading ? (
-                <motion.div 
+                <motion.div
                   className="p-6 sm:p-8 text-center"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                 >
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <motion.p 
+                  <motion.p
                     className="text-muted-foreground text-sm sm:text-ios-body"
                     animate={{ opacity: [0.5, 1, 0.5] }}
                     transition={{ duration: 1.5, repeat: Infinity }}
@@ -759,13 +808,13 @@ export default function AccountsPage() {
                   </motion.p>
                 </motion.div>
               ) : error ? (
-                <motion.div 
+                <motion.div
                   className="p-6 sm:p-8 text-center"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
                   <p className="text-error-600 text-sm sm:text-ios-body mb-4">❌ {error}</p>
-                  <motion.button 
+                  <motion.button
                     onClick={loadAccounts}
                     className="px-4 sm:px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl transition-all duration-200 text-sm sm:text-ios-body font-medium w-full sm:w-auto"
                     whileHover={{ scale: 1.02 }}
@@ -775,7 +824,7 @@ export default function AccountsPage() {
                   </motion.button>
                 </motion.div>
               ) : accounts.length === 0 ? (
-                <motion.div 
+                <motion.div
                   className="p-8 sm:p-12 text-center"
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -788,7 +837,7 @@ export default function AccountsPage() {
                   >
                     <Wallet className="h-16 w-16 sm:h-20 sm:w-20 text-muted-foreground mx-auto mb-4 sm:mb-6" />
                   </motion.div>
-                  <motion.h3 
+                  <motion.h3
                     className="text-lg sm:text-ios-title font-semibold text-foreground mb-3 px-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -796,7 +845,7 @@ export default function AccountsPage() {
                   >
                     🎯 ¡Tu Viaje Financiero Comienza Aquí!
                   </motion.h3>
-                  <motion.p 
+                  <motion.p
                     className="text-muted-foreground text-sm sm:text-ios-body mb-6 sm:mb-8 max-w-sm mx-auto leading-relaxed px-4"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -825,16 +874,16 @@ export default function AccountsPage() {
                 <AnimatePresence>
                   {accounts.map((account, index) => {
                     const Icon = accountIcons[account.type as keyof typeof accountIcons] || Wallet;
-                    
+
                     return (
-                      <motion.div 
-                        key={account.id} 
+                      <motion.div
+                        key={account.id}
                         className="p-4 sm:p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                         transition={{ delay: index * 0.1 }}
-                        whileHover={{ 
+                        whileHover={{
                           scale: 1.005,
                           transition: { duration: 0.2 }
                         }}
@@ -847,11 +896,11 @@ export default function AccountsPage() {
                             <div className="min-w-0 flex-1">
                               <h4 className="text-sm sm:text-ios-body font-medium text-foreground mb-1 truncate">{account.name}</h4>
                               <div className="flex items-center flex-wrap gap-1 md:gap-2 text-xs sm:text-ios-caption text-muted-foreground">
-                                <span className="truncate">{account.type === 'BANK' ? 'Banco' : 
-                                       account.type === 'CARD' ? 'Tarjeta' :
-                                       account.type === 'CASH' ? 'Efectivo' :
-                                       account.type === 'SAVINGS' ? 'Ahorros' : 
-                                       'Inversión'}</span>
+                                <span className="truncate">{account.type === 'BANK' ? 'Banco' :
+                                  account.type === 'CARD' ? 'Tarjeta' :
+                                    account.type === 'CASH' ? 'Efectivo' :
+                                      account.type === 'SAVINGS' ? 'Ahorros' :
+                                        'Inversión'}</span>
                                 <div className="w-1 h-1 bg-muted-foreground rounded-full hidden md:block"></div>
                                 <span className="text-primary font-medium">
                                   {account.currencyCode}
@@ -863,16 +912,16 @@ export default function AccountsPage() {
                               </div>
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center space-x-4">
                             <div className="text-right flex-shrink-0">
                               <p className="text-sm sm:text-ios-title font-semibold amount-emphasis-white text-white truncate">
-                                {showBalances 
+                                {showBalances
                                   ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                                   : '••••••'
                                 }
                               </p>
-                              {account.currencyCode !== 'USD' && showBalances && (
+                              {account.currencyCode !== 'USD' && account.currencyCode !== 'BTC' && account.currencyCode !== 'ETH' && showBalances && (
                                 <p className="text-xs text-muted-foreground mt-0.5">
                                   ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode, usdEquivalentType).toLocaleString('en-US', {
                                     minimumFractionDigits: 2,
@@ -892,9 +941,9 @@ export default function AccountsPage() {
                                 <BalanceAlertIndicator account={account} />
                               </div>
                             </div>
-                            
+
                             <div className="relative">
-                              <button 
+                              <button
                                 ref={(el) => { dropdownRefs.current[account.id] = el; }}
                                 onClick={() => toggleDropdown(account.id)}
                                 aria-label="Acciones de cuenta"
@@ -904,7 +953,7 @@ export default function AccountsPage() {
                               >
                                 <MoreVertical className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               </button>
-                              
+
 
                             </div>
                           </div>
@@ -926,7 +975,7 @@ export default function AccountsPage() {
                                   {getAccountCategoryStats(account.id).length} categorías
                                 </span>
                               </div>
-                              
+
                               {getAccountCategoryStats(account.id).length === 0 ? (
                                 <div className="text-center py-4">
                                   <p className="text-xs text-muted-foreground">No hay transacciones en esta cuenta</p>
@@ -960,9 +1009,8 @@ export default function AccountsPage() {
                                             -{getCurrencySymbol(account.currencyCode)}{stat.expenses.toFixed(2)}
                                           </p>
                                         )}
-                                        <p className={`text-xs font-semibold ${
-                                          stat.net >= 0 ? 'text-green-600' : 'text-red-600'
-                                        }`}>
+                                        <p className={`text-xs font-semibold ${stat.net >= 0 ? 'text-green-600' : 'text-red-600'
+                                          }`}>
                                           {stat.net >= 0 ? '+' : ''}{getCurrencySymbol(account.currencyCode)}{stat.net.toFixed(2)}
                                         </p>
                                       </div>
@@ -981,7 +1029,7 @@ export default function AccountsPage() {
             </div>
           </div>
           {/* Exchange Rates Section - iOS Style Mobile Responsive */}
-          <motion.div 
+          <motion.div
             className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1004,7 +1052,7 @@ export default function AccountsPage() {
                 <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
               </motion.div>
             </div>
-            
+
             <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
               Tasas oficiales (BCV) y del mercado digital (Binance) para convertir tus cuentas
             </p>
@@ -1012,7 +1060,7 @@ export default function AccountsPage() {
             <div className="space-y-6">
               <BCVRates />
               <BinanceRatesComponent />
-              
+
               {/* History Button - Mobile Responsive */}
               <motion.div
                 className="flex justify-center px-2 sm:px-4"
@@ -1031,7 +1079,7 @@ export default function AccountsPage() {
             </div>
 
             {/* Exchange Summary - Mobile Responsive */}
-            <motion.div 
+            <motion.div
               className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-1 sm:mx-0"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -1058,12 +1106,12 @@ export default function AccountsPage() {
           onSuccess={handleAccountSaved}
           account={selectedAccount}
         />
-        
+
         <RatesHistory
           isOpen={showRatesHistory}
           onClose={() => setShowRatesHistory(false)}
         />
-        
+
         {/* Account Dropdown Portal */}
         {openDropdown && typeof document !== 'undefined' && createPortal(
           <div
@@ -1080,7 +1128,7 @@ export default function AccountsPage() {
             {(() => {
               const account = accounts.find(acc => acc.id === openDropdown);
               if (!account) return null;
-              
+
               return (
                 <>
                   <button

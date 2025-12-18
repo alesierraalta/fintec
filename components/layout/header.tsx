@@ -146,13 +146,16 @@ export function Header() {
         <div className="flex items-center">
           <RateSelector />
         </div>
-        <Image
-          src="/finteclogodark.jpg"
-          alt="FinTec Logo"
-          fill
-          className="object-contain h-full w-auto"
-          unoptimized
-        />
+        <div className="relative w-24 h-10">
+          <Image
+            src="/finteclogodark.jpg"
+            alt="FinTec Logo"
+            fill
+            className="object-contain"
+            unoptimized
+            loading="eager"
+          />
+        </div>
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}

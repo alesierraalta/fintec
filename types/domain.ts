@@ -37,6 +37,7 @@ export enum AccountType {
   CARD = 'CARD',
   INVESTMENT = 'INVESTMENT',
   SAVINGS = 'SAVINGS',
+  CRYPTO = 'CRYPTO',
 }
 
 export interface Currency {

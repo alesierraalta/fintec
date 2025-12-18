@@ -12,7 +12,8 @@ import {
   Banknote, 
   TrendingUp,
   PiggyBank,
-  DollarSign
+  DollarSign,
+  Bitcoin
 } from 'lucide-react';
 
 interface AccountFormProps {
@@ -58,6 +59,13 @@ const accountTypes = [
     description: 'Cuenta de inversiones',
     color: 'text-orange-500'
   },
+  { 
+    value: 'CRYPTO', 
+    label: 'Criptomoneda', 
+    icon: Bitcoin, // Make sure Bitcoin is imported from lucide-react
+    description: 'Billetera digital',
+    color: 'text-yellow-500'
+  },
 ];
 
 const currencies = [
@@ -70,6 +78,8 @@ const currencies = [
   { value: 'AUD', label: 'AUD - Dólar Australiano' },
   { value: 'MXN', label: 'MXN - Peso Mexicano' },
   { value: 'BRL', label: 'BRL - Real Brasileño' },
+  { value: 'BTC', label: 'BTC - Bitcoin' },
+  { value: 'ETH', label: 'ETH - Ethereum' },
 ];
 
 export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountFormProps) {
@@ -89,9 +99,13 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
   // Update form data when account prop changes
   useEffect(() => {
     if (account) {
+      // Infer CRYPTO type if stored as INVESTMENT with crypto currency
+      const isCryptoCurrency = account.currencyCode === 'BTC' || account.currencyCode === 'ETH';
+      const effectiveType = (account.type === 'INVESTMENT' && isCryptoCurrency) ? 'CRYPTO' : (account.type || 'BANK');
+
       setFormData({
         name: account.name || '',
-        type: account.type || 'BANK',
+        type: effectiveType,
         currencyCode: account.currencyCode || 'USD',
         balance: account.balance ? fromMinorUnits(account.balance, account.currencyCode || 'USD').toString() : '',
       });
@@ -126,9 +140,13 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
       const balanceDecimal = parseFloat(formData.balance) || 0;
       const balanceMinor = toMinorUnits(balanceDecimal, formData.currencyCode);
 
+      // Map CRYPTO UI type to INVESTMENT DB type to satisfy constraints
+      // The currency code (BTC, ETH) will distinguish it later
+      const dbType = formData.type === 'CRYPTO' ? 'INVESTMENT' : formData.type;
+
       const accountData = {
         name: formData.name.trim(),
-        type: formData.type as AccountType,
+        type: dbType as AccountType,
         currencyCode: formData.currencyCode,
         balance: balanceMinor,
         active: true,
@@ -222,10 +240,10 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
 
         {/* Account Type */}
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-3">
+          <label className="block text-sm font-medium text-text-secondary mb-3 ml-1">
             Tipo de Cuenta
           </label>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {accountTypes.map((typeOption) => {
               const Icon = typeOption.icon;
               const isSelected = formData.type === typeOption.value;
@@ -235,17 +253,18 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
                   key={typeOption.value}
                   type="button"
                   onClick={() => setFormData({ ...formData, type: typeOption.value as AccountType })}
-                  className={`p-4 rounded-lg border transition-all text-left ${
+                  className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${
                     isSelected
-                      ? 'border-primary-600 bg-primary-600/10 text-primary-400'
-                      : 'border-gray-700 bg-gray-800/50 text-gray-400 hover:border-gray-600 hover:text-gray-300'
+                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                      : 'border-border-secondary bg-background-tertiary text-text-secondary hover:border-border-primary hover:bg-background-elevated'
                   }`}
                 >
-                  <div className="flex items-center space-x-3">
-                    <Icon className={`h-5 w-5 ${isSelected ? 'text-primary-400' : typeOption.color}`} />
+                  <div className="relative z-10 flex items-center space-x-3">
+                    <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-background-secondary text-text-muted group-hover:text-text-primary'}`}>
+                      <Icon className="h-5 w-5" />
+                    </div>
                     <div>
-                      <p className="font-medium">{typeOption.label}</p>
-                      <p className="text-xs opacity-70">{typeOption.description}</p>
+                      <p className="font-medium text-sm">{typeOption.label}</p>
                     </div>
                   </div>
                 </button>
@@ -254,69 +273,89 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
           </div>
         </div>
 
-        {/* Currency */}
-        <div>
-          <Select
-            label="Moneda"
-            value={formData.currencyCode}
-            onChange={(e) => setFormData({ ...formData, currencyCode: e.target.value })}
-            options={currencies}
-            placeholder="Seleccionar moneda"
-            required
-          />
-        </div>
+        {/* Currency & Balance Row */}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Select
+                label="Moneda"
+                value={formData.currencyCode}
+                onChange={(e) => setFormData({ ...formData, currencyCode: e.target.value })}
+                options={currencies}
+                placeholder="Seleccionar"
+                required
+              />
+            </div>
 
-        {/* Initial Balance */}
-        <div>
-          <Input
-            label="Balance Inicial"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={formData.balance}
-            onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-            icon={<span className="text-gray-400 text-sm">{CURRENCIES[formData.currencyCode]?.symbol || formData.currencyCode}</span>}
-          />
-          <p className="text-xs text-gray-500 mt-1">
-            Ingresa el balance actual de esta cuenta (opcional)
-          </p>
+            <div>
+              <Input
+                label="Balance Inicial"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={formData.balance}
+                onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+                icon={<span className="text-text-muted text-sm font-medium">{CURRENCIES[formData.currencyCode]?.symbol || '$'}</span>}
+              />
+            </div>
         </div>
 
         {/* Preview Card */}
-        <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-          <p className="text-sm text-gray-400 mb-2">Vista previa:</p>
-          <div className="flex items-center space-x-3">
-            {selectedType && <selectedType.icon className={`h-5 w-5 ${selectedType.color}`} />}
-            <div>
-              <p className="text-white font-medium">
-                {formData.name || 'Nombre de la cuenta'}
-              </p>
-              <p className="text-sm text-gray-400">
-                {selectedType?.label} • {formData.currencyCode}
-                {formData.balance && ` • ${CURRENCIES[formData.currencyCode]?.symbol || formData.currencyCode}${parseFloat(formData.balance).toFixed(2)}`}
-              </p>
+        <div className="pt-2">
+            <p className="text-xs text-text-muted mb-3 ml-1 uppercase tracking-wider font-semibold">Vista Previa</p>
+            <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-xl">
+                {/* Background Decoration */}
+                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
+                
+                <div className="relative z-10 flex justify-between items-start">
+                    <div>
+                        <p className="text-white/60 text-xs font-medium mb-1 uppercase tracking-wider">
+                            {selectedType?.label || 'Cuenta'}
+                        </p>
+                        <p className="text-white text-lg font-bold tracking-wide truncate pr-4">
+                            {formData.name || 'Nombre de Cuenta'}
+                        </p>
+                    </div>
+                    <div className={`p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10`}>
+                        {selectedType && <selectedType.icon className="h-6 w-6 text-white" />}
+                    </div>
+                </div>
+                
+                <div className="relative z-10 mt-8 flex justify-between items-end">
+                    <div>
+                        <p className="text-white/60 text-[10px] mb-0.5">Balance Actual</p>
+                        <p className="text-2xl font-bold text-white tracking-tight">
+                            {CURRENCIES[formData.currencyCode]?.symbol} {formData.balance || '0.00'}
+                        </p>
+                    </div>
+                    <div className="text-right">
+                        <span className="text-xs font-bold text-white/80 bg-white/10 px-2 py-1 rounded-md border border-white/5">
+                            {formData.currencyCode}
+                        </span>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
+        <div className="flex justify-end space-x-3 pt-6 border-t border-border-secondary">
           <Button
             type="button"
             variant="ghost"
             onClick={onClose}
             disabled={loading}
+            className="hover:bg-background-tertiary"
           >
             Cancelar
           </Button>
           <Button
             type="submit"
             loading={loading}
-            icon={selectedType?.icon && <selectedType.icon className="h-4 w-4" />}
+            className="bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20"
           >
             {loading 
-              ? (account ? 'Actualizando...' : 'Creando...') 
-              : (account ? 'Actualizar Cuenta' : 'Crear Cuenta')
+              ? (account ? 'Guardando...' : 'Creando...') 
+              : (account ? 'Guardar Cambios' : 'Crear Cuenta')
             }
           </Button>
         </div>

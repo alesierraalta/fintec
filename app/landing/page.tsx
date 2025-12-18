@@ -102,7 +102,7 @@ export default function LandingPage() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <div className="relative w-auto h-24">
+              <div className="relative w-auto h-24" style={{ position: 'relative' }}>
                 {logoError ? (
                   <div className="flex items-center justify-center h-full text-white font-bold text-2xl">FinTec</div>
                 ) : (
@@ -113,6 +113,7 @@ export default function LandingPage() {
                     className="object-contain"
                     priority
                     unoptimized
+                    loading="eager"
                     onError={(e) => {
                       setLogoError(true);
                     }}
@@ -326,7 +327,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center mb-4 md:mb-0">
-              <div className="relative w-auto h-32">
+              <div className="relative w-auto h-32" style={{ position: 'relative' }}>
                 {logoError ? (
                   <div className="flex items-center justify-center h-full text-white font-bold text-3xl">FinTec</div>
                 ) : (
