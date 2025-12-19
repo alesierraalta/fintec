@@ -1,15 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
-
-interface ExchangeRateData {
-  usd_ves: number;
-  usdt_ves: number;
-  busd_ves: number;
-  sell_rate: number;
-  buy_rate: number;
-  lastUpdated: string;
-  source: string;
-}
+import type { ExchangeRateData } from '@/types/rates';
+import { logger } from '@/lib/utils/logger';
 
 interface UseRealtimeRatesReturn {
   rates: ExchangeRateData | null;
@@ -26,16 +18,16 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
 
   useEffect(() => {
     const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001');
-    
+
     newSocket.on('connect', () => {
       setIsConnected(true);
       setError(null);
-      console.log('Connected to WebSocket server');
+      logger.info('Connected to WebSocket server');
     });
 
     newSocket.on('disconnect', () => {
       setIsConnected(false);
-      console.log('Disconnected from WebSocket server');
+      logger.info('Disconnected from WebSocket server');
     });
 
     newSocket.on('exchange-rate-update', (data: ExchangeRateData) => {

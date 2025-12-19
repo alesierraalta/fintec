@@ -1,37 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-
-interface BinanceRates {
-  usd_ves: number;
-  usdt_ves: number;
-  sell_rate: {
-    min: number;
-    avg: number;
-    max: number;
-  };
-  buy_rate: {
-    min: number;
-    avg: number;
-    max: number;
-  };
-  spread: number;
-  sell_prices_used: number;
-  buy_prices_used: number;
-  prices_used: number;
-  price_range: {
-    sell_min: number;
-    sell_max: number;
-    buy_min: number;
-    buy_max: number;
-    min: number;
-    max: number;
-  };
-  lastUpdated: string;
-}
+import type { BinanceRates } from '@/types/rates';
 
 export function useBinanceRates() {
-  const [rates, setRates] = useState<BinanceRates>({ 
+  const [rates, setRates] = useState<BinanceRates>({
     usd_ves: 300.00,
     usdt_ves: 300.00,
+    busd_ves: 300.00,
     sell_rate: {
       min: 300.00,
       avg: 302.00,
@@ -63,15 +37,16 @@ export function useBinanceRates() {
     try {
       const response = await fetch('/api/binance-rates');
       const data = await response.json();
-      
+
       if (data.success && data.data) {
         // Handle both new structure (with min/avg/max) and old structure (single values)
         const sellRate = data.data.sell_rate;
         const buyRate = data.data.buy_rate;
-        
+
         setRates({
           usd_ves: data.data.usd_ves || 300.00,
           usdt_ves: data.data.usdt_ves || 300.00,
+          busd_ves: data.data.busd_ves || 300.00,
           sell_rate: typeof sellRate === 'object' ? sellRate : {
             min: data.data.sell_min || sellRate || 300.00,
             avg: sellRate || 302.00,
@@ -97,10 +72,11 @@ export function useBinanceRates() {
         // Use fallback data
         const sellRate = data.data.sell_rate;
         const buyRate = data.data.buy_rate;
-        
+
         setRates({
           usd_ves: data.data.usd_ves || 300.00,
           usdt_ves: data.data.usdt_ves || 300.00,
+          busd_ves: data.data.busd_ves || 300.00,
           sell_rate: typeof sellRate === 'object' ? sellRate : {
             min: data.data.sell_min || sellRate || 300.00,
             avg: sellRate || 302.00,

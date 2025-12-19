@@ -1,18 +1,18 @@
 import { TransactionsRepository } from '@/repositories/contracts';
-import { 
-  Transaction, 
-  TransactionType, 
-  TransactionFilters, 
-  PaginationParams, 
+import {
+  Transaction,
+  TransactionType,
+  TransactionFilters,
+  PaginationParams,
   PaginatedResult,
   CreateTransactionDTO,
-  UpdateTransactionDTO 
+  UpdateTransactionDTO
 } from '@/types';
 import { supabase } from './client';
-import { 
-  mapSupabaseTransactionToDomain, 
+import {
+  mapSupabaseTransactionToDomain,
   mapDomainTransactionToSupabase,
-  mapSupabaseTransactionArrayToDomain 
+  mapSupabaseTransactionArrayToDomain
 } from './mappers';
 import { AccountsRepository } from '../contracts/accounts-repository';
 
@@ -25,13 +25,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   async findAll(limit: number = 1000): Promise<Transaction[]> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning empty transactions');
       return [];
     }
-    
+
     const userId = user.id;
 
     // Single query with JOIN - más eficiente que 2 queries separados
@@ -74,8 +74,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
 
 
-  async findWithFilters(filters: TransactionFilters): Promise<Transaction[]> {
-    let query = supabase.from('transactions').select('*');
+  async findByFilters(filters: TransactionFilters, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const offset = (page - 1) * limit;
+
+    let query = supabase.from('transactions').select('*', { count: 'exact' });
 
     if (filters.accountIds && filters.accountIds.length > 0) {
       query = query.in('account_id', filters.accountIds);
@@ -117,52 +120,33 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       query = query.overlaps('tags', filters.tags);
     }
 
-    const { data, error } = await query
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+    // Apply sorting and pagination
+    const sortColumn = sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date');
+
+    query = query
+      .order(sortColumn, { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: false }) // Secondary sort
+      .range(offset, offset + limit - 1);
+
+    const { data, error, count } = await query;
 
     if (error) {
       throw new Error(`Failed to fetch transactions with filters: ${error.message}`);
     }
 
-    return mapSupabaseTransactionArrayToDomain(data || []);
-  }
-
-  async findWithPagination(params: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    const { page, limit, sortBy = 'date', sortOrder = 'desc' } = params;
-    const offset = (page - 1) * limit;
-
-    // Get total count
-    const { count, error: countError } = await supabase
-      .from('transactions')
-      .select('*', { count: 'exact', head: true });
-
-    if (countError) {
-      throw new Error(`Failed to count transactions: ${countError.message}`);
-    }
-
-    // Get paginated data
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .order(sortBy, { ascending: sortOrder === 'asc' })
-      .order('created_at', { ascending: false }) // Secondary sort
-      .range(offset, offset + limit - 1);
-
-    if (error) {
-      throw new Error(`Failed to fetch transactions: ${error.message}`);
-    }
-
-    const total = count || 0;
-    const totalPages = Math.ceil(total / limit);
-
     return {
       data: mapSupabaseTransactionArrayToDomain(data || []),
-      total,
+      total: count || 0,
       page,
       limit,
-      totalPages,
+      totalPages: Math.ceil((count || 0) / limit),
     };
+  }
+
+  // Helper method kept for backward compatibility if needed internally, but finding filtered list should prefer findByFilters
+  async findWithFilters(filters: TransactionFilters): Promise<Transaction[]> {
+    const result = await this.findByFilters(filters, { page: 1, limit: 1000 });
+    return result.data;
   }
 
   async create(transactionData: CreateTransactionDTO): Promise<Transaction> {
@@ -241,7 +225,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       const originalAdjustment = this.calculateBalanceAdjustment(originalTransaction.type, originalTransaction.amountMinor);
       const newAdjustment = this.calculateBalanceAdjustment(updatedTransaction.type, updatedTransaction.amountMinor);
       const balanceDifference = newAdjustment - originalAdjustment;
-      
+
       if (balanceDifference !== 0 && this.accountsRepository) {
         await this.accountsRepository.adjustBalance(updatedTransaction.accountId, balanceDifference);
         console.log(`✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`);
@@ -298,13 +282,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   async getTotalByCategoryId(categoryId: string, dateFrom?: string, dateTo?: string): Promise<number> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning 0 for category total');
       return 0;
     }
-    
+
     const userId = user.id;
 
     // Single query with JOIN - más eficiente
@@ -374,37 +358,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   // Missing methods from TransactionsRepository interface - basic implementations
-  async findByFilters(filters: TransactionFilters, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    // Use existing findWithFilters and add pagination
-    const transactions = await this.findWithFilters(filters);
-    
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
 
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-    
-    return {
-      data: paginatedItems,
-      total: transactions.length,
-      page,
-      limit,
-      totalPages: Math.ceil(transactions.length / limit),
-    };
-  }
 
   async findByAccountId(accountId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning empty transactions');
@@ -416,7 +375,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         totalPages: 0,
       };
     }
-    
+
     const userId = user.id;
 
     // Verify that the account belongs to the authenticated user
@@ -437,46 +396,34 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       }; // Account doesn't belong to user or doesn't exist
     }
 
-    const { data, error } = await supabase
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const offset = (page - 1) * limit;
+
+    const { data, error, count } = await supabase
       .from('transactions')
-      .select('*')
+      .select('*', { count: 'exact' })
       .eq('account_id', accountId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new Error(`Failed to fetch transactions by account: ${error.message}`);
     }
 
-    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
-    
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
-
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-    
     return {
-      data: paginatedItems,
-      total: transactions.length,
+      data: mapSupabaseTransactionArrayToDomain(data || []),
+      total: count || 0,
       page,
       limit,
-      totalPages: Math.ceil(transactions.length / limit),
+      totalPages: Math.ceil((count || 0) / limit),
     };
   }
 
   async findByCategoryId(categoryId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning empty transactions');
@@ -488,54 +435,42 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         totalPages: 0,
       };
     }
-    
+
     const userId = user.id;
 
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const offset = (page - 1) * limit;
+
     // Single query with JOIN - más eficiente
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('transactions')
       .select(`
         *,
         accounts!inner(user_id)
-      `)
+      `, { count: 'exact' })
       .eq('accounts.user_id', userId)
       .eq('category_id', categoryId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new Error(`Failed to fetch transactions by category: ${error.message}`);
     }
 
-    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
-    
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
-
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-    
     return {
-      data: paginatedItems,
-      total: transactions.length,
+      data: mapSupabaseTransactionArrayToDomain(data || []),
+      total: count || 0,
       page,
       limit,
-      totalPages: Math.ceil(transactions.length / limit),
+      totalPages: Math.ceil((count || 0) / limit),
     };
   }
 
   async findByType(type: TransactionType, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning empty transactions');
@@ -547,54 +482,42 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         totalPages: 0,
       };
     }
-    
+
     const userId = user.id;
 
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const offset = (page - 1) * limit;
+
     // Single query with JOIN - más eficiente
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('transactions')
       .select(`
         *,
         accounts!inner(user_id)
-      `)
+      `, { count: 'exact' })
       .eq('accounts.user_id', userId)
       .eq('type', type)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
 
     if (error) {
       throw new Error(`Failed to fetch transactions by type: ${error.message}`);
     }
 
-    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
-    
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
-
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-    
     return {
-      data: paginatedItems,
-      total: transactions.length,
+      data: mapSupabaseTransactionArrayToDomain(data || []),
+      total: count || 0,
       page,
       limit,
-      totalPages: Math.ceil(transactions.length / limit),
+      totalPages: Math.ceil((count || 0) / limit),
     };
   }
 
   async findByDateRange(startDate: string, endDate: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
     // Only allow authenticated users - no fallbacks
     const { data: { user } } = await supabase.auth.getUser();
-    
+
     if (!user) {
       // No user authenticated = no transactions visible
       console.warn('No authenticated user - returning empty transactions');
@@ -606,7 +529,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         totalPages: 0,
       };
     }
-    
+
     const userId = user.id;
 
     // Single query with JOIN - más eficiente
@@ -627,7 +550,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     const transactions = mapSupabaseTransactionArrayToDomain(data || []);
-    
+
     if (!pagination) {
       return {
         data: transactions,
@@ -641,7 +564,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { page = 1, limit = 10 } = pagination;
     const offset = (page - 1) * limit;
     const paginatedItems = transactions.slice(offset, offset + limit);
-    
+
     return {
       data: paginatedItems,
       total: transactions.length,
@@ -676,7 +599,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     const transactions = mapSupabaseTransactionArrayToDomain(data || []);
-    
+
     if (!pagination) {
       return {
         data: transactions,
@@ -690,7 +613,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { page = 1, limit = 10 } = pagination;
     const offset = (page - 1) * limit;
     const paginatedItems = transactions.slice(offset, offset + limit);
-    
+
     return {
       data: paginatedItems,
       total: transactions.length,
@@ -793,9 +716,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   async createTransfer(fromTransaction: CreateTransactionDTO, toTransaction: CreateTransactionDTO): Promise<any> {
     // TODO: Implement proper transfer creation
     const transferId = crypto.randomUUID();
-        const from = await this.create({ ...fromTransaction, transferId } as any); 
+    const from = await this.create({ ...fromTransaction, transferId } as any);
     const to = await this.create({ ...toTransaction, transferId } as any);
-    
+
     return {
       fromTransaction: from,
       toTransaction: to,
@@ -810,17 +733,47 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
   // Missing BaseRepository methods
   async findPaginated(params: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    return this.findWithPagination(params);
+    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = params;
+    const offset = (page - 1) * limit;
+
+    const { count, error: countError } = await supabase
+      .from('transactions')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      throw new Error(`Failed to count transactions: ${countError.message}`);
+    }
+
+    const sortColumn = sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : sortBy);
+
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .order(sortColumn, { ascending: sortOrder === 'asc' })
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    if (error) {
+      throw new Error(`Failed to fetch transactions: ${error.message}`);
+    }
+
+    return {
+      data: mapSupabaseTransactionArrayToDomain(data || []),
+      total: count || 0,
+      page,
+      limit,
+      totalPages: Math.ceil((count || 0) / limit),
+    };
   }
 
   async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
     const results: Transaction[] = [];
-    
+
     for (const transactionData of data) {
       const result = await this.create(transactionData);
       results.push(result);
     }
-    
+
     return results;
   }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
+import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import {
   createOrder,
   listUserOrders,
@@ -10,38 +11,6 @@ import {
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-/**
- * Helper function to extract authenticated user from request
- */
-async function getAuthenticatedUser(request: NextRequest): Promise<string> {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  
-  if (!token) {
-    throw new Error('No authorization token provided');
-  }
-
-  const supabaseWithAuth = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    }
-  );
-  
-  const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser();
-  
-  if (authError || !user) {
-    throw new Error('Authentication failed');
-  }
-  
-  return user.id;
-}
 
 /**
  * GET /api/payment-orders

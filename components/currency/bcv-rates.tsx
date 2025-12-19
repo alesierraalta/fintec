@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  RefreshCw, 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
+import {
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
   Euro,
   Clock,
   ExternalLink,
@@ -20,16 +20,16 @@ import {
   Percent
 } from 'lucide-react';
 import { currencyService } from '@/lib/services/currency-service';
-import type { BCVRates } from '@/lib/services/currency-service';
+import type { BCVRates } from '@/types/rates';
 import { BCVTrend } from '@/lib/services/bcv-history-service';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Badge } from '@/components/ui/badge';
-import { 
-  calculateAverageRateDifference, 
+import {
+  calculateAverageRateDifference,
   calculateEurUsdRateDifference,
-  formatPercentageDifference, 
+  formatPercentageDifference,
   getPercentageColorClass,
-  type RateComparison 
+  type RateComparison
 } from '@/lib/rate-comparison';
 
 const fadeInUp = {
@@ -44,10 +44,10 @@ export function BCVRates() {
   const [error, setError] = useState<string>('');
   const [isLive, setIsLive] = useState(false);
   const [trends, setTrends] = useState<{ usd: BCVTrend; eur: BCVTrend } | null>(null);
-  
+
   // Get Binance rates for comparison
   const { rates: binanceRates } = useBinanceRates();
-  
+
   // Currency converter state
   const [showConverter, setShowConverter] = useState(false); // Already closed by default
   const [amount, setAmount] = useState<string>('1');
@@ -72,13 +72,13 @@ export function BCVRates() {
       const bcvRates = await currencyService.fetchBCVRates();
       setRates(bcvRates);
       setLastUpdated(new Date(bcvRates.lastUpdated).toLocaleString('es-VE'));
-      
+
       // Check if rates are very recent (less than 1 hour old)
       const rateTime = new Date(bcvRates.lastUpdated);
       const now = new Date();
       const hoursDiff = (now.getTime() - rateTime.getTime()) / (1000 * 60 * 60);
       setIsLive(hoursDiff < 1 && bcvRates.fallback !== true);
-      
+
       // Fetch trends
       try {
         const trendsData = await currencyService.getBCVTrends();
@@ -96,19 +96,19 @@ export function BCVRates() {
 
   useEffect(() => {
     fetchRates();
-    
+
     // Auto-refresh every 10 minutes for BCV data
     const interval = setInterval(fetchRates, 600000);
     return () => clearInterval(interval);
   }, []);
 
   // Calculate percentage difference with Binance for both USD and EUR
-  const usdRateComparison: RateComparison | null = rates && binanceRates ? 
-    calculateAverageRateDifference(rates.usd, binanceRates.sell_rate.avg, binanceRates.buy_rate.avg) : 
+  const usdRateComparison: RateComparison | null = rates && binanceRates ?
+    calculateAverageRateDifference(rates.usd, binanceRates.sell_rate.avg, binanceRates.buy_rate.avg) :
     null;
-    
-  const eurRateComparison: RateComparison | null = rates && binanceRates ? 
-    calculateEurUsdRateDifference(rates.eur, binanceRates.sell_rate.avg, binanceRates.buy_rate.avg) : 
+
+  const eurRateComparison: RateComparison | null = rates && binanceRates ?
+    calculateEurUsdRateDifference(rates.eur, binanceRates.sell_rate.avg, binanceRates.buy_rate.avg) :
     null;
 
   const renderTrendIcon = (trend: BCVTrend) => {
@@ -138,11 +138,11 @@ export function BCVRates() {
 
   const convertCurrency = () => {
     if (!rates || !amount || isNaN(parseFloat(amount))) return 0;
-    
+
     const numAmount = parseFloat(amount);
-    
+
     if (fromCurrency === toCurrency) return numAmount;
-    
+
     // Convert to VES first if needed
     let vesAmount = numAmount;
     if (fromCurrency === 'USD') {
@@ -150,7 +150,7 @@ export function BCVRates() {
     } else if (fromCurrency === 'EUR') {
       vesAmount = numAmount * rates.eur;
     }
-    
+
     // Convert from VES to target currency
     if (toCurrency === 'VES') {
       return vesAmount;
@@ -159,7 +159,7 @@ export function BCVRates() {
     } else if (toCurrency === 'EUR') {
       return vesAmount / rates.eur;
     }
-    
+
     return 0;
   };
 
@@ -180,7 +180,7 @@ export function BCVRates() {
 
   if (!rates) {
     return (
-      <motion.div 
+      <motion.div
         className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg animate-pulse"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -193,7 +193,7 @@ export function BCVRates() {
   }
 
   return (
-    <motion.div 
+    <motion.div
       className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 lg:p-8 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -210,7 +210,7 @@ export function BCVRates() {
             <p className="text-xs sm:text-sm text-muted-foreground font-medium">Tasa oficial del gobierno</p>
           </div>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <motion.button
             onClick={() => setShowConverter(!showConverter)}
@@ -232,9 +232,9 @@ export function BCVRates() {
             <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 text-green-600 group-hover:text-green-700 transition-colors ${loading ? 'animate-spin' : ''}`} />
             <span className="ml-2 text-sm sm:text-base font-medium text-green-600 group-hover:text-green-700 transition-colors">Actualizar</span>
           </motion.button>
-          <motion.a 
-            href="https://www.bcv.org.ve" 
-            target="_blank" 
+          <motion.a
+            href="https://www.bcv.org.ve"
+            target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center px-3 sm:px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all duration-200 group min-h-[44px]"
             whileHover={{ scale: 1.05 }}
@@ -278,7 +278,7 @@ export function BCVRates() {
       {/* Rates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* USD Rate */}
-        <motion.div 
+        <motion.div
           className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-success-500/30 transition-all duration-200"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
@@ -300,7 +300,7 @@ export function BCVRates() {
         </motion.div>
 
         {/* EUR Rate */}
-        <motion.div 
+        <motion.div
           className="bg-muted/10 backdrop-blur-sm rounded-2xl p-4 border border-border/20 hover:border-blue-500/30 transition-all duration-200"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
@@ -324,7 +324,7 @@ export function BCVRates() {
 
       {/* Currency Converter */}
       {showConverter && (
-        <motion.div 
+        <motion.div
           className="bg-muted/5 backdrop-blur-sm rounded-2xl p-4 border border-border/20 mb-6"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -335,7 +335,7 @@ export function BCVRates() {
             <Calculator className="h-4 w-4 text-primary" />
             <h4 className="text-ios-body font-medium text-foreground">Conversión Rápida</h4>
           </div>
-          
+
           <div className="space-y-4">
             {/* Amount Input */}
             <div>
@@ -348,7 +348,7 @@ export function BCVRates() {
                 className="w-full px-4 py-3 bg-background/50 border border-border/30 rounded-xl text-foreground focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all"
               />
             </div>
-            
+
             {/* Currency Selection */}
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-4 sm:gap-2 items-center">
               <div className="col-span-1 sm:col-span-2">
@@ -363,7 +363,7 @@ export function BCVRates() {
                   <option value="VES">VES - Bolívar</option>
                 </select>
               </div>
-              
+
               <div className="flex justify-center col-span-1 sm:col-span-1">
                 <motion.button
                   onClick={swapCurrencies}
@@ -375,7 +375,7 @@ export function BCVRates() {
                   <ArrowUpDown className="h-4 w-4 text-primary" />
                 </motion.button>
               </div>
-              
+
               <div className="col-span-1 sm:col-span-2">
                 <label className="block text-ios-caption font-medium text-muted-foreground mb-2">A</label>
                 <select
@@ -389,15 +389,15 @@ export function BCVRates() {
                 </select>
               </div>
             </div>
-            
+
             {/* Result */}
             <div className="bg-primary/10 rounded-xl p-4 border border-primary/20">
               <div className="text-center">
                 <p className="text-ios-caption text-muted-foreground mb-1">Resultado</p>
                 <p className="text-3xl font-light text-primary">
-                  {getCurrencySymbol(toCurrency)} {convertCurrency().toLocaleString('es-VE', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
+                  {getCurrencySymbol(toCurrency)} {convertCurrency().toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })}
                 </p>
                 <p className="text-ios-footnote text-muted-foreground mt-1">

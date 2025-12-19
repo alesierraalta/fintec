@@ -1,17 +1,8 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
 import BackgroundScraperService from './background-scraper';
-
+import type { ExchangeRateData } from '@/types/rates';
 import { logger } from '@/lib/utils/logger';
-interface ExchangeRateData {
-  usd_ves: number;
-  usdt_ves: number;
-  busd_ves: number;
-  sell_rate: number;
-  buy_rate: number;
-  lastUpdated: string;
-  source: string;
-}
 
 class WebSocketService {
   private io: SocketIOServer;

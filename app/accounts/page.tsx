@@ -364,11 +364,11 @@ export default function AccountsPage() {
   }, [bcvRates, binanceRates]);
 
   // Convertir balance a USD
-  const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
+  const convertToUSD = useCallback((balanceMinor: number, currencyCode: string, accountType?: string, useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'): number => {
     if (currencyCode === 'USD') return balanceMinor / 100;
 
     // * Handle cryptocurrencies with proper decimal places
-    if (currencyCode === 'BTC' || currencyCode === 'ETH') {
+    if (accountType === 'CRYPTO' || currencyCode === 'BTC' || currencyCode === 'ETH') {
       // Cryptocurrencies use 8 decimal places
       const balanceMajor = balanceMinor / 100000000;
       // ! Cryptocurrencies need their own exchange rates (BTC/USD, ETH/USD)
@@ -406,7 +406,7 @@ export default function AccountsPage() {
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
 
       // * Exclude cryptocurrencies from total balance (they need their own exchange rates)
-      if (acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH') {
+      if (acc.type === 'CRYPTO') {
         return sum; // Skip crypto accounts
       }
 
@@ -733,12 +733,12 @@ export default function AccountsPage() {
               </div>
               <p className="text-2xl sm:text-3xl font-light text-foreground mb-2">
                 <NumberTicker
-                  value={accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length}
+                  value={accounts.filter(acc => acc.type === 'CRYPTO').length}
                   isVisible={true}
                 />
               </p>
               <p className="text-ios-footnote text-muted-foreground mb-2">wallets activos</p>
-              {accounts.filter(acc => acc.currencyCode === 'BTC' || acc.currencyCode === 'ETH').length > 0 && (
+              {accounts.filter(acc => acc.type === 'CRYPTO').length > 0 && (
                 <motion.div
                   className="flex items-center space-x-2"
                   initial={{ opacity: 0 }}
@@ -921,9 +921,9 @@ export default function AccountsPage() {
                                   : '••••••'
                                 }
                               </p>
-                              {account.currencyCode !== 'USD' && account.currencyCode !== 'BTC' && account.currencyCode !== 'ETH' && showBalances && (
+                              {account.currencyCode !== 'USD' && account.type !== 'CRYPTO' && showBalances && (
                                 <p className="text-xs text-muted-foreground mt-0.5">
-                                  ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode, usdEquivalentType).toLocaleString('en-US', {
+                                  ≈ ${convertToUSD(Math.abs(account.balance), account.currencyCode, account.type, usdEquivalentType).toLocaleString('en-US', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2
                                   })} USD

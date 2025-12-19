@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  RefreshCw, 
-  DollarSign, 
+import {
+  RefreshCw,
+  DollarSign,
   Clock,
   ExternalLink,
   TrendingUp,
@@ -19,14 +19,14 @@ import {
   Euro
 } from 'lucide-react';
 import { currencyService } from '@/lib/services/currency-service';
-import type { BinanceRates } from '@/lib/services/currency-service';
+import type { BinanceRates } from '@/types/rates';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
-import { 
-  calculateAverageRateDifference, 
+import {
+  calculateAverageRateDifference,
   calculateEurUsdRateDifference,
-  formatPercentageDifference, 
+  formatPercentageDifference,
   getPercentageColorClass,
-  type RateComparison 
+  type RateComparison
 } from '@/lib/rate-comparison';
 
 const fadeInUp = {
@@ -52,7 +52,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       setRates(binanceRates);
       setLastUpdated(new Date().toLocaleString('es-VE'));
       setIsLive(true);
-      
+
       // Check if rates are very recent (less than 5 minutes old)
       const rateTime = new Date(binanceRates.lastUpdated);
       const now = new Date();
@@ -68,7 +68,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
 
   useEffect(() => {
     fetchRates();
-    
+
     // Auto-refresh every 2 minutes for P2P data
     const interval = setInterval(fetchRates, 120000);
     return () => clearInterval(interval);
@@ -77,14 +77,14 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
   // Calculate percentage difference with BCV for both USD and EUR
   // Memoize expensive calculations
   const usdRateComparison: RateComparison | null = useMemo(() => {
-    return rates && bcvRates ? 
-      calculateAverageRateDifference(bcvRates.usd, rates.sell_rate.avg, rates.buy_rate.avg) : 
+    return rates && bcvRates ?
+      calculateAverageRateDifference(bcvRates.usd, rates.sell_rate.avg, rates.buy_rate.avg) :
       null;
   }, [rates, bcvRates]);
-    
+
   const eurRateComparison: RateComparison | null = useMemo(() => {
-    return rates && bcvRates ? 
-      calculateEurUsdRateDifference(bcvRates.eur, rates.sell_rate.avg, rates.buy_rate.avg) : 
+    return rates && bcvRates ?
+      calculateEurUsdRateDifference(bcvRates.eur, rates.sell_rate.avg, rates.buy_rate.avg) :
       null;
   }, [rates, bcvRates]);
 
@@ -109,7 +109,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
 
   if (!rates) {
     return (
-      <motion.div 
+      <motion.div
         className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg animate-pulse"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -122,7 +122,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
   }
 
   return (
-    <motion.div 
+    <motion.div
       className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 lg:p-8 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -139,7 +139,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
             <p className="text-xs sm:text-sm font-medium text-orange-600">Precio real P2P</p>
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <motion.button
             onClick={handleRefresh}
@@ -162,7 +162,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
 
       {/* BCV Comparison - New Section */}
       {(usdRateComparison || eurRateComparison) && (
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-r from-orange-500/5 to-yellow-500/5 backdrop-blur-sm rounded-2xl p-4 border border-orange-500/20 mb-6"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -172,7 +172,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
             <BarChart3 className="h-4 w-4 text-orange-600" />
             <h4 className="text-ios-body font-medium text-foreground">Comparación con BCV Oficial</h4>
           </div>
-          
+
           {/* USD Comparison */}
           {usdRateComparison && (
             <div className="mb-4">
@@ -208,7 +208,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
               </div>
               <div className="mt-2 text-center">
                 <p className="text-ios-footnote text-muted-foreground">
-                  {!usdRateComparison.isBCVHigher ? 
+                  {!usdRateComparison.isBCVHigher ?
                     `Binance P2P es ${usdRateComparison.percentageDifference.toFixed(1)}% más alto que BCV` :
                     `BCV es ${usdRateComparison.percentageDifference.toFixed(1)}% más alto que Binance P2P`
                   }
@@ -216,7 +216,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
               </div>
             </div>
           )}
-          
+
           {/* EUR Comparison */}
           {eurRateComparison && (
             <div className="border-t border-border/20 pt-4">
@@ -252,7 +252,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
               </div>
               <div className="mt-2 text-center">
                 <p className="text-ios-footnote text-muted-foreground">
-                  {!eurRateComparison.isBCVHigher ? 
+                  {!eurRateComparison.isBCVHigher ?
                     `Binance P2P es ${eurRateComparison.percentageDifference.toFixed(1)}% más alto que BCV EUR` :
                     `BCV EUR es ${eurRateComparison.percentageDifference.toFixed(1)}% más alto que Binance P2P`
                   }
@@ -266,7 +266,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       {/* Main Rates Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* VENTA (Sell) - Precio más alto */}
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-br from-red-500/10 to-red-600/5 backdrop-blur-sm rounded-2xl p-4 border border-red-500/20 hover:border-red-500/30 transition-all duration-200"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
@@ -301,7 +301,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
         </motion.div>
 
         {/* COMPRA (Buy) - Precio más bajo */}
-        <motion.div 
+        <motion.div
           className="bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-sm rounded-2xl p-4 border border-green-500/20 hover:border-green-500/30 transition-all duration-200"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
@@ -337,7 +337,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       </div>
 
       {/* Simplified Market Summary */}
-      <motion.div 
+      <motion.div
         className="bg-gradient-to-br from-primary/10 to-primary/5 backdrop-blur-sm rounded-2xl p-4 sm:p-6 border-2 border-primary/30 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -354,7 +354,7 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent()
       </motion.div>
 
       {/* Simplified Market Explanation */}
-      <motion.div 
+      <motion.div
         className="bg-primary/5 backdrop-blur-sm rounded-2xl p-4 border border-primary/10 mb-6"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

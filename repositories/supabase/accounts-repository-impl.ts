@@ -188,8 +188,17 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async getTotalBalance(userId: string): Promise<number> {
-    const accounts = await this.findByUserId(userId);
-    return accounts.reduce((total, account) => total + account.balance, 0);
+    const { data, error } = await supabase
+      .from('accounts')
+      .select('balance')
+      .eq('user_id', userId)
+      .eq('active', true);
+
+    if (error) {
+      throw new Error(`Failed to fetch account balances: ${error.message}`);
+    }
+
+    return ((data as any[]) || []).reduce((total, account) => total + (account.balance || 0), 0);
   }
 
 

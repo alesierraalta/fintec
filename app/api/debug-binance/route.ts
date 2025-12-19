@@ -4,10 +4,18 @@ import { binanceHistoryService } from '@/lib/services/binance-history-service';
 import { logger } from '@/lib/utils/logger';
 
 export async function GET() {
+  // ! Security: Only allow in development
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json(
+      { error: 'Not found' },
+      { status: 404 }
+    );
+  }
+
   try {
     logger.info('Fetching recent Binance rates...');
     const rates = await binanceHistoryService.getHistoricalRates(5);
-    
+
     const debugInfo = {
       totalRates: rates.length,
       rates: rates.map(rate => ({
@@ -20,7 +28,7 @@ export async function GET() {
         fullObject: rate
       }))
     };
-    
+
     return NextResponse.json(debugInfo);
   } catch (error) {
     logger.error('Error:', error);

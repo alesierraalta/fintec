@@ -1,4 +1,5 @@
-import { currencyService, BCVRates, BinanceRates } from '@/lib/services/currency-service';
+import { currencyService } from '@/lib/services/currency-service';
+import type { BCVRates, BinanceRates } from '@/types/rates';
 import { bcvHistoryService } from '@/lib/services/bcv-history-service';
 import { binanceHistoryService } from '@/lib/services/binance-history-service';
 import { STATIC_BCV_FALLBACK_RATES } from '@/lib/services/rates-fallback';

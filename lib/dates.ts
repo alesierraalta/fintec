@@ -1,16 +1,17 @@
 // Date utility functions for the finance application
+// Migrated from date-fns to dayjs for better performance and smaller bundle size
 
-import { format, parse, isValid, startOfDay, endOfDay, startOfMonth, endOfMonth, startOfYear, endOfYear, addDays, addWeeks, addMonths, addYears, differenceInDays, differenceInMonths, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import dayjs from './dates/dayjs';
+import type { ConfigType, OpUnitType } from 'dayjs';
 
 export const DATE_FORMATS = {
-  ISO: 'yyyy-MM-dd',
-  ISO_DATETIME: "yyyy-MM-dd'T'HH:mm:ss.SSSxxx",
-  DISPLAY_SHORT: 'dd/MM/yyyy',
-  DISPLAY_MEDIUM: 'dd MMM yyyy',
-  DISPLAY_LONG: 'dd MMMM yyyy',
-  MONTH_YEAR: 'yyyy-MM',
-  MONTH_NAME: 'MMMM yyyy',
+  ISO: 'YYYY-MM-DD',
+  ISO_DATETIME: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+  DISPLAY_SHORT: 'DD/MM/YYYY',
+  DISPLAY_MEDIUM: 'DD MMM YYYY',
+  DISPLAY_LONG: 'DD MMMM YYYY',
+  MONTH_YEAR: 'YYYY-MM',
+  MONTH_NAME: 'MMMM YYYY',
 } as const;
 
 // Format date for display
@@ -18,21 +19,21 @@ export function formatDate(
   date: string | Date,
   formatStr: keyof typeof DATE_FORMATS | string = 'DISPLAY_MEDIUM'
 ): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  
-  if (!isValid(dateObj)) {
+  const dateObj = dayjs(date);
+
+  if (!dateObj.isValid()) {
     return 'Fecha inválida';
   }
 
   const formatPattern = DATE_FORMATS[formatStr as keyof typeof DATE_FORMATS] || formatStr;
-  return format(dateObj, formatPattern, { locale: es });
+  return dateObj.format(formatPattern);
 }
 
 // Parse date string
 export function parseDate(dateStr: string, formatStr: string = DATE_FORMATS.ISO): Date | null {
   try {
-    const parsed = parse(dateStr, formatStr, new Date());
-    return isValid(parsed) ? parsed : null;
+    const parsed = dayjs(dateStr, formatStr);
+    return parsed.isValid() ? parsed.toDate() : null;
   } catch {
     return null;
   }
@@ -40,18 +41,17 @@ export function parseDate(dateStr: string, formatStr: string = DATE_FORMATS.ISO)
 
 // Get current date in ISO format
 export function getCurrentDate(): string {
-  return format(new Date(), DATE_FORMATS.ISO);
+  return dayjs().format(DATE_FORMATS.ISO);
 }
 
 // Get current datetime in ISO format
 export function getCurrentDateTime(): string {
-  return new Date().toISOString();
+  return dayjs().toISOString();
 }
 
 // Get month-year string (YYYY-MM)
 export function getMonthYear(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  return format(dateObj, DATE_FORMATS.MONTH_YEAR);
+  return dayjs(date).format(DATE_FORMATS.MONTH_YEAR);
 }
 
 // Get start and end of period
@@ -59,23 +59,23 @@ export function getPeriodBounds(date: string | Date, period: 'day' | 'month' | '
   start: string;
   end: string;
 } {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  
-  let start: Date;
-  let end: Date;
+  const dateObj = dayjs(date);
+
+  let start: dayjs.Dayjs;
+  let end: dayjs.Dayjs;
 
   switch (period) {
     case 'day':
-      start = startOfDay(dateObj);
-      end = endOfDay(dateObj);
+      start = dateObj.startOf('day');
+      end = dateObj.endOf('day');
       break;
     case 'month':
-      start = startOfMonth(dateObj);
-      end = endOfMonth(dateObj);
+      start = dateObj.startOf('month');
+      end = dateObj.endOf('month');
       break;
     case 'year':
-      start = startOfYear(dateObj);
-      end = endOfYear(dateObj);
+      start = dateObj.startOf('year');
+      end = dateObj.endOf('year');
       break;
     default:
       throw new Error(`Unsupported period: ${period}`);
@@ -90,29 +90,29 @@ export function getPeriodBounds(date: string | Date, period: 'day' | 'month' | '
 // Get month bounds from YYYY-MM string
 export function getMonthBounds(monthYear: string): { start: string; end: string } {
   const [year, month] = monthYear.split('-').map(Number);
-  const date = new Date(year, month - 1, 1);
-  return getPeriodBounds(date, 'month');
+  const date = dayjs().year(year).month(month - 1).date(1);
+  return getPeriodBounds(date.toDate(), 'month');
 }
 
 // Get date range for last N days
 export function getLastNDays(days: number): { start: string; end: string } {
-  const end = new Date();
-  const start = addDays(end, -days);
-  
+  const end = dayjs();
+  const start = end.subtract(days, 'day');
+
   return {
-    start: startOfDay(start).toISOString(),
-    end: endOfDay(end).toISOString(),
+    start: start.startOf('day').toISOString(),
+    end: end.endOf('day').toISOString(),
   };
 }
 
 // Get date range for last N months
 export function getLastNMonths(months: number): { start: string; end: string } {
-  const end = new Date();
-  const start = addMonths(startOfMonth(end), -months);
-  
+  const end = dayjs();
+  const start = end.subtract(months, 'month').startOf('month');
+
   return {
     start: start.toISOString(),
-    end: endOfMonth(end).toISOString(),
+    end: end.endOf('month').toISOString(),
   };
 }
 
@@ -122,27 +122,27 @@ export function addTime(
   amount: number,
   unit: 'days' | 'weeks' | 'months' | 'years'
 ): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  
-  let result: Date;
-  
+  const dateObj = dayjs(date);
+
+  let result: dayjs.Dayjs;
+
   switch (unit) {
     case 'days':
-      result = addDays(dateObj, amount);
+      result = dateObj.add(amount, 'day');
       break;
     case 'weeks':
-      result = addWeeks(dateObj, amount);
+      result = dateObj.add(amount, 'week');
       break;
     case 'months':
-      result = addMonths(dateObj, amount);
+      result = dateObj.add(amount, 'month');
       break;
     case 'years':
-      result = addYears(dateObj, amount);
+      result = dateObj.add(amount, 'year');
       break;
     default:
       throw new Error(`Unsupported unit: ${unit}`);
   }
-  
+
   return result.toISOString();
 }
 
@@ -152,17 +152,10 @@ export function dateDifference(
   endDate: string | Date,
   unit: 'days' | 'months' = 'days'
 ): number {
-  const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
-  const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
-  
-  switch (unit) {
-    case 'days':
-      return differenceInDays(end, start);
-    case 'months':
-      return differenceInMonths(end, start);
-    default:
-      throw new Error(`Unsupported unit: ${unit}`);
-  }
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
+  return end.diff(start, unit);
 }
 
 // Check if date is in range
@@ -171,11 +164,11 @@ export function isDateInRange(
   startDate: string | Date,
   endDate: string | Date
 ): boolean {
-  const checkDate = typeof date === 'string' ? parseISO(date) : date;
-  const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
-  const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
-  
-  return checkDate >= start && checkDate <= end;
+  const checkDate = dayjs(date);
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
+  return checkDate.isSameOrAfter(start) && checkDate.isSameOrBefore(end);
 }
 
 // Get month names
@@ -206,10 +199,10 @@ export function getShortWeekdayNames(): string[] {
 
 // Get relative time string
 export function getRelativeTime(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const now = new Date();
-  const diffInDays = differenceInDays(now, dateObj);
-  
+  const dateObj = dayjs(date);
+  const now = dayjs();
+  const diffInDays = now.diff(dateObj, 'day');
+
   if (diffInDays === 0) {
     return 'Hoy';
   } else if (diffInDays === 1) {
@@ -221,22 +214,17 @@ export function getRelativeTime(date: string | Date): string {
   } else if (diffInDays < -1 && diffInDays >= -7) {
     return `En ${Math.abs(diffInDays)} días`;
   } else {
-    return formatDate(dateObj, 'DISPLAY_SHORT');
+    return formatDate(dateObj.toDate(), 'DISPLAY_SHORT');
   }
 }
 
 // Validate date string
 export function isValidDateString(dateStr: string, formatStr?: string): boolean {
   if (!dateStr) return false;
-  
+
   try {
-    if (formatStr) {
-      const parsed = parse(dateStr, formatStr, new Date());
-      return isValid(parsed);
-    } else {
-      const parsed = parseISO(dateStr);
-      return isValid(parsed);
-    }
+    const parsed = formatStr ? dayjs(dateStr, formatStr) : dayjs(dateStr);
+    return parsed.isValid();
   } catch {
     return false;
   }
@@ -244,16 +232,16 @@ export function isValidDateString(dateStr: string, formatStr?: string): boolean 
 
 // Get fiscal year start date (assuming fiscal year starts in January)
 export function getFiscalYearStart(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const year = dateObj.getFullYear();
-  return new Date(year, 0, 1).toISOString(); // January 1st
+  const dateObj = dayjs(date);
+  const year = dateObj.year();
+  return dayjs().year(year).month(0).date(1).toISOString(); // January 1st
 }
 
 // Get fiscal year end date
 export function getFiscalYearEnd(date: string | Date): string {
-  const dateObj = typeof date === 'string' ? parseISO(date) : date;
-  const year = dateObj.getFullYear();
-  return new Date(year, 11, 31, 23, 59, 59, 999).toISOString(); // December 31st
+  const dateObj = dayjs(date);
+  const year = dateObj.year();
+  return dayjs().year(year).month(11).date(31).hour(23).minute(59).second(59).millisecond(999).toISOString(); // December 31st
 }
 
 // Generate date range array
@@ -262,40 +250,40 @@ export function generateDateRange(
   endDate: string | Date,
   unit: 'days' | 'months' = 'days'
 ): string[] {
-  const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
-  const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
-  
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
   const dates: string[] = [];
   let current = start;
-  
-  while (current <= end) {
+
+  while (current.isSameOrBefore(end)) {
     dates.push(current.toISOString());
-    
+
     if (unit === 'days') {
-      current = addDays(current, 1);
+      current = current.add(1, 'day');
     } else if (unit === 'months') {
-      current = addMonths(current, 1);
+      current = current.add(1, 'month');
     }
   }
-  
+
   return dates;
 }
 
 // Get business days between dates (excluding weekends)
 export function getBusinessDays(startDate: string | Date, endDate: string | Date): number {
-  const start = typeof startDate === 'string' ? parseISO(startDate) : startDate;
-  const end = typeof endDate === 'string' ? parseISO(endDate) : endDate;
-  
+  const start = dayjs(startDate);
+  const end = dayjs(endDate);
+
   let businessDays = 0;
   let current = start;
-  
-  while (current <= end) {
-    const dayOfWeek = current.getDay();
+
+  while (current.isSameOrBefore(end)) {
+    const dayOfWeek = current.day();
     if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday (0) or Saturday (6)
       businessDays++;
     }
-    current = addDays(current, 1);
+    current = current.add(1, 'day');
   }
-  
+
   return businessDays;
 }

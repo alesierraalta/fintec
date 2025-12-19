@@ -7,8 +7,7 @@ import { formatCurrency } from '@/lib/money';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ChevronRight, TrendingUp, TrendingDown, ArrowRightLeft } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { es } from 'date-fns/locale';
+import dayjs from '@/lib/dates/dayjs';
 import { useMediaQuery } from '@/hooks';
 
 interface RecentTransactionsProps {
@@ -46,8 +45,8 @@ export function RecentTransactions({
   // Helper function to get exchange rate
   const getExchangeRate = useMemo(() => {
     if (!bcvRates || !binanceRates) return 1;
-    
-    switch(usdEquivalentType) {
+
+    switch (usdEquivalentType) {
       case 'binance': return binanceRates.usd_ves || 1;
       case 'bcv_usd': return bcvRates.usd || 1;
       case 'bcv_eur': return bcvRates.eur || 1;
@@ -56,27 +55,27 @@ export function RecentTransactions({
   }, [bcvRates, binanceRates, usdEquivalentType]);
 
   const formatAmount = (transaction: Transaction) => {
-    const isNegative = transaction.type === TransactionType.EXPENSE || 
-                      transaction.type === TransactionType.TRANSFER_OUT;
-    
+    const isNegative = transaction.type === TransactionType.EXPENSE ||
+      transaction.type === TransactionType.TRANSFER_OUT;
+
     // Format in original currency
     const formattedAmount = formatCurrency(
       transaction.amountMinor,
       transaction.currencyCode,
       { showSymbol: true, showCode: false }
     );
-    
+
     // Add USD equivalent if VES and rates are available
     if (transaction.currencyCode === 'VES' && bcvRates && binanceRates) {
       const amountMajor = transaction.amountMinor / 100;
       const usdEquivalent = amountMajor / getExchangeRate;
       const usdFormatted = `$${usdEquivalent.toFixed(2)}`;
-      
-      return isNegative 
+
+      return isNegative
         ? `-${formattedAmount} (~${usdFormatted})`
         : `${formattedAmount} (~${usdFormatted})`;
     }
-    
+
     return isNegative ? `-${formattedAmount}` : formattedAmount;
   };
 
@@ -163,11 +162,10 @@ export function RecentTransactions({
           {transactions.slice(0, 5).map((transaction) => (
             <div
               key={transaction.id}
-              className={`${isMobile ? 'p-4' : 'flex items-center justify-between p-4'} bg-card rounded-lg border border-border transition-all duration-200 cursor-pointer ${
-                hoveredTransaction === transaction.id 
-                  ? 'shadow-md border-primary/50 bg-card/80 dark:bg-primary/10' 
-                  : 'hover:shadow-sm hover:border-border/80'
-              }`}
+              className={`${isMobile ? 'p-4' : 'flex items-center justify-between p-4'} bg-card rounded-lg border border-border transition-all duration-200 cursor-pointer ${hoveredTransaction === transaction.id
+                ? 'shadow-md border-primary/50 bg-card/80 dark:bg-primary/10'
+                : 'hover:shadow-sm hover:border-border/80'
+                }`}
               onMouseEnter={() => setHoveredTransaction(transaction.id)}
               onMouseLeave={() => setHoveredTransaction(null)}
               onClick={() => onTransactionClick?.(transaction)}
@@ -188,14 +186,11 @@ export function RecentTransactions({
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <div className="flex items-center space-x-2">
                       <span>
-                        {formatDistanceToNow(new Date(transaction.date), {
-                          addSuffix: true,
-                          locale: es
-                        })}
+                        {dayjs(transaction.date).fromNow()}
                       </span>
                       {transaction.categoryId && (
                         <>
@@ -210,13 +205,12 @@ export function RecentTransactions({
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="pt-2 border-t border-border/20">
-                    <p className={`text-lg font-bold ${
-                      transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
-                        ? 'amount-positive'
-                        : 'amount-negative'
-                    }`}>
+                    <p className={`text-lg font-bold ${transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
+                      ? 'amount-positive'
+                      : 'amount-negative'
+                      }`}>
                       {formatAmount(transaction)}
                     </p>
                     {transaction.pending && (
@@ -240,10 +234,7 @@ export function RecentTransactions({
                       </div>
                       <div className="flex items-center space-x-2 text-xs text-muted-foreground">
                         <span>
-                          {formatDistanceToNow(new Date(transaction.date), {
-                            addSuffix: true,
-                            locale: es
-                          })}
+                          {dayjs(transaction.date).fromNow()}
                         </span>
                         {transaction.categoryId && (
                           <>
@@ -255,11 +246,10 @@ export function RecentTransactions({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-sm font-semibold ${
-                      transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
-                        ? 'amount-positive'
-                        : 'amount-negative'
-                    }`}>
+                    <p className={`text-sm font-semibold ${transaction.type === TransactionType.INCOME || transaction.type === TransactionType.TRANSFER_IN
+                      ? 'amount-positive'
+                      : 'amount-negative'
+                      }`}>
                       {formatAmount(transaction)}
                     </p>
                     {transaction.pending && (

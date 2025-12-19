@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
-import { 
+import {
   ArrowLeft,
   DollarSign,
   Calendar,
@@ -12,256 +12,66 @@ import {
   Minus,
   Check,
   X,
-  CreditCard,
   Wallet,
-  Building2,
-  Utensils,
-  Car,
-  ShoppingBag,
-  Music,
-  Stethoscope,
-  Home,
-  Book,
-  Dumbbell,
-  Plane,
-  Smartphone,
-  Banknote,
-  Heart,
-  Zap,
-  Receipt,
-  Briefcase,
-  Coffee,
-  TrendingUp,
-  Gift,
-  Star,
   Repeat,
-  PiggyBank
 } from 'lucide-react';
-import { useRepository } from '@/providers';
-import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
-import { CreateTransactionDTO, TransactionType } from '@/types';
+import { useTransactionForm, TRANSACTION_TYPES } from '@/hooks/use-transaction-form';
+import { TransactionType } from '@/types';
 import { CategoryForm } from '@/components/forms/category-form';
-import type { Category, Account } from '@/types/domain';
-import { logger } from '@/lib/utils/logger';
 import { CURRENCIES } from '@/lib/money';
-import { useActiveUsdVesRate } from '@/lib/rates';
-import { useAppStore } from '@/lib/store';
 
-// Data constants
-const transactionTypes = [
-  { value: 'EXPENSE', label: 'Gasto', icon: Minus, color: 'from-red-500 to-pink-600', emoji: '💸' },
-  { value: 'INCOME', label: 'Ingreso', icon: Plus, color: 'from-green-500 to-emerald-600', emoji: '💰' },
-  { value: 'TRANSFER_OUT', label: 'Transferencia', icon: Repeat, color: 'from-blue-500 to-cyan-600', emoji: '🔄' },
-];
+// * Icon mapping for transaction types
+const TYPE_ICONS = {
+  EXPENSE: Minus,
+  INCOME: Plus,
+  TRANSFER_OUT: Repeat,
+};
 
-// Categories and accounts are now loaded from database
+// * Icon mapping helper for categories
+const getCategoryEmoji = (icon: string): string => {
+  const emojiMap: Record<string, string> = {
+    Utensils: '🍽️', Car: '🚗', ShoppingBag: '🛍️', Music: '🎵',
+    Stethoscope: '🩺', Home: '🏠', Book: '📚', Dumbbell: '🏋️',
+    Plane: '✈️', Smartphone: '📱', Calendar: '📅', Banknote: '💵',
+    Heart: '❤️', Zap: '⚡', Building2: '🏢', Receipt: '🧾',
+    Briefcase: '💼', Coffee: '☕', TrendingUp: '📈', Gift: '🎁',
+    Star: '⭐', Repeat: '🔄', PiggyBank: '🐷',
+  };
+  return emojiMap[icon] || '💰';
+};
+
+// * Account type emoji helper
+const getAccountEmoji = (type: string): string => {
+  const emojiMap: Record<string, string> = {
+    BANK: '🏦', CARD: '💳', CASH: '💵', INVESTMENT: '📈',
+  };
+  return emojiMap[type] || '💰';
+};
 
 export function MobileAddTransaction() {
   const router = useRouter();
-  const repository = useRepository();
-  const { user } = useAuth();
   const { isOpen: isCategoryModalOpen, openModal: openCategoryModal, closeModal: closeCategoryModal } = useModal();
-  
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loadingAccounts, setLoadingAccounts] = useState(true);
-  const [formData, setFormData] = useState({
-    type: '' as TransactionType | '',
-    accountId: '',
-    categoryId: '',
-    amount: '',
-    description: '',
-    date: '',
-    note: '',
-    tags: '',
-    isRecurring: false,
-    frequency: 'monthly' as 'weekly' | 'monthly' | 'yearly',
-    endDate: '',
-  });
-  const [loading, setLoading] = useState(false);
-  const [calculatorValue, setCalculatorValue] = useState('0');
-  const activeUsdVes = useActiveUsdVesRate();
-  const selectedRateSource = useAppStore((s) => s.selectedRateSource);
 
-  // Load categories and accounts from database
-  useEffect(() => {
-    const loadData = async () => {
-      if (!user) {
-        setLoadingCategories(false);
-        setLoadingAccounts(false);
-        return;
-      }
-
-      try {
-        // Load categories
-        setLoadingCategories(true);
-        const allCategories = await repository.categories.findAll();
-        setCategories(allCategories.filter(cat => cat.active));
-        setLoadingCategories(false);
-
-        // Load user accounts
-        setLoadingAccounts(true);
-        const userAccounts = await repository.accounts.findByUserId(user.id);
-        setAccounts(userAccounts.filter(acc => acc.active));
-        setLoadingAccounts(false);
-      } catch (err) {
-        logger.error('Error loading data:', err);
-        setLoadingCategories(false);
-        setLoadingAccounts(false);
-      }
-    };
-
-    loadData();
-  }, [repository, user]);
-
-  // Helper function to get categories by type
-  const getCategoriesByType = (type: TransactionType) => {
-    // Map TransactionType to CategoryKind
-    if (type === 'INCOME') return categories.filter(cat => cat.kind === 'INCOME');
-    if (type === 'EXPENSE') return categories.filter(cat => cat.kind === 'EXPENSE');
-    // TRANSFER types can use either category kind
-    return categories;
-  };
-
-  // Helper function to determine category kind for new category creation
-  const getCategoryKindForTransaction = () => {
-    if (formData.type === 'INCOME') return 'INCOME';
-    if (formData.type === 'EXPENSE') return 'EXPENSE';
-    return 'EXPENSE'; // Default for TRANSFER_OUT
-  };
-
-  // Handle category creation and auto-selection
-  const handleCategorySaved = async (createdCategory?: Category) => {
-    if (!user) return;
-    
-    try {
-      // Reload categories after creating a new one
-      const allCategories = await repository.categories.findAll();
-      setCategories(allCategories.filter(cat => cat.active));
-      
-      // Auto-select the newly created category
-      if (createdCategory) {
-        setFormData(prev => ({ ...prev, categoryId: createdCategory.id }));
-      }
-    } catch (error) {
-      logger.error('Error reloading categories:', error);
-    }
-  };
-
-  // Initialize date on client side
-  useEffect(() => {
-    setFormData(prev => ({
-      ...prev,
-      date: new Date().toISOString().split('T')[0]
-    }));
-  }, []);
-
-  const handleCalculatorClick = (value: string) => {
-    if (value === 'C') {
-      setCalculatorValue('0');
-      setFormData({ ...formData, amount: '' });
-    } else if (value === '=') {
-      try {
-        const result = eval(calculatorValue);
-        const resultStr = result.toString();
-        setCalculatorValue(resultStr);
-        setFormData({ ...formData, amount: resultStr });
-      } catch {
-        setCalculatorValue('Error');
-        setFormData({ ...formData, amount: '' });
-      }
-    } else if (value === '⌫') {
-      const newValue = calculatorValue.length > 1 ? calculatorValue.slice(0, -1) : '0';
-      setCalculatorValue(newValue);
-      setFormData({ ...formData, amount: newValue === '0' ? '' : newValue });
-    } else {
-      const newValue = calculatorValue === '0' ? value : calculatorValue + value;
-      setCalculatorValue(newValue);
-      setFormData({ ...formData, amount: newValue });
-    }
-  };;
-
-  const handleSubmit = async () => {
-    // Validate required fields
-    if (!formData.amount || formData.amount.trim() === '') {
-      alert('Por favor ingresa un monto');
-      return;
-    }
-
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
-      alert('Por favor ingresa un monto válido mayor a 0');
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
-      // Get selected account to determine currency
-      const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
-      const currencyCode = selectedAccount?.currencyCode || 'USD';
-
-      const transactionData: CreateTransactionDTO = {
-        type: (formData.type as TransactionType) || 'EXPENSE',
-        accountId: formData.accountId,
-        categoryId: formData.categoryId,
-        currencyCode: currencyCode,
-        amountMinor: Math.round(amount * 100),
-        date: formData.date || new Date().toISOString().split('T')[0],
-        description: formData.description,
-        note: formData.note || undefined,
-        tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
-      };
-
-      const createdTransaction = await repository.transactions.create(transactionData);
-      
-      // If recurring is enabled, create recurring transaction
-      if (formData.isRecurring) {
-        try {
-          const { calculate_next_execution_date } = await import('@/lib/dates/recurring');
-          
-          const recurringData = {
-            name: `${formData.description} - Recurrente`,
-            type: (formData.type as TransactionType) || 'EXPENSE',
-            accountId: formData.accountId || 'acc1',
-            categoryId: formData.categoryId || 'food',
-            currencyCode: 'USD',
-            amountMinor: Math.round(amount * 100),
-            description: formData.description,
-            note: formData.note || undefined,
-            tags: formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : undefined,
-            frequency: formData.frequency as any,
-            intervalCount: 1,
-            startDate: calculate_next_execution_date(formData.date || new Date().toISOString().split('T')[0], formData.frequency),
-            endDate: formData.endDate || undefined
-          };
-          
-          // Note: This will need the user ID, but mobile version uses hardcoded accounts
-          // await repository.recurringTransactions.create(recurringData, 'user-id');
-          
-          alert(`¡Transacción recurrente configurada! Se repetirá ${formData.frequency === 'weekly' ? 'semanalmente' : formData.frequency === 'monthly' ? 'mensualmente' : 'anualmente'}.`);
-        } catch (recurringError) {
-          logger.error('Error creating recurring transaction:', recurringError);
-          alert('Transacción creada pero hubo un error con la configuración recurrente.');
-        }
-      }
-      
-      if (formData.isRecurring) {
-        alert(`¡Transacción recurrente creada! Se repetirá cada ${
-          formData.frequency === 'weekly' ? 'semana' :
-          formData.frequency === 'monthly' ? 'mes' : 'año'
-        }${formData.endDate ? ` hasta ${formData.endDate}` : ' indefinidamente'}.`);
-      }
-      
-      router.push('/transactions');
-    } catch (error) {
-      alert('Error al guardar la transacción. Por favor intenta de nuevo.');
-    } finally {
-      setLoading(false);
-    }
-  };;
+  // * Use custom hook for all form logic
+  const {
+    formData,
+    setFormData,
+    calculatorValue,
+    loading,
+    categories,
+    accounts,
+    loadingCategories,
+    loadingAccounts,
+    activeUsdVes,
+    selectedRateSource,
+    handleCalculatorClick,
+    handleCategorySaved,
+    handleSubmit,
+    getCategoriesByType,
+    getCategoryKindForTransaction,
+    getSelectedAccount,
+  } = useTransactionForm();
 
   const renderContent = () => {
     return (
@@ -273,25 +83,23 @@ export function MobileAddTransaction() {
             Tipo de Transacción
           </h3>
           <div className="space-y-3">
-            {transactionTypes.map((type) => {
-              const Icon = type.icon;
+            {TRANSACTION_TYPES.map((type) => {
+              const Icon = TYPE_ICONS[type.value as keyof typeof TYPE_ICONS];
               const isSelected = formData.type === type.value;
-              
+
               return (
                 <button
                   key={type.value}
                   type="button"
                   onClick={() => setFormData({ ...formData, type: type.value as TransactionType })}
-                  className={`w-full p-4 rounded-xl transition-all duration-300 transform ${
-                    isSelected
+                  className={`w-full p-4 rounded-xl transition-all duration-300 transform ${isSelected
                       ? `bg-gradient-to-r ${type.color} shadow-xl border-0`
                       : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center space-x-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      isSelected ? 'bg-white/20' : 'bg-white/10'
-                    }`}>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-white/10'
+                      }`}>
                       <Icon className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-300'}`} />
                     </div>
                     <div className="text-left">
@@ -315,9 +123,7 @@ export function MobileAddTransaction() {
             </h3>
             <div className="space-y-3">
               {loadingAccounts ? (
-                <div className="text-center text-gray-400">
-                  Cargando cuentas...
-                </div>
+                <div className="text-center text-gray-400">Cargando cuentas...</div>
               ) : accounts.length === 0 ? (
                 <div className="text-center text-gray-400">
                   No tienes cuentas disponibles. <br />
@@ -325,36 +131,29 @@ export function MobileAddTransaction() {
                 </div>
               ) : accounts.map((account) => {
                 const isSelected = formData.accountId === account.id;
-                
+
                 return (
                   <button
                     key={account.id}
                     type="button"
                     onClick={() => setFormData({ ...formData, accountId: account.id })}
-                    className={`w-full p-4 rounded-xl transition-all duration-300 transform ${
-                      isSelected
+                    className={`w-full p-4 rounded-xl transition-all duration-300 transform ${isSelected
                         ? 'shadow-xl border-0'
                         : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
-                    }`}
+                      }`}
                     style={isSelected ? { backgroundColor: '#10b981' } : {}}
                   >
                     <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        isSelected ? 'bg-white/20' : 'bg-white/10'
-                      }`}>
-                        <span className="text-xl">
-                          {account.type === 'BANK' ? '🏦' :
-                           account.type === 'CARD' ? '💳' :
-                           account.type === 'CASH' ? '💵' :
-                           account.type === 'INVESTMENT' ? '📈' : '💰'}
-                        </span>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-white/10'
+                        }`}>
+                        <span className="text-xl">{getAccountEmoji(account.type)}</span>
                       </div>
                       <div className="text-left flex-1">
                         <p className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}>
                           {account.name}
                         </p>
-                        <p className={`text-sm amount-emphasis-white ${isSelected ? 'text-white' : 'text-white'}`}>
-                          {account.currencyCode === 'VES' 
+                        <p className="text-sm amount-emphasis-white text-white">
+                          {account.currencyCode === 'VES'
                             ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
                             : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`
                           }
@@ -387,12 +186,10 @@ export function MobileAddTransaction() {
             </div>
             <div className="grid grid-cols-2 gap-3 max-h-96 overflow-y-auto">
               {loadingCategories ? (
-                <div className="col-span-full text-center text-gray-400">
-                  Cargando categorías...
-                </div>
+                <div className="col-span-full text-center text-gray-400">Cargando categorías...</div>
               ) : getCategoriesByType(formData.type as TransactionType)?.map((category) => {
                 const isSelected = formData.categoryId === category.id;
-                
+
                 return (
                   <button
                     key={category.id}
@@ -405,46 +202,19 @@ export function MobileAddTransaction() {
                       }
                       setFormData(newData);
                     }}
-                    className={`relative p-3 rounded-xl transition-all duration-300 ${
-                      isSelected
+                    className={`relative p-3 rounded-xl transition-all duration-300 ${isSelected
                         ? 'shadow-xl border-0'
                         : 'backdrop-blur-md bg-white/5 border border-white/10 hover:bg-white/10'
-                    }`}
+                      }`}
                     style={isSelected ? { backgroundColor: category.color } : {}}
                   >
                     <div className="flex flex-col items-center space-y-2">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                        isSelected ? 'bg-white/20' : 'bg-white/10'
-                      }`}>
-                        <span className="text-sm">
-                          {category.icon === 'Utensils' ? '🍽️' : 
-                           category.icon === 'Car' ? '🚗' : 
-                           category.icon === 'ShoppingBag' ? '🛍️' : 
-                           category.icon === 'Music' ? '🎵' : 
-                           category.icon === 'Stethoscope' ? '🩺' : 
-                           category.icon === 'Home' ? '🏠' : 
-                           category.icon === 'Book' ? '📚' : 
-                           category.icon === 'Dumbbell' ? '🏋️' : 
-                           category.icon === 'Plane' ? '✈️' : 
-                           category.icon === 'Smartphone' ? '📱' : 
-                           category.icon === 'Calendar' ? '📅' : 
-                           category.icon === 'Banknote' ? '💵' : 
-                           category.icon === 'Heart' ? '❤️' : 
-                           category.icon === 'Zap' ? '⚡' : 
-                           category.icon === 'Building2' ? '🏢' : 
-                           category.icon === 'Receipt' ? '🧾' : 
-                           category.icon === 'Briefcase' ? '💼' : 
-                           category.icon === 'Coffee' ? '☕' : 
-                           category.icon === 'TrendingUp' ? '📈' : 
-                           category.icon === 'Gift' ? '🎁' : 
-                           category.icon === 'Star' ? '⭐' : 
-                           category.icon === 'Repeat' ? '🔄' : 
-                           category.icon === 'PiggyBank' ? '🐷' : '💰'}
-                        </span>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isSelected ? 'bg-white/20' : 'bg-white/10'
+                        }`}>
+                        <span className="text-sm">{getCategoryEmoji(category.icon)}</span>
                       </div>
-                      <span className={`text-xs font-medium text-center ${
-                        isSelected ? 'text-white' : 'text-gray-300'
-                      }`}>
+                      <span className={`text-xs font-medium text-center ${isSelected ? 'text-white' : 'text-gray-300'
+                        }`}>
                         {category.name}
                       </span>
                     </div>
@@ -461,12 +231,12 @@ export function MobileAddTransaction() {
             <DollarSign className="h-5 w-5 mr-2 text-yellow-400" />
             Monto
           </h3>
-          
+
           <div className="bg-black/20 rounded-xl p-4 mb-4">
             <div className="text-right">
               <div className="text-2xl font-bold amount-emphasis-white">
                 {(() => {
-                  const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+                  const selectedAccount = getSelectedAccount();
                   const currencyCode = selectedAccount?.currencyCode || 'USD';
                   const currency = CURRENCIES[currencyCode];
                   return `${currency?.symbol || '$'}${calculatorValue}`;
@@ -474,7 +244,7 @@ export function MobileAddTransaction() {
               </div>
               <div className="text-[11px] text-white/70 mt-1">
                 {(() => {
-                  const selectedAccount = accounts.find(acc => acc.id === formData.accountId);
+                  const selectedAccount = getSelectedAccount();
                   const currencyCode = selectedAccount?.currencyCode || 'USD';
                   const amt = parseFloat(calculatorValue || '0');
                   if (!isFinite(amt) || amt <= 0) return null;
@@ -497,13 +267,12 @@ export function MobileAddTransaction() {
               <button
                 key={btn}
                 onClick={() => handleCalculatorClick(btn)}
-                className={`h-12 rounded-lg font-semibold transition-all duration-200 ${
-                  ['C', '⌫'].includes(btn)
+                className={`h-12 rounded-lg font-semibold transition-all duration-200 ${['C', '⌫'].includes(btn)
                     ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
                     : ['/', '*', '-', '+', '='].includes(btn)
-                    ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                    : 'bg-white/10 text-white hover:bg-white/20'
-                } ${btn === '0' ? 'col-span-2' : ''}`}
+                      ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                      : 'bg-white/10 text-white hover:bg-white/20'
+                  } ${btn === '0' ? 'col-span-2' : ''}`}
               >
                 {btn}
               </button>
@@ -517,19 +286,19 @@ export function MobileAddTransaction() {
             <FileText className="h-5 w-5 mr-2 text-cyan-400" />
             Detalles
           </h3>
-          
+
           <div className="space-y-4">
             <div>
-                                <label className="block text-sm font-medium text-gray-300 mb-2">Descripción (Opcional)</label>
-                  <input
-                    type="text"
-                    placeholder={formData.type === 'INCOME' ? '¿De dónde viene este ingreso?' : formData.type === 'TRANSFER_OUT' ? '¿Para qué es esta transferencia?' : '¿Para qué fue este gasto?'}
-                    value={formData.description}
+              <label className="block text-sm font-medium text-gray-300 mb-2">Descripción (Opcional)</label>
+              <input
+                type="text"
+                placeholder={formData.type === 'INCOME' ? '¿De dónde viene este ingreso?' : formData.type === 'TRANSFER_OUT' ? '¿Para qué es esta transferencia?' : '¿Para qué fue este gasto?'}
+                value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Fecha</label>
               <input
@@ -539,7 +308,7 @@ export function MobileAddTransaction() {
                 className="w-full px-4 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Nota (Opcional)</label>
               <textarea
@@ -550,6 +319,7 @@ export function MobileAddTransaction() {
                 className="w-full px-4 py-3 backdrop-blur-md bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500/50 focus:border-transparent resize-none"
               />
             </div>
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Etiquetas (Opcional)</label>
               <input
@@ -575,7 +345,7 @@ export function MobileAddTransaction() {
                   🔄 Transacción Recurrente
                 </label>
               </div>
-              
+
               {formData.isRecurring && (
                 <div className="space-y-4 pl-8">
                   <div>
@@ -590,7 +360,7 @@ export function MobileAddTransaction() {
                       <option value="yearly" className="bg-gray-800">Anual</option>
                     </select>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Finalizar el (Opcional)</label>
                     <input
@@ -608,7 +378,7 @@ export function MobileAddTransaction() {
                     <p className="text-blue-300 text-sm">
                       💡 Esta transacción se repetirá automáticamente cada {
                         formData.frequency === 'weekly' ? 'semana' :
-                        formData.frequency === 'monthly' ? 'mes' : 'año'
+                          formData.frequency === 'monthly' ? 'mes' : 'año'
                       } hasta que la canceles.
                     </p>
                   </div>
@@ -632,9 +402,9 @@ export function MobileAddTransaction() {
           <ArrowLeft className="h-5 w-5" />
           <span>Volver</span>
         </button>
-        
+
         <h1 className="text-2xl font-bold text-white text-center">Nueva Transacción</h1>
-        
+
         <div className="w-20"></div>
       </div>
 

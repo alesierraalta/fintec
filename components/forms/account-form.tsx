@@ -6,10 +6,10 @@ import { AccountType, Account } from '@/types';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { Money, toMinorUnits, fromMinorUnits, CURRENCIES } from '@/lib/money';
-import { 
-  Wallet, 
-  CreditCard, 
-  Banknote, 
+import {
+  Wallet,
+  CreditCard,
+  Banknote,
   TrendingUp,
   PiggyBank,
   DollarSign,
@@ -24,44 +24,44 @@ interface AccountFormProps {
 }
 
 const accountTypes = [
-  { 
-    value: 'BANK', 
-    label: 'Cuenta Bancaria', 
-    icon: Banknote, 
+  {
+    value: 'BANK',
+    label: 'Cuenta Bancaria',
+    icon: Banknote,
     description: 'Cuenta corriente o de ahorros',
     color: 'text-blue-500'
   },
-  { 
-    value: 'CARD', 
-    label: 'Tarjeta de Crédito', 
-    icon: CreditCard, 
+  {
+    value: 'CARD',
+    label: 'Tarjeta de Crédito',
+    icon: CreditCard,
     description: 'Tarjeta de crédito o débito',
     color: 'text-purple-500'
   },
-  { 
-    value: 'CASH', 
-    label: 'Efectivo', 
-    icon: Wallet, 
+  {
+    value: 'CASH',
+    label: 'Efectivo',
+    icon: Wallet,
     description: 'Dinero en efectivo',
     color: 'text-green-500'
   },
-  { 
-    value: 'SAVINGS', 
-    label: 'Ahorros', 
-    icon: PiggyBank, 
+  {
+    value: 'SAVINGS',
+    label: 'Ahorros',
+    icon: PiggyBank,
     description: 'Cuenta de ahorros especial',
     color: 'text-pink-500'
   },
-  { 
-    value: 'INVESTMENT', 
-    label: 'Inversión', 
-    icon: TrendingUp, 
+  {
+    value: 'INVESTMENT',
+    label: 'Inversión',
+    icon: TrendingUp,
     description: 'Cuenta de inversiones',
     color: 'text-orange-500'
   },
-  { 
-    value: 'CRYPTO', 
-    label: 'Criptomoneda', 
+  {
+    value: 'CRYPTO',
+    label: 'Criptomoneda',
     icon: Bitcoin, // Make sure Bitcoin is imported from lucide-react
     description: 'Billetera digital',
     color: 'text-yellow-500'
@@ -85,7 +85,7 @@ const currencies = [
 export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountFormProps) {
   const { user } = useAuth();
   const repository = useRepository();
-  
+
   const [formData, setFormData] = useState({
     name: account?.name || '',
     type: account?.type || 'BANK',
@@ -99,13 +99,9 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
   // Update form data when account prop changes
   useEffect(() => {
     if (account) {
-      // Infer CRYPTO type if stored as INVESTMENT with crypto currency
-      const isCryptoCurrency = account.currencyCode === 'BTC' || account.currencyCode === 'ETH';
-      const effectiveType = (account.type === 'INVESTMENT' && isCryptoCurrency) ? 'CRYPTO' : (account.type || 'BANK');
-
       setFormData({
         name: account.name || '',
-        type: effectiveType,
+        type: account.type || 'BANK',
         currencyCode: account.currencyCode || 'USD',
         balance: account.balance ? fromMinorUnits(account.balance, account.currencyCode || 'USD').toString() : '',
       });
@@ -128,9 +124,9 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
 
     setLoading(true);
     setError(null);
-    
+
     try {
-      
+
       // Validate form data
       if (!formData.name.trim()) {
         throw new Error('El nombre de la cuenta es requerido');
@@ -140,13 +136,9 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
       const balanceDecimal = parseFloat(formData.balance) || 0;
       const balanceMinor = toMinorUnits(balanceDecimal, formData.currencyCode);
 
-      // Map CRYPTO UI type to INVESTMENT DB type to satisfy constraints
-      // The currency code (BTC, ETH) will distinguish it later
-      const dbType = formData.type === 'CRYPTO' ? 'INVESTMENT' : formData.type;
-
       const accountData = {
         name: formData.name.trim(),
-        type: dbType as AccountType,
+        type: formData.type as AccountType,
         currencyCode: formData.currencyCode,
         balance: balanceMinor,
         active: true,
@@ -163,18 +155,18 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
       } else {
         // Create new account
         const createdAccount = await repository.accounts.create(accountData);
-        
+
         // Verificar que la cuenta se guardó correctamente
         if (!createdAccount || !createdAccount.id) {
           throw new Error('La cuenta se creó pero no se devolvió correctamente');
         }
-        
+
         // Verificar que la cuenta existe en la base de datos
         const verifyAccount = await repository.accounts.findById(createdAccount.id);
         if (!verifyAccount) {
           throw new Error('La cuenta se creó pero no se puede encontrar en la base de datos');
         }
-        
+
       }
 
       // Reset form and close modal
@@ -184,15 +176,15 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
         currencyCode: 'USD',
         balance: '',
       });
-      
+
       onSuccess?.(); // Notify parent to reload accounts FIRST
       onClose(); // Close modal AFTER success callback
-      
+
     } catch (err) {
-      
+
       // Proporcionar mensajes de error más específicos
       let errorMessage = 'Error al guardar la cuenta';
-      
+
       if (err instanceof Error) {
         if (err.message.includes('IndexedDB')) {
           errorMessage = 'Error de base de datos. Intenta recargar la página.';
@@ -202,7 +194,7 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
           errorMessage = err.message;
         }
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -247,17 +239,16 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
             {accountTypes.map((typeOption) => {
               const Icon = typeOption.icon;
               const isSelected = formData.type === typeOption.value;
-              
+
               return (
                 <button
                   key={typeOption.value}
                   type="button"
                   onClick={() => setFormData({ ...formData, type: typeOption.value as AccountType })}
-                  className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${
-                    isSelected
-                      ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                      : 'border-border-secondary bg-background-tertiary text-text-secondary hover:border-border-primary hover:bg-background-elevated'
-                  }`}
+                  className={`relative p-3 rounded-xl border transition-all duration-200 text-left group overflow-hidden ${isSelected
+                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                    : 'border-border-secondary bg-background-tertiary text-text-secondary hover:border-border-primary hover:bg-background-elevated'
+                    }`}
                 >
                   <div className="relative z-10 flex items-center space-x-3">
                     <div className={`p-2 rounded-lg ${isSelected ? 'bg-primary text-white' : 'bg-background-secondary text-text-muted group-hover:text-text-primary'}`}>
@@ -275,66 +266,66 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
 
         {/* Currency & Balance Row */}
         <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Select
-                label="Moneda"
-                value={formData.currencyCode}
-                onChange={(e) => setFormData({ ...formData, currencyCode: e.target.value })}
-                options={currencies}
-                placeholder="Seleccionar"
-                required
-              />
-            </div>
+          <div>
+            <Select
+              label="Moneda"
+              value={formData.currencyCode}
+              onChange={(e) => setFormData({ ...formData, currencyCode: e.target.value })}
+              options={currencies}
+              placeholder="Seleccionar"
+              required
+            />
+          </div>
 
-            <div>
-              <Input
-                label="Balance Inicial"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={formData.balance}
-                onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
-                icon={<span className="text-text-muted text-sm font-medium">{CURRENCIES[formData.currencyCode]?.symbol || '$'}</span>}
-              />
-            </div>
+          <div>
+            <Input
+              label="Balance Inicial"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={formData.balance}
+              onChange={(e) => setFormData({ ...formData, balance: e.target.value })}
+              icon={<span className="text-text-muted text-sm font-medium">{CURRENCIES[formData.currencyCode]?.symbol || '$'}</span>}
+            />
+          </div>
         </div>
 
         {/* Preview Card */}
         <div className="pt-2">
-            <p className="text-xs text-text-muted mb-3 ml-1 uppercase tracking-wider font-semibold">Vista Previa</p>
-            <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-xl">
-                {/* Background Decoration */}
-                <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
-                <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
-                
-                <div className="relative z-10 flex justify-between items-start">
-                    <div>
-                        <p className="text-white/60 text-xs font-medium mb-1 uppercase tracking-wider">
-                            {selectedType?.label || 'Cuenta'}
-                        </p>
-                        <p className="text-white text-lg font-bold tracking-wide truncate pr-4">
-                            {formData.name || 'Nombre de Cuenta'}
-                        </p>
-                    </div>
-                    <div className={`p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10`}>
-                        {selectedType && <selectedType.icon className="h-6 w-6 text-white" />}
-                    </div>
-                </div>
-                
-                <div className="relative z-10 mt-8 flex justify-between items-end">
-                    <div>
-                        <p className="text-white/60 text-[10px] mb-0.5">Balance Actual</p>
-                        <p className="text-2xl font-bold text-white tracking-tight">
-                            {CURRENCIES[formData.currencyCode]?.symbol} {formData.balance || '0.00'}
-                        </p>
-                    </div>
-                    <div className="text-right">
-                        <span className="text-xs font-bold text-white/80 bg-white/10 px-2 py-1 rounded-md border border-white/5">
-                            {formData.currencyCode}
-                        </span>
-                    </div>
-                </div>
+          <p className="text-xs text-text-muted mb-3 ml-1 uppercase tracking-wider font-semibold">Vista Previa</p>
+          <div className="relative overflow-hidden rounded-2xl p-6 bg-gradient-to-br from-gray-900 to-black border border-white/10 shadow-xl">
+            {/* Background Decoration */}
+            <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 -ml-8 -mb-8 w-24 h-24 bg-blue-500/20 rounded-full blur-2xl"></div>
+
+            <div className="relative z-10 flex justify-between items-start">
+              <div>
+                <p className="text-white/60 text-xs font-medium mb-1 uppercase tracking-wider">
+                  {selectedType?.label || 'Cuenta'}
+                </p>
+                <p className="text-white text-lg font-bold tracking-wide truncate pr-4">
+                  {formData.name || 'Nombre de Cuenta'}
+                </p>
+              </div>
+              <div className={`p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10`}>
+                {selectedType && <selectedType.icon className="h-6 w-6 text-white" />}
+              </div>
             </div>
+
+            <div className="relative z-10 mt-8 flex justify-between items-end">
+              <div>
+                <p className="text-white/60 text-[10px] mb-0.5">Balance Actual</p>
+                <p className="text-2xl font-bold text-white tracking-tight">
+                  {CURRENCIES[formData.currencyCode]?.symbol} {formData.balance || '0.00'}
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-white/80 bg-white/10 px-2 py-1 rounded-md border border-white/5">
+                  {formData.currencyCode}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Actions */}
@@ -353,8 +344,8 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
             loading={loading}
             className="bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20"
           >
-            {loading 
-              ? (account ? 'Guardando...' : 'Creando...') 
+            {loading
+              ? (account ? 'Guardando...' : 'Creando...')
               : (account ? 'Guardar Cambios' : 'Crear Cuenta')
             }
           </Button>

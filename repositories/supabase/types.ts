@@ -5,7 +5,7 @@ export interface SupabaseAccount {
   id: string;
   user_id: string;
   name: string;
-  type: 'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS';
+  type: 'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS' | 'CRYPTO';
   currency_code: string;
   balance: number; // stored in minor units
   active: boolean;
@@ -212,7 +212,7 @@ export interface Database {
       [_ in never]: never;
     };
     Enums: {
-      account_type: 'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS';
+      account_type: 'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS' | 'CRYPTO';
       transaction_type: 'INCOME' | 'EXPENSE' | 'TRANSFER_OUT' | 'TRANSFER_IN';
       category_kind: 'INCOME' | 'EXPENSE';
     };
@@ -239,7 +239,7 @@ CREATE TABLE accounts (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  type TEXT NOT NULL CHECK (type IN ('CASH', 'BANK', 'CARD', 'INVESTMENT', 'SAVINGS')),
+  type TEXT NOT NULL CHECK (type IN ('CASH', 'BANK', 'CARD', 'INVESTMENT', 'SAVINGS', 'CRYPTO')),
   currency_code TEXT NOT NULL,
   balance BIGINT NOT NULL DEFAULT 0,
   active BOOLEAN NOT NULL DEFAULT true,

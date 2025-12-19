@@ -1,6 +1,9 @@
 // Re-export all domain types
 export * from './domain';
 
+// Re-export all rates types (exchange rates, crypto prices)
+export * from './rates';
+
 // Additional utility types
 export type Optional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 

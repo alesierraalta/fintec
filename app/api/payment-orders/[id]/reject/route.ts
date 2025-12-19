@@ -2,44 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
+import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import {
   rejectOrder,
 } from '@/lib/payment-orders/order-service';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-/**
- * Helper function to extract authenticated user from request
- */
-async function getAuthenticatedUser(request: NextRequest): Promise<string> {
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace('Bearer ', '');
-  
-  if (!token) {
-    throw new Error('No authorization token provided');
-  }
-
-  const supabaseWithAuth = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      global: {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    }
-  );
-  
-  const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser();
-  
-  if (authError || !user) {
-    throw new Error('Authentication failed');
-  }
-  
-  return user.id;
-}
 
 /**
  * POST /api/payment-orders/[id]/reject
@@ -66,7 +35,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    
+
     if (!body.reason) {
       return NextResponse.json(
         {
@@ -94,9 +63,11 @@ export async function POST(
         success: false,
         error: error.message || 'Failed to reject order',
       },
-      { status: error.message?.includes('Authentication') ? 401 : 
-             error.message?.includes('Unauthorized') ? 403 :
-             error.message?.includes('not found') ? 404 : 500 }
+      {
+        status: error.message?.includes('Authentication') ? 401 :
+          error.message?.includes('Unauthorized') ? 403 :
+            error.message?.includes('not found') ? 404 : 500
+      }
     );
   }
 }

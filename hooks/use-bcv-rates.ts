@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-
-interface BCVRates {
-  usd: number;
-  eur: number;
-}
+import type { BCVRates } from '@/types/rates';
 
 export function useBCVRates() {
-  const [rates, setRates] = useState<BCVRates>({ usd: 139.00, eur: 162.53 });
+  const [rates, setRates] = useState<BCVRates>({
+    usd: 139.00,
+    eur: 162.53,
+    lastUpdated: new Date().toISOString()
+  });
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -16,7 +16,8 @@ export function useBCVRates() {
         if (data.success && data.data) {
           setRates({
             usd: data.data.usd || 139.00,
-            eur: data.data.eur || 162.53
+            eur: data.data.eur || 162.53,
+            lastUpdated: data.data.lastUpdated || new Date().toISOString()
           });
         }
       } catch (error) {

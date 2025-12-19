@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { currencyService } from '@/lib/services/currency-service';
-import { BCVRates, BinanceRates } from '@/lib/services/currency-service';
+import type { BCVRates, BinanceRates } from '@/types/rates';
 
 // Define constant locally since it's not exported from rate-comparison
 const USD_TO_EUR_RATE = 0.92; // 1 USD = 0.92 EUR approx
@@ -57,7 +57,7 @@ describe('CurrencyService property-based tests', () => {
       sell_prices_used: 1,
       buy_prices_used: 1,
       prices_used: 2,
-      price_range: { min: binanceUsd - 1, max: binanceUsd + 1, sell_min: binanceUsd - 1, sell_max: binanceUsd + 1, buy_min: binanceUsd - 1, buy_max: binanceUsd + 1},
+      price_range: { min: binanceUsd - 1, max: binanceUsd + 1, sell_min: binanceUsd - 1, sell_max: binanceUsd + 1, buy_min: binanceUsd - 1, buy_max: binanceUsd + 1 },
       lastUpdated: new Date().toISOString(),
       source: 'Mock Binance',
     } as BinanceRates;
@@ -129,8 +129,8 @@ describe('CurrencyService edge cases and error handling', () => {
 
   const setupMockRatesForErrorTests = (bcvUsd: number = 100, bcvEur: number = 110, binanceUsd: number = 105) => {
     (currencyService as any).bcvRates = { usd: bcvUsd, eur: bcvEur, lastUpdated: new Date().toISOString(), source: 'Mock BCV' };
-    (currencyService as any).binanceRates = { usd_ves: binanceUsd, usdt_ves: binanceUsd, busd_ves: binanceUsd, sell_rate: { min: 1, avg: 1, max: 1 }, buy_rate: { min: 1, avg: 1, max: 1 }, spread: 0, sell_prices_used: 1, buy_prices_used: 1, prices_used: 2, price_range: { min: 1, max: 1, sell_min: 1, sell_max: 1, buy_min: 1, buy_max: 1}, lastUpdated: new Date().toISOString(), source: 'Mock Binance' };
-    
+    (currencyService as any).binanceRates = { usd_ves: binanceUsd, usdt_ves: binanceUsd, busd_ves: binanceUsd, sell_rate: { min: 1, avg: 1, max: 1 }, buy_rate: { min: 1, avg: 1, max: 1 }, spread: 0, sell_prices_used: 1, buy_prices_used: 1, prices_used: 2, price_range: { min: 1, max: 1, sell_min: 1, sell_max: 1, buy_min: 1, buy_max: 1 }, lastUpdated: new Date().toISOString(), source: 'Mock Binance' };
+
     (currencyService as any).exchangeRates.set('VES', { currency: 'VES', rate: bcvUsd, lastUpdated: new Date().toISOString(), source: 'Mock BCV' });
     (currencyService as any).exchangeRates.set('USD', { currency: 'USD', rate: 1, lastUpdated: new Date().toISOString(), source: 'Mock BCV' });
     (currencyService as any).exchangeRates.set('EUR', { currency: 'EUR', rate: bcvUsd / USD_TO_EUR_RATE, lastUpdated: new Date().toISOString(), source: 'Mock BCV' });
