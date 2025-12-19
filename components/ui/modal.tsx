@@ -98,7 +98,8 @@ export function Modal({
       <div
         ref={modalRef}
         className={cn(
-          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90dvh]',
+          // * Modal container with flex layout for proper content scrolling
+          'relative w-full mx-4 bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 max-h-[90dvh] flex flex-col',
           sizeClasses[size],
           className
         )}
@@ -149,11 +150,12 @@ export function Modal({
           </button>
         )}
 
-        {/* Content - sin padding si no hay título (para que el componente hijo controle el layout) */}
+        {/* Content - scrollable area with flex-1 to fill remaining space */}
+        {/* * min-h-0 is essential for overflow to work in flex containers */}
         {title || description ? (
-          <div className="px-4 sm:px-6 py-4">{children}</div>
+          <div className="px-4 sm:px-6 py-4 overflow-y-auto flex-1 min-h-0">{children}</div>
         ) : (
-          children
+          <div className="overflow-y-auto flex-1 min-h-0">{children}</div>
         )}
       </div>
     </div>

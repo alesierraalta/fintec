@@ -1168,17 +1168,20 @@ export default function AccountsPage() {
         {/* Balance Alert Settings Modal */}
         {showAlertSettings && selectedAccountForAlert && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-            <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full">
-              <div className="p-4 border-b border-border/40">
+            {/* * Modal wrapper with max-height for mobile scrolling */}
+            <div className="bg-card/95 backdrop-blur-xl rounded-3xl border border-border/40 shadow-xl max-w-md w-full max-h-[90dvh] flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-border/40 flex-shrink-0">
                 <h3 className="text-2xl font-semibold text-foreground">
                   Alertas de Saldo - {selectedAccountForAlert.name}
                 </h3>
               </div>
-              <BalanceAlertSettings
-                isOpen={showAlertSettings}
-                account={selectedAccountForAlert}
-                onClose={handleCloseAlertSettings}
-              />
+              <div className="flex-1 overflow-y-auto">
+                <BalanceAlertSettings
+                  isOpen={showAlertSettings}
+                  account={selectedAccountForAlert}
+                  onClose={handleCloseAlertSettings}
+                />
+              </div>
             </div>
           </div>
         )}

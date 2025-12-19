@@ -10,11 +10,11 @@ import { useSubscription } from '@/hooks/use-subscription';
 import { UpgradeModal } from '@/components/subscription/upgrade-modal';
 import { LimitWarning } from '@/components/subscription/limit-warning';
 import { BackupService, BackupOptions } from '@/lib/services/backup-service';
-import { 
-  Download, 
-  Upload, 
-  Shield, 
-  Clock, 
+import {
+  Download,
+  Upload,
+  Shield,
+  Clock,
   Database,
   FileText,
   AlertTriangle,
@@ -30,7 +30,7 @@ export default function BackupsPage() {
   const repository = useRepository();
   const { usageStatus, isAtLimit, tier, hasFeature } = useSubscription();
   const [backupService] = useState(() => new BackupService(repository));
-  
+
   const [loading, setLoading] = useState(false);
   const [importLoading, setImportLoading] = useState(false);
   const [lastBackup, setLastBackup] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export default function BackupsPage() {
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Clear account states
   const [showClearModal, setShowClearModal] = useState(false);
   const [clearConfirmation, setClearConfirmation] = useState('');
@@ -68,10 +68,10 @@ export default function BackupsPage() {
 
     try {
       setLoading(true);
-      
+
       const blob = await backupService.exportToFile(user.id, backupOptions);
       const filename = backupService.generateBackupFilename(user.id, backupOptions);
-      
+
       // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -99,24 +99,24 @@ export default function BackupsPage() {
     if (!user || !event.target.files?.[0]) return;
 
     const file = event.target.files[0];
-    
+
     try {
       setImportLoading(true);
       setImportResult(null);
-      
+
       const result = await backupService.importFromFile(user.id, file, {
         overwrite: false,
         skipExisting: true
       });
-      
+
       setImportResult(result);
-      
+
       if (result.errors.length === 0) {
         alert('¡Backup importado exitosamente!');
       } else {
         alert(`Backup importado con ${result.errors.length} errores. Revisa los detalles.`);
       }
-      
+
       // Clear the input
       event.target.value = '';
     } catch (error) {
@@ -138,7 +138,7 @@ export default function BackupsPage() {
 
     try {
       setClearLoading(true);
-      
+
       const response = await fetch('/api/clear-account', {
         method: 'POST',
         headers: {
@@ -156,11 +156,11 @@ export default function BackupsPage() {
       }
 
       alert('¡Cuenta vaciada exitosamente! Todos tus datos han sido eliminados.');
-      
+
       // Reset states and close modal
       setShowClearModal(false);
       setClearConfirmation('');
-      
+
       // Reload page to reflect changes
       window.location.reload();
     } catch (error) {
@@ -219,7 +219,7 @@ export default function BackupsPage() {
                 )}
 
                 <div className="flex space-x-3">
-                  <Button 
+                  <Button
                     onClick={handleQuickBackup}
                     disabled={loading}
                     className="flex-1"
@@ -227,7 +227,7 @@ export default function BackupsPage() {
                   >
                     {loading ? 'Exportando...' : 'Respaldo Rápido'}
                   </Button>
-                  
+
                   <Button
                     variant="secondary"
                     onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
@@ -241,7 +241,7 @@ export default function BackupsPage() {
                 {showAdvancedOptions && (
                   <div className="border border-gray-700 rounded-lg p-4 space-y-4">
                     <h4 className="text-sm font-medium text-white">Opciones Avanzadas</h4>
-                    
+
                     <div className="space-y-3">
                       <label className="flex items-center space-x-2">
                         <input
@@ -316,7 +316,7 @@ export default function BackupsPage() {
                   <p className="text-sm text-gray-400 mb-3">
                     Selecciona un archivo de respaldo (.json)
                   </p>
-                  
+
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -345,7 +345,7 @@ export default function BackupsPage() {
                       )}
                       <span>Resultado de la Importación</span>
                     </h4>
-                    
+
                     <div className="space-y-2 text-sm">
                       <div className="grid grid-cols-2 gap-4 text-gray-300">
                         <div>
@@ -359,7 +359,7 @@ export default function BackupsPage() {
                           <p>Omitidos: {Object.values(importResult.skipped).reduce((a: number, b: unknown) => a + (typeof b === 'number' ? b : 0), 0)}</p>
                         </div>
                       </div>
-                      
+
                       {importResult.errors.length > 0 && (
                         <div className="mt-3 p-2 bg-red-500/10 border border-red-500/20 rounded">
                           <p className="text-red-400 text-xs font-medium mb-1">Errores:</p>
@@ -477,7 +477,8 @@ export default function BackupsPage() {
         {/* Clear Account Confirmation Modal */}
         {showClearModal && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-900 border border-red-500/30 rounded-xl max-w-lg w-full p-6 shadow-2xl">
+            {/* * Modal with max-height for mobile scrolling */}
+            <div className="bg-gray-900 border border-red-500/30 rounded-xl max-w-lg w-full p-6 shadow-2xl max-h-[90dvh] overflow-y-auto">
               <div className="flex items-center space-x-3 mb-4">
                 <div className="p-2 bg-red-500/10 rounded-lg">
                   <XCircle className="h-6 w-6 text-red-400" />
@@ -491,7 +492,7 @@ export default function BackupsPage() {
                     ⚠️ Esta acción NO se puede deshacer
                   </p>
                   <p className="text-sm text-gray-300">
-                    Se eliminarán permanentemente todos tus datos financieros. 
+                    Se eliminarán permanentemente todos tus datos financieros.
                     Asegúrate de haber creado un respaldo si deseas conservar esta información.
                   </p>
                 </div>

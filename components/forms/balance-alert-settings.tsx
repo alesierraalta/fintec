@@ -46,13 +46,13 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
         minimumBalance: minimumBalanceMinor,
       });
 
-      const message = alertEnabled 
+      const message = alertEnabled
         ? `Se activaron las alertas para ${account.name} con un mínimo de ${formatCurrency(minimumBalanceMinor / 100, account.currencyCode)}`
         : `Se desactivaron las alertas para ${account.name}`;
-      
+
       setSuccessMessage(message);
       setErrorMessage(null);
-      
+
       // Close after showing success message briefly
       setTimeout(() => {
         onClose();
@@ -93,9 +93,10 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl w-full max-w-md shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-border/20">
+      {/* * Modal container with max-height and flex layout for mobile scrolling */}
+      <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl w-full max-w-md shadow-2xl max-h-[90dvh] flex flex-col">
+        {/* Header - fixed at top */}
+        <div className="flex items-center justify-between p-6 border-b border-border/20 flex-shrink-0">
           <div className="flex items-center space-x-3">
             <div className="p-2 bg-blue-500/10 rounded-xl">
               <Bell className="h-5 w-5 text-blue-500" />
@@ -115,8 +116,8 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
           </Button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
+        {/* Content - scrollable area */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
           {/* Current Balance Info */}
           <div className="bg-muted/10 rounded-xl p-4">
             <div className="flex items-center justify-between">
@@ -162,7 +163,7 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
                   className="pl-10 bg-muted/10 border-border/20 rounded-xl"
                 />
               </div>
-              
+
               {/* Validation Message */}
               {minimumBalance && !isMinimumValid() && (
                 <div className="flex items-center space-x-2 text-destructive text-xs">
@@ -204,15 +205,15 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
             <p className="text-sm text-green-800">{successMessage}</p>
           </div>
         )}
-        
+
         {errorMessage && (
           <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-800">{errorMessage}</p>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border/20">
+        {/* Footer - fixed at bottom */}
+        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border/20 flex-shrink-0">
           <Button
             variant="ghost"
             onClick={onClose}
