@@ -76,11 +76,11 @@ function ProfileContent() {
               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
               <span className="text-ios-caption font-medium">Cuenta</span>
             </div>
-            
+
             <div className="w-24 h-24 bg-gradient-to-r from-primary to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
               <User className="h-12 w-12 text-white" />
             </div>
-            
+
             <h1 className="text-ios-large-title font-bold mb-4 tracking-tight bg-gradient-to-r from-primary via-indigo-600 to-purple-500 bg-clip-text text-transparent">
               👤 Mi Perfil
             </h1>
@@ -95,7 +95,7 @@ function ProfileContent() {
               <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></div>
               <h2 className="text-ios-title font-semibold text-foreground">Información Personal</h2>
             </div>
-            
+
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center space-x-4">
                 <div className="p-3 bg-indigo-500/10 rounded-2xl">
@@ -119,20 +119,18 @@ function ProfileContent() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className={`mb-6 p-4 rounded-lg flex items-center space-x-3 ${
-                  message.type === 'success' 
-                    ? 'bg-green-50 border border-green-200' 
+                className={`mb-6 p-4 rounded-lg flex items-center space-x-3 ${message.type === 'success'
+                    ? 'bg-green-50 border border-green-200'
                     : 'bg-red-50 border border-red-200'
-                }`}
+                  }`}
               >
                 {message.type === 'success' ? (
                   <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
                 ) : (
                   <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />
                 )}
-                <p className={`text-sm ${
-                  message.type === 'success' ? 'text-green-700' : 'text-red-700'
-                }`}>
+                <p className={`text-sm ${message.type === 'success' ? 'text-green-700' : 'text-red-700'
+                  }`}>
                   {message.text}
                 </p>
               </motion.div>
@@ -152,7 +150,7 @@ function ProfileContent() {
                       type="text"
                       value={formData.full_name}
                       onChange={handleChange}
-                      className="pl-11"
+                      className="pl-11 text-gray-900 dark:text-gray-100 disabled:opacity-100 bg-white/50 dark:bg-black/20"
                       placeholder="Tu nombre completo"
                       disabled={!isEditing || updateLoading}
                     />
