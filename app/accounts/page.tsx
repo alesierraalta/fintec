@@ -932,6 +932,17 @@ export default function AccountsPage() {
                                   </span>
                                 </p>
                               )}
+                              {(account.currencyCode === 'USD' || account.currencyCode === 'USDT' || account.currencyCode === 'BUSD') && showBalances && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  ≈ Bs. {(Math.abs(account.balance) / 100 * (binanceRates?.usd_ves || 0)).toLocaleString('es-VE', {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2
+                                  })}
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    (Binance)
+                                  </span>
+                                </p>
+                              )}
                               <div className="flex items-center justify-end space-x-1 md:space-x-2 mt-1">
                                 {account.currencyCode === 'VES' && (
                                   <span className="text-xs sm:text-ios-footnote bg-warning-500/10 text-warning-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-lg font-medium">

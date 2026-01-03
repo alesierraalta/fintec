@@ -1,5 +1,8 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import type { BinanceRates } from '@/types/rates';
+
+// Throttle interval in milliseconds (10 seconds)
+const THROTTLE_MS = 10000;
 
 export function useBinanceRates() {
   const [rates, setRates] = useState<BinanceRates>({
@@ -31,6 +34,21 @@ export function useBinanceRates() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Throttle refs
+  const lastUpdateRef = useRef<number>(0);
+  const pendingRatesRef = useRef<BinanceRates | null>(null);
+
+  // Throttled setter - only updates state if enough time has passed
+  const throttledSetRates = useCallback((newRates: BinanceRates) => {
+    const now = Date.now();
+    if (now - lastUpdateRef.current >= THROTTLE_MS) {
+      lastUpdateRef.current = now;
+      setRates(newRates);
+    } else {
+      pendingRatesRef.current = newRates;
+    }
+  }, []);
+
   const fetchRates = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -39,11 +57,10 @@ export function useBinanceRates() {
       const data = await response.json();
 
       if (data.success && data.data) {
-        // Handle both new structure (with min/avg/max) and old structure (single values)
         const sellRate = data.data.sell_rate;
         const buyRate = data.data.buy_rate;
 
-        setRates({
+        throttledSetRates({
           usd_ves: data.data.usd_ves || 300.00,
           usdt_ves: data.data.usdt_ves || 300.00,
           busd_ves: data.data.busd_ves || 300.00,
@@ -69,11 +86,10 @@ export function useBinanceRates() {
           lastUpdated: data.data.lastUpdated || new Date().toISOString()
         });
       } else if (data.fallback && data.data) {
-        // Use fallback data
         const sellRate = data.data.sell_rate;
         const buyRate = data.data.buy_rate;
 
-        setRates({
+        throttledSetRates({
           usd_ves: data.data.usd_ves || 300.00,
           usdt_ves: data.data.usdt_ves || 300.00,
           busd_ves: data.data.busd_ves || 300.00,
@@ -102,14 +118,27 @@ export function useBinanceRates() {
       }
     } catch (err) {
       setError('Error al obtener datos de Binance');
-      // Use fallback rates on error
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [throttledSetRates]);
 
   useEffect(() => {
     fetchRates();
+
+    // Process pending updates periodically
+    const interval = setInterval(() => {
+      if (pendingRatesRef.current) {
+        const now = Date.now();
+        if (now - lastUpdateRef.current >= THROTTLE_MS) {
+          lastUpdateRef.current = now;
+          setRates(pendingRatesRef.current);
+          pendingRatesRef.current = null;
+        }
+      }
+    }, THROTTLE_MS);
+
+    return () => clearInterval(interval);
   }, [fetchRates]);
 
   // Memoize the returned object to prevent unnecessary re-renders

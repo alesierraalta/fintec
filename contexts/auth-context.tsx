@@ -64,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear any old local sessions
     localStorage.removeItem('fintec_session');
     sessionStorage.removeItem('fintec_session_temp');
-    
+
     setLoading(true);
   }, []);
 
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setAuthError(null); // Clear any previous errors
-      
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If there's an error during signup, set it in context
       if (error) {
         let errorMessage = error.message;
-        
+
         // Translate common errors to user-friendly Spanish messages
         if (errorMessage.includes('already registered') || errorMessage.includes('User already registered')) {
           errorMessage = 'Este correo ya está registrado. ¿Olvidaste tu contraseña?';
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (errorMessage.includes('Signup requires a valid password')) {
           errorMessage = 'La contraseña es requerida y debe ser válida';
         }
-        
+
         setAuthError(errorMessage);
         return { error };
       }
@@ -137,15 +137,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setAuthError('Este correo ya está registrado. ¿Olvidaste tu contraseña?');
           return { error: { message: 'Email already registered', name: 'AuthError', status: 400 } as AuthError };
         }
-        
+
         // Check if email confirmation is required
         const emailConfirmationRequired = !data.session;
-        
+
         // Wait a moment for the session to be established (if applicable)
         if (data.session) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        
+
         // Create user profile in our database
         const { error: profileError } = await supabase
           .from('users')
@@ -166,7 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await createWelcomeNotifications(data.user.id, userData?.full_name || data.user.email?.split('@')[0] || 'Usuario');
           }
         }
-        
+
         return { error: null, emailConfirmationRequired };
       }
 
@@ -185,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       setAuthError(null); // Clear any previous errors
-      
+
       // Use only Supabase Auth - no local fallback
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -227,8 +227,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       // If we reach here, something went wrong but no error was provided
-      return { error: { message: 'Credenciales inválidas', name: 'AuthError', status: 400 } as AuthError };
-    } catch (err) {
+      const noErrorMsg = 'Credenciales inválidas o error de conexión';
+      setAuthError(noErrorMsg);
+      return { error: { message: noErrorMsg, name: 'AuthError', status: 400 } as AuthError };
+    } catch (err: any) {
+      const msg = err?.message || 'Error inesperado al iniciar sesión';
+      setAuthError(msg);
       return { error: err as AuthError };
     } finally {
       setLoading(false);
@@ -238,19 +242,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Clear any remaining local sessions
       localStorage.removeItem('fintec_session');
       sessionStorage.removeItem('fintec_session_temp');
-      
+
       const { error } = await supabase.auth.signOut();
-      
+
       // Clear local state
       setUser(null);
       setSession(null);
-      
+
+      if (error) {
+        setAuthError(error.message);
+      }
+
       return { error };
-    } catch (err) {
+    } catch (err: any) {
+      const msg = err?.message || 'Error al cerrar sesión';
+      setAuthError(msg);
       return { error: err as AuthError };
     } finally {
       setLoading(false);
@@ -260,7 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfile = useCallback(async (data: any) => {
     try {
       setLoading(true);
-      
+
       // Update auth user metadata
       const { error: authError } = await supabase.auth.updateUser({
         data: data
@@ -274,7 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           ...data,
           updated_at: new Date().toISOString()
         };
-        
+
         const { error: profileError } = await ((supabase
           .from('users') as any)
           .update(updateData)
@@ -293,11 +303,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = useCallback(async (email: string) => {
     try {
       setLoading(true);
-      
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`
       });
-      
+
       return { error };
     } catch (err) {
       return { error: err as AuthError };

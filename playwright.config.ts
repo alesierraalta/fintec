@@ -22,10 +22,10 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
+
     /* Take screenshot on failure */
     screenshot: 'only-on-failure',
-    
+
     /* Record video on failure */
     video: 'retain-on-failure',
   },
@@ -34,10 +34,10 @@ export default defineConfig({
   projects: [
     // Setup project for authentication
     { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    
+
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // Use saved auth state for all tests
         storageState: 'playwright/.auth/user.json'
@@ -47,7 +47,7 @@ export default defineConfig({
 
     {
       name: 'firefox',
-      use: { 
+      use: {
         ...devices['Desktop Firefox'],
         storageState: 'playwright/.auth/user.json'
       },
@@ -56,7 +56,7 @@ export default defineConfig({
 
     {
       name: 'webkit',
-      use: { 
+      use: {
         ...devices['Desktop Safari'],
         storageState: 'playwright/.auth/user.json'
       },
@@ -66,7 +66,7 @@ export default defineConfig({
     /* Test against mobile viewports. */
     {
       name: 'Mobile Chrome',
-      use: { 
+      use: {
         ...devices['Pixel 5'],
         storageState: 'playwright/.auth/user.json'
       },
@@ -74,7 +74,7 @@ export default defineConfig({
     },
     {
       name: 'Mobile Safari',
-      use: { 
+      use: {
         ...devices['iPhone 12'],
         storageState: 'playwright/.auth/user.json'
       },

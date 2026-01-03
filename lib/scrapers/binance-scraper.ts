@@ -59,8 +59,8 @@ interface BinanceApiResponse {
 const BINANCE_P2P_API = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
 const MAX_PAGES = 2;
 const ROWS_PER_PAGE = 20;
-const PRICE_MIN = 100;
-const PRICE_MAX = 500;
+const PRICE_MIN = 10;    // More permissive range to avoid filtering valid prices
+const PRICE_MAX = 1000;  // Adjusted for current market conditions
 const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
 /**

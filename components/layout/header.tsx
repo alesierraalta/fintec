@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers/repository-provider';
 import type { Notification } from '@/types/notifications';
 import { fromMinorUnits } from '@/lib/money';
@@ -20,7 +21,7 @@ export function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
-  const [totalBalance, setTotalBalance] = useState(0);
+
   const { isOpen, isMobile, toggleSidebar } = useSidebar();
   const { user, signOut } = useAuth();
   const { tier, isPremium } = useSubscription();
@@ -29,33 +30,23 @@ export function Header() {
   const bcvRates = useBCVRates();
   const activeUsdVes = useActiveUsdVesRate();
 
-  // Estado local sincronizado para evitar problemas de hidratación
-  // Se inicializa como false (consistente con SSR) y se sincroniza después del mount
-  const [clientIsMobile, setClientIsMobile] = useState(false);
+  const { accounts } = useOptimizedData();
 
-  const memoizedLoadTotalBalance = useCallback(async () => {
-    if (!user) return;
-    try {
-      const accounts = await repository.accounts.findByUserId(user.id);
-      const total = accounts.reduce((sum, acc) => {
-        const balanceMinor = Number(acc.balance) || 0;
-        const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
+  const totalBalance = useMemo(() => {
+    return accounts.reduce((sum, acc) => {
+      const balanceMinor = Number(acc.balance) || 0;
+      const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
 
-        if (acc.currencyCode === 'VES') {
-          const rate = activeUsdVes || bcvRates.usd || 1;
-          return sum + balanceMajor / rate;
-        }
-        return sum + balanceMajor;
-      }, 0);
-      setTotalBalance(total);
-    } catch (error) {
-      setTotalBalance(0);
-    }
-  }, [user, repository, bcvRates, activeUsdVes]);
+      if (acc.currencyCode === 'VES') {
+        const rate = activeUsdVes || bcvRates.usd || 1;
+        return sum + balanceMajor / rate;
+      }
+      return sum + balanceMajor;
+    }, 0);
+  }, [accounts, activeUsdVes, bcvRates.usd]);
 
   const memoizedLoadNotifications = useCallback(async () => {
     if (!user) return;
-
     try {
       setLoadingNotifications(true);
       const [unreadNotifications, count] = await Promise.all([
@@ -66,6 +57,7 @@ export function Header() {
       setNotifications(unreadNotifications);
       setNotificationCount(count);
     } catch (error) {
+      console.error('Failed to load notifications', error);
     } finally {
       setLoadingNotifications(false);
     }
@@ -74,15 +66,8 @@ export function Header() {
   useEffect(() => {
     if (user) {
       memoizedLoadNotifications();
-      memoizedLoadTotalBalance();
     }
-  }, [user, memoizedLoadNotifications, memoizedLoadTotalBalance]);
-
-  // Sincronizar clientIsMobile con isMobile después del mount
-  // Esto asegura consistencia durante la hidratación inicial
-  useEffect(() => {
-    setClientIsMobile(isMobile);
-  }, [isMobile]);
+  }, [user, memoizedLoadNotifications]);
 
   const handleNotificationClick = useCallback(async () => {
     if (!showNotifications) {
@@ -99,6 +84,7 @@ export function Header() {
       );
       setNotificationCount(prev => Math.max(0, prev - 1));
     } catch (error) {
+      console.error('Failed to mark notification as read', error);
     }
   }, [repository]);
 
@@ -110,6 +96,7 @@ export function Header() {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
       setNotificationCount(0);
     } catch (error) {
+      console.error('Failed to mark all notifications as read', error);
     }
   }, [user, repository]);
 
@@ -140,9 +127,9 @@ export function Header() {
     return 'Gratis';
   }, [tier]);
 
-  if (clientIsMobile) {
+  if (isMobile) {
     return (
-      <header className="h-16 black-theme-header flex items-center justify-between px-4 sticky top-0 z-50">
+      <header className="min-h-16 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] black-theme-header flex items-center justify-between px-4 sticky top-0 z-50">
         <div className="flex items-center">
           <RateSelector />
         </div>

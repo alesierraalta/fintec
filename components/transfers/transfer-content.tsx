@@ -1,25 +1,15 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { ArrowRightLeft, History } from 'lucide-react';
 import { MobileTransfer } from './mobile-transfer';
 import { DesktopTransfer } from './desktop-transfer';
 import { TransferHistory } from './transfer-history';
+import { useMediaQuery } from '@/hooks';
 
 export function TransferContent() {
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   const tabs = [
     {
@@ -47,11 +37,10 @@ export function TransferContent() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all ${
-                  activeTab === tab.id
+                className={`flex-1 flex items-center justify-center space-x-2 py-3 px-4 rounded-xl font-medium transition-all ${activeTab === tab.id
                     ? 'bg-primary-600 text-white shadow-lg shadow-primary-500/25'
                     : 'text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-700'
-                }`}
+                  }`}
               >
                 <Icon className="h-5 w-5" />
                 <span>{tab.label}</span>

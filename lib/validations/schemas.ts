@@ -59,7 +59,7 @@ export const TransactionFormSchema = z.object({
 export const AccountSchema = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1, 'Account name is required').max(100, 'Name too long'),
-  type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT', 'CASH', 'INVESTMENT']),
+  type: z.enum(['CASH', 'BANK', 'CARD', 'INVESTMENT', 'SAVINGS', 'CRYPTO']),
   currencyCode: z.string().length(3, 'Currency code must be 3 characters').default('USD'),
   balanceMinor: z.number().int().default(0),
   color: z.string().regex(/^#[0-9A-F]{6}$/i, 'Invalid color format').optional(),
@@ -82,7 +82,7 @@ export const UpdateAccountSchema = AccountSchema.partial().extend({
 // Account Form Schema (for UI forms)
 export const AccountFormSchema = z.object({
   name: z.string().min(1, 'Account name is required').max(100, 'Name too long'),
-  type: z.enum(['CHECKING', 'SAVINGS', 'CREDIT', 'CASH', 'INVESTMENT']),
+  type: z.enum(['CASH', 'BANK', 'CARD', 'INVESTMENT', 'SAVINGS', 'CRYPTO']),
   currencyCode: z.string().length(3).default('USD'),
   balance: z.string()
     .optional()

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Checkbox } from '@/components/ui';
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -14,7 +14,7 @@ interface LoginFormProps {
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter();
   const { signIn, authError, clearAuthError } = useAuth();
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -31,7 +31,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     // Check if user was just redirected from registration
     const isPending = sessionStorage.getItem('emailConfirmationPending');
     const pendingEmail = sessionStorage.getItem('pendingEmail');
-    
+
     if (isPending === 'true' && pendingEmail) {
       setEmailConfirmationMessage({
         show: true,
@@ -86,7 +86,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     >
       <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
         <div className="text-center mb-8">
-          <motion.div 
+          <motion.div
             className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4 shadow-lg"
             whileHover={{ scale: 1.05, rotate: 5 }}
             transition={{ type: "spring", stiffness: 400 }}
@@ -181,6 +181,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 id="email"
                 name="email"
                 type="email"
+                autoComplete="email"
+                autoFocus={false}
                 required
                 value={formData.email}
                 onChange={handleChange}
@@ -201,6 +203,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 id="password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                autoFocus={false}
                 required
                 value={formData.password}
                 onChange={handleChange}
@@ -220,17 +224,17 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
+            <div className="flex items-center space-x-2">
+              <Checkbox
                 id="remember-me"
-                name="remember-me"
-                type="checkbox"
                 checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 text-primary focus:ring-primary border-border rounded"
+                onCheckedChange={(checked) => setRememberMe(checked)}
                 disabled={loading}
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-foreground">
+              <label
+                htmlFor="remember-me"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+              >
                 Recordar sesión
               </label>
             </div>

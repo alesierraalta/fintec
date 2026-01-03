@@ -1,6 +1,21 @@
-import { AuthGuard } from '@/components/auth/auth-guard';
+'use client';
+
+import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
-import { ChatInterface } from '@/components/chat/chat-interface';
+import { AuthGuard } from '@/components/auth/auth-guard';
+
+// Lazy load ChatInterface since AI features are not needed for FCP
+const ChatInterface = dynamic(
+  () => import('@/components/chat/chat-interface').then(m => ({ default: m.ChatInterface })),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-pulse text-neutral-500 dark:text-neutral-400">Cargando chat...</div>
+      </div>
+    ),
+    ssr: false
+  }
+);
 
 export default function ChatPage() {
   return (

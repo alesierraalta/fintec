@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { memo, useState, Suspense } from 'react';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { Plus, ArrowDownLeft, ArrowUpRight, ArrowRightLeft, Repeat, Sparkles } from 'lucide-react';
@@ -10,7 +10,7 @@ import { useModal } from '@/hooks';
 
 
 
-export function QuickActions() {
+export const QuickActions = memo(function QuickActions() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const [selectedTransactionType, setSelectedTransactionType] = useState<TransactionType>(TransactionType.EXPENSE);
@@ -83,34 +83,34 @@ export function QuickActions() {
         {actions
           .sort((a, b) => a.priority - b.priority)
           .map((action, index) => (
-          <button
-            key={action.name}
-            onClick={() => handleActionClick(action)}
-            className={`
+            <button
+              key={action.name}
+              onClick={() => handleActionClick(action)}
+              className={`
               group w-full p-4 rounded-2xl border backdrop-blur-xl
               ${action.color} ${action.borderColor}
               transition-ios text-left shadow-ios-sm hover:shadow-ios-md ${action.shadowColor}
               hover:scale-[1.02] active:scale-[0.98]
             `}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-3 rounded-xl bg-card/40 backdrop-blur-sm border border-border/15 group-hover:border-border/25 transition-ios shadow-ios-xs">
-                <action.icon className={`h-5 w-5 ${action.iconColor}`} />
+            >
+              <div className="flex items-center space-x-4">
+                <div className="p-3 rounded-xl bg-card/40 backdrop-blur-sm border border-border/15 group-hover:border-border/25 transition-ios shadow-ios-xs">
+                  <action.icon className={`h-5 w-5 ${action.iconColor}`} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-ios-body font-semibold text-foreground mb-0.5 group-hover:text-foreground transition-ios">
+                    {action.name}
+                  </h3>
+                  <p className="text-ios-caption text-muted-foreground group-hover:text-muted-foreground/80 transition-ios">
+                    {action.description}
+                  </p>
+                </div>
+                <div className="text-muted-foreground/60 group-hover:text-muted-foreground transition-ios">
+                  <ArrowRightLeft className="h-4 w-4 rotate-90" />
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-ios-body font-semibold text-foreground mb-0.5 group-hover:text-foreground transition-ios">
-                  {action.name}
-                </h3>
-                <p className="text-ios-caption text-muted-foreground group-hover:text-muted-foreground/80 transition-ios">
-                  {action.description}
-                </p>
-              </div>
-              <div className="text-muted-foreground/60 group-hover:text-muted-foreground transition-ios">
-                <ArrowRightLeft className="h-4 w-4 rotate-90" />
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          ))}
       </div>
 
       <Suspense fallback={<FormLoading />}>
@@ -122,4 +122,4 @@ export function QuickActions() {
       </Suspense>
     </>
   );
-}
+});

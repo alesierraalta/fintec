@@ -5,6 +5,8 @@ import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileDashboard } from './mobile-dashboard';
 import { DesktopDashboard } from './desktop-dashboard';
 
+import { DashboardSkeleton } from '@/components/skeletons/dashboard-skeleton';
+
 export function DashboardContent() {
   const { isMobile } = useSidebar();
   const [mounted, setMounted] = useState(false);
@@ -16,13 +18,7 @@ export function DashboardContent() {
 
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-neutral-500 dark:text-neutral-400">
-          Cargando...
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Now safely render based on isMobile (client-side only)

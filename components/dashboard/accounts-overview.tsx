@@ -1,17 +1,17 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { CreditCard, Wallet, Banknote, TrendingUp, TrendingDown } from 'lucide-react';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 
-export function AccountsOverview() {
+export const AccountsOverview = memo(function AccountsOverview() {
   const { accounts: rawAccounts, transactions: rawTransactions, loading } = useOptimizedData();
   const bcvRates = useBCVRates();
 
   // Memoized formatted accounts with real percentage changes
   const { accounts, totalBalance, totalBalanceChange } = useMemo(() => {
     if (!rawAccounts.length) return { accounts: [], totalBalance: 0, totalBalanceChange: null };
-    
+
     const now = new Date();
     const thisMonth = now.getMonth();
     const thisYear = now.getFullYear();
@@ -24,44 +24,44 @@ export function AccountsOverview() {
       const month = date.getMonth();
       const year = date.getFullYear();
       const accountId = t.accountId;
-      
+
       if (!acc[accountId]) {
         acc[accountId] = { currentMonth: 0, lastMonth: 0 };
       }
-      
+
       // Convert to major units with proper currency handling
       const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
       let amountUSD = amountMajor;
-      
+
       // Convert VES to USD for consistent calculation
       if (t.currencyCode === 'VES') {
         amountUSD = amountMajor / bcvRates.usd;
       }
-      
+
       const amount = amountUSD;
-      
+
       if (month === thisMonth && year === thisYear) {
         acc[accountId].currentMonth += amount;
       } else if (month === lastMonth && year === lastMonthYear) {
         acc[accountId].lastMonth += amount;
       }
-      
+
       return acc;
     }, {} as Record<string, { currentMonth: number; lastMonth: number }>);
-    
+
     // Mapear las cuentas para la UI con cambios reales
     const formattedAccounts = rawAccounts.map(account => {
       const balanceMinor = Number(account.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, account.currencyCode);
-      
+
       const accountTxs = accountTransactions[account.id];
       let change = 'Nuevo';
       let changeType: 'positive' | 'negative' | 'neutral' = 'neutral';
-      
+
       if (accountTxs && accountTxs.lastMonth !== 0) {
         // Calculate balance at start of current month
         const previousBalance = balanceMajor - accountTxs.currentMonth;
-        
+
         if (previousBalance !== 0) {
           const percentChange = ((balanceMajor - previousBalance) / Math.abs(previousBalance)) * 100;
           change = percentChange >= 0 ? `+${percentChange.toFixed(1)}%` : `${percentChange.toFixed(1)}%`;
@@ -76,32 +76,32 @@ export function AccountsOverview() {
           changeType = percentChange >= 0 ? 'positive' : 'negative';
         }
       }
-      
+
       return {
         id: account.id,
         name: account.name,
         type: account.type || 'Cuenta',
         balance: account.currencyCode === 'VES' ? `Bs.${balanceMajor.toFixed(2)} VES` : `$${balanceMajor.toFixed(2)} ${account.currencyCode}`,
         icon: account.type === 'CARD' ? CreditCard :
-              account.type === 'CASH' ? Banknote : Wallet,
+          account.type === 'CASH' ? Banknote : Wallet,
         changeType,
         change,
         active: account.active
       };
     });
-    
+
     // Calcular balance total actual (con conversión BCV como header)
     const total = rawAccounts.reduce((sum, acc) => {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
-      
+
       // Apply BCV conversion for VES currency (same as header)
       if (acc.currencyCode === 'VES') {
         return sum + (balanceMajor / bcvRates.usd);
       }
       return sum + balanceMajor;
     }, 0);
-    
+
     // Calculate total balance change comparing current vs previous month
     let balanceChange = null;
     if (rawTransactions.length > 0) {
@@ -118,7 +118,7 @@ export function AccountsOverview() {
           }
           return sum + amountMajor;
         }, 0);
-      
+
       const totalLastMonthTransactions = rawTransactions
         .filter(t => {
           const date = new Date(t.date);
@@ -132,15 +132,15 @@ export function AccountsOverview() {
           }
           return sum + amountMajor;
         }, 0);
-      
+
       const previousBalance = total - totalCurrentMonthTransactions;
-      
+
       if (previousBalance !== 0 && totalLastMonthTransactions !== 0) {
         const percentChange = ((total - previousBalance) / Math.abs(previousBalance)) * 100;
         balanceChange = percentChange >= 0 ? `+${percentChange.toFixed(1)}%` : `${percentChange.toFixed(1)}%`;
       }
     }
-        
+
     return { accounts: formattedAccounts, totalBalance: total, totalBalanceChange: balanceChange };
   }, [rawAccounts, rawTransactions, bcvRates.usd]);
 
@@ -151,7 +151,7 @@ export function AccountsOverview() {
         <p className="text-ios-caption font-medium tracking-wide text-muted-foreground uppercase mb-2">Cuentas</p>
         <h3 className="text-ios-title font-semibold text-foreground">Resumen General</h3>
       </div>
-      
+
       <div className="space-y-3">
         {accounts.length === 0 ? (
           <div className="text-center py-12">
@@ -189,7 +189,7 @@ export function AccountsOverview() {
               }
             };
             const colors = getAccountColor(account.type);
-            
+
             return (
               <div key={account.id} className="flex items-center justify-between p-4 bg-card/40 rounded-2xl border border-border/15 backdrop-blur-xl hover:bg-card/60 transition-ios shadow-ios-sm hover:shadow-ios-md hover:scale-[1.01]">
                 <div className="flex items-center space-x-4">
@@ -214,11 +214,10 @@ export function AccountsOverview() {
                         ) : account.changeType === 'negative' ? (
                           <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
                         ) : null}
-                        <p className={`text-ios-caption font-medium ${
-                          account.changeType === 'positive' ? 'text-green-600' :
+                        <p className={`text-ios-caption font-medium ${account.changeType === 'positive' ? 'text-green-600' :
                           account.changeType === 'negative' ? 'text-red-600' :
-                          'text-muted-foreground'
-                        }`}>
+                            'text-muted-foreground'
+                          }`}>
                           {account.change}
                         </p>
                       </>
@@ -248,9 +247,8 @@ export function AccountsOverview() {
               ) : (
                 <TrendingDown className="h-4 w-4 text-red-600 mr-2" />
               )}
-              <p className={`text-ios-caption font-medium ${
-                totalBalanceChange.startsWith('+') ? 'text-green-600' : 'text-red-600'
-              }`}>
+              <p className={`text-ios-caption font-medium ${totalBalanceChange.startsWith('+') ? 'text-green-600' : 'text-red-600'
+                }`}>
                 {totalBalanceChange} este mes
               </p>
             </div>
@@ -262,4 +260,4 @@ export function AccountsOverview() {
       </div>
     </div>
   );
-}
+});

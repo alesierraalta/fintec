@@ -69,15 +69,15 @@ global.ReadableStream = ReadableStream
 
 // Mock MessagePort for environments where it's not available (e.g., JSDOM)
 if (typeof MessagePort === 'undefined') {
-  global.MessagePort = class MessagePort {};
+  global.MessagePort = class MessagePort { };
 }
 
 // Mock IntersectionObserver
 global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
-  disconnect() {}
-  observe() {}
-  unobserve() {}
+  constructor() { }
+  disconnect() { }
+  observe() { }
+  unobserve() { }
 }
 
 // Global fetch mock
@@ -86,7 +86,7 @@ global.fetch = jest.fn(() =>
     ok: true,
     status: 200,
     statusText: 'OK',
-    json: () => Promise.resolve({ data: [], products: [] }), // Return structure expected by most tests (Paddle uses products, LemonSqueezy uses data)
+    json: () => Promise.resolve({ data: [], products: [] }), // Return structure expected by most tests
     text: () => Promise.resolve(''),
   })
 );

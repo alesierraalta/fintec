@@ -7,3 +7,4 @@ export * from './alert';
 export * from './modal';
 export * from './badge';
 export * from './loading';
+export * from './checkbox';

@@ -5,6 +5,8 @@ import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileReports } from './mobile-reports';
 import { DesktopReports } from './desktop-reports';
 
+import { ReportsSkeleton } from '@/components/skeletons/reports-skeleton';
+
 export function ReportsContent() {
   const { isMobile } = useSidebar();
   const [mounted, setMounted] = useState(false);
@@ -16,13 +18,7 @@ export function ReportsContent() {
 
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-pulse text-neutral-500 dark:text-neutral-400">
-          Cargando...
-        </div>
-      </div>
-    );
+    return <ReportsSkeleton />;
   }
 
   // Now safely render based on isMobile (client-side only)

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Transaction, TransactionType, Account } from '@/types/domain';
 import { formatCurrency } from '@/lib/money';
@@ -20,7 +20,7 @@ interface RecentTransactionsProps {
   accounts?: Account[];
 }
 
-export function RecentTransactions({
+export const RecentTransactions = memo(function RecentTransactions({
   transactions,
   onViewAll,
   onTransactionClick,
@@ -264,4 +264,4 @@ export function RecentTransactions({
       )}
     </div>
   );
-}
+});
