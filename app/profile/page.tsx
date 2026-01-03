@@ -120,8 +120,8 @@ function ProfileContent() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className={`mb-6 p-4 rounded-lg flex items-center space-x-3 ${message.type === 'success'
-                    ? 'bg-green-50 border border-green-200'
-                    : 'bg-red-50 border border-red-200'
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-red-50 border border-red-200'
                   }`}
               >
                 {message.type === 'success' ? (
@@ -150,7 +150,7 @@ function ProfileContent() {
                       type="text"
                       value={formData.full_name}
                       onChange={handleChange}
-                      className="pl-11 text-gray-900 dark:text-gray-100 disabled:opacity-100 bg-white/50 dark:bg-black/20"
+                      className="pl-11 bg-gray-50"
                       placeholder="Tu nombre completo"
                       disabled={!isEditing || updateLoading}
                     />
