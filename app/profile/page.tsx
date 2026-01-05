@@ -138,43 +138,33 @@ function ProfileContent() {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Nombre Completo
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="full_name"
-                      name="full_name"
-                      type="text"
-                      value={formData.full_name}
-                      onChange={handleChange}
-                      className="pl-11 bg-gray-50"
-                      placeholder="Tu nombre completo"
-                      disabled={!isEditing || updateLoading}
-                    />
-                  </div>
-                </div>
+                <Input
+                  label="Nombre Completo"
+                  id="full_name"
+                  name="full_name"
+                  type="text"
+                  value={formData.full_name}
+                  onChange={handleChange}
+                  disabled={!isEditing || updateLoading}
+                  placeholder="Tu nombre completo"
+                  className="input-force-visible"
+                  icon={<User className="h-5 w-5" />}
+                />
 
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      value={formData.email}
-                      className="pl-11 bg-gray-50"
-                      disabled={true}
-                      placeholder="Email no editable"
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    El email no se puede modificar
+                  <Input
+                    label="Email"
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    disabled={true}
+                    className="bg-muted/50 input-force-visible"
+                    icon={<Mail className="h-5 w-5" />}
+                  />
+                  <p className="mt-1 text-xs text-amber-500 flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    No editable
                   </p>
                 </div>
               </div>
@@ -183,36 +173,26 @@ function ProfileContent() {
               <div className="border-t border-gray-200 pt-6">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Información de la Cuenta</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Fecha de Registro
-                    </label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                      <Input
-                        type="text"
-                        value={new Date(user.created_at).toLocaleDateString('es-ES', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                        className="pl-11 bg-gray-50"
-                        disabled={true}
-                      />
-                    </div>
-                  </div>
+                  <Input
+                    label="Fecha de Registro"
+                    type="text"
+                    value={new Date(user.created_at).toLocaleDateString('es-ES', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                    disabled={true}
+                    className="bg-muted/50 input-force-visible"
+                    icon={<Calendar className="h-5 w-5" />}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      ID de Usuario
-                    </label>
-                    <Input
-                      type="text"
-                      value={user.id}
-                      className="bg-gray-50 font-mono text-xs"
-                      disabled={true}
-                    />
-                  </div>
+                  <Input
+                    label="ID de Usuario"
+                    type="text"
+                    value={user.id}
+                    className="bg-muted/50 font-mono text-xs input-force-visible"
+                    disabled={true}
+                  />
                 </div>
               </div>
 

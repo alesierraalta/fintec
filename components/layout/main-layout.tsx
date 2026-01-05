@@ -25,7 +25,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const [mounted, setMounted] = useState(false);
   const viewportHeight = useViewportHeight();
-  
+
   // Estado local sincronizado para evitar problemas de hidratación
   // Se inicializa como false (consistente con SSR) y se sincroniza después del mount
   const [clientIsMobile, setClientIsMobile] = useState(false);
@@ -51,54 +51,51 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   // Aplicar height dinámico después del mount y cuando el height esté disponible
   // Esto evita hydration mismatch y layout shift
   // Mejorado: aplicar incluso sin visualViewport si tenemos el height del hook
-  const dynamicHeight = 
-    mounted && 
-    viewportHeight !== null && 
-    typeof window !== 'undefined'
+  const dynamicHeight =
+    mounted &&
+      viewportHeight !== null &&
+      typeof window !== 'undefined'
       ? { height: `${viewportHeight}px` }
       : undefined;
 
   return (
-    <div 
+    <div
       className={cn(
         "h-dynamic-screen bg-background text-foreground overflow-hidden no-horizontal-scroll",
         clientIsMobile && "mobile-app"
       )}
       style={dynamicHeight}
     >
-      <div className="flex h-full relative no-horizontal-scroll">
+      <div className="flex h-full no-horizontal-scroll">
         {/* Mobile Backdrop */}
         {clientIsMobile && isOpen && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 lg:hidden animate-fade-in"
             onClick={closeSidebar}
           />
         )}
 
-        {/* Sidebar */}
-        <div 
-          className={`
-            ${clientIsMobile ? 'fixed inset-y-0 left-0 z-50' : 'relative'}
-            ${clientIsMobile ? (isOpen ? 'translate-x-0' : '-translate-x-full') : 'translate-x-0'}
-            ${clientIsMobile ? 'w-64' : (isOpen ? 'w-64' : 'w-16')}
-            overflow-hidden
-          `}
-          data-tutorial="sidebar"
-        >
-          <Sidebar />
-        </div>
-        
+        {/* Desktop Sidebar - Only render on desktop */}
+        {!clientIsMobile && (
+          <div
+            className={`flex flex-shrink-0 ${isOpen ? 'w-64' : 'w-16'} overflow-hidden transition-ios`}
+            data-tutorial="sidebar"
+          >
+            <Sidebar />
+          </div>
+        )}
+
         {/* Main Content */}
         <div className="flex-1 flex flex-col min-w-0 no-horizontal-scroll">
           <Header />
-          
+
           {/* Page Content */}
           <main className={cn(
             "flex-1 overflow-auto bg-background no-horizontal-scroll",
             clientIsMobile ? "pb-24" : ""
           )}>
             <div className={cn(
-              clientIsMobile 
+              clientIsMobile
                 ? "px-4 py-6 no-horizontal-scroll" // Mobile app-like padding
                 : "px-6 py-8 max-w-7xl mx-auto no-horizontal-scroll" // Desktop padding
             )}>
@@ -110,10 +107,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
       {/* Mobile Navigation */}
       <MobileNav />
-      
+
       {/* Mobile Menu FAB */}
       <MobileMenuFAB />
-      
+
       {/* Floating Add Transaction Button */}
       {shouldShowFloatingButton && (
         <div className="fixed bottom-24 right-6 z-40">
@@ -144,7 +141,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   return (
     <SidebarProvider>
       <MainLayoutContent>
-          {children}
+        {children}
       </MainLayoutContent>
     </SidebarProvider>
   );

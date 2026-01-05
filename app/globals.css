@@ -304,6 +304,12 @@ body {
   color: #111111;
 }
 
+/* Utility to force input visibility in dark mode (overrides disabled input styling) */
+.dark .input-force-visible {
+  -webkit-text-fill-color: #ffffff !important;
+  color: #ffffff !important;
+}
+
 /* Reduced motion: keep the iOS-like feel, but respect accessibility */
 @media (prefers-reduced-motion: reduce) {
   .transition-ios {

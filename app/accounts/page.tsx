@@ -368,12 +368,34 @@ export default function AccountsPage() {
     if (currencyCode === 'USD') return balanceMinor / 100;
 
     // * Handle cryptocurrencies with proper decimal places
+    // * Crypto base value is in USD (at Binance rate). When BCV selected, multiply by ratio
     if (accountType === 'CRYPTO' || currencyCode === 'BTC' || currencyCode === 'ETH') {
       // Cryptocurrencies use 8 decimal places
       const balanceMajor = balanceMinor / 100000000;
-      // ! Cryptocurrencies need their own exchange rates (BTC/USD, ETH/USD)
-      // For now, return the crypto amount as-is (not converted)
-      // TODO: Implement crypto exchange rate API integration
+
+      console.log('🔍 CRYPTO DEBUG:', {
+        balanceMinor,
+        balanceMajor,
+        currencyCode,
+        accountType,
+        useRate,
+        binanceRate: binanceRates.usd_ves,
+        bcvRate: bcvRates.usd
+      });
+
+      // Base value is already in USD (at Binance market rate)
+      // When BCV is selected, show "equivalent USD" using BCV rate
+      // Formula: USD_crypto × (Binance_rate / BCV_rate) = adjusted USD
+      if (useRate === 'bcv_usd' || useRate === 'bcv_eur') {
+        const bcvRate = useRate === 'bcv_eur' ? bcvRates.eur : bcvRates.usd;
+        const rateRatio = binanceRates.usd_ves / bcvRate;
+        const result = balanceMajor * rateRatio;
+        console.log('📊 BCV CONVERSION:', { bcvRate, rateRatio, result });
+        return result;
+      }
+
+      // For Binance view, return the base USD value
+      console.log('💰 BINANCE VIEW:', balanceMajor);
       return balanceMajor;
     }
 
@@ -405,9 +427,11 @@ export default function AccountsPage() {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
 
-      // * Exclude cryptocurrencies from total balance (they need their own exchange rates)
+      // * Include cryptocurrencies in total balance using USD conversion
       if (acc.type === 'CRYPTO') {
-        return sum; // Skip crypto accounts
+        // For crypto, use the converted USD value from convertToUSD
+        const usdValue = convertToUSD(balanceMinor, acc.currencyCode, acc.type, usdEquivalentType);
+        return sum + usdValue;
       }
 
       if (acc.currencyCode === 'VES') {
@@ -416,7 +440,7 @@ export default function AccountsPage() {
       }
       return sum + balanceMajor;
     }, 0);
-  }, [accounts, usdEquivalentType, getExchangeRate]);
+  }, [accounts, usdEquivalentType, getExchangeRate, convertToUSD]);
 
   // Calculate balance growth based on current month transactions
   const balanceGrowth = useMemo(() => {
@@ -429,17 +453,22 @@ export default function AccountsPage() {
     const netChange = transactions.reduce((acc, t) => {
       const d = new Date(t.date);
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        // * Skip cryptocurrency transactions (they need their own exchange rates)
-        if (t.currencyCode === 'BTC' || t.currencyCode === 'ETH') {
-          return acc;
-        }
+        // * Include cryptocurrency transactions with proper conversion
+        const account = accounts.find(a => a.id === t.accountId);
+        const isCrypto = account?.type === 'CRYPTO' || t.currencyCode === 'BTC' || t.currencyCode === 'ETH';
 
-        const amountMajor = (t.amountMinor || 0) / 100;
-        let amountUSD = amountMajor;
+        let amountUSD = 0;
+        if (isCrypto) {
+          // Use convertToUSD for crypto transactions
+          amountUSD = convertToUSD(t.amountMinor || 0, t.currencyCode, account?.type, usdEquivalentType);
+        } else {
+          const amountMajor = (t.amountMinor || 0) / 100;
+          amountUSD = amountMajor;
 
-        if (t.currencyCode === 'VES') {
-          const rate = getExchangeRate(usdEquivalentType);
-          amountUSD = amountMajor / rate;
+          if (t.currencyCode === 'VES') {
+            const rate = getExchangeRate(usdEquivalentType);
+            amountUSD = amountMajor / rate;
+          }
         }
 
         if (t.type === 'INCOME') return acc + amountUSD;
@@ -900,7 +929,8 @@ export default function AccountsPage() {
                                   account.type === 'CARD' ? 'Tarjeta' :
                                     account.type === 'CASH' ? 'Efectivo' :
                                       account.type === 'SAVINGS' ? 'Ahorros' :
-                                        'Inversión'}</span>
+                                        account.type === 'CRYPTO' ? 'Criptomoneda' :
+                                          'Inversión'}</span>
                                 <div className="w-1 h-1 bg-muted-foreground rounded-full hidden md:block"></div>
                                 <span className="text-primary font-medium">
                                   {account.currencyCode}
@@ -917,7 +947,12 @@ export default function AccountsPage() {
                             <div className="text-right flex-shrink-0">
                               <p className="text-sm sm:text-ios-title font-semibold amount-emphasis-white text-white truncate">
                                 {showBalances
-                                  ? `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
+                                  ? account.type === 'CRYPTO'
+                                    ? `$${convertToUSD(Math.abs(account.balance), account.currencyCode, account.type, usdEquivalentType).toLocaleString('en-US', {
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2
+                                    })}`
+                                    : `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                                   : '••••••'
                                 }
                               </p>
@@ -928,6 +963,13 @@ export default function AccountsPage() {
                                     maximumFractionDigits: 2
                                   })} USD
                                   <span className="text-xs text-muted-foreground ml-1">
+                                    ({getRateName(usdEquivalentType)})
+                                  </span>
+                                </p>
+                              )}
+                              {account.type === 'CRYPTO' && showBalances && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  <span className="text-xs text-muted-foreground">
                                     ({getRateName(usdEquivalentType)})
                                   </span>
                                 </p>
