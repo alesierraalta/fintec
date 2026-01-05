@@ -9,7 +9,7 @@ import { MobileNav } from './mobile-nav';
 import { MobileMenuFAB } from './mobile-menu-fab';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 import { TransactionForm } from '@/components/forms';
-import { useModal, useViewportHeight } from '@/hooks';
+import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
@@ -25,6 +25,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const [mounted, setMounted] = useState(false);
   const viewportHeight = useViewportHeight();
+  
+  // Auto-scroll global para todos los inputs en móvil
+  useMobileInputAutoScroll();
 
   // Estado local sincronizado para evitar problemas de hidratación
   // Se inicializa como false (consistente con SSR) y se sincroniza después del mount

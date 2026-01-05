@@ -30,13 +30,10 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-dynamic-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-dynamic-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <RegisterForm />
       </div>
     </div>
   );
 }
-
-
-

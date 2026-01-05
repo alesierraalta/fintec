@@ -23,7 +23,7 @@ function ResetPasswordContent() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const access_token = hashParams.get('access_token');
     const refresh_token = hashParams.get('refresh_token');
-    
+
     if (access_token && refresh_token) {
       setAccessToken(access_token);
       setRefreshToken(refresh_token);
@@ -47,9 +47,9 @@ function ResetPasswordContent() {
   }
 
   return (
-    <div className="min-h-dynamic-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-dynamic-screen flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <ResetPasswordForm 
+        <ResetPasswordForm
           accessToken={accessToken}
           refreshToken={refreshToken}
         />
