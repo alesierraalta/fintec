@@ -17,7 +17,7 @@ const config: CapacitorConfig = {
       showSpinner: false,
     },
     Keyboard: {
-      resize: 'body',
+      resize: 'native',  // WebView nativo maneja el resize, más compatible con CSS moderno
       resizeOnFullScreen: true,
     },
     StatusBar: {

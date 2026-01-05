@@ -30,9 +30,11 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-dynamic-screen flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <ForgotPasswordForm />
+    <div className="flex flex-col min-h-screen p-4">
+      <div className="flex-grow flex items-center justify-center">
+        <div className="w-full max-w-md">
+          <ForgotPasswordForm />
+        </div>
       </div>
     </div>
   );

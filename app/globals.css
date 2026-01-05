@@ -130,6 +130,8 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: constant(safe-area-inset-bottom); /* iOS < 11.2 fallback */
   background-color: #000000;
   /* Pure black background */
   min-height: 100%;
@@ -148,7 +150,8 @@ body {
   /* Fallback a 100dvh si la variable no está disponible */
   height: var(--app-height, 100dvh);
   width: 100%;
-  overflow: hidden;
+  overflow-y: auto;  /* Permitir scroll natural en lugar de hidden */
+  overflow-x: hidden;
   position: relative;
 }
 

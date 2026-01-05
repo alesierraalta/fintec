@@ -55,8 +55,8 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="min-h-dynamic-screen overflow-y-auto p-4">
-        <div className="min-h-full flex items-start sm:items-center justify-start sm:justify-center py-8 sm:py-0">
+      <div className="flex flex-col min-h-screen p-4">
+        <div className="flex-grow flex items-center justify-center">
           <div className="w-full max-w-md">
             <LoginForm />
           </div>
