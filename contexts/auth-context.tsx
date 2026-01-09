@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { User, Session, AuthError, PostgrestError } from '@supabase/supabase-js';
-import { supabase } from '@/repositories/supabase/client';
+import { supabase, createSupabaseClient } from '@/repositories/supabase/client';
 
 // Function to create welcome notifications for new users
 const createWelcomeNotifications = async (userId: string, userName: string) => {
@@ -59,25 +59,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null); // Cambiar a true para cargar sesión inicial
 
-  // Initialize Supabase auth session only
+  // Initialize Supabase auth session with proper storage based on rememberMe preference
   useEffect(() => {
-    // Clear any old local sessions
+    // Clear any old local sessions (from previous implementation)
     localStorage.removeItem('fintec_session');
     sessionStorage.removeItem('fintec_session_temp');
 
     setLoading(true);
-  }, []);
 
-  useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    // Check if user has a rememberMe preference stored
+    const rememberMePref = localStorage.getItem('fintec_remember_me');
+    const hasRememberMe = rememberMePref === 'true';
+
+    // Create client with appropriate storage
+    const authClient = hasRememberMe ? createSupabaseClient({ rememberMe: true }) : supabase;
+
+    // Get initial session from the appropriate storage
+    authClient.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = authClient.auth.onAuthStateChange(
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
@@ -87,6 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (event === 'SIGNED_OUT') {
           setUser(null);
           setSession(null);
+          // Clear rememberMe preference on sign out
+          localStorage.removeItem('fintec_remember_me');
         }
       }
     );
@@ -186,8 +193,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setAuthError(null); // Clear any previous errors
 
-      // Use only Supabase Auth - no local fallback
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      // Create client with appropriate storage based on rememberMe preference
+      const authClient = createSupabaseClient({ rememberMe });
+
+      // Store rememberMe preference for session restoration
+      if (rememberMe) {
+        localStorage.setItem('fintec_remember_me', 'true');
+      } else {
+        localStorage.removeItem('fintec_remember_me');
+      }
+
+      // Authenticate with dynamic client
+      const { data: authData, error: authError } = await authClient.auth.signInWithPassword({
         email,
         password
       });
@@ -210,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Check if we got valid user and session data
       if (authData.user && authData.session) {
-        // Create or update user profile in database
+        // Create or update user profile in database using the default client
         await supabase
           .from('users')
           .upsert({
@@ -243,11 +260,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
 
-      // Clear any remaining local sessions
+      // Clear rememberMe preference
+      const hadRememberMe = localStorage.getItem('fintec_remember_me') === 'true';
+      localStorage.removeItem('fintec_remember_me');
+
+      // Clear any remaining local sessions (old implementation)
       localStorage.removeItem('fintec_session');
       sessionStorage.removeItem('fintec_session_temp');
 
-      const { error } = await supabase.auth.signOut();
+      // Create client with appropriate storage to sign out from correct location
+      const authClient = hadRememberMe ? createSupabaseClient({ rememberMe: true }) : supabase;
+      const { error } = await authClient.auth.signOut();
+
+      // Also sign out from default client to ensure complete cleanup
+      await supabase.auth.signOut();
 
       // Clear local state
       setUser(null);
