@@ -1,7 +1,6 @@
 // Supabase client configuration and initialization
 import { createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -14,66 +13,7 @@ if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-/**
- * Storage adapter for localStorage
- * Used when "remember me" is checked - session persists indefinitely
- */
-const localStorageAdapter = {
-  getItem: (key: string) => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(key);
-  },
-  setItem: (key: string, value: string) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(key, value);
-  },
-  removeItem: (key: string) => {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem(key);
-  },
-};
-
-/**
- * Storage adapter for sessionStorage
- * Used when "remember me" is unchecked - session clears on browser close
- */
-const sessionStorageAdapter = {
-  getItem: (key: string) => {
-    if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(key);
-  },
-  setItem: (key: string, value: string) => {
-    if (typeof window === 'undefined') return;
-    sessionStorage.setItem(key, value);
-  },
-  removeItem: (key: string) => {
-    if (typeof window === 'undefined') return;
-    sessionStorage.removeItem(key);
-  },
-};
-
-/**
- * Factory function to create a Supabase client with dynamic storage configuration
- * @param options - Configuration options
- * @param options.rememberMe - If true, uses localStorage (persistent). If false, uses sessionStorage (temporary)
- * @returns Configured Supabase client
- */
-export function createSupabaseClient(options?: { rememberMe?: boolean }): SupabaseClient<Database> {
-  // Determine which storage adapter to use
-  const storage = options?.rememberMe ? localStorageAdapter : sessionStorageAdapter;
-
-  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
-    auth: {
-      storage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: true,
-    },
-  });
-}
-
 // Use createBrowserClient to support cookie-based auth for SSR/Server Components
-// This is the default client for backward compatibility
 export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 
 

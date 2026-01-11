@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
+import { useShallow } from 'zustand/react/shallow';
 
 // Types
 interface User {
@@ -45,7 +46,7 @@ interface AppState {
   sidebarOpen: boolean;
   isMobile: boolean;
   activeModal: string | null;
-  
+
   // Notifications
   notifications: Notification[];
   unreadCount: number;
@@ -62,7 +63,7 @@ interface AppState {
   // Quick Actions
   quickActionsVisible: boolean;
   recentTransactions: any[];
-  
+
   // Tutorial/Onboarding
   tutorialCompleted: boolean;
   currentTutorialStep: number;
@@ -223,7 +224,7 @@ export const useAppStore = create<AppState & AppActions>()(
             };
             state.notifications.unshift(newNotification);
             state.unreadCount += 1;
-            
+
             // Keep only last 50 notifications
             if (state.notifications.length > 50) {
               state.notifications = state.notifications.slice(0, 50);
@@ -357,61 +358,73 @@ export const useAppStore = create<AppState & AppActions>()(
 );
 
 // Selectors (for better performance)
-export const useAuth = () => useAppStore((state) => ({
-  user: state.user,
-  isAuthenticated: state.isAuthenticated,
-  isLoading: state.isLoading,
-  setUser: state.setUser,
-  setAuthenticated: state.setAuthenticated,
-  setLoading: state.setLoading,
-  logout: state.logout,
-}));
+export const useAuth = () => useAppStore(
+  useShallow((state) => ({
+    user: state.user,
+    isAuthenticated: state.isAuthenticated,
+    isLoading: state.isLoading,
+    setUser: state.setUser,
+    setAuthenticated: state.setAuthenticated,
+    setLoading: state.setLoading,
+    logout: state.logout,
+  }))
+);
 
-export const useUI = () => useAppStore((state) => ({
-  sidebarOpen: state.sidebarOpen,
-  isMobile: state.isMobile,
-  activeModal: state.activeModal,
-  toggleSidebar: state.toggleSidebar,
-  setSidebarOpen: state.setSidebarOpen,
-  setIsMobile: state.setIsMobile,
-  openModal: state.openModal,
-  closeModal: state.closeModal,
-}));
+export const useUI = () => useAppStore(
+  useShallow((state) => ({
+    sidebarOpen: state.sidebarOpen,
+    isMobile: state.isMobile,
+    activeModal: state.activeModal,
+    toggleSidebar: state.toggleSidebar,
+    setSidebarOpen: state.setSidebarOpen,
+    setIsMobile: state.setIsMobile,
+    openModal: state.openModal,
+    closeModal: state.closeModal,
+  }))
+);
 
-export const useNotifications = () => useAppStore((state) => ({
-  notifications: state.notifications,
-  unreadCount: state.unreadCount,
-  addNotification: state.addNotification,
-  markNotificationAsRead: state.markNotificationAsRead,
-  markAllNotificationsAsRead: state.markAllNotificationsAsRead,
-  removeNotification: state.removeNotification,
-  clearAllNotifications: state.clearAllNotifications,
-}));
+export const useNotifications = () => useAppStore(
+  useShallow((state) => ({
+    notifications: state.notifications,
+    unreadCount: state.unreadCount,
+    addNotification: state.addNotification,
+    markNotificationAsRead: state.markNotificationAsRead,
+    markAllNotificationsAsRead: state.markAllNotificationsAsRead,
+    removeNotification: state.removeNotification,
+    clearAllNotifications: state.clearAllNotifications,
+  }))
+);
 
-export const useSettings = () => useAppStore((state) => ({
-  settings: state.settings,
-  updateSettings: state.updateSettings,
-  resetSettings: state.resetSettings,
-}));
+export const useSettings = () => useAppStore(
+  useShallow((state) => ({
+    settings: state.settings,
+    updateSettings: state.updateSettings,
+    resetSettings: state.resetSettings,
+  }))
+);
 
-export const useCurrency = () => useAppStore((state) => ({
-  selectedCurrency: state.selectedCurrency,
-  exchangeRates: state.exchangeRates,
-  lastRateUpdate: state.lastRateUpdate,
-  setSelectedCurrency: state.setSelectedCurrency,
-  updateExchangeRates: state.updateExchangeRates,
-}));
+export const useCurrency = () => useAppStore(
+  useShallow((state) => ({
+    selectedCurrency: state.selectedCurrency,
+    exchangeRates: state.exchangeRates,
+    lastRateUpdate: state.lastRateUpdate,
+    setSelectedCurrency: state.setSelectedCurrency,
+    updateExchangeRates: state.updateExchangeRates,
+  }))
+);
 
-export const useTutorial = () => useAppStore((state) => ({
-  tutorialCompleted: state.tutorialCompleted,
-  currentTutorialStep: state.currentTutorialStep,
-  showTutorialOverlay: state.showTutorialOverlay,
-  setTutorialCompleted: state.setTutorialCompleted,
-  setCurrentTutorialStep: state.setCurrentTutorialStep,
-  toggleTutorialOverlay: state.toggleTutorialOverlay,
-  nextTutorialStep: state.nextTutorialStep,
-  previousTutorialStep: state.previousTutorialStep,
-}));
+export const useTutorial = () => useAppStore(
+  useShallow((state) => ({
+    tutorialCompleted: state.tutorialCompleted,
+    currentTutorialStep: state.currentTutorialStep,
+    showTutorialOverlay: state.showTutorialOverlay,
+    setTutorialCompleted: state.setTutorialCompleted,
+    setCurrentTutorialStep: state.setCurrentTutorialStep,
+    toggleTutorialOverlay: state.toggleTutorialOverlay,
+    nextTutorialStep: state.nextTutorialStep,
+    previousTutorialStep: state.previousTutorialStep,
+  }))
+);
 
 // Utility hooks
 export const useIsAuthenticated = () => useAppStore((state) => state.isAuthenticated);
