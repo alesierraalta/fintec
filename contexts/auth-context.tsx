@@ -186,6 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       setAuthError(null); // Clear any previous errors
 
+      // Store rememberMe preference for cookie management
+      if (rememberMe) {
+        localStorage.setItem('fintec_remember_me', 'true');
+      } else {
+        localStorage.removeItem('fintec_remember_me');
+      }
+
       // Use Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email,
@@ -239,15 +246,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  /**
+   * Helper function to clear all Supabase cookies
+   * Used when user didn't check "remember me" to simulate temporary sessions
+   */
+  const clearSupabaseCookies = () => {
+    if (typeof document === 'undefined') return;
+
+    // Get all cookies and clear those starting with 'sb-'
+    const cookies = document.cookie.split(';');
+    cookies.forEach(cookie => {
+      const name = cookie.split('=')[0].trim();
+      if (name.startsWith('sb-')) {
+        // Clear cookie by setting expiry to past date
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        // Also try with domain if needed
+        const domain = window.location.hostname;
+        document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain}`;
+      }
+    });
+  };
+
   const signOut = useCallback(async () => {
     try {
       setLoading(true);
 
+      // Check if user had "remember me" preference
+      const hadRememberMe = localStorage.getItem('fintec_remember_me') === 'true';
+
       // Clear any remaining local sessions
       localStorage.removeItem('fintec_session');
       sessionStorage.removeItem('fintec_session_temp');
+      localStorage.removeItem('fintec_remember_me');
 
       const { error } = await supabase.auth.signOut();
+
+      // If user didn't have "remember me" checked, clear all Supabase cookies
+      // to prevent automatic session restoration on next visit
+      if (!hadRememberMe) {
+        clearSupabaseCookies();
+      }
 
       // Clear local state
       setUser(null);

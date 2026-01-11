@@ -34,18 +34,29 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={type}
             id={inputId}
             className={cn(
-              // Base styles with enhanced animations
+              // Base styles with enhanced animations and improved text visibility
               'flex h-12 w-full rounded-xl border-2 border-input/50 bg-background/80 px-4 py-3',
-              'text-sm text-foreground ring-offset-background file:border-0 file:bg-transparent',
-              'file:text-sm file:font-medium placeholder:text-muted-foreground/70',
+              'text-sm font-medium ring-offset-background file:border-0 file:bg-transparent',
+              'file:text-sm file:font-medium',
               'focus-glow disabled:cursor-not-allowed disabled:opacity-50',
               'transition-smooth backdrop-blur-sm',
-              
+
+              // Text color with high contrast for filled values
+              'text-foreground dark:text-white/95',
+
+              // Placeholder styling - lower contrast but still visible
+              'placeholder:text-muted-foreground placeholder:opacity-100',
+
+              // Autofill fix - override browser default styling
+              'autofill:shadow-[inset_0_0_0_1000px_hsl(var(--background))]',
+              'autofill:[-webkit-text-fill-color:hsl(var(--foreground))]',
+              'dark:autofill:[-webkit-text-fill-color:rgb(255_255_255_/_0.95)]',
+
               // Glass morphism and elegant styling
               'glass-light shadow-lg hover:shadow-xl',
               'hover:border-primary/30 focus:border-primary/60 hover:bg-background/90',
               'animate-fade-in-up',
-              
+
               // Conditional styles
               error && 'border-destructive/50 focus:border-destructive hover:border-destructive/70 animate-wiggle',
               icon && 'pl-12',
