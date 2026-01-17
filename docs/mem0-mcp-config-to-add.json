@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+        "mem0": {
+            "command": "C:\\Users\\ismar\\.local\\bin\\uvx.exe",
+            "args": [
+                "mem0-mcp-server"
+            ],
+            "env": {
+                "MEM0_API_KEY": "m0-YOUR-API-KEY-HERE",
+                "MEM0_DEFAULT_USER_ID": "fintec-user",
+                "MEM0_ENABLE_GRAPH_DEFAULT": "false"
+            }
+        }
+    }
+}

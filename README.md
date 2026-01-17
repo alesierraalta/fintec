@@ -29,6 +29,18 @@ Una plataforma moderna e inteligente de gestión de finanzas personales construi
 - **Responsive design** para móvil y escritorio
 - **Animaciones suaves** y micro-interacciones
 
+### 🤖 Priority 1 AI Infrastructure
+- **Multi-Layer Verification**: Self-check, LLM eval, cross-agent review
+- **Error Recovery**: Circuit breaker pattern with error differentiation
+- **Retry Logic**: Exponential backoff for transient errors
+- **Durable Execution**: State checkpointing for conversation resumption
+- **Human-in-the-Loop (HITL)**: Approval system for high-risk AI actions
+- **Realtime Approvals**: Supabase Realtime for instant notifications
+- **Error Handling**: User-friendly messages for tool errors
+- **Tool Execution Limits**: Prevents infinite AI loops (max 5 steps)
+
+📖 **[Ver documentación completa de API](docs/api/priority1-api.md)**
+
 ## 🚀 Inicio Rápido
 
 ### Prerrequisitos

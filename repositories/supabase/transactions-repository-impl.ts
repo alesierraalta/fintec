@@ -15,16 +15,22 @@ import {
   mapSupabaseTransactionArrayToDomain
 } from './mappers';
 import { AccountsRepository } from '../contracts/accounts-repository';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   private accountsRepository?: AccountsRepository;
+  private client: SupabaseClient;
+
+  constructor(client?: SupabaseClient) {
+    this.client = client || supabase;
+  }
 
   setAccountsRepository(accountsRepository: AccountsRepository) {
     this.accountsRepository = accountsRepository;
   }
   async findAll(limit: number = 1000): Promise<Transaction[]> {
     // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await this.client.auth.getUser();
 
     if (!user) {
       // No user authenticated = no transactions visible
@@ -35,7 +41,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = user.id;
 
     // Single query with JOIN - más eficiente que 2 queries separados
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('transactions')
       .select(`
         *,
@@ -78,7 +84,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
     const offset = (page - 1) * limit;
 
-    let query = supabase.from('transactions').select('*', { count: 'exact' });
+    // Include JOIN with accounts for RLS to work properly
+    let query = this.client.from('transactions').select(`
+      *,
+      accounts!inner(user_id)
+    `, { count: 'exact' });
 
     if (filters.accountIds && filters.accountIds.length > 0) {
       query = query.in('account_id', filters.accountIds);

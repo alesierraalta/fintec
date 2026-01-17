@@ -1,6 +1,8 @@
 import Dexie, { Table } from 'dexie';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
+import { logger } from '@/lib/utils/logger';
 
 export interface BCVHistoryRecord {
   id?: number;
@@ -20,6 +22,16 @@ export interface BCVTrend {
   trend: 'up' | 'down' | 'stable';
 }
 
+interface SupabaseBCVRecord {
+  id: string;
+  date: string;
+  usd: number;
+  eur: number;
+  timestamp: string;
+  source: string;
+  created_at: string;
+}
+
 class BCVHistoryDatabase extends Dexie {
   bcvHistory!: Table<BCVHistoryRecord>;
 
@@ -34,9 +46,21 @@ class BCVHistoryDatabase extends Dexie {
 export class BCVHistoryService {
   private static instance: BCVHistoryService;
   private db: BCVHistoryDatabase;
+  private supabase: SupabaseClient | null = null;
+  private syncInProgress = false;
 
   private constructor() {
     this.db = new BCVHistoryDatabase();
+    this.initSupabase();
+  }
+
+  private initSupabase(): void {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseKey) {
+      this.supabase = createClient(supabaseUrl, supabaseKey);
+    }
   }
 
   static getInstance(): BCVHistoryService {
@@ -44,6 +68,75 @@ export class BCVHistoryService {
       BCVHistoryService.instance = new BCVHistoryService();
     }
     return BCVHistoryService.instance;
+  }
+
+  // Sync a single rate to Supabase (non-blocking)
+  private async syncToSupabase(date: string, usd: number, eur: number, source: string, timestamp: string): Promise<void> {
+    if (!this.supabase) return;
+
+    try {
+      const { error } = await this.supabase
+        .from('bcv_rate_history')
+        .upsert({
+          date,
+          usd,
+          eur,
+          source,
+          timestamp
+        }, { onConflict: 'date' });
+
+      if (error) {
+        logger.warn('[BCVHistoryService] Failed to sync to Supabase:', error.message);
+      }
+    } catch (error) {
+      // Non-blocking - don't throw, just log
+      logger.warn('[BCVHistoryService] Supabase sync error:', error);
+    }
+  }
+
+  // Load historical data from Supabase to local IndexedDB
+  async loadFromSupabase(days: number = 30): Promise<void> {
+    if (!this.supabase || this.syncInProgress) return;
+
+    this.syncInProgress = true;
+
+    try {
+      const cutoffDate = new Date();
+      cutoffDate.setDate(cutoffDate.getDate() - days);
+      const cutoffDateStr = formatCaracasDayKey(cutoffDate);
+
+      const { data, error } = await this.supabase
+        .from('bcv_rate_history')
+        .select('*')
+        .gte('date', cutoffDateStr)
+        .order('date', { ascending: false });
+
+      if (error) {
+        logger.warn('[BCVHistoryService] Failed to load from Supabase:', error.message);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        // Bulk insert to local database
+        for (const record of data as SupabaseBCVRecord[]) {
+          const existing = await this.db.bcvHistory.where('date').equals(record.date).first();
+          if (!existing) {
+            await this.db.bcvHistory.add({
+              date: record.date,
+              usd: Number(record.usd),
+              eur: Number(record.eur),
+              timestamp: record.timestamp,
+              source: record.source
+            });
+          }
+        }
+        logger.info(`[BCVHistoryService] Synced ${data.length} records from Supabase`);
+      }
+    } catch (error) {
+      logger.error('[BCVHistoryService] Error loading from Supabase:', error);
+    } finally {
+      this.syncInProgress = false;
+    }
   }
 
   // Save today's rates
@@ -92,6 +185,15 @@ export class BCVHistoryService {
         });
       }
 
+      // Sync to Supabase (non-blocking)
+      this.syncToSupabase(
+        today,
+        Math.round(usd * 100) / 100,
+        Math.round(eur * 100) / 100,
+        source,
+        timestamp
+      ).catch(() => { }); // Ignore sync errors
+
       // Keep history bounded
       await this.cleanOldRecords(365);
     } catch (error) {
@@ -106,7 +208,7 @@ export class BCVHistoryService {
         .where('date')
         .equals(date)
         .first();
-      
+
       return record || null;
     } catch (error) {
       return null;
@@ -170,7 +272,7 @@ export class BCVHistoryService {
   private calculateTrend(currency: 'usd' | 'eur', current: number, previous: number): BCVTrend {
     const change = current - previous;
     const changePercent = previous !== 0 ? (change / previous) * 100 : 0;
-    
+
     let trend: 'up' | 'down' | 'stable' = 'stable';
     if (Math.abs(changePercent) < 0.1) {
       trend = 'stable';
@@ -199,10 +301,20 @@ export class BCVHistoryService {
       const startDateStr = formatCaracasDayKey(startDate);
       const endDateStr = formatCaracasDayKey(endDate);
 
-      const records = await this.db.bcvHistory
+      let records = await this.db.bcvHistory
         .where('date')
         .between(startDateStr, endDateStr, true, true)
         .toArray();
+
+      // If local is empty or has few records, try to load from Supabase
+      if (records.length < 2) {
+        await this.loadFromSupabase(days);
+        // Re-fetch after sync
+        records = await this.db.bcvHistory
+          .where('date')
+          .between(startDateStr, endDateStr, true, true)
+          .toArray();
+      }
 
       return records.sort((a, b) => a.date.localeCompare(b.date));
     } catch (error) {

@@ -40,7 +40,7 @@ const navigation = [
   { name: 'Metas', href: '/goals', icon: Target },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
   { name: 'Respaldos', href: '/backups', icon: Shield },
-  { name: 'Chats', href: '/chats', icon: MessageSquare, premium: true },
+  { name: 'Chats', href: '/chat', icon: MessageSquare, premium: true },
   { name: 'Ajustes', href: '/settings', icon: Settings },
 ];
 

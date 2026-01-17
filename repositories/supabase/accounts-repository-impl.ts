@@ -7,10 +7,16 @@ import {
   mapDomainAccountToSupabase,
   mapSupabaseAccountArrayToDomain
 } from './mappers';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 export class SupabaseAccountsRepository implements AccountsRepository {
+  private client: SupabaseClient;
+
+  constructor(client?: SupabaseClient) {
+    this.client = client || supabase;
+  }
   async findById(id: string): Promise<Account | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('id', id)
@@ -26,14 +32,14 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async findAll(): Promise<Account[]> {
     // Get current session to obtain user_id
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await this.client.auth.getSession();
 
     if (!session?.user?.id) {
       // No authenticated user, return empty array
       return [];
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('active', true)
@@ -53,7 +59,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       return []; // Return empty array for invalid user IDs
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('user_id', userId)
@@ -68,7 +74,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async findByType(type: AccountType): Promise<Account[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('type', type)
@@ -83,7 +89,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async findByCurrency(currencyCode: string): Promise<Account[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('currency_code', currencyCode)
@@ -107,7 +113,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await (supabase
+    const { data, error } = await (this.client
       .from('accounts') as any)
       .insert(supabaseData as any)
       .select()
@@ -132,7 +138,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       updated_at: new Date().toISOString(),
     };
 
-    const { data, error } = await (supabase
+    const { data, error } = await (this.client
       .from('accounts') as any)
       .update(updatePayload as any)
       .eq('id', id)
@@ -148,7 +154,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async delete(id: string): Promise<void> {
     // Soft delete by setting active to false
-    const { error } = await (supabase
+    const { error } = await (this.client
       .from('accounts') as any)
       .update({ active: false, updated_at: new Date().toISOString() } as any)
       .eq('id', id);
@@ -162,7 +168,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
 
-    const query = supabase
+    const query = this.client
       .from('accounts')
       .select('*', { count: 'exact' })
       .eq('active', true)
@@ -188,7 +194,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async getTotalBalance(userId: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('balance')
       .eq('user_id', userId)
@@ -204,7 +210,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
 
   async findActive(): Promise<Account[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('*')
       .eq('active', true)
@@ -218,7 +224,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async updateBalance(id: string, newBalance: number): Promise<Account> {
-    const { data, error } = await (supabase
+    const { data, error } = await (this.client
       .from('accounts') as any)
       .update({
         balance: newBalance,
@@ -236,7 +242,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async adjustBalance(id: string, adjustment: number): Promise<Account> {
-    const { data, error } = await (supabase as any).rpc('adjust_account_balance', {
+    const { data, error } = await (this.client as any).rpc('adjust_account_balance', {
       account_id_input: id,
       adjustment_amount: adjustment,
     }).single();
@@ -249,7 +255,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async updateBalances(updates: { id: string; newBalance: number }[]): Promise<Account[]> {
-    const { data, error } = await (supabase as any).rpc('update_multiple_account_balances', {
+    const { data, error } = await (this.client as any).rpc('update_multiple_account_balances', {
       updates: updates.map(u => ({ id: u.id, new_balance: u.newBalance })),
     });
 
@@ -261,7 +267,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async getTotalBalanceByType(type: AccountType): Promise<number> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('balance')
       .eq('type', type)
@@ -275,7 +281,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async getTotalBalanceByCurrency(currencyCode: string): Promise<number> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('balance')
       .eq('currency_code', currencyCode)
@@ -293,7 +299,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     totalByCurrency: Record<string, number>;
     total: number;
   }> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('type, currency_code, balance')
       .eq('active', true);
@@ -353,7 +359,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
   async deleteMany(ids: string[]): Promise<void> {
     // Soft delete by setting active to false
-    const { error } = await (supabase
+    const { error } = await (this.client
       .from('accounts') as any)
       .update({ active: false, updated_at: new Date().toISOString() } as any)
       .in('id', ids);
@@ -364,7 +370,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async count(): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await this.client
       .from('accounts')
       .select('*', { count: 'exact', head: true })
       .eq('active', true);
@@ -377,7 +383,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
   }
 
   async exists(id: string): Promise<boolean> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('accounts')
       .select('id')
       .eq('id', id)

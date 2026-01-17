@@ -1,16 +1,22 @@
 import { GoalsRepository } from '@/repositories/contracts';
 import { SavingsGoal, PaginationParams, PaginatedResult } from '@/types';
 import { supabase } from './client';
-import { 
-  mapSupabaseGoalToDomain, 
+import {
+  mapSupabaseGoalToDomain,
   mapDomainGoalToSupabase,
-  mapSupabaseGoalArrayToDomain 
+  mapSupabaseGoalArrayToDomain
 } from './mappers';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 // @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseGoalsRepository implements GoalsRepository {
+  private client: SupabaseClient;
+
+  constructor(client?: SupabaseClient) {
+    this.client = client || supabase;
+  }
   async findAll(): Promise<SavingsGoal[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('active', true)
@@ -25,7 +31,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findById(id: string): Promise<SavingsGoal | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('id', id)
@@ -42,7 +48,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findByAccountId(accountId: string): Promise<SavingsGoal[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('account_id', accountId)
@@ -58,7 +64,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findActive(): Promise<SavingsGoal[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('active', true)
@@ -74,7 +80,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
   async findCompleted(): Promise<SavingsGoal[]> {
     // Stub implementation - would need proper SQL for comparing columns
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('active', true)
@@ -89,7 +95,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findByTargetDateRange(startDate: string, endDate: string): Promise<SavingsGoal[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .gte('target_date', startDate)
@@ -110,7 +116,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     const offset = (page - 1) * limit;
 
     // Get total count
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await this.client
       .from('goals')
       .select('*', { count: 'exact', head: true })
       .eq('active', true);
@@ -120,7 +126,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     }
 
     // Get paginated data
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('active', true)
@@ -193,7 +199,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async hardDelete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('goals')
       .delete()
       .eq('id', id);
@@ -204,7 +210,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async count(): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await this.client
       .from('goals')
       .select('*', { count: 'exact', head: true })
       .eq('active', true);
@@ -219,7 +225,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   async updateProgress(id: string, currentBaseMinor: number): Promise<SavingsGoal> {
     const { data, error } = await (supabase
       .from('goals') as any)
-      .update({ 
+      .update({
         current_base_minor: currentBaseMinor,
         updated_at: new Date().toISOString()
       } as any)
@@ -241,7 +247,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     percentageComplete: number;
     isCompleted: boolean;
   } | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('target_base_minor, current_base_minor')
       .eq('id', id)
@@ -330,7 +336,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async search(query: string): Promise<SavingsGoal[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('active', true)
@@ -359,10 +365,10 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
   // Helper method to calculate goal progress
   private calculateGoalProgress(goal: SavingsGoal): import('@/repositories/contracts').GoalWithProgress {
-    const progressPercentage = goal.targetBaseMinor > 0 
-      ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100) 
+    const progressPercentage = goal.targetBaseMinor > 0
+      ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100)
       : 0;
-    
+
     const remainingBaseMinor = Math.max(0, goal.targetBaseMinor - goal.currentBaseMinor);
 
     let daysRemaining: number | undefined;
@@ -374,11 +380,11 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       const targetDate = new Date(goal.targetDate);
       const timeDiff = targetDate.getTime() - today.getTime();
       daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24));
-      
+
       if (daysRemaining > 0) {
         const monthsRemaining = daysRemaining / 30.44; // Average days per month
         suggestedMonthlyContribution = remainingBaseMinor / monthsRemaining;
-        
+
         // Check if on track (simplified logic)
         const createdDate = new Date(goal.createdAt);
         const daysSinceCreation = Math.max(1, Math.ceil((today.getTime() - createdDate.getTime()) / (1000 * 3600 * 24)));

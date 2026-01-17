@@ -35,7 +35,7 @@ export default function TransactionsPage() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const repository = useRepository();
-  const { transactions, accounts, categories, loading, loadAllData } = useOptimizedData();
+  const { transactions, accounts, categories, loading, loadAllData, deleteTransaction } = useOptimizedData();
   const { convert, convertToUSD } = useCurrencyConverter();
   const activeUsdVes = useActiveUsdVesRate();
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
@@ -56,7 +56,6 @@ export default function TransactionsPage() {
     loadAllData();
   }, [loadAllData]);
 
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [filters, setFilters] = useState<{
     search?: string;
@@ -236,15 +235,10 @@ export default function TransactionsPage() {
     setFilters(newFilters);
   }, []);
 
-  // Update filteredTransactions when memoized value changes
-  useMemo(() => {
-    setFilteredTransactions(filteredTransactionsMemo);
-  }, [filteredTransactionsMemo]);
-
   // Optimized sorting handler
   const sortTransactions = useCallback((sortBy: string) => {
     setFilters(prev => ({ ...prev, sortBy }));
-  }, []);
+  }, [setFilters]);
 
   const handleNewTransaction = useCallback(() => router.push('/transactions/add'), [router]);
 
@@ -256,10 +250,7 @@ export default function TransactionsPage() {
 
     try {
       setDeleting(true);
-      await repository.transactions.delete(transactionToDelete.id);
-
-      // Update local state
-      setFilteredTransactions(prev => prev.filter(t => t.id !== transactionToDelete.id));
+      await deleteTransaction(transactionToDelete.id);
 
       // Close modal
       setShowDeleteModal(false);
@@ -274,9 +265,8 @@ export default function TransactionsPage() {
   const cancelDelete = useCallback(() => setShowDeleteModal(false), []);
 
   const handleTransactionUpdated = useCallback(() => {
-    // Update filtered transactions to reflect current data
-    setFilteredTransactions(transactions);
-  }, [transactions]);
+    // Rely on useOptimizedData cache invalidation
+  }, []);
 
   const getIcon = useCallback((type: string) => {
     switch (type) {

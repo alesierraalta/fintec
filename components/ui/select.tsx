@@ -33,7 +33,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
         <select
           id={selectId}
           className={cn(
-            'flex h-11 w-full rounded-xl border border-border/50 bg-card/60 glass-card px-3 py-2 text-sm text-foreground shadow-lg focus-ring disabled:cursor-not-allowed disabled:opacity-50',
+            'flex min-h-[44px] w-full rounded-xl border border-border/50 bg-card/60 glass-card px-3 py-2 text-sm text-foreground shadow-lg focus-ring disabled:cursor-not-allowed disabled:opacity-50 appearance-none',
+            'touch-manipulation', // Better for mobile
             error && 'border-destructive/60 focus-visible:ring-destructive',
             className
           )}
@@ -42,8 +43,8 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           aria-describedby={error ? errorId : undefined}
           {...props}
         >
-          {placeholder && (
-            <option value="" disabled>
+          {placeholder && !options.some((o: SelectOption) => o.value === '') && (
+            <option value="">
               {placeholder}
             </option>
           )}

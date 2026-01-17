@@ -1,1 +1,52 @@
-Desarrolle un plan estricto que garantice el uso obligatorio de los MCP con sus herramientas correspondientes, priorizando la eficiencia y minimización de tokens en todas las operaciones: 1. **Serena MCP**: Implementar este módulo para: - Gestionar y optimizar el flujo de trabajo de manera sistemática - Monitorear y reducir el consumo de tokens en cada etapa del proceso - Asegurar el cumplimiento de los protocolos de eficiencia 2. **Herramientas de Serena MCP**: - **Sequential Thinking**: * Estructurar todo el pensamiento y procesos de manera lógica y secuencial * Eliminar redundancias y repeticiones innecesarias * Garantizar un flujo de trabajo lineal y optimizado - **Bank Memory**: * Administrar la memoria de manera eficiente * Almacenar únicamente la información esencial para la tarea actual * Recuperar datos solo cuando sean estrictamente necesarios - **DockFork**: * Acceder a documentación relevante de forma precisa * Procesar información técnica sin consumo excesivo de tokens * Mantener referencias documentales optimizadas 3. **Integración con Supabase**: - Para cualquier operación de base de datos requerida: * Especificar exactamente qué herramienta de Supabase utilizar (ej: autenticación, almacenamiento, consultas) * Justificar la selección de cada herramienta según los requisitos técnicos * Optimizar las consultas para minimizar el uso de recursos El plan debe asegurar que cada acción, decisión y proceso esté completamente alineado con estos MCP, manteniendo como prioridad máxima la eficiencia operacional y la reducción sistemática de tokens en todo momento.
+# GEMINI.MD - Directrices para el Agente de IA en FinTec
+
+Este documento define las reglas críticas, convenciones técnicas y la infraestructura de IA para el proyecto FinTec, con un enfoque estricto en la eficiencia y optimización de recursos.
+
+## Perfil del Proyecto
+FinTec es una plataforma inteligente de gestión de finanzas personales.
+- **Frontend**: Next.js 14 (App Router), TypeScript, TailwindCSS.
+- **Persistencia**: Capa híbrida (Dexie para local, Supabase para nube).
+- **IA Core**: Infraestructura "Priority 1" (Recuperación, Verificación, HITL).
+
+## Prioridad Operacional: Eficiencia y Tokens
+Es obligatorio minimizar el consumo de tokens y maximizar la precisión mediante el uso de los siguientes Model Context Protocols (MCP):
+
+### 1. Serena MCP (Gestión de Flujo)
+- **Propósito**: Optimizar el flujo de trabajo sistemático y monitorear el consumo de tokens.
+- **Sequential Thinking**: Estructurar todo pensamiento de manera lógica y secuencial, eliminando redundancias.
+- **Bank Memory**: Almacenar solo información esencial y recuperarla solo cuando sea estrictamente necesario.
+- **DockFork**: Acceso preciso a documentación técnica sin procesamiento excesivo.
+
+### 2. Integración con Supabase
+- Especificar y justificar la herramienta de Supabase a utilizar (Auth, Storage, RPC, Queries).
+- Optimizar consultas para minimizar el uso de recursos y latencia.
+
+## Reglas de Oro Técnicas
+1. **Manejo de Dinero**: SIEMPRE usar unidades menores (centavos) en números enteros. Consultar `lib/money.ts`.
+2. **Patrón Repositorio**: No acceder directamente a la DB. Usar los contratos definidos en `repositories/contracts/`.
+3. **Tipado Estricto**: No usar `any`. Toda interfaz de dominio debe estar en `types/domain.ts`.
+
+## Infraestructura de IA (Priority 1)
+
+Cualquier funcionalidad que involucre agentes de IA debe adherirse a los siguientes componentes en `lib/ai/`:
+
+### 1. Recuperación y Resiliencia (`recovery/`)
+- **Circuit Breaker**: Envolver llamadas externas con `CircuitBreaker.execute()`. IDs: `google_api`, `openai_api`, `anthropic_api`.
+- **Retry Logic**: Usar `retryWithBackoff` con retroceso exponencial.
+
+### 2. Verificación Multi-Capa (`verification/`)
+- Respuestas críticas deben pasar por `self-check`, `llm-eval` y `cross-agent review`.
+
+### 3. Human-in-the-Loop (`hitl/`)
+- Acciones de alto riesgo (Transacciones > $10k, borrado de cuentas, metas) requieren aprobación manual vía `requestApproval()`.
+
+### 4. Gestión de Estado
+- Guardar checkpoints en la tabla `agent_checkpoints` usando `SupabaseCheckpointer` para garantizar ejecuciones durables.
+
+## Estándares de Calidad
+- **Validación**: `npm run type-check` y `npm run lint` antes de commits.
+- **Tests**: Ubicados en `lib/ai/*.test.ts` y Playwright en `tests/`.
+
+---
+Este archivo es la fuente de verdad para la operación del agente de IA en este repositorio.
+

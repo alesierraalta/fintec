@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { PeriodSelector } from './period-selector';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { TimePeriod, formatDateForAPI } from '@/lib/dates/periods';
-import { 
-  Filter, 
-  Search, 
+import {
+  Filter,
+  Search,
   DollarSign,
   Tag,
   X,
@@ -63,35 +63,33 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     ...rawCategories.map(cat => ({ value: cat.id, label: cat.name }))
   ], [rawCategories]);
 
-  const handleFilterChange = (key: string, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFiltersChange(newFilters);
-  };
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value };
+      onFiltersChange(newFilters);
+      return newFilters;
+    });
+  }, [onFiltersChange]);
 
-  const handlePeriodChange = (period: TimePeriod | null) => {
-    if (period) {
-      const newFilters = {
-        ...filters,
+  const handlePeriodChange = useCallback((period: TimePeriod | null) => {
+    setFilters(prev => {
+      const newFilters = period ? {
+        ...prev,
         period: period.id,
         dateFrom: formatDateForAPI(period.startDate),
         dateTo: formatDateForAPI(period.endDate)
-      };
-      setFilters(newFilters);
-      onFiltersChange(newFilters);
-    } else {
-      const newFilters = {
-        ...filters,
+      } : {
+        ...prev,
         period: '',
         dateFrom: '',
         dateTo: ''
       };
-      setFilters(newFilters);
       onFiltersChange(newFilters);
-    }
-  };
+      return newFilters;
+    });
+  }, [onFiltersChange]);
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     const clearedFilters = {
       search: '',
       accountId: '',
@@ -107,9 +105,9 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     };
     setFilters(clearedFilters);
     onFiltersChange(clearedFilters);
-  };
+  }, [onFiltersChange]);
 
-  const hasActiveFilters = Object.entries(filters).some(([key, value]) => 
+  const hasActiveFilters = Object.entries(filters).some(([key, value]) =>
     key !== 'sortBy' && value !== ''
   );
 
@@ -126,7 +124,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {hasActiveFilters && (
             <Button
@@ -150,20 +148,19 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
       </div>
 
       {/* Quick Filters */}
-      <div className="px-4 pb-4 flex flex-wrap gap-2">
+      <div className="px-4 pb-4 flex flex-wrap gap-3 md:gap-2 touch-manipulation">
         <PeriodSelector
           selectedPeriod={filters.period}
           onPeriodChange={handlePeriodChange}
         />
-        
+
         <Select
           value={filters.type}
           onChange={(e) => handleFilterChange('type', e.target.value)}
           options={transactionTypes}
-          placeholder="Tipo"
-          className="min-w-[120px]"
+          className="min-w-[140px]"
         />
-        
+
         <Select
           value={filters.sortBy}
           onChange={(e) => handleFilterChange('sortBy', e.target.value)}
@@ -194,7 +191,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
               onChange={(e) => handleFilterChange('accountId', e.target.value)}
               options={accounts}
             />
-            
+
             <Select
               label="Categoría"
               value={filters.categoryId}
@@ -216,7 +213,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
                 className="pl-10"
               />
             </div>
-            
+
             <div className="relative">
               <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
               <Input
@@ -239,7 +236,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
                 value={filters.dateFrom}
                 onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
               />
-              
+
               <Input
                 label="Fecha hasta"
                 type="date"

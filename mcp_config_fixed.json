@@ -1,0 +1,73 @@
+{
+    "mcpServers": {
+        "sequential-thinking": {
+            "command": "C:\\Program Files\\nodejs\\npx.cmd",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-sequential-thinking"
+            ],
+            "env": {}
+        },
+        "supabase-mcp-server": {
+            "command": "C:\\Program Files\\nodejs\\npx.cmd",
+            "args": [
+                "-y",
+                "@supabase/mcp-server-supabase@latest",
+                "--access-token",
+                "sbp_0a725a51f2f6bef4b699583ff9b4c0388ea4eb97"
+            ],
+            "env": {}
+        },
+        "context7": {
+            "command": "C:\\Program Files\\nodejs\\npx.cmd",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp@latest"
+            ],
+            "env": {
+                "CONTEXT7_API_KEY": "ctx7sk-9aa8c122-0408-4f41-a211-4c28a671bb49"
+            }
+        },
+        "context7v2": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp",
+                "--api-key",
+                "ctx7sk-9aa8c122-0408-4f41-a211-4c28a671bb4"
+            ]
+        },
+        "allpepper-memory-bank": {
+            "command": "C:\\Program Files\\nodejs\\npx.cmd",
+            "args": [
+                "-y",
+                "@allpepper/memory-bank-mcp"
+            ],
+            "env": {
+                "MEMORY_BANK_ROOT": "C:\\Users\\ismar\\Documents\\mcps\\memory-bank"
+            }
+        },
+        "serena": {
+            "command": "C:\\Users\\ismar\\.local\\bin\\uv.exe",
+            "args": [
+                "run",
+                "--directory",
+                "C:\\Users\\ismar\\Documents\\mcps\\serena",
+                "serena",
+                "start-mcp-server"
+            ],
+            "disabled": false
+        },
+        "mem0": {
+            "command": "C:\\Users\\ismar\\.local\\bin\\uvx.exe",
+            "args": [
+                "mem0-mcp-server"
+            ],
+            "env": {
+                "MEM0_API_KEY": "m0-Ho63wqGUvcIUN7JuRrM9aXGiZCpQhMTyKE8WKHgx",
+                "MEM0_DEFAULT_USER_ID": "fintec-user",
+                "MEM0_ENABLE_GRAPH_DEFAULT": "false"
+            }
+        }
+    }
+}

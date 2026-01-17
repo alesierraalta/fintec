@@ -35,9 +35,6 @@ const customJestConfig = {
         '!**/*.d.ts',
       ],
       moduleDirectories: ['node_modules', '<rootDir>/'],
-      transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
-      }
     },
     {
       displayName: 'node',
@@ -59,13 +56,14 @@ const customJestConfig = {
         '!**/*.d.ts',
       ],
       moduleDirectories: ['node_modules', '<rootDir>/'],
-      transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }]
-      }
     }
   ],
   // Default for other tests
-  testPathIgnorePatterns: ['<rootDir>/tests/e2e/', '<rootDir>/.stryker-tmp/'] // Ignored globally
+  testPathIgnorePatterns: ['<rootDir>/tests/e2e/', '<rootDir>/.stryker-tmp/'], // Ignored globally
+  transformIgnorePatterns: [
+    // Transform ES modules from these specific packages (AI SDK, etc.)
+    '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)'
+  ]
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

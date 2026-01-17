@@ -3,11 +3,25 @@ import { bcvHistoryService } from '@/lib/services/bcv-history-service';
 import { STATIC_BCV_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 
 // * Mock dependencies
+jest.mock('@supabase/supabase-js', () => ({
+    createClient: jest.fn(() => ({
+        from: jest.fn(() => ({
+            upsert: jest.fn(() => ({ error: null })),
+            select: jest.fn(() => ({
+                gte: jest.fn(() => ({
+                    order: jest.fn(() => ({ data: [], error: null }))
+                }))
+            }))
+        }))
+    }))
+}));
+
 jest.mock('@/lib/services/bcv-history-service', () => ({
     bcvHistoryService: {
         getLatestRate: jest.fn(),
         saveRates: jest.fn(),
         calculateTrends: jest.fn(),
+        loadFromSupabase: jest.fn(),
     },
 }));
 

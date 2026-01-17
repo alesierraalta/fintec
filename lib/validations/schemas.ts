@@ -341,3 +341,12 @@ export type CreateExchangeRateType = z.infer<typeof CreateExchangeRateSchema>;
 
 export type PaginationType = z.infer<typeof PaginationSchema>;
 export type TransactionFiltersType = z.infer<typeof TransactionFiltersSchema>;
+
+// Waitlist Schema
+export const WaitlistSchema = z.object({
+  email: z.string().email('Please enter a valid email'),
+  honeypot: z.string().optional(), // Anti-bot field
+  referrer: z.string().optional(),
+});
+
+export type WaitlistFormType = z.infer<typeof WaitlistSchema>;
