@@ -1,5 +1,6 @@
 import Dexie, { Table } from 'dexie';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
 import { logger } from '@/lib/utils/logger';
@@ -46,21 +47,13 @@ class BCVHistoryDatabase extends Dexie {
 export class BCVHistoryService {
   private static instance: BCVHistoryService;
   private db: BCVHistoryDatabase;
-  private supabase: SupabaseClient | null = null;
+  private supabase: SupabaseClient;
   private syncInProgress = false;
 
   private constructor() {
     this.db = new BCVHistoryDatabase();
-    this.initSupabase();
-  }
-
-  private initSupabase(): void {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-    }
+    // Use singleton Supabase client to prevent multiple GoTrueClient instances
+    this.supabase = createClient();
   }
 
   static getInstance(): BCVHistoryService {
@@ -72,8 +65,6 @@ export class BCVHistoryService {
 
   // Sync a single rate to Supabase (non-blocking)
   private async syncToSupabase(date: string, usd: number, eur: number, source: string, timestamp: string): Promise<void> {
-    if (!this.supabase) return;
-
     try {
       const { error } = await this.supabase
         .from('bcv_rate_history')
@@ -96,7 +87,7 @@ export class BCVHistoryService {
 
   // Load historical data from Supabase to local IndexedDB
   async loadFromSupabase(days: number = 30): Promise<void> {
-    if (!this.supabase || this.syncInProgress) return;
+    if (this.syncInProgress) return;
 
     this.syncInProgress = true;
 
@@ -139,9 +130,9 @@ export class BCVHistoryService {
     }
   }
 
-  // Save today's rates
-  async saveRates(usd: number, eur: number, source: string = 'BCV'): Promise<void> {
-    const now = new Date();
+  // Save rates for a specific date (defaults to today)
+  async saveRates(usd: number, eur: number, source: string = 'BCV', targetDate: Date = new Date()): Promise<void> {
+    const now = targetDate;
     const today = formatCaracasDayKey(now); // YYYY-MM-DD (America/Caracas)
     const todayUtc = now.toISOString().split('T')[0];
     const timestamp = now.toISOString();

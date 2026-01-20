@@ -182,7 +182,7 @@ export function MobileMenuFAB() {
               width={44}
               height={44}
               className="object-contain"
-              style={{ width: 44, height: 'auto' }}
+              style={{ width: 'auto', height: 'auto' }}
               unoptimized
             />
           )}

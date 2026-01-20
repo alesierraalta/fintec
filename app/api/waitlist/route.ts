@@ -1,18 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { checkWaitlistRateLimit } from '@/lib/waitlist/rate-limiter';
 import { WaitlistSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
-
-// Initialize Supabase client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Supabase URL and Anon Key must be defined');
-}
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function POST(request: NextRequest) {
     try {
@@ -50,7 +40,9 @@ export async function POST(request: NextRequest) {
 
         const { email } = validationResult.data;
 
-        // 5. Insert into Supabase
+        // 5. Create Supabase client and insert into database
+        const supabase = await createClient();
+
         // Using simple INSERT approach as per RLS policy
         const { error: dbError } = await supabase
             .from('waitlist')

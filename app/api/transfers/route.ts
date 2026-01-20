@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 // GET /api/transfers - Fetch all transfers
 // GET /api/transfers - Fetch all transfers
@@ -19,8 +16,8 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit');
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Create Supabase client with SSR support
+    const supabase = await createClient();
 
     let query = supabase
       .from('transactions')
@@ -148,8 +145,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Create Supabase client with SSR support
+    const supabase = await createClient();
 
     // Normalize exchange rate: ensure it's always a valid number
     // If undefined, null, or invalid, default to 1.0 (same currency transfer)
@@ -261,8 +258,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Create Supabase client
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    // Create Supabase client with SSR support
+    const supabase = await createClient();
 
     // Find all transactions with this transferId that belong to the user
     const { data: transactions, error: fetchError } = await supabase

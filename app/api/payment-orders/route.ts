@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
@@ -8,9 +8,6 @@ import {
   listUserOrders,
   listAllOrders,
 } from '@/lib/payment-orders/order-service';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /**
  * GET /api/payment-orders

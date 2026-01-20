@@ -1,5 +1,6 @@
 import Dexie, { Table } from 'dexie';
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 import { logger } from '@/lib/utils/logger';
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
@@ -41,21 +42,13 @@ class BinanceHistoryDatabase extends Dexie {
 class BinanceHistoryService {
   private static instance: BinanceHistoryService;
   private db: BinanceHistoryDatabase;
-  private supabase: SupabaseClient | null = null;
+  private supabase: SupabaseClient;
   private syncInProgress = false;
 
   private constructor() {
     this.db = new BinanceHistoryDatabase();
-    this.initSupabase();
-  }
-
-  private initSupabase(): void {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (supabaseUrl && supabaseKey) {
-      this.supabase = createClient(supabaseUrl, supabaseKey);
-    }
+    // Use singleton Supabase client to prevent multiple GoTrueClient instances
+    this.supabase = createClient();
   }
 
   static getInstance(): BinanceHistoryService {
@@ -67,8 +60,6 @@ class BinanceHistoryService {
 
   // Sync a single rate to Supabase (non-blocking)
   private async syncToSupabase(date: string, usd: number, timestamp: string): Promise<void> {
-    if (!this.supabase) return;
-
     try {
       const { error } = await this.supabase
         .from('binance_rate_history')
@@ -90,7 +81,7 @@ class BinanceHistoryService {
 
   // Load historical data from Supabase to local IndexedDB
   async loadFromSupabase(days: number = 30): Promise<void> {
-    if (!this.supabase || this.syncInProgress) return;
+    if (this.syncInProgress) return;
 
     this.syncInProgress = true;
 
@@ -132,9 +123,9 @@ class BinanceHistoryService {
     }
   }
 
-  async saveRates(usd: number): Promise<void> {
+  async saveRates(usd: number, targetDate: Date = new Date()): Promise<void> {
     try {
-      const now = new Date();
+      const now = targetDate;
       const dateStr = formatCaracasDayKey(now);
       const timestamp = now.toISOString();
 
