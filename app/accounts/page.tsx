@@ -44,10 +44,14 @@ import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
+import { SwipeableAccountCard } from '@/components/accounts/swipeable-account-card';
 import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
 import { logger } from '@/lib/utils/logger';
 import { useAppStore } from '@/lib/store';
 import { AccountsSkeleton } from '@/components/skeletons/accounts-skeleton';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
+
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({ value, prefix = '', suffix = '', isVisible = true }: {
@@ -631,7 +635,7 @@ export default function AccountsPage() {
               {/* Local rate selector removed; global header RateSelector is the single source */}
 
               <motion.button
-                className="relative w-full sm:w-auto px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"
+                className="hidden sm:flex relative w-full sm:w-auto px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary"
                 onClick={handleNewAccount}
                 whileHover={{ scale: 1.02, boxShadow: "0 10px 25px rgba(59, 130, 246, 0.4)" }}
                 whileTap={{ scale: 0.98 }}
@@ -639,8 +643,7 @@ export default function AccountsPage() {
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
                 <div className="relative flex items-center justify-center space-x-2">
                   <Plus className="h-5 w-5" />
-                  <span className="hidden sm:inline">Nueva Cuenta</span>
-                  <span className="sm:hidden">Agregar Cuenta</span>
+                  <span>Nueva Cuenta</span>
                   <Sparkles className="h-4 w-4" />
                 </div>
               </motion.button>
@@ -1081,32 +1084,20 @@ export default function AccountsPage() {
               )}
             </div>
           </div>
-          {/* Exchange Rates Section - iOS Style Mobile Responsive */}
-          <motion.div
-            className="black-theme-card rounded-3xl p-4 sm:p-6 shadow-lg hover:shadow-xl transition-all duration-300 w-full no-horizontal-scroll"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-          >
-            <div className="flex flex-col gap-4 mb-6 sm:mb-8">
-              <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-warning-500 rounded-full animate-pulse"></div>
-                <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-foreground tracking-tight">
-                  💱 Tasas de Cambio
-                </h2>
-              </div>
-              <motion.div
-                className="flex items-center justify-center sm:justify-start space-x-2 bg-muted/20 rounded-xl px-3 py-2 w-fit mx-auto sm:mx-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-              >
-                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse"></div>
+          {/* Exchange Rates Section - Collapsible for Mobile */}
+          <CollapsibleSection
+            title="💱 Tasas de Cambio"
+            storageKey="accounts-exchange-rates"
+            collapseOnMobile={true}
+            defaultExpanded={true}
+            badge={
+              <div className="flex items-center space-x-2 bg-muted/20 rounded-xl px-3 py-1">
+                <div className="w-2 h-2 bg-success-500 rounded-full animate-pulse" />
                 <span className="text-ios-caption text-success-600 font-medium">EN VIVO</span>
-              </motion.div>
-            </div>
-
-            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 sm:mb-8 text-center md:text-left px-2 md:px-0">
+              </div>
+            }
+          >
+            <p className="text-sm sm:text-base text-muted-foreground font-light mb-6 text-center md:text-left">
               Tasas oficiales (BCV) y del mercado digital (Binance) para convertir tus cuentas
             </p>
 
@@ -1116,14 +1107,14 @@ export default function AccountsPage() {
 
               {/* History Button - Mobile Responsive */}
               <motion.div
-                className="flex justify-center px-2 sm:px-4"
+                className="flex justify-center"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
+                transition={{ delay: 0.3 }}
               >
                 <button
                   onClick={() => setShowRatesHistory(true)}
-                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-3 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base min-h-[44px]"
+                  className="flex items-center justify-center space-x-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 px-4 sm:px-6 py-3 rounded-2xl transition-all duration-200 hover:scale-105 border border-blue-500/20 w-full md:w-auto text-sm sm:text-base min-h-[44px]"
                 >
                   <History className="h-4 w-4" />
                   <span className="font-medium">Ver Historial y Calculadora</span>
@@ -1131,25 +1122,21 @@ export default function AccountsPage() {
               </motion.div>
             </div>
 
-            {/* Exchange Summary - Mobile Responsive */}
-            <motion.div
-              className="mt-6 sm:mt-8 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20 mx-1 sm:mx-0"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.2 }}
-            >
+            {/* Exchange Summary */}
+            <div className="mt-6 bg-muted/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-border/20">
               <div className="text-center text-xs sm:text-ios-caption text-muted-foreground">
                 <p className="mb-1 leading-relaxed">
-                  💡 <strong>BCV:</strong> Tasa oficial del gobierno<br className="sm:hidden" />
+                  💡 <strong>BCV:</strong> Tasa oficial del gobierno
                   <span className="hidden sm:inline"> · </span>
+                  <br className="sm:hidden" />
                   <strong className="sm:ml-1">Binance:</strong> Precio real del mercado digital
                 </p>
                 <p className="text-ios-footnote">
                   ℹ️ Estas tasas te ayudan a ver tus cuentas en diferentes monedas
                 </p>
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </CollapsibleSection>
 
         </div>
 
@@ -1238,6 +1225,16 @@ export default function AccountsPage() {
             </div>
           </div>
         )}
+
+        {/* Floating Action Button for Mobile */}
+        <FloatingActionButton
+          onClick={handleNewAccount}
+          label="Nueva Cuenta"
+          icon={<Plus className="h-6 w-6" />}
+          mobileOnly={true}
+          position="bottom-right"
+          variant="primary"
+        />
       </MainLayout>
     </AuthGuard>
   );
