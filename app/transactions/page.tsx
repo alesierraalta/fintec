@@ -24,8 +24,11 @@ import {
   Repeat,
   Download,
   Trash2,
-  Sparkles
+  Sparkles,
+  Filter
 } from 'lucide-react';
+import { CollapsibleSection } from '@/components/ui/collapsible-section';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 
 export default function TransactionsPage() {
   // Detail panel state
@@ -372,8 +375,8 @@ export default function TransactionsPage() {
               Controla todos tus ingresos y gastos
             </p>
 
-            {/* Quick Actions Header */}
-            <div className="flex items-center justify-center space-x-4 mb-4">
+            {/* Quick Actions Header - Hidden on mobile (FAB replaces it) */}
+            <div className="hidden sm:flex items-center justify-center space-x-4 mb-4">
               <button
                 onClick={handleNewTransaction}
                 className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
@@ -529,16 +532,18 @@ export default function TransactionsPage() {
             </div>
           </div>
 
-          {/* iOS-style Filters */}
-          <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
-            <div className="flex items-center space-x-2 mb-6">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <h2 className="text-ios-title font-semibold text-foreground">Filtros</h2>
-            </div>
+          {/* Collapsible Filters */}
+          <CollapsibleSection
+            title="🔍 Filtros"
+            storageKey="transactions-filters"
+            collapseOnMobile={true}
+            defaultExpanded={false}
+            icon={<Filter className="h-5 w-5" />}
+          >
             <TransactionFilters
               onFiltersChange={handleFiltersChange}
             />
-          </div>
+          </CollapsibleSection>
 
           {/* iOS-style Transactions List */}
           <div className="bg-card/90 backdrop-blur-xl rounded-3xl border border-border/40 shadow-lg overflow-hidden">
@@ -730,6 +735,15 @@ export default function TransactionsPage() {
         )}
 
 
+        {/* Floating Action Button for Mobile */}
+        <FloatingActionButton
+          onClick={handleNewTransaction}
+          label="Nueva Transacción"
+          icon={<Plus className="h-6 w-6" />}
+          mobileOnly={true}
+          position="bottom-right"
+          variant="success"
+        />
       </MainLayout>
       {/* Transaction Detail Panel */}
       {selectedDetailTransaction && (

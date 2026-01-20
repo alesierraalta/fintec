@@ -6,10 +6,10 @@ import { GoalForm } from '@/components/forms';
 import { GoalCard } from '@/components/goals';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
-import { 
-  Plus, 
-  Target, 
-  TrendingUp, 
+import {
+  Plus,
+  Target,
+  TrendingUp,
   Calendar,
   AlertTriangle,
   CheckCircle,
@@ -17,6 +17,8 @@ import {
   Filter,
   Search
 } from 'lucide-react';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { ProgressRing } from '@/components/ui/progress-ring';
 import type { SavingsGoal } from '@/types';
 
 // Goals and accounts will be loaded from Supabase database
@@ -33,8 +35,8 @@ export default function GoalsPage() {
   // Filter goals
   const filteredGoals = goals.filter(goal => {
     const matchesSearch = goal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (goal.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    
+      (goal.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+
     if (!matchesSearch) return false;
 
     const isCompleted = goal.currentBaseMinor >= goal.targetBaseMinor;
@@ -55,12 +57,12 @@ export default function GoalsPage() {
   // Calculate statistics
   const totalGoals = goals.length;
   const completedGoals = goals.filter(goal => goal.currentBaseMinor >= goal.targetBaseMinor).length;
-  const activeGoals = goals.filter(goal => 
+  const activeGoals = goals.filter(goal =>
     goal.active && goal.currentBaseMinor < goal.targetBaseMinor
   ).length;
-  const overdueGoals = goals.filter(goal => 
-    goal.targetDate && 
-    new Date(goal.targetDate) < new Date() && 
+  const overdueGoals = goals.filter(goal =>
+    goal.targetDate &&
+    new Date(goal.targetDate) < new Date() &&
     goal.currentBaseMinor < goal.targetBaseMinor
   ).length;
 
@@ -81,8 +83,8 @@ export default function GoalsPage() {
   const handleSaveGoal = (goalData: Partial<SavingsGoal>) => {
     if (selectedGoal) {
       // Update existing goal
-      setGoals(prev => prev.map(goal => 
-        goal.id === selectedGoal.id 
+      setGoals(prev => prev.map(goal =>
+        goal.id === selectedGoal.id
           ? { ...goal, ...goalData }
           : goal
       ));
@@ -99,8 +101,8 @@ export default function GoalsPage() {
   const handleAddMoney = (goalId: string) => {
     // This would typically open a transaction form or modal
     // For demo purposes, add $100 to the goal
-    setGoals(prev => prev.map(goal => 
-      goal.id === goalId 
+    setGoals(prev => prev.map(goal =>
+      goal.id === goalId
         ? { ...goal, currentBaseMinor: goal.currentBaseMinor + 10000 } // Add $100
         : goal
     ));
@@ -122,16 +124,16 @@ export default function GoalsPage() {
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-ios-caption font-medium">Objetivos</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-green-600 to-emerald-500 bg-clip-text text-white">
             🎯 Metas de Ahorro
           </h1>
           <p className="text-muted-foreground font-light mb-6">
             Define y sigue el progreso de tus objetivos financieros
           </p>
-          
-          {/* Quick Actions Header */}
-          <div className="flex items-center justify-center space-x-4 mb-4">
+
+          {/* Quick Actions Header - Hidden on mobile */}
+          <div className="hidden sm:flex items-center justify-center space-x-4 mb-4">
             <button
               onClick={handleNewGoal}
               className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-green-600 hover:from-green-600 hover:to-primary text-ios-body"
@@ -210,7 +212,7 @@ export default function GoalsPage() {
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <h2 className="text-ios-title font-semibold text-foreground">Progreso General</h2>
           </div>
-          
+
           <div className="flex items-center justify-between mb-4">
             <span className="text-ios-body text-muted-foreground">
               Completado
@@ -219,14 +221,14 @@ export default function GoalsPage() {
               {Math.round(overallProgress)}%
             </span>
           </div>
-          
+
           <div className="w-full bg-muted/30 rounded-full h-3 mb-6 overflow-hidden">
-            <div 
+            <div
               className="h-3 bg-gradient-to-r from-primary via-green-500 to-emerald-400 rounded-full transition-all duration-500 ease-out shadow-inner"
               style={{ width: `${Math.min(overallProgress, 100)}%` }}
             />
           </div>
-          
+
           <div className="grid grid-cols-2 gap-6">
             <div className="text-center">
               <p className="text-ios-caption text-muted-foreground mb-2 tracking-wide">TOTAL AHORRADO</p>
@@ -267,7 +269,7 @@ export default function GoalsPage() {
               />
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Filter className="h-5 w-5 text-gray-400" />
             <select
@@ -298,7 +300,7 @@ export default function GoalsPage() {
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
               <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-white mb-2">
-                {searchTerm || filter !== 'all' 
+                {searchTerm || filter !== 'all'
                   ? 'No se encontraron metas'
                   : 'No tienes metas de ahorro'
                 }
@@ -344,6 +346,16 @@ export default function GoalsPage() {
         onClose={closeModal}
         goal={selectedGoal}
         onSave={handleSaveGoal}
+      />
+
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton
+        onClick={handleNewGoal}
+        label="Nueva Meta"
+        icon={<Plus className="h-6 w-6" />}
+        mobileOnly={true}
+        position="bottom-right"
+        variant="success"
       />
     </MainLayout>
   );

@@ -9,6 +9,7 @@ import { useModal } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import type { Budget, Category } from '@/types';
 
 export default function BudgetsPage() {
@@ -47,21 +48,21 @@ export default function BudgetsPage() {
   const generateMonthOptions = () => {
     const months = [];
     const now = new Date();
-    
+
     for (let i = -2; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const monthKey = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      const monthLabel = date.toLocaleDateString('es-ES', { 
-        year: 'numeric', 
-        month: 'long' 
+      const monthLabel = date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long'
       });
-      
+
       months.push({
         value: monthKey,
         label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
       });
     }
-    
+
     return months;
   };
 
@@ -72,7 +73,7 @@ export default function BudgetsPage() {
   const totalBudgeted = filteredBudgets.reduce((sum, budget) => sum + budget.amountBaseMinor, 0);
   const totalSpent = filteredBudgets.reduce((sum, budget) => sum + (budget.spentMinor || 0), 0);
   const remaining = totalBudgeted - totalSpent;
-  const overBudgetCount = filteredBudgets.filter(budget => 
+  const overBudgetCount = filteredBudgets.filter(budget =>
     (budget.spentMinor || 0) > budget.amountBaseMinor
   ).length;
 
@@ -90,8 +91,8 @@ export default function BudgetsPage() {
     try {
       if (selectedBudget) {
         // Update existing budget - aquí implementarías la lógica real
-        setBudgets(prev => prev.map(budget => 
-          budget.id === selectedBudget.id 
+        setBudgets(prev => prev.map(budget =>
+          budget.id === selectedBudget.id
             ? { ...budget, ...budgetData }
             : budget
         ));
@@ -130,16 +131,16 @@ export default function BudgetsPage() {
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
             <span className="text-ios-caption font-medium">Planificación</span>
           </div>
-          
+
           <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-white">
             💰 Presupuestos
           </h1>
           <p className="text-muted-foreground font-light mb-6">
             Controla tus gastos con presupuestos mensuales
           </p>
-          
-          {/* Quick Actions Header */}
-          <div className="flex items-center justify-center space-x-4 mb-4">
+
+          {/* Quick Actions Header - Hidden on mobile */}
+          <div className="hidden sm:flex items-center justify-center space-x-4 mb-4">
             <button
               onClick={handleNewBudget}
               className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
@@ -159,7 +160,7 @@ export default function BudgetsPage() {
             <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
             <h2 className="text-ios-title font-semibold text-foreground">Período</h2>
           </div>
-          
+
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Calendar className="h-5 w-5 text-blue-600" />
@@ -297,6 +298,16 @@ export default function BudgetsPage() {
         onClose={closeModal}
         budget={selectedBudget}
         onSave={handleSaveBudget}
+      />
+
+      {/* Floating Action Button for Mobile */}
+      <FloatingActionButton
+        onClick={handleNewBudget}
+        label="Nuevo Presupuesto"
+        icon={<Plus className="h-6 w-6" />}
+        mobileOnly={true}
+        position="bottom-right"
+        variant="primary"
       />
     </MainLayout>
   );
