@@ -734,16 +734,6 @@ export default function TransactionsPage() {
           </div>
         )}
 
-
-        {/* Floating Action Button for Mobile */}
-        <FloatingActionButton
-          onClick={handleNewTransaction}
-          label="Nueva Transacción"
-          icon={<Plus className="h-6 w-6" />}
-          mobileOnly={true}
-          position="bottom-right"
-          variant="success"
-        />
       </MainLayout>
       {/* Transaction Detail Panel */}
       {selectedDetailTransaction && (
