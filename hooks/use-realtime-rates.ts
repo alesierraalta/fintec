@@ -76,7 +76,21 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
 
     setSocket(newSocket);
 
+    // * Optimization: Disconnect socket when tab is not visible to save battery/data
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        newSocket.disconnect();
+        logger.debug('Socket disconnected due to background visibility');
+      } else {
+        newSocket.connect();
+        logger.debug('Socket reconnecting due to foreground visibility');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       newSocket.close();
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);

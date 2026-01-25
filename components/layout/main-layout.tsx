@@ -13,6 +13,7 @@ import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
+import { FloatingActionButton } from '@/components/ui/floating-action-button';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -25,7 +26,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const { isOpen: isModalOpen, openModal, closeModal } = useModal();
   const [mounted, setMounted] = useState(false);
   const viewportHeight = useViewportHeight();
-  
+
   // Auto-scroll global para todos los inputs en móvil
   useMobileInputAutoScroll();
 
@@ -44,8 +45,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     setClientIsMobile(isMobile);
   }, [isMobile]);
 
-  // Hide floating button on add transaction page
-  const shouldShowFloatingButton = !pathname.includes('/transactions/add');
+  // Hide floating button on specific pages that have their own FABs
+  // Logic for Global FAB (New Transaction)
+  // We use an Allowlist approach: Only show on Dashboard and Transactions page.
+  // This prevents conflicts on all other pages (Goals, Budgets, Chat, etc.) automatically.
+  const showGlobalFab =
+    (pathname === '/' || pathname === '/dashboard' || pathname === '/transactions') &&
+    !pathname.includes('/add');
 
   if (!mounted) {
     return null;
@@ -94,7 +100,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
           {/* Page Content */}
           <main className={cn(
-            "flex-1 overflow-auto bg-background no-horizontal-scroll",
+            "flex-1 overflow-auto bg-background no-horizontal-scroll overscroll-y-contain",
             clientIsMobile ? "pb-24" : ""
           )}>
             <div className={cn(
@@ -115,17 +121,16 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       <MobileMenuFAB />
 
       {/* Floating Add Transaction Button */}
-      {shouldShowFloatingButton && (
-        <div className="fixed bottom-24 right-6 z-40">
-          <button
-            onClick={() => window.location.href = '/transactions/add'}
-            className="w-14 h-14 rounded-full shadow-ios-lg bg-green-500 hover:bg-green-600 text-white hover:scale-110 active:scale-95 transition-ios flex items-center justify-center backdrop-blur-sm"
-            title="Agregar transacción"
-            style={{ zIndex: 9999 }}
-          >
-            <Plus className="h-6 w-6" />
-          </button>
-        </div>
+      {showGlobalFab && (
+        <FloatingActionButton
+          onClick={() => router.push('/transactions/add')}
+          label="Nueva"
+          icon={<Plus className="h-6 w-6" />}
+          mobileOnly={true}
+          position="bottom-right"
+          variant="success"
+          className="z-40"
+        />
       )}
 
       {/* Transaction Form Modal */}

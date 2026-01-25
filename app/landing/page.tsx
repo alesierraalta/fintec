@@ -112,7 +112,7 @@ export default function LandingPage() {
                     fill
                     className="object-contain"
                     priority
-                    unoptimized
+                    sizes="(max-width: 768px) 150px, 200px"
                     loading="eager"
                     onError={(e) => {
                       setLogoError(true);
@@ -337,7 +337,7 @@ export default function LandingPage() {
                     fill
                     className="object-contain"
                     priority
-                    unoptimized
+                    sizes="(max-width: 768px) 200px, 300px"
                     onError={(e) => {
                       setLogoError(true);
                     }}

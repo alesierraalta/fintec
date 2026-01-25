@@ -40,6 +40,7 @@ export function MobileNav() {
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={false}
                 className={cn(
                   'flex flex-col items-center px-1 py-3 rounded-2xl transition-all duration-200 min-w-0 flex-1 mx-0.5 relative',
                   isActive

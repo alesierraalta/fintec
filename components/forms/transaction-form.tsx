@@ -288,6 +288,7 @@ export function TransactionForm({ isOpen, onClose, transaction, onSuccess, type 
           <Input
             label="Monto"
             type="number"
+            inputMode="decimal"
             step="0.01"
             placeholder="0.00"
             value={formData.amount}

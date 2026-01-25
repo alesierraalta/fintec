@@ -37,7 +37,10 @@ export function useViewportHeight(): number | null {
 
     // * Actualizar CSS variable --app-height para uso en estilos globales
     // Esto permite usar var(--app-height) en CSS para height dinámico
-    document.documentElement.style.setProperty('--app-height', `${newHeight}px`);
+    // * Optimized: Wrap DOM write in requestAnimationFrame to prevent layout thrashing
+    requestAnimationFrame(() => {
+      document.documentElement.style.setProperty('--app-height', `${newHeight}px`);
+    });
 
     // Solo actualizar si el height cambió (evita re-renders innecesarios)
     setHeight(prevHeight => {

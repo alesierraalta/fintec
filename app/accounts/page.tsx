@@ -202,10 +202,10 @@ export default function AccountsPage() {
       const scrollContainer = document.querySelector('main');
 
       if (scrollContainer) {
-        scrollContainer.addEventListener('scroll', handleScroll);
+        scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
       }
-      window.addEventListener('scroll', handleScroll);
-      window.addEventListener('resize', handleScroll);
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      window.addEventListener('resize', handleScroll, { passive: true });
 
       return () => {
         if (scrollContainer) {
@@ -377,29 +377,16 @@ export default function AccountsPage() {
       // Cryptocurrencies use 8 decimal places
       const balanceMajor = balanceMinor / 100000000;
 
-      console.log('🔍 CRYPTO DEBUG:', {
-        balanceMinor,
-        balanceMajor,
-        currencyCode,
-        accountType,
-        useRate,
-        binanceRate: binanceRates.usd_ves,
-        bcvRate: bcvRates.usd
-      });
-
       // Base value is already in USD (at Binance market rate)
       // When BCV is selected, show "equivalent USD" using BCV rate
       // Formula: USD_crypto × (Binance_rate / BCV_rate) = adjusted USD
       if (useRate === 'bcv_usd' || useRate === 'bcv_eur') {
         const bcvRate = useRate === 'bcv_eur' ? bcvRates.eur : bcvRates.usd;
         const rateRatio = binanceRates.usd_ves / bcvRate;
-        const result = balanceMajor * rateRatio;
-        console.log('📊 BCV CONVERSION:', { bcvRate, rateRatio, result });
-        return result;
+        return balanceMajor * rateRatio;
       }
 
       // For Binance view, return the base USD value
-      console.log('💰 BINANCE VIEW:', balanceMajor);
       return balanceMajor;
     }
 

@@ -108,6 +108,12 @@
   @apply border-border;
 }
 
+/* Accessibility - Global Focus Ring */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 /* Prevent horizontal scroll */
 html,
 body {
@@ -349,6 +355,12 @@ body {
 .min-h-dynamic-screen {
   /* * Usar CSS variable --app-height con fallback a 100dvh */
   min-height: var(--app-height, 100dvh);
+}
+
+/* Rendering Optimization */
+.content-visibility-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 80px;
 }
 
 /* Fix para iOS Safari - prevenir área negra cuando el teclado se cierra */

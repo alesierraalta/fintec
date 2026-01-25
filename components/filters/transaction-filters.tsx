@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { Button, Input, Select } from '@/components/ui';
 import { PeriodSelector } from './period-selector';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
@@ -52,6 +52,15 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     sortBy: 'date_desc',
   });
 
+  // * Debounce filter changes to parent to prevent excessive re-renders/CPU usage
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      onFiltersChange(filters);
+    }, 300);
+
+    return () => clearTimeout(handler);
+  }, [filters, onFiltersChange]);
+
   // Memoized accounts and categories options
   const accounts = useMemo(() => [
     { value: '', label: 'Todas las cuentas' },
@@ -64,33 +73,25 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
   ], [rawCategories]);
 
   const handleFilterChange = useCallback((key: string, value: string) => {
-    setFilters(prev => {
-      const newFilters = { ...prev, [key]: value };
-      onFiltersChange(newFilters);
-      return newFilters;
-    });
-  }, [onFiltersChange]);
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
 
   const handlePeriodChange = useCallback((period: TimePeriod | null) => {
-    setFilters(prev => {
-      const newFilters = period ? {
-        ...prev,
-        period: period.id,
-        dateFrom: formatDateForAPI(period.startDate),
-        dateTo: formatDateForAPI(period.endDate)
-      } : {
-        ...prev,
-        period: '',
-        dateFrom: '',
-        dateTo: ''
-      };
-      onFiltersChange(newFilters);
-      return newFilters;
+    setFilters(prev => period ? {
+      ...prev,
+      period: period.id,
+      dateFrom: formatDateForAPI(period.startDate),
+      dateTo: formatDateForAPI(period.endDate)
+    } : {
+      ...prev,
+      period: '',
+      dateFrom: '',
+      dateTo: ''
     });
-  }, [onFiltersChange]);
+  }, []);
 
   const clearFilters = useCallback(() => {
-    const clearedFilters = {
+    setFilters({
       search: '',
       accountId: '',
       categoryId: '',
@@ -102,10 +103,8 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
       amountMax: '',
       tags: '',
       sortBy: 'date_desc',
-    };
-    setFilters(clearedFilters);
-    onFiltersChange(clearedFilters);
-  }, [onFiltersChange]);
+    });
+  }, []);
 
   const hasActiveFilters = Object.entries(filters).some(([key, value]) =>
     key !== 'sortBy' && value !== ''

@@ -26,6 +26,20 @@ export const CURRENCIES: Record<string, Currency> = {
   ETH: { code: 'ETH', symbol: 'Ξ', name: 'Ethereum', decimals: 8 },
 };
 
+// Cache for Intl.NumberFormat instances to avoid costly re-instantiation
+const formattersCache = new Map<string, Intl.NumberFormat>();
+
+const getFormatter = (locale: string, decimals: number) => {
+  const key = `${locale}-${decimals}`;
+  if (!formattersCache.has(key)) {
+    formattersCache.set(key, new Intl.NumberFormat(locale, {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    }));
+  }
+  return formattersCache.get(key)!;
+};
+
 export class Money {
   private readonly amountMinor: number;
   private readonly currency: Currency;
@@ -169,20 +183,20 @@ export class Money {
 
     const amount = this.getMajorAmount();
 
-    let formatted = new Intl.NumberFormat(locale, {
-      minimumFractionDigits: this.currency.decimals,
-      maximumFractionDigits: this.currency.decimals,
-    }).format(amount);
+    // * Optimized: Use cached formatter
+    const formatted = getFormatter(locale, this.currency.decimals).format(amount);
+
+    let result = formatted;
 
     if (showSymbol) {
-      formatted = `${this.currency.symbol}${formatted}`;
+      result = `${this.currency.symbol}${result}`;
     }
 
     if (showCode) {
-      formatted = `${formatted} ${this.currency.code}`;
+      result = `${result} ${this.currency.code}`;
     }
 
-    return formatted;
+    return result;
   }
 
   // Convert to different currency using exchange rate

@@ -8,67 +8,65 @@ import { TransactionForm } from '@/components/forms';
 import { TransactionType } from '@/types';
 import { useModal } from '@/hooks';
 
-
+const ACTIONS_DATA = [
+  {
+    name: 'Registrar Ingreso',
+    description: 'Añadir entrada de dinero',
+    icon: ArrowDownLeft,
+    type: 'INCOME' as TransactionType,
+    action: 'modal',
+    priority: 1,
+    color: 'bg-primary/8 hover:bg-primary/15',
+    iconColor: 'text-primary',
+    borderColor: 'border-primary/15 hover:border-primary/25',
+    shadowColor: 'hover:shadow-primary/10'
+  },
+  {
+    name: 'Registrar Gasto',
+    description: 'Añadir salida de dinero',
+    icon: ArrowUpRight,
+    type: 'EXPENSE' as TransactionType,
+    action: 'modal',
+    priority: 2,
+    color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
+    iconColor: 'text-neutral-600 dark:text-neutral-400',
+    borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
+    shadowColor: 'hover:shadow-gray-500/10'
+  },
+  {
+    name: 'Nueva Transacción',
+    description: 'Acceso completo a formularios',
+    icon: Plus,
+    type: null,
+    action: 'navigate',
+    route: '/transactions/add',
+    priority: 3,
+    color: 'bg-primary/8 hover:bg-primary/15',
+    iconColor: 'text-primary',
+    borderColor: 'border-primary/15 hover:border-primary/25',
+    shadowColor: 'hover:shadow-primary/10'
+  },
+  {
+    name: 'Transferir',
+    description: 'Mover entre cuentas',
+    icon: ArrowRightLeft,
+    type: null,
+    action: 'navigate',
+    route: '/transfers',
+    priority: 4,
+    color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
+    iconColor: 'text-neutral-600 dark:text-neutral-400',
+    borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
+    shadowColor: 'hover:shadow-neutral-500/10 dark:hover:shadow-neutral-400/10'
+  },
+];
 
 export const QuickActions = memo(function QuickActions() {
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
   const [selectedTransactionType, setSelectedTransactionType] = useState<TransactionType>(TransactionType.EXPENSE);
 
-  const actions = [
-    {
-      name: 'Registrar Ingreso',
-      description: 'Añadir entrada de dinero',
-      icon: ArrowDownLeft,
-      type: 'INCOME' as TransactionType,
-      action: 'modal',
-      priority: 1,
-      color: 'bg-primary/8 hover:bg-primary/15',
-      iconColor: 'text-primary',
-      borderColor: 'border-primary/15 hover:border-primary/25',
-      shadowColor: 'hover:shadow-primary/10'
-    },
-    {
-      name: 'Registrar Gasto',
-      description: 'Añadir salida de dinero',
-      icon: ArrowUpRight,
-      type: 'EXPENSE' as TransactionType,
-      action: 'modal',
-      priority: 2,
-      color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
-      iconColor: 'text-neutral-600 dark:text-neutral-400',
-      borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
-      shadowColor: 'hover:shadow-gray-500/10'
-    },
-    {
-      name: 'Nueva Transacción',
-      description: 'Acceso completo a formularios',
-      icon: Plus,
-      type: null,
-      action: 'navigate',
-      route: '/transactions/add',
-      priority: 3,
-      color: 'bg-primary/8 hover:bg-primary/15',
-      iconColor: 'text-primary',
-      borderColor: 'border-primary/15 hover:border-primary/25',
-      shadowColor: 'hover:shadow-primary/10'
-    },
-    {
-      name: 'Transferir',
-      description: 'Mover entre cuentas',
-      icon: ArrowRightLeft,
-      type: null,
-      action: 'navigate',
-      route: '/transfers',
-      priority: 4,
-      color: 'bg-neutral-500/8 hover:bg-neutral-500/15 dark:bg-neutral-400/8 dark:hover:bg-neutral-400/15',
-      iconColor: 'text-neutral-600 dark:text-neutral-400',
-      borderColor: 'border-neutral-500/15 hover:border-neutral-500/25 dark:border-neutral-400/15 dark:hover:border-neutral-400/25',
-      shadowColor: 'hover:shadow-neutral-500/10 dark:hover:shadow-neutral-400/10'
-    },
-  ];
-
-  const handleActionClick = (action: typeof actions[0]) => {
+  const handleActionClick = (action: typeof ACTIONS_DATA[0]) => {
     if (action.action === 'navigate' && action.route) {
       router.push(action.route);
     } else if (action.action === 'modal' && action.type) {
@@ -80,7 +78,7 @@ export const QuickActions = memo(function QuickActions() {
   return (
     <>
       <div className="space-y-3">
-        {actions
+        {ACTIONS_DATA
           .sort((a, b) => a.priority - b.priority)
           .map((action, index) => (
             <button

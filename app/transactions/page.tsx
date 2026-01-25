@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, memo, Suspense, useRef } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo, Suspense, useRef, useDeferredValue } from 'react';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -25,10 +25,31 @@ import {
   Download,
   Trash2,
   Sparkles,
-  Filter
+  Filter,
+  Edit
 } from 'lucide-react';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { SwipeableCard } from '@/components/ui/swipeable-card';
+import { EmptyState } from '@/components/ui/empty-state';
+
+const ITEMS_PER_PAGE = 50;
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  'USD': '$',
+  'VES': 'Bs.',
+  'EUR': '€',
+  'GBP': '£',
+  'JPY': '¥',
+  'CAD': 'C$',
+  'AUD': 'A$',
+  'BRL': 'R$',
+  'PEN': 'S/',
+  'MXN': 'MX$',
+  'ARS': 'AR$',
+  'COP': 'CO$',
+  'CLP': 'CL$',
+};
 
 export default function TransactionsPage() {
   // Detail panel state
@@ -77,6 +98,11 @@ export default function TransactionsPage() {
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  const handleDeleteClick = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
+    setShowDeleteModal(true);
+  };
+
   // Virtual pagination state
   const ITEMS_PER_PAGE = 50;
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
@@ -113,9 +139,11 @@ export default function TransactionsPage() {
     // Apply date range filter
     if (filters.dateFrom || filters.dateTo) {
       filtered = filtered.filter(t => {
-        const transactionDate = new Date(t.date);
-        const fromDate = filters.dateFrom ? new Date(filters.dateFrom) : null;
-        const toDate = filters.dateTo ? new Date(filters.dateTo) : null;
+        // * Optimize date comparison: Compare strings directly (YYYY-MM-DD is sortable)
+        // instead of creating Date objects for every item
+        const transactionDate = t.date; 
+        const fromDate = filters.dateFrom;
+        const toDate = filters.dateTo;
 
         if (fromDate && transactionDate < fromDate) return false;
         if (toDate && transactionDate > toDate) return false;
@@ -149,9 +177,10 @@ export default function TransactionsPage() {
       filtered.sort((a, b) => {
         switch (filters.sortBy) {
           case 'date_desc':
-            return new Date(b.date).getTime() - new Date(a.date).getTime();
+            // * Optimization: String comparison is much faster than Date parsing
+            return b.date.localeCompare(a.date);
           case 'date_asc':
-            return new Date(a.date).getTime() - new Date(b.date).getTime();
+            return a.date.localeCompare(b.date);
           case 'amount_desc':
             return Math.abs(b.amountMinor) - Math.abs(a.amountMinor);
           case 'amount_asc':
@@ -165,10 +194,15 @@ export default function TransactionsPage() {
     return filtered;
   }, [transactions, filters]);
 
+  // * Use deferred value for the filtered list to keep UI responsive during heavy filtering
+  // This allows the browser to prioritize input updates (typing) over list rendering
+  const deferredFilteredTransactions = useDeferredValue(filteredTransactionsMemo);
+
   // Visible transactions for virtual pagination
+  // * Derived from deferred list
   const visibleTransactions = useMemo(
-    () => filteredTransactionsMemo.slice(0, displayedCount),
-    [filteredTransactionsMemo, displayedCount]
+    () => deferredFilteredTransactions.slice(0, displayedCount),
+    [deferredFilteredTransactions, displayedCount]
   );
 
   // Load more function for infinite scroll
@@ -215,22 +249,7 @@ export default function TransactionsPage() {
   }, []);
 
   const getCurrencySymbol = useCallback((currencyCode: string) => {
-    const symbols: Record<string, string> = {
-      'USD': '$',
-      'VES': 'Bs.',
-      'EUR': '€',
-      'GBP': '£',
-      'JPY': '¥',
-      'CAD': 'C$',
-      'AUD': 'A$',
-      'BRL': 'R$',
-      'PEN': 'S/',
-      'MXN': 'MX$',
-      'ARS': 'AR$',
-      'COP': 'CO$',
-      'CLP': 'CL$',
-    };
-    return symbols[currencyCode] || currencyCode;
+    return CURRENCY_SYMBOLS[currencyCode] || currencyCode;
   }, []);
 
   // Optimized filter handler
@@ -563,103 +582,108 @@ export default function TransactionsPage() {
                   <p className="text-muted-foreground text-ios-body">✨ Cargando transacciones...</p>
                 </div>
               ) : filteredTransactionsMemo.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="h-20 w-20 text-muted-foreground mx-auto mb-6">💳</div>
-                  <h3 className="text-ios-title font-semibold text-foreground mb-3">
-                    🎯 ¡Comienza tu Gestión Financiera!
-                  </h3>
-                  <p className="text-muted-foreground text-ios-body mb-8 max-w-sm mx-auto leading-relaxed">
-                    Crea tu primera transacción para empezar a controlar tus ingresos y gastos
-                  </p>
-                  <button
-                    onClick={handleNewTransaction}
-                    className="text-white font-medium px-8 py-4 rounded-2xl shadow-lg transition-all duration-300 relative overflow-hidden group bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
-                    <div className="relative flex items-center space-x-2">
-                      <Plus className="h-5 w-5" />
-                      <span>Crear Primera Transacción</span>
-                      <Sparkles className="h-4 w-4" />
-                    </div>
-                  </button>
-                </div>
+                <EmptyState
+                  title="¡Comienza tu Gestión Financiera!"
+                  description="Crea tu primera transacción para empezar a controlar tus ingresos y gastos"
+                  icon={<div className="text-4xl">💳</div>}
+                  actionLabel="Crear Primera Transacción"
+                  onAction={handleNewTransaction}
+                />
               ) : (
-                visibleTransactions.map((transaction) => (
-                  <div key={transaction.id} className="p-6 hover:bg-card/60 transition-all duration-200 relative group cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40" onClick={() => handleTransactionClick(transaction)}>
-                    <div className="flex items-start justify-between min-w-0">
-                      <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
-                        <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
-                          {getIcon(transaction.type)}
-                        </div>
-                        <div className="flex-1 min-w-0 overflow-hidden">
-                          <h4 className="text-ios-body font-medium text-foreground truncate mb-2">{transaction.description || 'Sin descripción'}</h4>
+                visibleTransactions.map((transaction) => {
+                  const swipeActions = [
+                    {
+                      label: 'Editar',
+                      icon: <Edit className="h-5 w-5 mb-1" />,
+                      onClick: () => handleEditTransaction(transaction),
+                      color: 'amber' as const
+                    },
+                    {
+                      label: 'Eliminar',
+                      icon: <Trash2 className="h-5 w-5 mb-1" />,
+                      onClick: () => handleDeleteClick(transaction),
+                      color: 'red' as const
+                    }
+                  ];
 
-                          {/* Desktop info */}
-                          <div className="hidden sm:flex items-center space-x-2 text-ios-caption text-muted-foreground overflow-hidden">
-                            <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                            <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                            <span className="break-words">{getAccountName(transaction.accountId)}</span>
-                            <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                            <span className="flex-shrink-0">{transaction.date}</span>
+                  return (
+                    <div key={transaction.id} className="border-b border-border/40 last:border-0 content-visibility-auto">
+                      <SwipeableCard
+                        actions={swipeActions}
+                        onClick={() => handleTransactionClick(transaction)}
+                        className="p-6 hover:bg-card/60 transition-all duration-200 cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40"
+                      >
+                        <div className="flex items-start justify-between min-w-0">
+                          <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
+                            <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
+                              {getIcon(transaction.type)}
+                            </div>
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <h4 className="text-ios-body font-medium text-foreground truncate mb-2">{transaction.description || 'Sin descripción'}</h4>
+
+                              {/* Desktop info */}
+                              <div className="hidden sm:flex items-center space-x-2 text-ios-caption text-muted-foreground overflow-hidden">
+                                <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                <span className="break-words">{getAccountName(transaction.accountId)}</span>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                <span className="flex-shrink-0">{transaction.date}</span>
+                              </div>
+
+                              {/* Mobile info - stacked */}
+                              <div className="sm:hidden space-y-1 text-ios-caption text-muted-foreground">
+                                <div className="flex items-center space-x-2">
+                                  <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
+                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                  <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="break-words">{getAccountName(transaction.accountId)}</span>
+                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
+                                  <span className="flex-shrink-0">{transaction.date}</span>
+                                </div>
+                              </div>
+
+                              {transaction.tags && transaction.tags.length > 0 && (
+                                <div className="flex items-center space-x-1 mt-2 overflow-x-auto">
+                                  {transaction.tags.map((tag) => (
+                                    <span
+                                      key={tag}
+                                      className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full flex-shrink-0"
+                                    >
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          {/* Mobile info - stacked */}
-                          <div className="sm:hidden space-y-1 text-ios-caption text-muted-foreground">
-                            <div className="flex items-center space-x-2">
-                              <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                              <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
+                          <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
+                            <div className="text-right">
+                              <p className={`text-sm sm:text-xl font-semibold truncate ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}>
+                                {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
+                              </p>
+                              <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>
+                              {/* Selected rate equivalence */}
+                              {(transaction.currencyCode === 'VES' || transaction.currencyCode === 'USD') && (
+                                <div className="text-[11px] text-white/60 mt-1">
+                                  {(() => {
+                                    const usd = convertMinorToUSDSelected(Math.abs(transaction.amountMinor || 0), transaction.currencyCode);
+                                    return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
+                                  })()}
+                                </div>
+                              )}
                             </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="break-words">{getAccountName(transaction.accountId)}</span>
-                              <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                              <span className="flex-shrink-0">{transaction.date}</span>
-                            </div>
+
                           </div>
-
-                          {transaction.tags && transaction.tags.length > 0 && (
-                            <div className="flex items-center space-x-1 mt-2 overflow-x-auto">
-                              {transaction.tags.map((tag) => (
-                                <span
-                                  key={tag}
-                                  className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full flex-shrink-0"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
                         </div>
-                      </div>
-
-                      <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
-                        <div className="text-right">
-                          <p className={`text-sm sm:text-xl font-semibold truncate ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}>
-                            {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
-                          </p>
-                          <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>
-                          {/* Selected rate equivalence */}
-                          {(transaction.currencyCode === 'VES' || transaction.currencyCode === 'USD') && (
-                            <div className="text-[11px] text-white/60 mt-1">
-                              {(() => {
-                                const usd = convertMinorToUSDSelected(Math.abs(transaction.amountMinor || 0), transaction.currencyCode);
-                                return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
-                              })()}
-                            </div>
-                          )}
-                        </div>
-
-                        <TransactionActionsDropdown
-                          transaction={transaction}
-                          onEdit={handleEditTransaction}
-                          onDelete={handleDeleteTransaction}
-                        />
-                      </div>
+                      </SwipeableCard>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
 
               {/* Infinite scroll sentinel */}

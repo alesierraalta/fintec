@@ -36,7 +36,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               // Base styles with enhanced animations and improved text visibility
               'flex h-12 w-full rounded-xl border-2 border-input/50 bg-background/80 px-4 py-3',
-              'text-sm font-medium ring-offset-background file:border-0 file:bg-transparent',
+              // * Text size adjusted for mobile to prevent iOS zoom (16px base)
+              'text-base md:text-sm font-medium ring-offset-background file:border-0 file:bg-transparent',
               'file:text-sm file:font-medium',
               'focus-glow disabled:cursor-not-allowed disabled:opacity-50',
               'transition-smooth backdrop-blur-sm',

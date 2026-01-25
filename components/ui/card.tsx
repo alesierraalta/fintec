@@ -10,7 +10,8 @@ const Card = React.forwardRef<
     className={cn(
       'rounded-2xl border border-border/50 bg-card/80 text-card-foreground',
       'glass-card shadow-ios-md hover:shadow-ios-lg',
-      'animate-fade-in-up hover-lift transition-smooth',
+      // * Enhanced touch feedback for native feel
+      'animate-fade-in-up hover-lift transition-smooth active:scale-[0.98] active:bg-muted/10 will-change-transform',
       'hover:border-primary/20 hover:bg-card/90',
       className
     )}

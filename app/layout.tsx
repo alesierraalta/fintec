@@ -4,9 +4,13 @@ import { RepositoryProvider } from '@/providers';
 import { AuthProvider } from '@/contexts/auth-context';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://fintec.vercel.app'),
   title: 'FinTec - Tu Plataforma de Finanzas Personales',
   description: 'Gestiona tus finanzas de forma inteligente y moderna. Control de gastos, presupuestos, inversiones, metas de ahorro y más.',
   keywords: 'finanzas personales, presupuesto, gastos, ingresos, ahorro, fintec, fintech, inversiones',

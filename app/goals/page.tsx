@@ -18,6 +18,7 @@ import {
   Search
 } from 'lucide-react';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { EmptyState } from '@/components/ui/empty-state';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import type { SavingsGoal } from '@/types';
 
@@ -297,30 +298,15 @@ export default function GoalsPage() {
           </div>
 
           {filteredGoals.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-              <Target className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
-                {searchTerm || filter !== 'all'
-                  ? 'No se encontraron metas'
-                  : 'No tienes metas de ahorro'
-                }
-              </h3>
-              <p className="text-gray-400 mb-4">
-                {searchTerm || filter !== 'all'
-                  ? 'Intenta cambiar los filtros o términos de búsqueda'
-                  : 'Crea tu primera meta de ahorro para comenzar a alcanzar tus objetivos financieros'
-                }
-              </p>
-              {!searchTerm && filter === 'all' && (
-                <Button
-                  onClick={handleNewGoal}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Crear Primera Meta
-                </Button>
-              )}
-            </div>
+            <EmptyState
+              title={searchTerm || filter !== 'all' ? 'No se encontraron metas' : 'No tienes metas de ahorro'}
+              description={searchTerm || filter !== 'all'
+                ? 'Intenta cambiar los filtros o términos de búsqueda'
+                : 'Crea tu primera meta de ahorro para comenzar a alcanzar tus objetivos financieros'}
+              icon={<Target className="h-12 w-12 text-muted-foreground" />}
+              actionLabel={!searchTerm && filter === 'all' ? "Crear Primera Meta" : undefined}
+              onAction={!searchTerm && filter === 'all' ? handleNewGoal : undefined}
+            />
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredGoals.map((goal) => {
@@ -355,7 +341,7 @@ export default function GoalsPage() {
         icon={<Plus className="h-6 w-6" />}
         mobileOnly={true}
         position="bottom-right"
-        variant="success"
+        variant="warning"
       />
     </MainLayout>
   );

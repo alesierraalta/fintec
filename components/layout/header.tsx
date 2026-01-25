@@ -139,7 +139,7 @@ export function Header() {
             alt="FinTec Logo"
             fill
             className="object-contain"
-            unoptimized
+            sizes="(max-width: 768px) 100px, 100px"
             loading="eager"
           />
         </div>

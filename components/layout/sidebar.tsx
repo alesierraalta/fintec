@@ -79,7 +79,7 @@ export function Sidebar() {
                 className="object-contain transition-all duration-300"
                 style={{ width: isMinimized ? 40 : 'auto', height: 40 }}
                 priority
-                unoptimized
+                sizes="(max-width: 768px) 120px, 120px"
                 loading="eager"
                 onError={(e) => {
                   setLogoError(true);
@@ -130,6 +130,7 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
+              prefetch={false}
               onClick={handleLinkClick}
               className={cn(
                 'group flex items-center text-ios-body font-medium rounded-xl lg:rounded-2xl transition-ios',

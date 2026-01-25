@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
 import { Plus, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { EmptyState } from '@/components/ui/empty-state';
 import type { Budget, Category } from '@/types';
 
 export default function BudgetsPage() {
@@ -258,22 +259,13 @@ export default function BudgetsPage() {
               <p className="text-gray-400">Cargando presupuestos...</p>
             </div>
           ) : filteredBudgets.length === 0 ? (
-            <div className="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-              <AlertTriangle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-white mb-2">
-                No hay presupuestos para {selectedMonthLabel}
-              </h3>
-              <p className="text-gray-400 mb-4">
-                Crea tu primer presupuesto para comenzar a controlar tus gastos
-              </p>
-              <Button
-                onClick={handleNewBudget}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Plus className="h-5 w-5 mr-2" />
-                Crear Presupuesto
-              </Button>
-            </div>
+            <EmptyState
+              title={`No hay presupuestos para ${selectedMonthLabel}`}
+              description="Crea tu primer presupuesto para comenzar a controlar tus gastos"
+              icon={<AlertTriangle className="h-12 w-12 text-muted-foreground" />}
+              actionLabel="Crear Presupuesto"
+              onAction={handleNewBudget}
+            />
           ) : (
             <div className="grid gap-4">
               {filteredBudgets.map((budget) => {

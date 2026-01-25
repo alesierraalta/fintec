@@ -3,7 +3,7 @@ import { PaginatedResult, PaginationParams } from '@/types';
 export interface BaseRepository<T, CreateDTO, UpdateDTO> {
   // Basic CRUD operations
   findById(id: string): Promise<T | null>;
-  findAll(): Promise<T[]>;
+  findAll(limit?: number): Promise<T[]>;
   create(data: CreateDTO): Promise<T>;
   update(id: string, data: UpdateDTO): Promise<T>;
   delete(id: string): Promise<void>;

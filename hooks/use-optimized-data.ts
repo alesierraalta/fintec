@@ -36,24 +36,44 @@ let globalCache: DataCache = {
   },
 };
 
-// Force clear cache on module load if we detect stale data
+// * Cache Persistence: Key for localStorage
+const CACHE_STORAGE_KEY = 'fintec_data_cache_v1';
+
+// * Helper to persist cache to localStorage
+const persistCache = () => {
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(globalCache));
+    } catch (e) {
+      console.warn('Failed to persist cache to localStorage', e);
+    }
+  }
+};
+
+// * Initialize cache from localStorage on module load
 if (typeof window !== 'undefined') {
+  try {
+    const storedCache = localStorage.getItem(CACHE_STORAGE_KEY);
+    if (storedCache) {
+      const parsedCache = JSON.parse(storedCache);
+      // Validate structure roughly
+      if (parsedCache && parsedCache.lastUpdated) {
+        globalCache = parsedCache;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to load cache from localStorage', e);
+  }
+
+  // Legacy cleanup logic (kept for backward compatibility or specific reset needs)
   const cacheKey = 'fintec_cache_cleared';
   const lastCleared = localStorage.getItem(cacheKey);
   const now = Date.now();
   
   // Clear cache if it hasn't been cleared in the last 24 hours or if we detect stale data
   if (!lastCleared || (now - parseInt(lastCleared)) > 24 * 60 * 60 * 1000) {
-    globalCache = {
-      transactions: [],
-      accounts: [],
-      categories: [],
-      lastUpdated: {
-        transactions: 0,
-        accounts: 0,
-        categories: 0,
-      },
-    };
+    // Only reset if strict condition met, otherwise trust persisted cache
+    // We update the cleared timestamp but keep the data if valid
     localStorage.setItem(cacheKey, now.toString());
   }
 }
@@ -88,9 +108,12 @@ export function useOptimizedData() {
 
     try {
       setLoading(true);
-      const transactions = await repository.transactions.findAll();
+      // * Optimization: Load only recent 150 transactions initially to save bandwidth
+      // Pagination/Infinite scroll handles older history when needed
+      const transactions = await repository.transactions.findAll(150);
       globalCache.transactions = transactions;
       globalCache.lastUpdated.transactions = Date.now();
+      persistCache(); // * Persist to localStorage
       return transactions;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading transactions');
@@ -113,6 +136,7 @@ export function useOptimizedData() {
       const accounts = await repository.accounts.findByUserId(user.id);
       globalCache.accounts = accounts;
       globalCache.lastUpdated.accounts = Date.now();
+      persistCache(); // * Persist to localStorage
       return accounts;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading accounts');
@@ -133,6 +157,7 @@ export function useOptimizedData() {
       const categories = await repository.categories.findAll();
       globalCache.categories = categories;
       globalCache.lastUpdated.categories = Date.now();
+      persistCache(); // * Persist to localStorage
       return categories;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading categories');
