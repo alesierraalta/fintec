@@ -49,6 +49,7 @@ export class BCVHistoryService {
   private db: BCVHistoryDatabase;
   private supabase: SupabaseClient;
   private syncInProgress = false;
+  private trackedDates = new Set<string>();
 
   private constructor() {
     this.db = new BCVHistoryDatabase();
@@ -63,25 +64,50 @@ export class BCVHistoryService {
     return BCVHistoryService.instance;
   }
 
-  // Sync a single rate to Supabase (non-blocking)
+  /**
+   * Helper to retry an operation with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3,
+    baseDelay = 1000
+  ): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        const delay = baseDelay * Math.pow(2, i);
+        logger.warn(`[BCVHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  }
+
+  // Sync a single rate to Supabase with retries
   private async syncToSupabase(date: string, usd: number, eur: number, source: string, timestamp: string): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('bcv_rate_history')
-        .upsert({
-          date,
-          usd,
-          eur,
-          source,
-          timestamp
-        }, { onConflict: 'date' });
+      await this.retryWithBackoff(async () => {
+        const { error } = await this.supabase
+          .from('bcv_rate_history')
+          .upsert({
+            date,
+            usd,
+            eur,
+            source,
+            timestamp
+          }, { onConflict: 'date' });
 
-      if (error) {
-        logger.warn('[BCVHistoryService] Failed to sync to Supabase:', error.message);
-      }
-    } catch (error) {
-      // Non-blocking - don't throw, just log
-      logger.warn('[BCVHistoryService] Supabase sync error:', error);
+        if (error) throw error;
+      });
+    } catch (error: any) {
+      logger.error('[BCVHistoryService] Final Supabase sync failure:', {
+        date,
+        message: error?.message || error,
+        context: 'syncToSupabase'
+      });
     }
   }
 
@@ -90,6 +116,7 @@ export class BCVHistoryService {
     if (this.syncInProgress) return;
 
     this.syncInProgress = true;
+    const startTime = Date.now();
 
     try {
       const cutoffDate = new Date();
@@ -103,25 +130,36 @@ export class BCVHistoryService {
         .order('date', { ascending: false });
 
       if (error) {
-        logger.warn('[BCVHistoryService] Failed to load from Supabase:', error.message);
+        logger.error('[BCVHistoryService] Failed to load from Supabase:', error.message);
         return;
       }
 
       if (data && data.length > 0) {
-        // Bulk insert to local database
-        for (const record of data as SupabaseBCVRecord[]) {
-          const existing = await this.db.bcvHistory.where('date').equals(record.date).first();
-          if (!existing) {
-            await this.db.bcvHistory.add({
-              date: record.date,
-              usd: Number(record.usd),
-              eur: Number(record.eur),
-              timestamp: record.timestamp,
-              source: record.source
-            });
-          }
+        // Optimized bulk upsert to local database
+        // First, get all existing dates in local DB for this range to avoid duplicates
+        const existingRecords = await this.db.bcvHistory
+          .where('date')
+          .aboveOrEqual(cutoffDateStr)
+          .toArray();
+        const existingDates = new Set(existingRecords.map((r: BCVHistoryRecord) => r.date));
+
+        const newRecords = (data as SupabaseBCVRecord[])
+          .filter(record => !existingDates.has(record.date))
+          .map(record => ({
+            date: record.date,
+            usd: Number(record.usd),
+            eur: Number(record.eur),
+            timestamp: record.timestamp,
+            source: record.source
+          }));
+
+        if (newRecords.length > 0) {
+          // Dexie bulkAdd is faster if we know they are new
+          await this.db.bcvHistory.bulkAdd(newRecords);
         }
-        logger.info(`[BCVHistoryService] Synced ${data.length} records from Supabase`);
+
+        const duration = Date.now() - startTime;
+        logger.info(`[BCVHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`);
       }
     } catch (error) {
       logger.error('[BCVHistoryService] Error loading from Supabase:', error);
@@ -137,6 +175,10 @@ export class BCVHistoryService {
     const todayUtc = now.toISOString().split('T')[0];
     const timestamp = now.toISOString();
     const incomingIsFallback = source.toLowerCase().includes('fallback');
+
+    // Race condition protection
+    if (this.trackedDates.has(today)) return;
+    this.trackedDates.add(today);
 
     try {
       // Check if we already have rates for today
@@ -183,12 +225,17 @@ export class BCVHistoryService {
         Math.round(eur * 100) / 100,
         source,
         timestamp
-      ).catch(() => { }); // Ignore sync errors
+      ).catch((err) => {
+        logger.error('[BCVHistoryService] Background sync error:', err);
+      });
 
       // Keep history bounded
       await this.cleanOldRecords(365);
     } catch (error) {
+      logger.error('[BCVHistoryService] Error saving rates:', error);
       throw error;
+    } finally {
+      this.trackedDates.delete(today);
     }
   }
 

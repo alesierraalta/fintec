@@ -114,8 +114,12 @@ class BCVRatesService {
                             apiRates.eur,
                             result.data.source || 'BCV'
                         );
-                    } catch {
-                        // * Ignore history save errors
+                    } catch (historyError) {
+                        logger.error('[BCVRatesService] Failed to save rates to history:', {
+                            error: historyError,
+                            usd: apiRates.usd,
+                            eur: apiRates.eur
+                        });
                     }
                 }
 

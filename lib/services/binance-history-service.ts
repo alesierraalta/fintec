@@ -44,6 +44,7 @@ class BinanceHistoryService {
   private db: BinanceHistoryDatabase;
   private supabase: SupabaseClient;
   private syncInProgress = false;
+  private trackedDates = new Set<string>();
 
   private constructor() {
     this.db = new BinanceHistoryDatabase();
@@ -58,24 +59,49 @@ class BinanceHistoryService {
     return BinanceHistoryService.instance;
   }
 
-  // Sync a single rate to Supabase (non-blocking)
+  /**
+   * Helper to retry an operation with exponential backoff
+   */
+  private async retryWithBackoff<T>(
+    operation: () => Promise<T>,
+    maxRetries = 3,
+    baseDelay = 1000
+  ): Promise<T> {
+    let lastError: any;
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        return await operation();
+      } catch (error) {
+        lastError = error;
+        const delay = baseDelay * Math.pow(2, i);
+        logger.warn(`[BinanceHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`, error);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  }
+
+  // Sync a single rate to Supabase with retries
   private async syncToSupabase(date: string, usd: number, timestamp: string): Promise<void> {
     try {
-      const { error } = await this.supabase
-        .from('binance_rate_history')
-        .upsert({
-          date,
-          usd,
-          source: 'Binance',
-          timestamp
-        }, { onConflict: 'date' });
+      await this.retryWithBackoff(async () => {
+        const { error } = await this.supabase
+          .from('binance_rate_history')
+          .upsert({
+            date,
+            usd,
+            source: 'Binance',
+            timestamp
+          }, { onConflict: 'date' });
 
-      if (error) {
-        logger.warn('[BinanceHistoryService] Failed to sync to Supabase:', error.message);
-      }
-    } catch (error) {
-      // Non-blocking - don't throw, just log
-      logger.warn('[BinanceHistoryService] Supabase sync error:', error);
+        if (error) throw error;
+      });
+    } catch (error: any) {
+      logger.error('[BinanceHistoryService] Final Supabase sync failure:', {
+        date,
+        message: error?.message || error,
+        context: 'syncToSupabase'
+      });
     }
   }
 
@@ -84,6 +110,7 @@ class BinanceHistoryService {
     if (this.syncInProgress) return;
 
     this.syncInProgress = true;
+    const startTime = Date.now();
 
     try {
       const cutoffDate = new Date();
@@ -97,24 +124,34 @@ class BinanceHistoryService {
         .order('date', { ascending: false });
 
       if (error) {
-        logger.warn('[BinanceHistoryService] Failed to load from Supabase:', error.message);
+        logger.error('[BinanceHistoryService] Failed to load from Supabase:', error.message);
         return;
       }
 
       if (data && data.length > 0) {
-        // Bulk insert to local database
-        for (const record of data as SupabaseBinanceRecord[]) {
-          const existing = await this.db.binanceRates.where('date').equals(record.date).first();
-          if (!existing) {
-            await this.db.binanceRates.add({
-              date: record.date,
-              usd: Number(record.usd),
-              timestamp: record.timestamp,
-              source: 'Binance'
-            });
-          }
+        // Optimized bulk upsert to local database
+        // First, get all existing dates in local DB for this range to avoid duplicates
+        const existingRecords = await this.db.binanceRates
+          .where('date')
+          .aboveOrEqual(cutoffDateStr)
+          .toArray();
+        const existingDates = new Set(existingRecords.map((r: BinanceHistoryRecord) => r.date));
+
+        const newRecords = (data as SupabaseBinanceRecord[])
+          .filter(record => !existingDates.has(record.date))
+          .map(record => ({
+            date: record.date,
+            usd: Number(record.usd),
+            timestamp: record.timestamp,
+            source: 'Binance' as const
+          }));
+
+        if (newRecords.length > 0) {
+          await this.db.binanceRates.bulkAdd(newRecords);
         }
-        logger.info(`[BinanceHistoryService] Synced ${data.length} records from Supabase`);
+
+        const duration = Date.now() - startTime;
+        logger.info(`[BinanceHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`);
       }
     } catch (error) {
       logger.error('[BinanceHistoryService] Error loading from Supabase:', error);
@@ -124,11 +161,15 @@ class BinanceHistoryService {
   }
 
   async saveRates(usd: number, targetDate: Date = new Date()): Promise<void> {
-    try {
-      const now = targetDate;
-      const dateStr = formatCaracasDayKey(now);
-      const timestamp = now.toISOString();
+    const now = targetDate;
+    const dateStr = formatCaracasDayKey(now);
+    const timestamp = now.toISOString();
 
+    // Race condition protection
+    if (this.trackedDates.has(dateStr)) return;
+    this.trackedDates.add(dateStr);
+
+    try {
       // Verificar si ya existe un registro para hoy
       const existingRecord = await this.db.binanceRates
         .where('date')
@@ -152,7 +193,9 @@ class BinanceHistoryService {
       }
 
       // Sync to Supabase (non-blocking)
-      this.syncToSupabase(dateStr, usd, timestamp).catch(() => { }); // Ignore sync errors
+      this.syncToSupabase(dateStr, usd, timestamp).catch((err) => {
+        logger.error('[BinanceHistoryService] Background sync error:', err);
+      });
 
       // Limpiar registros antiguos (mantener solo últimos 90 días)
       const cutoffDate = new Date();
@@ -165,7 +208,9 @@ class BinanceHistoryService {
         .delete();
 
     } catch (error) {
-      logger.error('Error saving Binance rates to history:', error);
+      logger.error('[BinanceHistoryService] Error saving Binance rates to history:', error);
+    } finally {
+      this.trackedDates.delete(dateStr);
     }
   }
 

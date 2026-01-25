@@ -70,7 +70,10 @@ class BinanceRatesService {
                 try {
                     await binanceHistoryService.saveRates(rates.usd_ves);
                 } catch (historyError) {
-                    logger.warn('[BinanceRatesService] Failed to save rates to history:', historyError);
+                    logger.error('[BinanceRatesService] Failed to save rates to history:', {
+                        error: historyError,
+                        usd: rates.usd_ves
+                    });
                 }
 
                 return rates;

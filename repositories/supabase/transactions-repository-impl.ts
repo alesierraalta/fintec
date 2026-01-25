@@ -41,10 +41,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = user.id;
 
     // Single query with JOIN - más eficiente que 2 queries separados
+    // * Payload Optimization: Select only essential fields for list view
     const { data, error } = await this.client
       .from('transactions')
       .select(`
-        *,
+        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, created_at, updated_at,
         accounts!inner(user_id)
       `)
       .eq('accounts.user_id', userId)
