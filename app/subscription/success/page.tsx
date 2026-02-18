@@ -10,34 +10,34 @@ import { CheckCircle, Loader2 } from 'lucide-react';
 function SubscriptionSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [verifying, setVerifying] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const sessionId = searchParams.get('session_id');
+  const [isVerifyingDelayActive, setIsVerifyingDelayActive] = useState(() =>
+    Boolean(sessionId)
+  );
+  const error = sessionId ? null : 'Sesión de pago no encontrada';
+  const verifying = Boolean(sessionId) && isVerifyingDelayActive;
 
   useEffect(() => {
-    const sessionId = searchParams.get('session_id');
-
     if (!sessionId) {
-      setError('Sesión de pago no encontrada');
-      setVerifying(false);
       return;
     }
 
     // Give Lemon Squeezy webhook time to process
     const timer = setTimeout(() => {
-      setVerifying(false);
+      setIsVerifyingDelayActive(false);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [searchParams]);
+  }, [sessionId]);
 
   if (error) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <div className="container mx-auto max-w-2xl px-4 py-16">
           <Card className="p-8 text-center">
-            <div className="text-destructive text-5xl mb-4">⚠️</div>
-            <h1 className="text-2xl font-bold mb-4">Error</h1>
-            <p className="text-muted-foreground mb-6">{error}</p>
+            <div className="mb-4 text-5xl text-destructive">⚠️</div>
+            <h1 className="mb-4 text-2xl font-bold">Error</h1>
+            <p className="mb-6 text-muted-foreground">{error}</p>
             <Button onClick={() => router.push('/pricing')}>
               Volver a Planes
             </Button>
@@ -50,10 +50,10 @@ function SubscriptionSuccessContent() {
   if (verifying) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
+        <div className="container mx-auto max-w-2xl px-4 py-16">
           <Card className="p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h1 className="text-2xl font-bold mb-2">Verificando pago...</h1>
+            <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
+            <h1 className="mb-2 text-2xl font-bold">Verificando pago...</h1>
             <p className="text-muted-foreground">
               Estamos confirmando tu suscripción
             </p>
@@ -65,14 +65,15 @@ function SubscriptionSuccessContent() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-16 max-w-2xl">
+      <div className="container mx-auto max-w-2xl px-4 py-16">
         <Card className="p-8 text-center">
-          <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          
-          <h1 className="text-3xl font-bold mb-4">¡Suscripción Exitosa!</h1>
-          
-          <p className="text-lg text-muted-foreground mb-8">
-            Tu pago ha sido procesado exitosamente. Ahora tienes acceso a todas las funciones premium.
+          <CheckCircle className="mx-auto mb-4 h-16 w-16 text-green-500" />
+
+          <h1 className="mb-4 text-3xl font-bold">¡Suscripción Exitosa!</h1>
+
+          <p className="mb-8 text-lg text-muted-foreground">
+            Tu pago ha sido procesado exitosamente. Ahora tienes acceso a todas
+            las funciones premium.
           </p>
 
           <div className="space-y-3">
@@ -83,7 +84,7 @@ function SubscriptionSuccessContent() {
             >
               Ir al Dashboard
             </Button>
-            
+
             <Button
               size="lg"
               variant="outline"
@@ -94,8 +95,9 @@ function SubscriptionSuccessContent() {
             </Button>
           </div>
 
-          <p className="text-xs text-muted-foreground mt-6">
-            Recibirás un correo de confirmación con los detalles de tu suscripción
+          <p className="mt-6 text-xs text-muted-foreground">
+            Recibirás un correo de confirmación con los detalles de tu
+            suscripción
           </p>
         </Card>
       </div>
@@ -105,18 +107,19 @@ function SubscriptionSuccessContent() {
 
 export default function SubscriptionSuccessPage() {
   return (
-    <Suspense fallback={
-      <MainLayout>
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
-          <Card className="p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
-            <h1 className="text-2xl font-bold mb-2">Cargando...</h1>
-          </Card>
-        </div>
-      </MainLayout>
-    }>
+    <Suspense
+      fallback={
+        <MainLayout>
+          <div className="container mx-auto max-w-2xl px-4 py-16">
+            <Card className="p-8 text-center">
+              <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-primary" />
+              <h1 className="mb-2 text-2xl font-bold">Cargando...</h1>
+            </Card>
+          </div>
+        </MainLayout>
+      }
+    >
       <SubscriptionSuccessContent />
     </Suspense>
   );
 }
-

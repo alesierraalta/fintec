@@ -6,16 +6,17 @@ import { supabase } from '@/repositories/supabase/client';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import type { PaymentOrder } from '@/types/payment-order';
 import { Button } from '@/components/ui';
-import { 
-  CheckCircle2, 
-  XCircle, 
-  Eye, 
+import {
+  CheckCircle2,
+  XCircle,
+  Eye,
   Clock,
   DollarSign,
   Calendar,
   User,
-  FileText
+  FileText,
 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface AdminPanelProps {
   onApprove?: (orderId: string) => void;
@@ -23,7 +24,11 @@ interface AdminPanelProps {
   onViewReceipt?: (orderId: string, receiptUrl: string) => void;
 }
 
-export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelProps) {
+export function AdminPanel({
+  onApprove,
+  onReject,
+  onViewReceipt,
+}: AdminPanelProps) {
   const [orders, setOrders] = useState<PaymentOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +45,9 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
   const loadOrders = async () => {
     try {
       setLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No autenticado');
       }
@@ -50,11 +57,14 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
         throw new Error('No tienes permisos de administrador');
       }
 
-      const response = await fetch('/api/payment-orders?status=pending_review', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      const response = await fetch(
+        '/api/payment-orders?status=pending_review',
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
 
       const result = await response.json();
 
@@ -73,7 +83,9 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
   const handleApprove = async (orderId: string) => {
     try {
       setApproving(orderId);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No autenticado');
       }
@@ -82,7 +94,7 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({}),
       });
@@ -99,7 +111,7 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
         onApprove(orderId);
       }
     } catch (err: any) {
-      alert(err.message || 'Error al aprobar orden');
+      toast.error(err.message || 'Error al aprobar orden');
     } finally {
       setApproving(null);
     }
@@ -108,7 +120,9 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
   const handleReject = async (orderId: string, reason: string) => {
     try {
       setRejecting(orderId);
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No autenticado');
       }
@@ -117,7 +131,7 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ reason }),
       });
@@ -137,7 +151,7 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
         onReject(orderId);
       }
     } catch (err: any) {
-      alert(err.message || 'Error al rechazar orden');
+      toast.error(err.message || 'Error al rechazar orden');
     } finally {
       setRejecting(null);
     }
@@ -163,7 +177,9 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
     return (
       <div className="rounded-xl border bg-card p-8 text-center">
         <Clock className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-        <p className="text-muted-foreground">No hay órdenes pendientes de revisión</p>
+        <p className="text-muted-foreground">
+          No hay órdenes pendientes de revisión
+        </p>
       </div>
     );
   }
@@ -171,10 +187,7 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
   return (
     <div className="space-y-4">
       {orders.map((order) => (
-        <div
-          key={order.id}
-          className="rounded-xl border bg-card p-6 shadow-lg"
-        >
+        <div key={order.id} className="rounded-xl border bg-card p-6 shadow-lg">
           <div className="space-y-4">
             <div className="flex items-start justify-between">
               <div className="flex-1 space-y-2">
@@ -202,8 +215,10 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
 
                 {order.description && (
                   <div className="flex items-start gap-2">
-                    <FileText className="h-4 w-4 text-muted-foreground mt-0.5" />
-                    <p className="text-sm text-muted-foreground">{order.description}</p>
+                    <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">
+                      {order.description}
+                    </p>
                   </div>
                 )}
 
@@ -302,6 +317,3 @@ export function AdminPanel({ onApprove, onReject, onViewReceipt }: AdminPanelPro
     </div>
   );
 }
-
-
-

@@ -1,19 +1,24 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
+import { Toaster } from 'sonner';
 import { RepositoryProvider } from '@/providers';
 import { AuthProvider } from '@/contexts/auth-context';
 import './globals.css';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://fintec.vercel.app'),
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_APP_URL || 'https://fintec.vercel.app'
+  ),
   title: 'FinTec - Tu Plataforma de Finanzas Personales',
-  description: 'Gestiona tus finanzas de forma inteligente y moderna. Control de gastos, presupuestos, inversiones, metas de ahorro y más.',
-  keywords: 'finanzas personales, presupuesto, gastos, ingresos, ahorro, fintec, fintech, inversiones',
+  description:
+    'Gestiona tus finanzas de forma inteligente y moderna. Control de gastos, presupuestos, inversiones, metas de ahorro y más.',
+  keywords:
+    'finanzas personales, presupuesto, gastos, ingresos, ahorro, fintec, fintech, inversiones',
   authors: [{ name: 'FinTec App' }],
   other: {
     'theme-color': '#000000',
@@ -31,8 +36,6 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: 'cover', // For iOS safe areas
   interactiveWidget: 'resizes-visual', // Ajusta viewport cuando aparece el teclado
 };
@@ -44,8 +47,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" suppressHydrationWarning className="dark">
-      <head>
-      </head>
+      <head></head>
       <body className={`${inter.className} dark`}>
         <AuthProvider>
           <RepositoryProvider>
@@ -54,6 +56,7 @@ export default function RootLayout({
             </div>
           </RepositoryProvider>
         </AuthProvider>
+        <Toaster position="top-right" richColors />
         <div id="modal-root" />
       </body>
     </html>

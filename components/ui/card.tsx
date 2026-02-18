@@ -11,7 +11,7 @@ const Card = React.forwardRef<
       'rounded-2xl border border-border/50 bg-card/80 text-card-foreground',
       'glass-card shadow-ios-md hover:shadow-ios-lg',
       // * Enhanced touch feedback for native feel
-      'animate-fade-in-up hover-lift transition-smooth active:scale-[0.98] active:bg-muted/10 will-change-transform',
+      'hover-lift transition-smooth will-change-transform active:scale-[0.98] active:bg-muted/10',
       'hover:border-primary/20 hover:bg-card/90',
       className
     )}
@@ -53,7 +53,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <p
     ref={ref}
-    className={cn('text-sm text-muted-foreground leading-relaxed', className)}
+    className={cn('text-sm leading-relaxed text-muted-foreground', className)}
     {...props}
   />
 ));
@@ -73,10 +73,20 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn('flex items-center justify-between px-6 py-4 border-t border-border/50 bg-muted/20 rounded-b-2xl', className)}
+    className={cn(
+      'flex items-center justify-between rounded-b-2xl border-t border-border/50 bg-muted/20 px-6 py-4',
+      className
+    )}
     {...props}
   />
 ));
 CardFooter.displayName = 'CardFooter';
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent };
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+};

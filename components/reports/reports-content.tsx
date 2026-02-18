@@ -1,23 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useSyncExternalStore } from 'react';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { MobileReports } from './mobile-reports';
 import { DesktopReports } from './desktop-reports';
 
 import { ReportsSkeleton } from '@/components/skeletons/reports-skeleton';
 
+const subscribe = () => () => {};
+
 export function ReportsContent() {
   const { isMobile } = useSidebar();
-  const [mounted, setMounted] = useState(false);
+  const isClient = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
 
-  // Wait for hydration to complete
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent hydration mismatch by not rendering until mounted
-  if (!mounted) {
+  if (!isClient) {
     return <ReportsSkeleton />;
   }
 

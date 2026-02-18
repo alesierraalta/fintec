@@ -51,7 +51,7 @@ export function Header() {
       setLoadingNotifications(true);
       const [unreadNotifications, count] = await Promise.all([
         repository.notifications.findUnreadByUserId(user.id),
-        repository.notifications.countUnreadByUserId(user.id)
+        repository.notifications.countUnreadByUserId(user.id),
       ]);
 
       setNotifications(unreadNotifications);
@@ -76,24 +76,29 @@ export function Header() {
     setShowNotifications(!showNotifications);
   }, [showNotifications, memoizedLoadNotifications]);
 
-  const markNotificationAsRead = useCallback(async (notificationId: string) => {
-    try {
-      await repository.notifications.markAsRead(notificationId);
-      setNotifications(prev =>
-        prev.map(n => (n.id === notificationId ? { ...n, is_read: true } : n))
-      );
-      setNotificationCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Failed to mark notification as read', error);
-    }
-  }, [repository]);
+  const markNotificationAsRead = useCallback(
+    async (notificationId: string) => {
+      try {
+        await repository.notifications.markAsRead(notificationId);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId ? { ...n, is_read: true } : n
+          )
+        );
+        setNotificationCount((prev) => Math.max(0, prev - 1));
+      } catch (error) {
+        console.error('Failed to mark notification as read', error);
+      }
+    },
+    [repository]
+  );
 
   const markAllAsRead = useCallback(async () => {
     if (!user) return;
 
     try {
       await repository.notifications.markAllAsRead(user.id);
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setNotificationCount(0);
     } catch (error) {
       console.error('Failed to mark all notifications as read', error);
@@ -115,7 +120,7 @@ export function Header() {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(totalBalance);
   }, [totalBalance]);
 
@@ -129,11 +134,11 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="min-h-16 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] black-theme-header flex items-center justify-between px-4 sticky top-0 z-50">
+      <header className="black-theme-header sticky top-0 z-50 flex h-[calc(4rem+env(safe-area-inset-top))] min-h-16 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
         <div className="flex items-center">
           <RateSelector />
         </div>
-        <div className="relative w-24 h-10">
+        <div className="relative h-10 w-24">
           <Image
             src="/finteclogodark.jpg"
             alt="FinTec Logo"
@@ -145,11 +150,20 @@ export function Header() {
         </div>
         <div className="relative">
           <button
+            type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center black-theme-card rounded-xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer focus:outline-none"
+            aria-expanded={showUserMenu}
+            aria-controls="user-menu-mobile"
+            aria-label={
+              showUserMenu ? 'Cerrar menú de usuario' : 'Abrir menú de usuario'
+            }
+            className="black-theme-card focus-ring flex min-h-[44px] min-w-[44px] cursor-pointer items-center rounded-xl p-2 transition-all duration-200 hover:bg-white/5"
           >
-            <div className={`h-8 w-8 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg ${isPremium ? 'ring-2 ring-amber-400' : ''
-              }`}>
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg ${
+                isPremium ? 'ring-2 ring-amber-400' : ''
+              }`}
+            >
               {isPremium ? (
                 <Crown className="h-4 w-4 text-white" />
               ) : (
@@ -160,11 +174,17 @@ export function Header() {
 
           {showUserMenu && (
             <>
-              <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
-                <div className="px-4 py-3 border-b border-white/10">
+              <div
+                id="user-menu-mobile"
+                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-64 rounded-xl py-2 shadow-xl"
+              >
+                <div className="border-b border-white/10 px-4 py-3">
                   <div className="flex items-center space-x-3">
-                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center ${isPremium ? 'ring-2 ring-amber-400' : ''
-                      }`}>
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
+                        isPremium ? 'ring-2 ring-amber-400' : ''
+                      }`}
+                    >
                       {isPremium ? (
                         <Crown className="h-5 w-5 text-white" />
                       ) : (
@@ -177,10 +197,13 @@ export function Header() {
                       </p>
                       <p className="text-sm text-white/70">{user?.email}</p>
                       {/* * Display tier name */}
-                      <div className="flex items-center gap-1.5 mt-1">
+                      <div className="mt-1 flex items-center gap-1.5">
                         <p className="text-xs text-white/60">Plan:</p>
-                        <p className={`text-xs font-semibold ${isPremium ? 'text-amber-400' : 'text-white/80'
-                          }`}>
+                        <p
+                          className={`text-xs font-semibold ${
+                            isPremium ? 'text-amber-400' : 'text-white/80'
+                          }`}
+                        >
                           {tierName}
                         </p>
                         {isPremium && (
@@ -192,22 +215,27 @@ export function Header() {
                 </div>
                 <div className="py-2">
                   <button
+                    type="button"
                     onClick={handleProfile}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
                   >
                     <User className="h-4 w-4" />
                     <span>Mi Perfil</span>
                   </button>
                   <button
+                    type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Cerrar Sesión</span>
                   </button>
                 </div>
               </div>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowUserMenu(false)}
+              />
             </>
           )}
         </div>
@@ -216,12 +244,15 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 black-theme-header flex items-center justify-between px-6 sticky top-0 z-50">
+    <header className="black-theme-header sticky top-0 z-50 flex h-16 items-center justify-between px-6">
       <div className="flex items-center gap-2">
         <RateSelector />
         <button
+          type="button"
           onClick={toggleSidebar}
-          className="p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios mr-3"
+          aria-expanded={isOpen}
+          aria-label={isOpen ? 'Ocultar sidebar' : 'Mostrar sidebar'}
+          className="transition-ios focus-ring mr-3 min-h-[44px] min-w-[44px] rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white"
           title={isOpen ? 'Ocultar sidebar' : 'Mostrar sidebar'}
         >
           {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -231,12 +262,16 @@ export function Header() {
       <div className="flex items-center space-x-2 lg:space-x-4">
         <div className="relative">
           <button
+            type="button"
             onClick={handleNotificationClick}
-            className="relative p-2 lg:p-3 text-white/80 hover:text-white hover:bg-white/10 rounded-xl lg:rounded-2xl transition-ios hover:scale-105"
+            aria-expanded={showNotifications}
+            aria-controls="notifications-panel"
+            aria-label="Notificaciones"
+            className="transition-ios focus-ring relative min-h-[44px] min-w-[44px] rounded-xl p-2 text-white/80 hover:scale-105 hover:bg-white/10 hover:text-white lg:rounded-2xl lg:p-3"
           >
             <Bell className="h-5 w-5" />
             {notificationCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-5 w-5 bg-destructive text-xs font-bold text-destructive-foreground rounded-full flex items-center justify-center shadow-ios">
+              <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-xs font-bold text-destructive-foreground shadow-ios">
                 {notificationCount}
               </span>
             )}
@@ -244,109 +279,150 @@ export function Header() {
 
           {showNotifications && (
             <>
-              <div className="absolute right-0 top-full mt-2 w-80 black-theme-card rounded-2xl shadow-2xl z-50 animate-scale-in">
+              <div
+                id="notifications-panel"
+                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-80 animate-scale-in rounded-2xl shadow-2xl"
+              >
                 <div className="p-4">
-                  <h4 className="font-semibold text-text-primary mb-3">Notificaciones</h4>
+                  <h4 className="mb-3 font-semibold text-text-primary">
+                    Notificaciones
+                  </h4>
 
                   {loadingNotifications ? (
-                    <div className="text-center py-6">
-                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                      <p className="text-sm text-text-muted">Cargando notificaciones...</p>
+                    <div className="py-6 text-center">
+                      <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                      <p className="text-sm text-text-muted">
+                        Cargando notificaciones...
+                      </p>
                     </div>
                   ) : notifications.length > 0 ? (
                     <div className="space-y-3">
                       {notifications.slice(0, 5).map((notification) => (
-                        <div
+                        <button
                           key={notification.id}
-                          className={`p-3 rounded-xl cursor-pointer transition-colors ${notification.is_read
-                            ? 'bg-background-tertiary'
-                            : 'bg-blue-50 border border-blue-200'
-                            }`}
-                          onClick={() => markNotificationAsRead(notification.id)}
+                          type="button"
+                          className={`focus-ring w-full rounded-xl p-3 text-left transition-colors ${
+                            notification.is_read
+                              ? 'bg-background-tertiary'
+                              : 'border border-blue-200 bg-blue-50'
+                          }`}
+                          onClick={() =>
+                            markNotificationAsRead(notification.id)
+                          }
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-text-primary">{notification.title}</p>
-                              <p className="text-xs text-text-muted mt-1">{notification.message}</p>
-                              <p className="text-xs text-text-muted mt-1">
-                                {new Date(notification.created_at).toLocaleDateString('es-ES', {
+                              <p className="text-sm font-medium text-text-primary">
+                                {notification.title}
+                              </p>
+                              <p className="mt-1 text-xs text-text-muted">
+                                {notification.message}
+                              </p>
+                              <p className="mt-1 text-xs text-text-muted">
+                                {new Date(
+                                  notification.created_at
+                                ).toLocaleDateString('es-ES', {
                                   hour: '2-digit',
-                                  minute: '2-digit'
+                                  minute: '2-digit',
                                 })}
                               </p>
                             </div>
                             {!notification.is_read && (
-                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 ml-2" />
+                              <div className="ml-2 mt-1 h-2 w-2 rounded-full bg-blue-600" />
                             )}
                           </div>
-                        </div>
+                        </button>
                       ))}
                       {notificationCount > 0 && (
                         <button
+                          type="button"
                           onClick={markAllAsRead}
-                          className="w-full text-center text-xs text-blue-600 hover:text-blue-700 py-2"
+                          className="w-full py-2 text-center text-xs text-blue-600 hover:text-blue-700"
                         >
                           Marcar todas como leídas
                         </button>
                       )}
                     </div>
                   ) : (
-                    <div className="text-center py-6">
-                      <Bell className="h-8 w-8 text-text-muted mx-auto mb-2" />
-                      <p className="text-sm text-text-muted">No hay notificaciones nuevas</p>
+                    <div className="py-6 text-center">
+                      <Bell className="mx-auto mb-2 h-8 w-8 text-text-muted" />
+                      <p className="text-sm text-text-muted">
+                        No hay notificaciones nuevas
+                      </p>
                     </div>
                   )}
                 </div>
               </div>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowNotifications(false)}
+              />
             </>
           )}
         </div>
 
-        <div className="hidden sm:flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl px-3 lg:px-4 py-2">
+        <div className="black-theme-card hidden items-center space-x-2 rounded-xl px-3 py-2 sm:flex lg:space-x-3 lg:rounded-2xl lg:px-4">
           <div className="text-right">
             <div className="flex items-center space-x-1">
-              <Sparkles className="h-3 w-3 text-accent-primary" />
-              <p className="text-sm lg:text-lg font-bold text-text-primary">{formattedBalance}</p>
+              <Sparkles className="h-3 w-3 text-primary" />
+              <p className="text-sm font-bold text-text-primary lg:text-lg">
+                {formattedBalance}
+              </p>
             </div>
-            <p className="text-xs text-text-muted hidden lg:block">Tu dinero total</p>
+            <p className="hidden text-xs text-text-muted lg:block">
+              Tu dinero total
+            </p>
           </div>
         </div>
 
         <div className="relative">
           <button
+            type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center space-x-2 lg:space-x-3 black-theme-card rounded-xl lg:rounded-2xl p-2 hover:bg-white/5 transition-all duration-200 cursor-pointer focus:outline-none"
+            aria-expanded={showUserMenu}
+            aria-controls="user-menu-desktop"
+            aria-label={
+              showUserMenu ? 'Cerrar menú de usuario' : 'Abrir menú de usuario'
+            }
+            className="black-theme-card focus-ring flex min-h-[44px] cursor-pointer items-center space-x-2 rounded-xl p-2 transition-all duration-200 hover:bg-white/5 lg:space-x-3 lg:rounded-2xl"
           >
-            <div className={`h-8 w-8 lg:h-10 lg:w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center shadow-lg ${isPremium ? 'ring-2 ring-amber-400' : ''
-              }`}>
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg lg:h-10 lg:w-10 ${
+                isPremium ? 'ring-2 ring-amber-400' : ''
+              }`}
+            >
               {isPremium ? (
-                <Crown className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                <Crown className="h-4 w-4 text-white lg:h-5 lg:w-5" />
               ) : (
-                <User className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
+                <User className="h-4 w-4 text-white lg:h-5 lg:w-5" />
               )}
             </div>
-            <div className="hidden lg:block text-left">
+            <div className="hidden text-left lg:block">
               <p className="text-sm font-semibold text-text-primary">
-                {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Usuario'}
+                {user?.user_metadata?.full_name ||
+                  user?.email?.split('@')[0] ||
+                  'Usuario'}
               </p>
               <div className="flex items-center gap-1">
                 <p className="text-xs text-text-muted">Plan: {tierName}</p>
-                {isPremium && (
-                  <Crown className="h-3 w-3 text-amber-400" />
-                )}
+                {isPremium && <Crown className="h-3 w-3 text-amber-400" />}
               </div>
             </div>
           </button>
 
-
           {showUserMenu && (
             <>
-              <div className="absolute right-0 top-full mt-2 w-64 black-theme-card rounded-xl shadow-xl py-2 z-50">
-                <div className="px-4 py-3 border-b border-white/10">
+              <div
+                id="user-menu-desktop"
+                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-64 rounded-xl py-2 shadow-xl"
+              >
+                <div className="border-b border-white/10 px-4 py-3">
                   <div className="flex items-center space-x-3">
-                    <div className={`h-10 w-10 rounded-full bg-gradient-to-br from-accent-primary to-accent-secondary flex items-center justify-center ${isPremium ? 'ring-2 ring-amber-400' : ''
-                      }`}>
+                    <div
+                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
+                        isPremium ? 'ring-2 ring-amber-400' : ''
+                      }`}
+                    >
                       {isPremium ? (
                         <Crown className="h-5 w-5 text-white" />
                       ) : (
@@ -359,10 +435,13 @@ export function Header() {
                       </p>
                       <p className="text-sm text-white/70">{user?.email}</p>
                       {/* * Display tier name */}
-                      <div className="flex items-center gap-1.5 mt-1">
+                      <div className="mt-1 flex items-center gap-1.5">
                         <p className="text-xs text-white/60">Plan:</p>
-                        <p className={`text-xs font-semibold ${isPremium ? 'text-amber-400' : 'text-white/80'
-                          }`}>
+                        <p
+                          className={`text-xs font-semibold ${
+                            isPremium ? 'text-amber-400' : 'text-white/80'
+                          }`}
+                        >
                           {tierName}
                         </p>
                         {isPremium && (
@@ -374,22 +453,27 @@ export function Header() {
                 </div>
                 <div className="py-2">
                   <button
+                    type="button"
                     onClick={handleProfile}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 transition-colors"
+                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
                   >
                     <User className="h-4 w-4" />
                     <span>Mi Perfil</span>
                   </button>
                   <button
+                    type="button"
                     onClick={handleLogout}
-                    className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Cerrar Sesión</span>
                   </button>
                 </div>
               </div>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowUserMenu(false)}
+              />
             </>
           )}
         </div>

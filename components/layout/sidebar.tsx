@@ -26,7 +26,7 @@ import {
   Shield,
   Crown,
   Repeat,
-  MessageSquare
+  MessageSquare,
 } from 'lucide-react';
 
 const navigation = [
@@ -61,15 +61,15 @@ export function Sidebar() {
 
   return (
     <div
-      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} flex-col black-theme-sidebar transition-ios`}
+      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} black-theme-sidebar transition-ios flex-col`}
       suppressHydrationWarning
     >
       {/* Logo */}
-      <div className="flex h-16 items-center px-4 lg:px-6 border-b border-white/10">
-        <div className="flex items-center justify-center w-full">
+      <div className="flex h-16 items-center border-b border-white/10 px-4 lg:px-6">
+        <div className="flex w-full items-center justify-center">
           <div className="relative">
             {logoError ? (
-              <div className="text-white font-bold text-xl px-4">FinTec</div>
+              <div className="px-4 text-xl font-bold text-white">FinTec</div>
             ) : (
               <Image
                 src="/finteclogodark.jpg"
@@ -95,7 +95,7 @@ export function Sidebar() {
         <div className="p-4">
           <button
             onClick={() => router.push('/transactions/add')}
-            className="flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground hover:bg-primary/90 hover:scale-105 active:scale-95 transition-ios shadow-ios-lg backdrop-blur-sm"
+            className="transition-ios flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground shadow-ios-lg backdrop-blur-sm hover:scale-105 hover:bg-primary/90 active:scale-95"
             style={{ zIndex: 9999 }}
           >
             <Plus className="h-4 w-4" />
@@ -109,7 +109,7 @@ export function Sidebar() {
         <div className="p-2">
           <button
             onClick={() => router.push('/transactions/add')}
-            className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground hover:scale-105 active:scale-95 transition-ios flex items-center justify-center shadow-ios-md backdrop-blur-sm"
+            className="transition-ios flex h-12 w-full items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-ios-md backdrop-blur-sm hover:scale-105 hover:bg-primary/90 active:scale-95"
             title="Agregar Transacción"
           >
             <Plus className="h-5 w-5" />
@@ -118,7 +118,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation - More friendly spacing */}
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 space-y-2 px-4">
         {navigation.map((item) => {
           // Solo mostrar items premium si el usuario es premium
           if (item.premium && !isPremium) {
@@ -130,22 +130,24 @@ export function Sidebar() {
             <Link
               key={item.name}
               href={item.href}
-              prefetch={false}
               onClick={handleLinkClick}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'group flex items-center text-ios-body font-medium rounded-xl lg:rounded-2xl transition-ios',
-                isMinimized ? 'px-3 py-3 justify-center' : 'px-4 py-3',
+                'transition-ios focus-ring group flex items-center rounded-xl text-ios-body font-medium lg:rounded-2xl',
+                isMinimized ? 'justify-center px-3 py-3' : 'px-4 py-3',
                 isActive
-                  ? 'bg-primary/20 text-primary border border-primary/30 shadow-ios-sm backdrop-blur-sm'
-                  : 'text-white/70 hover:bg-white/10 hover:text-white hover:scale-[1.02] hover:shadow-ios-sm'
+                  ? 'border border-primary/30 bg-primary/20 text-primary shadow-ios-sm backdrop-blur-sm'
+                  : 'text-white/70 hover:scale-[1.02] hover:bg-white/10 hover:text-white hover:shadow-ios-sm'
               )}
               title={isMinimized ? item.name : undefined}
             >
               <item.icon
                 className={cn(
-                  'h-5 w-5 flex-shrink-0 transition-ios',
+                  'transition-ios h-5 w-5 flex-shrink-0',
                   isMinimized ? '' : 'mr-3',
-                  isActive ? 'text-primary' : 'text-white/70 group-hover:text-white'
+                  isActive
+                    ? 'text-primary'
+                    : 'text-white/70 group-hover:text-white'
                 )}
               />
               {!isMinimized && item.name}
@@ -161,9 +163,11 @@ export function Sidebar() {
       <PremiumStatusCard isMinimized={isMinimized} />
 
       {/* User Profile - More friendly */}
-      <div className="p-4 border-t border-white/10">
-        <div className={`flex items-center p-3 rounded-2xl black-theme-card shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-ios-md">
+      <div className="border-t border-white/10 p-4">
+        <div
+          className={`black-theme-card flex items-center rounded-2xl p-3 shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
             {isPremium ? (
               <Crown className="h-5 w-5 text-white" />
             ) : (
@@ -171,10 +175,19 @@ export function Sidebar() {
             )}
           </div>
           {!isMinimized && (
-            <div className="flex-1 min-w-0">
-              <p className="text-ios-body font-semibold text-white truncate">¡FinTec! 💼</p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-ios-caption text-white/70">Plan {tier === 'free' ? 'Gratis' : tier === 'base' ? 'Base' : 'Premium'}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-ios-body font-semibold text-white">
+                ¡FinTec! 💼
+              </p>
+              <div className="mt-1 flex items-center gap-2">
+                <p className="text-ios-caption text-white/70">
+                  Plan{' '}
+                  {tier === 'free'
+                    ? 'Gratis'
+                    : tier === 'base'
+                      ? 'Base'
+                      : 'Premium'}
+                </p>
                 {(isPremium || isBase) && (
                   <FeatureBadge
                     tier={isPremium ? 'premium' : 'base'}

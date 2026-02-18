@@ -13,12 +13,15 @@ interface ResetPasswordFormProps {
   refreshToken: string;
 }
 
-export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFormProps) {
+export function ResetPasswordForm({
+  accessToken,
+  refreshToken,
+}: ResetPasswordFormProps) {
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -32,9 +35,9 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
       try {
         const { error } = await supabase.auth.setSession({
           access_token: accessToken,
-          refresh_token: refreshToken
+          refresh_token: refreshToken,
         });
-        
+
         if (error) {
           logger.error('Error setting session:', error);
           setError('Link de restablecimiento inválido o expirado');
@@ -88,7 +91,7 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
 
     try {
       const { error } = await supabase.auth.updateUser({
-        password: formData.password
+        password: formData.password,
       });
 
       if (error) {
@@ -109,7 +112,7 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
     if (error) setError(null);
   };
@@ -120,20 +123,23 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md mx-auto"
+        className="mx-auto w-full max-w-md"
       >
-        <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-4">
+        <div className="rounded-3xl border border-border bg-card p-8 shadow-2xl">
+          <div className="mb-8 text-center">
+            <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-success/10">
               <CheckCircle className="h-8 w-8 text-success" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">¡Contraseña actualizada!</h2>
+            <h2 className="mb-2 text-2xl font-bold text-foreground">
+              ¡Contraseña actualizada!
+            </h2>
             <p className="text-muted-foreground">
-              Tu contraseña ha sido restablecida exitosamente. Serás redirigido al inicio de sesión.
+              Tu contraseña ha sido restablecida exitosamente. Serás redirigido
+              al inicio de sesión.
             </p>
           </div>
 
-          <div className="bg-success/10 border border-success/20 rounded-lg p-4">
+          <div className="rounded-lg border border-success/20 bg-success/10 p-4">
             <div className="flex">
               <div className="flex-shrink-0">
                 <CheckCircle className="h-5 w-5 text-success" />
@@ -143,9 +149,7 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
                   Contraseña restablecida
                 </h3>
                 <div className="mt-2 text-sm text-success/80">
-                  <p>
-                    Ya puedes iniciar sesión con tu nueva contraseña.
-                  </p>
+                  <p>Ya puedes iniciar sesión con tu nueva contraseña.</p>
                 </div>
               </div>
             </div>
@@ -160,37 +164,40 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md"
     >
-      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
+      <div className="rounded-3xl border border-white/20 bg-card/60 p-8 shadow-2xl backdrop-blur-xl">
+        <div className="mb-8 text-center">
+          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Key className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">Restablecer Contraseña</h2>
-          <p className="text-muted-foreground">
-            Ingresa tu nueva contraseña
-          </p>
+          <h2 className="mb-2 text-2xl font-bold text-foreground">
+            Restablecer Contraseña
+          </h2>
+          <p className="text-muted-foreground">Ingresa tu nueva contraseña</p>
         </div>
 
         {error && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center space-x-3"
+            className="mb-6 flex items-center space-x-3 rounded-lg border border-destructive/20 bg-destructive/10 p-4"
           >
-            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-            <p className="text-destructive text-sm">{error}</p>
+            <AlertCircle className="h-5 w-5 flex-shrink-0 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
           </motion.div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               Nueva Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -205,10 +212,14 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="focus-ring absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600"
                 disabled={loading}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
             <div className="mt-2 text-xs text-gray-500">
@@ -217,11 +228,14 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            <label
+              htmlFor="confirmPassword"
+              className="mb-2 block text-sm font-medium text-gray-700"
+            >
               Confirmar Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <Input
                 id="confirmPassword"
                 name="confirmPassword"
@@ -236,23 +250,29 @@ export function ResetPasswordForm({ accessToken, refreshToken }: ResetPasswordFo
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="focus-ring absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600"
                 disabled={loading}
               >
-                {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showConfirmPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(to right, #10b981, #059669)' }}
+            className="flex w-full items-center justify-center space-x-2 rounded-lg px-4 py-3 font-medium text-white transition-all duration-200 hover:opacity-90 disabled:opacity-50"
+            style={{
+              background: 'linear-gradient(to right, #10b981, #059669)',
+            }}
             disabled={loading}
           >
             {loading ? (
               <div className="flex items-center justify-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                 <span>Actualizando...</span>
               </div>
             ) : (

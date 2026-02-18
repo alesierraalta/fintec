@@ -55,24 +55,25 @@ export function RateSelector() {
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="flex items-center gap-1 p-2 text-white/80 hover:text-white hover:bg-white/10 rounded-xl transition-ios focus:outline-none"
+        className="focus-ring transition-ios flex items-center gap-1 rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white"
         title="Seleccionar fuente de tasa"
       >
-
         {triggerIcon}
         <ChevronDown className="h-3 w-3 opacity-70" />
       </button>
 
       {open && (
         <>
-          <div className="absolute left-0 top-full mt-2 w-56 black-theme-card rounded-xl shadow-2xl z-50 animate-scale-in">
+          <div className="black-theme-card absolute left-0 top-full z-50 mt-2 w-56 animate-scale-in rounded-xl shadow-2xl">
             <div className="py-2">
               <button
+                type="button"
                 onClick={() => handleSelect('binance')}
-                className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-white/10 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
                   selectedRateSource === 'binance' ? 'bg-white/10' : ''
                 }`}
               >
@@ -85,8 +86,9 @@ export function RateSelector() {
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelect('bcv_usd')}
-                className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-white/10 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
                   selectedRateSource === 'bcv_usd' ? 'bg-white/10' : ''
                 }`}
               >
@@ -99,8 +101,9 @@ export function RateSelector() {
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelect('bcv_eur')}
-                className={`w-full px-3 py-2 text-left flex items-center justify-between hover:bg-white/10 ${
+                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
                   selectedRateSource === 'bcv_eur' ? 'bg-white/10' : ''
                 }`}
               >
@@ -121,4 +124,3 @@ export function RateSelector() {
 }
 
 export default RateSelector;
-

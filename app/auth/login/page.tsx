@@ -6,11 +6,29 @@ import { LoginForm } from '@/components/auth/login-form';
 import { EmailConfirmationModal } from '@/components/auth/email-confirmation-modal';
 import { useAuth } from '@/hooks/use-auth';
 
+function getInitialEmailConfirmationState() {
+  if (typeof window === 'undefined') {
+    return { show: false, email: '' };
+  }
+
+  const emailConfirmationPending = sessionStorage.getItem(
+    'emailConfirmationPending'
+  );
+  const email = sessionStorage.getItem('pendingEmail');
+
+  if (emailConfirmationPending === 'true' && email) {
+    return { show: true, email };
+  }
+
+  return { show: false, email: '' };
+}
+
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [showEmailConfirmationModal, setShowEmailConfirmationModal] = useState(false);
-  const [pendingEmail, setPendingEmail] = useState('');
+  const [emailConfirmationState, setEmailConfirmationState] = useState(
+    getInitialEmailConfirmationState
+  );
 
   useEffect(() => {
     if (!loading && user) {
@@ -21,30 +39,22 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  // Check for email confirmation pending state from registration
   useEffect(() => {
-    const emailConfirmationPending = sessionStorage.getItem('emailConfirmationPending');
-    const email = sessionStorage.getItem('pendingEmail');
-
-    if (emailConfirmationPending === 'true' && email) {
-      setPendingEmail(email);
-      setShowEmailConfirmationModal(true);
-      // Clear the sessionStorage after reading
+    if (emailConfirmationState.show) {
       sessionStorage.removeItem('emailConfirmationPending');
       sessionStorage.removeItem('pendingEmail');
     }
-  }, []);
+  }, [emailConfirmationState.show]);
 
   const handleCloseModal = () => {
-    setShowEmailConfirmationModal(false);
-    setPendingEmail('');
+    setEmailConfirmationState({ show: false, email: '' });
   };
 
   // Don't render login form if user is already authenticated
   if (loading) {
     return (
       <div className="min-h-dynamic-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -55,8 +65,8 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="flex flex-col min-h-screen p-4">
-        <div className="flex-grow flex items-center justify-center">
+      <div className="flex min-h-screen flex-col p-4">
+        <div className="flex flex-grow items-center justify-center">
           <div className="w-full max-w-md">
             <LoginForm />
           </div>
@@ -64,13 +74,10 @@ export default function LoginPage() {
       </div>
 
       <EmailConfirmationModal
-        open={showEmailConfirmationModal}
+        open={emailConfirmationState.show}
         onClose={handleCloseModal}
-        email={pendingEmail}
+        email={emailConfirmationState.email}
       />
     </>
   );
 }
-
-
-

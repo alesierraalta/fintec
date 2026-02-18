@@ -2,7 +2,12 @@
 
 import { useState } from 'react';
 import { Calendar, ChevronDown, X } from 'lucide-react';
-import { getTimePeriods, getPeriodById, formatDateForAPI, TimePeriod } from '@/lib/dates/periods';
+import {
+  getTimePeriods,
+  getPeriodById,
+  formatDateForAPI,
+  TimePeriod,
+} from '@/lib/dates/periods';
 
 interface PeriodSelectorProps {
   selectedPeriod?: string;
@@ -10,11 +15,15 @@ interface PeriodSelectorProps {
   className?: string;
 }
 
-export function PeriodSelector({ selectedPeriod, onPeriodChange, className = '' }: PeriodSelectorProps) {
+export function PeriodSelector({
+  selectedPeriod,
+  onPeriodChange,
+  className = '',
+}: PeriodSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [customRange, setCustomRange] = useState({ from: '', to: '' });
   const [showCustom, setShowCustom] = useState(false);
-  
+
   const periods = getTimePeriods();
   const activePeriod = selectedPeriod ? getPeriodById(selectedPeriod) : null;
 
@@ -30,7 +39,7 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange, className = '' 
         id: 'custom',
         label: `${customRange.from} - ${customRange.to}`,
         startDate: new Date(customRange.from),
-        endDate: new Date(customRange.to)
+        endDate: new Date(customRange.to),
       };
       onPeriodChange(customPeriod);
       setIsOpen(false);
@@ -47,23 +56,25 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange, className = '' 
     <div className={`relative ${className}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-all duration-200 ${
+        className={`focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border px-4 py-2.5 transition-all duration-200 ${
           activePeriod
-            ? 'bg-primary text-primary-foreground border-primary'
-            : 'bg-card border-border text-muted-foreground hover:text-foreground hover:border-primary'
+            ? 'border-primary bg-primary text-primary-foreground'
+            : 'border-border bg-card text-muted-foreground hover:border-primary hover:text-foreground'
         }`}
       >
         <Calendar className="h-4 w-4" />
-        <span className="text-sm font-medium">
+        <span className="text-base font-medium md:text-sm">
           {activePeriod?.label || 'Período'}
         </span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {activePeriod && (
         <button
           onClick={clearPeriod}
-          className="ml-2 p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          className="focus-ring ml-2 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
@@ -71,79 +82,97 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange, className = '' 
 
       {isOpen && (
         <>
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)} 
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setIsOpen(false)}
           />
-          <div className="absolute top-full left-0 mt-2 w-64 bg-card border border-border rounded-xl shadow-lg z-50 max-h-96 overflow-y-auto">
+          <div className="absolute left-0 top-full z-50 mt-2 max-h-96 w-64 overflow-y-auto rounded-xl border border-border bg-card shadow-lg">
             <div className="p-2">
-              <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Períodos Rápidos</div>
-              
+              <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
+                Períodos Rápidos
+              </div>
+
               {periods.slice(0, 10).map((period) => (
                 <button
                   key={period.id}
                   onClick={() => handlePeriodSelect(period)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`min-h-[44px] w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                     selectedPeriod === period.id
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {period.label}
                 </button>
               ))}
 
-              <div className="border-t border-border my-2" />
-              
-              <div className="text-xs font-medium text-muted-foreground mb-2 px-2">Últimos Días</div>
+              <div className="my-2 border-t border-border" />
+
+              <div className="mb-2 px-2 text-xs font-medium text-muted-foreground">
+                Últimos Días
+              </div>
               {periods.slice(10).map((period) => (
                 <button
                   key={period.id}
                   onClick={() => handlePeriodSelect(period)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  className={`min-h-[44px] w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                     selectedPeriod === period.id
                       ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
                   {period.label}
                 </button>
               ))}
 
-              <div className="border-t border-border my-2" />
-              
+              <div className="my-2 border-t border-border" />
+
               <button
                 onClick={() => setShowCustom(!showCustom)}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="min-h-[44px] w-full rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 📅 Rango Personalizado
               </button>
 
               {showCustom && (
-                <div className="p-3 border-t border-border">
+                <div className="border-t border-border p-3">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Desde</label>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Desde
+                      </label>
                       <input
                         type="date"
                         value={customRange.from}
-                        onChange={(e) => setCustomRange(prev => ({ ...prev, from: e.target.value }))}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e) =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            from: e.target.value,
+                          }))
+                        }
+                        className="min-h-[44px] w-full rounded-lg border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary md:text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-muted-foreground mb-1">Hasta</label>
+                      <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        Hasta
+                      </label>
                       <input
                         type="date"
                         value={customRange.to}
-                        onChange={(e) => setCustomRange(prev => ({ ...prev, to: e.target.value }))}
-                        className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                        onChange={(e) =>
+                          setCustomRange((prev) => ({
+                            ...prev,
+                            to: e.target.value,
+                          }))
+                        }
+                        className="min-h-[44px] w-full rounded-lg border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus:ring-2 focus:ring-primary md:text-sm"
                       />
                     </div>
                     <button
                       onClick={handleCustomRange}
                       disabled={!customRange.from || !customRange.to}
-                      className="w-full px-3 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/90 transition-colors"
+                      className="min-h-[44px] w-full rounded-lg bg-primary px-3 py-2 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     >
                       Aplicar Rango
                     </button>

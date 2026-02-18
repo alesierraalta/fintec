@@ -132,7 +132,9 @@ html {
 
 body {
   @apply bg-background text-foreground;
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings:
+    'rlig' 1,
+    'calt' 1;
   width: 100%;
   margin: 0;
   padding: 0;
@@ -156,19 +158,19 @@ body {
   /* Fallback a 100dvh si la variable no está disponible */
   height: var(--app-height, 100dvh);
   width: 100%;
-  overflow-y: auto;  /* Permitir scroll natural en lugar de hidden */
+  overflow-y: auto; /* Permitir scroll natural en lugar de hidden */
   overflow-x: hidden;
   position: relative;
 }
 
 /* Utility Classes */
 .glass {
-  @apply bg-white/10 backdrop-blur-md border border-white/20;
+  @apply border border-white/20 bg-white/10 backdrop-blur-md;
 }
 
 /* Foundation utilities (FinTec) */
 .transition-ios {
-  @apply transition-all duration-200 ease-out;
+  @apply transition-colors transition-shadow transition-transform duration-200 ease-out;
 }
 
 .transition-smooth {
@@ -192,11 +194,11 @@ body {
 }
 
 .hover-lift {
-  @apply transform-gpu transition-ios hover:-translate-y-0.5 active:translate-y-0;
+  @apply transform-gpu transition-transform duration-150 ease-out hover:-translate-y-px active:translate-y-0;
 }
 
 .micro-bounce {
-  @apply active:scale-[0.98];
+  @apply active:scale-[0.99];
 }
 
 .hover-glow {
@@ -204,6 +206,20 @@ body {
 }
 
 /* Animation Classes */
+@keyframes pulseWeb {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.animate-pulse {
+  animation: pulseWeb 2.4s ease-in-out infinite;
+}
+
 @keyframes slideInRight {
   from {
     transform: translateX(100%);
@@ -300,7 +316,7 @@ body {
 }
 
 /* Improve visibility of date inputs icons on iOS */
-.dark input[type="date"]::-webkit-calendar-picker-indicator {
+.dark input[type='date']::-webkit-calendar-picker-indicator {
   filter: invert(1) opacity(0.8);
 }
 
@@ -339,6 +355,7 @@ body {
   .animate-gradient,
   .animate-bounce-gentle,
   .animate-pulse-soft,
+  .animate-pulse,
   .animate-glow {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;

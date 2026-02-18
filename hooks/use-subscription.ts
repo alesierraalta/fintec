@@ -1,13 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from './use-auth';
-import { 
-  SubscriptionTier, 
-  Subscription, 
+import {
+  SubscriptionTier,
+  Subscription,
   UsageTracking,
   UsageStatus,
   Feature,
-  FEATURE_ACCESS 
+  FEATURE_ACCESS,
 } from '@/types/subscription';
 
 interface SubscriptionData {
@@ -32,33 +31,38 @@ export function useSubscription() {
 
   const fetchSubscription = useCallback(async () => {
     if (!user?.id || !session?.access_token) {
-      setData(prev => ({ ...prev, loading: false }));
+      setData((prev) => ({ ...prev, loading: false }));
       return;
     }
 
     try {
-      setData(prev => ({ ...prev, loading: true, error: null }));
+      setData((prev) => ({ ...prev, loading: true, error: null }));
 
       // Add cache-busting to ensure fresh data
       const cacheBuster = `t=${Date.now()}`;
-      const response = await fetch(`/api/subscription/status?userId=${user.id}&${cacheBuster}`, {
-        cache: 'no-store',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-      
+      const response = await fetch(
+        `/api/subscription/status?userId=${user.id}&${cacheBuster}`,
+        {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
       if (!response.ok) {
         throw new Error('Failed to fetch subscription');
       }
 
-
       const result = await response.json();
 
       // Log tier detection for debugging
-      if (result.tier !== 'premium' && user?.email === 'alesierraalta@gmail.com') {
+      if (
+        result.tier !== 'premium' &&
+        user?.email === 'alesierraalta@gmail.com'
+      ) {
         console.warn('[useSubscription] Tier mismatch detected:', {
           userId: user.id,
           returnedTier: result.tier,
@@ -75,18 +79,17 @@ export function useSubscription() {
         error: null,
       });
     } catch (error: any) {
-      setData(prev => ({
+      setData((prev) => ({
         ...prev,
         loading: false,
         error: error.message || 'Error loading subscription',
       }));
     }
-  }, [user?.id, session?.access_token]);
+  }, [user?.id, user?.email, session?.access_token]);
 
   useEffect(() => {
     fetchSubscription();
   }, [fetchSubscription]);
-
 
   // Refresh subscription on window focus (in case tier changed in another tab)
   useEffect(() => {
@@ -99,33 +102,30 @@ export function useSubscription() {
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
   }, [user?.id, fetchSubscription]);
+  const hasFeature = useCallback(
+    (feature: Feature): boolean => {
+      return FEATURE_ACCESS[data.tier]?.includes(feature) || false;
+    },
+    [data.tier]
+  );
 
-  // Force refresh subscription data when component mounts (clear any stale cache)
-  useEffect(() => {
-    if (user?.id) {
-      // Small delay to ensure auth is ready
-      const timer = setTimeout(() => {
-        fetchSubscription();
-      }, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [user?.id]); // Only depend on user.id, not fetchSubscription to avoid loops
+  const isApproachingLimit = useCallback(
+    (resource: keyof UsageStatus): boolean => {
+      if (!data.usageStatus) return false;
+      const status = data.usageStatus[resource];
+      return status.percentage >= 80;
+    },
+    [data.usageStatus]
+  );
 
-  const hasFeature = useCallback((feature: Feature): boolean => {
-    return FEATURE_ACCESS[data.tier]?.includes(feature) || false;
-  }, [data.tier]);
-
-  const isApproachingLimit = useCallback((resource: keyof UsageStatus): boolean => {
-    if (!data.usageStatus) return false;
-    const status = data.usageStatus[resource];
-    return status.percentage >= 80;
-  }, [data.usageStatus]);
-
-  const isAtLimit = useCallback((resource: keyof UsageStatus): boolean => {
-    if (!data.usageStatus) return false;
-    const status = data.usageStatus[resource];
-    return status.percentage >= 100;
-  }, [data.usageStatus]);
+  const isAtLimit = useCallback(
+    (resource: keyof UsageStatus): boolean => {
+      if (!data.usageStatus) return false;
+      const status = data.usageStatus[resource];
+      return status.percentage >= 100;
+    },
+    [data.usageStatus]
+  );
 
   const canUpgrade = data.tier !== 'premium';
   const isPremium = data.tier === 'premium';
@@ -155,7 +155,7 @@ export function useUpgrade() {
 
   const upgrade = useCallback(async (tier: 'base' | 'premium') => {
     // Checkout is currently disabled.
-    alert("Please contact support to upgrade your plan.");
+    alert('Please contact support to upgrade your plan.');
     return null;
   }, []);
 
@@ -176,7 +176,7 @@ export function useManageSubscription() {
 
   const openPortal = useCallback(async () => {
     // Portal is currently disabled.
-    alert("Please contact support to manage your subscription.");
+    alert('Please contact support to manage your subscription.');
   }, []);
 
   return {
@@ -185,5 +185,3 @@ export function useManageSubscription() {
     error,
   };
 }
-
-

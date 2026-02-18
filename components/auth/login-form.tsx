@@ -12,37 +12,50 @@ interface LoginFormProps {
   onSuccess?: () => void;
 }
 
+interface EmailConfirmationMessage {
+  show: boolean;
+  email: string;
+}
+
+function getInitialEmailConfirmationMessage(): EmailConfirmationMessage | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const isPending = sessionStorage.getItem('emailConfirmationPending');
+  const pendingEmail = sessionStorage.getItem('pendingEmail');
+
+  if (isPending === 'true' && pendingEmail) {
+    return {
+      show: true,
+      email: pendingEmail,
+    };
+  }
+
+  return null;
+}
+
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter();
   const { signIn, authError, clearAuthError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [emailConfirmationMessage, setEmailConfirmationMessage] = useState<{
-    show: boolean;
-    email: string;
-  } | null>(null);
+  const [emailConfirmationMessage] = useState<EmailConfirmationMessage | null>(
+    getInitialEmailConfirmationMessage
+  );
 
   useEffect(() => {
-    // Check if user was just redirected from registration
-    const isPending = sessionStorage.getItem('emailConfirmationPending');
-    const pendingEmail = sessionStorage.getItem('pendingEmail');
-
-    if (isPending === 'true' && pendingEmail) {
-      setEmailConfirmationMessage({
-        show: true,
-        email: pendingEmail
-      });
-      // Clear session storage after reading
+    if (emailConfirmationMessage?.show) {
       sessionStorage.removeItem('emailConfirmationPending');
       sessionStorage.removeItem('pendingEmail');
     }
-  }, []);
+  }, [emailConfirmationMessage?.show]);
 
   // Auto-scroll global para inputs en móvil (ahora usando hook reutilizable)
   useMobileInputAutoScroll();
@@ -60,7 +73,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
 
     try {
-      const result = await signIn(formData.email, formData.password, rememberMe);
+      const result = await signIn(
+        formData.email,
+        formData.password,
+        rememberMe
+      );
 
       if (!result.error) {
         setLoading(false);
@@ -76,7 +93,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
     // Clear error when user starts typing
     if (authError) clearAuthError();
   };
@@ -86,48 +103,50 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      className="mx-auto w-full max-w-md"
     >
-      <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
-        <div className="text-center mb-8">
+      <div className="rounded-3xl border border-border bg-card p-8 shadow-2xl">
+        <div className="mb-8 text-center">
           <motion.div
-            className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-2xl mb-4 shadow-lg"
+            className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 shadow-lg"
             whileHover={{ scale: 1.05, rotate: 5 }}
-            transition={{ type: "spring", stiffness: 400 }}
+            transition={{ type: 'spring', stiffness: 400 }}
           >
             <LogIn className="h-8 w-8 text-primary" />
           </motion.div>
-          <h2 className="text-3xl font-bold text-foreground mb-2 text-primary">
+          <h2 className="mb-2 text-3xl font-bold text-foreground text-primary">
             Iniciar Sesión
           </h2>
-          <p className="text-muted-foreground">Accede a tu cuenta para continuar</p>
+          <p className="text-muted-foreground">
+            Accede a tu cuenta para continuar
+          </p>
         </div>
 
         {emailConfirmationMessage?.show && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mb-6 p-6 bg-primary/10 border-2 border-primary/20 rounded-2xl"
+            className="mb-6 rounded-2xl border-2 border-primary/20 bg-primary/10 p-6"
           >
             <div className="flex items-start space-x-4">
               <div className="flex-shrink-0">
                 <Mail className="h-8 w-8 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-primary mb-2">
+                <h3 className="mb-2 text-lg font-bold text-primary">
                   📧 ¡Verifica tu correo electrónico!
                 </h3>
-                <p className="text-primary/80 mb-3">
+                <p className="mb-3 text-primary/80">
                   Hemos enviado un correo de confirmación a:
                 </p>
-                <p className="text-primary font-semibold mb-3 bg-card px-3 py-2 rounded-lg">
+                <p className="mb-3 rounded-lg bg-card px-3 py-2 font-semibold text-primary">
                   {emailConfirmationMessage.email}
                 </p>
                 <div className="space-y-2 text-sm text-primary/70">
                   <p>✅ Revisa tu bandeja de entrada</p>
                   <p>✅ Verifica la carpeta de spam si no lo encuentras</p>
                   <p>✅ Haz clic en el enlace de verificación</p>
-                  <p className="font-medium mt-3 text-primary">
+                  <p className="mt-3 font-medium text-primary">
                     ⚠️ No podrás iniciar sesión hasta que confirmes tu email
                   </p>
                 </div>
@@ -140,32 +159,43 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-5 bg-destructive/10 border-2 border-destructive/20 rounded-xl"
+            className="mb-6 rounded-xl border-2 border-destructive/20 bg-destructive/10 p-5"
           >
             <div className="flex items-start space-x-3">
-              <AlertCircle className="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
+              <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-destructive" />
               <div className="flex-1">
-                <p className="text-destructive font-semibold mb-2">{authError}</p>
-                {authError.includes('confirmado') || authError.includes('verificar') || authError.includes('Email') ? (
-                  <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-                    <p className="text-primary text-sm font-medium mb-2">
+                <p className="mb-2 font-semibold text-destructive">
+                  {authError}
+                </p>
+                {authError.includes('confirmado') ||
+                authError.includes('verificar') ||
+                authError.includes('Email') ? (
+                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
+                    <p className="mb-2 text-sm font-medium text-primary">
                       📧 ¿No recibiste el correo de verificación?
                     </p>
-                    <ul className="text-primary/80 text-sm space-y-1 pl-4">
+                    <ul className="space-y-1 pl-4 text-sm text-primary/80">
                       <li>• Revisa tu carpeta de spam</li>
                       <li>• Espera unos minutos y recarga tu bandeja</li>
-                      <li>• Verifica que escribiste bien tu email al registrarte</li>
+                      <li>
+                        • Verifica que escribiste bien tu email al registrarte
+                      </li>
                     </ul>
                   </div>
                 ) : (
-                  <div className="mt-3 p-3 bg-warning/10 border border-warning/20 rounded-lg">
-                    <p className="text-warning text-sm font-medium mb-2">
+                  <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
+                    <p className="mb-2 text-sm font-medium text-warning">
                       🔍 ¿Problemas para iniciar sesión?
                     </p>
-                    <ul className="text-warning/80 text-sm space-y-1 pl-4">
-                      <li>• Verifica que tu email y contraseña sean correctos</li>
+                    <ul className="space-y-1 pl-4 text-sm text-warning/80">
+                      <li>
+                        • Verifica que tu email y contraseña sean correctos
+                      </li>
                       <li>• Asegúrate de que tu cuenta esté verificada</li>
-                      <li>• Si olvidaste tu contraseña, usa &quot;¿Olvidaste tu contraseña?&quot;</li>
+                      <li>
+                        • Si olvidaste tu contraseña, usa &quot;¿Olvidaste tu
+                        contraseña?&quot;
+                      </li>
                     </ul>
                   </div>
                 )}
@@ -176,11 +206,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
+            <label
+              htmlFor="email"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               Email
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <Input
                 id="email"
                 name="email"
@@ -198,11 +231,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-foreground"
+            >
               Contraseña
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
               <Input
                 id="password"
                 name="password"
@@ -219,10 +255,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                className="focus-ring absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
                 disabled={loading}
               >
-                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                {showPassword ? (
+                  <EyeOff className="h-5 w-5" />
+                ) : (
+                  <Eye className="h-5 w-5" />
+                )}
               </button>
             </div>
           </div>
@@ -237,7 +277,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               />
               <label
                 htmlFor="remember-me"
-                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                className="cursor-pointer text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
               >
                 Recordar sesión
               </label>
@@ -245,7 +285,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             <button
               type="button"
               onClick={() => router.push('/auth/forgot-password')}
-              className="text-sm text-primary hover:text-primary/80 font-medium"
+              className="text-sm font-medium text-primary hover:text-primary/80"
               disabled={loading}
             >
               ¿Olvidaste tu contraseña?
@@ -270,7 +310,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             ¿No tienes cuenta?{' '}
             <button
               onClick={() => router.push('/auth/register')}
-              className="text-primary font-semibold hover:text-primary/80 transition-all"
+              className="font-semibold text-primary transition-all hover:text-primary/80"
               disabled={loading}
             >
               Regístrate aquí
@@ -281,5 +321,3 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     </motion.div>
   );
 }
-
-

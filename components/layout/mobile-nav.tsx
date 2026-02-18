@@ -10,7 +10,7 @@ import {
   ArrowRightLeft,
   PieChart,
   Target,
-  Plus
+  Plus,
 } from 'lucide-react';
 import { useSidebar } from '@/contexts/sidebar-context';
 
@@ -30,36 +30,40 @@ export function MobileNav() {
   if (!isMobile) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 bg-background-primary/95 backdrop-blur-lg border-t border-border-primary/30 lg:hidden">
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border-primary/30 bg-background-primary/95 backdrop-blur-lg lg:hidden">
       {/* Safe area for iOS */}
-      <div className="pb-safe">
-        <div className="flex items-center justify-around px-1 py-1 overflow-hidden">
+      <div className="pb-safe-bottom">
+        <div className="flex items-center justify-around overflow-hidden px-1 py-1">
           {mobileNavigation.map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link
                 key={item.name}
                 href={item.href}
-                prefetch={false}
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col items-center px-1 py-3 rounded-2xl transition-all duration-200 min-w-0 flex-1 mx-0.5 relative',
+                  'focus-ring relative mx-0.5 flex min-h-[48px] min-w-0 flex-1 flex-col items-center rounded-2xl px-1 py-3 transition-all duration-200',
                   isActive
-                    ? 'text-accent-primary'
-                    : 'text-text-muted active:text-text-primary active:scale-95'
+                    ? 'text-primary'
+                    : 'text-text-muted active:scale-95 active:text-text-primary'
                 )}
               >
                 {/* iOS-like active indicator */}
                 {isActive && (
-                  <div className="absolute inset-0 bg-accent-primary/15 rounded-2xl" />
+                  <div className="absolute inset-0 rounded-2xl bg-primary/15" />
                 )}
-                <item.icon className={cn(
-                  "h-6 w-6 mb-1 relative z-10",
-                  isActive && "drop-shadow-sm"
-                )} />
-                <span className={cn(
-                  "text-xs font-medium truncate relative z-10 text-center",
-                  isActive && "font-semibold"
-                )}>
+                <item.icon
+                  className={cn(
+                    'relative z-10 mb-1 h-6 w-6',
+                    isActive && 'drop-shadow-sm'
+                  )}
+                />
+                <span
+                  className={cn(
+                    'relative z-10 truncate text-center text-xs font-medium',
+                    isActive && 'font-semibold'
+                  )}
+                >
                   {item.name}
                 </span>
               </Link>

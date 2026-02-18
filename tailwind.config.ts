@@ -9,11 +9,11 @@ const config: Config = {
   darkMode: 'class',
   theme: {
     screens: {
-      'xs': '475px',
-      'sm': '640px',
-      'md': '768px',
-      'lg': '1024px',
-      'xl': '1280px',
+      xs: '475px',
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
       '2xl': '1536px',
     },
     extend: {
@@ -129,36 +129,63 @@ const config: Config = {
         'background-primary': 'hsl(var(--background) / <alpha-value>)',
         'background-secondary': 'hsl(var(--secondary) / <alpha-value>)',
         'background-tertiary': 'hsl(var(--muted) / <alpha-value>)',
+        'background-elevated': 'hsl(var(--card) / <alpha-value>)',
         'text-primary': 'hsl(var(--foreground) / <alpha-value>)',
+        'text-secondary': 'hsl(var(--foreground) / 0.85)',
         'text-muted': 'hsl(var(--muted-foreground) / <alpha-value>)',
         'border-primary': 'hsl(var(--border) / <alpha-value>)',
+        'border-secondary': 'hsl(var(--border) / 0.6)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
       },
       fontSize: {
-        'display-2xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.05em' }],
+        'display-2xl': [
+          '4.5rem',
+          { lineHeight: '1', letterSpacing: '-0.05em' },
+        ],
         'display-xl': ['4.5rem', { lineHeight: '1', letterSpacing: '-0.05em' }],
-        'display-lg': ['3.75rem', { lineHeight: '1', letterSpacing: '-0.025em' }],
-        'display-md': ['3rem', { lineHeight: '1.25', letterSpacing: '-0.025em' }],
+        'display-lg': [
+          '3.75rem',
+          { lineHeight: '1', letterSpacing: '-0.025em' },
+        ],
+        'display-md': [
+          '3rem',
+          { lineHeight: '1.25', letterSpacing: '-0.025em' },
+        ],
         'display-sm': ['2.25rem', { lineHeight: '1.25', letterSpacing: '0em' }],
 
         // iOS-like typography tokens (used as `text-ios-*`)
-        'ios-large-title': ['2rem', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
-        'ios-title': ['1.5rem', { lineHeight: '1.25', letterSpacing: '-0.01em' }],
-        'ios-headline': ['1.125rem', { lineHeight: '1.3', letterSpacing: '-0.005em' }],
+        'ios-large-title': [
+          '2rem',
+          { lineHeight: '1.2', letterSpacing: '-0.01em' },
+        ],
+        'ios-title': [
+          '1.5rem',
+          { lineHeight: '1.25', letterSpacing: '-0.01em' },
+        ],
+        'ios-headline': [
+          '1.125rem',
+          { lineHeight: '1.3', letterSpacing: '-0.005em' },
+        ],
         'ios-body': ['1rem', { lineHeight: '1.5', letterSpacing: '0em' }],
-        'ios-caption': ['0.875rem', { lineHeight: '1.4', letterSpacing: '0em' }],
-        'ios-footnote': ['0.75rem', { lineHeight: '1.35', letterSpacing: '0em' }],
+        'ios-caption': [
+          '0.875rem',
+          { lineHeight: '1.4', letterSpacing: '0em' },
+        ],
+        'ios-footnote': [
+          '0.75rem',
+          { lineHeight: '1.35', letterSpacing: '0em' },
+        ],
       },
       letterSpacing: {
-        'tighter': '-0.05em',
-        'tight': '-0.025em',
-        'normal': '0em',
-        'wide': '0.025em',
-        'wider': '0.05em',
-        'widest': '0.1em',
+        tighter: '-0.05em',
+        tight: '-0.025em',
+        normal: '0em',
+        wide: '0.025em',
+        wider: '0.05em',
+        widest: '0.1em',
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',
@@ -168,33 +195,38 @@ const config: Config = {
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
-        'hero-gradient': 'linear-gradient(135deg, hsl(var(--primary) / 1) 0%, hsl(var(--accent) / 1) 100%)',
-        'card-gradient': 'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
+        'gradient-conic':
+          'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'hero-gradient':
+          'linear-gradient(135deg, hsl(var(--primary) / 1) 0%, hsl(var(--accent) / 1) 100%)',
+        'card-gradient':
+          'linear-gradient(145deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
       },
       boxShadow: {
-        'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-        'medium': '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        'strong': '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 25px -5px rgba(0, 0, 0, 0.1)',
-        'glow': '0 0 20px rgba(59, 130, 246, 0.15)',
+        soft: '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
+        medium:
+          '0 4px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+        strong:
+          '0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 25px -5px rgba(0, 0, 0, 0.1)',
+        glow: '0 0 20px rgba(59, 130, 246, 0.15)',
         'accent-glow': '0 0 20px rgba(168, 85, 247, 0.15)',
 
         // iOS-like shadows (used as `shadow-ios-*`)
-        'ios': '0 10px 24px rgba(0, 0, 0, 0.28)',
+        ios: '0 10px 24px rgba(0, 0, 0, 0.28)',
         'ios-sm': '0 4px 12px rgba(0, 0, 0, 0.22)',
         'ios-md': '0 10px 24px rgba(0, 0, 0, 0.28)',
         'ios-lg': '0 18px 40px rgba(0, 0, 0, 0.35)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.5s ease-in-out',
-        'fade-in-up': 'fadeInUp 0.35s ease-out',
-        'slide-up': 'slideUp 0.3s ease-out',
-        'scale-in': 'scaleIn 0.15s ease-out',
-        'bounce-gentle': 'bounceGentle 2s infinite',
-        'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'gradient': 'gradient 3s ease infinite',
-        'wiggle': 'wiggle 0.2s ease-in-out',
+        'fade-in': 'fadeIn 0.35s ease-out',
+        'fade-in-up': 'fadeInUp 0.24s ease-out',
+        'slide-up': 'slideUp 0.22s ease-out',
+        'scale-in': 'scaleIn 0.12s ease-out',
+        'bounce-gentle': 'bounceGentle 2.4s ease-in-out infinite',
+        'pulse-soft': 'pulseSoft 2.6s ease-in-out infinite',
+        glow: 'glow 2.4s ease-in-out infinite alternate',
+        gradient: 'gradient 4s ease infinite',
+        wiggle: 'wiggle 0.18s ease-in-out',
       },
       keyframes: {
         fadeIn: {
@@ -202,11 +234,11 @@ const config: Config = {
           '100%': { opacity: '1' },
         },
         fadeInUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '0%': { transform: 'translateY(6px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         slideUp: {
-          '0%': { transform: 'translateY(10px)', opacity: '0' },
+          '0%': { transform: 'translateY(6px)', opacity: '0' },
           '100%': { transform: 'translateY(0)', opacity: '1' },
         },
         scaleIn: {
@@ -214,12 +246,12 @@ const config: Config = {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
         bounceGentle: {
-          '0%, 100%': { transform: 'translateY(-5%)' },
+          '0%, 100%': { transform: 'translateY(-2%)' },
           '50%': { transform: 'translateY(0)' },
         },
         pulseSoft: {
           '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.8' },
+          '50%': { opacity: '0.92' },
         },
         glow: {
           '0%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.1)' },
@@ -231,8 +263,8 @@ const config: Config = {
         },
         wiggle: {
           '0%, 100%': { transform: 'translateX(0)' },
-          '25%': { transform: 'translateX(-2px)' },
-          '75%': { transform: 'translateX(2px)' },
+          '25%': { transform: 'translateX(-1px)' },
+          '75%': { transform: 'translateX(1px)' },
         },
       },
     },

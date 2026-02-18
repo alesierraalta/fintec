@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
 export interface TutorialStep {
   id: string;
@@ -25,17 +25,18 @@ export function useTutorial() {
   const [isActive, setIsActive] = useState(false);
   const [currentTutorial, setCurrentTutorial] = useState<Tutorial | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
-  const [completedTutorials, setCompletedTutorials] = useState<string[]>([]);
-
-  // Load completed tutorials from localStorage (optimized)
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) setCompletedTutorials(JSON.parse(saved));
-    } catch {
-      // Silent fail - invalid JSON
+  const [completedTutorials, setCompletedTutorials] = useState<string[]>(() => {
+    if (typeof window === 'undefined') {
+      return [];
     }
-  }, []);
+
+    try {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   // Optimized save function
   const saveCompleted = useCallback((tutorials: string[]) => {
@@ -44,12 +45,16 @@ export function useTutorial() {
   }, []);
 
   // Memoized helpers
-  const isTutorialCompleted = useCallback((id: string) => 
-    completedTutorials.includes(id), [completedTutorials]);
+  const isTutorialCompleted = useCallback(
+    (id: string) => completedTutorials.includes(id),
+    [completedTutorials]
+  );
 
-  const getCurrentStep = useMemo(() => 
-    isActive && currentTutorial ? currentTutorial.steps[currentStep] : null, 
-    [isActive, currentTutorial, currentStep]);
+  const getCurrentStep = useMemo(
+    () =>
+      isActive && currentTutorial ? currentTutorial.steps[currentStep] : null,
+    [isActive, currentTutorial, currentStep]
+  );
 
   const getProgress = useMemo(() => {
     if (!currentTutorial) return { current: 0, total: 0, percentage: 0 };
@@ -59,18 +64,21 @@ export function useTutorial() {
   }, [currentTutorial, currentStep]);
 
   // Actions
-  const startTutorial = useCallback((tutorial: Tutorial, force = false) => {
-    if (!force && isTutorialCompleted(tutorial.id)) return false;
-    setCurrentTutorial(tutorial);
-    setCurrentStep(0);
-    setIsActive(true);
-    return true;
-  }, [isTutorialCompleted]);
+  const startTutorial = useCallback(
+    (tutorial: Tutorial, force = false) => {
+      if (!force && isTutorialCompleted(tutorial.id)) return false;
+      setCurrentTutorial(tutorial);
+      setCurrentStep(0);
+      setIsActive(true);
+      return true;
+    },
+    [isTutorialCompleted]
+  );
 
   const nextStep = useCallback(() => {
     if (!currentTutorial) return;
     if (currentStep < currentTutorial.steps.length - 1) {
-      setCurrentStep(prev => prev + 1);
+      setCurrentStep((prev) => prev + 1);
     } else {
       const newCompleted = [...completedTutorials, currentTutorial.id];
       saveCompleted(newCompleted);
@@ -81,7 +89,7 @@ export function useTutorial() {
   }, [currentTutorial, currentStep, completedTutorials, saveCompleted]);
 
   const previousStep = useCallback(() => {
-    if (currentStep > 0) setCurrentStep(prev => prev - 1);
+    if (currentStep > 0) setCurrentStep((prev) => prev - 1);
   }, [currentStep]);
 
   const closeTutorial = useCallback(() => {
@@ -97,10 +105,15 @@ export function useTutorial() {
     closeTutorial();
   }, [currentTutorial, completedTutorials, saveCompleted, closeTutorial]);
 
-  const resetTutorial = useCallback((id: string) => {
-    const newCompleted = completedTutorials.filter(tutorialId => tutorialId !== id);
-    saveCompleted(newCompleted);
-  }, [completedTutorials, saveCompleted]);
+  const resetTutorial = useCallback(
+    (id: string) => {
+      const newCompleted = completedTutorials.filter(
+        (tutorialId) => tutorialId !== id
+      );
+      saveCompleted(newCompleted);
+    },
+    [completedTutorials, saveCompleted]
+  );
 
   return {
     isActive,

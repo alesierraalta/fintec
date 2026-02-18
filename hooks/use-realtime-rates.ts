@@ -17,7 +17,7 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
   const [rates, setRates] = useState<ExchangeRateData | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socketRef = useRef<Socket | null>(null);
 
   // Debounce refs
   const lastUpdateRef = useRef<number>(0);
@@ -51,7 +51,9 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
   }, []);
 
   useEffect(() => {
-    const newSocket = io(process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001');
+    const newSocket = io(
+      process.env.NEXT_PUBLIC_WEBSOCKET_URL || 'http://localhost:3001'
+    );
 
     newSocket.on('connect', () => {
       setIsConnected(true);
@@ -74,7 +76,7 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
       setIsConnected(false);
     });
 
-    setSocket(newSocket);
+    socketRef.current = newSocket;
 
     // * Optimization: Disconnect socket when tab is not visible to save battery/data
     const handleVisibilityChange = () => {
@@ -95,20 +97,24 @@ export function useRealtimeRates(): UseRealtimeRatesReturn {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
+      socketRef.current = null;
     };
   }, [debouncedSetRates]);
 
   const requestLatestRates = useCallback(() => {
-    if (socket && isConnected) {
-      socket.emit('request-latest-rates');
+    if (socketRef.current && isConnected) {
+      socketRef.current.emit('request-latest-rates');
     }
-  }, [socket, isConnected]);
+  }, [isConnected]);
 
   // Memoize return value
-  return useMemo(() => ({
-    rates,
-    isConnected,
-    error,
-    requestLatestRates
-  }), [rates, isConnected, error, requestLatestRates]);
+  return useMemo(
+    () => ({
+      rates,
+      isConnected,
+      error,
+      requestLatestRates,
+    }),
+    [rates, isConnected, error, requestLatestRates]
+  );
 }

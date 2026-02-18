@@ -1,18 +1,26 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, memo, Suspense, useRef, useDeferredValue } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  memo,
+  useRef,
+  useDeferredValue,
+  Suspense,
+} from 'react';
+import dynamic from 'next/dynamic';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { AuthGuard } from '@/components/auth/auth-guard';
-import { TransactionForm } from '@/components/forms';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
 import { TransactionDetailPanel } from '@/components/transactions/transaction-detail-panel';
 import { Button } from '@/components/ui';
 import { useModal, useMediaQuery } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
-import { useRepository } from '@/providers';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
@@ -26,61 +34,81 @@ import {
   Trash2,
   Sparkles,
   Filter,
-  Edit
+  Edit,
 } from 'lucide-react';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { SwipeableCard } from '@/components/ui/swipeable-card';
 import { EmptyState } from '@/components/ui/empty-state';
+import { toast } from 'sonner';
+
+const TransactionForm = dynamic(
+  () =>
+    import('@/components/forms/transaction-form').then(
+      (mod) => mod.TransactionForm
+    ),
+  { loading: () => <FormLoading />, ssr: false }
+);
 
 const ITEMS_PER_PAGE = 50;
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
-  'USD': '$',
-  'VES': 'Bs.',
-  'EUR': '€',
-  'GBP': '£',
-  'JPY': '¥',
-  'CAD': 'C$',
-  'AUD': 'A$',
-  'BRL': 'R$',
-  'PEN': 'S/',
-  'MXN': 'MX$',
-  'ARS': 'AR$',
-  'COP': 'CO$',
-  'CLP': 'CL$',
+  USD: '$',
+  VES: 'Bs.',
+  EUR: '€',
+  GBP: '£',
+  JPY: '¥',
+  CAD: 'C$',
+  AUD: 'A$',
+  BRL: 'R$',
+  PEN: 'S/',
+  MXN: 'MX$',
+  ARS: 'AR$',
+  COP: 'CO$',
+  CLP: 'CL$',
 };
 
 export default function TransactionsPage() {
   // Detail panel state
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
   const [detailPanelOpen, setDetailPanelOpen] = useState(false);
-  const [selectedDetailTransaction, setSelectedDetailTransaction] = useState<Transaction | null>(null);
+  const [selectedDetailTransaction, setSelectedDetailTransaction] =
+    useState<Transaction | null>(null);
   const router = useRouter();
   const { isOpen, openModal, closeModal } = useModal();
-  const repository = useRepository();
-  const { transactions, accounts, categories, loading, loadAllData, deleteTransaction } = useOptimizedData();
+  const {
+    transactions,
+    accounts,
+    categories,
+    loading,
+    loadAllData,
+    deleteTransaction,
+  } = useOptimizedData();
   const { convert, convertToUSD } = useCurrencyConverter();
   const activeUsdVes = useActiveUsdVesRate();
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
 
-  const convertMinorToUSDSelected = useCallback((amountMinor: number, currencyCode: string) => {
-    if (!amountMinor || !isFinite(amountMinor)) return 0;
-    const amount = amountMinor / 100;
-    if (currencyCode === 'USD') return amount;
-    if (currencyCode === 'VES') {
-      return activeUsdVes > 0 ? amount / activeUsdVes : 0;
-    }
-    // Fallback for other currencies to existing converter
-    return convertToUSD(amountMinor, currencyCode);
-  }, [activeUsdVes, convertToUSD]);
+  const convertMinorToUSDSelected = useCallback(
+    (amountMinor: number, currencyCode: string) => {
+      if (!amountMinor || !isFinite(amountMinor)) return 0;
+      const amount = amountMinor / 100;
+      if (currencyCode === 'USD') return amount;
+      if (currencyCode === 'VES') {
+        return activeUsdVes > 0 ? amount / activeUsdVes : 0;
+      }
+      // Fallback for other currencies to existing converter
+      return convertToUSD(amountMinor, currencyCode);
+    },
+    [activeUsdVes, convertToUSD]
+  );
 
   // Load data on component mount
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
 
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
   const [filters, setFilters] = useState<{
     search?: string;
     type?: TransactionType;
@@ -95,7 +123,8 @@ export default function TransactionsPage() {
   }>({});
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  const [transactionToDelete, setTransactionToDelete] =
+    useState<Transaction | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   const handleDeleteClick = (transaction: Transaction) => {
@@ -115,33 +144,34 @@ export default function TransactionsPage() {
     // Apply search filter
     if (filters.search) {
       const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(t =>
-        t.description?.toLowerCase().includes(searchTerm) ||
-        t.note?.toLowerCase().includes(searchTerm)
+      filtered = filtered.filter(
+        (t) =>
+          t.description?.toLowerCase().includes(searchTerm) ||
+          t.note?.toLowerCase().includes(searchTerm)
       );
     }
 
     // Apply account filter
     if (filters.accountId) {
-      filtered = filtered.filter(t => t.accountId === filters.accountId);
+      filtered = filtered.filter((t) => t.accountId === filters.accountId);
     }
 
     // Apply category filter
     if (filters.categoryId) {
-      filtered = filtered.filter(t => t.categoryId === filters.categoryId);
+      filtered = filtered.filter((t) => t.categoryId === filters.categoryId);
     }
 
     // Apply type filter
     if (filters.type) {
-      filtered = filtered.filter(t => t.type === filters.type);
+      filtered = filtered.filter((t) => t.type === filters.type);
     }
 
     // Apply date range filter
     if (filters.dateFrom || filters.dateTo) {
-      filtered = filtered.filter(t => {
+      filtered = filtered.filter((t) => {
         // * Optimize date comparison: Compare strings directly (YYYY-MM-DD is sortable)
         // instead of creating Date objects for every item
-        const transactionDate = t.date; 
+        const transactionDate = t.date;
         const fromDate = filters.dateFrom;
         const toDate = filters.dateTo;
 
@@ -154,20 +184,23 @@ export default function TransactionsPage() {
     // Apply amount filters
     if (filters.amountMin) {
       const minAmount = parseFloat(filters.amountMin) * 100;
-      filtered = filtered.filter(t => Math.abs(t.amountMinor) >= minAmount);
+      filtered = filtered.filter((t) => Math.abs(t.amountMinor) >= minAmount);
     }
 
     if (filters.amountMax) {
       const maxAmount = parseFloat(filters.amountMax) * 100;
-      filtered = filtered.filter(t => Math.abs(t.amountMinor) <= maxAmount);
+      filtered = filtered.filter((t) => Math.abs(t.amountMinor) <= maxAmount);
     }
 
     // Apply tags filter
     if (filters.tags) {
-      const tags = filters.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean);
+      const tags = filters.tags
+        .split(',')
+        .map((tag: string) => tag.trim())
+        .filter(Boolean);
       if (tags.length > 0) {
-        filtered = filtered.filter(t =>
-          t.tags?.some(tag => tags.includes(tag))
+        filtered = filtered.filter((t) =>
+          t.tags?.some((tag) => tags.includes(tag))
         );
       }
     }
@@ -196,7 +229,9 @@ export default function TransactionsPage() {
 
   // * Use deferred value for the filtered list to keep UI responsive during heavy filtering
   // This allows the browser to prioritize input updates (typing) over list rendering
-  const deferredFilteredTransactions = useDeferredValue(filteredTransactionsMemo);
+  const deferredFilteredTransactions = useDeferredValue(
+    filteredTransactionsMemo
+  );
 
   // Visible transactions for virtual pagination
   // * Derived from deferred list
@@ -207,14 +242,19 @@ export default function TransactionsPage() {
 
   // Load more function for infinite scroll
   const loadMore = useCallback(() => {
-    setDisplayedCount(prev => Math.min(prev + ITEMS_PER_PAGE, filteredTransactionsMemo.length));
+    setDisplayedCount((prev) =>
+      Math.min(prev + ITEMS_PER_PAGE, filteredTransactionsMemo.length)
+    );
   }, [filteredTransactionsMemo.length]);
 
   // Intersection Observer for infinite scroll
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && displayedCount < filteredTransactionsMemo.length) {
+        if (
+          entries[0].isIntersecting &&
+          displayedCount < filteredTransactionsMemo.length
+        ) {
           loadMore();
         }
       },
@@ -233,12 +273,14 @@ export default function TransactionsPage() {
   }, [filters]);
 
   // Helper functions memoized
-  const getAccountName = useCallback((id?: string) =>
-    accounts.find(a => a.id === id)?.name || 'Cuenta', [accounts]
+  const getAccountName = useCallback(
+    (id?: string) => accounts.find((a) => a.id === id)?.name || 'Cuenta',
+    [accounts]
   );
 
-  const getCategoryName = useCallback((id?: string) =>
-    categories.find(c => c.id === id)?.name || 'Categoría', [categories]
+  const getCategoryName = useCallback(
+    (id?: string) => categories.find((c) => c.id === id)?.name || 'Categoría',
+    [categories]
   );
 
   const formatAmount = useCallback((minor: number) => {
@@ -258,14 +300,29 @@ export default function TransactionsPage() {
   }, []);
 
   // Optimized sorting handler
-  const sortTransactions = useCallback((sortBy: string) => {
-    setFilters(prev => ({ ...prev, sortBy }));
-  }, [setFilters]);
+  const sortTransactions = useCallback(
+    (sortBy: string) => {
+      setFilters((prev) => ({ ...prev, sortBy }));
+    },
+    [setFilters]
+  );
 
-  const handleNewTransaction = useCallback(() => router.push('/transactions/add'), [router]);
+  const handleNewTransaction = useCallback(
+    () => router.push('/transactions/add'),
+    [router]
+  );
 
-  const handleEditTransaction = useCallback((t: Transaction) => { setSelectedTransaction(t); openModal(); }, [openModal]);
-  const handleDeleteTransaction = useCallback((t: Transaction) => { setTransactionToDelete(t); setShowDeleteModal(true); }, []);
+  const handleEditTransaction = useCallback(
+    (t: Transaction) => {
+      setSelectedTransaction(t);
+      openModal();
+    },
+    [openModal]
+  );
+  const handleDeleteTransaction = useCallback((t: Transaction) => {
+    setTransactionToDelete(t);
+    setShowDeleteModal(true);
+  }, []);
 
   const confirmDelete = useCallback(async () => {
     if (!transactionToDelete) return;
@@ -278,11 +335,11 @@ export default function TransactionsPage() {
       setShowDeleteModal(false);
       setTransactionToDelete(null);
     } catch (error) {
-      alert('Error al eliminar la transacción');
+      toast.error('Error al eliminar la transaccion');
     } finally {
       setDeleting(false);
     }
-  }, [transactionToDelete, repository]);
+  }, [transactionToDelete, deleteTransaction]);
 
   const cancelDelete = useCallback(() => setShowDeleteModal(false), []);
 
@@ -293,28 +350,28 @@ export default function TransactionsPage() {
   const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
-        return <ArrowDownLeft className="h-4 w-4" style={{ color: '#4ade80' }} />;
+        return <ArrowDownLeft className="h-4 w-4 text-success" />;
       case 'EXPENSE':
-        return <ArrowUpRight className="h-4 w-4" style={{ color: '#10069f' }} />;
+        return <ArrowUpRight className="h-4 w-4 text-destructive" />;
       case 'TRANSFER_OUT':
       case 'TRANSFER_IN':
-        return <Repeat className="h-4 w-4" style={{ color: '#06b6d4' }} />;
+        return <Repeat className="h-4 w-4 text-primary" />;
       default:
-        return <ArrowUpRight className="h-4 w-4 text-gray-400" />;
+        return <ArrowUpRight className="h-4 w-4 text-muted-foreground" />;
     }
   }, []);
 
   const getAmountColor = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
-        return 'text-green-400';
+        return 'text-success';
       case 'EXPENSE':
-        return 'text-blue-600';
+        return 'text-destructive';
       case 'TRANSFER_OUT':
       case 'TRANSFER_IN':
-        return 'text-cyan-500';
+        return 'text-primary';
       default:
-        return 'text-gray-400';
+        return 'text-muted-foreground';
     }
   }, []);
 
@@ -335,9 +392,9 @@ export default function TransactionsPage() {
 
   // Calcular totales por moneda
   const totalesPorMoneda = useMemo(() => {
-    const resultado: Record<string, { income: number, expenses: number }> = {};
+    const resultado: Record<string, { income: number; expenses: number }> = {};
 
-    filteredTransactionsMemo.forEach(t => {
+    filteredTransactionsMemo.forEach((t) => {
       const currency = t.currencyCode || 'USD';
       if (!resultado[currency]) {
         resultado[currency] = { income: 0, expenses: 0 };
@@ -360,14 +417,20 @@ export default function TransactionsPage() {
     let totalExpensesUSD = 0;
 
     Object.entries(totalesPorMoneda).forEach(([currency, totals]) => {
-      totalIncomeUSD += convertMinorToUSDSelected(Math.round(totals.income * 100), currency);
-      totalExpensesUSD += convertMinorToUSDSelected(Math.round(totals.expenses * 100), currency);
+      totalIncomeUSD += convertMinorToUSDSelected(
+        Math.round(totals.income * 100),
+        currency
+      );
+      totalExpensesUSD += convertMinorToUSDSelected(
+        Math.round(totals.expenses * 100),
+        currency
+      );
     });
 
     return {
       income: totalIncomeUSD,
       expenses: totalExpensesUSD,
-      net: totalIncomeUSD - totalExpensesUSD
+      net: totalIncomeUSD - totalExpensesUSD,
     };
   }, [totalesPorMoneda, convertMinorToUSDSelected]);
 
@@ -376,31 +439,35 @@ export default function TransactionsPage() {
     setDetailPanelOpen(true);
   }, []);
 
+  const showTransactionsLoading =
+    loading && filteredTransactionsMemo.length === 0;
+
   return (
     <AuthGuard>
       <MainLayout>
-        <div className="space-y-8 animate-fade-in">
+        <div className="animate-fade-in space-y-8">
           {/* iOS-style Header */}
-          <div className="text-center py-8">
-            <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <div className="py-8 text-center">
+            <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
               <span className="text-ios-caption font-medium">Tus finanzas</span>
             </div>
 
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-white">
+            <h1 className="mb-6 bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
               💳 Transacciones
             </h1>
-            <p className="text-muted-foreground font-light mb-6">
+            <p className="mb-6 font-light text-muted-foreground">
               Controla todos tus ingresos y gastos
             </p>
 
             {/* Quick Actions Header - Hidden on mobile (FAB replaces it) */}
-            <div className="hidden sm:flex items-center justify-center space-x-4 mb-4">
+            <div className="mb-4 hidden items-center justify-center space-x-4 sm:flex">
               <button
+                type="button"
                 onClick={handleNewTransaction}
-                className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
+                className="focus-ring group relative min-h-[44px] overflow-hidden rounded-xl bg-gradient-to-r from-primary to-blue-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-primary"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
                 <div className="relative flex items-center space-x-2">
                   <Sparkles className="h-5 w-5" />
                   <span>Nueva Transacción</span>
@@ -410,102 +477,155 @@ export default function TransactionsPage() {
           </div>
 
           {/* iOS-style Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL INGRESOS</h3>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+              <div className="mb-4 flex items-center space-x-2">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+                <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                  TOTAL INGRESOS
+                </h3>
               </div>
 
               {/* Desglose por moneda */}
-              <div className="space-y-2 mb-3">
-                {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
-                  totals.income > 0 && (
-                    <div key={`income-${currency}`} className="flex items-baseline justify-between">
-                      <span className="text-2xl amount-positive">
-                        {getCurrencySymbol(currency)}{totals.income.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{currency}</span>
-                    </div>
-                  )
-                ))}
-                {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].income === 0) && (
-                  <p className="text-2xl amount-positive">$0.00</p>
+              <div className="mb-3 space-y-2">
+                {Object.entries(totalesPorMoneda).map(
+                  ([currency, totals]) =>
+                    totals.income > 0 && (
+                      <div
+                        key={`income-${currency}`}
+                        className="flex items-baseline justify-between"
+                      >
+                        <span className="amount-positive text-2xl">
+                          {getCurrencySymbol(currency)}
+                          {totals.income.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {currency}
+                        </span>
+                      </div>
+                    )
                 )}
+                {Object.keys(totalesPorMoneda).every(
+                  (currency) => totalesPorMoneda[currency].income === 0
+                ) && <p className="amount-positive text-2xl">$0.00</p>}
               </div>
 
               {/* Total en USD */}
               {Object.keys(totalesPorMoneda).length > 1 && (
-                <div className="mt-3 pt-3 border-t border-border/20">
-                  <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                  <p className="text-lg amount-positive">
-                    ${totalesEnUSD.income.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                <div className="mt-3 border-t border-border/20 pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    Total equiv.:
+                  </span>
+                  <p className="amount-positive text-lg">
+                    $
+                    {totalesEnUSD.income.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    USD
                   </p>
                 </div>
               )}
 
-              <div className="flex items-center space-x-2 mt-3">
+              <div className="mt-3 flex items-center space-x-2">
                 <ArrowDownLeft className="h-4 w-4 text-green-600" />
-                <span className="text-ios-footnote text-green-600 font-medium">Ingresos</span>
+                <span className="text-ios-footnote font-medium text-green-600">
+                  Ingresos
+                </span>
               </div>
             </div>
 
-            <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TOTAL GASTOS</h3>
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+              <div className="mb-4 flex items-center space-x-2">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
+                <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                  TOTAL GASTOS
+                </h3>
               </div>
 
               {/* Desglose por moneda */}
-              <div className="space-y-2 mb-3">
-                {Object.entries(totalesPorMoneda).map(([currency, totals]) => (
-                  totals.expenses > 0 && (
-                    <div key={`expense-${currency}`} className="flex items-baseline justify-between">
-                      <span className="text-2xl amount-negative">
-                        {getCurrencySymbol(currency)}{totals.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{currency}</span>
-                    </div>
-                  )
-                ))}
-                {Object.keys(totalesPorMoneda).every(currency => totalesPorMoneda[currency].expenses === 0) && (
-                  <p className="text-2xl amount-negative">$0.00</p>
+              <div className="mb-3 space-y-2">
+                {Object.entries(totalesPorMoneda).map(
+                  ([currency, totals]) =>
+                    totals.expenses > 0 && (
+                      <div
+                        key={`expense-${currency}`}
+                        className="flex items-baseline justify-between"
+                      >
+                        <span className="amount-negative text-2xl">
+                          {getCurrencySymbol(currency)}
+                          {totals.expenses.toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                          })}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {currency}
+                        </span>
+                      </div>
+                    )
                 )}
+                {Object.keys(totalesPorMoneda).every(
+                  (currency) => totalesPorMoneda[currency].expenses === 0
+                ) && <p className="amount-negative text-2xl">$0.00</p>}
               </div>
 
               {/* Total en USD */}
               {Object.keys(totalesPorMoneda).length > 1 && (
-                <div className="mt-3 pt-3 border-t border-border/20">
-                  <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                  <p className="text-lg amount-negative">
-                    ${totalesEnUSD.expenses.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                <div className="mt-3 border-t border-border/20 pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    Total equiv.:
+                  </span>
+                  <p className="amount-negative text-lg">
+                    $
+                    {totalesEnUSD.expenses.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    USD
                   </p>
                 </div>
               )}
 
-              <div className="flex items-center space-x-2 mt-3">
+              <div className="mt-3 flex items-center space-x-2">
                 <ArrowUpRight className="h-4 w-4 text-red-600" />
-                <span className="text-ios-footnote text-red-600 font-medium">Gastos</span>
+                <span className="text-ios-footnote font-medium text-red-600">
+                  Gastos
+                </span>
               </div>
             </div>
 
-            <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className={`w-2 h-2 ${totalesEnUSD.net >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">BALANCE NETO</h3>
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+              <div className="mb-4 flex items-center space-x-2">
+                <div
+                  className={`h-2 w-2 ${totalesEnUSD.net >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
+                ></div>
+                <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                  BALANCE NETO
+                </h3>
               </div>
 
               {/* Desglose por moneda */}
-              <div className="space-y-2 mb-3">
+              <div className="mb-3 space-y-2">
                 {Object.entries(totalesPorMoneda).map(([currency, totals]) => {
                   const net = totals.income - totals.expenses;
                   if (net === 0) return null;
                   return (
-                    <div key={`net-${currency}`} className="flex items-baseline justify-between">
-                      <span className={`text-2xl ${net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
-                        {net >= 0 ? '+' : ''}{getCurrencySymbol(currency)}{net.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    <div
+                      key={`net-${currency}`}
+                      className="flex items-baseline justify-between"
+                    >
+                      <span
+                        className={`text-2xl ${net >= 0 ? 'amount-positive' : 'amount-negative'}`}
+                      >
+                        {net >= 0 ? '+' : ''}
+                        {getCurrencySymbol(currency)}
+                        {net.toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                        })}
                       </span>
-                      <span className="text-xs text-muted-foreground">{currency}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {currency}
+                      </span>
                     </div>
                   );
                 })}
@@ -516,37 +636,51 @@ export default function TransactionsPage() {
 
               {/* Total en USD */}
               {Object.keys(totalesPorMoneda).length > 1 && (
-                <div className="mt-3 pt-3 border-t border-border/20">
-                  <span className="text-xs text-muted-foreground">Total equiv.:</span>
-                  <p className={`text-lg ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
-                    {totalesEnUSD.net >= 0 ? '+' : ''}${totalesEnUSD.net.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD
+                <div className="mt-3 border-t border-border/20 pt-3">
+                  <span className="text-xs text-muted-foreground">
+                    Total equiv.:
+                  </span>
+                  <p
+                    className={`text-lg ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}
+                  >
+                    {totalesEnUSD.net >= 0 ? '+' : ''}$
+                    {totalesEnUSD.net.toLocaleString('en-US', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    USD
                   </p>
                 </div>
               )}
 
-              <div className="flex items-center space-x-2 mt-3">
+              <div className="mt-3 flex items-center space-x-2">
                 {totalesEnUSD.net >= 0 ? (
                   <ArrowDownLeft className="h-4 w-4 text-green-600" />
                 ) : (
                   <ArrowUpRight className="h-4 w-4 text-red-600" />
                 )}
-                <span className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}>
+                <span
+                  className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}
+                >
                   {totalesEnUSD.net >= 0 ? 'Positivo' : 'Negativo'}
                 </span>
               </div>
             </div>
 
-            <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-              <div className="flex items-center space-x-2 mb-4">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">TRANSACCIONES</h3>
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+              <div className="mb-4 flex items-center space-x-2">
+                <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
+                <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                  TRANSACCIONES
+                </h3>
               </div>
-              <p className="text-3xl amount-emphasis-white text-white mb-2">
+              <p className="amount-emphasis-white mb-2 text-3xl text-white">
                 {filteredTransactionsMemo.length}
               </p>
               <div className="flex items-center space-x-2">
                 <Repeat className="h-4 w-4 text-blue-600" />
-                <span className="text-ios-footnote text-blue-600 font-medium">Total</span>
+                <span className="text-ios-footnote font-medium text-blue-600">
+                  Total
+                </span>
               </div>
             </div>
           </div>
@@ -559,16 +693,14 @@ export default function TransactionsPage() {
             defaultExpanded={false}
             icon={<Filter className="h-5 w-5" />}
           >
-            <TransactionFilters
-              onFiltersChange={handleFiltersChange}
-            />
+            <TransactionFilters onFiltersChange={handleFiltersChange} />
           </CollapsibleSection>
 
           {/* iOS-style Transactions List */}
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl border border-border/40 shadow-lg overflow-hidden">
-            <div className="p-6 border-b border-border/40">
+          <div className="overflow-hidden rounded-3xl border border-border/40 bg-card/90 shadow-lg backdrop-blur-xl">
+            <div className="border-b border-border/40 p-6">
               <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
                 <h3 className="text-ios-title font-semibold text-foreground">
                   Todas las Transacciones ({filteredTransactionsMemo.length})
                 </h3>
@@ -576,10 +708,12 @@ export default function TransactionsPage() {
             </div>
 
             <div className="divide-y divide-border/40">
-              {loading ? (
+              {showTransactionsLoading ? (
                 <div className="p-8 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                  <p className="text-muted-foreground text-ios-body">✨ Cargando transacciones...</p>
+                  <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                  <p className="text-ios-body text-muted-foreground">
+                    ✨ Cargando transacciones...
+                  </p>
                 </div>
               ) : filteredTransactionsMemo.length === 0 ? (
                 <EmptyState
@@ -594,90 +728,130 @@ export default function TransactionsPage() {
                   const swipeActions = [
                     {
                       label: 'Editar',
-                      icon: <Edit className="h-5 w-5 mb-1" />,
+                      icon: <Edit className="mb-1 h-5 w-5" />,
                       onClick: () => handleEditTransaction(transaction),
-                      color: 'amber' as const
+                      color: 'amber' as const,
                     },
                     {
                       label: 'Eliminar',
-                      icon: <Trash2 className="h-5 w-5 mb-1" />,
+                      icon: <Trash2 className="mb-1 h-5 w-5" />,
                       onClick: () => handleDeleteClick(transaction),
-                      color: 'red' as const
-                    }
+                      color: 'red' as const,
+                    },
                   ];
 
                   return (
-                    <div key={transaction.id} className="border-b border-border/40 last:border-0 content-visibility-auto">
+                    <div
+                      key={transaction.id}
+                      className="content-visibility-auto border-b border-border/40 last:border-0"
+                    >
                       <SwipeableCard
                         actions={swipeActions}
                         onClick={() => handleTransactionClick(transaction)}
-                        className="p-6 hover:bg-card/60 transition-all duration-200 cursor-pointer border-l-0 hover:border-l-4 hover:border-l-primary/40"
+                        className="cursor-pointer border-l-0 p-6 transition-all duration-200 hover:border-l-4 hover:border-l-primary/40 hover:bg-card/60"
                       >
-                        <div className="flex items-start justify-between min-w-0">
-                          <div className="flex items-start space-x-3 flex-1 min-w-0 overflow-hidden">
-                            <div className="p-3 bg-muted/20 group-hover:bg-primary/10 rounded-2xl transition-colors duration-200 flex-shrink-0">
+                        <div className="flex min-w-0 items-start justify-between">
+                          <div className="flex min-w-0 flex-1 items-start space-x-3 overflow-hidden">
+                            <div className="flex-shrink-0 rounded-2xl bg-muted/20 p-3 transition-colors duration-200 group-hover:bg-primary/10">
                               {getIcon(transaction.type)}
                             </div>
-                            <div className="flex-1 min-w-0 overflow-hidden">
-                              <h4 className="text-ios-body font-medium text-foreground truncate mb-2">{transaction.description || 'Sin descripción'}</h4>
+                            <div className="min-w-0 flex-1 overflow-hidden">
+                              <h4 className="mb-2 truncate text-ios-body font-medium text-foreground">
+                                {transaction.description || 'Sin descripción'}
+                              </h4>
 
                               {/* Desktop info */}
-                              <div className="hidden sm:flex items-center space-x-2 text-ios-caption text-muted-foreground overflow-hidden">
-                                <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                <span className="break-words">{getAccountName(transaction.accountId)}</span>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                <span className="flex-shrink-0">{transaction.date}</span>
+                              <div className="hidden items-center space-x-2 overflow-hidden text-ios-caption text-muted-foreground sm:flex">
+                                <span className="flex-shrink-0">
+                                  {getTypeLabel(transaction.type)}
+                                </span>
+                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <span className="break-words">
+                                  {getCategoryName(transaction.categoryId)}
+                                </span>
+                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <span className="break-words">
+                                  {getAccountName(transaction.accountId)}
+                                </span>
+                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <span className="flex-shrink-0">
+                                  {transaction.date}
+                                </span>
                               </div>
 
                               {/* Mobile info - stacked */}
-                              <div className="sm:hidden space-y-1 text-ios-caption text-muted-foreground">
+                              <div className="space-y-1 text-ios-caption text-muted-foreground sm:hidden">
                                 <div className="flex items-center space-x-2">
-                                  <span className="flex-shrink-0">{getTypeLabel(transaction.type)}</span>
-                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                  <span className="break-words">{getCategoryName(transaction.categoryId)}</span>
+                                  <span className="flex-shrink-0">
+                                    {getTypeLabel(transaction.type)}
+                                  </span>
+                                  <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                  <span className="break-words">
+                                    {getCategoryName(transaction.categoryId)}
+                                  </span>
                                 </div>
                                 <div className="flex items-center space-x-2">
-                                  <span className="break-words">{getAccountName(transaction.accountId)}</span>
-                                  <div className="w-1 h-1 bg-muted-foreground rounded-full"></div>
-                                  <span className="flex-shrink-0">{transaction.date}</span>
+                                  <span className="break-words">
+                                    {getAccountName(transaction.accountId)}
+                                  </span>
+                                  <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                  <span className="flex-shrink-0">
+                                    {transaction.date}
+                                  </span>
                                 </div>
                               </div>
 
-                              {transaction.tags && transaction.tags.length > 0 && (
-                                <div className="flex items-center space-x-1 mt-2 overflow-x-auto">
-                                  {transaction.tags.map((tag) => (
-                                    <span
-                                      key={tag}
-                                      className="px-2 py-1 bg-gray-700 text-gray-300 text-xs rounded-full flex-shrink-0"
-                                    >
-                                      {tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
+                              {transaction.tags &&
+                                transaction.tags.length > 0 && (
+                                  <div className="mt-2 flex items-center space-x-1 overflow-x-auto">
+                                    {transaction.tags.map((tag) => (
+                                      <span
+                                        key={tag}
+                                        className="flex-shrink-0 rounded-full bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
+                                      >
+                                        {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                             </div>
                           </div>
 
-                          <div className="flex items-start space-x-2 sm:space-x-4 ml-2 sm:ml-4 flex-shrink-0">
+                          <div className="ml-2 flex flex-shrink-0 items-start space-x-2 sm:ml-4 sm:space-x-4">
                             <div className="text-right">
-                              <p className={`text-sm sm:text-xl font-semibold truncate ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}>
-                                {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}{getCurrencySymbol(transaction.currencyCode)}{formatAmount(transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0)}
+                              <p
+                                className={`truncate text-sm font-semibold sm:text-xl ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}
+                              >
+                                {transaction.type === 'INCOME'
+                                  ? '+'
+                                  : transaction.type === 'EXPENSE'
+                                    ? '-'
+                                    : ''}
+                                {getCurrencySymbol(transaction.currencyCode)}
+                                {formatAmount(
+                                  transaction.amountMinor &&
+                                    !isNaN(transaction.amountMinor)
+                                    ? Math.abs(transaction.amountMinor)
+                                    : 0
+                                )}
                               </p>
-                              <span className="text-xs text-muted-foreground">{transaction.currencyCode}</span>
+                              <span className="text-xs text-muted-foreground">
+                                {transaction.currencyCode}
+                              </span>
                               {/* Selected rate equivalence */}
-                              {(transaction.currencyCode === 'VES' || transaction.currencyCode === 'USD') && (
-                                <div className="text-[11px] text-white/60 mt-1">
+                              {(transaction.currencyCode === 'VES' ||
+                                transaction.currencyCode === 'USD') && (
+                                <div className="mt-1 text-[11px] text-muted-foreground/70">
                                   {(() => {
-                                    const usd = convertMinorToUSDSelected(Math.abs(transaction.amountMinor || 0), transaction.currencyCode);
+                                    const usd = convertMinorToUSDSelected(
+                                      Math.abs(transaction.amountMinor || 0),
+                                      transaction.currencyCode
+                                    );
                                     return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
                                   })()}
                                 </div>
                               )}
                             </div>
-
                           </div>
                         </div>
                       </SwipeableCard>
@@ -689,15 +863,17 @@ export default function TransactionsPage() {
               {/* Infinite scroll sentinel */}
               {displayedCount < filteredTransactionsMemo.length && (
                 <div ref={sentinelRef} className="p-4 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                  <p className="text-muted-foreground text-sm">Cargando más transacciones...</p>
+                  <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-primary"></div>
+                  <p className="text-sm text-muted-foreground">
+                    Cargando más transacciones...
+                  </p>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        <Suspense fallback={<FormLoading />}>
+        {isOpen && (
           <TransactionForm
             isOpen={isOpen}
             onClose={closeModal}
@@ -705,47 +881,66 @@ export default function TransactionsPage() {
             onSuccess={handleTransactionUpdated}
             type={(selectedTransaction?.type || 'EXPENSE') as TransactionType}
           />
-        </Suspense>
+        )}
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && transactionToDelete && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
             {/* * Modal with max-height for mobile scrolling */}
-            <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full max-h-[90dvh] overflow-y-auto">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="p-2 bg-red-500/20 rounded-lg">
-                  <Trash2 className="h-5 w-5 text-red-400" />
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-transaction-title"
+              aria-describedby="delete-transaction-description"
+              className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-xl border border-border/60 bg-card/95 p-6"
+            >
+              <div className="mb-4 flex items-center space-x-3">
+                <div className="rounded-lg bg-destructive/15 p-2">
+                  <Trash2 className="h-5 w-5 text-destructive" />
                 </div>
-                <h3 className="text-lg font-semibold text-white">Eliminar Transacción</h3>
+                <h3
+                  id="delete-transaction-title"
+                  className="text-lg font-semibold text-foreground"
+                >
+                  Eliminar Transacción
+                </h3>
               </div>
 
               <div className="mb-6">
-                <p className="text-gray-300 mb-2">
+                <p
+                  id="delete-transaction-description"
+                  className="mb-2 text-muted-foreground"
+                >
                   ¿Estás seguro de que deseas eliminar esta transacción?
                 </p>
-                <div className="bg-gray-800 rounded-lg p-3">
-                  <p className="text-white font-medium">{transactionToDelete.description || 'Sin descripción'}</p>
-                  <p className="text-gray-400 text-sm">
-                    {formatAmount(transactionToDelete.amountMinor)} • {transactionToDelete.date}
+                <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
+                  <p className="font-medium text-foreground">
+                    {transactionToDelete.description || 'Sin descripción'}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {formatAmount(transactionToDelete.amountMinor)} •{' '}
+                    {transactionToDelete.date}
                   </p>
                 </div>
-                <p className="text-red-400 text-sm mt-2">
+                <p className="mt-2 text-sm text-destructive">
                   Esta acción no se puede deshacer.
                 </p>
               </div>
 
               <div className="flex space-x-3">
                 <button
+                  type="button"
                   onClick={cancelDelete}
                   disabled={deleting}
-                  className="flex-1 px-4 py-2 text-gray-300 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50"
+                  className="focus-ring flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-muted/40 px-4 py-2 text-foreground transition-colors hover:bg-muted/60 disabled:opacity-50"
                 >
                   Cancelar
                 </button>
                 <button
+                  type="button"
                   onClick={confirmDelete}
                   disabled={deleting}
-                  className="flex-1 px-4 py-2 text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center"
+                  className="focus-ring flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-destructive px-4 py-2 text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
                 >
                   {deleting ? (
                     <span className="animate-spin">⏳</span>
@@ -757,7 +952,6 @@ export default function TransactionsPage() {
             </div>
           </div>
         )}
-
       </MainLayout>
       {/* Transaction Detail Panel */}
       {selectedDetailTransaction && (
@@ -776,7 +970,6 @@ export default function TransactionsPage() {
           getCurrencySymbol={getCurrencySymbol}
         />
       )}
-
     </AuthGuard>
   );
 }

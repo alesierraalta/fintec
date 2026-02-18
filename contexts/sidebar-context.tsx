@@ -1,6 +1,13 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+  useLayoutEffect,
+} from 'react';
 
 interface SidebarContextType {
   isOpen: boolean;
@@ -19,11 +26,11 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   // Check if we're on mobile - only after mount to avoid hydration mismatch
   // This ensures isMobile is consistent during initial hydration (always false)
   // and only updates after the component is mounted on the client
-  useEffect(() => {
+  useLayoutEffect(() => {
     const checkMobile = () => {
       const mobile = window.innerWidth < 1024; // lg breakpoint
       setIsMobile(mobile);
-      
+
       // On mobile, sidebar should be closed by default
       // On desktop, keep current state (user preference)
       if (mobile) {
@@ -41,18 +48,19 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const closeSidebar = useCallback(() => setIsOpen(false), []);
   const openSidebar = useCallback(() => setIsOpen(true), []);
 
-  const value = useMemo(() => ({
-    isOpen,
-    isMobile,
-    toggleSidebar,
-    closeSidebar,
-    openSidebar,
-  }), [isOpen, isMobile, toggleSidebar, closeSidebar, openSidebar]);
+  const value = useMemo(
+    () => ({
+      isOpen,
+      isMobile,
+      toggleSidebar,
+      closeSidebar,
+      openSidebar,
+    }),
+    [isOpen, isMobile, toggleSidebar, closeSidebar, openSidebar]
+  );
 
   return (
-    <SidebarContext.Provider value={value}>
-      {children}
-    </SidebarContext.Provider>
+    <SidebarContext.Provider value={value}>{children}</SidebarContext.Provider>
   );
 }
 
