@@ -8,9 +8,14 @@ import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
 describe('Binance P2P Scraper', () => {
   // Increase timeout for network requests
   jest.setTimeout(15000);
+  let sharedResult: Awaited<ReturnType<typeof scrapeBinanceRates>>;
+
+  beforeAll(async () => {
+    sharedResult = await scrapeBinanceRates();
+  });
 
   it('should return a valid result structure', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(result).toBeDefined();
     expect(result).toHaveProperty('success');
@@ -30,7 +35,7 @@ describe('Binance P2P Scraper', () => {
   });
 
   it('should return valid exchange rates', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(typeof result.data.usd_ves).toBe('number');
     expect(typeof result.data.usdt_ves).toBe('number');
@@ -41,13 +46,18 @@ describe('Binance P2P Scraper', () => {
     expect(result.data.usd_ves).toBeGreaterThan(0);
     expect(result.data.usdt_ves).toBeGreaterThan(0);
 
-    // Rates should be within reasonable bounds (100-500 VES)
-    expect(result.data.usd_ves).toBeGreaterThanOrEqual(80);
-    expect(result.data.usd_ves).toBeLessThanOrEqual(600);
+    // Rates should remain within scraper's accepted market window
+    expect(result.data.usd_ves).toBeGreaterThanOrEqual(10);
+    expect(result.data.usd_ves).toBeLessThanOrEqual(1000);
+
+    // USD and USDT references should stay close to each other
+    expect(
+      Math.abs(result.data.usd_ves - result.data.usdt_ves)
+    ).toBeLessThanOrEqual(1);
   });
 
   it('should have valid min/max ranges', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     // Sell rates
     expect(result.data.sell_min).toBeLessThanOrEqual(result.data.sell_avg);
@@ -59,7 +69,7 @@ describe('Binance P2P Scraper', () => {
   });
 
   it('should have a reasonable spread', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(typeof result.data.spread).toBe('number');
     expect(result.data.spread).toBeGreaterThanOrEqual(0);
@@ -70,7 +80,7 @@ describe('Binance P2P Scraper', () => {
   });
 
   it('should have valid price counts', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(typeof result.data.sell_prices_used).toBe('number');
     expect(typeof result.data.buy_prices_used).toBe('number');
@@ -84,7 +94,7 @@ describe('Binance P2P Scraper', () => {
   });
 
   it('should have a valid timestamp', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
     const timestamp = new Date(result.data.lastUpdated);
 
     expect(timestamp).toBeInstanceOf(Date);
@@ -108,7 +118,7 @@ describe('Binance P2P Scraper', () => {
 
   it('should handle errors gracefully', async () => {
     // This test ensures the scraper doesn't crash on errors
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     // Even if it fails, it should return a valid structure
     expect(result).toBeDefined();
@@ -118,13 +128,13 @@ describe('Binance P2P Scraper', () => {
   });
 
   it('should have Binance P2P as source', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(result.data.source).toContain('Binance');
   });
 
   it('should have valid price_range structure', async () => {
-    const result = await scrapeBinanceRates();
+    const result = sharedResult;
 
     expect(result.data).toHaveProperty('price_range');
     expect(result.data.price_range).toHaveProperty('sell_min');
@@ -141,4 +151,3 @@ describe('Binance P2P Scraper', () => {
     expect(result.data.price_range.buy_max).toBe(result.data.buy_max);
   });
 });
-

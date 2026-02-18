@@ -30,11 +30,12 @@ describe('CurrencyService Methods', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reset singleton state
-    (currencyService as any).bcvRates = null;
-    (currencyService as any).binanceRates = null;
+    currencyService.clearAllCaches();
     // Mock indexedDB for history fallback tests
-    (globalThis as any).indexedDB = { open: jest.fn(), deleteDatabase: jest.fn() };
+    (globalThis as any).indexedDB = {
+      open: jest.fn(),
+      deleteDatabase: jest.fn(),
+    };
 
     // Spy on actual bcvHistoryService methods
     spyOnGetLatestRate = jest.spyOn(bcvHistoryService, 'getLatestRate');
@@ -74,7 +75,11 @@ describe('CurrencyService Methods', () => {
     it('should use history fallback if API fails', async () => {
       (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('API Down'));
 
-      const mockHistory = { usd: 39.0, eur: 41.0, timestamp: new Date().toISOString() };
+      const mockHistory = {
+        usd: 39.0,
+        eur: 41.0,
+        timestamp: new Date().toISOString(),
+      };
       spyOnGetLatestRate.mockResolvedValueOnce(mockHistory);
 
       const rates = await currencyService.fetchBCVRates();
@@ -116,12 +121,12 @@ describe('CurrencyService Methods', () => {
           sell_rate: {
             min: 44.9,
             avg: 45.0,
-            max: 45.1
+            max: 45.1,
           },
           buy_rate: {
             min: 44.8,
             avg: 44.9,
-            max: 45.0
+            max: 45.0,
           },
           lastUpdated: new Date().toISOString(),
         },
@@ -148,12 +153,12 @@ describe('CurrencyService Methods', () => {
           sell_rate: {
             min: 43.9,
             avg: 44.0,
-            max: 44.1
+            max: 44.1,
           },
           buy_rate: {
             min: 43.8,
             avg: 43.9,
-            max: 44.0
+            max: 44.0,
           },
           lastUpdated: new Date().toISOString(),
         },
@@ -170,7 +175,9 @@ describe('CurrencyService Methods', () => {
     });
 
     it('should use hardcoded fallback if API throws', async () => {
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
+      (global.fetch as jest.Mock).mockRejectedValueOnce(
+        new Error('Network error')
+      );
 
       const rates = await currencyService.fetchBinanceRates();
 
