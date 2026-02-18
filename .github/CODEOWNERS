@@ -1,0 +1,10 @@
+# Global fallback owner
+* @ismar
+
+# Core domains
+/app/api/ @ismar
+/components/ @ismar
+/repositories/ @ismar
+/lib/ai/ @ismar
+/supabase/ @ismar
+/docs/ @ismar

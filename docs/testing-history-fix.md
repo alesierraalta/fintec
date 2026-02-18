@@ -1,6 +1,7 @@
 # Instrucciones para Probar el Fix del Historial
 
 ## Problema Resuelto
+
 El sistema de historial ahora puede guardar tasas para fechas específicas, no solo para "hoy".
 
 ## Cómo Probar en el Navegador
@@ -8,6 +9,7 @@ El sistema de historial ahora puede guardar tasas para fechas específicas, no s
 ### Opción 1: Usar la Consola del Navegador
 
 1. **Inicia la aplicación:**
+
    ```bash
    npm run dev
    ```
@@ -20,7 +22,7 @@ El sistema de historial ahora puede guardar tasas para fechas específicas, no s
 
 5. **Copia y pega este código:**
 
-\`\`\`javascript
+```javascript
 (async function testHistoryDates() {
   console.log('🧪 Testing History Date Parameter Fix\\n');
 
@@ -65,7 +67,7 @@ El sistema de historial ahora puede guardar tasas para fechas específicas, no s
     console.log(\`  Ayer (\${yesterdayKey}): USD \${bcvYesterday?.usd}, EUR \${bcvYesterday?.eur}\`);
     console.log(\`  Hace 7 días (\${sevenDaysAgoKey}): USD \${bcvSevenDaysAgo?.usd}, EUR \${bcvSevenDaysAgo?.eur}\`);
 
-    const allDatesUnique = 
+    const allDatesUnique =
       bcvToday?.date !== bcvYesterday?.date &&
       bcvYesterday?.date !== bcvSevenDaysAgo?.date &&
       bcvToday?.date !== bcvSevenDaysAgo?.date;
@@ -90,9 +92,9 @@ El sistema de historial ahora puede guardar tasas para fechas específicas, no s
     console.error('❌ Error:', error);
   }
 })();
-\`\`\`
+```
 
-6. **Presiona Enter** y observa los resultados
+1. **Presiona Enter** y observa los resultados
 
 ### Opción 2: Verificar en IndexedDB
 
@@ -114,6 +116,7 @@ El sistema de historial ahora puede guardar tasas para fechas específicas, no s
 ## Verificación Exitosa
 
 Deberías ver:
+
 - ✅ Fechas diferentes para cada registro (hoy, ayer, hace 7 días)
 - ✅ Tasas diferentes para cada fecha
 - ✅ El historial muestra múltiples entradas con fechas únicas
@@ -122,10 +125,12 @@ Deberías ver:
 ## Solución de Problemas
 
 Si todas las fechas son iguales:
+
 1. Verifica que los cambios en los archivos se guardaron correctamente
 2. Reinicia el servidor de desarrollo (`npm run dev`)
 3. Limpia el caché del navegador (Ctrl+Shift+R o Cmd+Shift+R)
 4. Borra IndexedDB y vuelve a probar:
+
    ```javascript
    // En la consola del navegador
    indexedDB.deleteDatabase('BCVHistoryDB');

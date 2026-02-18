@@ -1,0 +1,11 @@
+{
+  "*.{ts,tsx,js,jsx}": ["oxlint --quiet --fix", "prettier --write"],
+  "*.{json,yml,yaml}": ["prettier --write"],
+  "*.md": [
+    "markdownlint-cli2 --config .markdownlint.json --fix",
+    "prettier --write"
+  ],
+  "*.{ts,tsx,js,jsx,json,md,yml,yaml,env,txt}": [
+    "secretlint --secretlintignore .secretlintignore"
+  ]
+}

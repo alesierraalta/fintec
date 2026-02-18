@@ -2,12 +2,14 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 
-const rawArgs = process.argv.slice(2).map((a) => a.trim()).filter(Boolean);
+const rawArgs = process.argv
+  .slice(2)
+  .map((a) => a.trim())
+  .filter(Boolean);
 const actions = new Set(rawArgs);
 
 function printUsage() {
   // Keep output minimal; this is a utility script.
-  // eslint-disable-next-line no-console
   console.log(
     [
       'Usage: node scripts/clean.mjs <actions...>',
@@ -21,7 +23,7 @@ function printUsage() {
       '  ts          Remove *.tsbuildinfo',
       '  logs        Remove *.log',
       '  tooling     Remove .serena/cache/, .cursor/, .mcp_proj/, .playwright-mcp/',
-    ].join('\n'),
+    ].join('\n')
   );
 }
 
@@ -113,7 +115,7 @@ if (actions.has('tooling')) {
     path.join('.serena', 'cache'),
     '.cursor',
     '.mcp_proj',
-    '.playwright-mcp',
+    '.playwright-mcp'
   );
 }
 
