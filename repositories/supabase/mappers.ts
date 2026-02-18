@@ -35,14 +35,17 @@ export function mapSupabaseUserToDomain(supabaseUser: SupabaseUser): User {
     name: supabaseUser.name,
     baseCurrency: supabaseUser.base_currency,
     tier: (supabaseUser.tier as SubscriptionTier) || 'free',
-    subscriptionStatus: (supabaseUser.subscription_status as SubscriptionStatus) || 'active',
+    subscriptionStatus:
+      (supabaseUser.subscription_status as SubscriptionStatus) || 'active',
     subscriptionId: supabaseUser.subscription_id,
     createdAt: supabaseUser.created_at,
     updatedAt: supabaseUser.updated_at,
   };
 }
 
-export function mapDomainUserToSupabase(user: Partial<User>): Partial<SupabaseUser> {
+export function mapDomainUserToSupabase(
+  user: Partial<User>
+): Partial<SupabaseUser> {
   return {
     id: user.id,
     email: user.email,
@@ -56,9 +59,10 @@ export function mapDomainUserToSupabase(user: Partial<User>): Partial<SupabaseUs
   };
 }
 
-
 // Account mappers
-export function mapSupabaseAccountToDomain(supabaseAccount: SupabaseAccount): Account {
+export function mapSupabaseAccountToDomain(
+  supabaseAccount: SupabaseAccount
+): Account {
   return {
     id: supabaseAccount.id,
     userId: supabaseAccount.user_id,
@@ -74,7 +78,9 @@ export function mapSupabaseAccountToDomain(supabaseAccount: SupabaseAccount): Ac
   };
 }
 
-export function mapDomainAccountToSupabase(account: Partial<Account>): Partial<SupabaseAccount> {
+export function mapDomainAccountToSupabase(
+  account: Partial<Account>
+): Partial<SupabaseAccount> {
   const result: Partial<SupabaseAccount> = {
     user_id: account.userId,
     name: account.name,
@@ -97,7 +103,9 @@ export function mapDomainAccountToSupabase(account: Partial<Account>): Partial<S
 }
 
 // Transaction mappers
-export function mapSupabaseTransactionToDomain(supabaseTransaction: SupabaseTransaction): Transaction {
+export function mapSupabaseTransactionToDomain(
+  supabaseTransaction: SupabaseTransaction
+): Transaction {
   return {
     id: supabaseTransaction.id,
     type: supabaseTransaction.type as TransactionType,
@@ -117,7 +125,9 @@ export function mapSupabaseTransactionToDomain(supabaseTransaction: SupabaseTran
   };
 }
 
-export function mapDomainTransactionToSupabase(transaction: Partial<Transaction>): Partial<SupabaseTransaction> {
+export function mapDomainTransactionToSupabase(
+  transaction: Partial<Transaction>
+): Partial<SupabaseTransaction> {
   return {
     id: transaction.id,
     type: transaction.type,
@@ -138,7 +148,9 @@ export function mapDomainTransactionToSupabase(transaction: Partial<Transaction>
 }
 
 // Category mappers
-export function mapSupabaseCategoryToDomain(supabaseCategory: SupabaseCategory): Category {
+export function mapSupabaseCategoryToDomain(
+  supabaseCategory: SupabaseCategory
+): Category {
   return {
     id: supabaseCategory.id,
     name: supabaseCategory.name,
@@ -154,7 +166,9 @@ export function mapSupabaseCategoryToDomain(supabaseCategory: SupabaseCategory):
   };
 }
 
-export function mapDomainCategoryToSupabase(category: Partial<Category>): Partial<SupabaseCategory> {
+export function mapDomainCategoryToSupabase(
+  category: Partial<Category>
+): Partial<SupabaseCategory> {
   return {
     id: category.id,
     name: category.name,
@@ -171,10 +185,12 @@ export function mapDomainCategoryToSupabase(category: Partial<Category>): Partia
 }
 
 // Budget mappers
-export function mapSupabaseBudgetToDomain(supabaseBudget: SupabaseBudget): Budget {
+export function mapSupabaseBudgetToDomain(
+  supabaseBudget: SupabaseBudget
+): Budget {
   return {
     id: supabaseBudget.id,
-    userId: '', // TODO: Get from context or join
+    userId: supabaseBudget.user_id,
     // name: supabaseBudget.name, // Budget domain object doesn't have name property
     categoryId: supabaseBudget.category_id,
     monthYYYYMM: supabaseBudget.month_year,
@@ -186,7 +202,9 @@ export function mapSupabaseBudgetToDomain(supabaseBudget: SupabaseBudget): Budge
   };
 }
 
-export function mapDomainBudgetToSupabase(budget: Partial<Budget>): Partial<SupabaseBudget> {
+export function mapDomainBudgetToSupabase(
+  budget: Partial<Budget>
+): Partial<SupabaseBudget> {
   return {
     id: budget.id,
     // name: budget.name, // Budget domain object doesn't have name property
@@ -195,13 +213,16 @@ export function mapDomainBudgetToSupabase(budget: Partial<Budget>): Partial<Supa
     amount_base_minor: budget.amountBaseMinor,
     spent_base_minor: budget.spentMinor,
     active: budget.active,
+    user_id: budget.userId,
     created_at: budget.createdAt,
     updated_at: budget.updatedAt,
   };
 }
 
 // Goal mappers
-export function mapSupabaseGoalToDomain(supabaseGoal: SupabaseGoal): SavingsGoal {
+export function mapSupabaseGoalToDomain(
+  supabaseGoal: SupabaseGoal
+): SavingsGoal {
   return {
     id: supabaseGoal.id,
     name: supabaseGoal.name,
@@ -216,7 +237,9 @@ export function mapSupabaseGoalToDomain(supabaseGoal: SupabaseGoal): SavingsGoal
   };
 }
 
-export function mapDomainGoalToSupabase(goal: Partial<SavingsGoal>): Partial<SupabaseGoal> {
+export function mapDomainGoalToSupabase(
+  goal: Partial<SavingsGoal>
+): Partial<SupabaseGoal> {
   return {
     id: goal.id,
     name: goal.name,
@@ -232,7 +255,9 @@ export function mapDomainGoalToSupabase(goal: Partial<SavingsGoal>): Partial<Sup
 }
 
 // Exchange rate mappers
-export function mapSupabaseExchangeRateToDomain(supabaseRate: SupabaseExchangeRate): ExchangeRate {
+export function mapSupabaseExchangeRateToDomain(
+  supabaseRate: SupabaseExchangeRate
+): ExchangeRate {
   return {
     id: supabaseRate.id,
     baseCurrency: supabaseRate.base_currency,
@@ -244,7 +269,9 @@ export function mapSupabaseExchangeRateToDomain(supabaseRate: SupabaseExchangeRa
   };
 }
 
-export function mapDomainExchangeRateToSupabase(rate: Partial<ExchangeRate>): Partial<SupabaseExchangeRate> {
+export function mapDomainExchangeRateToSupabase(
+  rate: Partial<ExchangeRate>
+): Partial<SupabaseExchangeRate> {
   return {
     id: rate.id,
     base_currency: rate.baseCurrency,
@@ -257,7 +284,9 @@ export function mapDomainExchangeRateToSupabase(rate: Partial<ExchangeRate>): Pa
 }
 
 // Transfer mappers
-export function mapSupabaseTransferToDomain(supabaseTransfer: SupabaseTransfer): Transfer {
+export function mapSupabaseTransferToDomain(
+  supabaseTransfer: SupabaseTransfer
+): Transfer {
   return {
     id: supabaseTransfer.id,
     fromTransactionId: supabaseTransfer.from_transaction_id,
@@ -267,7 +296,9 @@ export function mapSupabaseTransferToDomain(supabaseTransfer: SupabaseTransfer):
   };
 }
 
-export function mapDomainTransferToSupabase(transfer: Partial<Transfer>): Partial<SupabaseTransfer> {
+export function mapDomainTransferToSupabase(
+  transfer: Partial<Transfer>
+): Partial<SupabaseTransfer> {
   return {
     id: transfer.id,
     from_transaction_id: transfer.fromTransactionId,
@@ -278,26 +309,38 @@ export function mapDomainTransferToSupabase(transfer: Partial<Transfer>): Partia
 }
 
 // Utility functions for array mapping
-export function mapSupabaseAccountArrayToDomain(accounts: SupabaseAccount[]): Account[] {
+export function mapSupabaseAccountArrayToDomain(
+  accounts: SupabaseAccount[]
+): Account[] {
   return accounts.map(mapSupabaseAccountToDomain);
 }
 
-export function mapSupabaseTransactionArrayToDomain(transactions: SupabaseTransaction[]): Transaction[] {
+export function mapSupabaseTransactionArrayToDomain(
+  transactions: SupabaseTransaction[]
+): Transaction[] {
   return transactions.map(mapSupabaseTransactionToDomain);
 }
 
-export function mapSupabaseCategoryArrayToDomain(categories: SupabaseCategory[]): Category[] {
+export function mapSupabaseCategoryArrayToDomain(
+  categories: SupabaseCategory[]
+): Category[] {
   return categories.map(mapSupabaseCategoryToDomain);
 }
 
-export function mapSupabaseBudgetArrayToDomain(budgets: SupabaseBudget[]): Budget[] {
+export function mapSupabaseBudgetArrayToDomain(
+  budgets: SupabaseBudget[]
+): Budget[] {
   return budgets.map(mapSupabaseBudgetToDomain);
 }
 
-export function mapSupabaseGoalArrayToDomain(goals: SupabaseGoal[]): SavingsGoal[] {
+export function mapSupabaseGoalArrayToDomain(
+  goals: SupabaseGoal[]
+): SavingsGoal[] {
   return goals.map(mapSupabaseGoalToDomain);
 }
 
-export function mapSupabaseExchangeRateArrayToDomain(rates: SupabaseExchangeRate[]): ExchangeRate[] {
+export function mapSupabaseExchangeRateArrayToDomain(
+  rates: SupabaseExchangeRate[]
+): ExchangeRate[] {
   return rates.map(mapSupabaseExchangeRateToDomain);
 }

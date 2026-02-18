@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
-import {
-  rejectOrder,
-} from '@/lib/payment-orders/order-service';
+import { rejectOrder } from '@/lib/payment-orders/order-service';
 
 /**
  * POST /api/payment-orders/[id]/reject
@@ -61,11 +58,14 @@ export async function POST(
         error: error.message || 'Failed to reject order',
       },
       {
-        status: error.message?.includes('Authentication') ? 401 :
-          error.message?.includes('Unauthorized') ? 403 :
-            error.message?.includes('not found') ? 404 : 500
+        status: error.message?.includes('Authentication')
+          ? 401
+          : error.message?.includes('Unauthorized')
+            ? 403
+            : error.message?.includes('not found')
+              ? 404
+              : 500,
       }
     );
   }
 }
-

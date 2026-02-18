@@ -1,16 +1,25 @@
 import { ExchangeRatesRepository } from '@/repositories/contracts';
 import { ExchangeRate, PaginationParams, PaginatedResult } from '@/types';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from './client';
-import { 
-  mapSupabaseExchangeRateToDomain, 
+import {
+  mapSupabaseExchangeRateToDomain,
   mapDomainExchangeRateToSupabase,
-  mapSupabaseExchangeRateArrayToDomain 
+  mapSupabaseExchangeRateArrayToDomain,
 } from './mappers';
 
 // @ts-ignore - Incomplete implementation, using LocalAppRepository instead
-export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository {
+export class SupabaseExchangeRatesRepository
+  implements ExchangeRatesRepository
+{
+  private client: SupabaseClient;
+
+  constructor(client?: SupabaseClient) {
+    this.client = client || supabase;
+  }
+
   async findAll(): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .order('date', { ascending: false })
@@ -25,7 +34,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async findById(id: string): Promise<ExchangeRate | null> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .eq('id', id)
@@ -41,8 +50,11 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     return mapSupabaseExchangeRateToDomain(data);
   }
 
-  async findByPair(baseCurrency: string, quoteCurrency: string): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+  async findByPair(
+    baseCurrency: string,
+    quoteCurrency: string
+  ): Promise<ExchangeRate[]> {
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .eq('base_currency', baseCurrency)
@@ -50,14 +62,19 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       .order('date', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch exchange rates by pair: ${error.message}`);
+      throw new Error(
+        `Failed to fetch exchange rates by pair: ${error.message}`
+      );
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async findLatestByPair(baseCurrency: string, quoteCurrency: string): Promise<ExchangeRate | null> {
-    const { data, error } = await supabase
+  async findLatestByPair(
+    baseCurrency: string,
+    quoteCurrency: string
+  ): Promise<ExchangeRate | null> {
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .eq('base_currency', baseCurrency)
@@ -77,7 +94,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async findByDate(date: string): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .eq('date', date)
@@ -85,14 +102,19 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       .order('quote_currency', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch exchange rates by date: ${error.message}`);
+      throw new Error(
+        `Failed to fetch exchange rates by date: ${error.message}`
+      );
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async findByDateRange(startDate: string, endDate: string): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+  async findByDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<ExchangeRate[]> {
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .gte('date', startDate)
@@ -102,14 +124,16 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       .order('quote_currency', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch exchange rates by date range: ${error.message}`);
+      throw new Error(
+        `Failed to fetch exchange rates by date range: ${error.message}`
+      );
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
   async findByProvider(provider: string): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .eq('provider', provider)
@@ -118,14 +142,16 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       .order('quote_currency', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch exchange rates by provider: ${error.message}`);
+      throw new Error(
+        `Failed to fetch exchange rates by provider: ${error.message}`
+      );
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
   async findByCurrency(currency: string): Promise<ExchangeRate[]> {
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .or(`base_currency.eq.${currency},quote_currency.eq.${currency}`)
@@ -134,18 +160,22 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       .order('quote_currency', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch exchange rates by currency: ${error.message}`);
+      throw new Error(
+        `Failed to fetch exchange rates by currency: ${error.message}`
+      );
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async findWithPagination(params: PaginationParams): Promise<PaginatedResult<ExchangeRate>> {
+  async findWithPagination(
+    params: PaginationParams
+  ): Promise<PaginatedResult<ExchangeRate>> {
     const { page, limit, sortBy = 'date', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
 
     // Get total count
-    const { count, error: countError } = await supabase
+    const { count, error: countError } = await this.client
       .from('exchange_rates')
       .select('*', { count: 'exact', head: true });
 
@@ -154,7 +184,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     }
 
     // Get paginated data
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('*')
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -178,11 +208,12 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     };
   }
 
-  async create(exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>): Promise<ExchangeRate> {
+  async create(
+    exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>
+  ): Promise<ExchangeRate> {
     const supabaseExchangeRate = mapDomainExchangeRateToSupabase(exchangeRate);
 
-    const { data, error } = await (supabase
-      .from('exchange_rates') as any)
+    const { data, error } = await (this.client.from('exchange_rates') as any)
       .insert(supabaseExchangeRate as any)
       .select()
       .single();
@@ -194,11 +225,13 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     return mapSupabaseExchangeRateToDomain(data);
   }
 
-  async update(id: string, updates: Partial<ExchangeRate>): Promise<ExchangeRate> {
+  async update(
+    id: string,
+    updates: Partial<ExchangeRate>
+  ): Promise<ExchangeRate> {
     const supabaseUpdates = mapDomainExchangeRateToSupabase(updates);
 
-    const { data, error } = await (supabase
-      .from('exchange_rates') as any)
+    const { data, error } = await (this.client.from('exchange_rates') as any)
       .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
@@ -212,7 +245,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('exchange_rates')
       .delete()
       .eq('id', id);
@@ -223,7 +256,7 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async count(): Promise<number> {
-    const { count, error } = await supabase
+    const { count, error } = await this.client
       .from('exchange_rates')
       .select('*', { count: 'exact', head: true });
 
@@ -234,9 +267,11 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     return count || 0;
   }
 
-  async upsert(exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>): Promise<ExchangeRate> {
+  async upsert(
+    exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>
+  ): Promise<ExchangeRate> {
     // Try to find existing rate for the same pair, date, and provider
-    const existing: any = await supabase
+    const existing: any = await this.client
       .from('exchange_rates')
       .select('id')
       .eq('base_currency', exchangeRate.baseCurrency)
@@ -254,13 +289,14 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     }
   }
 
-  async bulkCreate(exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]): Promise<ExchangeRate[]> {
-    const supabaseExchangeRates = exchangeRates.map(rate => 
+  async bulkCreate(
+    exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]
+  ): Promise<ExchangeRate[]> {
+    const supabaseExchangeRates = exchangeRates.map((rate) =>
       mapDomainExchangeRateToSupabase(rate)
     );
 
-    const { data, error } = await (supabase
-      .from('exchange_rates') as any)
+    const { data, error } = await (this.client.from('exchange_rates') as any)
       .insert(supabaseExchangeRates as any)
       .select();
 
@@ -271,15 +307,16 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async bulkUpsert(exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]): Promise<ExchangeRate[]> {
-    const supabaseExchangeRates = exchangeRates.map(rate => 
+  async bulkUpsert(
+    exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]
+  ): Promise<ExchangeRate[]> {
+    const supabaseExchangeRates = exchangeRates.map((rate) =>
       mapDomainExchangeRateToSupabase(rate)
     );
 
-    const { data, error } = await (supabase
-      .from('exchange_rates') as any)
+    const { data, error } = await (this.client.from('exchange_rates') as any)
       .upsert(supabaseExchangeRates as any, {
-        onConflict: 'base_currency,quote_currency,date,provider'
+        onConflict: 'base_currency,quote_currency,date,provider',
       })
       .select();
 
@@ -291,37 +328,45 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async deleteByDateRange(startDate: string, endDate: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('exchange_rates')
       .delete()
       .gte('date', startDate)
       .lte('date', endDate);
 
     if (error) {
-      throw new Error(`Failed to delete exchange rates by date range: ${error.message}`);
+      throw new Error(
+        `Failed to delete exchange rates by date range: ${error.message}`
+      );
     }
   }
 
   async deleteByProvider(provider: string): Promise<void> {
-    const { error } = await supabase
+    const { error } = await this.client
       .from('exchange_rates')
       .delete()
       .eq('provider', provider);
 
     if (error) {
-      throw new Error(`Failed to delete exchange rates by provider: ${error.message}`);
+      throw new Error(
+        `Failed to delete exchange rates by provider: ${error.message}`
+      );
     }
   }
 
-  async getAvailableCurrencyPairs(): Promise<{ baseCurrency: string; quoteCurrency: string }[]> {
-    const { data, error } = await supabase
+  async getAvailableCurrencyPairs(): Promise<
+    { baseCurrency: string; quoteCurrency: string }[]
+  > {
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('base_currency, quote_currency')
       .order('base_currency', { ascending: true })
       .order('quote_currency', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to get available currency pairs: ${error.message}`);
+      throw new Error(
+        `Failed to get available currency pairs: ${error.message}`
+      );
     }
 
     // Remove duplicates
@@ -343,17 +388,14 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
   }
 
   async getLatestRates(baseCurrency?: string): Promise<ExchangeRate[]> {
-    let query = supabase
-      .from('exchange_rates')
-      .select('*');
+    let query = this.client.from('exchange_rates').select('*');
 
     if (baseCurrency) {
       query = query.eq('base_currency', baseCurrency);
     }
 
     // Get the latest rate for each currency pair
-    const { data, error } = await query
-      .order('date', { ascending: false });
+    const { data, error } = await query.order('date', { ascending: false });
 
     if (error) {
       throw new Error(`Failed to get latest rates: ${error.message}`);
@@ -368,6 +410,8 @@ export class SupabaseExchangeRatesRepository implements ExchangeRatesRepository 
       }
     });
 
-    return mapSupabaseExchangeRateArrayToDomain(Array.from(latestRates.values()));
+    return mapSupabaseExchangeRateArrayToDomain(
+      Array.from(latestRates.values())
+    );
   }
 }

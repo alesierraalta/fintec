@@ -12,22 +12,22 @@
  * @returns Formatted currency string
  */
 export function formatCurrency(
-    amount: number,
-    currency: string,
-    locale: string = 'en-US'
+  amount: number,
+  currency: string,
+  locale: string = 'en-US'
 ): string {
-    try {
-        return new Intl.NumberFormat(locale, {
-            style: 'currency',
-            currency: currency,
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(amount);
-    } catch (error) {
-        // * Fallback for unsupported currencies (e.g., VES, crypto)
-        const symbol = getCurrencySymbol(currency);
-        return `${symbol}${amount.toFixed(2)}`;
-    }
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch (error) {
+    // * Fallback for unsupported currencies (e.g., VES, crypto)
+    const symbol = getCurrencySymbol(currency);
+    return `${symbol}${amount.toFixed(2)}`;
+  }
 }
 
 /**
@@ -36,19 +36,19 @@ export function formatCurrency(
  * @returns Currency symbol
  */
 export function getCurrencySymbol(currency: string): string {
-    const symbols: Record<string, string> = {
-        USD: '$',
-        EUR: '€',
-        GBP: '£',
-        VES: 'Bs.',
-        BTC: '₿',
-        ETH: 'Ξ',
-        BNB: 'BNB',
-        USDT: '₮',
-        BUSD: 'BUSD',
-    };
+  const symbols: Record<string, string> = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    VES: 'Bs.',
+    BTC: '₿',
+    ETH: 'Ξ',
+    BNB: 'BNB',
+    USDT: '₮',
+    BUSD: 'BUSD',
+  };
 
-    return symbols[currency.toUpperCase()] || currency;
+  return symbols[currency.toUpperCase()] || currency;
 }
 
 /**
@@ -56,10 +56,10 @@ export function getCurrencySymbol(currency: string): string {
  * @returns Object with fiat and crypto currency arrays
  */
 export function getSupportedCurrencies(): { fiat: string[]; crypto: string[] } {
-    return {
-        fiat: ['USD', 'EUR', 'GBP', 'VES'],
-        crypto: ['BTC', 'ETH', 'BNB', 'USDT', 'BUSD', 'ADA', 'SOL'],
-    };
+  return {
+    fiat: ['USD', 'EUR', 'GBP', 'VES'],
+    crypto: ['BTC', 'ETH', 'BNB', 'USDT', 'BUSD', 'ADA', 'SOL'],
+  };
 }
 
 /**
@@ -68,8 +68,8 @@ export function getSupportedCurrencies(): { fiat: string[]; crypto: string[] } {
  * @returns true if fiat, false otherwise
  */
 export function isFiatCurrency(currency: string): boolean {
-    const { fiat } = getSupportedCurrencies();
-    return fiat.includes(currency.toUpperCase());
+  const { fiat } = getSupportedCurrencies();
+  return fiat.includes(currency.toUpperCase());
 }
 
 /**
@@ -78,8 +78,8 @@ export function isFiatCurrency(currency: string): boolean {
  * @returns true if crypto, false otherwise
  */
 export function isCryptoCurrency(currency: string): boolean {
-    const { crypto } = getSupportedCurrencies();
-    return crypto.includes(currency.toUpperCase());
+  const { crypto } = getSupportedCurrencies();
+  return crypto.includes(currency.toUpperCase());
 }
 
 /**
@@ -89,10 +89,10 @@ export function isCryptoCurrency(currency: string): boolean {
  * @returns Formatted number string
  */
 export function formatAmount(amount: number, currency: string): string {
-    const isCrypto = isCryptoCurrency(currency);
-    const decimals = isCrypto ? 8 : 2;
+  const isCrypto = isCryptoCurrency(currency);
+  const decimals = isCrypto ? 8 : 2;
 
-    return amount.toFixed(decimals);
+  return amount.toFixed(decimals);
 }
 
 /**
@@ -101,9 +101,28 @@ export function formatAmount(amount: number, currency: string): string {
  * @returns Parsed number
  */
 export function parseCurrency(formattedAmount: string): number {
-    // * Remove currency symbols and separators
-    const cleaned = formattedAmount.replace(/[^0-9.-]/g, '');
-    const parsed = parseFloat(cleaned);
+  const normalized = formattedAmount.trim().replace(/[^0-9,.-]/g, '');
 
-    return isNaN(parsed) ? 0 : parsed;
+  const lastDot = normalized.lastIndexOf('.');
+  const lastComma = normalized.lastIndexOf(',');
+  const decimalSeparator =
+    lastDot > lastComma ? '.' : lastComma > -1 ? ',' : null;
+
+  let cleaned = normalized;
+  if (decimalSeparator) {
+    const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
+    cleaned = cleaned.split(thousandsSeparator).join('');
+    if (decimalSeparator === ',') {
+      cleaned = cleaned.replace(/,/g, '.');
+    }
+  } else {
+    cleaned = cleaned.replace(/[.,]/g, '');
+  }
+
+  cleaned = cleaned.replace(/(?!^)-/g, '');
+  cleaned = cleaned.replace(/^([.,])+/, '');
+
+  const parsed = parseFloat(cleaned);
+
+  return isNaN(parsed) ? 0 : parsed;
 }

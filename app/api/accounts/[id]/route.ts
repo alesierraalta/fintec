@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SupabaseAppRepository } from '@/repositories/supabase';
 import { UpdateAccountDTO } from '@/repositories/contracts';
 import { logger } from '@/lib/utils/logger';
-
-const repository = new SupabaseAppRepository();
+import { createClient } from '@/lib/supabase/server';
+import { createServerAppRepository } from '@/repositories/factory';
 
 // GET /api/accounts/[id] - Get account by ID
 export async function GET(
@@ -11,41 +10,55 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const { id } = await params;
-    
+
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account ID is required' 
+        {
+          success: false,
+          error: 'Account ID is required',
         },
         { status: 400 }
       );
     }
-    
+
     const account = await repository.accounts.findById(id);
-    
+
     if (!account) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account not found' 
+        {
+          success: false,
+          error: 'Account not found',
         },
         { status: 404 }
       );
     }
-    
+
     return NextResponse.json({
       success: true,
-      data: account
+      data: account,
     });
   } catch (error) {
     logger.error('Error fetching account:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch account', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to fetch account',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -58,38 +71,52 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const { id } = await params;
     const body = await request.json();
-    
+
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account ID is required' 
+        {
+          success: false,
+          error: 'Account ID is required',
         },
         { status: 400 }
       );
     }
-    
+
     const updateData: UpdateAccountDTO = {
       id,
-      ...body
+      ...body,
     };
-    
+
     const account = await repository.accounts.update(id, updateData);
-    
+
     return NextResponse.json({
       success: true,
       data: account,
-      message: 'Account updated successfully'
+      message: 'Account updated successfully',
     });
   } catch (error) {
     logger.error('Error updating account:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update account', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to update account',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -102,43 +129,57 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const { id } = await params;
-    
+
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account ID is required' 
+        {
+          success: false,
+          error: 'Account ID is required',
         },
         { status: 400 }
       );
     }
-    
+
     // Check if account exists before deleting
     const existingAccount = await repository.accounts.findById(id);
     if (!existingAccount) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account not found' 
+        {
+          success: false,
+          error: 'Account not found',
         },
         { status: 404 }
       );
     }
-    
+
     await repository.accounts.delete(id);
-    
+
     return NextResponse.json({
       success: true,
-      message: 'Account deleted successfully'
+      message: 'Account deleted successfully',
     });
   } catch (error) {
     logger.error('Error deleting account:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to delete account', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to delete account',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -151,43 +192,57 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const { id } = await params;
     const body = await request.json();
-    
+
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Account ID is required' 
+        {
+          success: false,
+          error: 'Account ID is required',
         },
         { status: 400 }
       );
     }
-    
+
     if (typeof body.balance !== 'number') {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Balance must be a number' 
+        {
+          success: false,
+          error: 'Balance must be a number',
         },
         { status: 400 }
       );
     }
-    
+
     const account = await repository.accounts.updateBalance(id, body.balance);
-    
+
     return NextResponse.json({
       success: true,
       data: account,
-      message: 'Account balance updated successfully'
+      message: 'Account balance updated successfully',
     });
   } catch (error) {
     logger.error('Error updating account balance:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update account balance', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to update account balance',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

@@ -1,19 +1,55 @@
-import type { Notification, CreateNotificationDTO, UpdateNotificationDTO } from '@/types/notifications';
+import type {
+  Notification,
+  CreateNotificationDTO,
+} from '@/types/notifications';
 import type { NotificationsRepository } from '@/repositories/contracts/notifications-repository';
 import { supabase } from './client';
+import { SupabaseClient } from '@supabase/supabase-js';
 
-export class SupabaseNotificationsRepository implements NotificationsRepository {
-  
-  async findByUserId(userId: string, limit: number = 50): Promise<Notification[]> {
-    // Handle invalid user IDs gracefully
-    if (!userId || userId === 'local-user' || userId === 'undefined' || userId === 'null') {
-      return []; // Return empty array for invalid user IDs
+export class SupabaseNotificationsRepository
+  implements NotificationsRepository
+{
+  private client: SupabaseClient;
+
+  constructor(client?: SupabaseClient) {
+    this.client = client || supabase;
+  }
+
+  private async requireUserId(): Promise<string> {
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
+
+    if (!user?.id) {
+      throw new Error('Unauthorized');
     }
-    
-    const { data, error } = await supabase
+
+    return user.id;
+  }
+
+  private async assertUserScope(userId: string): Promise<string> {
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const authUserId = await this.requireUserId();
+    if (userId !== authUserId) {
+      throw new Error('Unauthorized');
+    }
+
+    return authUserId;
+  }
+
+  async findByUserId(
+    userId: string,
+    limit: number = 50
+  ): Promise<Notification[]> {
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { data, error } = await this.client
       .from('notifications')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', scopedUserId)
       .order('created_at', { ascending: false })
       .limit(limit);
 
@@ -25,15 +61,12 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async findUnreadByUserId(userId: string): Promise<Notification[]> {
-    // Handle invalid user IDs gracefully
-    if (!userId || userId === 'local-user' || userId === 'undefined' || userId === 'null') {
-      return []; // Return empty array for invalid user IDs
-    }
-    
-    const { data, error } = await supabase
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { data, error } = await this.client
       .from('notifications')
       .select('*')
-      .eq('user_id', userId)
+      .eq('user_id', scopedUserId)
       .eq('is_read', false)
       .order('created_at', { ascending: false });
 
@@ -45,29 +78,29 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async countUnreadByUserId(userId: string): Promise<number> {
-    // Handle invalid user IDs gracefully
-    if (!userId || userId === 'local-user' || userId === 'undefined' || userId === 'null') {
-      return 0; // Return 0 count for invalid user IDs
-    }
-    
-    const { count, error } = await supabase
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { count, error } = await this.client
       .from('notifications')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
+      .eq('user_id', scopedUserId)
       .eq('is_read', false);
 
     if (error) {
-      return 0;
+      throw new Error('Failed to count unread notifications');
     }
 
     return count || 0;
   }
 
   async findById(id: string): Promise<Notification | null> {
-    const { data, error } = await supabase
+    const userId = await this.requireUserId();
+
+    const { data, error } = await this.client
       .from('notifications')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -80,17 +113,23 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
     return data;
   }
 
-  async create(userId: string, notificationData: CreateNotificationDTO): Promise<Notification> {
-    const { data, error } = await (supabase
-      .from('notifications') as any)
-      .insert([{
-        user_id: userId,
-        title: notificationData.title,
-        message: notificationData.message,
-        type: notificationData.type || 'info',
-        action_url: notificationData.action_url,
-        is_read: false
-      }] as any)
+  async create(
+    userId: string,
+    notificationData: CreateNotificationDTO
+  ): Promise<Notification> {
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { data, error } = await (this.client.from('notifications') as any)
+      .insert([
+        {
+          user_id: scopedUserId,
+          title: notificationData.title,
+          message: notificationData.message,
+          type: notificationData.type || 'info',
+          action_url: notificationData.action_url,
+          is_read: false,
+        },
+      ] as any)
       .select()
       .single();
 
@@ -102,10 +141,12 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async markAsRead(id: string): Promise<Notification | null> {
-    const { data, error } = await (supabase
-      .from('notifications') as any)
+    const userId = await this.requireUserId();
+
+    const { data, error } = await (this.client.from('notifications') as any)
       .update({ is_read: true } as any)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -120,10 +161,11 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async markAllAsRead(userId: string): Promise<void> {
-    const { error } = await (supabase
-      .from('notifications') as any)
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { error } = await (this.client.from('notifications') as any)
       .update({ is_read: true } as any)
-      .eq('user_id', userId)
+      .eq('user_id', scopedUserId)
       .eq('is_read', false);
 
     if (error) {
@@ -132,10 +174,13 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async delete(id: string): Promise<boolean> {
-    const { error } = await supabase
+    const userId = await this.requireUserId();
+
+    const { error } = await this.client
       .from('notifications')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       return false;
@@ -145,17 +190,29 @@ export class SupabaseNotificationsRepository implements NotificationsRepository 
   }
 
   async deleteAllRead(userId: string): Promise<void> {
-    const { error } = await supabase
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { error } = await this.client
       .from('notifications')
       .delete()
-      .eq('user_id', userId)
+      .eq('user_id', scopedUserId)
       .eq('is_read', true);
 
     if (error) {
       throw new Error('Failed to delete read notifications');
     }
   }
+
+  async deleteByUserId(userId: string): Promise<void> {
+    const scopedUserId = await this.assertUserScope(userId);
+
+    const { error } = await this.client
+      .from('notifications')
+      .delete()
+      .eq('user_id', scopedUserId);
+
+    if (error) {
+      throw new Error('Failed to delete notifications');
+    }
+  }
 }
-
-
-

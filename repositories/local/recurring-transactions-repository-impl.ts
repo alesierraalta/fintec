@@ -1,18 +1,23 @@
 import { RecurringTransactionsRepository } from '@/repositories/contracts/recurring-transactions-repository';
-import { 
-  RecurringTransaction, 
-  CreateRecurringTransactionDTO, 
+import {
+  RecurringTransaction,
+  CreateRecurringTransactionDTO,
   UpdateRecurringTransactionDTO,
-  RecurringTransactionSummary 
+  RecurringTransactionSummary,
 } from '@/types/recurring-transactions';
 
-export class LocalRecurringTransactionsRepository implements RecurringTransactionsRepository {
+export class LocalRecurringTransactionsRepository
+  implements RecurringTransactionsRepository
+{
   async findByUserId(userId: string): Promise<RecurringTransaction[]> {
     // Stub implementation - return empty array
     return [];
   }
 
-  async findById(id: string): Promise<RecurringTransaction | null> {
+  async findById(
+    id: string,
+    userId: string
+  ): Promise<RecurringTransaction | null> {
     // Stub implementation - return null
     return null;
   }
@@ -22,22 +27,33 @@ export class LocalRecurringTransactionsRepository implements RecurringTransactio
     return [];
   }
 
-  async create(data: CreateRecurringTransactionDTO, userId: string): Promise<RecurringTransaction> {
+  async create(
+    data: CreateRecurringTransactionDTO,
+    userId: string
+  ): Promise<RecurringTransaction> {
     // Stub implementation - throw error since local storage doesn't support this yet
     throw new Error('Recurring transactions not supported in local repository');
   }
 
-  async update(id: string, data: UpdateRecurringTransactionDTO): Promise<RecurringTransaction> {
+  async update(
+    id: string,
+    data: UpdateRecurringTransactionDTO,
+    userId: string
+  ): Promise<RecurringTransaction> {
     // Stub implementation - throw error since local storage doesn't support this yet
     throw new Error('Recurring transactions not supported in local repository');
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, userId: string): Promise<void> {
     // Stub implementation - do nothing
     return;
   }
 
-  async toggleActive(id: string, isActive: boolean): Promise<RecurringTransaction> {
+  async toggleActive(
+    id: string,
+    isActive: boolean,
+    userId: string
+  ): Promise<RecurringTransaction> {
     // Stub implementation - throw error since local storage doesn't support this yet
     throw new Error('Recurring transactions not supported in local repository');
   }
@@ -62,9 +78,10 @@ export class LocalRecurringTransactionsRepository implements RecurringTransactio
   }
 
   async createFromTransaction(
-    transactionId: string, 
-    frequency: string, 
-    intervalCount?: number, 
+    transactionId: string,
+    frequency: string,
+    userId: string,
+    intervalCount?: number,
     endDate?: string,
     name?: string
   ): Promise<RecurringTransaction> {
@@ -72,7 +89,11 @@ export class LocalRecurringTransactionsRepository implements RecurringTransactio
     throw new Error('Recurring transactions not supported in local repository');
   }
 
-  async updateNextExecution(id: string, nextDate: string): Promise<void> {
+  async updateNextExecution(
+    id: string,
+    nextDate: string,
+    userId: string
+  ): Promise<void> {
     // Stub implementation - do nothing
     return;
   }

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
@@ -74,11 +73,14 @@ export async function POST(request: NextRequest) {
       description: body.description,
     });
 
-    return NextResponse.json({
-      success: true,
-      data: order,
-      message: 'Order created successfully',
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        success: true,
+        data: order,
+        message: 'Order created successfully',
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     logger.error('[PaymentOrders API] Error in POST:', error);
     return NextResponse.json(
@@ -90,6 +92,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-
-

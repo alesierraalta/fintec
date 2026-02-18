@@ -1,57 +1,62 @@
 import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/admin';
+import { createServerAIInfraRepository } from '@/repositories/factory';
 
 export interface Checkpoint {
-    threadId: string;
-    userId: string;
-    stepNumber: number;
-    data: {
-        messages: any[];
-        toolCalls?: any[];
-        metadata?: Record<string, any>;
-    };
+  threadId: string;
+  userId: string;
+  stepNumber: number;
+  data: {
+    messages: any[];
+    toolCalls?: any[];
+    metadata?: Record<string, any>;
+  };
 }
 
 export class SupabaseCheckpointer {
-    async save(checkpoint: Checkpoint): Promise<void> {
-        const supabase = await createClient();
+  private async getRepository() {
+    const supabase = await createClient();
+    let serviceSupabase: any;
 
-        await supabase.from('agent_checkpoints').insert({
-            thread_id: checkpoint.threadId,
-            user_id: checkpoint.userId,
-            checkpoint_data: checkpoint.data,
-            step_number: checkpoint.stepNumber
-        });
+    try {
+      serviceSupabase = createServiceClient() as any;
+    } catch {
+      serviceSupabase = undefined;
     }
 
-    async load(threadId: string, userId: string): Promise<Checkpoint | null> {
-        const supabase = await createClient();
+    return createServerAIInfraRepository({
+      supabase,
+      serviceSupabase,
+    });
+  }
 
-        const { data } = await supabase
-            .from('agent_checkpoints')
-            .select('*')
-            .eq('thread_id', threadId)
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+  async save(checkpoint: Checkpoint): Promise<void> {
+    const repository = await this.getRepository();
 
-        if (!data) return null;
+    await repository.saveCheckpoint({
+      threadId: checkpoint.threadId,
+      userId: checkpoint.userId,
+      stepNumber: checkpoint.stepNumber,
+      checkpointData: checkpoint.data,
+    });
+  }
 
-        return {
-            threadId: data.thread_id,
-            userId: data.user_id,
-            stepNumber: data.step_number,
-            data: data.checkpoint_data
-        };
-    }
+  async load(threadId: string, userId: string): Promise<Checkpoint | null> {
+    const repository = await this.getRepository();
+    const data = await repository.loadLatestCheckpoint(threadId, userId);
 
-    async clear(threadId: string, userId: string): Promise<void> {
-        const supabase = await createClient();
+    if (!data) return null;
 
-        await supabase
-            .from('agent_checkpoints')
-            .delete()
-            .eq('thread_id', threadId)
-            .eq('user_id', userId);
-    }
+    return {
+      threadId: data.threadId,
+      userId: data.userId,
+      stepNumber: data.stepNumber,
+      data: data.checkpointData,
+    };
+  }
+
+  async clear(threadId: string, userId: string): Promise<void> {
+    const repository = await this.getRepository();
+    await repository.clearCheckpoints(threadId, userId);
+  }
 }

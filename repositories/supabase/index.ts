@@ -9,6 +9,14 @@ export { SupabaseGoalsRepository } from './goals-repository-impl';
 export { SupabaseExchangeRatesRepository } from './exchange-rates-repository-impl';
 export { SupabaseNotificationsRepository } from './notifications-repository-impl';
 export { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
+export { SupabaseTransfersRepository } from './transfers-repository-impl';
+export { SupabaseWaitlistRepository } from './waitlist-repository-impl';
+export { SupabaseApprovalRequestsRepository } from './approval-requests-repository-impl';
+export { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
+export { SupabaseSubscriptionsRepository } from './subscriptions-repository-impl';
+export { SupabasePaymentOrdersRepository } from './payment-orders-repository-impl';
+export { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
+export { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
 
 export * from './types';
 export * from './mappers';
@@ -16,16 +24,16 @@ export * from './client';
 
 // Main Supabase repository implementation
 import { AppRepository } from '@/repositories/contracts';
-import { 
-  SupabaseAccountsRepository,
-  SupabaseTransactionsRepository,
-  SupabaseCategoriesRepository,
-  SupabaseBudgetsRepository,
-  SupabaseGoalsRepository,
-  SupabaseExchangeRatesRepository,
-  SupabaseNotificationsRepository,
-  SupabaseRecurringTransactionsRepository
-} from './';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { supabase as browserClient } from './client';
+import { SupabaseAccountsRepository } from './accounts-repository-impl';
+import { SupabaseTransactionsRepository } from './transactions-repository-impl';
+import { SupabaseCategoriesRepository } from './categories-repository-impl';
+import { SupabaseBudgetsRepository } from './budgets-repository-impl';
+import { SupabaseGoalsRepository } from './goals-repository-impl';
+import { SupabaseExchangeRatesRepository } from './exchange-rates-repository-impl';
+import { SupabaseNotificationsRepository } from './notifications-repository-impl';
+import { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 
 // @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseAppRepository implements AppRepository {
@@ -33,32 +41,35 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly transactions: SupabaseTransactionsRepository;
   public readonly categories: SupabaseCategoriesRepository;
   public readonly budgets: any; // SupabaseBudgetsRepository - incomplete implementation
-  public readonly goals: any; // SupabaseGoalsRepository - incomplete implementation  
+  public readonly goals: any; // SupabaseGoalsRepository - incomplete implementation
   public readonly exchangeRates: any; // SupabaseExchangeRatesRepository - incomplete implementation
   public readonly notifications: any; // SupabaseNotificationsRepository - incomplete implementation
   public readonly recurringTransactions: SupabaseRecurringTransactionsRepository;
+  private readonly client: SupabaseClient;
 
-  constructor() {
-    this.accounts = new SupabaseAccountsRepository();
-    this.transactions = new SupabaseTransactionsRepository();
-    this.categories = new SupabaseCategoriesRepository();
-    this.budgets = new SupabaseBudgetsRepository();
-    this.goals = new SupabaseGoalsRepository();
-    this.exchangeRates = new SupabaseExchangeRatesRepository();
-    this.notifications = new SupabaseNotificationsRepository();
-    this.recurringTransactions = new SupabaseRecurringTransactionsRepository();
-    
+  constructor(client?: SupabaseClient) {
+    this.client = client || browserClient;
+    this.accounts = new SupabaseAccountsRepository(this.client);
+    this.transactions = new SupabaseTransactionsRepository(this.client);
+    this.categories = new SupabaseCategoriesRepository(this.client);
+    this.budgets = new SupabaseBudgetsRepository(this.client);
+    this.goals = new SupabaseGoalsRepository(this.client);
+    this.exchangeRates = new SupabaseExchangeRatesRepository(this.client);
+    this.notifications = new SupabaseNotificationsRepository(this.client);
+    this.recurringTransactions = new SupabaseRecurringTransactionsRepository(
+      this.client
+    );
+
     // Set up dependencies
     this.transactions.setAccountsRepository(this.accounts);
   }
 
   async isHealthy(): Promise<boolean> {
     try {
-      const { supabase } = await import('./client');
-      const { data, error } = await supabase
+      const { data, error } = await this.client
         .from('categories')
         .select('count', { count: 'exact', head: true });
-      
+
       return !error;
     } catch (error) {
       return false;
@@ -67,30 +78,27 @@ export class SupabaseAppRepository implements AppRepository {
 
   async initialize(): Promise<void> {
     try {
-      const { supabase } = await import('./client');
-      
       // Check if user is authenticated
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await this.client.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
 
       // Ensure user exists in users table
-      const { error } = await (supabase
-        .from('users') as any)
-        .upsert({
-          id: user.id,
-          email: user.email!,
-          name: user.user_metadata?.name || null,
-          base_currency: 'USD',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as any);
+      const { error } = await (this.client.from('users') as any).upsert({
+        id: user.id,
+        email: user.email!,
+        name: user.user_metadata?.name || null,
+        base_currency: 'USD',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      } as any);
 
       if (error) {
         throw new Error(`Failed to initialize user: ${error.message}`);
       }
-
     } catch (error) {
       throw error;
     }
@@ -99,7 +107,7 @@ export class SupabaseAppRepository implements AppRepository {
   async clear(): Promise<void> {
     // TODO: Implement data clearing (be very careful with this!)
     throw new Error('Supabase implementation not ready yet');
-    
+
     /*
     // WARNING: This will delete all user data!
     const { data: { user } } = await supabase.auth.getUser();
@@ -119,7 +127,14 @@ export class SupabaseAppRepository implements AppRepository {
   // Data import/export methods implementation
   async exportAllData() {
     try {
-      const [accounts, transactions, categories, budgets, goals, exchangeRates] = await Promise.all([
+      const [
+        accounts,
+        transactions,
+        categories,
+        budgets,
+        goals,
+        exchangeRates,
+      ] = await Promise.all([
         this.accounts.findAll(),
         this.transactions.findAll(),
         this.categories.findAll(),
@@ -180,7 +195,6 @@ export class SupabaseAppRepository implements AppRepository {
           await this.exchangeRates.create(rate);
         }
       }
-
     } catch (error) {
       throw error;
     }

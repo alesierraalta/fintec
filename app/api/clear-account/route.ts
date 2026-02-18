@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SupabaseAppRepository } from '@/repositories/supabase';
-import { supabase } from '@/repositories/supabase/client';
+import { createClient } from '@/lib/supabase/server';
 import type { Budget, SavingsGoal } from '@/types';
+import { createServerAppRepository } from '@/repositories/factory';
 
 import { logger } from '@/lib/utils/logger';
-
-const repository = new SupabaseAppRepository();
 
 /**
  * API endpoint to clear all user data
@@ -18,8 +16,12 @@ const repository = new SupabaseAppRepository();
  */
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json(
@@ -48,30 +50,40 @@ export async function POST(request: NextRequest) {
       budgets: 0,
       goals: 0,
       accounts: 0,
-      notifications: 0
+      notifications: 0,
     };
 
     // Execute deletion in correct order (respecting foreign key constraints)
-    
+
+    const repository = createServerAppRepository({ supabase });
+
     // 1. Get all user accounts first
     const userAccounts = await repository.accounts.findByUserId(userId);
-    const accountIds = userAccounts.map(acc => acc.id);
+    const accountIds = userAccounts.map((acc) => acc.id);
 
     // 2. Delete all transactions from user accounts
     const allTransactions = await repository.transactions.findAll();
-    const userTransactions = allTransactions.filter(t => accountIds.includes(t.accountId));
-    
+    const userTransactions = allTransactions.filter((t) =>
+      accountIds.includes(t.accountId)
+    );
+
     if (userTransactions.length > 0) {
-      await repository.transactions.deleteMany(userTransactions.map(t => t.id));
+      await repository.transactions.deleteMany(
+        userTransactions.map((t) => t.id)
+      );
       deletedCounts.transactions = userTransactions.length;
     }
 
     // 3. Delete all budgets (user-specific)
     const allBudgets = await repository.budgets.findAll();
-    const userBudgets = allBudgets.filter((budget: Budget) => budget.userId === userId);
-    
+    const userBudgets = allBudgets.filter(
+      (budget: Budget) => budget.userId === userId
+    );
+
     if (userBudgets.length > 0) {
-      await repository.budgets.deleteMany(userBudgets.map((budget: Budget) => budget.id));
+      await repository.budgets.deleteMany(
+        userBudgets.map((budget: Budget) => budget.id)
+      );
       deletedCounts.budgets = userBudgets.length;
     }
 
@@ -81,9 +93,11 @@ export async function POST(request: NextRequest) {
       // Goals are user-specific if they're linked to user's accounts
       return goal.accountId ? accountIds.includes(goal.accountId) : true;
     });
-    
+
     if (userGoals.length > 0) {
-      await repository.goals.deleteMany(userGoals.map((goal: SavingsGoal) => goal.id));
+      await repository.goals.deleteMany(
+        userGoals.map((goal: SavingsGoal) => goal.id)
+      );
       deletedCounts.goals = userGoals.length;
     }
 
@@ -95,14 +109,8 @@ export async function POST(request: NextRequest) {
 
     // 6. Delete notifications (optional - may not exist yet)
     try {
-      const { error: notificationsError } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('user_id', userId);
-
-      if (!notificationsError) {
-        deletedCounts.notifications = 0; // We don't track count for notifications
-      }
+      await repository.notifications.deleteByUserId(userId);
+      deletedCounts.notifications = 0;
     } catch (error) {
       // Notifications table might not exist, continue
       logger.info('Notifications deletion skipped:', error);
@@ -112,19 +120,17 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Account data cleared successfully',
       deletedAt: new Date().toISOString(),
-      deleted: deletedCounts
+      deleted: deletedCounts,
     });
-
   } catch (error: any) {
     logger.error('Error clearing account:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
         error: 'Failed to clear account data',
-        details: error.message || 'Unknown error'
+        details: error.message || 'Unknown error',
       },
       { status: 500 }
     );
   }
 }
-

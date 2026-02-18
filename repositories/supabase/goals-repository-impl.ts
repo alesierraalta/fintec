@@ -4,7 +4,7 @@ import { supabase } from './client';
 import {
   mapSupabaseGoalToDomain,
   mapDomainGoalToSupabase,
-  mapSupabaseGoalArrayToDomain
+  mapSupabaseGoalArrayToDomain,
 } from './mappers';
 import { SupabaseClient } from '@supabase/supabase-js';
 
@@ -15,10 +15,21 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   constructor(client?: SupabaseClient) {
     this.client = client || supabase;
   }
+
+  private async getUserId(): Promise<string | null> {
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
+    return user?.id || null;
+  }
   async findAll(): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
+      .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
       .order('name', { ascending: true });
@@ -31,10 +42,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findById(id: string): Promise<SavingsGoal | null> {
+    const userId = await this.getUserId();
+    if (!userId) return null;
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -48,10 +63,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findByAccountId(accountId: string): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
       .eq('account_id', accountId)
+      .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
       .order('name', { ascending: true });
@@ -64,9 +83,13 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findActive(): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
+      .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
       .order('name', { ascending: true });
@@ -79,10 +102,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async findCompleted(): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     // Stub implementation - would need proper SQL for comparing columns
     const { data, error } = await this.client
       .from('goals')
       .select('*')
+      .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
       .order('name', { ascending: true });
@@ -94,31 +121,47 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     return mapSupabaseGoalArrayToDomain(data || []);
   }
 
-  async findByTargetDateRange(startDate: string, endDate: string): Promise<SavingsGoal[]> {
+  async findByTargetDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
       .gte('target_date', startDate)
       .lte('target_date', endDate)
+      .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
       .order('name', { ascending: true });
 
     if (error) {
-      throw new Error(`Failed to fetch goals by target date range: ${error.message}`);
+      throw new Error(
+        `Failed to fetch goals by target date range: ${error.message}`
+      );
     }
 
     return mapSupabaseGoalArrayToDomain(data || []);
   }
 
-  async findWithPagination(params: PaginationParams): Promise<PaginatedResult<SavingsGoal>> {
+  async findWithPagination(
+    params: PaginationParams
+  ): Promise<PaginatedResult<SavingsGoal>> {
     const { page, limit, sortBy = 'target_date', sortOrder = 'asc' } = params;
     const offset = (page - 1) * limit;
+    const userId = await this.getUserId();
+    if (!userId) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
 
     // Get total count
     const { count, error: countError } = await this.client
       .from('goals')
       .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
       .eq('active', true);
 
     if (countError) {
@@ -129,6 +172,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     const { data, error } = await this.client
       .from('goals')
       .select('*')
+      .eq('user_id', userId)
       .eq('active', true)
       .order(sortBy, { ascending: sortOrder === 'asc' })
       .order('name', { ascending: true }) // Secondary sort
@@ -150,12 +194,18 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     };
   }
 
-  async create(goal: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>): Promise<SavingsGoal> {
+  async create(
+    goal: Omit<SavingsGoal, 'id' | 'createdAt' | 'updatedAt'>
+  ): Promise<SavingsGoal> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
     const supabaseGoal = mapDomainGoalToSupabase(goal);
 
-    const { data, error } = await (supabase
-      .from('goals') as any)
-      .insert(supabaseGoal as any)
+    const { data, error } = await (this.client.from('goals') as any)
+      .insert({ ...supabaseGoal, user_id: userId } as any)
       .select()
       .single();
 
@@ -166,16 +216,24 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     return mapSupabaseGoalToDomain(data);
   }
 
-  async update(id: string, updates: Partial<SavingsGoal>): Promise<SavingsGoal> {
+  async update(
+    id: string,
+    updates: Partial<SavingsGoal>
+  ): Promise<SavingsGoal> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
     const supabaseUpdates = mapDomainGoalToSupabase({
       ...updates,
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await (supabase
-      .from('goals') as any)
+    const { data, error } = await (this.client.from('goals') as any)
       .update(supabaseUpdates as any)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -187,11 +245,16 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async delete(id: string): Promise<void> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
     // Soft delete by setting active to false
-    const { error } = await (supabase
-      .from('goals') as any)
+    const { error } = await (this.client.from('goals') as any)
       .update({ active: false } as any)
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       throw new Error(`Failed to delete goal: ${error.message}`);
@@ -199,10 +262,16 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async hardDelete(id: string): Promise<void> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
     const { error } = await this.client
       .from('goals')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .eq('user_id', userId);
 
     if (error) {
       throw new Error(`Failed to hard delete goal: ${error.message}`);
@@ -210,9 +279,13 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async count(): Promise<number> {
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
     const { count, error } = await this.client
       .from('goals')
       .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
       .eq('active', true);
 
     if (error) {
@@ -222,14 +295,22 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     return count || 0;
   }
 
-  async updateProgress(id: string, currentBaseMinor: number): Promise<SavingsGoal> {
-    const { data, error } = await (supabase
-      .from('goals') as any)
+  async updateProgress(
+    id: string,
+    currentBaseMinor: number
+  ): Promise<SavingsGoal> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const { data, error } = await (this.client.from('goals') as any)
       .update({
         current_base_minor: currentBaseMinor,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       } as any)
       .eq('id', id)
+      .eq('user_id', userId)
       .select()
       .single();
 
@@ -247,10 +328,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     percentageComplete: number;
     isCompleted: boolean;
   } | null> {
+    const userId = await this.getUserId();
+    if (!userId) return null;
+
     const { data, error } = await this.client
       .from('goals')
       .select('target_base_minor, current_base_minor')
       .eq('id', id)
+      .eq('user_id', userId)
       .single();
 
     if (error) {
@@ -285,47 +370,69 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     completed: SavingsGoal[];
     overdue: SavingsGoal[];
   }> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      return { active: [], completed: [], overdue: [] };
+    }
+
     const today = new Date().toISOString().split('T')[0];
 
     const [activeGoals, completedGoals, overdueGoals] = await Promise.all([
       // Active goals (not completed, not overdue)
-      supabase
+      this.client
         .from('goals')
         .select('*')
+        .eq('user_id', userId)
         .eq('active', true)
-        .lt('current_base_minor', 999999999 /* Stub: would need proper SQL for column comparison */)
+        .lt(
+          'current_base_minor',
+          999999999 /* Stub: would need proper SQL for column comparison */
+        )
         .or(`target_date.is.null,target_date.gte.${today}`)
         .order('target_date', { ascending: true })
         .then(({ data, error }) => {
-          if (error) throw new Error(`Failed to fetch active goals: ${error.message}`);
+          if (error)
+            throw new Error(`Failed to fetch active goals: ${error.message}`);
           return mapSupabaseGoalArrayToDomain(data || []);
         }),
 
       // Completed goals
-      supabase
+      this.client
         .from('goals')
         .select('*')
+        .eq('user_id', userId)
         .eq('active', true)
-        .gte('current_base_minor', 999999999 /* Stub: would need proper SQL for column comparison */)
+        .gte(
+          'current_base_minor',
+          999999999 /* Stub: would need proper SQL for column comparison */
+        )
         .order('target_date', { ascending: true })
         .then(({ data, error }) => {
-          if (error) throw new Error(`Failed to fetch completed goals: ${error.message}`);
+          if (error)
+            throw new Error(
+              `Failed to fetch completed goals: ${error.message}`
+            );
           return mapSupabaseGoalArrayToDomain(data || []);
         }),
 
       // Overdue goals (not completed and past target date)
-      supabase
+      this.client
         .from('goals')
         .select('*')
+        .eq('user_id', userId)
         .eq('active', true)
-        .lt('current_base_minor', 999999999 /* Stub: would need proper SQL for column comparison */)
+        .lt(
+          'current_base_minor',
+          999999999 /* Stub: would need proper SQL for column comparison */
+        )
         .not('target_date', 'is', null)
         .lt('target_date', today)
         .order('target_date', { ascending: true })
         .then(({ data, error }) => {
-          if (error) throw new Error(`Failed to fetch overdue goals: ${error.message}`);
+          if (error)
+            throw new Error(`Failed to fetch overdue goals: ${error.message}`);
           return mapSupabaseGoalArrayToDomain(data || []);
-        })
+        }),
     ]);
 
     return {
@@ -336,9 +443,13 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   async search(query: string): Promise<SavingsGoal[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
     const { data, error } = await this.client
       .from('goals')
       .select('*')
+      .eq('user_id', userId)
       .eq('active', true)
       .or(`name.ilike.%${query}%,description.ilike.%${query}%`)
       .order('name', { ascending: true });
@@ -350,12 +461,16 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     return mapSupabaseGoalArrayToDomain(data || []);
   }
 
-  async getGoalsWithProgress(): Promise<import('@/repositories/contracts').GoalWithProgress[]> {
+  async getGoalsWithProgress(): Promise<
+    import('@/repositories/contracts').GoalWithProgress[]
+  > {
     const goals = await this.findActive();
-    return Promise.all(goals.map(goal => this.calculateGoalProgress(goal)));
+    return Promise.all(goals.map((goal) => this.calculateGoalProgress(goal)));
   }
 
-  async getGoalWithProgress(id: string): Promise<import('@/repositories/contracts').GoalWithProgress | null> {
+  async getGoalWithProgress(
+    id: string
+  ): Promise<import('@/repositories/contracts').GoalWithProgress | null> {
     const goal = await this.findById(id);
     if (!goal) {
       return null;
@@ -364,12 +479,18 @@ export class SupabaseGoalsRepository implements GoalsRepository {
   }
 
   // Helper method to calculate goal progress
-  private calculateGoalProgress(goal: SavingsGoal): import('@/repositories/contracts').GoalWithProgress {
-    const progressPercentage = goal.targetBaseMinor > 0
-      ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100)
-      : 0;
+  private calculateGoalProgress(
+    goal: SavingsGoal
+  ): import('@/repositories/contracts').GoalWithProgress {
+    const progressPercentage =
+      goal.targetBaseMinor > 0
+        ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100)
+        : 0;
 
-    const remainingBaseMinor = Math.max(0, goal.targetBaseMinor - goal.currentBaseMinor);
+    const remainingBaseMinor = Math.max(
+      0,
+      goal.targetBaseMinor - goal.currentBaseMinor
+    );
 
     let daysRemaining: number | undefined;
     let isOnTrack: boolean | undefined;
@@ -387,8 +508,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
         // Check if on track (simplified logic)
         const createdDate = new Date(goal.createdAt);
-        const daysSinceCreation = Math.max(1, Math.ceil((today.getTime() - createdDate.getTime()) / (1000 * 3600 * 24)));
-        const currentMonthlyRate = goal.currentBaseMinor / daysSinceCreation * 30.44;
+        const daysSinceCreation = Math.max(
+          1,
+          Math.ceil(
+            (today.getTime() - createdDate.getTime()) / (1000 * 3600 * 24)
+          )
+        );
+        const currentMonthlyRate =
+          (goal.currentBaseMinor / daysSinceCreation) * 30.44;
         isOnTrack = currentMonthlyRate >= suggestedMonthlyContribution;
       } else {
         isOnTrack = progressPercentage >= 100;

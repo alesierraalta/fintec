@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SupabaseAppRepository } from '@/repositories/supabase';
 import { CreateCategoryDTO } from '@/repositories/contracts';
 import { CategoryKind } from '@/types';
-
-const repository = new SupabaseAppRepository();
+import { createClient } from '@/lib/supabase/server';
+import { createServerAppRepository } from '@/repositories/factory';
 
 // GET /api/categories - Fetch all categories
 export async function GET(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const repository = createServerAppRepository({ supabase });
     const { searchParams } = new URL(request.url);
     const kind = searchParams.get('kind') as CategoryKind | null;
     const parentId = searchParams.get('parentId');
     const active = searchParams.get('active');
-    
+
     let categories;
-    
+
     if (kind) {
       categories = await repository.categories.findByKind(kind);
     } else if (parentId) {
@@ -24,18 +25,18 @@ export async function GET(request: NextRequest) {
     } else {
       categories = await repository.categories.findAll();
     }
-    
+
     return NextResponse.json({
       success: true,
       data: categories,
-      count: categories.length
+      count: categories.length,
     });
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to fetch categories', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to fetch categories',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -45,41 +46,55 @@ export async function GET(request: NextRequest) {
 // POST /api/categories - Create new category
 export async function POST(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const body = await request.json();
-    
+
     // Validate required fields
     if (!body.name || !body.kind) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required fields: name, kind' 
+        {
+          success: false,
+          error: 'Missing required fields: name, kind',
         },
         { status: 400 }
       );
     }
-    
+
     // Validate privacy rules: default categories cannot have user_id
     if (body.isDefault && body.userId) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Default categories cannot have a user_id' 
+        {
+          success: false,
+          error: 'Default categories cannot have a user_id',
         },
         { status: 400 }
       );
     }
-    
+
     // Validate privacy rules: user categories cannot be default
     if (body.userId && body.isDefault) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'User categories cannot be marked as default' 
+        {
+          success: false,
+          error: 'User categories cannot be marked as default',
         },
         { status: 400 }
       );
     }
-    
+
     const categoryData: CreateCategoryDTO = {
       name: body.name,
       kind: body.kind as CategoryKind,
@@ -87,22 +102,25 @@ export async function POST(request: NextRequest) {
       icon: body.icon || 'Tag',
       parentId: body.parentId,
       active: body.active !== false, // Default to true
-      isDefault: body.isDefault || false
+      isDefault: body.isDefault || false,
     };
-    
+
     const category = await repository.categories.create(categoryData);
-    
-    return NextResponse.json({
-      success: true,
-      data: category,
-      message: 'Category created successfully'
-    }, { status: 201 });
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: category,
+        message: 'Category created successfully',
+      },
+      { status: 201 }
+    );
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to create category', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to create category',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -112,31 +130,45 @@ export async function POST(request: NextRequest) {
 // PUT /api/categories - Update category
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const body = await request.json();
-    
+
     if (!body.id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required field: id' 
+        {
+          success: false,
+          error: 'Missing required field: id',
         },
         { status: 400 }
       );
     }
-    
+
     const category = await repository.categories.update(body.id, body);
-    
+
     return NextResponse.json({
       success: true,
       data: category,
-      message: 'Category updated successfully'
+      message: 'Category updated successfully',
     });
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to update category', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to update category',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );
@@ -146,44 +178,59 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/categories - Delete category
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const repository = createServerAppRepository({ supabase });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
-    
+
     if (!id) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Missing required parameter: id' 
+        {
+          success: false,
+          error: 'Missing required parameter: id',
         },
         { status: 400 }
       );
     }
-    
+
     // Check if category can be deleted
     const canDelete = await repository.categories.canDelete(id);
-    
+
     if (!canDelete) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Cannot delete category: it has associated transactions or subcategories' 
+        {
+          success: false,
+          error:
+            'Cannot delete category: it has associated transactions or subcategories',
         },
         { status: 400 }
       );
     }
-    
+
     await repository.categories.delete(id);
-    
+
     return NextResponse.json({
       success: true,
-      message: 'Category deleted successfully'
+      message: 'Category deleted successfully',
     });
   } catch (error) {
     return NextResponse.json(
-      { 
-        success: false, 
-        error: 'Failed to delete category', 
-        details: error instanceof Error ? error.message : 'Unknown error'
+      {
+        success: false,
+        error: 'Failed to delete category',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     );

@@ -49,6 +49,7 @@ export interface SupabaseCategory {
 
 export interface SupabaseBudget {
   id: string;
+  user_id: string;
   name: string;
   category_id: string;
   month_year: string; // YYYY-MM format
@@ -61,6 +62,7 @@ export interface SupabaseBudget {
 
 export interface SupabaseGoal {
   id: string;
+  user_id: string;
   name: string;
   description?: string;
   target_base_minor: number;
@@ -103,8 +105,6 @@ export interface SupabaseUser {
   updated_at: string;
 }
 
-
-
 export interface SupabasePaymentOrder {
   id: string;
   user_id: string;
@@ -145,7 +145,10 @@ export interface Database {
       };
       transactions: {
         Row: SupabaseTransaction;
-        Insert: Omit<SupabaseTransaction, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<
+          SupabaseTransaction,
+          'id' | 'created_at' | 'updated_at'
+        > & {
           id?: string;
           created_at?: string;
           updated_at?: string;
@@ -197,7 +200,10 @@ export interface Database {
       };
       payment_orders: {
         Row: SupabasePaymentOrder;
-        Insert: Omit<SupabasePaymentOrder, 'id' | 'created_at' | 'updated_at'> & {
+        Insert: Omit<
+          SupabasePaymentOrder,
+          'id' | 'created_at' | 'updated_at'
+        > & {
           id?: string;
           created_at?: string;
           updated_at?: string;
@@ -212,7 +218,13 @@ export interface Database {
       [_ in never]: never;
     };
     Enums: {
-      account_type: 'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS' | 'CRYPTO';
+      account_type:
+        | 'CASH'
+        | 'BANK'
+        | 'CARD'
+        | 'INVESTMENT'
+        | 'SAVINGS'
+        | 'CRYPTO';
       transaction_type: 'INCOME' | 'EXPENSE' | 'TRANSFER_OUT' | 'TRANSFER_IN';
       category_kind: 'INCOME' | 'EXPENSE';
     };
@@ -293,6 +305,7 @@ CREATE TABLE transfers (
 -- Budgets table
 CREATE TABLE budgets (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   category_id UUID REFERENCES categories(id) ON DELETE CASCADE,
   month_year TEXT NOT NULL, -- YYYY-MM format
@@ -301,12 +314,13 @@ CREATE TABLE budgets (
   active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  UNIQUE(category_id, month_year)
+  UNIQUE(user_id, category_id, month_year)
 );
 
 -- Goals table
 CREATE TABLE goals (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE NOT NULL,
   name TEXT NOT NULL,
   description TEXT,
   target_base_minor BIGINT NOT NULL,
@@ -366,9 +380,11 @@ CREATE INDEX idx_categories_is_default ON categories(is_default);
 
 CREATE INDEX idx_budgets_category_id ON budgets(category_id);
 CREATE INDEX idx_budgets_month_year ON budgets(month_year);
+CREATE INDEX idx_budgets_user_id ON budgets(user_id);
 
 CREATE INDEX idx_goals_account_id ON goals(account_id);
 CREATE INDEX idx_goals_target_date ON goals(target_date);
+CREATE INDEX idx_goals_user_id ON goals(user_id);
 
 CREATE INDEX idx_exchange_rates_pair ON exchange_rates(base_currency, quote_currency);
 CREATE INDEX idx_exchange_rates_date ON exchange_rates(date);
@@ -413,10 +429,10 @@ CREATE POLICY "Users can view own and default categories" ON categories FOR SELE
   auth.uid() = user_id OR is_default = true
 );
 CREATE POLICY "Users can insert own categories" ON categories FOR INSERT WITH CHECK (
-  auth.uid() = user_id OR is_default = false
+  auth.uid() = user_id AND is_default = false
 );
 CREATE POLICY "Users can update own categories" ON categories FOR UPDATE USING (
-  auth.uid() = user_id OR is_default = false
+  auth.uid() = user_id AND is_default = false
 );
 CREATE POLICY "Users can delete own categories" ON categories FOR DELETE USING (
   auth.uid() = user_id
@@ -434,7 +450,31 @@ CREATE POLICY "Users can update own payment orders" ON payment_orders FOR UPDATE
 );
 
 -- Budgets and goals are user-specific through category/account relationships
--- (Additional policies would be added here)
+CREATE POLICY "Users can view own budgets" ON budgets FOR SELECT USING (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can insert own budgets" ON budgets FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can update own budgets" ON budgets FOR UPDATE USING (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can delete own budgets" ON budgets FOR DELETE USING (
+  auth.uid() = user_id
+);
+
+CREATE POLICY "Users can view own goals" ON goals FOR SELECT USING (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can insert own goals" ON goals FOR INSERT WITH CHECK (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can update own goals" ON goals FOR UPDATE USING (
+  auth.uid() = user_id
+);
+CREATE POLICY "Users can delete own goals" ON goals FOR DELETE USING (
+  auth.uid() = user_id
+);
 
 -- Functions for updating timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()

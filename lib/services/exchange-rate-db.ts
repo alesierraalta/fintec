@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 
 import { logger } from '@/lib/utils/logger';
 interface ExchangeRateData {
@@ -11,37 +11,18 @@ interface ExchangeRateData {
 }
 
 class ExchangeRateDatabase {
-  private supabase;
-
-  constructor() {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Missing Supabase configuration');
-    }
-
-    this.supabase = createClient(supabaseUrl, supabaseKey);
-  }
+  private ratesHistoryRepository = new SupabaseRatesHistoryRepository();
 
   async storeExchangeRate(data: ExchangeRateData): Promise<boolean> {
     try {
-      const { error } = await this.supabase
-        .from('exchange_rates')
-        .insert({
-          usd_ves: data.usd_ves,
-          usdt_ves: data.usdt_ves,
-          sell_rate: data.sell_rate,
-          buy_rate: data.buy_rate,
-          last_updated: data.lastUpdated,
-          source: data.source,
-          created_at: new Date().toISOString()
-        });
-
-      if (error) {
-        logger.error('Error storing exchange rate:', error);
-        return false;
-      }
+      await this.ratesHistoryRepository.insertExchangeRateSnapshot({
+        usdVes: data.usd_ves,
+        usdtVes: data.usdt_ves,
+        sellRate: data.sell_rate,
+        buyRate: data.buy_rate,
+        lastUpdated: data.lastUpdated,
+        source: data.source,
+      });
 
       logger.info('Exchange rate stored successfully');
       return true;
@@ -53,25 +34,20 @@ class ExchangeRateDatabase {
 
   async getLatestExchangeRate(): Promise<ExchangeRateData | null> {
     try {
-      const { data, error } = await this.supabase
-        .from('exchange_rates')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      const data =
+        await this.ratesHistoryRepository.getLatestExchangeRateSnapshot();
 
-      if (error) {
-        logger.error('Error fetching latest exchange rate:', error);
+      if (!data) {
         return null;
       }
 
       return {
-        usd_ves: data.usd_ves,
-        usdt_ves: data.usdt_ves,
-        sell_rate: data.sell_rate,
-        buy_rate: data.buy_rate,
-        lastUpdated: data.last_updated,
-        source: data.source
+        usd_ves: data.usdVes,
+        usdt_ves: data.usdtVes,
+        sell_rate: data.sellRate,
+        buy_rate: data.buyRate,
+        lastUpdated: data.lastUpdated,
+        source: data.source,
       };
     } catch (error) {
       logger.error('Database error:', error);
@@ -79,26 +55,20 @@ class ExchangeRateDatabase {
     }
   }
 
-  async getExchangeRateHistory(limit: number = 100): Promise<ExchangeRateData[]> {
+  async getExchangeRateHistory(
+    limit: number = 100
+  ): Promise<ExchangeRateData[]> {
     try {
-      const { data, error } = await this.supabase
-        .from('exchange_rates')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      const data =
+        await this.ratesHistoryRepository.listExchangeRateSnapshots(limit);
 
-      if (error) {
-        logger.error('Error fetching exchange rate history:', error);
-        return [];
-      }
-
-      return data.map(rate => ({
-        usd_ves: rate.usd_ves,
-        usdt_ves: rate.usdt_ves,
-        sell_rate: rate.sell_rate,
-        buy_rate: rate.buy_rate,
-        lastUpdated: rate.last_updated,
-        source: rate.source
+      return data.map((rate) => ({
+        usd_ves: rate.usdVes,
+        usdt_ves: rate.usdtVes,
+        sell_rate: rate.sellRate,
+        buy_rate: rate.buyRate,
+        lastUpdated: rate.lastUpdated,
+        source: rate.source,
       }));
     } catch (error) {
       logger.error('Database error:', error);

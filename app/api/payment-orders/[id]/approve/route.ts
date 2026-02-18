@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
-import {
-  approveOrder,
-} from '@/lib/payment-orders/order-service';
+import { approveOrder } from '@/lib/payment-orders/order-service';
 
 /**
  * POST /api/payment-orders/[id]/approve
@@ -52,13 +49,18 @@ export async function POST(
         error: error.message || 'Failed to approve order',
       },
       {
-        status: error.message?.includes('Authentication') ? 401 :
-          error.message?.includes('Unauthorized') ? 403 :
-            error.message?.includes('not found') ? 404 :
-              error.message?.includes('must be in pending_review') ? 400 :
-                error.message?.includes('must have a receipt') ? 400 : 500
+        status: error.message?.includes('Authentication')
+          ? 401
+          : error.message?.includes('Unauthorized')
+            ? 403
+            : error.message?.includes('not found')
+              ? 404
+              : error.message?.includes('must be in pending_review')
+                ? 400
+                : error.message?.includes('must have a receipt')
+                  ? 400
+                  : 500,
       }
     );
   }
 }
-

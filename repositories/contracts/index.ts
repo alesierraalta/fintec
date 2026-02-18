@@ -8,6 +8,14 @@ export * from './goals-repository';
 export * from './exchange-rates-repository';
 export * from './notifications-repository';
 export * from './recurring-transactions-repository';
+export * from './transfers-repository';
+export * from './waitlist-repository';
+export * from './approval-requests-repository';
+export * from './ai-infra-repository';
+export * from './subscriptions-repository';
+export * from './payment-orders-repository';
+export * from './rates-history-repository';
+export * from './users-profile-repository';
 
 // Main repository interface that combines all repositories
 import { AccountsRepository } from './accounts-repository';

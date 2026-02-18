@@ -13,7 +13,7 @@ export interface RetryOptions {
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
-  options: RetryOptions,
+  options: RetryOptions
 ): Promise<T> {
   const maxRetries = options.maxRetries ?? 3;
   const baseDelay = options.baseDelay ?? 100; // ms
@@ -24,13 +24,23 @@ export async function withRetry<T>(
   for (let i = 0; i <= maxRetries; i++) {
     try {
       if (timeoutMs) {
-        // Implement timeout for the promise
-        return await Promise.race([
-          fn(),
-          new Promise<T>((_, reject) =>
-            setTimeout(() => reject(new Error('Operation timed out')), timeoutMs)
-          ),
-        ]);
+        // Implement timeout for the promise and clear it once race settles
+        let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+        const operationPromise = fn();
+        const timeoutPromise = new Promise<T>((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(new Error('Operation timed out')),
+            timeoutMs
+          );
+        });
+
+        return await Promise.race([operationPromise, timeoutPromise]).finally(
+          () => {
+            if (timeoutHandle) {
+              clearTimeout(timeoutHandle);
+            }
+          }
+        );
       } else {
         return await fn();
       }
@@ -43,8 +53,8 @@ export async function withRetry<T>(
       // * Full jitter: delay = random(0, min(maxDelay, baseDelay * 2^i))
       const exponentialDelay = Math.min(maxDelay, baseDelay * Math.pow(2, i));
       const delay = useJitter
-        ? Math.random() * exponentialDelay  // Full jitter
-        : exponentialDelay;                  // No jitter
+        ? Math.random() * exponentialDelay // Full jitter
+        : exponentialDelay; // No jitter
 
       await new Promise((resolve) => setTimeout(resolve, delay));
     }

@@ -1,4 +1,8 @@
-import type { Notification, CreateNotificationDTO, UpdateNotificationDTO } from '@/types/notifications';
+import type {
+  Notification,
+  CreateNotificationDTO,
+  UpdateNotificationDTO,
+} from '@/types/notifications';
 
 export interface NotificationsRepository {
   // Read operations
@@ -13,7 +17,5 @@ export interface NotificationsRepository {
   markAllAsRead(userId: string): Promise<void>;
   delete(id: string): Promise<boolean>;
   deleteAllRead(userId: string): Promise<void>;
+  deleteByUserId(userId: string): Promise<void>;
 }
-
-
-

@@ -1,8 +1,8 @@
-import { 
-  RecurringTransaction, 
-  CreateRecurringTransactionDTO, 
+import {
+  RecurringTransaction,
+  CreateRecurringTransactionDTO,
   UpdateRecurringTransactionDTO,
-  RecurringTransactionSummary 
+  RecurringTransactionSummary,
 } from '@/types/recurring-transactions';
 
 export interface RecurringTransactionsRepository {
@@ -14,7 +14,7 @@ export interface RecurringTransactionsRepository {
   /**
    * Find a specific recurring transaction by ID
    */
-  findById(id: string): Promise<RecurringTransaction | null>;
+  findById(id: string, userId: string): Promise<RecurringTransaction | null>;
 
   /**
    * Find active recurring transactions that are due for execution
@@ -24,22 +24,33 @@ export interface RecurringTransactionsRepository {
   /**
    * Create a new recurring transaction
    */
-  create(data: CreateRecurringTransactionDTO, userId: string): Promise<RecurringTransaction>;
+  create(
+    data: CreateRecurringTransactionDTO,
+    userId: string
+  ): Promise<RecurringTransaction>;
 
   /**
    * Update an existing recurring transaction
    */
-  update(id: string, data: UpdateRecurringTransactionDTO): Promise<RecurringTransaction>;
+  update(
+    id: string,
+    data: UpdateRecurringTransactionDTO,
+    userId: string
+  ): Promise<RecurringTransaction>;
 
   /**
    * Delete a recurring transaction
    */
-  delete(id: string): Promise<void>;
+  delete(id: string, userId: string): Promise<void>;
 
   /**
    * Toggle active status of a recurring transaction
    */
-  toggleActive(id: string, isActive: boolean): Promise<RecurringTransaction>;
+  toggleActive(
+    id: string,
+    isActive: boolean,
+    userId: string
+  ): Promise<RecurringTransaction>;
 
   /**
    * Get summary statistics for user's recurring transactions
@@ -50,9 +61,10 @@ export interface RecurringTransactionsRepository {
    * Create a recurring transaction from an existing transaction
    */
   createFromTransaction(
-    transactionId: string, 
-    frequency: string, 
-    intervalCount?: number, 
+    transactionId: string,
+    frequency: string,
+    userId: string,
+    intervalCount?: number,
     endDate?: string,
     name?: string
   ): Promise<RecurringTransaction>;
@@ -60,8 +72,9 @@ export interface RecurringTransactionsRepository {
   /**
    * Update the next execution date after processing
    */
-  updateNextExecution(id: string, nextDate: string): Promise<void>;
+  updateNextExecution(
+    id: string,
+    nextDate: string,
+    userId: string
+  ): Promise<void>;
 }
-
-
-

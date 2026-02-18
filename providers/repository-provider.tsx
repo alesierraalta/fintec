@@ -1,9 +1,12 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useMemo, ReactNode } from 'react';
 import { LocalAppRepository } from '@/repositories/local';
-import { SupabaseAppRepository } from '@/repositories/supabase';
 import { AppRepository } from '@/repositories/contracts';
+import {
+  createClientAppRepository,
+  getClientDBProvider,
+} from '@/repositories/factory';
 
 const RepositoryContext = createContext<AppRepository | null>(null);
 
@@ -12,16 +15,13 @@ interface RepositoryProviderProps {
 }
 
 export function RepositoryProvider({ children }: RepositoryProviderProps) {
-  // Switch to Supabase repository - categories have been set up in database
-  let repository: AppRepository;
-  
-  try {
-    // Use Supabase repository now - categories and RLS policies are configured
-    repository = new SupabaseAppRepository();
-  } catch (error) {
-    // Fallback to Local repository if Supabase fails
-    repository = new LocalAppRepository();
-  }
+  const repository = useMemo<AppRepository>(() => {
+    try {
+      return createClientAppRepository(getClientDBProvider());
+    } catch {
+      return new LocalAppRepository();
+    }
+  }, []);
 
   return (
     <RepositoryContext.Provider value={repository}>

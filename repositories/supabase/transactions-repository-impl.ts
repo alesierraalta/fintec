@@ -6,13 +6,13 @@ import {
   PaginationParams,
   PaginatedResult,
   CreateTransactionDTO,
-  UpdateTransactionDTO
+  UpdateTransactionDTO,
 } from '@/types';
 import { supabase } from './client';
 import {
   mapSupabaseTransactionToDomain,
   mapDomainTransactionToSupabase,
-  mapSupabaseTransactionArrayToDomain
+  mapSupabaseTransactionArrayToDomain,
 } from './mappers';
 import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -25,12 +25,50 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     this.client = client || supabase;
   }
 
+  private async getUserId(): Promise<string | null> {
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
+    return user?.id || null;
+  }
+
+  private async getUserAccountIds(userId: string): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to fetch user accounts: ${error.message}`);
+    }
+
+    return ((data as any[]) || []).map((row: any) => row.id);
+  }
+
+  private async ensureAccountOwned(
+    accountId: string,
+    userId: string
+  ): Promise<void> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('id')
+      .eq('id', accountId)
+      .eq('user_id', userId)
+      .single();
+
+    if (error || !data) {
+      throw new Error('Account not found');
+    }
+  }
+
   setAccountsRepository(accountsRepository: AccountsRepository) {
     this.accountsRepository = accountsRepository;
   }
   async findAll(limit: number = 1000): Promise<Transaction[]> {
     // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await this.client.auth.getUser();
+    const {
+      data: { user },
+    } = await this.client.auth.getUser();
 
     if (!user) {
       // No user authenticated = no transactions visible
@@ -44,10 +82,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     // * Payload Optimization: Select only essential fields for list view
     const { data, error } = await this.client
       .from('transactions')
-      .select(`
+      .select(
+        `
         id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, created_at, updated_at,
         accounts!inner(user_id)
-      `)
+      `
+      )
       .eq('accounts.user_id', userId)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
@@ -61,10 +101,14 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findById(id: string): Promise<Transaction | null> {
-    const { data, error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) return null;
+
+    const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(`*, accounts!inner(user_id)`)
       .eq('id', id)
+      .eq('accounts.user_id', userId)
       .single();
 
     if (error) {
@@ -77,19 +121,39 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return mapSupabaseTransactionToDomain(data);
   }
 
-
-
-
-
-  async findByFilters(filters: TransactionFilters, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+  async findByFilters(
+    filters: TransactionFilters,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = pagination || {};
     const offset = (page - 1) * limit;
 
+    const userId = await this.getUserId();
+    if (!userId) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
+
     // Include JOIN with accounts for RLS to work properly
-    let query = this.client.from('transactions').select(`
+    let query = this.client.from('transactions').select(
+      `
       *,
       accounts!inner(user_id)
-    `, { count: 'exact' });
+    `,
+      { count: 'exact' }
+    );
+
+    query = query.eq('accounts.user_id', userId);
 
     if (filters.accountIds && filters.accountIds.length > 0) {
       query = query.in('account_id', filters.accountIds);
@@ -124,7 +188,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     if (filters.search) {
-      query = query.or(`description.ilike.%${filters.search}%,note.ilike.%${filters.search}%`);
+      query = query.or(
+        `description.ilike.%${filters.search}%,note.ilike.%${filters.search}%`
+      );
     }
 
     if (filters.tags && filters.tags.length > 0) {
@@ -132,7 +198,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     // Apply sorting and pagination
-    const sortColumn = sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date');
+    const sortColumn =
+      sortBy === 'createdAt'
+        ? 'created_at'
+        : sortBy === 'date'
+          ? 'date'
+          : 'date';
 
     query = query
       .order(sortColumn, { ascending: sortOrder === 'asc' })
@@ -142,7 +213,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { data, error, count } = await query;
 
     if (error) {
-      throw new Error(`Failed to fetch transactions with filters: ${error.message}`);
+      throw new Error(
+        `Failed to fetch transactions with filters: ${error.message}`
+      );
     }
 
     return {
@@ -161,6 +234,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async create(transactionData: CreateTransactionDTO): Promise<Transaction> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
     // Convert DTO and create atomically via RPC (insert + balance update)
     const transaction = {
       ...transactionData,
@@ -170,19 +248,43 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const supabaseTransaction = mapDomainTransactionToSupabase(transaction);
 
-    const { data, error } = await (supabase as any).rpc('create_transaction_and_adjust_balance', {
-      p_account_id: supabaseTransaction.account_id,
-      p_category_id: supabaseTransaction.category_id,
-      p_type: supabaseTransaction.type,
-      p_currency_code: supabaseTransaction.currency_code,
-      p_amount_minor: supabaseTransaction.amount_minor,
-      p_amount_base_minor: supabaseTransaction.amount_base_minor,
-      p_exchange_rate: supabaseTransaction.exchange_rate,
-      p_date: supabaseTransaction.date,
-      p_description: supabaseTransaction.description,
-      p_note: supabaseTransaction.note ?? null,
-      p_tags: supabaseTransaction.tags ?? null,
-    });
+    await this.ensureAccountOwned(
+      supabaseTransaction.account_id as string,
+      userId
+    );
+
+    if (supabaseTransaction.category_id) {
+      const { data: category, error: categoryError } = await this.client
+        .from('categories')
+        .select('id, user_id, is_default')
+        .eq('id', supabaseTransaction.category_id)
+        .single();
+
+      if (categoryError || !category) {
+        throw new Error('Category not found');
+      }
+
+      if (!category.is_default && category.user_id !== userId) {
+        throw new Error('Unauthorized category');
+      }
+    }
+
+    const { data, error } = await (this.client as any).rpc(
+      'create_transaction_and_adjust_balance',
+      {
+        p_account_id: supabaseTransaction.account_id,
+        p_category_id: supabaseTransaction.category_id,
+        p_type: supabaseTransaction.type,
+        p_currency_code: supabaseTransaction.currency_code,
+        p_amount_minor: supabaseTransaction.amount_minor,
+        p_amount_base_minor: supabaseTransaction.amount_base_minor,
+        p_exchange_rate: supabaseTransaction.exchange_rate,
+        p_date: supabaseTransaction.date,
+        p_description: supabaseTransaction.description,
+        p_note: supabaseTransaction.note ?? null,
+        p_tags: supabaseTransaction.tags ?? null,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to create transaction: ${error.message}`);
@@ -192,7 +294,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return createdTransaction;
   }
 
-  private calculateBalanceAdjustment(type: string, amountMinor: number): number {
+  private calculateBalanceAdjustment(
+    type: string,
+    amountMinor: number
+  ): number {
     switch (type) {
       case 'INCOME':
       case 'TRANSFER_IN':
@@ -205,7 +310,35 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
   }
 
-  async update(id: string, updates: UpdateTransactionDTO): Promise<Transaction> {
+  async update(
+    id: string,
+    updates: UpdateTransactionDTO
+  ): Promise<Transaction> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    if (updates.accountId) {
+      await this.ensureAccountOwned(updates.accountId, userId);
+    }
+
+    if (updates.categoryId !== undefined && updates.categoryId !== null) {
+      const { data: category, error: categoryError } = await this.client
+        .from('categories')
+        .select('id, user_id, is_default')
+        .eq('id', updates.categoryId)
+        .single();
+
+      if (categoryError || !category) {
+        throw new Error('Category not found');
+      }
+
+      if (!category.is_default && category.user_id !== userId) {
+        throw new Error('Unauthorized category');
+      }
+    }
+
     // Get the original transaction to calculate balance difference
     const originalTransaction = await this.findById(id);
     if (!originalTransaction) {
@@ -218,8 +351,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       updatedAt: new Date().toISOString(),
     });
 
-    const { data, error } = await (supabase
-      .from('transactions') as any)
+    const { data, error } = await (this.client.from('transactions') as any)
       .update(supabaseUpdates as any)
       .eq('id', id)
       .select()
@@ -233,25 +365,52 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     // Update account balance if amount or type changed
     try {
-      const originalAdjustment = this.calculateBalanceAdjustment(originalTransaction.type, originalTransaction.amountMinor);
-      const newAdjustment = this.calculateBalanceAdjustment(updatedTransaction.type, updatedTransaction.amountMinor);
+      const originalAdjustment = this.calculateBalanceAdjustment(
+        originalTransaction.type,
+        originalTransaction.amountMinor
+      );
+      const newAdjustment = this.calculateBalanceAdjustment(
+        updatedTransaction.type,
+        updatedTransaction.amountMinor
+      );
       const balanceDifference = newAdjustment - originalAdjustment;
 
       if (balanceDifference !== 0 && this.accountsRepository) {
-        await this.accountsRepository.adjustBalance(updatedTransaction.accountId, balanceDifference);
-        console.log(`✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`);
+        await this.accountsRepository.adjustBalance(
+          updatedTransaction.accountId,
+          balanceDifference
+        );
+        console.log(
+          `✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`
+        );
       }
     } catch (balanceError) {
-      console.error('❌ Failed to update account balance on transaction update:', balanceError);
+      console.error(
+        '❌ Failed to update account balance on transaction update:',
+        balanceError
+      );
     }
 
     return updatedTransaction;
   }
 
   async delete(id: string): Promise<void> {
-    const { error } = await (supabase as any).rpc('delete_transaction_and_adjust_balance', {
-      transaction_id_input: id,
-    });
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const existingTransaction = await this.findById(id);
+    if (!existingTransaction) {
+      throw new Error(`Transaction with id ${id} not found`);
+    }
+
+    const { error } = await (this.client as any).rpc(
+      'delete_transaction_and_adjust_balance',
+      {
+        transaction_id_input: id,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to delete transaction: ${error.message}`);
@@ -259,9 +418,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async count(): Promise<number> {
-    const { count, error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
+    const { count, error } = await this.client
       .from('transactions')
-      .select('*', { count: 'exact', head: true });
+      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
+      .eq('accounts.user_id', userId);
 
     if (error) {
       throw new Error(`Failed to count transactions: ${error.message}`);
@@ -271,7 +434,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async getTotalByAccountId(accountId: string): Promise<number> {
-    const { data, error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
+    await this.ensureAccountOwned(accountId, userId);
+
+    const { data, error } = await this.client
       .from('transactions')
       .select('amount_base_minor, type')
       .eq('account_id', accountId);
@@ -290,25 +458,23 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }, 0);
   }
 
-  async getTotalByCategoryId(categoryId: string, dateFrom?: string, dateTo?: string): Promise<number> {
-    // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning 0 for category total');
-      return 0;
-    }
-
-    const userId = user.id;
+  async getTotalByCategoryId(
+    categoryId: string,
+    dateFrom?: string,
+    dateTo?: string
+  ): Promise<number> {
+    const userId = await this.getUserId();
+    if (!userId) return 0;
 
     // Single query with JOIN - más eficiente
-    let query = supabase
+    let query = this.client
       .from('transactions')
-      .select(`
+      .select(
+        `
         amount_base_minor,
         accounts!inner(user_id)
-      `)
+      `
+      )
       .eq('accounts.user_id', userId)
       .eq('category_id', categoryId);
 
@@ -326,16 +492,26 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get category total: ${error.message}`);
     }
 
-    return ((data as any[]) || []).reduce((total, transaction: any) => total + (transaction?.amount_base_minor || 0), 0);
+    return ((data as any[]) || []).reduce(
+      (total, transaction: any) =>
+        total + (transaction?.amount_base_minor || 0),
+      0
+    );
   }
 
-  async getMonthlyTotals(year: number): Promise<{ month: number; income: number; expense: number }[]> {
+  async getMonthlyTotals(
+    year: number
+  ): Promise<{ month: number; income: number; expense: number }[]> {
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
-    const { data, error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await this.client
       .from('transactions')
-      .select('date, amount_base_minor, type')
+      .select('date, amount_base_minor, type, accounts!inner(user_id)')
+      .eq('accounts.user_id', userId)
       .gte('date', startDate)
       .lte('date', endDate);
 
@@ -344,7 +520,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     // Group by month
-    const monthlyData: { [month: number]: { income: number; expense: number } } = {};
+    const monthlyData: {
+      [month: number]: { income: number; expense: number };
+    } = {};
 
     for (let month = 1; month <= 12; month++) {
       monthlyData[month] = { income: 0, expense: 0 };
@@ -370,14 +548,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
   // Missing methods from TransactionsRepository interface - basic implementations
 
-
-  async findByAccountId(accountId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning empty transactions');
+  async findByAccountId(
+    accountId: string,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const userId = await this.getUserId();
+    if (!userId) {
       return {
         data: [],
         total: 0,
@@ -387,39 +563,35 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const userId = user.id;
+    await this.ensureAccountOwned(accountId, userId);
 
-    // Verify that the account belongs to the authenticated user
-    const { data: account } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('id', accountId)
-      .eq('user_id', userId)
-      .single();
-
-    if (!account) {
-      return {
-        data: [],
-        total: 0,
-        page: 1,
-        limit: pagination?.limit || 10,
-        totalPages: 0,
-      }; // Account doesn't belong to user or doesn't exist
-    }
-
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = pagination || {};
     const offset = (page - 1) * limit;
 
-    const { data, error, count } = await supabase
+    const { data, error, count } = await this.client
       .from('transactions')
       .select('*', { count: 'exact' })
       .eq('account_id', accountId)
-      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order(
+        sortBy === 'createdAt'
+          ? 'created_at'
+          : sortBy === 'date'
+            ? 'date'
+            : 'date',
+        { ascending: sortOrder === 'asc' }
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
-      throw new Error(`Failed to fetch transactions by account: ${error.message}`);
+      throw new Error(
+        `Failed to fetch transactions by account: ${error.message}`
+      );
     }
 
     return {
@@ -431,13 +603,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  async findByCategoryId(categoryId: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning empty transactions');
+  async findByCategoryId(
+    categoryId: string,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const userId = await this.getUserId();
+    if (!userId) {
       return {
         data: [],
         total: 0,
@@ -447,26 +618,41 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const userId = user.id;
-
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = pagination || {};
     const offset = (page - 1) * limit;
 
     // Single query with JOIN - más eficiente
-    const { data, error, count } = await supabase
+    const { data, error, count } = await this.client
       .from('transactions')
-      .select(`
+      .select(
+        `
         *,
         accounts!inner(user_id)
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .eq('accounts.user_id', userId)
       .eq('category_id', categoryId)
-      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order(
+        sortBy === 'createdAt'
+          ? 'created_at'
+          : sortBy === 'date'
+            ? 'date'
+            : 'date',
+        { ascending: sortOrder === 'asc' }
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) {
-      throw new Error(`Failed to fetch transactions by category: ${error.message}`);
+      throw new Error(
+        `Failed to fetch transactions by category: ${error.message}`
+      );
     }
 
     return {
@@ -478,13 +664,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  async findByType(type: TransactionType, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning empty transactions');
+  async findByType(
+    type: TransactionType,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const userId = await this.getUserId();
+    if (!userId) {
       return {
         data: [],
         total: 0,
@@ -494,21 +679,34 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const userId = user.id;
-
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = pagination || {};
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = pagination || {};
     const offset = (page - 1) * limit;
 
     // Single query with JOIN - más eficiente
-    const { data, error, count } = await supabase
+    const { data, error, count } = await this.client
       .from('transactions')
-      .select(`
+      .select(
+        `
         *,
         accounts!inner(user_id)
-      `, { count: 'exact' })
+      `,
+        { count: 'exact' }
+      )
       .eq('accounts.user_id', userId)
       .eq('type', type)
-      .order(sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : 'date'), { ascending: sortOrder === 'asc' })
+      .order(
+        sortBy === 'createdAt'
+          ? 'created_at'
+          : sortBy === 'date'
+            ? 'date'
+            : 'date',
+        { ascending: sortOrder === 'asc' }
+      )
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -525,13 +723,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  async findByDateRange(startDate: string, endDate: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    // Only allow authenticated users - no fallbacks
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning empty transactions');
+  async findByDateRange(
+    startDate: string,
+    endDate: string,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const userId = await this.getUserId();
+    if (!userId) {
       return {
         data: [],
         total: 0,
@@ -541,15 +739,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const userId = user.id;
-
     // Single query with JOIN - más eficiente
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('transactions')
-      .select(`
+      .select(
+        `
         *,
         accounts!inner(user_id)
-      `)
+      `
+      )
       .eq('accounts.user_id', userId)
       .gte('date', startDate)
       .lte('date', endDate)
@@ -557,7 +755,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       .order('created_at', { ascending: false });
 
     if (error) {
-      throw new Error(`Failed to fetch transactions by date range: ${error.message}`);
+      throw new Error(
+        `Failed to fetch transactions by date range: ${error.message}`
+      );
     }
 
     const transactions = mapSupabaseTransactionArrayToDomain(data || []);
@@ -586,22 +786,43 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async findByTransferId(transferId: string): Promise<Transaction[]> {
-    const { data, error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await this.client
       .from('transactions')
-      .select('*')
-      .eq('transfer_id', transferId);
+      .select(`*, accounts!inner(user_id)`)
+      .eq('transfer_id', transferId)
+      .eq('accounts.user_id', userId);
 
     if (error) {
-      throw new Error(`Failed to fetch transactions by transfer ID: ${error.message}`);
+      throw new Error(
+        `Failed to fetch transactions by transfer ID: ${error.message}`
+      );
     }
 
     return mapSupabaseTransactionArrayToDomain(data || []);
   }
 
-  async search(query: string, pagination?: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    const { data, error } = await supabase
+  async search(
+    query: string,
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+
+    const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(`*, accounts!inner(user_id)`)
+      .eq('accounts.user_id', userId)
       .or(`description.ilike.%${query}%,note.ilike.%${query}%`)
       .order('date', { ascending: false });
 
@@ -634,10 +855,18 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  async getTotalByType(type: TransactionType, startDate?: string, endDate?: string): Promise<number> {
-    let query = supabase
+  async getTotalByType(
+    type: TransactionType,
+    startDate?: string,
+    endDate?: string
+  ): Promise<number> {
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
+    let query = this.client
       .from('transactions')
-      .select('amount_base_minor')
+      .select('amount_base_minor, accounts!inner(user_id)')
+      .eq('accounts.user_id', userId)
       .eq('type', type);
 
     if (startDate) {
@@ -654,15 +883,32 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to get total by type: ${error.message}`);
     }
 
-    return ((data as any[]) || []).reduce((total, transaction: any) => total + (transaction?.amount_base_minor || 0), 0);
+    return ((data as any[]) || []).reduce(
+      (total, transaction: any) =>
+        total + (transaction?.amount_base_minor || 0),
+      0
+    );
   }
 
-  async getTotalByCategory(categoryId: string, startDate?: string, endDate?: string): Promise<number> {
+  async getTotalByCategory(
+    categoryId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<number> {
     return this.getTotalByCategoryId(categoryId, startDate, endDate);
   }
 
-  async getTotalByAccount(accountId: string, startDate?: string, endDate?: string): Promise<number> {
-    let query = supabase
+  async getTotalByAccount(
+    accountId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<number> {
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
+    await this.ensureAccountOwned(accountId, userId);
+
+    let query = this.client
       .from('transactions')
       .select('amount_base_minor, type')
       .eq('account_id', accountId);
@@ -704,27 +950,45 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  async getMonthlyReports(startMonth: string, endMonth: string): Promise<any[]> {
+  async getMonthlyReports(
+    startMonth: string,
+    endMonth: string
+  ): Promise<any[]> {
     // TODO: Implement proper monthly reports
     return [];
   }
 
-  async getCashFlowData(startDate: string, endDate: string, groupBy: 'day' | 'week' | 'month'): Promise<any[]> {
+  async getCashFlowData(
+    startDate: string,
+    endDate: string,
+    groupBy: 'day' | 'week' | 'month'
+  ): Promise<any[]> {
     // TODO: Implement proper cash flow data
     return [];
   }
 
-  async getCategoryBreakdown(startDate: string, endDate: string, type?: TransactionType): Promise<any[]> {
+  async getCategoryBreakdown(
+    startDate: string,
+    endDate: string,
+    type?: TransactionType
+  ): Promise<any[]> {
     // TODO: Implement proper category breakdown
     return [];
   }
 
-  async getAccountBreakdown(startDate: string, endDate: string, type?: TransactionType): Promise<any[]> {
+  async getAccountBreakdown(
+    startDate: string,
+    endDate: string,
+    type?: TransactionType
+  ): Promise<any[]> {
     // TODO: Implement proper account breakdown
     return [];
   }
 
-  async createTransfer(fromTransaction: CreateTransactionDTO, toTransaction: CreateTransactionDTO): Promise<any> {
+  async createTransfer(
+    fromTransaction: CreateTransactionDTO,
+    toTransaction: CreateTransactionDTO
+  ): Promise<any> {
     // TODO: Implement proper transfer creation
     const transferId = crypto.randomUUID();
     const from = await this.create({ ...fromTransaction, transferId } as any);
@@ -743,23 +1007,42 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   // Missing BaseRepository methods
-  async findPaginated(params: PaginationParams): Promise<PaginatedResult<Transaction>> {
-    const { page = 1, limit = 10, sortBy = 'date', sortOrder = 'desc' } = params;
+  async findPaginated(
+    params: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    const {
+      page = 1,
+      limit = 10,
+      sortBy = 'date',
+      sortOrder = 'desc',
+    } = params;
     const offset = (page - 1) * limit;
 
-    const { count, error: countError } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
+
+    const { count, error: countError } = await this.client
       .from('transactions')
-      .select('*', { count: 'exact', head: true });
+      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
+      .eq('accounts.user_id', userId);
 
     if (countError) {
       throw new Error(`Failed to count transactions: ${countError.message}`);
     }
 
-    const sortColumn = sortBy === 'createdAt' ? 'created_at' : (sortBy === 'date' ? 'date' : sortBy);
+    const sortColumn =
+      sortBy === 'createdAt'
+        ? 'created_at'
+        : sortBy === 'date'
+          ? 'date'
+          : sortBy;
 
-    const { data, error } = await supabase
+    const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(`*, accounts!inner(user_id)`)
+      .eq('accounts.user_id', userId)
       .order(sortColumn, { ascending: sortOrder === 'asc' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -789,10 +1072,19 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   async deleteMany(ids: string[]): Promise<void> {
-    const { error } = await supabase
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const accountIds = await this.getUserAccountIds(userId);
+    if (accountIds.length === 0) return;
+
+    const { error } = await this.client
       .from('transactions')
       .delete()
-      .in('id', ids);
+      .in('id', ids)
+      .in('account_id', accountIds);
 
     if (error) {
       throw new Error(`Failed to delete transactions: ${error.message}`);

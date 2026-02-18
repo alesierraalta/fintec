@@ -1,6 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { createClient } from '@/lib/supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 
 import { logger } from '@/lib/utils/logger';
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
@@ -19,22 +18,13 @@ export interface BinanceTrend {
   period: string;
 }
 
-interface SupabaseBinanceRecord {
-  id: string;
-  date: string;
-  usd: number;
-  timestamp: string;
-  source: string;
-  created_at: string;
-}
-
 class BinanceHistoryDatabase extends Dexie {
   binanceRates!: Table<BinanceHistoryRecord>;
 
   constructor() {
     super('BinanceHistoryDB');
     this.version(1).stores({
-      binanceRates: '++id, date, timestamp, usd, source'
+      binanceRates: '++id, date, timestamp, usd, source',
     });
   }
 }
@@ -42,14 +32,13 @@ class BinanceHistoryDatabase extends Dexie {
 class BinanceHistoryService {
   private static instance: BinanceHistoryService;
   private db: BinanceHistoryDatabase;
-  private supabase: SupabaseClient;
+  private ratesHistoryRepository: SupabaseRatesHistoryRepository;
   private syncInProgress = false;
   private trackedDates = new Set<string>();
 
   private constructor() {
     this.db = new BinanceHistoryDatabase();
-    // Use singleton Supabase client to prevent multiple GoTrueClient instances
-    this.supabase = createClient();
+    this.ratesHistoryRepository = new SupabaseRatesHistoryRepository();
   }
 
   static getInstance(): BinanceHistoryService {
@@ -74,33 +63,36 @@ class BinanceHistoryService {
       } catch (error) {
         lastError = error;
         const delay = baseDelay * Math.pow(2, i);
-        logger.warn(`[BinanceHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`, error);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        logger.warn(
+          `[BinanceHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`,
+          error
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
     throw lastError;
   }
 
   // Sync a single rate to Supabase with retries
-  private async syncToSupabase(date: string, usd: number, timestamp: string): Promise<void> {
+  private async syncToSupabase(
+    date: string,
+    usd: number,
+    timestamp: string
+  ): Promise<void> {
     try {
       await this.retryWithBackoff(async () => {
-        const { error } = await this.supabase
-          .from('binance_rate_history')
-          .upsert({
-            date,
-            usd,
-            source: 'Binance',
-            timestamp
-          }, { onConflict: 'date' });
-
-        if (error) throw error;
+        await this.ratesHistoryRepository.upsertBinanceRate({
+          date,
+          usd,
+          source: 'Binance',
+          timestamp,
+        });
       });
     } catch (error: any) {
       logger.error('[BinanceHistoryService] Final Supabase sync failure:', {
         date,
         message: error?.message || error,
-        context: 'syncToSupabase'
+        context: 'syncToSupabase',
       });
     }
   }
@@ -117,16 +109,8 @@ class BinanceHistoryService {
       cutoffDate.setDate(cutoffDate.getDate() - days);
       const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
-      const { data, error } = await this.supabase
-        .from('binance_rate_history')
-        .select('*')
-        .gte('date', cutoffDateStr)
-        .order('date', { ascending: false });
-
-      if (error) {
-        logger.error('[BinanceHistoryService] Failed to load from Supabase:', error.message);
-        return;
-      }
+      const data =
+        await this.ratesHistoryRepository.listBinanceRatesSince(cutoffDateStr);
 
       if (data && data.length > 0) {
         // Optimized bulk upsert to local database
@@ -135,15 +119,17 @@ class BinanceHistoryService {
           .where('date')
           .aboveOrEqual(cutoffDateStr)
           .toArray();
-        const existingDates = new Set(existingRecords.map((r: BinanceHistoryRecord) => r.date));
+        const existingDates = new Set(
+          existingRecords.map((r: BinanceHistoryRecord) => r.date)
+        );
 
-        const newRecords = (data as SupabaseBinanceRecord[])
-          .filter(record => !existingDates.has(record.date))
-          .map(record => ({
+        const newRecords = data
+          .filter((record) => !existingDates.has(record.date))
+          .map((record) => ({
             date: record.date,
-            usd: Number(record.usd),
+            usd: record.usd,
             timestamp: record.timestamp,
-            source: 'Binance' as const
+            source: 'Binance' as const,
           }));
 
         if (newRecords.length > 0) {
@@ -151,10 +137,15 @@ class BinanceHistoryService {
         }
 
         const duration = Date.now() - startTime;
-        logger.info(`[BinanceHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`);
+        logger.info(
+          `[BinanceHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`
+        );
       }
     } catch (error) {
-      logger.error('[BinanceHistoryService] Error loading from Supabase:', error);
+      logger.error(
+        '[BinanceHistoryService] Error loading from Supabase:',
+        error
+      );
     } finally {
       this.syncInProgress = false;
     }
@@ -180,7 +171,7 @@ class BinanceHistoryService {
         // Actualizar el registro existente
         await this.db.binanceRates.update(existingRecord.id!, {
           usd,
-          timestamp
+          timestamp,
         });
       } else {
         // Crear nuevo registro
@@ -188,7 +179,7 @@ class BinanceHistoryService {
           date: dateStr,
           timestamp,
           usd,
-          source: 'Binance'
+          source: 'Binance',
         });
       }
 
@@ -202,13 +193,12 @@ class BinanceHistoryService {
       cutoffDate.setDate(cutoffDate.getDate() - 90);
       const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
-      await this.db.binanceRates
-        .where('date')
-        .below(cutoffDateStr)
-        .delete();
-
+      await this.db.binanceRates.where('date').below(cutoffDateStr).delete();
     } catch (error) {
-      logger.error('[BinanceHistoryService] Error saving Binance rates to history:', error);
+      logger.error(
+        '[BinanceHistoryService] Error saving Binance rates to history:',
+        error
+      );
     } finally {
       this.trackedDates.delete(dateStr);
     }
@@ -216,10 +206,9 @@ class BinanceHistoryService {
 
   async getRatesForDate(date: string): Promise<BinanceHistoryRecord | null> {
     try {
-      return await this.db.binanceRates
-        .where('date')
-        .equals(date)
-        .first() || null;
+      return (
+        (await this.db.binanceRates.where('date').equals(date).first()) || null
+      );
     } catch (error) {
       logger.error('Error getting Binance rates for date:', error);
       return null;
@@ -262,39 +251,47 @@ class BinanceHistoryService {
         return {
           percentage: 0,
           direction: 'stable',
-          period: `${days}d`
+          period: `${days}d`,
         };
       }
 
       // Ordenar por fecha (más antigua primero)
-      rates.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      rates.sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+      );
 
       const oldestRate = rates[0];
       const newestRate = rates[rates.length - 1];
 
-      const percentage = ((newestRate.usd - oldestRate.usd) / oldestRate.usd) * 100;
+      const percentage =
+        ((newestRate.usd - oldestRate.usd) / oldestRate.usd) * 100;
 
       let direction: 'up' | 'down' | 'stable' = 'stable';
-      if (Math.abs(percentage) > 0.1) { // Umbral del 0.1%
+      if (Math.abs(percentage) > 0.1) {
+        // Umbral del 0.1%
         direction = percentage > 0 ? 'up' : 'down';
       }
 
       return {
         percentage: Math.abs(percentage),
         direction,
-        period: `${days}d`
+        period: `${days}d`,
       };
     } catch (error) {
       logger.error('Error calculating Binance trends:', error);
       return {
         percentage: 0,
         direction: 'stable',
-        period: `${days}d`
+        period: `${days}d`,
       };
     }
   }
 
-  async getMultiPeriodTrends(): Promise<{ '1d': BinanceTrend; '1w': BinanceTrend; '1m': BinanceTrend } | null> {
+  async getMultiPeriodTrends(): Promise<{
+    '1d': BinanceTrend;
+    '1w': BinanceTrend;
+    '1m': BinanceTrend;
+  } | null> {
     try {
       const trend1d = await this.calculateTrends(1);
       const trend1w = await this.calculateTrends(7);
@@ -309,10 +306,10 @@ class BinanceHistoryService {
 
   async getLatestRate(): Promise<BinanceHistoryRecord | null> {
     try {
-      return await this.db.binanceRates
-        .orderBy('timestamp')
-        .reverse()
-        .first() || null;
+      return (
+        (await this.db.binanceRates.orderBy('timestamp').reverse().first()) ||
+        null
+      );
     } catch (error) {
       logger.error('Error getting latest Binance rate:', error);
       return null;

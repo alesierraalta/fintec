@@ -1,6 +1,5 @@
 // Supabase client configuration and initialization
 import { createBrowserClient } from '@supabase/ssr';
-import { createClient } from '@supabase/supabase-js';
 import { Database } from './types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -13,28 +12,11 @@ if (!supabaseAnonKey) {
   throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
 }
 
-// Use createBrowserClient to support cookie-based auth for SSR/Server Components
-export const supabase = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
-
-
-// Service role client for server-side operations that need to bypass RLS
-// This should only be used in API routes and server-side code
-export function createSupabaseServiceClient() {
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!serviceRoleKey) {
-    // Fallback to anon key if service role key is not available
-    // This will respect RLS but may fail for admin operations
-    return supabase;
-  }
-
-  return createClient<Database>(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    } as any
-  });
-}
+// Browser client for client components only
+export const supabase = createBrowserClient<Database>(
+  supabaseUrl,
+  supabaseAnonKey
+);
 
 // Mock client removed - using real Supabase client above
 
@@ -45,7 +27,7 @@ export function validateSupabaseConfig(): boolean {
     'NEXT_PUBLIC_SUPABASE_ANON_KEY',
   ];
 
-  const missing = requiredVars.filter(varName => !process.env[varName]);
+  const missing = requiredVars.filter((varName) => !process.env[varName]);
 
   if (missing.length > 0) {
     return false;

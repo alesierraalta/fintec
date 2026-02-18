@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import {
@@ -83,11 +82,14 @@ export async function POST(
         error: error.message || 'Failed to upload receipt',
       },
       {
-        status: error.message?.includes('Authentication') ? 401 :
-          error.message?.includes('File size') ? 400 :
-            error.message?.includes('Invalid file type') ? 400 : 500
+        status: error.message?.includes('Authentication')
+          ? 401
+          : error.message?.includes('File size')
+            ? 400
+            : error.message?.includes('Invalid file type')
+              ? 400
+              : 500,
       }
     );
   }
 }
-

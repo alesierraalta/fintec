@@ -1,6 +1,5 @@
 import Dexie, { Table } from 'dexie';
-import { createClient } from '@/lib/supabase/client';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
 import { logger } from '@/lib/utils/logger';
@@ -23,23 +22,13 @@ export interface BCVTrend {
   trend: 'up' | 'down' | 'stable';
 }
 
-interface SupabaseBCVRecord {
-  id: string;
-  date: string;
-  usd: number;
-  eur: number;
-  timestamp: string;
-  source: string;
-  created_at: string;
-}
-
 class BCVHistoryDatabase extends Dexie {
   bcvHistory!: Table<BCVHistoryRecord>;
 
   constructor() {
     super('BCVHistoryDB');
     this.version(1).stores({
-      bcvHistory: '++id, date, usd, eur, timestamp'
+      bcvHistory: '++id, date, usd, eur, timestamp',
     });
   }
 }
@@ -47,14 +36,13 @@ class BCVHistoryDatabase extends Dexie {
 export class BCVHistoryService {
   private static instance: BCVHistoryService;
   private db: BCVHistoryDatabase;
-  private supabase: SupabaseClient;
+  private ratesHistoryRepository: SupabaseRatesHistoryRepository;
   private syncInProgress = false;
   private trackedDates = new Set<string>();
 
   private constructor() {
     this.db = new BCVHistoryDatabase();
-    // Use singleton Supabase client to prevent multiple GoTrueClient instances
-    this.supabase = createClient();
+    this.ratesHistoryRepository = new SupabaseRatesHistoryRepository();
   }
 
   static getInstance(): BCVHistoryService {
@@ -79,34 +67,39 @@ export class BCVHistoryService {
       } catch (error) {
         lastError = error;
         const delay = baseDelay * Math.pow(2, i);
-        logger.warn(`[BCVHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`, error);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        logger.warn(
+          `[BCVHistoryService] Operation failed (attempt ${i + 1}/${maxRetries}), retrying in ${delay}ms...`,
+          error
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
     throw lastError;
   }
 
   // Sync a single rate to Supabase with retries
-  private async syncToSupabase(date: string, usd: number, eur: number, source: string, timestamp: string): Promise<void> {
+  private async syncToSupabase(
+    date: string,
+    usd: number,
+    eur: number,
+    source: string,
+    timestamp: string
+  ): Promise<void> {
     try {
       await this.retryWithBackoff(async () => {
-        const { error } = await this.supabase
-          .from('bcv_rate_history')
-          .upsert({
-            date,
-            usd,
-            eur,
-            source,
-            timestamp
-          }, { onConflict: 'date' });
-
-        if (error) throw error;
+        await this.ratesHistoryRepository.upsertBCVRate({
+          date,
+          usd,
+          eur,
+          source,
+          timestamp,
+        });
       });
     } catch (error: any) {
       logger.error('[BCVHistoryService] Final Supabase sync failure:', {
         date,
         message: error?.message || error,
-        context: 'syncToSupabase'
+        context: 'syncToSupabase',
       });
     }
   }
@@ -123,16 +116,8 @@ export class BCVHistoryService {
       cutoffDate.setDate(cutoffDate.getDate() - days);
       const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
-      const { data, error } = await this.supabase
-        .from('bcv_rate_history')
-        .select('*')
-        .gte('date', cutoffDateStr)
-        .order('date', { ascending: false });
-
-      if (error) {
-        logger.error('[BCVHistoryService] Failed to load from Supabase:', error.message);
-        return;
-      }
+      const data =
+        await this.ratesHistoryRepository.listBCVRatesSince(cutoffDateStr);
 
       if (data && data.length > 0) {
         // Optimized bulk upsert to local database
@@ -141,16 +126,18 @@ export class BCVHistoryService {
           .where('date')
           .aboveOrEqual(cutoffDateStr)
           .toArray();
-        const existingDates = new Set(existingRecords.map((r: BCVHistoryRecord) => r.date));
+        const existingDates = new Set(
+          existingRecords.map((r: BCVHistoryRecord) => r.date)
+        );
 
-        const newRecords = (data as SupabaseBCVRecord[])
-          .filter(record => !existingDates.has(record.date))
-          .map(record => ({
+        const newRecords = data
+          .filter((record) => !existingDates.has(record.date))
+          .map((record) => ({
             date: record.date,
-            usd: Number(record.usd),
-            eur: Number(record.eur),
+            usd: record.usd,
+            eur: record.eur,
             timestamp: record.timestamp,
-            source: record.source
+            source: record.source,
           }));
 
         if (newRecords.length > 0) {
@@ -159,7 +146,9 @@ export class BCVHistoryService {
         }
 
         const duration = Date.now() - startTime;
-        logger.info(`[BCVHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`);
+        logger.info(
+          `[BCVHistoryService] Synced ${data.length} records from Supabase (${newRecords.length} new) in ${duration}ms`
+        );
       }
     } catch (error) {
       logger.error('[BCVHistoryService] Error loading from Supabase:', error);
@@ -169,7 +158,12 @@ export class BCVHistoryService {
   }
 
   // Save rates for a specific date (defaults to today)
-  async saveRates(usd: number, eur: number, source: string = 'BCV', targetDate: Date = new Date()): Promise<void> {
+  async saveRates(
+    usd: number,
+    eur: number,
+    source: string = 'BCV',
+    targetDate: Date = new Date()
+  ): Promise<void> {
     const now = targetDate;
     const today = formatCaracasDayKey(now); // YYYY-MM-DD (America/Caracas)
     const todayUtc = now.toISOString().split('T')[0];
@@ -205,7 +199,7 @@ export class BCVHistoryService {
           usd: Math.round(usd * 100) / 100, // Ensure 2 decimals
           eur: Math.round(eur * 100) / 100, // Ensure 2 decimals
           timestamp,
-          source
+          source,
         });
       } else {
         // Create new record
@@ -214,7 +208,7 @@ export class BCVHistoryService {
           usd: Math.round(usd * 100) / 100,
           eur: Math.round(eur * 100) / 100,
           timestamp,
-          source
+          source,
         });
       }
 
@@ -295,19 +289,31 @@ export class BCVHistoryService {
         return null;
       }
 
-      const usdTrend = this.calculateTrend('usd', todaysRates.usd, yesterdaysRates.usd);
-      const eurTrend = this.calculateTrend('eur', todaysRates.eur, yesterdaysRates.eur);
+      const usdTrend = this.calculateTrend(
+        'usd',
+        todaysRates.usd,
+        yesterdaysRates.usd
+      );
+      const eurTrend = this.calculateTrend(
+        'eur',
+        todaysRates.eur,
+        yesterdaysRates.eur
+      );
 
       return {
         usd: usdTrend,
-        eur: eurTrend
+        eur: eurTrend,
       };
     } catch (error) {
       return null;
     }
   }
 
-  private calculateTrend(currency: 'usd' | 'eur', current: number, previous: number): BCVTrend {
+  private calculateTrend(
+    currency: 'usd' | 'eur',
+    current: number,
+    previous: number
+  ): BCVTrend {
     const change = current - previous;
     const changePercent = previous !== 0 ? (change / previous) * 100 : 0;
 
@@ -326,7 +332,7 @@ export class BCVHistoryService {
       previous: Math.round(previous * 100) / 100,
       change: Math.round(change * 100) / 100,
       changePercent: Math.round(changePercent * 100) / 100,
-      trend
+      trend,
     };
   }
 
@@ -334,7 +340,9 @@ export class BCVHistoryService {
   async getHistoricalRates(days: number = 30): Promise<BCVHistoryRecord[]> {
     try {
       const endDate = new Date();
-      const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+      const startDate = new Date(
+        endDate.getTime() - days * 24 * 60 * 60 * 1000
+      );
 
       const startDateStr = formatCaracasDayKey(startDate);
       const endDateStr = formatCaracasDayKey(endDate);
@@ -364,7 +372,8 @@ export class BCVHistoryService {
   async getLatestRate(): Promise<BCVHistoryRecord | null> {
     try {
       return (
-        (await this.db.bcvHistory.orderBy('timestamp').reverse().first()) || null
+        (await this.db.bcvHistory.orderBy('timestamp').reverse().first()) ||
+        null
       );
     } catch (error) {
       return null;
@@ -378,12 +387,8 @@ export class BCVHistoryService {
       cutoffDate.setDate(cutoffDate.getDate() - keepDays);
       const cutoffDateStr = formatCaracasDayKey(cutoffDate);
 
-      await this.db.bcvHistory
-        .where('date')
-        .below(cutoffDateStr)
-        .delete();
-    } catch (error) {
-    }
+      await this.db.bcvHistory.where('date').below(cutoffDateStr).delete();
+    } catch (error) {}
   }
 }
 

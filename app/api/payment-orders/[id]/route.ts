@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/utils/logger';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
-import {
-  getOrderById,
-  updateOrder,
-} from '@/lib/payment-orders/order-service';
+import { getOrderById, updateOrder } from '@/lib/payment-orders/order-service';
 
 /**
  * GET /api/payment-orders/[id]
@@ -83,11 +79,14 @@ export async function PATCH(
         error: error.message || 'Failed to update order',
       },
       {
-        status: error.message?.includes('Authentication') ? 401 :
-          error.message?.includes('not found') ? 404 :
-            error.message?.includes('can only be updated') ? 400 : 500
+        status: error.message?.includes('Authentication')
+          ? 401
+          : error.message?.includes('not found')
+            ? 404
+            : error.message?.includes('can only be updated')
+              ? 400
+              : 500,
       }
     );
   }
 }
-
