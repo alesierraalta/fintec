@@ -1,15 +1,13 @@
-'use client';
-
 import { MainLayout } from '@/components/layout/main-layout';
 import { LazyReportsContent } from '@/components/reports/lazy-reports-content';
-import { AuthGuard } from '@/components/auth/auth-guard';
+import { requireAuthenticatedUser } from '@/app/_lib/require-authenticated-user';
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  await requireAuthenticatedUser();
+
   return (
-    <AuthGuard>
-      <MainLayout>
-        <LazyReportsContent />
-      </MainLayout>
-    </AuthGuard>
+    <MainLayout>
+      <LazyReportsContent />
+    </MainLayout>
   );
 }

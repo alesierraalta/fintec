@@ -1,13 +1,13 @@
 import { MainLayout } from '@/components/layout/main-layout';
 import { LazyDashboardContent } from '@/components/dashboard/lazy-dashboard-content';
-import { AuthGuard } from '@/components/auth/auth-guard';
+import { requireAuthenticatedUser } from '@/app/_lib/require-authenticated-user';
 
-export default function HomePage() {
+export default async function HomePage() {
+  await requireAuthenticatedUser();
+
   return (
-    <AuthGuard>
-      <MainLayout>
-        <LazyDashboardContent />
-      </MainLayout>
-    </AuthGuard>
+    <MainLayout>
+      <LazyDashboardContent />
+    </MainLayout>
   );
 }
