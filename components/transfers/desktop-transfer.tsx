@@ -22,6 +22,12 @@ import { toMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { useActiveUsdVesRate } from '@/lib/rates';
+import {
+  calculateSourceAmountFromTarget,
+  calculateTargetAmountFromSource,
+  isUsdVesTransferPair,
+  recalculateTransferAmounts,
+} from '@/lib/transfers/exchange-calculations';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 
@@ -54,6 +60,10 @@ export function DesktopTransfer() {
     rateSource: undefined,
   });
   const [amountError, setAmountError] = useState<string>('');
+  const [targetAmount, setTargetAmount] = useState(0);
+  const [lastAmountEdited, setLastAmountEdited] = useState<'source' | 'target'>(
+    'source'
+  );
   const activeUsdVes = useActiveUsdVesRate();
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
@@ -260,6 +270,77 @@ export function DesktopTransfer() {
     getToAccount,
   ]);
 
+  useEffect(() => {
+    const from = getFromAccount();
+    const to = getToAccount();
+
+    if (
+      !from ||
+      !to ||
+      !isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+    ) {
+      if (targetAmount !== 0) {
+        setTargetAmount(0);
+      }
+      return;
+    }
+
+    const recalculated = recalculateTransferAmounts({
+      fromCurrency: from.currencyCode,
+      toCurrency: to.currencyCode,
+      exchangeRate: transferData.exchangeRate,
+      sourceAmountMajor: transferData.amount,
+      targetAmountMajor: targetAmount,
+      lastEdited: lastAmountEdited,
+    });
+
+    if (
+      lastAmountEdited === 'target' &&
+      Math.abs(recalculated.sourceAmountMajor - transferData.amount) > 0.000001
+    ) {
+      setTransferData((prev) => ({
+        ...prev,
+        amount: recalculated.sourceAmountMajor,
+      }));
+      validateAmount(recalculated.sourceAmountMajor);
+    }
+
+    if (Math.abs(recalculated.targetAmountMajor - targetAmount) > 0.000001) {
+      setTargetAmount(recalculated.targetAmountMajor);
+    }
+  }, [
+    transferData.amount,
+    transferData.exchangeRate,
+    targetAmount,
+    lastAmountEdited,
+    getFromAccount,
+    getToAccount,
+  ]);
+
+  const getPreviewTargetAmount = () => {
+    const from = getFromAccount();
+    const to = getToAccount();
+
+    if (!from || !to) {
+      return transferData.amount;
+    }
+
+    if (
+      from.currencyCode !== to.currencyCode &&
+      transferData.exchangeRate &&
+      transferData.exchangeRate > 0
+    ) {
+      return calculateTargetAmountFromSource(
+        transferData.amount,
+        from.currencyCode,
+        to.currencyCode,
+        transferData.exchangeRate
+      );
+    }
+
+    return transferData.amount;
+  };
+
   const isFormValid = () => {
     const fromAccount = getFromAccount();
     const toAccount = getToAccount();
@@ -360,7 +441,11 @@ export function DesktopTransfer() {
         amount: 0,
         description: '',
         date: new Date().toISOString().split('T')[0],
+        exchangeRate: undefined,
+        rateSource: undefined,
       });
+      setTargetAmount(0);
+      setLastAmountEdited('source');
     } catch (error) {
       logger.error('Transfer error:', error);
       toast.error(
@@ -571,10 +656,34 @@ export function DesktopTransfer() {
                     value={transferData.amount || ''}
                     onChange={(e) => {
                       const newAmount = parseFloat(e.target.value) || 0;
+                      const from = getFromAccount();
+                      const to = getToAccount();
+
+                      setLastAmountEdited('source');
                       setTransferData((prev) => ({
                         ...prev,
                         amount: newAmount,
                       }));
+
+                      if (
+                        from &&
+                        to &&
+                        isUsdVesTransferPair(
+                          from.currencyCode,
+                          to.currencyCode
+                        ) &&
+                        transferData.exchangeRate
+                      ) {
+                        setTargetAmount(
+                          calculateTargetAmountFromSource(
+                            newAmount,
+                            from.currencyCode,
+                            to.currencyCode,
+                            transferData.exchangeRate
+                          )
+                        );
+                      }
+
                       validateAmount(newAmount);
                     }}
                     placeholder="0.00"
@@ -602,6 +711,60 @@ export function DesktopTransfer() {
                     <span className="text-sm text-red-600">{amountError}</span>
                   </div>
                 )}
+
+                {getFromAccount() &&
+                  getToAccount() &&
+                  isUsdVesTransferPair(
+                    getFromAccount()!.currencyCode,
+                    getToAccount()!.currencyCode
+                  ) && (
+                    <div className="space-y-4 rounded-xl border border-primary-100 bg-primary-50/50 p-4 dark:border-primary-900/40 dark:bg-primary-900/10">
+                      <label className="text-sm font-medium text-foreground">
+                        Monto Recibido ({getToAccount()!.currencyCode})
+                      </label>
+                      <div className="relative">
+                        <DollarSign className="absolute left-4 top-1/2 h-6 w-6 -translate-y-1/2 transform text-muted-foreground" />
+                        <input
+                          type="number"
+                          value={targetAmount || ''}
+                          onChange={(e) => {
+                            const from = getFromAccount();
+                            const to = getToAccount();
+                            const newTargetAmount =
+                              parseFloat(e.target.value) || 0;
+
+                            setLastAmountEdited('target');
+                            setTargetAmount(newTargetAmount);
+
+                            if (
+                              from &&
+                              to &&
+                              transferData.exchangeRate &&
+                              transferData.exchangeRate > 0
+                            ) {
+                              const sourceAmount =
+                                calculateSourceAmountFromTarget(
+                                  newTargetAmount,
+                                  from.currencyCode,
+                                  to.currencyCode,
+                                  transferData.exchangeRate
+                                );
+
+                              setTransferData((prev) => ({
+                                ...prev,
+                                amount: sourceAmount,
+                              }));
+                              validateAmount(sourceAmount);
+                            }
+                          }}
+                          placeholder="0.00"
+                          step="0.01"
+                          min="0"
+                          className="w-full rounded-xl border border-border bg-background py-4 pl-12 pr-4 text-xl font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* Date */}
@@ -831,11 +994,7 @@ export function DesktopTransfer() {
                         +
                         {formatBalance(
                           toMinorUnits(
-                            getFromAccount()?.currencyCode !==
-                              getToAccount()?.currencyCode &&
-                              transferData.exchangeRate
-                              ? transferData.amount * transferData.exchangeRate
-                              : transferData.amount,
+                            getPreviewTargetAmount(),
                             getToAccount()?.currencyCode || 'VES'
                           ),
                           getToAccount()?.currencyCode || 'VES'
