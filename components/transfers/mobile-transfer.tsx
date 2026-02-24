@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRightLeft,
+  Calendar,
   Wallet,
   DollarSign,
   Check,
@@ -102,6 +103,19 @@ export function MobileTransfer() {
     return formatCurrencyWithBCV(balanceMinor, currencyCode, {
       showUSDEquivalent: currencyCode === 'VES',
       locale: 'es-ES',
+    });
+  };
+
+  const formatTransferDate = (date: string) => {
+    if (!date) return 'Sin fecha';
+
+    const parsed = new Date(`${date}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return date;
+
+    return parsed.toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
     });
   };
 
@@ -258,6 +272,7 @@ export function MobileTransfer() {
       transferData.toAccountId &&
       transferData.fromAccountId !== transferData.toAccountId &&
       transferData.amount > 0 &&
+      !!transferData.date &&
       (!hasDifferentCurrencies || transferData.exchangeRate) &&
       !amountError
     ); // Add balance validation
@@ -265,7 +280,7 @@ export function MobileTransfer() {
 
   const handleTransfer = async () => {
     if (!isFormValid()) {
-      toast.error('Por favor completa cuenta origen, destino y monto');
+      toast.error('Por favor completa cuenta origen, destino, monto y fecha');
       return;
     }
 
@@ -555,6 +570,22 @@ export function MobileTransfer() {
             )}
           </div>
 
+          {/* Date */}
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Fecha</label>
+            <div className="relative">
+              <Calendar className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
+              <input
+                type="date"
+                value={transferData.date}
+                onChange={(e) =>
+                  setTransferData((prev) => ({ ...prev, date: e.target.value }))
+                }
+                className="w-full rounded-xl border border-border bg-background py-4 pl-12 pr-4 text-foreground transition-colors focus:border-primary-500 focus:outline-none"
+              />
+            </div>
+          </div>
+
           {/* Description */}
           <div className="space-y-3">
             <label className="text-sm font-medium text-foreground">
@@ -765,6 +796,13 @@ export function MobileTransfer() {
                   </p>
                 </div>
               )}
+
+              <div className="border-t border-border/40 pt-4">
+                <p className="text-center text-sm text-muted-foreground">
+                  <span className="font-medium">Fecha:</span>{' '}
+                  {formatTransferDate(transferData.date)}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -799,6 +837,12 @@ export function MobileTransfer() {
                   ),
                   getFromAccount()?.currencyCode || 'USD'
                 )}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Fecha:</span>
+              <span className="font-medium text-foreground">
+                {formatTransferDate(transferData.date)}
               </span>
             </div>
 
