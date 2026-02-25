@@ -93,12 +93,23 @@ export function MobileAddTransaction() {
     activeUsdVes,
     selectedRateSource,
     handleCalculatorClick,
+    handleCalculatorInputChange,
     handleCategorySaved,
     handleSubmit,
     getCategoriesByType,
     getCategoryKindForTransaction,
     getSelectedAccount,
   } = useTransactionForm();
+
+  const mapKeyboardKeyToCalculatorButton = (key: string): string | null => {
+    if (/^[0-9]$/.test(key)) return key;
+    if (key === '.') return '.';
+    if (key === '+' || key === '-' || key === '*' || key === '/') return key;
+    if (key === 'Enter') return '=';
+    if (key === 'Backspace') return '⌫';
+    if (key === 'Delete' || key === 'Escape') return 'C';
+    return null;
+  };
 
   const renderContent = () => {
     return (
@@ -306,13 +317,34 @@ export function MobileAddTransaction() {
 
           <div className="mb-4 rounded-xl bg-muted/20 p-4">
             <div className="text-right">
-              <div className="amount-emphasis-white text-2xl font-bold">
-                {(() => {
-                  const selectedAccount = getSelectedAccount();
-                  const currencyCode = selectedAccount?.currencyCode || 'USD';
-                  const currency = CURRENCIES[currencyCode];
-                  return `${currency?.symbol || '$'}${calculatorValue}`;
-                })()}
+              <div className="flex items-center justify-end gap-1 text-2xl font-bold">
+                <span className="amount-emphasis-white">
+                  {(() => {
+                    const selectedAccount = getSelectedAccount();
+                    const currencyCode = selectedAccount?.currencyCode || 'USD';
+                    const currency = CURRENCIES[currencyCode];
+                    return currency?.symbol || '$';
+                  })()}
+                </span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={calculatorValue}
+                  onChange={(e) => handleCalculatorInputChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    const mappedButton = mapKeyboardKeyToCalculatorButton(
+                      e.key
+                    );
+                    if (!mappedButton) return;
+
+                    if (mappedButton === '=' || mappedButton === 'C') {
+                      e.preventDefault();
+                      handleCalculatorClick(mappedButton);
+                    }
+                  }}
+                  className="amount-emphasis-white w-full max-w-48 bg-transparent text-right outline-none"
+                  aria-label="Monto de la transacción"
+                />
               </div>
               <div className="mt-1 text-[11px] text-white/70">
                 {(() => {

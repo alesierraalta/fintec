@@ -235,6 +235,30 @@ export function DesktopAddTransaction() {
     }
   };
 
+  const handleCalculatorInputChange = (value: string) => {
+    const sanitizedValue = value
+      .replace(',', '.')
+      .replace(/\s+/g, '')
+      .replace(/[^0-9.+*/-]/g, '');
+
+    const nextValue = sanitizedValue === '' ? '0' : sanitizedValue;
+    setCalculatorValue(nextValue);
+    setFormData((prev) => ({
+      ...prev,
+      amount: nextValue === '0' ? '' : nextValue,
+    }));
+  };
+
+  const mapKeyboardKeyToCalculatorButton = (key: string): string | null => {
+    if (/^[0-9]$/.test(key)) return key;
+    if (key === '.') return '.';
+    if (key === '+' || key === '-' || key === '*' || key === '/') return key;
+    if (key === 'Enter') return '=';
+    if (key === 'Backspace') return '⌫';
+    if (key === 'Delete' || key === 'Escape') return 'C';
+    return null;
+  };
+
   const handleSubmit = async () => {
     // Validate required fields
     if (!formData.type) {
@@ -752,8 +776,29 @@ export function DesktopAddTransaction() {
 
               <div className="mb-4 rounded-xl bg-muted/20 p-4">
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-white">
-                    ${calculatorValue}
+                  <div className="flex items-center justify-end gap-1 text-2xl font-bold text-white">
+                    <span>$</span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={calculatorValue}
+                      onChange={(e) =>
+                        handleCalculatorInputChange(e.target.value)
+                      }
+                      onKeyDown={(e) => {
+                        const mappedButton = mapKeyboardKeyToCalculatorButton(
+                          e.key
+                        );
+                        if (!mappedButton) return;
+
+                        if (mappedButton === '=' || mappedButton === 'C') {
+                          e.preventDefault();
+                          handleCalculatorClick(mappedButton);
+                        }
+                      }}
+                      className="w-full max-w-52 bg-transparent text-right text-white outline-none"
+                      aria-label="Monto de la transacción"
+                    />
                   </div>
                   {/* Converted preview using selected rate */}
                   <div className="mt-1 text-xs text-white/70">

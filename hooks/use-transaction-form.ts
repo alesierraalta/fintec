@@ -87,6 +87,7 @@ export interface UseTransactionFormReturn {
 
   // Actions
   handleCalculatorClick: (value: string) => void;
+  handleCalculatorInputChange: (value: string) => void;
   handleCategorySaved: (createdCategory?: Category) => Promise<void>;
   handleSubmit: () => Promise<void>;
 
@@ -239,6 +240,21 @@ export function useTransactionForm(): UseTransactionFormReturn {
     [calculatorValue]
   );
 
+  const handleCalculatorInputChange = useCallback((value: string) => {
+    const sanitizedValue = value
+      .replace(',', '.')
+      .replace(/\s+/g, '')
+      .replace(/[^0-9.+*/-]/g, '');
+
+    const nextValue = sanitizedValue === '' ? '0' : sanitizedValue;
+
+    setCalculatorValue(nextValue);
+    setFormData((prev) => ({
+      ...prev,
+      amount: nextValue === '0' ? '' : nextValue,
+    }));
+  }, []);
+
   // * Handle form submission
   const handleSubmit = useCallback(async () => {
     // Validate required fields
@@ -360,6 +376,7 @@ export function useTransactionForm(): UseTransactionFormReturn {
 
     // Actions
     handleCalculatorClick,
+    handleCalculatorInputChange,
     handleCategorySaved,
     handleSubmit,
 
