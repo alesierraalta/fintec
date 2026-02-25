@@ -15,6 +15,7 @@ import {
   PostgrestError,
 } from '@supabase/supabase-js';
 import { supabase } from '@/repositories/supabase/client';
+import { clearAllOptimizedDataCaches } from '@/lib/cache/optimized-data-cache';
 
 async function upsertUserProfileOnServer(payload: {
   name?: string;
@@ -113,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Handle sign out
       if (event === 'SIGNED_OUT') {
+        clearAllOptimizedDataCaches();
         setUser(null);
         setSession(null);
       }
@@ -351,6 +353,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('fintec_session');
       sessionStorage.removeItem('fintec_session_temp');
       localStorage.removeItem('fintec_remember_me');
+      clearAllOptimizedDataCaches();
 
       const { error } = await supabase.auth.signOut();
 

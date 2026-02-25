@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminPanel } from '@/components/payment-orders/admin-panel';
 import { supabase } from '@/repositories/supabase/client';
-import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { Button } from '@/components/ui';
 import { ArrowLeft, Eye } from 'lucide-react';
 
 export default function AdminPaymentOrdersPage() {
   const router = useRouter();
   const [authorized, setAuthorized] = useState<boolean | null>(null);
-  const [selectedReceipt, setSelectedReceipt] = useState<{ orderId: string; url: string } | null>(null);
+  const [selectedReceipt, setSelectedReceipt] = useState<{
+    orderId: string;
+    url: string;
+  } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -20,14 +22,22 @@ export default function AdminPaymentOrdersPage() {
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         router.push('/auth/login');
         return;
       }
 
-      const userId = session.user.id;
-      if (!isAdmin(userId)) {
+      const response = await fetch('/api/payment-orders/admin/access', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      const result = await response.json();
+
+      if (!response.ok || !result.success || !result.data?.isAdmin) {
         setAuthorized(false);
         return;
       }
@@ -51,7 +61,7 @@ export default function AdminPaymentOrdersPage() {
       <div className="container mx-auto max-w-4xl p-4 md:p-6">
         <div className="rounded-xl border border-destructive/50 bg-destructive/10 p-8 text-center">
           <h2 className="mb-2 text-xl font-semibold">Acceso Denegado</h2>
-          <p className="text-muted-foreground mb-4">
+          <p className="mb-4 text-muted-foreground">
             No tienes permisos para acceder a esta página.
           </p>
           <Button variant="outline" onClick={() => router.push('/')}>
@@ -130,4 +140,3 @@ export default function AdminPaymentOrdersPage() {
     </div>
   );
 }
-

@@ -187,3 +187,7 @@ toml/test.toml
 .stryker-tmp
 .vercel
 .env*.local
+
+# Local agent runtime configs
+.serena/project.yml
+opencode.jsonc

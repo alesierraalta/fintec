@@ -29,36 +29,53 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
     const limit = searchParams.get('limit');
+    const parsedLimit = limit ? Number.parseInt(limit, 10) : undefined;
+
+    if (limit && (!Number.isFinite(parsedLimit) || (parsedLimit ?? 0) <= 0)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'limit must be a positive integer',
+        },
+        { status: 400 }
+      );
+    }
+
+    const pagination = parsedLimit
+      ? { page: 1, limit: parsedLimit }
+      : undefined;
 
     let transactions;
     let totalCount: number;
 
     if (accountId) {
-      const result = await repository.transactions.findByAccountId(accountId);
+      const result = await repository.transactions.findByAccountId(
+        accountId,
+        pagination
+      );
       transactions = result.data;
       totalCount = result.total;
     } else if (categoryId) {
-      const result = await repository.transactions.findByCategoryId(categoryId);
+      const result = await repository.transactions.findByCategoryId(
+        categoryId,
+        pagination
+      );
       transactions = result.data;
       totalCount = result.total;
     } else if (startDate && endDate) {
       const result = await repository.transactions.findByDateRange(
         startDate,
-        endDate
+        endDate,
+        pagination
       );
       transactions = result.data;
       totalCount = result.total;
     } else if (type) {
-      const result = await repository.transactions.findByType(type);
+      const result = await repository.transactions.findByType(type, pagination);
       transactions = result.data;
       totalCount = result.total;
     } else {
-      transactions = await repository.transactions.findAll();
-      // Apply limit if specified
-      if (limit) {
-        const limitNum = parseInt(limit);
-        transactions = transactions.slice(0, limitNum);
-      }
+      transactions = await repository.transactions.findAll(parsedLimit);
       totalCount = transactions.length;
     }
 

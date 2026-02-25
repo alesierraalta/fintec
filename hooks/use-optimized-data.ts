@@ -4,17 +4,18 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRepository } from '@/providers';
 import { useAuth } from './use-auth';
 import type { Transaction, Account, Category } from '@/types';
+import {
+  createEmptyOptimizedDataCache,
+  loadOptimizedDataCache,
+  persistOptimizedDataCache,
+  type OptimizedDataCache,
+} from '@/lib/cache/optimized-data-cache';
 
 // Cache interface
-interface DataCache {
+interface DataCache extends OptimizedDataCache {
   transactions: Transaction[];
   accounts: Account[];
   categories: Category[];
-  lastUpdated: {
-    transactions: number;
-    accounts: number;
-    categories: number;
-  };
 }
 
 // Cache durations in milliseconds - diferenciadas por tipo de dato
@@ -25,58 +26,13 @@ const CACHE_DURATION = {
 };
 
 // Global cache to persist across component unmounts
-let globalCache: DataCache = {
-  transactions: [],
-  accounts: [],
-  categories: [],
-  lastUpdated: {
-    transactions: 0,
-    accounts: 0,
-    categories: 0,
-  },
+let globalCache: DataCache = createEmptyOptimizedDataCache();
+let activeCacheUserId: string | null = null;
+
+const persistActiveCache = () => {
+  if (!activeCacheUserId) return;
+  persistOptimizedDataCache(activeCacheUserId, globalCache);
 };
-
-// * Cache Persistence: Key for localStorage
-const CACHE_STORAGE_KEY = 'fintec_data_cache_v1';
-
-// * Helper to persist cache to localStorage
-const persistCache = () => {
-  if (typeof window !== 'undefined') {
-    try {
-      localStorage.setItem(CACHE_STORAGE_KEY, JSON.stringify(globalCache));
-    } catch (e) {
-      console.warn('Failed to persist cache to localStorage', e);
-    }
-  }
-};
-
-// * Initialize cache from localStorage on module load
-if (typeof window !== 'undefined') {
-  try {
-    const storedCache = localStorage.getItem(CACHE_STORAGE_KEY);
-    if (storedCache) {
-      const parsedCache = JSON.parse(storedCache);
-      // Validate structure roughly
-      if (parsedCache && parsedCache.lastUpdated) {
-        globalCache = parsedCache;
-      }
-    }
-  } catch (e) {
-    console.warn('Failed to load cache from localStorage', e);
-  }
-
-  // Legacy cleanup logic (kept for backward compatibility or specific reset needs)
-  const cacheKey = 'fintec_cache_cleared';
-  const lastCleared = localStorage.getItem(cacheKey);
-  const now = Date.now();
-
-  // Clear cache if it hasn't been cleared in the last 24 hours or if we detect stale data
-  if (!lastCleared || now - parseInt(lastCleared) > 24 * 60 * 60 * 1000) {
-    // Only reset if strict condition met, otherwise trust persisted cache
-    // We update the cleared timestamp but keep the data if valid
-    localStorage.setItem(cacheKey, now.toString());
-  }
-}
 
 export function useOptimizedData() {
   const repository = useRepository();
@@ -90,6 +46,27 @@ export function useOptimizedData() {
   });
 
   useEffect(() => {
+    const userId = user?.id ?? null;
+
+    if (!userId) {
+      activeCacheUserId = null;
+      globalCache = createEmptyOptimizedDataCache();
+      setIsInitialLoad(true);
+      return;
+    }
+
+    if (activeCacheUserId !== userId) {
+      activeCacheUserId = userId;
+      globalCache =
+        (loadOptimizedDataCache(userId) as DataCache | null) ||
+        createEmptyOptimizedDataCache();
+      setIsInitialLoad(
+        globalCache.transactions.length === 0 ||
+          globalCache.accounts.length === 0
+      );
+      return;
+    }
+
     if (!isInitialLoad) return;
 
     const hasCachedData =
@@ -100,7 +77,7 @@ export function useOptimizedData() {
     if (hasCachedData) {
       setIsInitialLoad(false);
     }
-  }, [isInitialLoad]);
+  }, [user?.id, isInitialLoad]);
 
   // Check if cache is valid with differentiated durations
   const isCacheValid = useCallback((type: keyof DataCache['lastUpdated']) => {
@@ -137,7 +114,7 @@ export function useOptimizedData() {
         const transactions = await repository.transactions.findAll(150);
         globalCache.transactions = transactions;
         globalCache.lastUpdated.transactions = Date.now();
-        persistCache(); // * Persist to localStorage
+        persistActiveCache();
         return transactions;
       } catch (err) {
         setError(
@@ -169,7 +146,7 @@ export function useOptimizedData() {
         const accounts = await repository.accounts.findByUserId(user.id);
         globalCache.accounts = accounts;
         globalCache.lastUpdated.accounts = Date.now();
-        persistCache(); // * Persist to localStorage
+        persistActiveCache();
         return accounts;
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading accounts');
@@ -197,7 +174,7 @@ export function useOptimizedData() {
         const categories = await repository.categories.findAll();
         globalCache.categories = categories;
         globalCache.lastUpdated.categories = Date.now();
-        persistCache(); // * Persist to localStorage
+        persistActiveCache();
         return categories;
       } catch (err) {
         setError(
@@ -252,19 +229,12 @@ export function useOptimizedData() {
         globalCache[type] = [];
       } else {
         // Invalidate all cache
-        globalCache = {
-          transactions: [],
-          accounts: [],
-          categories: [],
-          lastUpdated: {
-            transactions: 0,
-            accounts: 0,
-            categories: 0,
-          },
-        };
+        globalCache = createEmptyOptimizedDataCache();
         // Reset initial load state when cache is cleared
         setIsInitialLoad(true);
       }
+
+      persistActiveCache();
     },
     []
   );

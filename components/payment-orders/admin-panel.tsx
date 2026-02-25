@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { formatCurrency } from '@/lib/money';
 import { supabase } from '@/repositories/supabase/client';
-import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import type { PaymentOrder } from '@/types/payment-order';
 import { Button } from '@/components/ui';
 import {
@@ -50,11 +49,6 @@ export function AdminPanel({
       } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No autenticado');
-      }
-
-      const userId = session.user.id;
-      if (!isAdmin(userId)) {
-        throw new Error('No tienes permisos de administrador');
       }
 
       const response = await fetch(
