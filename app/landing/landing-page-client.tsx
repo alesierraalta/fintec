@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import {
   DollarSign,
   TrendingUp,
@@ -24,8 +25,31 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react';
-import { BCVRates } from '@/components/currency/bcv-rates';
-import { BinanceRatesComponent } from '@/components/currency/binance-rates';
+const BCVRates = dynamic(
+  () => import('@/components/currency/bcv-rates').then((mod) => mod.BCVRates),
+  {
+    ssr: false,
+  }
+);
+
+const BinanceRatesComponent = dynamic(
+  () =>
+    import('@/components/currency/binance-rates').then(
+      (mod) => mod.BinanceRatesComponent
+    ),
+  {
+    ssr: false,
+  }
+);
+
+function RatesCardSkeleton() {
+  return (
+    <div className="animate-pulse rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl">
+      <div className="mb-4 h-4 w-36 rounded bg-muted/30" />
+      <div className="h-8 w-28 rounded bg-muted/30" />
+    </div>
+  );
+}
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 30 },
@@ -50,6 +74,38 @@ const scaleIn = {
 
 export default function LandingPageClient() {
   const [logoError, setLogoError] = useState(false);
+  const [shouldLoadLiveRates, setShouldLoadLiveRates] = useState(false);
+  const liveRatesRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (shouldLoadLiveRates) {
+      return;
+    }
+
+    const section = liveRatesRef.current;
+    if (!section || typeof IntersectionObserver === 'undefined') {
+      setShouldLoadLiveRates(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry?.isIntersecting) {
+          setShouldLoadLiveRates(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '300px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(section);
+
+    return () => observer.disconnect();
+  }, [shouldLoadLiveRates]);
 
   const features = [
     {
@@ -132,212 +188,235 @@ export default function LandingPageClient() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Link href="/auth/login">
-                  <button className="rounded-xl bg-primary px-6 py-2 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 hover:bg-primary/90">
-                    Iniciar Sesión
-                  </button>
+                <Link
+                  href="/auth/login"
+                  className="rounded-xl bg-primary px-6 py-2 font-medium text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-200 hover:bg-primary/90"
+                >
+                  Iniciar Sesión
                 </Link>
 
-                <Link href="/auth/register">
-                  <button className="rounded-xl border border-border px-6 py-2 font-medium transition-all duration-200 hover:bg-muted/50">
-                    Registrarse
-                  </button>
+                <Link
+                  href="/auth/register"
+                  className="rounded-xl border border-border px-6 py-2 font-medium transition-all duration-200 hover:bg-muted/50"
+                >
+                  Registrarse
                 </Link>
               </motion.div>
             </div>
           </div>
         </nav>
 
-        {/* Hero Section */}
-        <section className="px-4 pb-16 pt-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <motion.div
-              className="mb-16 text-center"
-              variants={staggerContainer}
-              initial="hidden"
-              animate="show"
-            >
-              <motion.h1
-                variants={fadeInUp}
-                className="mb-6 text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl"
-              >
-                Controla tus Finanzas con
-                <span className="block bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
-                  Tasas Actualizadas
-                </span>
-              </motion.h1>
-
-              <motion.p
-                variants={fadeInUp}
-                className="mx-auto mb-8 max-w-3xl text-xl leading-relaxed text-muted-foreground"
-              >
-                La aplicación financiera más completa de Venezuela. Accede a
-                tasas oficiales del BCV, precios P2P de Binance y gestiona todas
-                tus finanzas en un solo lugar.
-              </motion.p>
-
+        <main>
+          {/* Hero Section */}
+          <section className="px-4 pb-16 pt-24 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
               <motion.div
-                variants={fadeInUp}
-                className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+                className="mb-16 text-center"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="show"
               >
-                <Link href="/auth/register">
-                  <button className="group flex items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 hover:shadow-xl hover:shadow-primary/20">
+                <motion.h1
+                  variants={fadeInUp}
+                  className="mb-6 text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl"
+                >
+                  Controla tus Finanzas con
+                  <span className="block bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
+                    Tasas Actualizadas
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  variants={fadeInUp}
+                  className="mx-auto mb-8 max-w-3xl text-xl leading-relaxed text-muted-foreground"
+                >
+                  La aplicación financiera más completa de Venezuela. Accede a
+                  tasas oficiales del BCV, precios P2P de Binance y gestiona
+                  todas tus finanzas en un solo lugar.
+                </motion.p>
+
+                <motion.div
+                  variants={fadeInUp}
+                  className="flex flex-col items-center justify-center gap-4 sm:flex-row"
+                >
+                  <Link
+                    href="/auth/register"
+                    className="group flex items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-8 py-4 text-lg font-semibold text-white transition-all duration-300 hover:shadow-xl hover:shadow-primary/20"
+                  >
                     <span>Comenzar Gratis</span>
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
+                  </Link>
 
-                <button className="flex items-center space-x-2 rounded-xl border border-border px-8 py-4 text-lg font-semibold transition-all duration-200 hover:bg-muted/50">
-                  <Play className="h-5 w-5" />
-                  <span>Ver Demo</span>
-                </button>
+                  <Link
+                    href="#tasas-en-vivo"
+                    className="flex items-center space-x-2 rounded-xl border border-border px-8 py-4 text-lg font-semibold transition-all duration-200 hover:bg-muted/50"
+                  >
+                    <Play className="h-5 w-5" />
+                    <span>Ver Demo</span>
+                  </Link>
+                </motion.div>
               </motion.div>
-            </motion.div>
 
-            {/* Live Rates Preview */}
-            <motion.div
-              className="mx-auto max-w-7xl"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-            >
-              <div className="rounded-3xl border border-border/20 bg-card/50 p-6 shadow-2xl backdrop-blur-sm sm:p-8 lg:p-10">
-                <div className="mb-8 text-center">
-                  <h3 className="mb-2 text-2xl font-bold text-foreground">
-                    Tasas en Vivo
-                  </h3>
-                  <p className="text-muted-foreground">
-                    Datos actualizados en tiempo real
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8 xl:gap-10">
-                  <BCVRates />
-                  <BinanceRatesComponent />
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Stats Section */}
-        <section className="bg-muted/20 px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <motion.div
-              className="grid grid-cols-2 gap-8 lg:grid-cols-4"
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-            >
-              {stats.map((stat, index) => {
-                const IconComponent = stat.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    variants={scaleIn}
-                    className="text-center"
-                  >
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                      <IconComponent className="h-8 w-8 text-primary" />
-                    </div>
-                    <div className="mb-2 text-3xl font-bold text-foreground">
-                      {stat.value}
-                    </div>
-                    <div className="font-medium text-muted-foreground">
-                      {stat.label}
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Features Section */}
-        <section className="px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <motion.div
-              className="mb-16 text-center"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="mb-4 text-3xl font-bold text-foreground sm:text-4xl">
-                Todo lo que necesitas para tus finanzas
-              </h2>
-              <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
-                Herramientas profesionales diseñadas para el mercado venezolano
-              </p>
-            </motion.div>
-
-            <motion.div
-              className="grid grid-cols-1 gap-8 md:grid-cols-2"
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true }}
-            >
-              {features.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <motion.div
-                    key={index}
-                    variants={fadeInUp}
-                    className={`${feature.bgColor} ${feature.borderColor} group rounded-3xl border p-8 transition-all duration-300 hover:shadow-xl`}
-                  >
-                    <div
-                      className={`h-16 w-16 ${feature.bgColor} mb-6 flex items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110`}
-                    >
-                      <IconComponent className={`h-8 w-8 ${feature.color}`} />
-                    </div>
-                    <h3 className="mb-4 text-xl font-bold text-foreground">
-                      {feature.title}
-                    </h3>
-                    <p className="leading-relaxed text-muted-foreground">
-                      {feature.description}
+              {/* Live Rates Preview */}
+              <motion.div
+                id="tasas-en-vivo"
+                ref={liveRatesRef}
+                className="mx-auto max-w-7xl scroll-mt-28"
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+              >
+                <div className="rounded-3xl border border-border/20 bg-card/50 p-6 shadow-2xl backdrop-blur-sm sm:p-8 lg:p-10">
+                  <div className="mb-8 text-center">
+                    <h2 className="mb-2 text-2xl font-bold text-foreground">
+                      Tasas en Vivo
+                    </h2>
+                    <p className="text-muted-foreground">
+                      Datos actualizados en tiempo real
                     </p>
-                  </motion.div>
-                );
-              })}
-            </motion.div>
-          </div>
-        </section>
+                  </div>
 
-        {/* CTA Section */}
-        <section className="bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 px-4 py-20 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-4xl text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
-              <h2 className="mb-6 text-3xl font-bold text-foreground sm:text-4xl">
-                ¿Listo para tomar control de tus finanzas?
-              </h2>
-              <p className="mb-8 text-xl text-muted-foreground">
-                Únete a miles de usuarios que ya confían en FinTec
-              </p>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8 xl:gap-10">
+                    {shouldLoadLiveRates ? (
+                      <>
+                        <BCVRates />
+                        <BinanceRatesComponent />
+                      </>
+                    ) : (
+                      <>
+                        <RatesCardSkeleton />
+                        <RatesCardSkeleton />
+                      </>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </section>
 
-              <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
-                <Link href="/auth/register">
-                  <button className="group flex items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-10 py-4 text-lg font-semibold text-white transition-all duration-300 hover:shadow-xl hover:shadow-primary/20">
+          {/* Stats Section */}
+          <section className="bg-muted/20 px-4 py-16 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <h2 className="sr-only">Indicadores clave de FinTec</h2>
+              <motion.div
+                className="grid grid-cols-2 gap-8 lg:grid-cols-4"
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+              >
+                {stats.map((stat, index) => {
+                  const IconComponent = stat.icon;
+                  return (
+                    <motion.div
+                      key={index}
+                      variants={scaleIn}
+                      className="text-center"
+                    >
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+                        <IconComponent className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="mb-2 text-3xl font-bold text-foreground">
+                        {stat.value}
+                      </div>
+                      <div className="font-medium text-muted-foreground">
+                        {stat.label}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </div>
+          </section>
+
+          {/* Features Section */}
+          <section className="px-4 py-20 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-7xl">
+              <motion.div
+                className="mb-16 text-center"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <h2 className="mb-4 text-3xl font-bold text-foreground sm:text-4xl">
+                  Todo lo que necesitas para tus finanzas
+                </h2>
+                <p className="mx-auto max-w-2xl text-xl text-muted-foreground">
+                  Herramientas profesionales diseñadas para el mercado
+                  venezolano
+                </p>
+              </motion.div>
+
+              <motion.div
+                className="grid grid-cols-1 gap-8 md:grid-cols-2"
+                variants={staggerContainer}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+              >
+                {features.map((feature, index) => {
+                  const IconComponent = feature.icon;
+                  return (
+                    <motion.div
+                      key={index}
+                      variants={fadeInUp}
+                      className={`${feature.bgColor} ${feature.borderColor} group rounded-3xl border p-8 transition-all duration-300 hover:shadow-xl`}
+                    >
+                      <div
+                        className={`h-16 w-16 ${feature.bgColor} mb-6 flex items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-110`}
+                      >
+                        <IconComponent className={`h-8 w-8 ${feature.color}`} />
+                      </div>
+                      <h3 className="mb-4 text-xl font-bold text-foreground">
+                        {feature.title}
+                      </h3>
+                      <p className="leading-relaxed text-muted-foreground">
+                        {feature.description}
+                      </p>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </div>
+          </section>
+
+          {/* CTA Section */}
+          <section className="bg-gradient-to-r from-primary/10 via-blue-500/10 to-purple-500/10 px-4 py-20 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-4xl text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <h2 className="mb-6 text-3xl font-bold text-foreground sm:text-4xl">
+                  ¿Listo para tomar control de tus finanzas?
+                </h2>
+                <p className="mb-8 text-xl text-muted-foreground">
+                  Únete a miles de usuarios que ya confían en FinTec
+                </p>
+
+                <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
+                  <Link
+                    href="/auth/register"
+                    className="group flex items-center space-x-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-10 py-4 text-lg font-semibold text-white transition-all duration-300 hover:shadow-xl hover:shadow-primary/20"
+                  >
                     <span>Crear Cuenta Gratis</span>
                     <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  </button>
-                </Link>
+                  </Link>
 
-                <Link href="/auth/login">
-                  <button className="rounded-xl border border-border px-10 py-4 text-lg font-semibold transition-all duration-200 hover:bg-muted/50">
+                  <Link
+                    href="/auth/login"
+                    className="rounded-xl border border-border px-10 py-4 text-lg font-semibold transition-all duration-200 hover:bg-muted/50"
+                  >
                     Ya tengo cuenta
-                  </button>
-                </Link>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+                  </Link>
+                </div>
+              </motion.div>
+            </div>
+          </section>
+        </main>
 
         {/* Footer */}
         <footer className="border-t border-border/20 px-4 py-12 sm:px-6 lg:px-8">
@@ -358,7 +437,6 @@ export default function LandingPageClient() {
                       alt="FinTec Logo"
                       fill
                       className="object-contain"
-                      priority
                       sizes="(max-width: 768px) 200px, 300px"
                       onError={(e) => {
                         setLogoError(true);
@@ -386,7 +464,10 @@ export default function LandingPageClient() {
                     Política de Privacidad
                   </Link>
                 </div>
-                <p>&copy; 2024 FinTec. Todos los derechos reservados.</p>
+                <p>
+                  &copy; {new Date().getFullYear()} FinTec. Todos los derechos
+                  reservados.
+                </p>
                 <p className="mt-1 text-sm">
                   Tasas actualizadas en tiempo real desde fuentes oficiales
                 </p>

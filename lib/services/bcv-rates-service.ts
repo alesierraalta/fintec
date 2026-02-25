@@ -10,190 +10,221 @@ import { logger } from '@/lib/utils/logger';
 import { STATIC_BCV_FALLBACK_RATES, isFallbackSource } from './rates-fallback';
 
 class BCVRatesService {
-    private static instance: BCVRatesService;
-    private cachedRates: BCVRates | null = null;
+  private static instance: BCVRatesService;
+  private cachedRates: BCVRates | null = null;
+  private cachedAt = 0;
+  private inFlightFetch: Promise<BCVRates> | null = null;
+  private static readonly FRESH_CACHE_WINDOW_MS = 60 * 1000;
 
-    private constructor() { }
+  private constructor() {}
 
-    static getInstance(): BCVRatesService {
-        if (!BCVRatesService.instance) {
-            BCVRatesService.instance = new BCVRatesService();
-        }
-        return BCVRatesService.instance;
+  static getInstance(): BCVRatesService {
+    if (!BCVRatesService.instance) {
+      BCVRatesService.instance = new BCVRatesService();
+    }
+    return BCVRatesService.instance;
+  }
+
+  /**
+   * Fetch BCV rates from API with fallback strategies
+   * @returns Promise<BCVRates>
+   */
+  async fetchRates(): Promise<BCVRates> {
+    if (this.inFlightFetch) {
+      return this.inFlightFetch;
     }
 
-    /**
-     * Fetch BCV rates from API with fallback strategies
-     * @returns Promise<BCVRates>
-     */
-    async fetchRates(): Promise<BCVRates> {
-        const nowIso = () => new Date().toISOString();
+    if (
+      this.cachedRates &&
+      Date.now() - this.cachedAt < BCVRatesService.FRESH_CACHE_WINDOW_MS
+    ) {
+      return this.cachedRates;
+    }
 
-        const parseTimestampMs = (iso: string | undefined): number => {
-            if (!iso) return 0;
-            const ms = new Date(iso).getTime();
-            return Number.isFinite(ms) ? ms : 0;
-        };
+    const fetchPromise = this.fetchRatesInternal();
+    this.inFlightFetch = fetchPromise;
 
-        const buildRatesFromApi = (result: any): BCVRates => {
-            const data = result?.data;
-            const usd = Number(data?.usd);
-            const eur = Number(data?.eur);
+    try {
+      return await fetchPromise;
+    } finally {
+      this.inFlightFetch = null;
+    }
+  }
 
-            if (!Number.isFinite(usd) || !Number.isFinite(eur)) {
-                throw new Error('Invalid BCV rates payload');
-            }
+  private async fetchRatesInternal(): Promise<BCVRates> {
+    const nowIso = () => new Date().toISOString();
 
-            const source = typeof data?.source === 'string' ? data.source : 'BCV';
-            const isFallback = result?.fallback === true || isFallbackSource(source);
+    const parseTimestampMs = (iso: string | undefined): number => {
+      if (!iso) return 0;
+      const ms = new Date(iso).getTime();
+      return Number.isFinite(ms) ? ms : 0;
+    };
 
-            const cacheAge = Number(result?.cacheAge);
-            const dataAge = Number(result?.dataAge);
+    const buildRatesFromApi = (result: any): BCVRates => {
+      const data = result?.data;
+      const usd = Number(data?.usd);
+      const eur = Number(data?.eur);
 
-            return {
-                usd,
-                eur,
-                lastUpdated: data?.lastUpdated || nowIso(),
-                source,
-                cached: result?.cached === true ? true : undefined,
-                cacheAge: Number.isFinite(cacheAge) ? cacheAge : undefined,
-                fallback: isFallback ? true : undefined,
-                fallbackReason:
-                    typeof result?.fallbackReason === 'string'
-                        ? result.fallbackReason
-                        : undefined,
-                dataAge: Number.isFinite(dataAge) ? dataAge : undefined,
-            };
-        };
+      if (!Number.isFinite(usd) || !Number.isFinite(eur)) {
+        throw new Error('Invalid BCV rates payload');
+      }
 
-        const tryHistoryFallback = async (): Promise<BCVRates | null> => {
-            const hasIndexedDb = typeof (globalThis as any).indexedDB !== 'undefined';
-            if (!hasIndexedDb) return null;
+      const source = typeof data?.source === 'string' ? data.source : 'BCV';
+      const isFallback = result?.fallback === true || isFallbackSource(source);
 
-            const latest = await bcvHistoryService.getLatestRate();
-            if (!latest) return null;
+      const cacheAge = Number(result?.cacheAge);
+      const dataAge = Number(result?.dataAge);
 
-            const lastUpdatedMs = parseTimestampMs(latest.timestamp);
+      return {
+        usd,
+        eur,
+        lastUpdated: data?.lastUpdated || nowIso(),
+        source,
+        cached: result?.cached === true ? true : undefined,
+        cacheAge: Number.isFinite(cacheAge) ? cacheAge : undefined,
+        fallback: isFallback ? true : undefined,
+        fallbackReason:
+          typeof result?.fallbackReason === 'string'
+            ? result.fallbackReason
+            : undefined,
+        dataAge: Number.isFinite(dataAge) ? dataAge : undefined,
+      };
+    };
 
-            return {
-                usd: latest.usd,
-                eur: latest.eur,
-                lastUpdated: latest.timestamp || nowIso(),
-                source: 'BCV (fallback - history)',
-                fallback: true,
-                fallbackReason: 'history',
-                dataAge: lastUpdatedMs
-                    ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
-                    : undefined,
-            };
-        };
+    const tryHistoryFallback = async (): Promise<BCVRates | null> => {
+      const hasIndexedDb = typeof (globalThis as any).indexedDB !== 'undefined';
+      if (!hasIndexedDb) return null;
 
-        try {
-            const response = await fetch('/api/bcv-rates', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+      const latest = await bcvHistoryService.getLatestRate();
+      if (!latest) return null;
+
+      const lastUpdatedMs = parseTimestampMs(latest.timestamp);
+
+      return {
+        usd: latest.usd,
+        eur: latest.eur,
+        lastUpdated: latest.timestamp || nowIso(),
+        source: 'BCV (fallback - history)',
+        fallback: true,
+        fallbackReason: 'history',
+        dataAge: lastUpdatedMs
+          ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
+          : undefined,
+      };
+    };
+
+    try {
+      const response = await fetch('/api/bcv-rates', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result?.data) {
+        const apiRates = buildRatesFromApi(result);
+        this.cachedRates = apiRates;
+        this.cachedAt = Date.now();
+
+        const isFreshSuccess =
+          result?.success === true && apiRates.fallback !== true;
+        if (isFreshSuccess) {
+          try {
+            await bcvHistoryService.saveRates(
+              apiRates.usd,
+              apiRates.eur,
+              result.data.source || 'BCV'
+            );
+          } catch (historyError) {
+            logger.error('[BCVRatesService] Failed to save rates to history:', {
+              error: historyError,
+              usd: apiRates.usd,
+              eur: apiRates.eur,
             });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result?.data) {
-                const apiRates = buildRatesFromApi(result);
-                this.cachedRates = apiRates;
-
-                const isFreshSuccess = result?.success === true && apiRates.fallback !== true;
-                if (isFreshSuccess) {
-                    try {
-                        await bcvHistoryService.saveRates(
-                            apiRates.usd,
-                            apiRates.eur,
-                            result.data.source || 'BCV'
-                        );
-                    } catch (historyError) {
-                        logger.error('[BCVRatesService] Failed to save rates to history:', {
-                            error: historyError,
-                            usd: apiRates.usd,
-                            eur: apiRates.eur
-                        });
-                    }
-                }
-
-                return apiRates;
-            }
-
-            throw new Error(result?.error || 'Unknown error fetching BCV rates');
-        } catch (error) {
-            // Try cache first
-            if (this.cachedRates) {
-                const lastUpdatedMs = parseTimestampMs(this.cachedRates.lastUpdated);
-                const computedAge = lastUpdatedMs
-                    ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
-                    : undefined;
-
-                return {
-                    ...this.cachedRates,
-                    cached: true,
-                    fallback: true,
-                    fallbackReason: 'cache',
-                    dataAge: this.cachedRates.dataAge ?? computedAge,
-                    source: this.cachedRates.source || 'BCV (fallback - cache)',
-                };
-            }
-
-            // Try history fallback
-            const historyRates = await tryHistoryFallback();
-            if (historyRates) {
-                this.cachedRates = historyRates;
-                return historyRates;
-            }
-
-            // Last resort: static fallback
-            const fallbackRates: BCVRates = {
-                usd: STATIC_BCV_FALLBACK_RATES.usd,
-                eur: STATIC_BCV_FALLBACK_RATES.eur,
-                lastUpdated: nowIso(),
-                source: 'BCV (fallback - static)',
-                fallback: true,
-                fallbackReason: 'static',
-            };
-
-            this.cachedRates = fallbackRates;
-            return fallbackRates;
+          }
         }
-    }
 
-    /**
-     * Get cached BCV rates
-     * @returns BCVRates | null
-     */
-    getCachedRates(): BCVRates | null {
-        return this.cachedRates;
-    }
+        return apiRates;
+      }
 
-    /**
-     * Get BCV trends from history
-     * @returns Promise<{ usd: BCVTrend; eur: BCVTrend } | null>
-     */
-    async getTrends(): Promise<{ usd: BCVTrend; eur: BCVTrend } | null> {
-        try {
-            return await bcvHistoryService.calculateTrends();
-        } catch (error) {
-            logger.error('[BCVRatesService] Error getting trends:', error);
-            return null;
-        }
-    }
+      throw new Error(result?.error || 'Unknown error fetching BCV rates');
+    } catch (error) {
+      // Try cache first
+      if (this.cachedRates) {
+        const lastUpdatedMs = parseTimestampMs(this.cachedRates.lastUpdated);
+        const computedAge = lastUpdatedMs
+          ? Math.max(0, Math.round((Date.now() - lastUpdatedMs) / 1000))
+          : undefined;
 
-    /**
-     * Clear cached rates (useful for testing or forcing refresh)
-     */
-    clearCache(): void {
-        this.cachedRates = null;
+        return {
+          ...this.cachedRates,
+          cached: true,
+          fallback: true,
+          fallbackReason: 'cache',
+          dataAge: this.cachedRates.dataAge ?? computedAge,
+          source: this.cachedRates.source || 'BCV (fallback - cache)',
+        };
+      }
+
+      // Try history fallback
+      const historyRates = await tryHistoryFallback();
+      if (historyRates) {
+        this.cachedRates = historyRates;
+        this.cachedAt = Date.now();
+        return historyRates;
+      }
+
+      // Last resort: static fallback
+      const fallbackRates: BCVRates = {
+        usd: STATIC_BCV_FALLBACK_RATES.usd,
+        eur: STATIC_BCV_FALLBACK_RATES.eur,
+        lastUpdated: nowIso(),
+        source: 'BCV (fallback - static)',
+        fallback: true,
+        fallbackReason: 'static',
+      };
+
+      this.cachedRates = fallbackRates;
+      this.cachedAt = Date.now();
+      return fallbackRates;
     }
+  }
+
+  /**
+   * Get cached BCV rates
+   * @returns BCVRates | null
+   */
+  getCachedRates(): BCVRates | null {
+    return this.cachedRates;
+  }
+
+  /**
+   * Get BCV trends from history
+   * @returns Promise<{ usd: BCVTrend; eur: BCVTrend } | null>
+   */
+  async getTrends(): Promise<{ usd: BCVTrend; eur: BCVTrend } | null> {
+    try {
+      return await bcvHistoryService.calculateTrends();
+    } catch (error) {
+      logger.error('[BCVRatesService] Error getting trends:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Clear cached rates (useful for testing or forcing refresh)
+   */
+  clearCache(): void {
+    this.cachedRates = null;
+    this.cachedAt = 0;
+    this.inFlightFetch = null;
+  }
 }
 
 export const bcvRatesService = BCVRatesService.getInstance();

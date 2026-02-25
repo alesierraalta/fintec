@@ -1,15 +1,26 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { BCVRates } from '@/types/rates';
+import { currencyService } from '@/lib/services/currency-service';
 
 // Throttle interval in milliseconds (10 seconds)
 const THROTTLE_MS = 10000;
 
-export function useBCVRates() {
-  const [rates, setRates] = useState<BCVRates>({
-    usd: 139.00,
-    eur: 162.53,
-    lastUpdated: new Date().toISOString()
-  });
+const DEFAULT_BCV_RATES: BCVRates = {
+  usd: 139.0,
+  eur: 162.53,
+  lastUpdated: new Date().toISOString(),
+};
+
+interface UseBCVRatesOptions {
+  enabled?: boolean;
+}
+
+export function useBCVRates(options: UseBCVRatesOptions = {}) {
+  const { enabled = true } = options;
+
+  const [rates, setRates] = useState<BCVRates>(
+    () => currencyService.getBCVRates() ?? DEFAULT_BCV_RATES
+  );
 
   const lastUpdateRef = useRef<number>(0);
   const pendingRatesRef = useRef<BCVRates | null>(null);
@@ -27,17 +38,18 @@ export function useBCVRates() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      return;
+    }
+
     const fetchRates = async () => {
       try {
-        const response = await fetch('/api/bcv-rates');
-        const data = await response.json();
-        if (data.success && data.data) {
-          throttledSetRates({
-            usd: data.data.usd || 139.00,
-            eur: data.data.eur || 162.53,
-            lastUpdated: data.data.lastUpdated || new Date().toISOString()
-          });
-        }
+        const data = await currencyService.fetchBCVRates();
+        throttledSetRates({
+          usd: data.usd || 139.0,
+          eur: data.eur || 162.53,
+          lastUpdated: data.lastUpdated || new Date().toISOString(),
+        });
       } catch (error) {
         // Use fallback rates on error
       }
@@ -58,9 +70,8 @@ export function useBCVRates() {
     }, THROTTLE_MS);
 
     return () => clearInterval(interval);
-  }, [throttledSetRates]);
+  }, [enabled, throttledSetRates]);
 
   // Memoize return value to prevent unnecessary re-renders in consumers
   return useMemo(() => rates, [rates]);
 }
-

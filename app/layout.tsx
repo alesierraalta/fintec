@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { RepositoryProvider } from '@/providers';
-import { AuthProvider } from '@/contexts/auth-context';
+import { RouteAwareProviders } from './route-aware-providers';
 import './globals.css';
 
 const inter = Inter({
@@ -49,13 +48,11 @@ export default function RootLayout({
     <html lang="es" suppressHydrationWarning className="dark">
       <head></head>
       <body className={`${inter.className} dark`}>
-        <AuthProvider>
-          <RepositoryProvider>
-            <div id="root" className="h-dynamic-screen w-full overflow-hidden">
-              {children}
-            </div>
-          </RepositoryProvider>
-        </AuthProvider>
+        <RouteAwareProviders>
+          <div id="root" className="h-dynamic-screen w-full overflow-hidden">
+            {children}
+          </div>
+        </RouteAwareProviders>
         <Toaster position="top-right" richColors />
         <div id="modal-root" />
       </body>
