@@ -101,6 +101,10 @@ describe('BCVRatesService', () => {
       });
       await bcvRatesService.fetchRates();
 
+      // Force stale cache so the next call attempts fetch and exercises
+      // fallback-to-cache behavior when the API fails.
+      (bcvRatesService as any).cachedAt = Date.now() - 61 * 1000;
+
       // * Now mock API failure
       (global.fetch as jest.Mock).mockRejectedValueOnce(
         new Error('Network error')
