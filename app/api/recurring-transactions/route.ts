@@ -1,6 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServerAppRepository } from '@/repositories/factory';
+import {
+  DeleteRecurringTransactionQuerySchema,
+  UpdateRecurringTransactionPayloadSchema,
+} from '@/lib/validations/recurring-transactions';
+import { z } from 'zod';
+
+const RECURRING_UPDATE_VALIDATION_ERROR =
+  'Invalid recurring transaction update payload';
+const RECURRING_DELETE_VALIDATION_ERROR =
+  'Invalid recurring transaction delete parameters';
+
+function formatZodIssues(error: z.ZodError): Array<{
+  field: string;
+  message: string;
+}> {
+  return error.issues.map((issue) => ({
+    field: issue.path.length > 0 ? issue.path.join('.') : 'request',
+    message: issue.message,
+  }));
+}
+
+function validationErrorResponse(errorMessage: string, error: z.ZodError) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: errorMessage,
+      details: formatZodIssues(error),
+    },
+    { status: 400 }
+  );
+}
+
+function isNotFoundError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.message.includes('PGRST116') ||
+    error.message.includes(
+      'JSON object requested, multiple (or no) rows returned'
+    )
+  );
+}
 
 // GET /api/recurring-transactions - Fetch recurring transactions for authenticated user
 export async function GET(request: NextRequest) {
@@ -121,22 +165,55 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+    let body: unknown;
 
-    if (!body.id) {
+    try {
+      body = await request.json();
+    } catch {
       return NextResponse.json(
         {
           success: false,
-          error: 'Missing required field: id',
+          error: RECURRING_UPDATE_VALIDATION_ERROR,
+          details: [
+            { field: 'request', message: 'Request body must be valid JSON' },
+          ],
         },
         { status: 400 }
       );
     }
 
+    const parsedUpdate =
+      UpdateRecurringTransactionPayloadSchema.safeParse(body);
+
+    if (!parsedUpdate.success) {
+      return validationErrorResponse(
+        RECURRING_UPDATE_VALIDATION_ERROR,
+        parsedUpdate.error
+      );
+    }
+
+    const { id, ...updatePayload } = parsedUpdate.data;
+
     const repository = createServerAppRepository({ supabase });
+
+    const existingTransaction = await repository.recurringTransactions.findById(
+      id,
+      user.id
+    );
+
+    if (!existingTransaction) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Recurring transaction not found',
+        },
+        { status: 404 }
+      );
+    }
+
     const transaction = await repository.recurringTransactions.update(
-      body.id,
-      body,
+      id,
+      updatePayload,
       user.id
     );
 
@@ -146,6 +223,16 @@ export async function PUT(request: NextRequest) {
       message: 'Recurring transaction updated successfully',
     });
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Recurring transaction not found',
+        },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,
@@ -173,19 +260,36 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const parsedDelete = DeleteRecurringTransactionQuerySchema.safeParse({
+      id: searchParams.get('id'),
+    });
 
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required parameter: id',
-        },
-        { status: 400 }
+    if (!parsedDelete.success) {
+      return validationErrorResponse(
+        RECURRING_DELETE_VALIDATION_ERROR,
+        parsedDelete.error
       );
     }
 
+    const { id } = parsedDelete.data;
+
     const repository = createServerAppRepository({ supabase });
+
+    const existingTransaction = await repository.recurringTransactions.findById(
+      id,
+      user.id
+    );
+
+    if (!existingTransaction) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Recurring transaction not found',
+        },
+        { status: 404 }
+      );
+    }
+
     await repository.recurringTransactions.delete(id, user.id);
 
     return NextResponse.json({
@@ -193,6 +297,16 @@ export async function DELETE(request: NextRequest) {
       message: 'Recurring transaction deleted successfully',
     });
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Recurring transaction not found',
+        },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: false,

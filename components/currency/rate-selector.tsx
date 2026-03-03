@@ -10,11 +10,18 @@ type RateSource = 'binance' | 'bcv_usd' | 'bcv_eur';
 
 export function RateSelector() {
   const [open, setOpen] = useState(false);
-  const bcv = useBCVRates();
-  const { rates: binance } = useBinanceRates();
 
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
   const setSelectedRateSource = useAppStore((s) => s.setSelectedRateSource);
+
+  const shouldFetchBcv =
+    open ||
+    selectedRateSource === 'bcv_usd' ||
+    selectedRateSource === 'bcv_eur';
+  const shouldFetchBinance = open || selectedRateSource === 'binance';
+
+  const bcv = useBCVRates({ enabled: shouldFetchBcv });
+  const { rates: binance } = useBinanceRates({ enabled: shouldFetchBinance });
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
   const close = useCallback(() => setOpen(false), []);

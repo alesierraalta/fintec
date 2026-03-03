@@ -36,12 +36,16 @@ export function DesktopDashboard() {
     loading,
     loadAllData,
   } = useOptimizedData();
-  const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
+  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
+  const shouldFetchBinanceRates = usdEquivalentType === 'binance';
+  const shouldFetchBcvRates = !shouldFetchBinanceRates;
+  const bcvRates = useBCVRates({ enabled: shouldFetchBcvRates });
+  const { rates: binanceRates } = useBinanceRates({
+    enabled: shouldFetchBinanceRates,
+  });
   const repository = useRepository();
 
   // Use global rate source
-  const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const [showBalances, setShowBalances] = useState(true);
 
   const scrollToQuickActions = useCallback(() => {

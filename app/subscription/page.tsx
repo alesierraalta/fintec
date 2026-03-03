@@ -1,8 +1,10 @@
 import { requireAuthenticatedUser } from '@/app/_lib/require-authenticated-user';
+import { getSubscriptionStatusPayload } from '@/lib/supabase/subscriptions';
 import SubscriptionPageClient from './subscription-page-client';
 
 export default async function SubscriptionPage() {
-  await requireAuthenticatedUser();
+  const user = await requireAuthenticatedUser();
+  const initialSubscription = await getSubscriptionStatusPayload(user.id);
 
-  return <SubscriptionPageClient />;
+  return <SubscriptionPageClient initialSubscription={initialSubscription} />;
 }

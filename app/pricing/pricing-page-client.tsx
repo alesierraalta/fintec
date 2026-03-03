@@ -1,17 +1,24 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { PricingCards } from '@/components/subscription/pricing-cards';
 import { useSubscription, useUpgrade } from '@/hooks/use-subscription';
 import { Loading } from '@/components/ui/loading';
 import { useAuth } from '@/hooks/use-auth';
+import type { SubscriptionStatusPayload } from '@/types/subscription';
 
-export default function PricingPageClient() {
+interface PricingPageClientProps {
+  initialSubscription: SubscriptionStatusPayload | null;
+}
+
+export default function PricingPageClient({
+  initialSubscription,
+}: PricingPageClientProps) {
   const router = useRouter();
   const { user } = useAuth();
-  const { tier, loading: subscriptionLoading } = useSubscription();
+  const { tier, loading: subscriptionLoading } =
+    useSubscription(initialSubscription);
   const { upgrade, loading: upgradeLoading } = useUpgrade();
 
   const handleSelectTier = async (selectedTier: 'base' | 'premium') => {

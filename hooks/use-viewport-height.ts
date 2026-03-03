@@ -5,10 +5,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Hook para obtener el height dinámico del viewport
  * Maneja correctamente el viewport cuando el teclado se abre/cierra en mobile
- * 
+ *
  * Usa Visual Viewport API cuando está disponible, con fallback a window.innerHeight
  * Detecta cierre de teclado mediante eventos de input para forzar actualizaciones
- * 
+ *
  * @returns Height actual del viewport en píxeles
  */
 export function useViewportHeight(): number | null {
@@ -18,6 +18,9 @@ export function useViewportHeight(): number | null {
   const lastHeightRef = useRef<number | null>(null);
   // Ref para timeout de actualización forzada
   const forceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Ref para agrupar actualizaciones rápidas en un solo frame
+  const rafIdRef = useRef<number | null>(null);
+  const scheduledForceUpdateRef = useRef(false);
 
   // * Función para actualizar el height y la CSS variable --app-height
   const updateHeight = useCallback((force = false) => {
@@ -37,25 +40,25 @@ export function useViewportHeight(): number | null {
 
     // * Actualizar CSS variable --app-height para uso en estilos globales
     // Esto permite usar var(--app-height) en CSS para height dinámico
-    // * Optimized: Wrap DOM write in requestAnimationFrame to prevent layout thrashing
-    requestAnimationFrame(() => {
-      document.documentElement.style.setProperty('--app-height', `${newHeight}px`);
-    });
+    document.documentElement.style.setProperty(
+      '--app-height',
+      `${newHeight}px`
+    );
 
     // Solo actualizar si el height cambió (evita re-renders innecesarios)
-    setHeight(prevHeight => {
+    setHeight((prevHeight) => {
       // Si prevHeight es null (primera vez), siempre actualizar
       if (prevHeight === null) {
         lastHeightRef.current = newHeight;
         return newHeight;
       }
-      
+
       // Si se fuerza la actualización, siempre actualizar
       if (force) {
         lastHeightRef.current = newHeight;
         return newHeight;
       }
-      
+
       // Solo actualizar si el cambio es significativo (> 5px para mejor detección)
       // Reducido de 1px a 5px para evitar actualizaciones muy frecuentes
       const threshold = 5;
@@ -67,26 +70,49 @@ export function useViewportHeight(): number | null {
     });
   }, []);
 
+  const scheduleUpdateHeight = useCallback(
+    (force = false) => {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      scheduledForceUpdateRef.current =
+        scheduledForceUpdateRef.current || force;
+
+      if (rafIdRef.current !== null) {
+        return;
+      }
+
+      rafIdRef.current = window.requestAnimationFrame(() => {
+        const shouldForceUpdate = scheduledForceUpdateRef.current;
+        scheduledForceUpdateRef.current = false;
+        rafIdRef.current = null;
+        updateHeight(shouldForceUpdate);
+      });
+    },
+    [updateHeight]
+  );
+
   // Función para forzar actualización cuando se detecta cierre de teclado
   const handleInputBlur = useCallback(() => {
     // Limpiar timeout anterior si existe
     if (forceUpdateTimeoutRef.current) {
       clearTimeout(forceUpdateTimeoutRef.current);
     }
-    
+
     // Forzar actualización después de un pequeño delay para asegurar que el viewport se haya actualizado
     // Esto es especialmente importante en iOS Safari donde el viewport puede tardar en actualizarse
     forceUpdateTimeoutRef.current = setTimeout(() => {
-      updateHeight(true);
+      scheduleUpdateHeight(true);
       // Forzar scroll al top para evitar que el contenido se quede "empujado" hacia arriba
       window.scrollTo(0, 0);
       // Actualización adicional después de más tiempo para asegurar que se aplicó
       setTimeout(() => {
-        updateHeight(true);
+        scheduleUpdateHeight(true);
         window.scrollTo(0, 0);
       }, 100);
     }, 150);
-  }, [updateHeight]);
+  }, [scheduleUpdateHeight]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -94,29 +120,64 @@ export function useViewportHeight(): number | null {
     }
 
     // Inicializar height inmediatamente al montar (solo en cliente)
-    updateHeight();
+    scheduleUpdateHeight();
+
+    const handleViewportResize = () => {
+      scheduleUpdateHeight(false);
+    };
+
+    const handleViewportScroll = () => {
+      scheduleUpdateHeight(false);
+    };
+
+    const handleWindowResize = () => {
+      scheduleUpdateHeight(false);
+    };
+
+    const handleOrientationChange = () => {
+      scheduleUpdateHeight(false);
+    };
 
     // Preferir Visual Viewport API si está disponible
     if (window.visualViewport) {
       // Escuchar cambios en el visual viewport (cuando el teclado se abre/cierra)
-      window.visualViewport.addEventListener('resize', () => updateHeight(false));
-      window.visualViewport.addEventListener('scroll', () => updateHeight(false));
+      window.visualViewport.addEventListener('resize', handleViewportResize);
+      window.visualViewport.addEventListener('scroll', handleViewportScroll);
 
       return () => {
-        window.visualViewport?.removeEventListener('resize', () => updateHeight(false));
-        window.visualViewport?.removeEventListener('scroll', () => updateHeight(false));
+        window.visualViewport?.removeEventListener(
+          'resize',
+          handleViewportResize
+        );
+        window.visualViewport?.removeEventListener(
+          'scroll',
+          handleViewportScroll
+        );
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+          scheduledForceUpdateRef.current = false;
+        }
       };
     } else {
       // Fallback: escuchar cambios en window
-      window.addEventListener('resize', () => updateHeight(false));
-      window.addEventListener('orientationchange', () => updateHeight(false));
+      window.addEventListener('resize', handleWindowResize);
+      window.addEventListener('orientationchange', handleOrientationChange);
 
       return () => {
-        window.removeEventListener('resize', () => updateHeight(false));
-        window.removeEventListener('orientationchange', () => updateHeight(false));
+        window.removeEventListener('resize', handleWindowResize);
+        window.removeEventListener(
+          'orientationchange',
+          handleOrientationChange
+        );
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+          scheduledForceUpdateRef.current = false;
+        }
       };
     }
-  }, [updateHeight]);
+  }, [scheduleUpdateHeight]);
 
   // Detectar cierre de teclado mediante eventos de input
   useEffect(() => {
@@ -147,9 +208,13 @@ export function useViewportHeight(): number | null {
       if (forceUpdateTimeoutRef.current) {
         clearTimeout(forceUpdateTimeoutRef.current);
       }
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+        scheduledForceUpdateRef.current = false;
+      }
     };
   }, [handleInputBlur]);
 
   return height;
 }
-

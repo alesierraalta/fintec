@@ -7,10 +7,10 @@ import React, {
   useRef,
   useMemo,
 } from 'react';
+import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
-import { AccountForm } from '@/components/forms/account-form';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
@@ -56,7 +56,14 @@ import { useAppStore } from '@/lib/store';
 import { AccountsSkeleton } from '@/components/skeletons/accounts-skeleton';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import { toast } from 'sonner';
+
+const AccountForm = dynamic(
+  () =>
+    import('@/components/forms/account-form').then((mod) => mod.AccountForm),
+  { loading: () => <FormLoading />, ssr: false }
+);
 
 // Componente NumberTicker simulado (efecto psicológico de progreso)
 const NumberTicker = ({
@@ -1352,12 +1359,14 @@ export default function AccountsPage() {
         </CollapsibleSection>
       </div>
 
-      <AccountForm
-        isOpen={isOpen}
-        onClose={closeModal}
-        onSuccess={handleAccountSaved}
-        account={selectedAccount}
-      />
+      {isOpen && (
+        <AccountForm
+          isOpen={isOpen}
+          onClose={closeModal}
+          onSuccess={handleAccountSaved}
+          account={selectedAccount}
+        />
+      )}
 
       <RatesHistory
         isOpen={showRatesHistory}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import {
   Card,
@@ -26,13 +26,15 @@ import { supabase } from '@/repositories/supabase/client';
 import {
   RecurringTransaction,
   RecurringTransactionSummary,
+  UpdateRecurringTransactionDTO,
 } from '@/types/recurring-transactions';
 import { getFrequencyLabel } from '@/types/recurring-transactions';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { formatCurrencyWithBCV } from '@/lib/currency-ves';
-import { BCVRates } from '@/components/currency/bcv-rates';
-import { BinanceRatesComponent } from '@/components/currency/binance-rates';
+import { toast } from 'sonner';
+import { RecurringRowActionsMenu } from '@/components/recurring/recurring-row-actions-menu';
+import { RecurringEditDialog } from '@/components/recurring/recurring-edit-dialog';
+import { RecurringDeleteDialog } from '@/components/recurring/recurring-delete-dialog';
 
 export default function RecurringPage() {
   const [recurringTransactions, setRecurringTransactions] = useState<
@@ -42,12 +44,24 @@ export default function RecurringPage() {
     null
   );
   const [loading, setLoading] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<RecurringTransaction | null>(null);
+  const [activeRowMutation, setActiveRowMutation] = useState<{
+    id: string;
+    type: 'edit' | 'delete';
+  } | null>(null);
   const [selectedFrequency, setSelectedFrequency] = useState<
     'weekly' | 'monthly' | 'yearly'
   >('monthly');
   const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
-  const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
+  const shouldFetchBinanceRates = usdEquivalentType === 'binance';
+  const shouldFetchBcvRates = !shouldFetchBinanceRates;
+  const bcvRates = useBCVRates({ enabled: shouldFetchBcvRates });
+  const { rates: binanceRates } = useBinanceRates({
+    enabled: shouldFetchBinanceRates,
+  });
 
   const frequencyOptions = [
     { value: 'weekly', label: 'Semanal' },
@@ -55,45 +69,81 @@ export default function RecurringPage() {
     { value: 'yearly', label: 'Anual' },
   ];
 
-  // Local rate options removed; header RateSelector is the single source
+  const getAccessToken = useCallback(async (): Promise<string | null> => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return session?.access_token || null;
+  }, []);
+
+  const extractErrorMessage = useCallback(
+    (responseBody: any, fallback: string): string => {
+      if (responseBody?.error && typeof responseBody.error === 'string') {
+        return responseBody.error;
+      }
+
+      if (
+        Array.isArray(responseBody?.details) &&
+        responseBody.details.length > 0 &&
+        responseBody.details[0]?.message
+      ) {
+        return responseBody.details[0].message;
+      }
+
+      return fallback;
+    },
+    []
+  );
+
+  const refreshRecurringData = useCallback(async () => {
+    try {
+      const token = await getAccessToken();
+
+      if (!token) {
+        setRecurringTransactions([]);
+        setSummary(null);
+        return;
+      }
+
+      const response = await fetch('/api/recurring-transactions', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          extractErrorMessage(result, 'No se pudo cargar la data')
+        );
+      }
+
+      setRecurringTransactions(result.data.transactions);
+      setSummary(result.data.summary);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Error al cargar transacciones recurrentes'
+      );
+    }
+  }, [extractErrorMessage, getAccessToken]);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const initializePage = async () => {
       try {
         setLoading(true);
-
-        // Get the current session token
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
-        if (!token) {
-          return;
-        }
-
-        const response = await fetch('/api/recurring-transactions', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-          setRecurringTransactions(result.data.transactions);
-          setSummary(result.data.summary);
-        }
-      } catch (error) {
-        // Handle error silently
+        await refreshRecurringData();
       } finally {
         setLoading(false);
       }
     };
 
-    fetchData();
-  }, []);
+    initializePage();
+  }, [refreshRecurringData]);
 
   // Helper function to get frequency multiplier
   const getFrequencyMultiplier = (
@@ -163,6 +213,118 @@ export default function RecurringPage() {
     };
   }, [recurringTransactions, selectedFrequency, convertToBS]);
 
+  const handleOpenEditDialog = useCallback(
+    (transaction: RecurringTransaction) => {
+      setSelectedTransaction(transaction);
+      setEditDialogOpen(true);
+    },
+    []
+  );
+
+  const handleOpenDeleteDialog = useCallback(
+    (transaction: RecurringTransaction) => {
+      setSelectedTransaction(transaction);
+      setDeleteDialogOpen(true);
+    },
+    []
+  );
+
+  const handleEditRecurringTransaction = useCallback(
+    async ({
+      id,
+      data,
+    }: {
+      id: string;
+      data: UpdateRecurringTransactionDTO;
+    }) => {
+      setActiveRowMutation({ id, type: 'edit' });
+
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          throw new Error('No autenticado');
+        }
+
+        const response = await fetch('/api/recurring-transactions', {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ id, ...data }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            extractErrorMessage(result, 'No se pudo actualizar la transaccion')
+          );
+        }
+
+        toast.success('Transaccion recurrente actualizada');
+        setEditDialogOpen(false);
+        setSelectedTransaction(null);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Error al actualizar la transaccion recurrente'
+        );
+      } finally {
+        await refreshRecurringData();
+        setActiveRowMutation(null);
+      }
+    },
+    [extractErrorMessage, getAccessToken, refreshRecurringData]
+  );
+
+  const handleDeleteRecurringTransaction = useCallback(
+    async (id: string) => {
+      setActiveRowMutation({ id, type: 'delete' });
+
+      try {
+        const token = await getAccessToken();
+        if (!token) {
+          throw new Error('No autenticado');
+        }
+
+        const response = await fetch(
+          `/api/recurring-transactions?id=${encodeURIComponent(id)}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(
+            extractErrorMessage(result, 'No se pudo eliminar la transaccion')
+          );
+        }
+
+        toast.success('Transaccion recurrente eliminada');
+        setDeleteDialogOpen(false);
+        setSelectedTransaction(null);
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Error al eliminar la transaccion recurrente'
+        );
+      } finally {
+        await refreshRecurringData();
+        setActiveRowMutation(null);
+      }
+    },
+    [extractErrorMessage, getAccessToken, refreshRecurringData]
+  );
+
   if (loading) {
     return (
       <MainLayout>
@@ -179,16 +341,16 @@ export default function RecurringPage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto space-y-6 p-6">
+      <div className="container mx-auto space-y-6 p-4 pb-safe-bottom sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-bold">Transacciones Recurrentes</h1>
             <p className="mt-2 text-muted-foreground">
               Gestiona tus ingresos y gastos que se repiten automáticamente
             </p>
           </div>
-          <Button className="flex items-center gap-2">
+          <Button className="flex min-h-[44px] items-center gap-2 self-start">
             <Plus className="h-4 w-4" />
             Nueva Recurrente
           </Button>
@@ -373,7 +535,7 @@ export default function RecurringPage() {
                   Crea tu primera transacción recurrente para automatizar tus
                   finanzas
                 </p>
-                <Button className="flex items-center gap-2">
+                <Button className="flex min-h-[44px] items-center gap-2">
                   <Plus className="h-4 w-4" />
                   Crear Primera Recurrente
                 </Button>
@@ -383,7 +545,7 @@ export default function RecurringPage() {
                 {recurringTransactions.map((transaction) => (
                   <div
                     key={transaction.id}
-                    className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                    className="flex flex-col gap-4 rounded-lg border p-4 transition-colors hover:bg-muted/50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex items-center space-x-4">
                       <div className="flex-shrink-0">
@@ -404,7 +566,7 @@ export default function RecurringPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4">
                       <Badge
                         variant={transaction.isActive ? 'default' : 'outline'}
                       >
@@ -414,6 +576,9 @@ export default function RecurringPage() {
                         <p className="font-semibold">
                           ${(transaction.amountMinor / 100).toFixed(2)}{' '}
                           {transaction.currencyCode}
+                          {activeRowMutation?.id === transaction.id && (
+                            <span className="ml-2 inline-block h-3 w-3 animate-spin rounded-full border border-current border-t-transparent align-middle" />
+                          )}
                         </p>
                         <p className="text-sm text-muted-foreground">
                           Próxima:{' '}
@@ -422,6 +587,17 @@ export default function RecurringPage() {
                           ).toLocaleDateString()}
                         </p>
                       </div>
+                      <RecurringRowActionsMenu
+                        transactionId={transaction.id}
+                        transactionName={transaction.name}
+                        onEdit={() => handleOpenEditDialog(transaction)}
+                        onDelete={() => handleOpenDeleteDialog(transaction)}
+                        disabled={Boolean(
+                          activeRowMutation &&
+                            activeRowMutation.id !== transaction.id
+                        )}
+                        loading={activeRowMutation?.id === transaction.id}
+                      />
                     </div>
                   </div>
                 ))}
@@ -429,6 +605,32 @@ export default function RecurringPage() {
             )}
           </CardContent>
         </Card>
+
+        <RecurringEditDialog
+          open={editDialogOpen}
+          transaction={selectedTransaction}
+          isSubmitting={activeRowMutation?.type === 'edit'}
+          onOpenChange={(open) => {
+            setEditDialogOpen(open);
+            if (!open) {
+              setSelectedTransaction(null);
+            }
+          }}
+          onSubmit={handleEditRecurringTransaction}
+        />
+
+        <RecurringDeleteDialog
+          open={deleteDialogOpen}
+          transaction={selectedTransaction}
+          isDeleting={activeRowMutation?.type === 'delete'}
+          onOpenChange={(open) => {
+            setDeleteDialogOpen(open);
+            if (!open) {
+              setSelectedTransaction(null);
+            }
+          }}
+          onConfirmDelete={handleDeleteRecurringTransaction}
+        />
       </div>
     </MainLayout>
   );

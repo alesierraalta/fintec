@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './use-auth';
 import {
   SubscriptionTier,
@@ -7,7 +7,69 @@ import {
   UsageStatus,
   Feature,
   FEATURE_ACCESS,
+  SubscriptionStatusPayload,
 } from '@/types/subscription';
+
+const SUBSCRIPTION_CACHE_TTL_MS = 30000;
+
+const subscriptionCache = new Map<
+  string,
+  { data: SubscriptionStatusPayload; fetchedAt: number }
+>();
+const inFlightRequests = new Map<string, Promise<SubscriptionStatusPayload>>();
+
+async function fetchSubscriptionStatus(
+  userId: string,
+  accessToken: string
+): Promise<SubscriptionStatusPayload> {
+  const cacheEntry = subscriptionCache.get(userId);
+  if (
+    cacheEntry &&
+    Date.now() - cacheEntry.fetchedAt < SUBSCRIPTION_CACHE_TTL_MS
+  ) {
+    return cacheEntry.data;
+  }
+
+  const existingRequest = inFlightRequests.get(userId);
+  if (existingRequest) {
+    return existingRequest;
+  }
+
+  const request = (async () => {
+    const response = await fetch('/api/subscription/status', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch subscription');
+    }
+
+    const result = (await response.json()) as SubscriptionStatusPayload;
+    subscriptionCache.set(userId, { data: result, fetchedAt: Date.now() });
+    return result;
+  })();
+
+  inFlightRequests.set(userId, request);
+
+  try {
+    return await request;
+  } finally {
+    inFlightRequests.delete(userId);
+  }
+}
+
+function mapSubscriptionPayloadToData(
+  payload: SubscriptionStatusPayload
+): Omit<SubscriptionData, 'loading' | 'error'> {
+  return {
+    subscription: payload.subscription,
+    tier: payload.tier || 'free',
+    usage: payload.usage as UsageTracking | null,
+    usageStatus: payload.usageStatus,
+  };
+}
 
 interface SubscriptionData {
   subscription: Subscription | null;
@@ -18,45 +80,53 @@ interface SubscriptionData {
   error: string | null;
 }
 
-export function useSubscription() {
+export function useSubscription(
+  initialPayload?: SubscriptionStatusPayload | null
+) {
   const { user, session } = useAuth();
-  const [data, setData] = useState<SubscriptionData>({
-    subscription: null,
-    tier: 'free',
-    usage: null,
-    usageStatus: null,
-    loading: true,
-    error: null,
+  const initialDataWasUsedRef = useRef(Boolean(initialPayload));
+  const [data, setData] = useState<SubscriptionData>(() => {
+    if (initialPayload) {
+      return {
+        ...mapSubscriptionPayloadToData(initialPayload),
+        loading: false,
+        error: null,
+      };
+    }
+
+    return {
+      subscription: null,
+      tier: 'free',
+      usage: null,
+      usageStatus: null,
+      loading: true,
+      error: null,
+    };
   });
 
   const fetchSubscription = useCallback(async () => {
     if (!user?.id || !session?.access_token) {
-      setData((prev) => ({ ...prev, loading: false }));
+      setData({
+        subscription: null,
+        tier: 'free',
+        usage: null,
+        usageStatus: null,
+        loading: false,
+        error: null,
+      });
       return;
     }
 
     try {
-      setData((prev) => ({ ...prev, loading: true, error: null }));
-
-      // Add cache-busting to ensure fresh data
-      const cacheBuster = `t=${Date.now()}`;
-      const response = await fetch(
-        `/api/subscription/status?userId=${user.id}&${cacheBuster}`,
-        {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            Pragma: 'no-cache',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
+      setData((prev) => ({
+        ...prev,
+        loading: prev.subscription === null && prev.usageStatus === null,
+        error: null,
+      }));
+      const result = await fetchSubscriptionStatus(
+        user.id,
+        session.access_token
       );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch subscription');
-      }
-
-      const result = await response.json();
 
       // Log tier detection for debugging
       if (
@@ -70,14 +140,12 @@ export function useSubscription() {
         });
       }
 
-      setData({
-        subscription: result.subscription,
-        tier: result.tier || 'free',
-        usage: result.usage,
-        usageStatus: result.usageStatus,
+      setData((prev) => ({
+        ...prev,
+        ...mapSubscriptionPayloadToData(result),
         loading: false,
         error: null,
-      });
+      }));
     } catch (error: any) {
       setData((prev) => ({
         ...prev,
@@ -88,8 +156,13 @@ export function useSubscription() {
   }, [user?.id, user?.email, session?.access_token]);
 
   useEffect(() => {
+    if (initialDataWasUsedRef.current && user?.id) {
+      initialDataWasUsedRef.current = false;
+      return;
+    }
+
     fetchSubscription();
-  }, [fetchSubscription]);
+  }, [fetchSubscription, user?.id]);
 
   // Refresh subscription on window focus (in case tier changed in another tab)
   useEffect(() => {
@@ -149,11 +222,7 @@ export function useSubscription() {
  * Hook to initiate upgrade to a specific tier
  */
 export function useUpgrade() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const upgrade = useCallback(async (tier: 'base' | 'premium') => {
+  const upgrade = useCallback(async (_tier: 'base' | 'premium') => {
     // Checkout is currently disabled.
     alert('Please contact support to upgrade your plan.');
     return null;
@@ -161,8 +230,8 @@ export function useUpgrade() {
 
   return {
     upgrade,
-    loading,
-    error,
+    loading: false,
+    error: null as string | null,
   };
 }
 
@@ -170,10 +239,6 @@ export function useUpgrade() {
  * Hook to manage subscription
  */
 export function useManageSubscription() {
-  const { user } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
   const openPortal = useCallback(async () => {
     // Portal is currently disabled.
     alert('Please contact support to manage your subscription.');
@@ -181,7 +246,7 @@ export function useManageSubscription() {
 
   return {
     openPortal,
-    loading,
-    error,
+    loading: false,
+    error: null as string | null,
   };
 }

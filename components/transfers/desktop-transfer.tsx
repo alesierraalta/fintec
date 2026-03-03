@@ -21,8 +21,9 @@ import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { toMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { useActiveUsdVesRate } from '@/lib/rates';
+import { useAppStore } from '@/lib/store';
 import {
+  calculateExchangeRateFromAmounts,
   calculateSourceAmountFromTarget,
   calculateTargetAmountFromSource,
   isUsdVesTransferPair,
@@ -40,6 +41,8 @@ interface TransferData {
   exchangeRate?: number;
   rateSource?: string;
 }
+
+type TransferExchangeMode = 'manual' | 'auto';
 
 export function DesktopTransfer() {
   const router = useRouter();
@@ -64,9 +67,15 @@ export function DesktopTransfer() {
   const [lastAmountEdited, setLastAmountEdited] = useState<'source' | 'target'>(
     'source'
   );
-  const activeUsdVes = useActiveUsdVesRate();
+  const [exchangeMode, setExchangeMode] =
+    useState<TransferExchangeMode>('manual');
+  const selectedRateSource = useAppStore((state) => state.selectedRateSource);
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
+  const activeUsdVes =
+    selectedRateSource === 'binance'
+      ? (binanceRates?.usd_ves ?? binanceRates?.sell_rate?.avg ?? 0)
+      : bcvRates.usd || 0;
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -229,6 +238,13 @@ export function DesktopTransfer() {
       return;
     }
 
+    if (
+      exchangeMode === 'auto' &&
+      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+    ) {
+      return;
+    }
+
     // If Custom, respect it (don't auto update rate from sources)
     if (transferData.rateSource === 'Custom') return;
 
@@ -266,6 +282,7 @@ export function DesktopTransfer() {
     activeUsdVes,
     bcvRates,
     binanceRates,
+    exchangeMode,
     getFromAccount,
     getToAccount,
   ]);
@@ -282,6 +299,10 @@ export function DesktopTransfer() {
       if (targetAmount !== 0) {
         setTargetAmount(0);
       }
+      return;
+    }
+
+    if (exchangeMode === 'auto') {
       return;
     }
 
@@ -313,6 +334,7 @@ export function DesktopTransfer() {
     transferData.exchangeRate,
     targetAmount,
     lastAmountEdited,
+    exchangeMode,
     getFromAccount,
     getToAccount,
   ]);
@@ -323,6 +345,13 @@ export function DesktopTransfer() {
 
     if (!from || !to) {
       return transferData.amount;
+    }
+
+    if (
+      exchangeMode === 'auto' &&
+      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+    ) {
+      return targetAmount;
     }
 
     if (
@@ -446,6 +475,7 @@ export function DesktopTransfer() {
       });
       setTargetAmount(0);
       setLastAmountEdited('source');
+      setExchangeMode('manual');
     } catch (error) {
       logger.error('Transfer error:', error);
       toast.error(
@@ -666,6 +696,34 @@ export function DesktopTransfer() {
                       }));
 
                       if (
+                        exchangeMode === 'auto' &&
+                        from &&
+                        to &&
+                        isUsdVesTransferPair(
+                          from.currencyCode,
+                          to.currencyCode
+                        ) &&
+                        newAmount > 0 &&
+                        targetAmount > 0
+                      ) {
+                        const calculatedRate = calculateExchangeRateFromAmounts(
+                          newAmount,
+                          targetAmount,
+                          from.currencyCode,
+                          to.currencyCode
+                        );
+
+                        if (calculatedRate) {
+                          setTransferData((prev) => ({
+                            ...prev,
+                            exchangeRate: calculatedRate,
+                            rateSource: 'Custom',
+                          }));
+                        }
+                      }
+
+                      if (
+                        exchangeMode === 'manual' &&
                         from &&
                         to &&
                         isUsdVesTransferPair(
@@ -719,6 +777,32 @@ export function DesktopTransfer() {
                     getToAccount()!.currencyCode
                   ) && (
                     <div className="space-y-4 rounded-xl border border-primary-100 bg-primary-50/50 p-4 dark:border-primary-900/40 dark:bg-primary-900/10">
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <button
+                          type="button"
+                          onClick={() => setExchangeMode('manual')}
+                          aria-pressed={exchangeMode === 'manual'}
+                          className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                            exchangeMode === 'manual'
+                              ? 'border-primary-500 bg-primary-100 text-primary-900 dark:bg-primary-900/30 dark:text-primary-100'
+                              : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Modo normal
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExchangeMode('auto')}
+                          aria-pressed={exchangeMode === 'auto'}
+                          className={`rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                            exchangeMode === 'auto'
+                              ? 'border-primary-500 bg-primary-100 text-primary-900 dark:bg-primary-900/30 dark:text-primary-100'
+                              : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                          }`}
+                        >
+                          Auto tasa
+                        </button>
+                      </div>
                       <label className="text-sm font-medium text-foreground">
                         Monto Recibido ({getToAccount()!.currencyCode})
                       </label>
@@ -737,6 +821,36 @@ export function DesktopTransfer() {
                             setTargetAmount(newTargetAmount);
 
                             if (
+                              exchangeMode === 'auto' &&
+                              from &&
+                              to &&
+                              isUsdVesTransferPair(
+                                from.currencyCode,
+                                to.currencyCode
+                              ) &&
+                              transferData.amount > 0 &&
+                              newTargetAmount > 0
+                            ) {
+                              const calculatedRate =
+                                calculateExchangeRateFromAmounts(
+                                  transferData.amount,
+                                  newTargetAmount,
+                                  from.currencyCode,
+                                  to.currencyCode
+                                );
+
+                              if (calculatedRate) {
+                                setTransferData((prev) => ({
+                                  ...prev,
+                                  exchangeRate: calculatedRate,
+                                  rateSource: 'Custom',
+                                }));
+                                return;
+                              }
+                            }
+
+                            if (
+                              exchangeMode === 'manual' &&
                               from &&
                               to &&
                               transferData.exchangeRate &&
@@ -763,6 +877,18 @@ export function DesktopTransfer() {
                           className="w-full rounded-xl border border-border bg-background py-4 pl-12 pr-4 text-xl font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none"
                         />
                       </div>
+                      {exchangeMode === 'auto' && (
+                        <p className="text-xs text-muted-foreground">
+                          {transferData.exchangeRate
+                            ? `Tasa calculada (VES/USD): ${(getFromAccount()
+                                ?.currencyCode === 'VES' &&
+                              getToAccount()?.currencyCode === 'USD'
+                                ? 1 / transferData.exchangeRate
+                                : transferData.exchangeRate
+                              ).toFixed(6)}`
+                            : 'Ingresa monto origen y recibido para calcular la tasa automaticamente.'}
+                        </p>
+                      )}
                     </div>
                   )}
               </div>
@@ -819,100 +945,108 @@ export function DesktopTransfer() {
                 Tasa de Cambio
               </h2>
 
-              <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
-                {[
-                  { id: 'Global', label: 'Global', value: activeUsdVes },
-                  { id: 'BCV', label: 'BCV (USD)', value: bcvRates.usd },
-                  { id: 'Euro', label: 'BCV (EUR)', value: bcvRates.eur },
-                  {
-                    id: 'Binance',
-                    label: 'Binance',
-                    value: binanceRates?.usd_ves || 0,
-                  },
-                  { id: 'Custom', label: 'Personalizada', value: 0 },
-                ].map((option) => (
-                  <button
-                    key={option.id}
-                    onClick={() => {
-                      if (option.id === 'Custom') {
-                        setTransferData((prev) => ({
-                          ...prev,
-                          rateSource: 'Custom',
-                        }));
-                      } else {
-                        setTransferData((prev) => ({
-                          ...prev,
-                          rateSource: option.id,
-                        }));
-                      }
-                    }}
-                    className={`relative overflow-hidden rounded-xl border-2 p-4 text-center transition-all ${
-                      transferData.rateSource === option.id ||
-                      (!transferData.rateSource && option.id === 'Global')
-                        ? 'border-primary-600 bg-primary-50 text-primary-900 dark:bg-primary-900/20 dark:text-primary-100'
-                        : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
-                    }`}
-                  >
-                    <div className="font-semibold">{option.label}</div>
-                    {option.id !== 'Custom' && (
-                      <div className="text-sm opacity-80">
-                        {option.value.toFixed(2)}
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-
-              {transferData.rateSource === 'Custom' && (
-                <div className="animate-in fade-in slide-in-from-top-2 space-y-4 duration-200">
-                  <label className="text-lg font-medium text-foreground">
-                    Tasa Personalizada (VES/USD)
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 transform font-semibold text-muted-foreground">
-                      Bs.
-                    </div>
-                    <input
-                      type="number"
-                      value={
-                        transferData.exchangeRate
-                          ? getFromAccount()?.currencyCode === 'VES' &&
-                            getToAccount()?.currencyCode === 'USD'
-                            ? 1 / transferData.exchangeRate
-                            : transferData.exchangeRate
-                          : ''
-                      }
-                      onChange={(e) => {
-                        const val = parseFloat(e.target.value);
-                        const from = getFromAccount();
-                        const to = getToAccount();
-
-                        if (!val) {
-                          setTransferData((prev) => ({
-                            ...prev,
-                            exchangeRate: undefined,
-                          }));
-                          return;
-                        }
-
-                        let finalRate = val;
-                        if (
-                          from?.currencyCode === 'VES' &&
-                          to?.currencyCode === 'USD'
-                        ) {
-                          finalRate = 1 / val;
-                        }
-                        setTransferData((prev) => ({
-                          ...prev,
-                          exchangeRate: finalRate,
-                        }));
-                      }}
-                      placeholder="0.00"
-                      step="0.01"
-                      className="w-full rounded-xl border border-border bg-background py-4 pl-12 pr-4 text-xl font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none"
-                    />
+              {(!isUsdVesTransferPair(
+                getFromAccount()!.currencyCode,
+                getToAccount()!.currencyCode
+              ) ||
+                exchangeMode === 'manual') && (
+                <>
+                  <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
+                    {[
+                      { id: 'Global', label: 'Global', value: activeUsdVes },
+                      { id: 'BCV', label: 'BCV (USD)', value: bcvRates.usd },
+                      { id: 'Euro', label: 'BCV (EUR)', value: bcvRates.eur },
+                      {
+                        id: 'Binance',
+                        label: 'Binance',
+                        value: binanceRates?.usd_ves || 0,
+                      },
+                      { id: 'Custom', label: 'Personalizada', value: 0 },
+                    ].map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => {
+                          if (option.id === 'Custom') {
+                            setTransferData((prev) => ({
+                              ...prev,
+                              rateSource: 'Custom',
+                            }));
+                          } else {
+                            setTransferData((prev) => ({
+                              ...prev,
+                              rateSource: option.id,
+                            }));
+                          }
+                        }}
+                        className={`relative overflow-hidden rounded-xl border-2 p-4 text-center transition-all ${
+                          transferData.rateSource === option.id ||
+                          (!transferData.rateSource && option.id === 'Global')
+                            ? 'border-primary-600 bg-primary-50 text-primary-900 dark:bg-primary-900/20 dark:text-primary-100'
+                            : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                        }`}
+                      >
+                        <div className="font-semibold">{option.label}</div>
+                        {option.id !== 'Custom' && (
+                          <div className="text-sm opacity-80">
+                            {option.value.toFixed(2)}
+                          </div>
+                        )}
+                      </button>
+                    ))}
                   </div>
-                </div>
+
+                  {transferData.rateSource === 'Custom' && (
+                    <div className="animate-in fade-in slide-in-from-top-2 space-y-4 duration-200">
+                      <label className="text-lg font-medium text-foreground">
+                        Tasa Personalizada (VES/USD)
+                      </label>
+                      <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2 transform font-semibold text-muted-foreground">
+                          Bs.
+                        </div>
+                        <input
+                          type="number"
+                          value={
+                            transferData.exchangeRate
+                              ? getFromAccount()?.currencyCode === 'VES' &&
+                                getToAccount()?.currencyCode === 'USD'
+                                ? 1 / transferData.exchangeRate
+                                : transferData.exchangeRate
+                              : ''
+                          }
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            const from = getFromAccount();
+                            const to = getToAccount();
+
+                            if (!val) {
+                              setTransferData((prev) => ({
+                                ...prev,
+                                exchangeRate: undefined,
+                              }));
+                              return;
+                            }
+
+                            let finalRate = val;
+                            if (
+                              from?.currencyCode === 'VES' &&
+                              to?.currencyCode === 'USD'
+                            ) {
+                              finalRate = 1 / val;
+                            }
+                            setTransferData((prev) => ({
+                              ...prev,
+                              exchangeRate: finalRate,
+                            }));
+                          }}
+                          placeholder="0.00"
+                          step="0.01"
+                          className="w-full rounded-xl border border-border bg-background py-4 pl-12 pr-4 text-xl font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

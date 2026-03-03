@@ -6,7 +6,7 @@ import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
-import { useActiveUsdVesRate } from '@/lib/rates';
+import { useAppStore } from '@/lib/store';
 
 jest.mock('@/providers', () => ({
   useRepository: jest.fn(),
@@ -24,8 +24,8 @@ jest.mock('@/hooks/use-binance-rates', () => ({
   useBinanceRates: jest.fn(),
 }));
 
-jest.mock('@/lib/rates', () => ({
-  useActiveUsdVesRate: jest.fn(),
+jest.mock('@/lib/store', () => ({
+  useAppStore: jest.fn(),
 }));
 
 describe('DesktopTransfer exchange sync', () => {
@@ -58,14 +58,16 @@ describe('DesktopTransfer exchange sync', () => {
       },
     });
 
-    (useActiveUsdVesRate as jest.Mock).mockReturnValue(36.5);
+    (useAppStore as unknown as jest.Mock).mockImplementation((selector: any) =>
+      selector({ selectedRateSource: 'bcv_usd' })
+    );
     (useBCVRates as jest.Mock).mockReturnValue({ usd: 36.5, eur: 40 });
     (useBinanceRates as jest.Mock).mockReturnValue({
       rates: { usd_ves: 36.4 },
     });
   });
 
-  it('recalculates source and target amounts with last-edited-wins in USD/VES', async () => {
+  it('in manual mode recalculates source amount when target is edited in USD/VES', async () => {
     render(<DesktopTransfer />);
 
     await waitFor(() => {
@@ -98,6 +100,41 @@ describe('DesktopTransfer exchange sync', () => {
       amountInputs = screen.getAllByRole('spinbutton');
       expect(amountInputs[0]).toHaveValue(20);
       expect(amountInputs[1]).toHaveValue(730);
+    });
+  });
+
+  it('in auto mode derives custom exchange rate from source and target amounts', async () => {
+    render(<DesktopTransfer />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Cargando cuentas...')).not.toBeInTheDocument();
+    });
+
+    const usdButtons = screen.getAllByRole('button', { name: /Cuenta USD/i });
+    const vesButtons = screen.getAllByRole('button', { name: /Cuenta VES/i });
+
+    fireEvent.click(usdButtons[0]);
+    fireEvent.click(vesButtons[1]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Monto Recibido (VES)')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Auto tasa' }));
+
+    const amountInputs = screen.getAllByRole('spinbutton');
+    const sourceInput = amountInputs[0];
+    const targetInput = amountInputs[1];
+
+    fireEvent.change(sourceInput, { target: { value: '10' } });
+    fireEvent.change(targetInput, { target: { value: '730' } });
+
+    await waitFor(() => {
+      const updatedInputs = screen.getAllByRole('spinbutton');
+      expect(updatedInputs[0]).toHaveValue(10);
+      expect(
+        screen.getByText(/Tasa calculada \(VES\/USD\): 73/)
+      ).toBeInTheDocument();
     });
   });
 });

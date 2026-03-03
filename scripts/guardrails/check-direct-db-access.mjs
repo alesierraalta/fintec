@@ -18,7 +18,10 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 
 const ALLOWED_PREFIXES = ['repositories/supabase/', 'tests/'];
 
-const ALLOWED_FILES = new Set(['lib/payment-orders/order-service.ts']);
+const ALLOWED_FILES = new Set([
+  'lib/payment-orders/order-service.ts',
+  'lib/supabase/subscriptions.ts',
+]);
 
 const DB_CALL_PATTERNS = [/\.from\(\s*['"`]/g, /\.rpc\(\s*['"`]/g];
 

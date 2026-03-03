@@ -7,8 +7,9 @@ import { useBinanceRates } from '@/hooks/use-binance-rates';
 // to keep totals in USD consistent across the app per decision A/A.
 export function useActiveUsdVesRate(): number {
   const source = useAppStore((s) => s.selectedRateSource);
-  const bcv = useBCVRates();
-  const { rates: binance } = useBinanceRates();
+  const shouldUseBcv = source === 'bcv_usd' || source === 'bcv_eur';
+  const bcv = useBCVRates({ enabled: shouldUseBcv });
+  const { rates: binance } = useBinanceRates({ enabled: source === 'binance' });
 
   if (source === 'binance') {
     return binance?.usd_ves ?? binance?.sell_rate?.avg ?? 0;
@@ -21,5 +22,3 @@ export function useActiveUsdVesRate(): number {
   }
   return 0;
 }
-
-

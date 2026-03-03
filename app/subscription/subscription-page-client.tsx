@@ -13,8 +13,15 @@ import { Loading } from '@/components/ui/loading';
 import { Crown, Zap, ArrowRight, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TIER_FEATURES } from '@/types/subscription';
+import type { SubscriptionStatusPayload } from '@/types/subscription';
 
-export default function SubscriptionPageClient() {
+interface SubscriptionPageClientProps {
+  initialSubscription: SubscriptionStatusPayload;
+}
+
+export default function SubscriptionPageClient({
+  initialSubscription,
+}: SubscriptionPageClientProps) {
   const router = useRouter();
   const {
     tier,
@@ -25,7 +32,7 @@ export default function SubscriptionPageClient() {
     isPremium,
     isBase,
     isFree,
-  } = useSubscription();
+  } = useSubscription(initialSubscription);
   const { openPortal, loading: portalLoading } = useManageSubscription();
 
   if (loading) {

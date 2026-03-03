@@ -2,11 +2,11 @@
 
 export type SubscriptionTier = 'free' | 'base' | 'premium';
 
-export type SubscriptionStatus = 
-  | 'active' 
-  | 'cancelled' 
-  | 'past_due' 
-  | 'paused' 
+export type SubscriptionStatus =
+  | 'active'
+  | 'cancelled'
+  | 'past_due'
+  | 'paused'
   | 'trialing';
 
 export interface Subscription {
@@ -21,7 +21,6 @@ export interface Subscription {
   createdAt: string;
   updatedAt: string;
 }
-
 
 export interface UsageTracking {
   id: string;
@@ -137,7 +136,7 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
   },
 };
 
-export type Feature = 
+export type Feature =
   | 'unlimited_transactions'
   | 'unlimited_history'
   | 'advanced_reports'
@@ -217,3 +216,16 @@ export interface UsageStatus {
   };
 }
 
+export interface SubscriptionStatusPayload {
+  subscription: Subscription | null;
+  tier: SubscriptionTier;
+  usage: {
+    transactionCount: number;
+    backupCount: number;
+    exportCount: number;
+    apiCalls: number;
+    aiRequests: number;
+  } | null;
+  usageStatus: UsageStatus;
+  limits: SubscriptionLimits;
+}

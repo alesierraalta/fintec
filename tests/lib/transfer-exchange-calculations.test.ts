@@ -1,4 +1,5 @@
 import {
+  calculateExchangeRateFromAmounts,
   calculateSourceAmountFromTarget,
   calculateTargetAmountFromSource,
   isUsdVesTransferPair,
@@ -30,6 +31,16 @@ describe('transfer exchange calculations', () => {
       36.71
     );
     expect(sourceAmount).toBe(10.01);
+  });
+
+  it('derives exchange rate from source and target amounts for USD to VES', () => {
+    const rate = calculateExchangeRateFromAmounts(10, 365, 'USD', 'VES');
+    expect(rate).toBe(36.5);
+  });
+
+  it('derives exchange rate from source and target amounts for VES to USD', () => {
+    const rate = calculateExchangeRateFromAmounts(365, 10, 'VES', 'USD');
+    expect(rate).toBe(0.027397);
   });
 
   it('applies last-edited-wins preserving target when target was edited last', () => {

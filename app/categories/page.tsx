@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
-import { CategoryForm } from '@/components/forms';
 import { CategoryCard } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
@@ -35,7 +35,14 @@ import {
   GraduationCap,
   RefreshCw,
 } from 'lucide-react';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import { toast } from 'sonner';
+
+const CategoryForm = dynamic(
+  () =>
+    import('@/components/forms/category-form').then((mod) => mod.CategoryForm),
+  { loading: () => <FormLoading />, ssr: false }
+);
 
 export default function CategoriesPage() {
   const repository = useRepository();
@@ -494,12 +501,14 @@ export default function CategoriesPage() {
         )}
       </div>
 
-      <CategoryForm
-        isOpen={isOpen}
-        onClose={handleCategorySaved}
-        category={selectedCategory}
-        parentCategoryId={parentCategoryId}
-      />
+      {isOpen && (
+        <CategoryForm
+          isOpen={isOpen}
+          onClose={handleCategorySaved}
+          category={selectedCategory}
+          parentCategoryId={parentCategoryId}
+        />
+      )}
 
       {categoryToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">

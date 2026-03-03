@@ -1,17 +1,29 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
-import { BudgetForm } from '@/components/forms';
 import { BudgetCard } from '@/components/budgets';
 import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
-import { Plus, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
+import {
+  Plus,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Calendar,
+} from 'lucide-react';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { FormLoading } from '@/components/ui/suspense-loading';
 import type { Budget, Category } from '@/types';
+
+const BudgetForm = dynamic(
+  () => import('@/components/forms/budget-form').then((mod) => mod.BudgetForm),
+  { loading: () => <FormLoading />, ssr: false }
+);
 
 export default function BudgetsPage() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -31,7 +43,7 @@ export default function BudgetsPage() {
         setLoading(true);
         const [allBudgets, allCategories] = await Promise.all([
           repository.budgets.findAll(),
-          repository.categories.findAll()
+          repository.categories.findAll(),
         ]);
         setBudgets(allBudgets);
         setCategories(allCategories);
@@ -55,7 +67,7 @@ export default function BudgetsPage() {
       const monthKey = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString('es-ES', {
         year: 'numeric',
-        month: 'long'
+        month: 'long',
       });
 
       months.push({
@@ -68,14 +80,22 @@ export default function BudgetsPage() {
   };
 
   const monthOptions = generateMonthOptions();
-  const filteredBudgets = budgets.filter(budget => budget.monthYYYYMM === selectedMonth);
+  const filteredBudgets = budgets.filter(
+    (budget) => budget.monthYYYYMM === selectedMonth
+  );
 
   // Calculate statistics
-  const totalBudgeted = filteredBudgets.reduce((sum, budget) => sum + budget.amountBaseMinor, 0);
-  const totalSpent = filteredBudgets.reduce((sum, budget) => sum + (budget.spentMinor || 0), 0);
+  const totalBudgeted = filteredBudgets.reduce(
+    (sum, budget) => sum + budget.amountBaseMinor,
+    0
+  );
+  const totalSpent = filteredBudgets.reduce(
+    (sum, budget) => sum + (budget.spentMinor || 0),
+    0
+  );
   const remaining = totalBudgeted - totalSpent;
-  const overBudgetCount = filteredBudgets.filter(budget =>
-    (budget.spentMinor || 0) > budget.amountBaseMinor
+  const overBudgetCount = filteredBudgets.filter(
+    (budget) => (budget.spentMinor || 0) > budget.amountBaseMinor
   ).length;
 
   const handleNewBudget = () => {
@@ -92,26 +112,26 @@ export default function BudgetsPage() {
     try {
       if (selectedBudget) {
         // Update existing budget - aquí implementarías la lógica real
-        setBudgets(prev => prev.map(budget =>
-          budget.id === selectedBudget.id
-            ? { ...budget, ...budgetData }
-            : budget
-        ));
+        setBudgets((prev) =>
+          prev.map((budget) =>
+            budget.id === selectedBudget.id
+              ? { ...budget, ...budgetData }
+              : budget
+          )
+        );
       } else {
         // Add new budget - aquí implementarías la lógica real
-        setBudgets(prev => [...prev, budgetData as Budget]);
+        setBudgets((prev) => [...prev, budgetData as Budget]);
       }
       closeModal();
-    } catch (error) {
-    }
+    } catch (error) {}
   };
 
   const handleDeleteBudget = async (budgetId: string) => {
     try {
       // Aquí implementarías la lógica real de eliminación
-      setBudgets(prev => prev.filter(budget => budget.id !== budgetId));
-    } catch (error) {
-    }
+      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
+    } catch (error) {}
   };
 
   const formatCurrency = (amountMinor: number) => {
@@ -121,32 +141,34 @@ export default function BudgetsPage() {
     }).format(amountMinor / 100);
   };
 
-  const selectedMonthLabel = monthOptions.find(month => month.value === selectedMonth)?.label || 'Mes Actual';
+  const selectedMonthLabel =
+    monthOptions.find((month) => month.value === selectedMonth)?.label ||
+    'Mes Actual';
 
   return (
     <MainLayout>
-      <div className="space-y-8 animate-fade-in">
+      <div className="animate-fade-in space-y-8">
         {/* iOS-style Header */}
-        <div className="text-center py-8">
-          <div className="inline-flex items-center space-x-2 text-muted-foreground mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+        <div className="py-8 text-center">
+          <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
             <span className="text-ios-caption font-medium">Planificación</span>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-6xl font-bold mb-6 tracking-tight bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-white">
+          <h1 className="mb-6 bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-6xl">
             💰 Presupuestos
           </h1>
-          <p className="text-muted-foreground font-light mb-6">
+          <p className="mb-6 font-light text-muted-foreground">
             Controla tus gastos con presupuestos mensuales
           </p>
 
           {/* Quick Actions Header - Hidden on mobile */}
-          <div className="hidden sm:flex items-center justify-center space-x-4 mb-4">
+          <div className="mb-4 hidden items-center justify-center space-x-4 sm:flex">
             <button
               onClick={handleNewBudget}
-              className="relative px-6 py-3 rounded-xl text-white font-medium shadow-lg overflow-hidden group transition-all duration-300 bg-gradient-to-r from-primary to-blue-600 hover:from-blue-600 hover:to-primary text-ios-body"
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-blue-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-primary"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:opacity-20 group-hover:animate-pulse"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
               <div className="relative flex items-center space-x-2">
                 <Plus className="h-5 w-5" />
                 <span>Nuevo Presupuesto</span>
@@ -156,21 +178,25 @@ export default function BudgetsPage() {
         </div>
 
         {/* iOS-style Month Selector */}
-        <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-6 border border-border/20 shadow-lg">
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-            <h2 className="text-ios-title font-semibold text-foreground">Período</h2>
+        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-lg backdrop-blur-xl">
+          <div className="mb-4 flex items-center space-x-2">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
+            <h2 className="text-ios-title font-semibold text-foreground">
+              Período
+            </h2>
           </div>
 
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
               <Calendar className="h-5 w-5 text-blue-600" />
-              <span className="text-foreground font-medium text-ios-body">Mes seleccionado:</span>
+              <span className="text-ios-body font-medium text-foreground">
+                Mes seleccionado:
+              </span>
             </div>
             <select
               value={selectedMonth}
               onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-card border border-border/40 text-foreground rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-ios-body"
+              className="rounded-2xl border border-border/40 bg-card px-4 py-3 text-ios-body text-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
             >
               {monthOptions.map((month) => (
                 <option key={month.value} value={month.value}>
@@ -182,62 +208,84 @@ export default function BudgetsPage() {
         </div>
 
         {/* iOS-style Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">PRESUPUESTADO</h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="mb-4 flex items-center space-x-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
+              <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                PRESUPUESTADO
+              </h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
+            <p className="mb-2 text-3xl font-light text-foreground">
               {formatCurrency(totalBudgeted)}
             </p>
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4 text-blue-600" />
-              <span className="text-ios-footnote text-blue-600 font-medium">Total planificado</span>
+              <span className="text-ios-footnote font-medium text-blue-600">
+                Total planificado
+              </span>
             </div>
           </div>
 
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">GASTADO</h3>
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="mb-4 flex items-center space-x-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
+              <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                GASTADO
+              </h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
+            <p className="mb-2 text-3xl font-light text-foreground">
               {formatCurrency(totalSpent)}
             </p>
             <div className="flex items-center space-x-2">
               <TrendingDown className="h-4 w-4 text-red-600" />
-              <span className="text-ios-footnote text-red-600 font-medium">Gastado real</span>
+              <span className="text-ios-footnote font-medium text-red-600">
+                Gastado real
+              </span>
             </div>
           </div>
 
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className={`w-2 h-2 ${remaining >= 0 ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`}></div>
-              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">DISPONIBLE</h3>
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="mb-4 flex items-center space-x-2">
+              <div
+                className={`h-2 w-2 ${remaining >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
+              ></div>
+              <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                DISPONIBLE
+              </h3>
             </div>
-            <p className={`text-3xl font-light mb-2 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <p
+              className={`mb-2 text-3xl font-light ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}
+            >
               {formatCurrency(remaining)}
             </p>
             <div className="flex items-center space-x-2">
-              <TrendingUp className={`h-4 w-4 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`} />
-              <span className={`text-ios-footnote font-medium ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+              <TrendingUp
+                className={`h-4 w-4 ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              />
+              <span
+                className={`text-ios-footnote font-medium ${remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}
+              >
                 {remaining >= 0 ? 'Disponible' : 'Sobrepasado'}
               </span>
             </div>
           </div>
 
-          <div className="bg-card/90 backdrop-blur-xl rounded-3xl p-6 border border-border/40 shadow-lg hover:shadow-xl transition-all duration-300 group">
-            <div className="flex items-center space-x-2 mb-4">
-              <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-              <h3 className="text-ios-caption font-medium text-muted-foreground tracking-wide">ALERTAS</h3>
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="mb-4 flex items-center space-x-2">
+              <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500"></div>
+              <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
+                ALERTAS
+              </h3>
             </div>
-            <p className="text-3xl font-light text-foreground mb-2">
+            <p className="mb-2 text-3xl font-light text-foreground">
               {overBudgetCount}
             </p>
             <div className="flex items-center space-x-2">
               <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <span className="text-ios-footnote text-amber-600 font-medium">Sobrepasados</span>
+              <span className="text-ios-footnote font-medium text-amber-600">
+                Sobrepasados
+              </span>
             </div>
           </div>
         </div>
@@ -249,27 +297,32 @@ export default function BudgetsPage() {
               Presupuestos - {selectedMonthLabel}
             </h2>
             <span className="text-sm text-gray-400">
-              {filteredBudgets.length} presupuesto{filteredBudgets.length !== 1 ? 's' : ''}
+              {filteredBudgets.length} presupuesto
+              {filteredBudgets.length !== 1 ? 's' : ''}
             </span>
           </div>
 
           {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+            <div className="py-12 text-center">
+              <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
               <p className="text-gray-400">Cargando presupuestos...</p>
             </div>
           ) : filteredBudgets.length === 0 ? (
             <EmptyState
               title={`No hay presupuestos para ${selectedMonthLabel}`}
               description="Crea tu primer presupuesto para comenzar a controlar tus gastos"
-              icon={<AlertTriangle className="h-12 w-12 text-muted-foreground" />}
+              icon={
+                <AlertTriangle className="h-12 w-12 text-muted-foreground" />
+              }
               actionLabel="Crear Presupuesto"
               onAction={handleNewBudget}
             />
           ) : (
             <div className="grid gap-4">
               {filteredBudgets.map((budget) => {
-                const category = categories.find(cat => cat.id === budget.categoryId);
+                const category = categories.find(
+                  (cat) => cat.id === budget.categoryId
+                );
                 return (
                   <BudgetCard
                     key={budget.id}
@@ -285,12 +338,14 @@ export default function BudgetsPage() {
         </div>
       </div>
 
-      <BudgetForm
-        isOpen={isOpen}
-        onClose={closeModal}
-        budget={selectedBudget}
-        onSave={handleSaveBudget}
-      />
+      {isOpen && (
+        <BudgetForm
+          isOpen={isOpen}
+          onClose={closeModal}
+          budget={selectedBudget}
+          onSave={handleSaveBudget}
+        />
+      )}
 
       {/* Floating Action Button for Mobile */}
       <FloatingActionButton

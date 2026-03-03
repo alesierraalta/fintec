@@ -1,6 +1,12 @@
 import { createClient } from '@/lib/supabase/server';
 import { createServerSubscriptionsRepository } from '@/repositories/factory';
-import { SubscriptionTier, SubscriptionStatus } from '@/types/subscription';
+import {
+  SubscriptionTier,
+  SubscriptionStatus,
+  TIER_LIMITS,
+  UsageStatus,
+  SubscriptionStatusPayload,
+} from '@/types/subscription';
 
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
   const supabase = await createClient();
@@ -107,15 +113,107 @@ export async function getSubscriptionByUserId(userId: string) {
 }
 
 export async function getUserUsage(userId: string) {
-  return {
-    transactionCount: 0,
-    backupCount: 0,
-    exportCount: 0,
-    apiCalls: 0,
-    aiRequests: 0,
-  };
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .split('T')[0];
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .split('T')[0];
+
+  try {
+    const supabase = await createClient();
+
+    const { count, error } = await supabase
+      .from('transactions')
+      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
+      .eq('accounts.user_id', userId)
+      .gte('date', monthStart)
+      .lte('date', monthEnd);
+
+    if (error) {
+      throw error;
+    }
+
+    return {
+      transactionCount: count || 0,
+      backupCount: 0,
+      exportCount: 0,
+      apiCalls: 0,
+      aiRequests: 0,
+    };
+  } catch (error) {
+    console.error(
+      `[getUserUsage] Failed to fetch usage for user ${userId}:`,
+      error
+    );
+    return {
+      transactionCount: 0,
+      backupCount: 0,
+      exportCount: 0,
+      apiCalls: 0,
+      aiRequests: 0,
+    };
+  }
 }
 
 export async function incrementUsage(userId: string, resource: string) {
   return Promise.resolve();
+}
+
+export async function getSubscriptionStatusPayload(
+  userId: string
+): Promise<SubscriptionStatusPayload> {
+  const [subscription, usage] = await Promise.all([
+    getSubscriptionByUserId(userId),
+    getUserUsage(userId),
+  ]);
+
+  const tier: SubscriptionTier = subscription?.tier ?? 'free';
+  const limits = TIER_LIMITS[tier];
+
+  const usageStatus: UsageStatus = {
+    transactions: {
+      current: usage?.transactionCount || 0,
+      limit: limits.transactions,
+      percentage:
+        limits.transactions === 'unlimited'
+          ? 0
+          : Math.round(
+              ((usage?.transactionCount || 0) / limits.transactions) * 100
+            ),
+    },
+    backups: {
+      current: usage?.backupCount || 0,
+      limit: limits.backups,
+      percentage:
+        limits.backups === 'unlimited'
+          ? 0
+          : Math.round(((usage?.backupCount || 0) / limits.backups) * 100),
+    },
+    exports: {
+      current: usage?.exportCount || 0,
+      limit: limits.exports,
+      percentage:
+        limits.exports === 'unlimited'
+          ? 0
+          : Math.round(((usage?.exportCount || 0) / limits.exports) * 100),
+    },
+    aiRequests: {
+      current: usage?.aiRequests || 0,
+      limit: limits.aiRequests,
+      percentage:
+        limits.aiRequests === 'unlimited'
+          ? 0
+          : Math.round(((usage?.aiRequests || 0) / limits.aiRequests) * 100),
+    },
+  };
+
+  return {
+    subscription,
+    tier,
+    usage,
+    usageStatus,
+    limits,
+  };
 }

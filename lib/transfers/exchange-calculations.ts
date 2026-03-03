@@ -46,6 +46,30 @@ export function isUsdVesTransferPair(
   );
 }
 
+export function calculateExchangeRateFromAmounts(
+  sourceAmountMajor: number,
+  targetAmountMajor: number,
+  fromCurrency: string,
+  toCurrency: string
+): number | undefined {
+  if (
+    !isPositiveFinite(sourceAmountMajor) ||
+    !isPositiveFinite(targetAmountMajor)
+  ) {
+    return undefined;
+  }
+
+  const sourceMinor = toMinorUnits(sourceAmountMajor, fromCurrency);
+  const targetMinor = toMinorUnits(targetAmountMajor, toCurrency);
+
+  if (sourceMinor <= 0 || targetMinor <= 0) {
+    return undefined;
+  }
+
+  const rawRate = targetMinor / sourceMinor;
+  return getScaledRate(rawRate) / RATE_SCALE;
+}
+
 export function calculateTargetAmountFromSource(
   sourceAmountMajor: number,
   fromCurrency: string,
