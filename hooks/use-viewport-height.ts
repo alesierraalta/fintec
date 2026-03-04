@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 /**
  * Hook para obtener el height dinámico del viewport
@@ -9,20 +9,19 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * Usa Visual Viewport API cuando está disponible, con fallback a window.innerHeight
  * Detecta cierre de teclado mediante eventos de input para forzar actualizaciones
  *
- * @returns Height actual del viewport en píxeles
  */
-export function useViewportHeight(): number | null {
-  // Inicializar como null para SSR - se actualizará en el cliente
-  const [height, setHeight] = useState<number | null>(null);
-  // Ref para rastrear el último height conocido (para detectar cambios significativos)
-  const lastHeightRef = useRef<number | null>(null);
+export function useViewportHeight(): void {
+  // Ref para rastrear el último height aplicado (evita escrituras innecesarias)
+  const lastAppliedHeightRef = useRef<number | null>(null);
   // Ref para timeout de actualización forzada
-  const forceUpdateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const forceUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   // Ref para agrupar actualizaciones rápidas en un solo frame
   const rafIdRef = useRef<number | null>(null);
   const scheduledForceUpdateRef = useRef(false);
 
-  // * Función para actualizar el height y la CSS variable --app-height
+  // * Función para actualizar la CSS variable --app-height
   const updateHeight = useCallback((force = false) => {
     if (typeof window === 'undefined') {
       return;
@@ -38,36 +37,20 @@ export function useViewportHeight(): number | null {
       newHeight = window.innerHeight;
     }
 
-    // * Actualizar CSS variable --app-height para uso en estilos globales
-    // Esto permite usar var(--app-height) en CSS para height dinámico
+    const threshold = 5;
+    if (
+      !force &&
+      lastAppliedHeightRef.current !== null &&
+      Math.abs(lastAppliedHeightRef.current - newHeight) <= threshold
+    ) {
+      return;
+    }
+
     document.documentElement.style.setProperty(
       '--app-height',
       `${newHeight}px`
     );
-
-    // Solo actualizar si el height cambió (evita re-renders innecesarios)
-    setHeight((prevHeight) => {
-      // Si prevHeight es null (primera vez), siempre actualizar
-      if (prevHeight === null) {
-        lastHeightRef.current = newHeight;
-        return newHeight;
-      }
-
-      // Si se fuerza la actualización, siempre actualizar
-      if (force) {
-        lastHeightRef.current = newHeight;
-        return newHeight;
-      }
-
-      // Solo actualizar si el cambio es significativo (> 5px para mejor detección)
-      // Reducido de 1px a 5px para evitar actualizaciones muy frecuentes
-      const threshold = 5;
-      if (Math.abs(prevHeight - newHeight) > threshold) {
-        lastHeightRef.current = newHeight;
-        return newHeight;
-      }
-      return prevHeight;
-    });
+    lastAppliedHeightRef.current = newHeight;
   }, []);
 
   const scheduleUpdateHeight = useCallback(
@@ -104,12 +87,9 @@ export function useViewportHeight(): number | null {
     // Esto es especialmente importante en iOS Safari donde el viewport puede tardar en actualizarse
     forceUpdateTimeoutRef.current = setTimeout(() => {
       scheduleUpdateHeight(true);
-      // Forzar scroll al top para evitar que el contenido se quede "empujado" hacia arriba
-      window.scrollTo(0, 0);
       // Actualización adicional después de más tiempo para asegurar que se aplicó
       setTimeout(() => {
         scheduleUpdateHeight(true);
-        window.scrollTo(0, 0);
       }, 100);
     }, 150);
   }, [scheduleUpdateHeight]);
@@ -215,6 +195,4 @@ export function useViewportHeight(): number | null {
       }
     };
   }, [handleInputBlur]);
-
-  return height;
 }

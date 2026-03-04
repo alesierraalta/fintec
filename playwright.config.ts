@@ -1,5 +1,13 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const skipAuthSetup = ['1', 'true', 'yes'].includes(
+  (process.env.PLAYWRIGHT_NO_AUTH_SETUP ?? '').toLowerCase()
+);
+const authStorageState = skipAuthSetup
+  ? undefined
+  : 'playwright/.auth/user.json';
+const authDependencies = skipAuthSetup ? undefined : ['setup'];
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -33,34 +41,34 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     // Setup project for authentication
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    ...(skipAuthSetup ? [] : [{ name: 'setup', testMatch: /.*\.setup\.ts/ }]),
 
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
         // Use saved auth state for all tests
-        storageState: 'playwright/.auth/user.json'
+        storageState: authStorageState,
       },
-      dependencies: ['setup'],
+      dependencies: authDependencies,
     },
 
     {
       name: 'firefox',
       use: {
         ...devices['Desktop Firefox'],
-        storageState: 'playwright/.auth/user.json'
+        storageState: authStorageState,
       },
-      dependencies: ['setup'],
+      dependencies: authDependencies,
     },
 
     {
       name: 'webkit',
       use: {
         ...devices['Desktop Safari'],
-        storageState: 'playwright/.auth/user.json'
+        storageState: authStorageState,
       },
-      dependencies: ['setup'],
+      dependencies: authDependencies,
     },
 
     /* Test against mobile viewports. */
@@ -68,17 +76,17 @@ export default defineConfig({
       name: 'Mobile Chrome',
       use: {
         ...devices['Pixel 5'],
-        storageState: 'playwright/.auth/user.json'
+        storageState: authStorageState,
       },
-      dependencies: ['setup'],
+      dependencies: authDependencies,
     },
     {
       name: 'Mobile Safari',
       use: {
         ...devices['iPhone 12'],
-        storageState: 'playwright/.auth/user.json'
+        storageState: authStorageState,
       },
-      dependencies: ['setup'],
+      dependencies: authDependencies,
     },
 
     /* Test against branded browsers. */

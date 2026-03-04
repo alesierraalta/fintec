@@ -16,7 +16,11 @@ interface BalanceAlertSettingsProps {
   account: Account | null;
 }
 
-export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertSettingsProps) {
+export function BalanceAlertSettings({
+  isOpen,
+  onClose,
+  account,
+}: BalanceAlertSettingsProps) {
   const repository = useRepository();
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [minimumBalance, setMinimumBalance] = useState('');
@@ -28,7 +32,9 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
   useEffect(() => {
     if (account) {
       setAlertEnabled(account.alertEnabled || false);
-      setMinimumBalance(account.minimumBalance ? (account.minimumBalance / 100).toString() : '');
+      setMinimumBalance(
+        account.minimumBalance ? (account.minimumBalance / 100).toString() : ''
+      );
     }
   }, [account]);
 
@@ -38,7 +44,9 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
     try {
       setIsLoading(true);
 
-      const minimumBalanceMinor = minimumBalance ? Math.round(parseFloat(minimumBalance) * 100) : 0;
+      const minimumBalanceMinor = minimumBalance
+        ? Math.round(parseFloat(minimumBalance) * 100)
+        : 0;
 
       await repository.accounts.update(account.id, {
         id: account.id,
@@ -59,7 +67,9 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
       }, 2000);
     } catch (error) {
       logger.error('Error updating alert settings:', error);
-      setErrorMessage('No se pudieron guardar los cambios. Inténtalo de nuevo.');
+      setErrorMessage(
+        'No se pudieron guardar los cambios. Inténtalo de nuevo.'
+      );
       setSuccessMessage(null);
     } finally {
       setIsLoading(false);
@@ -92,17 +102,19 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
   if (!isOpen || !account) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       {/* * Modal container with max-height and flex layout for mobile scrolling */}
-      <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl w-full max-w-md shadow-2xl max-h-[90dvh] flex flex-col">
+      <div className="flex max-h-[90dvh] w-full max-w-md flex-col rounded-2xl border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl">
         {/* Header - fixed at top */}
-        <div className="flex items-center justify-between p-6 border-b border-border/20 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-border/20 p-6">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-500/10 rounded-xl">
+            <div className="rounded-xl bg-blue-500/10 p-2">
               <Bell className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">Configurar Alertas</h2>
+              <h2 className="text-lg font-semibold text-foreground">
+                Configurar Alertas
+              </h2>
               <p className="text-sm text-muted-foreground">{account.name}</p>
             </div>
           </div>
@@ -110,18 +122,20 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="p-2 hover:bg-muted/20 rounded-xl"
+            className="rounded-xl p-2 hover:bg-muted/20"
           >
             <X className="h-4 w-4" />
           </Button>
         </div>
 
         {/* Content - scrollable area */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
+        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
           {/* Current Balance Info */}
-          <div className="bg-muted/10 rounded-xl p-4">
+          <div className="rounded-xl bg-muted/10 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Saldo Actual</span>
+              <span className="text-sm text-muted-foreground">
+                Saldo Actual
+              </span>
               <span className="text-lg font-semibold text-foreground">
                 {formatCurrency(getCurrentBalance(), account.currencyCode)}
               </span>
@@ -134,14 +148,11 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
               <label className="text-sm font-medium text-foreground">
                 Activar Alertas de Saldo
               </label>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="mt-1 text-xs text-muted-foreground">
                 Recibe notificaciones cuando el saldo sea bajo
               </p>
             </div>
-            <Switch
-              checked={alertEnabled}
-              onCheckedChange={setAlertEnabled}
-            />
+            <Switch checked={alertEnabled} onCheckedChange={setAlertEnabled} />
           </div>
 
           {/* Minimum Balance Input */}
@@ -151,7 +162,7 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
                 Cantidad Mínima
               </label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
                 <Input
                   type="number"
                   step="0.01"
@@ -160,35 +171,39 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
                   value={minimumBalance}
                   onChange={(e) => setMinimumBalance(e.target.value)}
                   placeholder="0.00"
-                  className="pl-10 bg-muted/10 border-border/20 rounded-xl"
+                  className="rounded-xl border-border/20 bg-muted/10 pl-10"
                 />
               </div>
 
               {/* Validation Message */}
               {minimumBalance && !isMinimumValid() && (
-                <div className="flex items-center space-x-2 text-destructive text-xs">
+                <div className="flex items-center space-x-2 text-xs text-destructive">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>
-                    El mínimo debe ser menor o igual al saldo actual
-                  </span>
+                  <span>El mínimo debe ser menor o igual al saldo actual</span>
                 </div>
               )}
 
               {/* Alert Preview */}
               {minimumBalance && isMinimumValid() && (
-                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3">
+                <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
                   <div className="flex items-start space-x-2">
-                    <AlertTriangle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-warning-foreground">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
+                    <div className="text-warning-foreground text-xs">
                       <p className="font-medium">Vista Previa de Alerta</p>
                       <p className="mt-1">
                         Recibirás una alerta cuando tu saldo sea menor a{' '}
                         <span className="font-semibold">
-                          {formatCurrency(getMinimumBalanceNumber() * 1.2, account.currencyCode)}
+                          {formatCurrency(
+                            getMinimumBalanceNumber() * 1.2,
+                            account.currencyCode
+                          )}
                         </span>{' '}
                         y una alerta crítica cuando sea menor a{' '}
                         <span className="font-semibold">
-                          {formatCurrency(getMinimumBalanceNumber(), account.currencyCode)}
+                          {formatCurrency(
+                            getMinimumBalanceNumber(),
+                            account.currencyCode
+                          )}
                         </span>
                       </p>
                     </div>
@@ -201,19 +216,19 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
 
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="mx-6 mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+          <div className="mx-6 mb-4 rounded-xl border border-green-200 bg-green-50 p-3">
             <p className="text-sm text-green-800">{successMessage}</p>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mx-6 mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+          <div className="mx-6 mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
             <p className="text-sm text-red-800">{errorMessage}</p>
           </div>
         )}
 
         {/* Footer - fixed at bottom */}
-        <div className="flex items-center justify-end space-x-3 p-6 border-t border-border/20 flex-shrink-0">
+        <div className="flex flex-shrink-0 items-center justify-end space-x-3 border-t border-border/20 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:pb-6">
           <Button
             variant="ghost"
             onClick={onClose}
@@ -224,8 +239,11 @@ export function BalanceAlertSettings({ isOpen, onClose, account }: BalanceAlertS
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isLoading || (alertEnabled && (!minimumBalance || !isMinimumValid()))}
-            className="bg-blue-500 hover:bg-blue-600 text-white"
+            disabled={
+              isLoading ||
+              (alertEnabled && (!minimumBalance || !isMinimumValid()))
+            }
+            className="bg-blue-500 text-white hover:bg-blue-600"
           >
             {isLoading ? 'Guardando...' : 'Guardar'}
           </Button>

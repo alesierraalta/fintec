@@ -49,7 +49,7 @@ export default function RootLayout({
       <head></head>
       <body className={`${inter.className} dark`}>
         <RouteAwareProviders>
-          <div id="root" className="h-dynamic-screen w-full overflow-hidden">
+          <div id="root" className="h-dynamic-screen w-full">
             {children}
           </div>
         </RouteAwareProviders>

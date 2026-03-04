@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
   if (loading) {
     return (
       <div className="min-h-dynamic-screen flex items-center justify-center bg-background">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -30,8 +30,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen p-4">
-      <div className="flex-grow flex items-center justify-center">
+    <div className="min-h-dynamic-screen flex flex-col p-4">
+      <div className="flex flex-grow items-center justify-center">
         <div className="w-full max-w-md">
           <ForgotPasswordForm />
         </div>

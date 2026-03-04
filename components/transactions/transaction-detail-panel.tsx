@@ -3,16 +3,16 @@
 import { useEffect } from 'react';
 import { Button } from '@/components/ui';
 import type { Transaction } from '@/types/domain';
-import { 
-  ArrowDownLeft, 
-  ArrowUpRight, 
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
   Repeat,
   Calendar,
   Tag,
   FileText,
   Building2,
   Edit,
-  X
+  X,
 } from 'lucide-react';
 
 interface TransactionDetailPanelProps {
@@ -38,7 +38,6 @@ export function TransactionDetailPanel({
   formatAmount,
   getCurrencySymbol,
 }: TransactionDetailPanelProps) {
-  
   // Handle ESC key
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -111,7 +110,10 @@ export function TransactionDetailPanel({
     }
   };
 
-  const amount = transaction.amountMinor && !isNaN(transaction.amountMinor) ? Math.abs(transaction.amountMinor) : 0;
+  const amount =
+    transaction.amountMinor && !isNaN(transaction.amountMinor)
+      ? Math.abs(transaction.amountMinor)
+      : 0;
   const formattedAmount = formatAmount(amount);
   const currencySymbol = getCurrencySymbol(transaction.currencyCode || 'USD');
 
@@ -129,12 +131,12 @@ export function TransactionDetailPanel({
         />
 
         {/* Modal Panel - full screen with iOS-style rounded top corners */}
-        <div className="relative flex-1 mt-auto bg-card/90 backdrop-blur-xl rounded-t-3xl shadow-2xl border-t border-border/40 overflow-hidden flex flex-col animate-fade-in">
+        <div className="relative mt-auto flex flex-1 animate-fade-in flex-col overflow-hidden rounded-t-3xl border-t border-border/40 bg-card/90 shadow-2xl backdrop-blur-xl">
           {/* Header */}
-          <div className="p-6 border-b border-border/20 flex-shrink-0">
+          <div className="flex-shrink-0 border-b border-border/20 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-muted/20 rounded-xl">
+                <div className="rounded-xl bg-muted/20 p-2">
                   {getIcon(transaction.type)}
                 </div>
                 <div>
@@ -148,7 +150,7 @@ export function TransactionDetailPanel({
               </div>
               <button
                 onClick={onClose}
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/20"
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/20 hover:text-foreground"
                 aria-label="Cerrar"
               >
                 <X className="h-5 w-5" />
@@ -157,14 +159,21 @@ export function TransactionDetailPanel({
           </div>
 
           {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 space-y-4 overflow-y-auto p-6">
             {/* Amount */}
-            <div className="text-center py-4">
-              <p className={`text-3xl font-bold ${getAmountColor(transaction.type)}`}>
-                {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}
-                {currencySymbol}{formattedAmount}
+            <div className="py-4 text-center">
+              <p
+                className={`text-3xl font-bold ${getAmountColor(transaction.type)}`}
+              >
+                {transaction.type === 'INCOME'
+                  ? '+'
+                  : transaction.type === 'EXPENSE'
+                    ? '-'
+                    : ''}
+                {currencySymbol}
+                {formattedAmount}
               </p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="mt-1 text-sm text-muted-foreground">
                 {transaction.currencyCode}
               </p>
             </div>
@@ -173,11 +182,11 @@ export function TransactionDetailPanel({
             <div className="space-y-4">
               {/* Description */}
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
+                <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+                  <FileText className="mr-2 h-4 w-4" />
                   Descripción
                 </h4>
-                <p className="text-foreground bg-card/40 rounded-lg p-3">
+                <p className="rounded-lg bg-card/40 p-3 text-foreground">
                   {transaction.description || 'Sin descripción'}
                 </p>
               </div>
@@ -185,20 +194,20 @@ export function TransactionDetailPanel({
               {/* Account & Category */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <Building2 className="h-4 w-4 mr-2" />
+                  <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+                    <Building2 className="mr-2 h-4 w-4" />
                     Cuenta
                   </h4>
-                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
                     {accountName}
                   </p>
                 </div>
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <Tag className="h-4 w-4 mr-2" />
+                  <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+                    <Tag className="mr-2 h-4 w-4" />
                     Categoría
                   </h4>
-                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
                     {categoryName}
                   </p>
                 </div>
@@ -207,11 +216,11 @@ export function TransactionDetailPanel({
               {/* Note */}
               {transaction.note && (
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+                    <FileText className="mr-2 h-4 w-4" />
                     Nota
                   </h4>
-                  <p className="text-foreground bg-card/40 rounded-lg p-3">
+                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
                     {transaction.note}
                   </p>
                 </div>
@@ -220,15 +229,15 @@ export function TransactionDetailPanel({
               {/* Tags */}
               {transaction.tags && transaction.tags.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-medium text-muted-foreground mb-2 flex items-center">
-                    <Tag className="h-4 w-4 mr-2" />
+                  <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+                    <Tag className="mr-2 h-4 w-4" />
                     Etiquetas
                   </h4>
                   <div className="flex flex-wrap gap-2">
                     {transaction.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-3 py-1 bg-primary/20 text-primary text-sm rounded-full"
+                        className="rounded-full bg-primary/20 px-3 py-1 text-sm text-primary"
                       >
                         {tag}
                       </span>
@@ -240,20 +249,16 @@ export function TransactionDetailPanel({
           </div>
 
           {/* Actions Footer - fixed at bottom */}
-          <div className="p-6 border-t border-border/20 flex-shrink-0">
+          <div className="flex-shrink-0 border-t border-border/20 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6">
             <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={onClose} className="flex-1">
                 Cerrar
               </Button>
               <Button
                 onClick={() => onEdit(transaction)}
                 className="flex-1 bg-primary hover:bg-primary/90"
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="mr-2 h-4 w-4" />
                 Editar
               </Button>
             </div>
@@ -274,13 +279,13 @@ export function TransactionDetailPanel({
       />
 
       {/* Panel */}
-      <div className="ml-auto w-full max-w-md bg-card/90 backdrop-blur-xl border-l border-border/40 shadow-2xl animate-slide-in-right">
-        <div className="h-full flex flex-col">
+      <div className="animate-slide-in-right ml-auto w-full max-w-md border-l border-border/40 bg-card/90 shadow-2xl backdrop-blur-xl">
+        <div className="flex h-full flex-col">
           {/* Header */}
-          <div className="p-6 border-b border-border/20">
+          <div className="border-b border-border/20 p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="p-3 bg-muted/20 rounded-2xl">
+                <div className="rounded-2xl bg-muted/20 p-3">
                   {getIcon(transaction.type)}
                 </div>
                 <div>
@@ -294,7 +299,7 @@ export function TransactionDetailPanel({
               </div>
               <button
                 onClick={onClose}
-                className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/20"
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted/20 hover:text-foreground"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -302,14 +307,21 @@ export function TransactionDetailPanel({
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 space-y-6 overflow-y-auto p-6">
             {/* Amount */}
-            <div className="text-center py-6">
-              <p className={`text-4xl font-bold ${getAmountColor(transaction.type)}`}>
-                {transaction.type === 'INCOME' ? '+' : transaction.type === 'EXPENSE' ? '-' : ''}
-                {currencySymbol}{formattedAmount}
+            <div className="py-6 text-center">
+              <p
+                className={`text-4xl font-bold ${getAmountColor(transaction.type)}`}
+              >
+                {transaction.type === 'INCOME'
+                  ? '+'
+                  : transaction.type === 'EXPENSE'
+                    ? '-'
+                    : ''}
+                {currencySymbol}
+                {formattedAmount}
               </p>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {transaction.currencyCode}
               </p>
             </div>
@@ -318,11 +330,11 @@ export function TransactionDetailPanel({
             <div className="space-y-6">
               {/* Description */}
               <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
+                <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
+                  <FileText className="mr-2 h-4 w-4" />
                   Descripción
                 </h3>
-                <p className="text-foreground bg-card/40 rounded-xl p-4 text-ios-body">
+                <p className="rounded-xl bg-card/40 p-4 text-ios-body text-foreground">
                   {transaction.description || 'Sin descripción'}
                 </p>
               </div>
@@ -330,20 +342,20 @@ export function TransactionDetailPanel({
               {/* Account & Category */}
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                    <Building2 className="h-4 w-4 mr-2" />
+                  <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
+                    <Building2 className="mr-2 h-4 w-4" />
                     Cuenta
                   </h3>
-                  <p className="text-foreground bg-card/40 rounded-xl p-4">
+                  <p className="rounded-xl bg-card/40 p-4 text-foreground">
                     {accountName}
                   </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                    <Tag className="h-4 w-4 mr-2" />
+                  <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
+                    <Tag className="mr-2 h-4 w-4" />
                     Categoría
                   </h3>
-                  <p className="text-foreground bg-card/40 rounded-xl p-4">
+                  <p className="rounded-xl bg-card/40 p-4 text-foreground">
                     {categoryName}
                   </p>
                 </div>
@@ -352,11 +364,11 @@ export function TransactionDetailPanel({
               {/* Note */}
               {transaction.note && (
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                    <FileText className="h-4 w-4 mr-2" />
+                  <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
+                    <FileText className="mr-2 h-4 w-4" />
                     Nota
                   </h3>
-                  <p className="text-foreground bg-card/40 rounded-xl p-4 text-ios-body">
+                  <p className="rounded-xl bg-card/40 p-4 text-ios-body text-foreground">
                     {transaction.note}
                   </p>
                 </div>
@@ -365,15 +377,15 @@ export function TransactionDetailPanel({
               {/* Tags */}
               {transaction.tags && transaction.tags.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center">
-                    <Tag className="h-4 w-4 mr-2" />
+                  <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
+                    <Tag className="mr-2 h-4 w-4" />
                     Etiquetas
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {transaction.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="px-3 py-2 bg-primary/20 text-primary text-sm rounded-full"
+                        className="rounded-full bg-primary/20 px-3 py-2 text-sm text-primary"
                       >
                         {tag}
                       </span>
@@ -385,20 +397,16 @@ export function TransactionDetailPanel({
           </div>
 
           {/* Footer */}
-          <div className="p-6 border-t border-border/20">
+          <div className="border-t border-border/20 p-6">
             <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={onClose} className="flex-1">
                 Cerrar
               </Button>
               <Button
                 onClick={() => onEdit(transaction)}
                 className="flex-1 bg-primary hover:bg-primary/90"
               >
-                <Edit className="h-4 w-4 mr-2" />
+                <Edit className="mr-2 h-4 w-4" />
                 Editar
               </Button>
             </div>

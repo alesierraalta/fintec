@@ -1,7 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  type CSSProperties,
+} from 'react';
 import { Banknote, Coins, DollarSign, Euro, ChevronDown } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { useAppStore } from '@/lib/store';
@@ -10,6 +18,8 @@ type RateSource = 'binance' | 'bcv_usd' | 'bcv_eur';
 
 export function RateSelector() {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [menuStyle, setMenuStyle] = useState<CSSProperties | null>(null);
 
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
   const setSelectedRateSource = useAppStore((s) => s.setSelectedRateSource);
@@ -25,6 +35,37 @@ export function RateSelector() {
 
   const toggle = useCallback(() => setOpen((v) => !v), []);
   const close = useCallback(() => setOpen(false), []);
+
+  const overlayHost = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById('modal-root') ?? document.body;
+  }, []);
+
+  const syncMenuPosition = useCallback(() => {
+    if (!triggerRef.current) return;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+
+    setMenuStyle({
+      top: rect.bottom + 8,
+      left: Math.max(12, rect.left),
+      width: 224,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    syncMenuPosition();
+
+    window.addEventListener('resize', syncMenuPosition);
+    window.addEventListener('scroll', syncMenuPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', syncMenuPosition);
+      window.removeEventListener('scroll', syncMenuPosition, true);
+    };
+  }, [open, syncMenuPosition]);
 
   useEffect(() => {
     const onEsc = (e: KeyboardEvent) => {
@@ -62,6 +103,7 @@ export function RateSelector() {
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={toggle}
         aria-haspopup="menu"
@@ -73,59 +115,69 @@ export function RateSelector() {
         <ChevronDown className="h-3 w-3 opacity-70" />
       </button>
 
-      {open && (
-        <>
-          <div className="black-theme-card absolute left-0 top-full z-50 mt-2 w-56 animate-scale-in rounded-xl shadow-2xl">
-            <div className="py-2">
-              <button
-                type="button"
-                onClick={() => handleSelect('binance')}
-                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                  selectedRateSource === 'binance' ? 'bg-white/10' : ''
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Coins className="h-4 w-4" /> Binance
-                </span>
-                <span className="text-xs text-text-muted">
-                  {binanceUsdVes ? binanceUsdVes.toFixed(2) + ' VES' : '...'}
-                </span>
-              </button>
+      {open &&
+        overlayHost &&
+        createPortal(
+          <>
+            <div
+              className="black-theme-card fixed z-[55] w-56 animate-scale-in rounded-xl shadow-2xl"
+              style={menuStyle ?? { top: '4.5rem', left: '1rem' }}
+            >
+              <div className="py-2">
+                <button
+                  type="button"
+                  onClick={() => handleSelect('binance')}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
+                    selectedRateSource === 'binance' ? 'bg-white/10' : ''
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Coins className="h-4 w-4" /> Binance
+                  </span>
+                  <span className="text-xs text-text-muted">
+                    {binanceUsdVes ? binanceUsdVes.toFixed(2) + ' VES' : '...'}
+                  </span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleSelect('bcv_usd')}
-                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                  selectedRateSource === 'bcv_usd' ? 'bg-white/10' : ''
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" /> BCV USD
-                </span>
-                <span className="text-xs text-text-muted">
-                  {bcvUsd ? bcvUsd.toFixed(2) + ' VES' : '...'}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('bcv_usd')}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
+                    selectedRateSource === 'bcv_usd' ? 'bg-white/10' : ''
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4" /> BCV USD
+                  </span>
+                  <span className="text-xs text-text-muted">
+                    {bcvUsd ? bcvUsd.toFixed(2) + ' VES' : '...'}
+                  </span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => handleSelect('bcv_eur')}
-                className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                  selectedRateSource === 'bcv_eur' ? 'bg-white/10' : ''
-                }`}
-              >
-                <span className="flex items-center gap-2">
-                  <Euro className="h-4 w-4" /> BCV EUR
-                </span>
-                <span className="text-xs text-text-muted">
-                  {bcvEur ? bcvEur.toFixed(2) + ' VES' : '...'}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => handleSelect('bcv_eur')}
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
+                    selectedRateSource === 'bcv_eur' ? 'bg-white/10' : ''
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Euro className="h-4 w-4" /> BCV EUR
+                  </span>
+                  <span className="text-xs text-text-muted">
+                    {bcvEur ? bcvEur.toFixed(2) + ' VES' : '...'}
+                  </span>
+                </button>
+              </div>
             </div>
-          </div>
-          <div className="fixed inset-0 z-40" onClick={close} />
-        </>
-      )}
+            <div
+              data-overlay-backdrop="rate-selector"
+              className="fixed inset-0 z-[54]"
+              onClick={close}
+            />
+          </>,
+          overlayHost
+        )}
     </div>
   );
 }

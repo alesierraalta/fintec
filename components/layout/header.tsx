@@ -2,7 +2,15 @@
 
 import { Bell, Sparkles, Menu, X, User, LogOut, Crown } from 'lucide-react';
 import Image from 'next/image';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+  type CSSProperties,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useAuth } from '@/hooks/use-auth';
@@ -31,6 +39,15 @@ export function Header() {
   const activeUsdVes = useActiveUsdVesRate();
 
   const { accounts } = useOptimizedData();
+  const mobileUserButtonRef = useRef<HTMLButtonElement | null>(null);
+  const desktopUserButtonRef = useRef<HTMLButtonElement | null>(null);
+  const notificationsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [mobileUserMenuStyle, setMobileUserMenuStyle] =
+    useState<CSSProperties | null>(null);
+  const [desktopUserMenuStyle, setDesktopUserMenuStyle] =
+    useState<CSSProperties | null>(null);
+  const [notificationsPanelStyle, setNotificationsPanelStyle] =
+    useState<CSSProperties | null>(null);
 
   const totalBalance = useMemo(() => {
     return accounts.reduce((sum, acc) => {
@@ -115,6 +132,49 @@ export function Header() {
     setShowUserMenu(false);
   }, [router]);
 
+  const overlayHost = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById('modal-root') ?? document.body;
+  }, []);
+
+  const getOverlayStyle = useCallback(
+    (button: HTMLButtonElement | null, widthPx: number) => {
+      if (!button) return null;
+
+      const rect = button.getBoundingClientRect();
+      const sideMargin = 12;
+
+      return {
+        top: rect.bottom + 8,
+        left: Math.max(sideMargin, rect.right - widthPx),
+        width: widthPx,
+      } satisfies CSSProperties;
+    },
+    []
+  );
+
+  const syncOverlayPositions = useCallback(() => {
+    setMobileUserMenuStyle(getOverlayStyle(mobileUserButtonRef.current, 256));
+    setDesktopUserMenuStyle(getOverlayStyle(desktopUserButtonRef.current, 256));
+    setNotificationsPanelStyle(
+      getOverlayStyle(notificationsButtonRef.current, 320)
+    );
+  }, [getOverlayStyle]);
+
+  useEffect(() => {
+    if (!showUserMenu && !showNotifications) return;
+
+    syncOverlayPositions();
+
+    window.addEventListener('resize', syncOverlayPositions);
+    window.addEventListener('scroll', syncOverlayPositions, true);
+
+    return () => {
+      window.removeEventListener('resize', syncOverlayPositions);
+      window.removeEventListener('scroll', syncOverlayPositions, true);
+    };
+  }, [showUserMenu, showNotifications, syncOverlayPositions]);
+
   const formattedBalance = useMemo(() => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -150,6 +210,7 @@ export function Header() {
         </div>
         <div className="relative">
           <button
+            ref={mobileUserButtonRef}
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
             aria-expanded={showUserMenu}
@@ -172,72 +233,83 @@ export function Header() {
             </div>
           </button>
 
-          {showUserMenu && (
-            <>
-              <div
-                id="user-menu-mobile"
-                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-64 rounded-xl py-2 shadow-xl"
-              >
-                <div className="border-b border-white/10 px-4 py-3">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
-                        isPremium ? 'ring-2 ring-amber-400' : ''
-                      }`}
-                    >
-                      {isPremium ? (
-                        <Crown className="h-5 w-5 text-white" />
-                      ) : (
-                        <User className="h-5 w-5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-white">
-                        {user?.user_metadata?.full_name || 'Usuario'}
-                      </p>
-                      <p className="text-sm text-white/70">{user?.email}</p>
-                      {/* * Display tier name */}
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <p className="text-xs text-white/60">Plan:</p>
-                        <p
-                          className={`text-xs font-semibold ${
-                            isPremium ? 'text-amber-400' : 'text-white/80'
-                          }`}
-                        >
-                          {tierName}
-                        </p>
-                        {isPremium && (
-                          <Crown className="h-3 w-3 text-amber-400" />
+          {showUserMenu &&
+            overlayHost &&
+            createPortal(
+              <>
+                <div
+                  id="user-menu-mobile"
+                  className="black-theme-card fixed z-[55] rounded-xl py-2 shadow-xl"
+                  style={
+                    mobileUserMenuStyle ?? {
+                      top: 'calc(env(safe-area-inset-top) + 4.5rem)',
+                      right: '1rem',
+                      width: '16rem',
+                    }
+                  }
+                >
+                  <div className="border-b border-white/10 px-4 py-3">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
+                          isPremium ? 'ring-2 ring-amber-400' : ''
+                        }`}
+                      >
+                        {isPremium ? (
+                          <Crown className="h-5 w-5 text-white" />
+                        ) : (
+                          <User className="h-5 w-5 text-white" />
                         )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-white">
+                          {user?.user_metadata?.full_name || 'Usuario'}
+                        </p>
+                        <p className="text-sm text-white/70">{user?.email}</p>
+                        {/* * Display tier name */}
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <p className="text-xs text-white/60">Plan:</p>
+                          <p
+                            className={`text-xs font-semibold ${
+                              isPremium ? 'text-amber-400' : 'text-white/80'
+                            }`}
+                          >
+                            {tierName}
+                          </p>
+                          {isPremium && (
+                            <Crown className="h-3 w-3 text-amber-400" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <div className="py-2">
+                    <button
+                      type="button"
+                      onClick={handleProfile}
+                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Mi Perfil</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="py-2">
-                  <button
-                    type="button"
-                    onClick={handleProfile}
-                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Mi Perfil</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Cerrar Sesión</span>
-                  </button>
-                </div>
-              </div>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowUserMenu(false)}
-              />
-            </>
-          )}
+                <div
+                  data-overlay-backdrop="mobile-user-menu"
+                  className="fixed inset-0 z-[54]"
+                  onClick={() => setShowUserMenu(false)}
+                />
+              </>,
+              overlayHost
+            )}
         </div>
       </header>
     );
@@ -262,6 +334,7 @@ export function Header() {
       <div className="flex items-center space-x-2 lg:space-x-4">
         <div className="relative">
           <button
+            ref={notificationsButtonRef}
             type="button"
             onClick={handleNotificationClick}
             aria-expanded={showNotifications}
@@ -277,88 +350,98 @@ export function Header() {
             )}
           </button>
 
-          {showNotifications && (
-            <>
-              <div
-                id="notifications-panel"
-                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-80 animate-scale-in rounded-2xl shadow-2xl"
-              >
-                <div className="p-4">
-                  <h4 className="mb-3 font-semibold text-text-primary">
-                    Notificaciones
-                  </h4>
+          {showNotifications &&
+            overlayHost &&
+            createPortal(
+              <>
+                <div
+                  id="notifications-panel"
+                  className="black-theme-card fixed z-[55] w-80 animate-scale-in rounded-2xl shadow-2xl"
+                  style={
+                    notificationsPanelStyle ?? {
+                      top: '4.5rem',
+                      right: '1.5rem',
+                    }
+                  }
+                >
+                  <div className="p-4">
+                    <h4 className="mb-3 font-semibold text-text-primary">
+                      Notificaciones
+                    </h4>
 
-                  {loadingNotifications ? (
-                    <div className="py-6 text-center">
-                      <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
-                      <p className="text-sm text-text-muted">
-                        Cargando notificaciones...
-                      </p>
-                    </div>
-                  ) : notifications.length > 0 ? (
-                    <div className="space-y-3">
-                      {notifications.slice(0, 5).map((notification) => (
-                        <button
-                          key={notification.id}
-                          type="button"
-                          className={`focus-ring w-full rounded-xl p-3 text-left transition-colors ${
-                            notification.is_read
-                              ? 'bg-background-tertiary'
-                              : 'border border-blue-200 bg-blue-50'
-                          }`}
-                          onClick={() =>
-                            markNotificationAsRead(notification.id)
-                          }
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-text-primary">
-                                {notification.title}
-                              </p>
-                              <p className="mt-1 text-xs text-text-muted">
-                                {notification.message}
-                              </p>
-                              <p className="mt-1 text-xs text-text-muted">
-                                {new Date(
-                                  notification.created_at
-                                ).toLocaleDateString('es-ES', {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
+                    {loadingNotifications ? (
+                      <div className="py-6 text-center">
+                        <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+                        <p className="text-sm text-text-muted">
+                          Cargando notificaciones...
+                        </p>
+                      </div>
+                    ) : notifications.length > 0 ? (
+                      <div className="space-y-3">
+                        {notifications.slice(0, 5).map((notification) => (
+                          <button
+                            key={notification.id}
+                            type="button"
+                            className={`focus-ring w-full rounded-xl p-3 text-left transition-colors ${
+                              notification.is_read
+                                ? 'bg-background-tertiary'
+                                : 'border border-blue-200 bg-blue-50'
+                            }`}
+                            onClick={() =>
+                              markNotificationAsRead(notification.id)
+                            }
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-text-primary">
+                                  {notification.title}
+                                </p>
+                                <p className="mt-1 text-xs text-text-muted">
+                                  {notification.message}
+                                </p>
+                                <p className="mt-1 text-xs text-text-muted">
+                                  {new Date(
+                                    notification.created_at
+                                  ).toLocaleDateString('es-ES', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </p>
+                              </div>
+                              {!notification.is_read && (
+                                <div className="ml-2 mt-1 h-2 w-2 rounded-full bg-blue-600" />
+                              )}
                             </div>
-                            {!notification.is_read && (
-                              <div className="ml-2 mt-1 h-2 w-2 rounded-full bg-blue-600" />
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                      {notificationCount > 0 && (
-                        <button
-                          type="button"
-                          onClick={markAllAsRead}
-                          className="w-full py-2 text-center text-xs text-blue-600 hover:text-blue-700"
-                        >
-                          Marcar todas como leídas
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-6 text-center">
-                      <Bell className="mx-auto mb-2 h-8 w-8 text-text-muted" />
-                      <p className="text-sm text-text-muted">
-                        No hay notificaciones nuevas
-                      </p>
-                    </div>
-                  )}
+                          </button>
+                        ))}
+                        {notificationCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={markAllAsRead}
+                            className="w-full py-2 text-center text-xs text-blue-600 hover:text-blue-700"
+                          >
+                            Marcar todas como leídas
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="py-6 text-center">
+                        <Bell className="mx-auto mb-2 h-8 w-8 text-text-muted" />
+                        <p className="text-sm text-text-muted">
+                          No hay notificaciones nuevas
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowNotifications(false)}
-              />
-            </>
-          )}
+                <div
+                  data-overlay-backdrop="notifications"
+                  className="fixed inset-0 z-[54]"
+                  onClick={() => setShowNotifications(false)}
+                />
+              </>,
+              overlayHost
+            )}
         </div>
 
         <div className="black-theme-card hidden items-center space-x-2 rounded-xl px-3 py-2 sm:flex lg:space-x-3 lg:rounded-2xl lg:px-4">
@@ -377,6 +460,7 @@ export function Header() {
 
         <div className="relative">
           <button
+            ref={desktopUserButtonRef}
             type="button"
             onClick={() => setShowUserMenu(!showUserMenu)}
             aria-expanded={showUserMenu}
@@ -410,72 +494,83 @@ export function Header() {
             </div>
           </button>
 
-          {showUserMenu && (
-            <>
-              <div
-                id="user-menu-desktop"
-                className="black-theme-card absolute right-0 top-full z-50 mt-2 w-64 rounded-xl py-2 shadow-xl"
-              >
-                <div className="border-b border-white/10 px-4 py-3">
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
-                        isPremium ? 'ring-2 ring-amber-400' : ''
-                      }`}
-                    >
-                      {isPremium ? (
-                        <Crown className="h-5 w-5 text-white" />
-                      ) : (
-                        <User className="h-5 w-5 text-white" />
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-white">
-                        {user?.user_metadata?.full_name || 'Usuario'}
-                      </p>
-                      <p className="text-sm text-white/70">{user?.email}</p>
-                      {/* * Display tier name */}
-                      <div className="mt-1 flex items-center gap-1.5">
-                        <p className="text-xs text-white/60">Plan:</p>
-                        <p
-                          className={`text-xs font-semibold ${
-                            isPremium ? 'text-amber-400' : 'text-white/80'
-                          }`}
-                        >
-                          {tierName}
-                        </p>
-                        {isPremium && (
-                          <Crown className="h-3 w-3 text-amber-400" />
+          {showUserMenu &&
+            overlayHost &&
+            createPortal(
+              <>
+                <div
+                  id="user-menu-desktop"
+                  className="black-theme-card fixed z-[55] rounded-xl py-2 shadow-xl"
+                  style={
+                    desktopUserMenuStyle ?? {
+                      top: '4.5rem',
+                      right: '1.5rem',
+                      width: '16rem',
+                    }
+                  }
+                >
+                  <div className="border-b border-white/10 px-4 py-3">
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
+                          isPremium ? 'ring-2 ring-amber-400' : ''
+                        }`}
+                      >
+                        {isPremium ? (
+                          <Crown className="h-5 w-5 text-white" />
+                        ) : (
+                          <User className="h-5 w-5 text-white" />
                         )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-white">
+                          {user?.user_metadata?.full_name || 'Usuario'}
+                        </p>
+                        <p className="text-sm text-white/70">{user?.email}</p>
+                        {/* * Display tier name */}
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <p className="text-xs text-white/60">Plan:</p>
+                          <p
+                            className={`text-xs font-semibold ${
+                              isPremium ? 'text-amber-400' : 'text-white/80'
+                            }`}
+                          >
+                            {tierName}
+                          </p>
+                          {isPremium && (
+                            <Crown className="h-3 w-3 text-amber-400" />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <div className="py-2">
+                    <button
+                      type="button"
+                      onClick={handleProfile}
+                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
+                    >
+                      <User className="h-4 w-4" />
+                      <span>Mi Perfil</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Cerrar Sesión</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="py-2">
-                  <button
-                    type="button"
-                    onClick={handleProfile}
-                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
-                  >
-                    <User className="h-4 w-4" />
-                    <span>Mi Perfil</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    <span>Cerrar Sesión</span>
-                  </button>
-                </div>
-              </div>
-              <div
-                className="fixed inset-0 z-40"
-                onClick={() => setShowUserMenu(false)}
-              />
-            </>
-          )}
+                <div
+                  data-overlay-backdrop="desktop-user-menu"
+                  className="fixed inset-0 z-[54]"
+                  onClick={() => setShowUserMenu(false)}
+                />
+              </>,
+              overlayHost
+            )}
         </div>
       </div>
     </header>

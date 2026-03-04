@@ -65,7 +65,7 @@ export default function LoginPage() {
 
   return (
     <>
-      <div className="flex min-h-screen flex-col p-4">
+      <div className="min-h-dynamic-screen flex flex-col p-4">
         <div className="flex flex-grow items-center justify-center">
           <div className="w-full max-w-md">
             <LoginForm />

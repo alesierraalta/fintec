@@ -114,20 +114,14 @@
   outline-offset: 2px;
 }
 
-/* Prevent horizontal scroll */
+/* App-shell scroll ownership */
 html,
 body {
+  height: 100%;
+  overflow: hidden;
   overflow-x: hidden;
   max-width: 100%;
   box-sizing: border-box;
-}
-
-/* Dynamic viewport height support - ajusta cuando el teclado aparece/desaparece */
-/* Mejora para prevenir área negra cuando el teclado se cierra en mobile */
-html {
-  height: 100%;
-  overflow: hidden;
-  /* Previene scroll no deseado */
 }
 
 body {
@@ -141,26 +135,20 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
   padding-bottom: constant(safe-area-inset-bottom); /* iOS < 11.2 fallback */
   background-color: #000000;
-  /* Pure black background */
   min-height: 100%;
-  min-height: 100dvh;
-  /* Dynamic viewport height - ajusta con teclado */
-  /* ! Removed overflow: hidden to allow native scroll recovery after keyboard closes */
-  overflow-x: hidden;
-  /* Solo prevenir scroll horizontal */
-  overflow-y: auto;
-  /* Permitir scroll vertical natural para recuperación del viewport */
 }
 
-/* Contenedor raíz - debe usar viewport dinámico */
+/* Contenedor raíz - único scroll owner vertical */
 #root {
-  /* * Usar CSS variable --app-height establecida por useViewportHeight hook */
-  /* Fallback a 100dvh si la variable no está disponible */
   height: var(--app-height, 100dvh);
   width: 100%;
-  overflow-y: auto; /* Permitir scroll natural en lugar de hidden */
+  overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+}
+
+#root main.app-shell-main {
+  overflow: visible;
 }
 
 /* Utility Classes */

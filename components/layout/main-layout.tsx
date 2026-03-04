@@ -39,7 +39,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { isOpen, isMobile, closeSidebar } = useSidebar();
   const { isOpen: isModalOpen, closeModal } = useModal();
-  const viewportHeight = useViewportHeight();
+  useViewportHeight();
 
   // Auto-scroll global para todos los inputs en móvil
   useMobileInputAutoScroll();
@@ -57,20 +57,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
     !pathname.includes('/add');
   const hideMobileChrome = pathname.startsWith('/transactions/add');
 
-  // Aplicar height dinámico después del mount y cuando el height esté disponible
-  // Esto evita hydration mismatch y layout shift
-  // Mejorado: aplicar incluso sin visualViewport si tenemos el height del hook
-  const dynamicHeight =
-    viewportHeight !== null ? { height: `${viewportHeight}px` } : undefined;
-
   return (
     <MotionConfig reducedMotion="user">
       <div
         className={cn(
-          'h-dynamic-screen no-horizontal-scroll overflow-hidden bg-background text-foreground',
+          'no-horizontal-scroll h-full bg-background text-foreground',
           isMobile && 'mobile-app'
         )}
-        style={dynamicHeight}
       >
         <div className="no-horizontal-scroll flex h-full">
           {/* Mobile Backdrop */}
@@ -98,7 +91,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
             {/* Page Content */}
             <main
               className={cn(
-                'no-horizontal-scroll flex-1 overflow-auto overscroll-y-contain bg-background',
+                'app-shell-main no-horizontal-scroll flex-1 bg-background',
                 isMobile && !hideMobileChrome ? 'pb-24' : ''
               )}
             >
