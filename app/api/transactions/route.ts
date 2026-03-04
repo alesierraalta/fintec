@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CreateTransactionDTO } from '@/types';
+import { CreateTransactionDTO, DebtStatus } from '@/types';
 import { TransactionType } from '@/types';
 import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
 import { createClient } from '@/lib/supabase/server';
@@ -127,6 +127,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!Number.isInteger(body.amount)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'amount must be an integer in minor units',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (body.isDebt === true && !body.debtDirection) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'debtDirection is required when isDebt=true',
+        },
+        { status: 400 }
+      );
+    }
+
+    if (body.debtStatus === DebtStatus.SETTLED && !body.settledAt) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'settledAt is required when debtStatus=SETTLED',
+        },
+        { status: 400 }
+      );
+    }
+
     // Check subscription limits for authenticated user
     const limitCheck = await canCreateTransaction(user.id);
     if (!limitCheck.allowed) {
@@ -149,6 +179,14 @@ export async function POST(request: NextRequest) {
       type: body.type,
       categoryId: body.categoryId,
       description: body.description || '',
+      note: body.note || undefined,
+      tags: Array.isArray(body.tags) ? body.tags : undefined,
+      isDebt: body.isDebt === true,
+      debtDirection: body.debtDirection,
+      debtStatus:
+        body.isDebt === true ? body.debtStatus || DebtStatus.OPEN : undefined,
+      counterpartyName: body.counterpartyName || undefined,
+      settledAt: body.settledAt || undefined,
       date: body.date || new Date().toISOString(),
     };
 

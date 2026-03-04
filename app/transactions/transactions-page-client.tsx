@@ -119,6 +119,7 @@ export default function TransactionsPage() {
     amountMin?: string;
     amountMax?: string;
     tags?: string;
+    debtMode?: 'ALL' | 'ONLY_DEBT' | 'EXCLUDE_DEBT';
   }>({});
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -202,6 +203,14 @@ export default function TransactionsPage() {
           t.tags?.some((tag) => tags.includes(tag))
         );
       }
+    }
+
+    if (filters.debtMode === 'ONLY_DEBT') {
+      filtered = filtered.filter((t) => t.isDebt === true);
+    }
+
+    if (filters.debtMode === 'EXCLUDE_DEBT') {
+      filtered = filtered.filter((t) => t.isDebt !== true);
     }
 
     // Apply sorting
@@ -747,9 +756,9 @@ export default function TransactionsPage() {
                       <SwipeableCard
                         actions={swipeActions}
                         onClick={() => handleTransactionClick(transaction)}
-                        className="cursor-pointer border-l-0 p-6 transition-all duration-200 hover:border-l-4 hover:border-l-primary/40 hover:bg-card/60"
+                        className="cursor-pointer border-l-0 p-4 transition-all duration-200 hover:border-l-4 hover:border-l-primary/40 hover:bg-card/60 sm:p-6"
                       >
-                        <div className="flex min-w-0 items-start justify-between">
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex min-w-0 flex-1 items-start space-x-3 overflow-hidden">
                             <div className="flex-shrink-0 rounded-2xl bg-muted/20 p-3 transition-colors duration-200 group-hover:bg-primary/10">
                               {getIcon(transaction.type)}
@@ -764,6 +773,26 @@ export default function TransactionsPage() {
                                 <span className="flex-shrink-0">
                                   {getTypeLabel(transaction.type)}
                                 </span>
+                                {transaction.isDebt === true && (
+                                  <>
+                                    <div className="h-1 w-1 rounded-full bg-amber-500"></div>
+                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700">
+                                      {transaction.debtDirection === 'OWE'
+                                        ? 'Deuda: Debo'
+                                        : transaction.debtDirection ===
+                                            'OWED_TO_ME'
+                                          ? 'Deuda: Me deben'
+                                          : 'Deuda'}
+                                    </span>
+                                    {transaction.debtStatus && (
+                                      <span className="rounded-full bg-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground">
+                                        {transaction.debtStatus === 'SETTLED'
+                                          ? 'Saldada'
+                                          : 'Abierta'}
+                                      </span>
+                                    )}
+                                  </>
+                                )}
                                 <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
                                 <span className="break-words">
                                   {getCategoryName(transaction.categoryId)}
@@ -780,17 +809,27 @@ export default function TransactionsPage() {
 
                               {/* Mobile info - stacked */}
                               <div className="space-y-1 text-ios-caption text-muted-foreground sm:hidden">
-                                <div className="flex items-center space-x-2">
+                                <div className="flex min-w-0 items-center space-x-2">
                                   <span className="flex-shrink-0">
                                     {getTypeLabel(transaction.type)}
                                   </span>
+                                  {transaction.isDebt === true && (
+                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700">
+                                      {transaction.debtDirection === 'OWE'
+                                        ? 'Debo'
+                                        : transaction.debtDirection ===
+                                            'OWED_TO_ME'
+                                          ? 'Me deben'
+                                          : 'Deuda'}
+                                    </span>
+                                  )}
                                   <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
-                                  <span className="break-words">
+                                  <span className="min-w-0 truncate">
                                     {getCategoryName(transaction.categoryId)}
                                   </span>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <span className="break-words">
+                                <div className="flex min-w-0 items-center space-x-2">
+                                  <span className="min-w-0 truncate">
                                     {getAccountName(transaction.accountId)}
                                   </span>
                                   <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
@@ -816,7 +855,7 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
-                          <div className="ml-2 flex flex-shrink-0 items-start space-x-2 sm:ml-4 sm:space-x-4">
+                          <div className="ml-0 flex flex-shrink-0 items-start space-x-2 self-end sm:ml-4 sm:space-x-4">
                             <div className="text-right">
                               <p
                                 className={`truncate text-sm font-semibold sm:text-xl ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}

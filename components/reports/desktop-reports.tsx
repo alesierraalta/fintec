@@ -5,6 +5,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { formatCurrency } from '@/lib/money';
 import {
+  DEBT_PORTFOLIO_MODE,
+  filterTransactionsByDebtMode,
+  OPERATIONAL_DEBT_MODE,
+} from '@/lib/reports/transaction-reporting-boundaries';
+import { DebtDirection, DebtStatus } from '@/types';
+import {
   PieChart,
   BarChart3,
   Target,
@@ -19,6 +25,7 @@ import {
   Activity,
   Percent,
   Hash,
+  HandCoins,
 } from 'lucide-react';
 
 export function DesktopReports() {
@@ -115,10 +122,22 @@ export function DesktopReports() {
     return filtered;
   })();
 
-  const totalIncome = filteredTransactions
+  const operationalTransactions = filterTransactionsByDebtMode(
+    filteredTransactions,
+    OPERATIONAL_DEBT_MODE
+  );
+  const debtPortfolioTransactions = filterTransactionsByDebtMode(
+    filteredTransactions,
+    DEBT_PORTFOLIO_MODE
+  );
+  const openDebtTransactions = debtPortfolioTransactions.filter(
+    (transaction) => transaction.debtStatus !== DebtStatus.SETTLED
+  );
+
+  const totalIncome = operationalTransactions
     .filter((t) => t.type === 'INCOME')
     .reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
-  const totalExpenses = filteredTransactions
+  const totalExpenses = operationalTransactions
     .filter((t) => t.type === 'EXPENSE')
     .reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
 
@@ -128,7 +147,7 @@ export function DesktopReports() {
     const expense: Record<string, { amount: number; baseAmount: number }> = {};
     const net: Record<string, { amount: number; baseAmount: number }> = {};
 
-    filteredTransactions.forEach((t) => {
+    operationalTransactions.forEach((t) => {
       const amount = t.amountMinor || 0;
       const baseAmount = t.amountBaseMinor || 0;
       const currency = t.currencyCode || 'USD';
@@ -174,7 +193,7 @@ export function DesktopReports() {
     > = {};
     const baseMap: Record<string, number> = {};
 
-    filteredTransactions
+    operationalTransactions
       .filter((t) => t.type === 'EXPENSE')
       .forEach((t) => {
         const key = t.categoryId || 'uncategorized';
@@ -251,7 +270,7 @@ export function DesktopReports() {
   let periodIncome = 0;
   let periodExpense = 0;
 
-  filteredTransactions.forEach((t) => {
+  operationalTransactions.forEach((t) => {
     const amount =
       selectedCurrency === 'ALL' ? t.amountBaseMinor || 0 : t.amountMinor || 0;
 
@@ -375,10 +394,18 @@ export function DesktopReports() {
       ? ((periodIncome - periodExpense) / periodIncome) * 100
       : 0;
   const cashFlow = periodIncome - periodExpense;
+  const totalOpenOwe = openDebtTransactions
+    .filter((transaction) => transaction.debtDirection === DebtDirection.OWE)
+    .reduce((sum, transaction) => sum + (transaction.amountBaseMinor || 0), 0);
+  const totalOpenOwedToMe = openDebtTransactions
+    .filter(
+      (transaction) => transaction.debtDirection === DebtDirection.OWED_TO_ME
+    )
+    .reduce((sum, transaction) => sum + (transaction.amountBaseMinor || 0), 0);
 
   const accountMetrics = accounts
     .map((acc) => {
-      const accTransactions = filteredTransactions.filter(
+      const accTransactions = operationalTransactions.filter(
         (t) => t.accountId === acc.id
       );
       const income = accTransactions
@@ -648,6 +675,33 @@ export function DesktopReports() {
                 className={`h-1.5 rounded-full ${savingsRate >= 0 ? 'bg-purple-500' : 'bg-red-500'}`}
                 style={{ width: `${Math.max(Math.min(savingsRate, 100), 0)}%` }}
               />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-border-primary bg-background-elevated p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h3 className="flex items-center gap-2 text-xl font-bold text-text-primary">
+              <HandCoins className="h-5 w-5 text-primary" />
+              Cartera de deudas
+            </h3>
+            <span className="text-sm text-text-muted">
+              {openDebtTransactions.length} deudas abiertas
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="rounded-2xl border border-border-secondary bg-background-tertiary/30 p-4">
+              <p className="text-sm text-text-muted">Cuanto debo</p>
+              <p className="mt-2 text-2xl font-bold text-red-500">
+                {formatCurrency(totalOpenOwe, baseCurrency)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border-secondary bg-background-tertiary/30 p-4">
+              <p className="text-sm text-text-muted">Cuanto me deben</p>
+              <p className="mt-2 text-2xl font-bold text-green-500">
+                {formatCurrency(totalOpenOwedToMe, baseCurrency)}
+              </p>
             </div>
           </div>
         </div>

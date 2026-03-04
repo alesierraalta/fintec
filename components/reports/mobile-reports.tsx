@@ -5,6 +5,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { formatCurrency } from '@/lib/money';
 import {
+  DEBT_PORTFOLIO_MODE,
+  filterTransactionsByDebtMode,
+  OPERATIONAL_DEBT_MODE,
+} from '@/lib/reports/transaction-reporting-boundaries';
+import { DebtDirection, DebtStatus } from '@/types';
+import {
   PieChart,
   BarChart3,
   Target,
@@ -14,6 +20,7 @@ import {
   Download,
   RefreshCw,
   CreditCard,
+  HandCoins,
 } from 'lucide-react';
 
 export function MobileReports() {
@@ -51,6 +58,7 @@ export function MobileReports() {
     { id: 'overview', label: 'Resumen', icon: PieChart },
     { id: 'categories', label: 'Categorías', icon: BarChart3 },
     { id: 'trends', label: 'Tendencias', icon: Target },
+    { id: 'debts', label: 'Deudas', icon: HandCoins },
   ];
 
   const getPeriodStartDate = (period: string): Date => {
@@ -104,10 +112,22 @@ export function MobileReports() {
     return filtered;
   })();
 
-  const totalIncome = filteredTransactions
+  const operationalTransactions = filterTransactionsByDebtMode(
+    filteredTransactions,
+    OPERATIONAL_DEBT_MODE
+  );
+  const debtPortfolioTransactions = filterTransactionsByDebtMode(
+    filteredTransactions,
+    DEBT_PORTFOLIO_MODE
+  );
+  const openDebtTransactions = debtPortfolioTransactions.filter(
+    (transaction) => transaction.debtStatus !== DebtStatus.SETTLED
+  );
+
+  const totalIncome = operationalTransactions
     .filter((t) => t.type === 'INCOME')
     .reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
-  const totalExpenses = filteredTransactions
+  const totalExpenses = operationalTransactions
     .filter((t) => t.type === 'EXPENSE')
     .reduce((s, t) => s + (t.amountBaseMinor || 0), 0);
 
@@ -117,7 +137,7 @@ export function MobileReports() {
     const expense: Record<string, { amount: number; baseAmount: number }> = {};
     const net: Record<string, { amount: number; baseAmount: number }> = {};
 
-    filteredTransactions.forEach((t) => {
+    operationalTransactions.forEach((t) => {
       const amount = t.amountMinor || 0;
       const baseAmount = t.amountBaseMinor || 0;
       const currency = t.currencyCode || 'USD';
@@ -165,7 +185,7 @@ export function MobileReports() {
     > = {};
     const baseMap: Record<string, number> = {};
 
-    filteredTransactions
+    operationalTransactions
       .filter((t) => t.type === 'EXPENSE')
       .forEach((t) => {
         const key = t.categoryId || 'uncategorized';
@@ -325,7 +345,7 @@ export function MobileReports() {
             <div className="flex justify-between">
               <span className="text-sm text-text-muted">Transacciones</span>
               <span className="text-sm font-medium text-text-primary">
-                {filteredTransactions.length}
+                {operationalTransactions.length}
               </span>
             </div>
             <div className="flex justify-between">
@@ -398,7 +418,7 @@ export function MobileReports() {
           Mayores Gastos
         </h3>
         <div className="space-y-3">
-          {filteredTransactions
+          {operationalTransactions
             .filter((t) => t.amountMinor < 0)
             .sort((a, b) => a.amountMinor - b.amountMinor)
             .slice(0, 3)
@@ -455,7 +475,7 @@ export function MobileReports() {
     let periodExpense = 0;
 
     // 3. Procesamiento de transacciones
-    filteredTransactions.forEach((t) => {
+    operationalTransactions.forEach((t) => {
       const amount =
         selectedCurrency === 'ALL'
           ? t.amountBaseMinor || 0
@@ -605,7 +625,7 @@ export function MobileReports() {
     // 8. Métricas de Cuentas
     const accountMetrics = accounts
       .map((acc) => {
-        const accTransactions = filteredTransactions.filter(
+        const accTransactions = operationalTransactions.filter(
           (t) => t.accountId === acc.id
         );
         const income = accTransactions
@@ -858,6 +878,86 @@ export function MobileReports() {
     );
   };
 
+  const renderDebts = () => {
+    const baseCurrency = (user as any)?.baseCurrency || 'USD';
+    const totalOwe = openDebtTransactions
+      .filter((transaction) => transaction.debtDirection === DebtDirection.OWE)
+      .reduce(
+        (sum, transaction) => sum + (transaction.amountBaseMinor || 0),
+        0
+      );
+    const totalOwedToMe = openDebtTransactions
+      .filter(
+        (transaction) => transaction.debtDirection === DebtDirection.OWED_TO_ME
+      )
+      .reduce(
+        (sum, transaction) => sum + (transaction.amountBaseMinor || 0),
+        0
+      );
+
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="rounded-2xl border border-border-primary bg-background-elevated p-4">
+            <p className="text-sm text-text-muted">Cuanto debo</p>
+            <p className="mt-2 text-2xl font-bold text-red-500">
+              {formatCurrency(totalOwe, baseCurrency)}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-border-primary bg-background-elevated p-4">
+            <p className="text-sm text-text-muted">Cuanto me deben</p>
+            <p className="mt-2 text-2xl font-bold text-green-500">
+              {formatCurrency(totalOwedToMe, baseCurrency)}
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-border-primary bg-background-elevated p-4">
+          <h3 className="mb-3 text-lg font-semibold text-text-primary">
+            Cartera de deuda
+          </h3>
+          {debtPortfolioTransactions.length === 0 && (
+            <p className="text-sm text-text-muted">
+              No hay deudas en el periodo.
+            </p>
+          )}
+
+          {debtPortfolioTransactions.length > 0 && (
+            <div className="space-y-2">
+              {debtPortfolioTransactions.slice(0, 8).map((transaction) => (
+                <div
+                  key={transaction.id}
+                  className="flex items-center justify-between rounded-xl bg-background-primary p-3"
+                >
+                  <div>
+                    <p className="text-sm font-medium text-text-primary">
+                      {transaction.description || 'Sin descripción'}
+                    </p>
+                    <p className="text-xs text-text-muted">
+                      {transaction.debtDirection === DebtDirection.OWE
+                        ? 'Debo'
+                        : 'Me deben'}{' '}
+                      •{' '}
+                      {transaction.debtStatus === DebtStatus.SETTLED
+                        ? 'Saldada'
+                        : 'Abierta'}
+                    </p>
+                  </div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {formatCurrency(
+                      transaction.amountMinor || 0,
+                      transaction.currencyCode
+                    )}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (selectedTab) {
       case 'overview':
@@ -866,6 +966,8 @@ export function MobileReports() {
         return renderCategories();
       case 'trends':
         return renderTrends();
+      case 'debts':
+        return renderDebts();
       default:
         return renderOverview();
     }

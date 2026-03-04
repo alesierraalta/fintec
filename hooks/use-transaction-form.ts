@@ -10,7 +10,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
-import { CreateTransactionDTO, TransactionType } from '@/types';
+import {
+  CreateTransactionDTO,
+  DebtDirection,
+  DebtStatus,
+  TransactionType,
+} from '@/types';
 import type { Category, Account } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
 import { useActiveUsdVesRate } from '@/lib/rates';
@@ -49,6 +54,11 @@ export interface TransactionFormData {
   date: string;
   note: string;
   tags: string;
+  isDebt: boolean;
+  debtDirection: DebtDirection | '';
+  debtStatus: DebtStatus;
+  counterpartyName: string;
+  settledAt: string;
   isRecurring: boolean;
   frequency: 'weekly' | 'monthly' | 'yearly';
   endDate: string;
@@ -64,6 +74,11 @@ const INITIAL_FORM_DATA: TransactionFormData = {
   date: '',
   note: '',
   tags: '',
+  isDebt: false,
+  debtDirection: '',
+  debtStatus: DebtStatus.OPEN,
+  counterpartyName: '',
+  settledAt: '',
   isRecurring: false,
   frequency: 'monthly',
   endDate: '',
@@ -95,6 +110,7 @@ export interface UseTransactionFormReturn {
   getCategoriesByType: (type: TransactionType) => Category[];
   getCategoryKindForTransaction: () => 'INCOME' | 'EXPENSE';
   getSelectedAccount: () => Account | undefined;
+  canShowDebtFields: boolean;
 }
 
 /**
@@ -269,6 +285,24 @@ export function useTransactionForm(): UseTransactionFormReturn {
       return;
     }
 
+    const canShowDebtFields =
+      formData.type === TransactionType.INCOME ||
+      formData.type === TransactionType.EXPENSE;
+
+    if (formData.isDebt && canShowDebtFields && !formData.debtDirection) {
+      alert('Selecciona la direccion de la deuda');
+      return;
+    }
+
+    if (
+      formData.isDebt &&
+      formData.debtStatus === DebtStatus.SETTLED &&
+      !formData.settledAt
+    ) {
+      alert('Debes indicar la fecha de liquidacion para deudas saldadas');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -293,6 +327,25 @@ export function useTransactionForm(): UseTransactionFormReturn {
               .map((tag) => tag.trim())
               .filter(Boolean)
           : undefined,
+        isDebt: canShowDebtFields ? formData.isDebt : false,
+        debtDirection:
+          canShowDebtFields && formData.isDebt
+            ? (formData.debtDirection as DebtDirection)
+            : undefined,
+        debtStatus:
+          canShowDebtFields && formData.isDebt
+            ? formData.debtStatus || DebtStatus.OPEN
+            : undefined,
+        counterpartyName:
+          canShowDebtFields && formData.isDebt
+            ? formData.counterpartyName.trim() || undefined
+            : undefined,
+        settledAt:
+          canShowDebtFields &&
+          formData.isDebt &&
+          formData.debtStatus === DebtStatus.SETTLED
+            ? formData.settledAt
+            : undefined,
       };
 
       await repository.transactions.create(transactionData);
@@ -384,5 +437,8 @@ export function useTransactionForm(): UseTransactionFormReturn {
     getCategoriesByType,
     getCategoryKindForTransaction,
     getSelectedAccount,
+    canShowDebtFields:
+      formData.type === TransactionType.INCOME ||
+      formData.type === TransactionType.EXPENSE,
   };
 }

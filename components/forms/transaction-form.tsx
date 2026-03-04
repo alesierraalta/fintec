@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { CategoryForm } from '@/components/forms/category-form';
-import { TransactionType } from '@/types';
+import { DebtStatus, TransactionType } from '@/types';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
@@ -92,6 +92,13 @@ export function TransactionForm({
     date: transaction?.date || new Date().toISOString().split('T')[0],
     note: transaction?.note || '',
     tags: transaction?.tags?.join(', ') || '',
+    isDebt: transaction?.isDebt === true,
+    debtDirection: transaction?.debtDirection || '',
+    debtStatus: transaction?.debtStatus || DebtStatus.OPEN,
+    counterpartyName: transaction?.counterpartyName || '',
+    settledAt: transaction?.settledAt
+      ? transaction.settledAt.split('T')[0]
+      : '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -133,6 +140,13 @@ export function TransactionForm({
         date: transaction.date,
         note: transaction.note || '',
         tags: transaction.tags?.join(', ') || '',
+        isDebt: transaction.isDebt === true,
+        debtDirection: transaction.debtDirection || '',
+        debtStatus: transaction.debtStatus || DebtStatus.OPEN,
+        counterpartyName: transaction.counterpartyName || '',
+        settledAt: transaction.settledAt
+          ? transaction.settledAt.split('T')[0]
+          : '',
       });
     } else {
       setFormData({
@@ -144,6 +158,11 @@ export function TransactionForm({
         date: new Date().toISOString().split('T')[0],
         note: '',
         tags: '',
+        isDebt: false,
+        debtDirection: '',
+        debtStatus: DebtStatus.OPEN,
+        counterpartyName: '',
+        settledAt: '',
       });
     }
   }, [transaction, type]);
@@ -167,6 +186,24 @@ export function TransactionForm({
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('Por favor ingresa un monto valido');
+      return;
+    }
+
+    const canShowDebtFields =
+      formData.type === TransactionType.INCOME ||
+      formData.type === TransactionType.EXPENSE;
+
+    if (formData.isDebt && canShowDebtFields && !formData.debtDirection) {
+      toast.error('Selecciona la direccion de la deuda');
+      return;
+    }
+
+    if (
+      formData.isDebt &&
+      formData.debtStatus === DebtStatus.SETTLED &&
+      !formData.settledAt
+    ) {
+      toast.error('Indica la fecha de liquidacion para deuda saldada');
       return;
     }
 
@@ -194,6 +231,25 @@ export function TransactionForm({
               .map((tag) => tag.trim())
               .filter(Boolean)
           : undefined,
+        isDebt: canShowDebtFields ? formData.isDebt : false,
+        debtDirection:
+          canShowDebtFields && formData.isDebt
+            ? (formData.debtDirection as any)
+            : undefined,
+        debtStatus:
+          canShowDebtFields && formData.isDebt
+            ? formData.debtStatus || DebtStatus.OPEN
+            : undefined,
+        counterpartyName:
+          canShowDebtFields && formData.isDebt
+            ? formData.counterpartyName.trim() || undefined
+            : undefined,
+        settledAt:
+          canShowDebtFields &&
+          formData.isDebt &&
+          formData.debtStatus === DebtStatus.SETTLED
+            ? new Date(formData.settledAt).toISOString()
+            : undefined,
       };
 
       if (transaction) {
@@ -218,6 +274,11 @@ export function TransactionForm({
         date: new Date().toISOString().split('T')[0],
         note: '',
         tags: '',
+        isDebt: false,
+        debtDirection: '',
+        debtStatus: DebtStatus.OPEN,
+        counterpartyName: '',
+        settledAt: '',
       });
     } catch (error) {
       toast.error('Error al guardar la transaccion');
@@ -403,6 +464,104 @@ export function TransactionForm({
             required
           />
         </div>
+
+        {(formData.type === TransactionType.INCOME ||
+          formData.type === TransactionType.EXPENSE) && (
+          <div className="space-y-3 rounded-2xl border border-border/20 bg-card/30 p-4">
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="transaction-is-debt"
+                className="text-ios-body font-medium text-foreground"
+              >
+                Es deuda
+              </label>
+              <input
+                id="transaction-is-debt"
+                type="checkbox"
+                checked={formData.isDebt}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    isDebt: e.target.checked,
+                    debtDirection: e.target.checked ? prev.debtDirection : '',
+                    debtStatus: e.target.checked
+                      ? prev.debtStatus
+                      : DebtStatus.OPEN,
+                    counterpartyName: e.target.checked
+                      ? prev.counterpartyName
+                      : '',
+                    settledAt: e.target.checked ? prev.settledAt : '',
+                  }))
+                }
+                className="h-5 w-5 rounded border-border/30 bg-card/60"
+              />
+            </div>
+
+            {formData.isDebt && (
+              <>
+                <Select
+                  label="Direccion"
+                  value={formData.debtDirection}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      debtDirection: e.target.value as any,
+                    })
+                  }
+                  options={[
+                    { value: '', label: 'Seleccionar direccion' },
+                    { value: 'OWE', label: 'Debo' },
+                    { value: 'OWED_TO_ME', label: 'Me deben' },
+                  ]}
+                  required
+                />
+
+                <Select
+                  label="Estado"
+                  value={formData.debtStatus}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      debtStatus: e.target.value as DebtStatus,
+                      settledAt:
+                        e.target.value === DebtStatus.SETTLED
+                          ? formData.settledAt
+                          : '',
+                    })
+                  }
+                  options={[
+                    { value: DebtStatus.OPEN, label: 'Abierta' },
+                    { value: DebtStatus.SETTLED, label: 'Saldada' },
+                  ]}
+                />
+
+                {formData.debtStatus === DebtStatus.SETTLED && (
+                  <Input
+                    label="Fecha de liquidacion"
+                    type="date"
+                    value={formData.settledAt}
+                    onChange={(e) =>
+                      setFormData({ ...formData, settledAt: e.target.value })
+                    }
+                    required
+                  />
+                )}
+
+                <Input
+                  label="Contraparte (Opcional)"
+                  placeholder="Nombre de la persona o empresa"
+                  value={formData.counterpartyName}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      counterpartyName: e.target.value,
+                    })
+                  }
+                />
+              </>
+            )}
+          </div>
+        )}
 
         {/* Date */}
         <div>

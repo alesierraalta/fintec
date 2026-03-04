@@ -5,14 +5,7 @@ import { Button, Input, Select } from '@/components/ui';
 import { PeriodSelector } from './period-selector';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { TimePeriod, formatDateForAPI } from '@/lib/dates/periods';
-import {
-  Filter,
-  Search,
-  DollarSign,
-  Tag,
-  X,
-  ArrowUpDown
-} from 'lucide-react';
+import { Filter, Search, DollarSign, Tag, X, ArrowUpDown } from 'lucide-react';
 
 interface TransactionFiltersProps {
   onFiltersChange: (filters: any) => void;
@@ -35,8 +28,18 @@ const sortOptions = [
   { value: 'description_asc', label: 'Descripción (A-Z)' },
 ];
 
-export function TransactionFilters({ onFiltersChange, className }: TransactionFiltersProps) {
-  const { accounts: rawAccounts, categories: rawCategories } = useOptimizedData();
+const debtModeOptions = [
+  { value: 'ALL', label: 'Deuda: Todas' },
+  { value: 'ONLY_DEBT', label: 'Deuda: Solo deudas' },
+  { value: 'EXCLUDE_DEBT', label: 'Deuda: Excluir deudas' },
+];
+
+export function TransactionFilters({
+  onFiltersChange,
+  className,
+}: TransactionFiltersProps) {
+  const { accounts: rawAccounts, categories: rawCategories } =
+    useOptimizedData();
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
@@ -49,6 +52,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
     amountMin: '',
     amountMax: '',
     tags: '',
+    debtMode: 'ALL',
     sortBy: 'date_desc',
   });
 
@@ -62,32 +66,42 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
   }, [filters, onFiltersChange]);
 
   // Memoized accounts and categories options
-  const accounts = useMemo(() => [
-    { value: '', label: 'Todas las cuentas' },
-    ...rawAccounts.map(acc => ({ value: acc.id, label: acc.name }))
-  ], [rawAccounts]);
+  const accounts = useMemo(
+    () => [
+      { value: '', label: 'Todas las cuentas' },
+      ...rawAccounts.map((acc) => ({ value: acc.id, label: acc.name })),
+    ],
+    [rawAccounts]
+  );
 
-  const categories = useMemo(() => [
-    { value: '', label: 'Todas las categorías' },
-    ...rawCategories.map(cat => ({ value: cat.id, label: cat.name }))
-  ], [rawCategories]);
+  const categories = useMemo(
+    () => [
+      { value: '', label: 'Todas las categorías' },
+      ...rawCategories.map((cat) => ({ value: cat.id, label: cat.name })),
+    ],
+    [rawCategories]
+  );
 
   const handleFilterChange = useCallback((key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters((prev) => ({ ...prev, [key]: value }));
   }, []);
 
   const handlePeriodChange = useCallback((period: TimePeriod | null) => {
-    setFilters(prev => period ? {
-      ...prev,
-      period: period.id,
-      dateFrom: formatDateForAPI(period.startDate),
-      dateTo: formatDateForAPI(period.endDate)
-    } : {
-      ...prev,
-      period: '',
-      dateFrom: '',
-      dateTo: ''
-    });
+    setFilters((prev) =>
+      period
+        ? {
+            ...prev,
+            period: period.id,
+            dateFrom: formatDateForAPI(period.startDate),
+            dateTo: formatDateForAPI(period.endDate),
+          }
+        : {
+            ...prev,
+            period: '',
+            dateFrom: '',
+            dateTo: '',
+          }
+    );
   }, []);
 
   const clearFilters = useCallback(() => {
@@ -102,23 +116,28 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
       amountMin: '',
       amountMax: '',
       tags: '',
+      debtMode: 'ALL',
       sortBy: 'date_desc',
     });
   }, []);
 
-  const hasActiveFilters = Object.entries(filters).some(([key, value]) =>
-    key !== 'sortBy' && value !== ''
+  const hasActiveFilters = Object.entries(filters).some(
+    ([key, value]) => key !== 'sortBy' && value !== ''
   );
 
   return (
-    <div className={`bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 rounded-xl overflow-hidden ${className}`}>
+    <div
+      className={`overflow-hidden rounded-xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800 ${className}`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
           <Filter className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
-          <h3 className="font-medium text-neutral-900 dark:text-neutral-100">Filtros</h3>
+          <h3 className="font-medium text-neutral-900 dark:text-neutral-100">
+            Filtros
+          </h3>
           {hasActiveFilters && (
-            <span className="px-2 py-1 bg-primary-600 dark:bg-primary-500 text-white text-xs rounded-full">
+            <span className="rounded-full bg-primary-600 px-2 py-1 text-xs text-white dark:bg-primary-500">
               Activos
             </span>
           )}
@@ -132,7 +151,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
               onClick={clearFilters}
               className="text-xs"
             >
-              <X className="h-3 w-3 mr-1" />
+              <X className="mr-1 h-3 w-3" />
               Limpiar
             </Button>
           )}
@@ -147,7 +166,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
       </div>
 
       {/* Quick Filters */}
-      <div className="px-4 pb-4 flex flex-wrap gap-3 md:gap-2 touch-manipulation">
+      <div className="flex touch-manipulation flex-wrap gap-3 px-4 pb-4 md:gap-2">
         <PeriodSelector
           selectedPeriod={filters.period}
           onPeriodChange={handlePeriodChange}
@@ -161,6 +180,13 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
         />
 
         <Select
+          value={filters.debtMode}
+          onChange={(e) => handleFilterChange('debtMode', e.target.value)}
+          options={debtModeOptions}
+          className="min-w-[190px]"
+        />
+
+        <Select
           value={filters.sortBy}
           onChange={(e) => handleFilterChange('sortBy', e.target.value)}
           options={sortOptions}
@@ -170,10 +196,10 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
 
       {/* Expanded Filters */}
       {isExpanded && (
-        <div className="border-t border-neutral-200 dark:border-neutral-700 p-4 space-y-4">
+        <div className="space-y-4 border-t border-neutral-200 p-4 dark:border-neutral-700">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-neutral-500 dark:text-neutral-400" />
             <Input
               placeholder="Buscar por descripción o nota..."
               value={filters.search}
@@ -183,7 +209,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
           </div>
 
           {/* Account and Category */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Select
               label="Cuenta"
               value={filters.accountId}
@@ -200,27 +226,31 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
           </div>
 
           {/* Amount Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+              <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-neutral-500 dark:text-neutral-400" />
               <Input
                 label="Monto mínimo"
                 type="number"
                 placeholder="0.00"
                 value={filters.amountMin}
-                onChange={(e) => handleFilterChange('amountMin', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange('amountMin', e.target.value)
+                }
                 className="pl-10"
               />
             </div>
 
             <div className="relative">
-              <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+              <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-neutral-500 dark:text-neutral-400" />
               <Input
                 label="Monto máximo"
                 type="number"
                 placeholder="0.00"
                 value={filters.amountMax}
-                onChange={(e) => handleFilterChange('amountMax', e.target.value)}
+                onChange={(e) =>
+                  handleFilterChange('amountMax', e.target.value)
+                }
                 className="pl-10"
               />
             </div>
@@ -228,7 +258,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
 
           {/* Custom Date Range (when no period selected) */}
           {!filters.period && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Input
                 label="Fecha desde"
                 type="date"
@@ -247,7 +277,7 @@ export function TransactionFilters({ onFiltersChange, className }: TransactionFi
 
           {/* Tags */}
           <div className="relative">
-            <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500 dark:text-neutral-400" />
+            <Tag className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-neutral-500 dark:text-neutral-400" />
             <Input
               label="Etiquetas"
               placeholder="etiqueta1, etiqueta2..."

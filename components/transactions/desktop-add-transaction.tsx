@@ -40,7 +40,7 @@ import {
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
-import { CreateTransactionDTO, TransactionType } from '@/types';
+import { CreateTransactionDTO, DebtStatus, TransactionType } from '@/types';
 import {
   TransactionFormSchema,
   TransactionFormType,
@@ -113,6 +113,11 @@ export function DesktopAddTransaction() {
     date: '',
     note: '',
     tags: '',
+    isDebt: false,
+    debtDirection: '' as 'OWE' | 'OWED_TO_ME' | '',
+    debtStatus: DebtStatus.OPEN as DebtStatus,
+    counterpartyName: '',
+    settledAt: '',
     isRecurring: false,
     frequency: 'monthly' as 'weekly' | 'monthly' | 'yearly',
     endDate: '',
@@ -260,6 +265,10 @@ export function DesktopAddTransaction() {
   };
 
   const handleSubmit = async () => {
+    const canShowDebtFields =
+      formData.type === TransactionType.INCOME ||
+      formData.type === TransactionType.EXPENSE;
+
     // Validate required fields
     if (!formData.type) {
       addNotification({
@@ -309,6 +318,30 @@ export function DesktopAddTransaction() {
       return;
     }
 
+    if (formData.isDebt && canShowDebtFields && !formData.debtDirection) {
+      addNotification({
+        read: false,
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Selecciona la direccion de la deuda',
+      });
+      return;
+    }
+
+    if (
+      formData.isDebt &&
+      formData.debtStatus === DebtStatus.SETTLED &&
+      !formData.settledAt
+    ) {
+      addNotification({
+        read: false,
+        type: 'error',
+        title: 'Campo requerido',
+        message: 'Indica la fecha de liquidacion para deuda saldada',
+      });
+      return;
+    }
+
     if (!user) {
       addNotification({
         read: false,
@@ -343,6 +376,25 @@ export function DesktopAddTransaction() {
               .map((tag) => tag.trim())
               .filter(Boolean)
           : undefined,
+        isDebt: canShowDebtFields ? formData.isDebt : false,
+        debtDirection:
+          canShowDebtFields && formData.isDebt
+            ? (formData.debtDirection as any)
+            : undefined,
+        debtStatus:
+          canShowDebtFields && formData.isDebt
+            ? formData.debtStatus || DebtStatus.OPEN
+            : undefined,
+        counterpartyName:
+          canShowDebtFields && formData.isDebt
+            ? formData.counterpartyName.trim() || undefined
+            : undefined,
+        settledAt:
+          canShowDebtFields &&
+          formData.isDebt &&
+          formData.debtStatus === DebtStatus.SETTLED
+            ? formData.settledAt
+            : undefined,
       };
 
       const createdTransaction =
@@ -935,6 +987,144 @@ export function DesktopAddTransaction() {
                     className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
+
+                {(formData.type === TransactionType.INCOME ||
+                  formData.type === TransactionType.EXPENSE) && (
+                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                    <div className="mb-3 flex items-center justify-between">
+                      <label
+                        htmlFor="isDebt"
+                        className="text-sm font-medium text-white"
+                      >
+                        Es deuda
+                      </label>
+                      <input
+                        id="isDebt"
+                        type="checkbox"
+                        checked={formData.isDebt}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            isDebt: e.target.checked,
+                            debtDirection: e.target.checked
+                              ? formData.debtDirection
+                              : '',
+                            debtStatus: e.target.checked
+                              ? formData.debtStatus
+                              : DebtStatus.OPEN,
+                            counterpartyName: e.target.checked
+                              ? formData.counterpartyName
+                              : '',
+                            settledAt: e.target.checked
+                              ? formData.settledAt
+                              : '',
+                          })
+                        }
+                        className="h-5 w-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                      />
+                    </div>
+
+                    {formData.isDebt && (
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                            Direccion de deuda
+                          </label>
+                          <select
+                            value={formData.debtDirection}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                debtDirection: e.target.value as any,
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          >
+                            <option value="" className="bg-gray-800">
+                              Selecciona una opcion
+                            </option>
+                            <option value="OWE" className="bg-gray-800">
+                              Debo
+                            </option>
+                            <option value="OWED_TO_ME" className="bg-gray-800">
+                              Me deben
+                            </option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                            Estado
+                          </label>
+                          <select
+                            value={formData.debtStatus}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                debtStatus: e.target.value as DebtStatus,
+                                settledAt:
+                                  e.target.value === DebtStatus.SETTLED
+                                    ? formData.settledAt
+                                    : '',
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          >
+                            <option
+                              value={DebtStatus.OPEN}
+                              className="bg-gray-800"
+                            >
+                              Abierta
+                            </option>
+                            <option
+                              value={DebtStatus.SETTLED}
+                              className="bg-gray-800"
+                            >
+                              Saldada
+                            </option>
+                          </select>
+                        </div>
+
+                        {formData.debtStatus === DebtStatus.SETTLED && (
+                          <div>
+                            <label className="mb-2 block text-sm font-medium text-gray-300">
+                              Fecha de liquidacion
+                            </label>
+                            <input
+                              type="date"
+                              value={formData.settledAt}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  settledAt: e.target.value,
+                                })
+                              }
+                              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            />
+                          </div>
+                        )}
+
+                        <div>
+                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                            Contraparte (opcional)
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Nombre de la persona o empresa"
+                            value={formData.counterpartyName}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                counterpartyName: e.target.value,
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Recurring Transaction Settings */}
                 <div className="border-t border-white/10 pt-4">

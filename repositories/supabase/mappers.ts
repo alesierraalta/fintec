@@ -10,6 +10,8 @@ import {
   Transfer,
   User,
   AccountType,
+  DebtDirection,
+  DebtStatus,
   TransactionType,
   CategoryKind,
 } from '@/types';
@@ -120,6 +122,13 @@ export function mapSupabaseTransactionToDomain(
     note: supabaseTransaction.note,
     tags: supabaseTransaction.tags,
     transferId: supabaseTransaction.transfer_id,
+    isDebt: supabaseTransaction.is_debt ?? false,
+    debtDirection:
+      (supabaseTransaction.debt_direction as DebtDirection | null) ?? undefined,
+    debtStatus:
+      (supabaseTransaction.debt_status as DebtStatus | null) ?? undefined,
+    counterpartyName: supabaseTransaction.counterparty_name ?? undefined,
+    settledAt: supabaseTransaction.settled_at ?? undefined,
     createdAt: supabaseTransaction.created_at,
     updatedAt: supabaseTransaction.updated_at,
   };
@@ -128,6 +137,8 @@ export function mapSupabaseTransactionToDomain(
 export function mapDomainTransactionToSupabase(
   transaction: Partial<Transaction>
 ): Partial<SupabaseTransaction> {
+  const isDebt = transaction.isDebt === true;
+
   return {
     id: transaction.id,
     type: transaction.type,
@@ -142,6 +153,11 @@ export function mapDomainTransactionToSupabase(
     note: transaction.note,
     tags: transaction.tags,
     transfer_id: transaction.transferId,
+    is_debt: transaction.isDebt,
+    debt_direction: isDebt ? transaction.debtDirection : null,
+    debt_status: isDebt ? transaction.debtStatus : null,
+    counterparty_name: isDebt ? (transaction.counterpartyName ?? null) : null,
+    settled_at: isDebt ? (transaction.settledAt ?? null) : null,
     created_at: transaction.createdAt,
     updated_at: transaction.updatedAt,
   };

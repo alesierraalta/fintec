@@ -15,7 +15,6 @@ export interface User {
   updatedAt: string;
 }
 
-
 export interface Account {
   id: string;
   userId?: string;
@@ -92,6 +91,11 @@ export interface Transaction {
   tags?: string[];
   transferId?: string; // Links to Transfer if this is a transfer transaction
   pending?: boolean; // Indicates if transaction is pending
+  isDebt?: boolean;
+  debtDirection?: DebtDirection;
+  debtStatus?: DebtStatus;
+  counterpartyName?: string;
+  settledAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -102,6 +106,18 @@ export enum TransactionType {
   TRANSFER_OUT = 'TRANSFER_OUT',
   TRANSFER_IN = 'TRANSFER_IN',
 }
+
+export enum DebtDirection {
+  OWE = 'OWE',
+  OWED_TO_ME = 'OWED_TO_ME',
+}
+
+export enum DebtStatus {
+  OPEN = 'OPEN',
+  SETTLED = 'SETTLED',
+}
+
+export type DebtMode = 'ALL' | 'ONLY_DEBT' | 'EXCLUDE_DEBT';
 
 export interface Transfer {
   id: string;
@@ -168,6 +184,11 @@ export interface CreateTransactionDTO {
   description?: string;
   note?: string;
   tags?: string[];
+  isDebt?: boolean;
+  debtDirection?: DebtDirection;
+  debtStatus?: DebtStatus;
+  counterpartyName?: string;
+  settledAt?: string;
 }
 
 export interface CreateTransferDTO {
@@ -196,6 +217,16 @@ export interface TransactionFilters {
   currencyCode?: string;
   search?: string;
   tags?: string[];
+  debtMode?: DebtMode;
+  debtDirection?: DebtDirection;
+  debtStatus?: DebtStatus;
+}
+
+export interface DebtSummary {
+  totalOweBaseMinor: number;
+  totalOwedToMeBaseMinor: number;
+  netDebtBaseMinor: number;
+  openCount: number;
 }
 
 export interface PaginationParams {

@@ -1,16 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import { useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import {
   Home,
   CreditCard,
   ArrowUpDown,
   ArrowRightLeft,
-  PieChart,
   Target,
-  Plus,
+  HandCoins,
 } from 'lucide-react';
 import { useSidebar } from '@/contexts/sidebar-context';
 
@@ -19,18 +20,22 @@ const mobileNavigation = [
   { name: 'Cuentas', href: '/accounts', icon: CreditCard },
   { name: 'Gastos', href: '/transactions', icon: ArrowUpDown },
   { name: 'Transferir', href: '/transfers', icon: ArrowRightLeft },
+  { name: 'Deudas', href: '/debts', icon: HandCoins },
   { name: 'Metas', href: '/goals', icon: Target },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
-  const router = useRouter();
   const { isMobile } = useSidebar();
+  const overlayHost = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById('modal-root') ?? document.body;
+  }, []);
 
-  if (!isMobile) return null;
+  if (!isMobile || !overlayHost) return null;
 
-  return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border-primary/30 bg-background-primary/95 backdrop-blur-lg lg:hidden">
+  return createPortal(
+    <div className="pointer-events-auto fixed inset-x-0 bottom-0 z-[45] border-t border-border-primary/30 bg-background-primary/95 backdrop-blur-lg will-change-transform lg:hidden">
       {/* Safe area for iOS */}
       <div className="pb-safe-bottom">
         <div className="flex items-center justify-around overflow-hidden px-1 py-1">
@@ -71,6 +76,7 @@ export function MobileNav() {
           })}
         </div>
       </div>
-    </div>
+    </div>,
+    overlayHost
   );
 }

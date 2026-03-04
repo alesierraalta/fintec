@@ -7,6 +7,10 @@ import {
   PaginatedResult,
   CreateTransactionDTO,
   UpdateTransactionDTO,
+  DebtDirection,
+  DebtStatus,
+  DebtSummary,
+  DebtMode,
 } from '@/types';
 import { supabase } from './client';
 import {
@@ -84,7 +88,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       .from('transactions')
       .select(
         `
-        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, created_at, updated_at,
+        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, note, tags, transfer_id, is_debt, debt_direction, debt_status, counterparty_name, settled_at, created_at, updated_at,
         accounts!inner(user_id)
       `
       )
@@ -197,6 +201,26 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       query = query.overlaps('tags', filters.tags);
     }
 
+    const debtMode = filters.debtMode as DebtMode | undefined;
+
+    if (debtMode === 'ONLY_DEBT') {
+      query = query.eq('is_debt', true);
+    }
+
+    if (debtMode === 'EXCLUDE_DEBT') {
+      query = query.or('is_debt.eq.false,is_debt.is.null');
+    }
+
+    if (filters.debtDirection) {
+      query = query.eq('debt_direction', filters.debtDirection);
+    }
+
+    if (filters.debtStatus === DebtStatus.OPEN) {
+      query = query.or('debt_status.eq.OPEN,debt_status.is.null');
+    } else if (filters.debtStatus === DebtStatus.SETTLED) {
+      query = query.eq('debt_status', DebtStatus.SETTLED);
+    }
+
     // Apply sorting and pagination
     const sortColumn =
       sortBy === 'createdAt'
@@ -240,8 +264,24 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     // Convert DTO and create atomically via RPC (insert + balance update)
+    if (transactionData.isDebt === true && !transactionData.debtDirection) {
+      throw new Error('debtDirection is required when isDebt=true');
+    }
+
+    if (
+      transactionData.debtStatus === DebtStatus.SETTLED &&
+      !transactionData.settledAt
+    ) {
+      throw new Error('settledAt is required when debtStatus=SETTLED');
+    }
+
     const transaction = {
       ...transactionData,
+      isDebt: transactionData.isDebt === true,
+      debtStatus:
+        transactionData.isDebt === true
+          ? transactionData.debtStatus || DebtStatus.OPEN
+          : undefined,
       amountBaseMinor: transactionData.amountMinor, // TODO: Apply exchange rate conversion
       exchangeRate: 1, // TODO: Get actual exchange rate
     };
@@ -283,6 +323,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         p_description: supabaseTransaction.description,
         p_note: supabaseTransaction.note ?? null,
         p_tags: supabaseTransaction.tags ?? null,
+        p_is_debt: supabaseTransaction.is_debt ?? false,
+        p_debt_direction: supabaseTransaction.debt_direction ?? null,
+        p_debt_status: supabaseTransaction.debt_status ?? null,
+        p_counterparty_name: supabaseTransaction.counterparty_name ?? null,
+        p_settled_at: supabaseTransaction.settled_at ?? null,
       }
     );
 
@@ -346,8 +391,35 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     const { id: updateId, ...updateData } = updates;
+    const nextIsDebt =
+      updateData.isDebt !== undefined
+        ? updateData.isDebt
+        : originalTransaction.isDebt === true;
+    const nextDebtStatus =
+      updateData.debtStatus !== undefined
+        ? updateData.debtStatus
+        : originalTransaction.debtStatus;
+    const nextSettledAt =
+      updateData.settledAt !== undefined
+        ? updateData.settledAt
+        : originalTransaction.settledAt;
+
+    if (
+      nextIsDebt === true &&
+      !updateData.debtDirection &&
+      !originalTransaction.debtDirection
+    ) {
+      throw new Error('debtDirection is required when isDebt=true');
+    }
+
+    if (nextDebtStatus === DebtStatus.SETTLED && !nextSettledAt) {
+      throw new Error('settledAt is required when debtStatus=SETTLED');
+    }
+
     const supabaseUpdates = mapDomainTransactionToSupabase({
       ...updateData,
+      isDebt: nextIsDebt,
+      debtStatus: nextIsDebt ? nextDebtStatus || DebtStatus.OPEN : undefined,
       updatedAt: new Date().toISOString(),
     });
 
@@ -852,6 +924,81 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       page,
       limit,
       totalPages: Math.ceil(transactions.length / limit),
+    };
+  }
+
+  async findDebts(
+    filters?: {
+      dateFrom?: string;
+      dateTo?: string;
+      debtDirection?: DebtDirection;
+      debtStatus?: DebtStatus;
+      accountIds?: string[];
+    },
+    pagination?: PaginationParams
+  ): Promise<PaginatedResult<Transaction>> {
+    return this.findByFilters(
+      {
+        accountIds: filters?.accountIds,
+        dateFrom: filters?.dateFrom,
+        dateTo: filters?.dateTo,
+        debtMode: 'ONLY_DEBT',
+        debtDirection: filters?.debtDirection,
+        debtStatus: filters?.debtStatus ?? DebtStatus.OPEN,
+      },
+      pagination
+    );
+  }
+
+  async getDebtSummary(filters?: {
+    dateFrom?: string;
+    dateTo?: string;
+    accountIds?: string[];
+  }): Promise<DebtSummary> {
+    const pageSize = 500;
+    let page = 1;
+    let hasMore = true;
+    const allDebts: Transaction[] = [];
+
+    while (hasMore) {
+      const debts = await this.findDebts(
+        {
+          accountIds: filters?.accountIds,
+          dateFrom: filters?.dateFrom,
+          dateTo: filters?.dateTo,
+          debtStatus: DebtStatus.OPEN,
+        },
+        { page, limit: pageSize, sortBy: 'date', sortOrder: 'desc' }
+      );
+
+      allDebts.push(...debts.data);
+      hasMore = page < debts.totalPages;
+      page += 1;
+    }
+
+    const totals = allDebts.reduce(
+      (acc, transaction) => {
+        if (transaction.debtDirection === DebtDirection.OWE) {
+          acc.totalOweBaseMinor += transaction.amountBaseMinor;
+        }
+
+        if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
+          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
+        }
+
+        return acc;
+      },
+      {
+        totalOweBaseMinor: 0,
+        totalOwedToMeBaseMinor: 0,
+      }
+    );
+
+    return {
+      ...totals,
+      netDebtBaseMinor:
+        totals.totalOwedToMeBaseMinor - totals.totalOweBaseMinor,
+      openCount: allDebts.length,
     };
   }
 

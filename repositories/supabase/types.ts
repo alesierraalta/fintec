@@ -29,6 +29,11 @@ export interface SupabaseTransaction {
   note?: string;
   tags?: string[];
   transfer_id?: string;
+  is_debt?: boolean;
+  debt_direction?: 'OWE' | 'OWED_TO_ME' | null;
+  debt_status?: 'OPEN' | 'SETTLED' | null;
+  counterparty_name?: string | null;
+  settled_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -227,6 +232,8 @@ export interface Database {
         | 'CRYPTO';
       transaction_type: 'INCOME' | 'EXPENSE' | 'TRANSFER_OUT' | 'TRANSFER_IN';
       category_kind: 'INCOME' | 'EXPENSE';
+      debt_direction: 'OWE' | 'OWED_TO_ME';
+      debt_status: 'OPEN' | 'SETTLED';
     };
   };
 }
