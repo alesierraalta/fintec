@@ -137,20 +137,44 @@ export function Header() {
     return document.getElementById('modal-root') ?? document.body;
   }, []);
 
+  const getViewportMetrics = useCallback(() => {
+    const visualViewport = window.visualViewport;
+
+    return {
+      offsetLeft: visualViewport?.offsetLeft ?? 0,
+      offsetTop: visualViewport?.offsetTop ?? 0,
+      width: visualViewport?.width ?? window.innerWidth,
+    };
+  }, []);
+
   const getOverlayStyle = useCallback(
     (button: HTMLButtonElement | null, widthPx: number) => {
       if (!button) return null;
 
       const rect = button.getBoundingClientRect();
       const sideMargin = 12;
+      const {
+        offsetLeft,
+        offsetTop,
+        width: viewportWidth,
+      } = getViewportMetrics();
+
+      const clampedWidth = Math.min(
+        widthPx,
+        Math.max(160, viewportWidth - sideMargin * 2)
+      );
+      const preferredLeft = rect.right - clampedWidth + offsetLeft;
+      const minLeft = offsetLeft + sideMargin;
+      const maxLeft = offsetLeft + viewportWidth - clampedWidth - sideMargin;
+      const safeMaxLeft = Math.max(minLeft, maxLeft);
 
       return {
-        top: rect.bottom + 8,
-        left: Math.max(sideMargin, rect.right - widthPx),
-        width: widthPx,
+        top: rect.bottom + 8 + offsetTop,
+        left: Math.min(Math.max(preferredLeft, minLeft), safeMaxLeft),
+        width: clampedWidth,
       } satisfies CSSProperties;
     },
-    []
+    [getViewportMetrics]
   );
 
   const syncOverlayPositions = useCallback(() => {
@@ -165,13 +189,18 @@ export function Header() {
     if (!showUserMenu && !showNotifications) return;
 
     syncOverlayPositions();
+    const visualViewport = window.visualViewport;
 
     window.addEventListener('resize', syncOverlayPositions);
     window.addEventListener('scroll', syncOverlayPositions, true);
+    visualViewport?.addEventListener('resize', syncOverlayPositions);
+    visualViewport?.addEventListener('scroll', syncOverlayPositions);
 
     return () => {
       window.removeEventListener('resize', syncOverlayPositions);
       window.removeEventListener('scroll', syncOverlayPositions, true);
+      visualViewport?.removeEventListener('resize', syncOverlayPositions);
+      visualViewport?.removeEventListener('scroll', syncOverlayPositions);
     };
   }, [showUserMenu, showNotifications, syncOverlayPositions]);
 
@@ -194,7 +223,7 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="black-theme-header sticky top-0 z-50 flex h-[calc(4rem+env(safe-area-inset-top))] min-h-16 items-center justify-between px-4 pt-[env(safe-area-inset-top)]">
+      <header className="black-theme-header sticky top-0 z-50 flex h-[calc(4rem_+_env(safe-area-inset-top))] min-h-16 items-center justify-between px-4 pt-safe-top">
         <div className="flex items-center">
           <RateSelector />
         </div>
