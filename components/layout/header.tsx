@@ -1,7 +1,6 @@
 'use client';
 
 import { Bell, Sparkles, Menu, X, User, LogOut, Crown } from 'lucide-react';
-import Image from 'next/image';
 import {
   useState,
   useEffect,
@@ -22,6 +21,7 @@ import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { RateSelector } from '@/components/currency/rate-selector';
+import { FinTecLogo } from '@/components/branding/fintec-logo';
 
 export function Header() {
   const [notificationCount, setNotificationCount] = useState(0);
@@ -227,16 +227,11 @@ export function Header() {
         <div className="flex items-center">
           <RateSelector />
         </div>
-        <div className="relative h-10 w-24">
-          <Image
-            src="/finteclogodark.jpg"
-            alt="FinTec Logo"
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100px, 100px"
-            loading="eager"
-          />
-        </div>
+        <FinTecLogo
+          containerClassName="h-10 w-24"
+          priority
+          sizes="(max-width: 768px) 100px, 100px"
+        />
         <div className="relative">
           <button
             ref={mobileUserButtonRef}
