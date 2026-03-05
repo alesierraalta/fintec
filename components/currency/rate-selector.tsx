@@ -41,29 +41,58 @@ export function RateSelector() {
     return document.getElementById('modal-root') ?? document.body;
   }, []);
 
+  const getViewportMetrics = useCallback(() => {
+    const visualViewport = window.visualViewport;
+
+    return {
+      offsetLeft: visualViewport?.offsetLeft ?? 0,
+      offsetTop: visualViewport?.offsetTop ?? 0,
+      width: visualViewport?.width ?? window.innerWidth,
+    };
+  }, []);
+
   const syncMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
 
     const rect = triggerRef.current.getBoundingClientRect();
+    const sideMargin = 12;
+    const {
+      offsetLeft,
+      offsetTop,
+      width: viewportWidth,
+    } = getViewportMetrics();
+    const clampedWidth = Math.min(
+      224,
+      Math.max(160, viewportWidth - sideMargin * 2)
+    );
+    const preferredLeft = rect.left + offsetLeft;
+    const minLeft = offsetLeft + sideMargin;
+    const maxLeft = offsetLeft + viewportWidth - clampedWidth - sideMargin;
+    const safeMaxLeft = Math.max(minLeft, maxLeft);
 
     setMenuStyle({
-      top: rect.bottom + 8,
-      left: Math.max(12, rect.left),
-      width: 224,
+      top: rect.bottom + 8 + offsetTop,
+      left: Math.min(Math.max(preferredLeft, minLeft), safeMaxLeft),
+      width: clampedWidth,
     });
-  }, []);
+  }, [getViewportMetrics]);
 
   useEffect(() => {
     if (!open) return;
 
     syncMenuPosition();
+    const visualViewport = window.visualViewport;
 
     window.addEventListener('resize', syncMenuPosition);
     window.addEventListener('scroll', syncMenuPosition, true);
+    visualViewport?.addEventListener('resize', syncMenuPosition);
+    visualViewport?.addEventListener('scroll', syncMenuPosition);
 
     return () => {
       window.removeEventListener('resize', syncMenuPosition);
       window.removeEventListener('scroll', syncMenuPosition, true);
+      visualViewport?.removeEventListener('resize', syncMenuPosition);
+      visualViewport?.removeEventListener('scroll', syncMenuPosition);
     };
   }, [open, syncMenuPosition]);
 

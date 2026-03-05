@@ -3,6 +3,11 @@ import { defineConfig, devices } from '@playwright/test';
 const skipAuthSetup = ['1', 'true', 'yes'].includes(
   (process.env.PLAYWRIGHT_NO_AUTH_SETUP ?? '').toLowerCase()
 );
+
+// Frontend protected-page bypass is controlled in app code with FRONTEND_AUTH_BYPASS.
+// The no-auth workflow should set both flags:
+// - PLAYWRIGHT_NO_AUTH_SETUP=1 skips auth.setup.ts
+// - FRONTEND_AUTH_BYPASS=1 allows server page guards to avoid /auth/login redirects
 const authStorageState = skipAuthSetup
   ? undefined
   : 'playwright/.auth/user.json';

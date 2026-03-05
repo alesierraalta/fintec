@@ -1,30 +1,17 @@
-import {
-  createClient as createSupabaseClient,
-  type SupabaseClient,
-} from '@supabase/supabase-js';
 import type {
   BCVRateHistoryEntry,
   BinanceRateHistoryEntry,
   ExchangeRateSnapshot,
   RatesHistoryRepository,
 } from '@/repositories/contracts';
-
-function createDefaultClient(): SupabaseClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase configuration');
-  }
-
-  return createSupabaseClient(supabaseUrl, supabaseKey);
-}
+import { createClient } from '@/lib/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
   private readonly client: SupabaseClient;
 
   constructor(client?: SupabaseClient) {
-    this.client = client || createDefaultClient();
+    this.client = client || createClient();
   }
 
   async upsertBCVRate(entry: BCVRateHistoryEntry): Promise<void> {

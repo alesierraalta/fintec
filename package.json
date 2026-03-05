@@ -20,7 +20,7 @@
     "test:mutate": "stryker run",
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
-    "e2e:no-auth": "cross-env PLAYWRIGHT_NO_AUTH_SETUP=1 playwright test",
+    "e2e:no-auth": "cross-env PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 playwright test",
     "clean": "node scripts/clean.mjs build deps-cache ts",
     "clean:temp": "node scripts/clean.mjs temp",
     "clean:docs": "node scripts/clean.mjs docs",

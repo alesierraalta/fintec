@@ -2,6 +2,18 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 
+function isEditableElement(element: Element | null): boolean {
+  if (!(element instanceof HTMLElement)) {
+    return false;
+  }
+
+  return (
+    element.tagName === 'INPUT' ||
+    element.tagName === 'TEXTAREA' ||
+    element.isContentEditable
+  );
+}
+
 /**
  * Hook para obtener el height dinámico del viewport
  * Maneja correctamente el viewport cuando el teclado se abre/cierra en mobile
@@ -31,7 +43,17 @@ export function useViewportHeight(): void {
 
     // * Usar Visual Viewport API si está disponible (mejor para mobile)
     if (window.visualViewport) {
-      newHeight = window.visualViewport.height;
+      const visualViewportHeight =
+        window.visualViewport.height + window.visualViewport.offsetTop;
+      const layoutViewportHeight = window.innerHeight;
+      const activeElement = document.activeElement;
+      const keyboardLikelyOpen =
+        isEditableElement(activeElement) &&
+        layoutViewportHeight - visualViewportHeight > 120;
+
+      newHeight = keyboardLikelyOpen
+        ? visualViewportHeight
+        : Math.max(visualViewportHeight, layoutViewportHeight);
     } else {
       // Fallback a window.innerHeight
       newHeight = window.innerHeight;
@@ -119,44 +141,33 @@ export function useViewportHeight(): void {
     };
 
     // Preferir Visual Viewport API si está disponible
+    // Escuchar cambios en el visual viewport (cuando el teclado se abre/cierra)
     if (window.visualViewport) {
-      // Escuchar cambios en el visual viewport (cuando el teclado se abre/cierra)
       window.visualViewport.addEventListener('resize', handleViewportResize);
       window.visualViewport.addEventListener('scroll', handleViewportScroll);
-
-      return () => {
-        window.visualViewport?.removeEventListener(
-          'resize',
-          handleViewportResize
-        );
-        window.visualViewport?.removeEventListener(
-          'scroll',
-          handleViewportScroll
-        );
-        if (rafIdRef.current !== null) {
-          window.cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-          scheduledForceUpdateRef.current = false;
-        }
-      };
-    } else {
-      // Fallback: escuchar cambios en window
-      window.addEventListener('resize', handleWindowResize);
-      window.addEventListener('orientationchange', handleOrientationChange);
-
-      return () => {
-        window.removeEventListener('resize', handleWindowResize);
-        window.removeEventListener(
-          'orientationchange',
-          handleOrientationChange
-        );
-        if (rafIdRef.current !== null) {
-          window.cancelAnimationFrame(rafIdRef.current);
-          rafIdRef.current = null;
-          scheduledForceUpdateRef.current = false;
-        }
-      };
     }
+
+    // Mantener fallback/soporte adicional para navegadores que no disparan visualViewport consistentemente
+    window.addEventListener('resize', handleWindowResize);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    return () => {
+      window.visualViewport?.removeEventListener(
+        'resize',
+        handleViewportResize
+      );
+      window.visualViewport?.removeEventListener(
+        'scroll',
+        handleViewportScroll
+      );
+      window.removeEventListener('resize', handleWindowResize);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      if (rafIdRef.current !== null) {
+        window.cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+        scheduledForceUpdateRef.current = false;
+      }
+    };
   }, [scheduleUpdateHeight]);
 
   // Detectar cierre de teclado mediante eventos de input

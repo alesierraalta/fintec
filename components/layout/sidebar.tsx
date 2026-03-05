@@ -79,7 +79,7 @@ export function Sidebar() {
                 width={isMinimized ? 40 : 120}
                 height={40}
                 className="object-contain transition-all duration-300"
-                style={{ width: isMinimized ? 40 : 'auto', height: 40 }}
+                style={{ width: isMinimized ? 40 : 'auto', height: 'auto' }}
                 priority
                 sizes="(max-width: 768px) 120px, 120px"
                 loading="eager"

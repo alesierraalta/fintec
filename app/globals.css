@@ -368,6 +368,15 @@ body {
   contain-intrinsic-size: 80px;
 }
 
+.transactions-mobile-swipe-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground) / 0.75);
+}
+
 /* Fix para iOS Safari - prevenir área negra cuando el teclado se cierra */
 @supports (-webkit-touch-callout: none) {
   /* iOS Safari específico - usar -webkit-fill-available como fallback adicional */

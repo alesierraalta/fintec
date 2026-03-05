@@ -34,6 +34,7 @@ import {
   Sparkles,
   Filter,
   Edit,
+  ArrowRight,
 } from 'lucide-react';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
@@ -713,6 +714,10 @@ export default function TransactionsPage() {
                   Todas las Transacciones ({filteredTransactionsMemo.length})
                 </h3>
               </div>
+              <div className="transactions-mobile-swipe-hint sm:hidden">
+                <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                <span>Desliza una fila para ver acciones</span>
+              </div>
             </div>
 
             <div className="divide-y divide-border/40">
@@ -756,6 +761,7 @@ export default function TransactionsPage() {
                       <SwipeableCard
                         actions={swipeActions}
                         onClick={() => handleTransactionClick(transaction)}
+                        showSwipeHint={false}
                         className="cursor-pointer border-l-0 p-4 transition-all duration-200 hover:border-l-4 hover:border-l-primary/40 hover:bg-card/60 sm:p-6"
                       >
                         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

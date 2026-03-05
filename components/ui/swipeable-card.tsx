@@ -1,22 +1,19 @@
 'use client';
 
-import {
-  motion,
-  useMotionValue,
-  useTransform,
-  PanInfo,
-  AnimatePresence,
-} from 'framer-motion';
+import { motion, PanInfo } from 'framer-motion';
 import {
   useState,
-  useRef,
   useCallback,
   ReactNode,
   memo,
   KeyboardEvent,
+  useRef,
 } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+const DRAG_INTENT_THRESHOLD_PX = 8;
+const POST_DRAG_CLICK_SUPPRESSION_MS = 180;
 
 export interface SwipeAction {
   label: string;
@@ -33,6 +30,8 @@ interface SwipeableCardProps {
   className?: string;
   onClick?: () => void;
   disableSwipe?: boolean;
+  showSwipeHint?: boolean;
+  swipeHintClassName?: string;
 }
 
 const colorClasses = {
@@ -51,26 +50,31 @@ function SwipeableCardComponent({
   className,
   onClick,
   disableSwipe = false,
+  showSwipeHint = true,
+  swipeHintClassName,
 }: SwipeableCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const constraintsRef = useRef(null);
+  const dragIntentRef = useRef(false);
+  const suppressClickUntilRef = useRef(0);
 
-  const x = useMotionValue(0);
-  const actionsOpacity = useTransform(
-    x,
-    [-threshold * 2, -threshold, 0],
-    [1, 0.8, 0]
-  );
-  const actionsScale = useTransform(
-    x,
-    [-threshold * 2, -threshold, 0],
-    [1, 0.9, 0.8]
+  const handleDrag = useCallback(
+    (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+      if (Math.abs(info.offset.x) >= DRAG_INTENT_THRESHOLD_PX) {
+        dragIntentRef.current = true;
+      }
+    },
+    []
   );
 
   const handleDragEnd = useCallback(
     (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
       setIsDragging(false);
+
+      if (dragIntentRef.current) {
+        suppressClickUntilRef.current =
+          Date.now() + POST_DRAG_CLICK_SUPPRESSION_MS;
+      }
 
       if (info.offset.x < -threshold) {
         setIsRevealed(true);
@@ -83,12 +87,25 @@ function SwipeableCardComponent({
 
   const handleDragStart = useCallback(() => {
     setIsDragging(true);
+    dragIntentRef.current = false;
+    suppressClickUntilRef.current = 0;
   }, []);
 
   const handleCardClick = useCallback(() => {
     if (isRevealed) {
       setIsRevealed(false);
-    } else if (onClick && !isDragging) {
+      return;
+    }
+
+    if (!onClick || isDragging) {
+      return;
+    }
+
+    if (Date.now() < suppressClickUntilRef.current) {
+      return;
+    }
+
+    if (onClick) {
       onClick();
     }
   }, [isRevealed, onClick, isDragging]);
@@ -98,10 +115,16 @@ function SwipeableCardComponent({
       if (!onClick) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
-        handleCardClick();
+
+        if (isRevealed) {
+          setIsRevealed(false);
+          return;
+        }
+
+        onClick();
       }
     },
-    [handleCardClick, onClick]
+    [isRevealed, onClick]
   );
 
   const handleAction = useCallback((action: () => void) => {
@@ -120,8 +143,10 @@ function SwipeableCardComponent({
     >
       {/* Action buttons revealed on swipe */}
       <motion.div
-        className="absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch"
-        style={{ opacity: actionsOpacity, scale: actionsScale }}
+        className={cn(
+          'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch transition-opacity duration-150',
+          isRevealed || isDragging ? 'opacity-100' : 'opacity-90'
+        )}
       >
         {actions.map((action, index) => (
           <motion.button
@@ -157,6 +182,7 @@ function SwipeableCardComponent({
         dragElastic={0.1}
         dragMomentum={false}
         onDragStart={handleDragStart}
+        onDrag={handleDrag}
         onDragEnd={handleDragEnd}
         animate={{ x: isRevealed ? maxDrag : 0 }}
         transition={{ type: 'spring', stiffness: 500, damping: 40 }}
@@ -172,9 +198,12 @@ function SwipeableCardComponent({
         {children}
 
         {/* Swipe hint indicator - visible only on mobile when not revealed */}
-        {!isRevealed && !disableSwipe && (
+        {!isRevealed && !disableSwipe && showSwipeHint && (
           <motion.div
-            className="pointer-events-none absolute bottom-1/2 right-4 flex translate-y-1/2 items-center space-x-1 text-xs text-muted-foreground/40 sm:hidden"
+            className={cn(
+              'pointer-events-none absolute bottom-1/2 right-4 flex translate-y-1/2 items-center space-x-1 text-xs text-muted-foreground/40 sm:hidden',
+              swipeHintClassName
+            )}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 2 }}

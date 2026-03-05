@@ -74,10 +74,19 @@ npm run clean:all
 
 - Unit/integration: Jest configurado con proyectos `dom` y `node` (`jest.config.js`).
 - E2E: Playwright (`playwright.config.ts`) con navegadores desktop y mobile.
+- Modo E2E sin login (`npm run e2e:no-auth`): habilita `PLAYWRIGHT_NO_AUTH_SETUP=1` y `FRONTEND_AUTH_BYPASS=1` para probar rutas protegidas del frontend sin setup de sesion.
 - Performance baseline: k6 (`k6/api-stress-test.js`) via `npm run test:load`.
 - Mutation testing: Stryker (`stryker.config.json`) via `npm run test:mutate`.
 - CI: GitHub Actions ejecuta validaciones en PR/push via `.github/workflows/ci.yml`.
 - Estado de calidad actual: `type-check`, `lint`, `test` y `build` pasan en local.
+
+### Frontend auth bypass (solo testing local)
+
+- Variable: `FRONTEND_AUTH_BYPASS`
+- Valores permitidos para activar bypass: `1`, `true`, `yes`
+- Alcance: solo evita el redirect a `/auth/login` en guards de paginas frontend server-side
+- Seguridad: en `NODE_ENV=production` el bypass se ignora siempre (fail-closed)
+- Importante: no desactiva autenticacion de APIs ni cambia validacion backend/Supabase
 
 ### Guardrails locales (pre-commit / pre-push)
 

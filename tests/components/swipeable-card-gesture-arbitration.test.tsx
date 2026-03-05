@@ -26,27 +26,46 @@ jest.mock('framer-motion', () => {
       } = props;
 
       const dragStartXRef = React.useRef(null);
+      const dragStartYRef = React.useRef(null);
       const canDrag = drag && drag !== false;
 
       const triggerDragStart = (event: any) => {
         if (!canDrag) return;
         dragStartXRef.current = event.clientX;
+        dragStartYRef.current = event.clientY;
         onDragStart?.(event, { offset: { x: 0, y: 0 } });
       };
 
       const triggerDragMove = (event: any) => {
-        if (!canDrag || dragStartXRef.current === null) return;
+        if (
+          !canDrag ||
+          dragStartXRef.current === null ||
+          dragStartYRef.current === null
+        )
+          return;
         onDrag?.(event, {
-          offset: { x: event.clientX - dragStartXRef.current, y: 0 },
+          offset: {
+            x: event.clientX - dragStartXRef.current,
+            y: event.clientY - dragStartYRef.current,
+          },
         });
       };
 
       const triggerDragEnd = (event: any) => {
-        if (!canDrag || dragStartXRef.current === null) return;
+        if (
+          !canDrag ||
+          dragStartXRef.current === null ||
+          dragStartYRef.current === null
+        )
+          return;
         onDragEnd?.(event, {
-          offset: { x: event.clientX - dragStartXRef.current, y: 0 },
+          offset: {
+            x: event.clientX - dragStartXRef.current,
+            y: event.clientY - dragStartYRef.current,
+          },
         });
         dragStartXRef.current = null;
+        dragStartYRef.current = null;
       };
 
       return React.createElement(
@@ -159,6 +178,21 @@ describe('SwipeableCard gesture arbitration', () => {
     fireEvent.click(card);
 
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('does not reveal actions for vertical scroll with minor horizontal jitter', () => {
+    const onClick = jest.fn();
+    const { card } = renderSwipeableCard({ onClick });
+
+    fireEvent.mouseDown(card, { clientX: 220, clientY: 60 });
+    fireEvent.mouseMove(card, { clientX: 214, clientY: 210 });
+    fireEvent.mouseUp(card, { clientX: 213, clientY: 280 });
+
+    expect(card).toHaveAttribute('data-motion-x', '0');
+
+    fireEvent.click(card);
+
+    expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it('closes revealed row on tap without firing navigation callback', () => {

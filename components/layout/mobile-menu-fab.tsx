@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
 import {
-  MoreHorizontal,
   Tags,
   BarChart3,
   Wallet,
@@ -79,6 +79,10 @@ export function MobileMenuFAB() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { isMobile } = useSidebar();
+  const overlayHost = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById('modal-root') ?? document.body;
+  }, []);
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -89,9 +93,9 @@ export function MobileMenuFAB() {
   };
 
   // Only show on mobile
-  if (!isMobile) return null;
+  if (!isMobile || !overlayHost) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       {isOpen && (
@@ -215,6 +219,7 @@ export function MobileMenuFAB() {
           )}
         </button>
       </div>
-    </>
+    </>,
+    overlayHost
   );
 }
