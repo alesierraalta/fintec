@@ -1,23 +1,59 @@
-import { defineConfig, devices } from '@playwright/test';
+import {
+  defineConfig,
+  devices,
+  type ReporterDescription,
+} from '@playwright/test';
 
-const skipAuthSetup = ['1', 'true', 'yes'].includes(
-  (process.env.PLAYWRIGHT_NO_AUTH_SETUP ?? '').toLowerCase()
-);
+const AUTH_REQUIRED_TAG = /@auth-required/;
+const DEFAULT_LANE = 'no-auth';
+const DEFAULT_GLOBAL_TIMEOUT_MS = process.env.CI
+  ? 20 * 60 * 1000
+  : 12 * 60 * 1000;
+const parseBooleanEnv = (value: string | undefined): boolean | undefined => {
+  if (!value) {
+    return undefined;
+  }
 
-// Frontend protected-page bypass is controlled in app code with FRONTEND_AUTH_BYPASS.
-// The no-auth workflow should set both flags:
-// - PLAYWRIGHT_NO_AUTH_SETUP=1 skips auth.setup.ts
-// - FRONTEND_AUTH_BYPASS=1 allows server page guards to avoid /auth/login redirects
-const authStorageState = skipAuthSetup
-  ? undefined
-  : 'playwright/.auth/user.json';
-const authDependencies = skipAuthSetup ? undefined : ['setup'];
+  const normalized = value.toLowerCase();
+  if (['1', 'true', 'yes'].includes(normalized)) {
+    return true;
+  }
+
+  if (['0', 'false', 'no'].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+};
+const lane =
+  process.env.PLAYWRIGHT_LANE === 'auth-required'
+    ? 'auth-required'
+    : DEFAULT_LANE;
+const isAuthRequiredLane = lane === 'auth-required';
+const reuseExistingServer =
+  parseBooleanEnv(process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER) ??
+  !process.env.CI;
+const reporter: ReporterDescription[] = process.env.CI
+  ? [['line'], ['html', { open: 'never' }]]
+  : [['list'], ['html', { open: 'never' }]];
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
 export default defineConfig({
   testDir: './tests',
+  testMatch: isAuthRequiredLane ? ['**/*.spec.ts'] : ['e2e/**/*.spec.ts'],
+  testIgnore: [
+    '**/*.test.ts',
+    '**/__tests__/**',
+    '**/unit/**',
+    '**/integration/**',
+  ],
+  globalTimeout:
+    Number.parseInt(process.env.PLAYWRIGHT_GLOBAL_TIMEOUT_MS ?? '', 10) ||
+    DEFAULT_GLOBAL_TIMEOUT_MS,
+  grep: isAuthRequiredLane ? AUTH_REQUIRED_TAG : undefined,
+  grepInvert: isAuthRequiredLane ? undefined : AUTH_REQUIRED_TAG,
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -27,7 +63,7 @@ export default defineConfig({
   /* Opt out of parallel tests on CI. */
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
-  reporter: 'html',
+  reporter,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -45,54 +81,52 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Setup project for authentication
-    ...(skipAuthSetup ? [] : [{ name: 'setup', testMatch: /.*\.setup\.ts/ }]),
+    ...(isAuthRequiredLane
+      ? [{ name: 'setup', testMatch: /.*\.setup\.ts/ }]
+      : []),
 
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        // Use saved auth state for all tests
-        storageState: authStorageState,
+        ...(isAuthRequiredLane
+          ? { storageState: 'playwright/.auth/user.json' }
+          : {}),
       },
-      dependencies: authDependencies,
+      ...(isAuthRequiredLane ? { dependencies: ['setup'] } : {}),
     },
 
-    {
-      name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        storageState: authStorageState,
-      },
-      dependencies: authDependencies,
-    },
+    ...(isAuthRequiredLane
+      ? []
+      : [
+          {
+            name: 'firefox',
+            use: {
+              ...devices['Desktop Firefox'],
+            },
+          },
 
-    {
-      name: 'webkit',
-      use: {
-        ...devices['Desktop Safari'],
-        storageState: authStorageState,
-      },
-      dependencies: authDependencies,
-    },
+          {
+            name: 'webkit',
+            use: {
+              ...devices['Desktop Safari'],
+            },
+          },
 
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: {
-        ...devices['Pixel 5'],
-        storageState: authStorageState,
-      },
-      dependencies: authDependencies,
-    },
-    {
-      name: 'Mobile Safari',
-      use: {
-        ...devices['iPhone 12'],
-        storageState: authStorageState,
-      },
-      dependencies: authDependencies,
-    },
+          /* Test against mobile viewports. */
+          {
+            name: 'Mobile Chrome',
+            use: {
+              ...devices['Pixel 5'],
+            },
+          },
+          {
+            name: 'Mobile Safari',
+            use: {
+              ...devices['iPhone 12'],
+            },
+          },
+        ]),
 
     /* Test against branded browsers. */
     // {
@@ -109,6 +143,13 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    timeout:
+      Number.parseInt(process.env.PLAYWRIGHT_WEB_SERVER_TIMEOUT_MS ?? '', 10) ||
+      120_000,
+    reuseExistingServer,
+    gracefulShutdown: {
+      signal: 'SIGTERM',
+      timeout: 5_000,
+    },
   },
 });

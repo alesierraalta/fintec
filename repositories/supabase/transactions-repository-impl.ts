@@ -18,6 +18,11 @@ import {
   mapDomainTransactionToSupabase,
   mapSupabaseTransactionArrayToDomain,
 } from './mappers';
+import {
+  getOwnedAccountScope,
+  hasOwnedAccounts,
+  intersectOwnedAccountIds,
+} from './account-scope';
 import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
 
@@ -37,16 +42,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   private async getUserAccountIds(userId: string): Promise<string[]> {
-    const { data, error } = await this.client
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) {
-      throw new Error(`Failed to fetch user accounts: ${error.message}`);
-    }
-
-    return ((data as any[]) || []).map((row: any) => row.id);
+    const scope = await getOwnedAccountScope(this.client, userId);
+    return scope.accountIds;
   }
 
   private async ensureAccountOwned(
@@ -82,17 +79,20 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const userId = user.id;
 
-    // Single query with JOIN - más eficiente que 2 queries separados
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return [];
+    }
+
     // * Payload Optimization: Select only essential fields for list view
     const { data, error } = await this.client
       .from('transactions')
       .select(
         `
-        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, note, tags, transfer_id, is_debt, debt_direction, debt_status, counterparty_name, settled_at, created_at, updated_at,
-        accounts!inner(user_id)
+        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, note, tags, transfer_id, is_debt, debt_direction, debt_status, counterparty_name, settled_at, created_at, updated_at
       `
       )
-      .eq('accounts.user_id', userId)
+      .in('account_id', scope.accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(limit); // Paginación por defecto para prevenir cargas masivas
@@ -108,11 +108,16 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return null;
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return null;
+    }
+
     const { data, error } = await this.client
       .from('transactions')
-      .select(`*, accounts!inner(user_id)`)
+      .select('*')
       .eq('id', id)
-      .eq('accounts.user_id', userId)
+      .in('account_id', scope.accountIds)
       .single();
 
     if (error) {
@@ -148,20 +153,35 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    // Include JOIN with accounts for RLS to work properly
-    let query = this.client.from('transactions').select(
-      `
-      *,
-      accounts!inner(user_id)
-    `,
-      { count: 'exact' }
-    );
-
-    query = query.eq('accounts.user_id', userId);
-
-    if (filters.accountIds && filters.accountIds.length > 0) {
-      query = query.in('account_id', filters.accountIds);
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
     }
+
+    const scopedAccountIds = intersectOwnedAccountIds(
+      scope.accountIds,
+      filters.accountIds
+    );
+    if (scopedAccountIds.length === 0) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
+
+    let query = this.client
+      .from('transactions')
+      .select('*', { count: 'exact' })
+      .in('account_id', scopedAccountIds);
 
     if (filters.categoryIds && filters.categoryIds.length > 0) {
       query = query.in('category_id', filters.categoryIds);
@@ -493,10 +513,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return 0;
+    }
+
     const { count, error } = await this.client
       .from('transactions')
-      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
-      .eq('accounts.user_id', userId);
+      .select('id', { count: 'exact', head: true })
+      .in('account_id', scope.accountIds);
 
     if (error) {
       throw new Error(`Failed to count transactions: ${error.message}`);
@@ -538,16 +563,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
-    // Single query with JOIN - más eficiente
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) return 0;
+
     let query = this.client
       .from('transactions')
-      .select(
-        `
-        amount_base_minor,
-        accounts!inner(user_id)
-      `
-      )
-      .eq('accounts.user_id', userId)
+      .select('amount_base_minor')
+      .in('account_id', scope.accountIds)
       .eq('category_id', categoryId);
 
     if (dateFrom) {
@@ -580,10 +602,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return [];
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) return [];
+
     const { data, error } = await this.client
       .from('transactions')
-      .select('date, amount_base_minor, type, accounts!inner(user_id)')
-      .eq('accounts.user_id', userId)
+      .select('date, amount_base_minor, type')
+      .in('account_id', scope.accountIds)
       .gte('date', startDate)
       .lte('date', endDate);
 
@@ -698,17 +723,21 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     } = pagination || {};
     const offset = (page - 1) * limit;
 
-    // Single query with JOIN - más eficiente
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
+
     const { data, error, count } = await this.client
       .from('transactions')
-      .select(
-        `
-        *,
-        accounts!inner(user_id)
-      `,
-        { count: 'exact' }
-      )
-      .eq('accounts.user_id', userId)
+      .select('*', { count: 'exact' })
+      .in('account_id', scope.accountIds)
       .eq('category_id', categoryId)
       .order(
         sortBy === 'createdAt'
@@ -759,17 +788,21 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     } = pagination || {};
     const offset = (page - 1) * limit;
 
-    // Single query with JOIN - más eficiente
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0,
+      };
+    }
+
     const { data, error, count } = await this.client
       .from('transactions')
-      .select(
-        `
-        *,
-        accounts!inner(user_id)
-      `,
-        { count: 'exact' }
-      )
-      .eq('accounts.user_id', userId)
+      .select('*', { count: 'exact' })
+      .in('account_id', scope.accountIds)
       .eq('type', type)
       .order(
         sortBy === 'createdAt'
@@ -811,16 +844,21 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    // Single query with JOIN - más eficiente
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+
     const { data, error } = await this.client
       .from('transactions')
-      .select(
-        `
-        *,
-        accounts!inner(user_id)
-      `
-      )
-      .eq('accounts.user_id', userId)
+      .select('*')
+      .in('account_id', scope.accountIds)
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false })
@@ -861,11 +899,14 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return [];
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) return [];
+
     const { data, error } = await this.client
       .from('transactions')
-      .select(`*, accounts!inner(user_id)`)
+      .select('*')
       .eq('transfer_id', transferId)
-      .eq('accounts.user_id', userId);
+      .in('account_id', scope.accountIds);
 
     if (error) {
       throw new Error(
@@ -891,10 +932,21 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: pagination?.limit || 10,
+        totalPages: 0,
+      };
+    }
+
     const { data, error } = await this.client
       .from('transactions')
-      .select(`*, accounts!inner(user_id)`)
-      .eq('accounts.user_id', userId)
+      .select('*')
+      .in('account_id', scope.accountIds)
       .or(`description.ilike.%${query}%,note.ilike.%${query}%`)
       .order('date', { ascending: false });
 
@@ -1010,10 +1062,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) return 0;
+
     let query = this.client
       .from('transactions')
-      .select('amount_base_minor, accounts!inner(user_id)')
-      .eq('accounts.user_id', userId)
+      .select('amount_base_minor')
+      .in('account_id', scope.accountIds)
       .eq('type', type);
 
     if (startDate) {
@@ -1170,10 +1225,15 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
 
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return { data: [], total: 0, page, limit, totalPages: 0 };
+    }
+
     const { count, error: countError } = await this.client
       .from('transactions')
-      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
-      .eq('accounts.user_id', userId);
+      .select('id', { count: 'exact', head: true })
+      .in('account_id', scope.accountIds);
 
     if (countError) {
       throw new Error(`Failed to count transactions: ${countError.message}`);
@@ -1188,8 +1248,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const { data, error } = await this.client
       .from('transactions')
-      .select(`*, accounts!inner(user_id)`)
-      .eq('accounts.user_id', userId)
+      .select('*')
+      .in('account_id', scope.accountIds)
       .order(sortColumn, { ascending: sortOrder === 'asc' })
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);

@@ -69,7 +69,7 @@ CREATE INDEX IF NOT EXISTS idx_transactions_debt_open
 CREATE OR REPLACE FUNCTION public.create_transaction_and_adjust_balance(
   p_account_id uuid,
   p_category_id uuid,
-  p_type public.transaction_type,
+  p_type text,
   p_currency_code text,
   p_amount_minor bigint,
   p_amount_base_minor bigint,

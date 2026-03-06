@@ -7,6 +7,10 @@ import {
   UsageStatus,
   SubscriptionStatusPayload,
 } from '@/types/subscription';
+import {
+  getOwnedAccountScope,
+  hasOwnedAccounts,
+} from '@/repositories/supabase/account-scope';
 
 export async function getUserTier(userId: string): Promise<SubscriptionTier> {
   const supabase = await createClient();
@@ -124,10 +128,21 @@ export async function getUserUsage(userId: string) {
   try {
     const supabase = await createClient();
 
+    const scope = await getOwnedAccountScope(supabase, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return {
+        transactionCount: 0,
+        backupCount: 0,
+        exportCount: 0,
+        apiCalls: 0,
+        aiRequests: 0,
+      };
+    }
+
     const { count, error } = await supabase
       .from('transactions')
-      .select('id, accounts!inner(user_id)', { count: 'exact', head: true })
-      .eq('accounts.user_id', userId)
+      .select('id', { count: 'exact', head: true })
+      .in('account_id', scope.accountIds)
       .gte('date', monthStart)
       .lte('date', monthEnd);
 
