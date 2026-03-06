@@ -1,0 +1,99 @@
+name: Performance (PR)
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: perf-pr-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── Lighthouse CI Audit ────────────────────────────────────
+  lighthouse-ci:
+    name: Lighthouse CI Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun --config=tests/performance/lighthouse/lighthouserc.js
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+
+      - name: Upload Lighthouse Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-pr-reports
+          path: tests/performance/reports/lighthouse/
+          retention-days: 14
+
+  # ─── k6 Smoke Test ─────────────────────────────────────────
+  k6-smoke:
+    name: k6 Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Start server
+        run: |
+          npm run start &
+          npx wait-on http://localhost:3000 --timeout 30000
+        env:
+          NODE_ENV: production
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run Smoke Tests
+        run: |
+          k6 run tests/performance/k6/scenarios/smoke.js \
+            --summary-export=tests/performance/reports/k6-smoke-summary.json
+        env:
+          BASE_URL: http://localhost:3000
+          SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.PERF_TEST_USER_PASSWORD }}
+
+      - name: Upload k6 Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-smoke-results
+          path: tests/performance/reports/
+          retention-days: 14

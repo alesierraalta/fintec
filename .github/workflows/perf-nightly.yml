@@ -1,0 +1,171 @@
+name: Performance (Nightly)
+
+on:
+  schedule:
+    - cron: '0 3 * * 1-5' # Weekdays at 3:00 AM UTC
+  workflow_dispatch: # Manual trigger
+
+concurrency:
+  group: perf-nightly
+  cancel-in-progress: false # Never cancel nightly — data is valuable
+
+jobs:
+  # ─── k6 Soak Test (Endurance) ──────────────────────────────
+  k6-soak:
+    name: k6 Soak Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run Soak Test
+        run: |
+          k6 run tests/performance/k6/scenarios/soak.js \
+            --out json=tests/performance/reports/k6-soak.json \
+            --summary-export=tests/performance/reports/k6-soak-summary.json
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.PERF_TEST_USER_PASSWORD }}
+
+      - name: Upload Soak Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-soak-results-${{ github.run_number }}
+          path: tests/performance/reports/
+          retention-days: 90
+
+  # ─── k6 Spike Test (Burst) ─────────────────────────────────
+  k6-spike:
+    name: k6 Spike Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run Spike Test
+        run: |
+          k6 run tests/performance/k6/scenarios/spike.js \
+            --out json=tests/performance/reports/k6-spike.json \
+            --summary-export=tests/performance/reports/k6-spike-summary.json
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.PERF_TEST_USER_PASSWORD }}
+
+      - name: Upload Spike Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-spike-results-${{ github.run_number }}
+          path: tests/performance/reports/
+          retention-days: 90
+
+  # ─── k6 Browser Hybrid Test ────────────────────────────────
+  k6-browser:
+    name: k6 Browser Hybrid
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build & Start server
+        run: |
+          npm run build
+          npm run start &
+          npx wait-on http://localhost:3000 --timeout 30000
+        env:
+          NODE_ENV: production
+
+      - name: Install k6
+        run: |
+          curl -fsSL https://dl.k6.io/key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/k6-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update && sudo apt-get install -y k6
+
+      - name: Run Browser Hybrid Test
+        run: |
+          K6_BROWSER_ENABLED=true k6 run tests/performance/k6/browser/hybrid-load.js \
+            --summary-export=tests/performance/reports/k6-browser-summary.json
+        env:
+          BASE_URL: http://localhost:3000
+          SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
+          TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.PERF_TEST_USER_PASSWORD }}
+
+      - name: Upload Browser Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: k6-browser-results-${{ github.run_number }}
+          path: tests/performance/reports/
+          retention-days: 90
+
+  # ─── Full Lighthouse Audit ─────────────────────────────────
+  lighthouse-full:
+    name: Lighthouse Full Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Lighthouse CI
+        run: |
+          npm install -g @lhci/cli
+          lhci autorun --config=tests/performance/lighthouse/lighthouserc.js
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_HASH: ${{ github.sha }}
+
+      - name: Upload Reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lighthouse-nightly-${{ github.run_number }}
+          path: tests/performance/reports/lighthouse/
+          retention-days: 90
