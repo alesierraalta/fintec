@@ -136,13 +136,12 @@ export function MobileDashboard() {
         monthlyExpensesUSD: 0,
       };
 
-    const thisMonth = new Date().getMonth();
-    const thisYear = new Date().getFullYear();
+    const now = new Date();
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-    const monthTransactions = rawTransactions.filter((t) => {
-      const date = new Date(t.date);
-      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-    });
+    const monthTransactions = rawTransactions.filter(
+      (t) => t.date && t.date.startsWith(currentMonthPrefix)
+    );
 
     const income = monthTransactions
       .filter((t) => t.type === 'INCOME')
@@ -316,17 +315,16 @@ export function MobileDashboard() {
                 })}
               </p>
             )}
-            {monthlyIncomeUSD > 0 && (
+            {(monthlyIncomeUSD > 0 ||
+              (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
               <p className="amount-positive text-lg">
                 ${monthlyIncomeUSD.toFixed(2)}
               </p>
             )}
-            {(monthlyIncomeVES > 0 || monthlyIncomeUSD > 0) && (
-              <p className="text-sm text-muted-foreground">
-                Total: ${monthlyIncome.toFixed(2)} (
-                {getRateName(usdEquivalentType)})
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Total: ${monthlyIncome.toFixed(2)} (
+              {getRateName(usdEquivalentType)})
+            </p>
           </div>
           <div className="mt-2 flex items-center space-x-2">
             <TrendingUp className="h-4 w-4 text-green-600" />
@@ -352,17 +350,16 @@ export function MobileDashboard() {
                 })}
               </p>
             )}
-            {monthlyExpensesUSD > 0 && (
+            {(monthlyExpensesUSD > 0 ||
+              (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
               <p className="amount-negative text-lg">
                 ${monthlyExpensesUSD.toFixed(2)}
               </p>
             )}
-            {(monthlyExpensesVES > 0 || monthlyExpensesUSD > 0) && (
-              <p className="text-sm text-muted-foreground">
-                Total: ${monthlyExpenses.toFixed(2)} (
-                {getRateName(usdEquivalentType)})
-              </p>
-            )}
+            <p className="text-sm text-muted-foreground">
+              Total: ${monthlyExpenses.toFixed(2)} (
+              {getRateName(usdEquivalentType)})
+            </p>
           </div>
           <div className="mt-2 flex items-center space-x-2">
             <TrendingDown className="h-4 w-4 text-red-600" />
@@ -393,11 +390,13 @@ export function MobileDashboard() {
                 )}
               </p>
             )}
-            {monthlyIncomeUSD - monthlyExpensesUSD !== 0 && (
+            {(monthlyIncomeUSD - monthlyExpensesUSD !== 0 ||
+              (monthlyIncomeVES - monthlyExpensesVES === 0 &&
+                monthlyIncomeUSD - monthlyExpensesUSD === 0)) && (
               <p
                 className={`text-lg ${monthlyIncomeUSD - monthlyExpensesUSD >= 0 ? 'amount-positive' : 'amount-negative'}`}
               >
-                {monthlyIncomeUSD - monthlyExpensesUSD >= 0 ? '+' : ''}$
+                {monthlyIncomeUSD - monthlyExpensesUSD > 0 ? '+' : ''}$
                 {Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
               </p>
             )}

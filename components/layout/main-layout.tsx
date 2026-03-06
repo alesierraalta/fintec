@@ -2,7 +2,6 @@
 
 import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { MotionConfig } from 'framer-motion';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
 import { Header } from './header';
@@ -58,85 +57,83 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const hideMobileChrome = pathname.startsWith('/transactions/add');
 
   return (
-    <MotionConfig reducedMotion="user">
-      <div
-        className={cn(
-          'no-horizontal-scroll h-full bg-background text-foreground',
-          isMobile && 'mobile-app'
+    <div
+      className={cn(
+        'no-horizontal-scroll h-full bg-background text-foreground',
+        isMobile && 'mobile-app'
+      )}
+    >
+      <div className="no-horizontal-scroll flex h-full">
+        {/* Mobile Backdrop */}
+        {isMobile && isOpen && (
+          <div
+            className="fixed inset-0 z-40 animate-fade-in bg-black/30 backdrop-blur-sm lg:hidden"
+            onClick={closeSidebar}
+          />
         )}
-      >
-        <div className="no-horizontal-scroll flex h-full">
-          {/* Mobile Backdrop */}
-          {isMobile && isOpen && (
+
+        {/* Desktop Sidebar - Only render on desktop */}
+        {!isMobile && (
+          <div
+            className={`flex flex-shrink-0 ${isOpen ? 'w-64' : 'w-16'} transition-ios overflow-hidden`}
+            data-tutorial="sidebar"
+          >
+            <Sidebar />
+          </div>
+        )}
+
+        {/* Main Content */}
+        <div className="no-horizontal-scroll flex min-w-0 flex-1 flex-col">
+          <Header />
+
+          {/* Page Content */}
+          <main
+            className={cn(
+              'app-shell-main no-horizontal-scroll flex-1 bg-background',
+              isMobile && !hideMobileChrome ? 'pb-24' : ''
+            )}
+          >
             <div
-              className="fixed inset-0 z-40 animate-fade-in bg-black/30 backdrop-blur-sm lg:hidden"
-              onClick={closeSidebar}
-            />
-          )}
-
-          {/* Desktop Sidebar - Only render on desktop */}
-          {!isMobile && (
-            <div
-              className={`flex flex-shrink-0 ${isOpen ? 'w-64' : 'w-16'} transition-ios overflow-hidden`}
-              data-tutorial="sidebar"
-            >
-              <Sidebar />
-            </div>
-          )}
-
-          {/* Main Content */}
-          <div className="no-horizontal-scroll flex min-w-0 flex-1 flex-col">
-            <Header />
-
-            {/* Page Content */}
-            <main
               className={cn(
-                'app-shell-main no-horizontal-scroll flex-1 bg-background',
-                isMobile && !hideMobileChrome ? 'pb-24' : ''
+                isMobile
+                  ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
+                  : 'no-horizontal-scroll mx-auto max-w-7xl px-6 py-8' // Desktop padding
               )}
             >
-              <div
-                className={cn(
-                  isMobile
-                    ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
-                    : 'no-horizontal-scroll mx-auto max-w-7xl px-6 py-8' // Desktop padding
-                )}
-              >
-                {children}
-              </div>
-            </main>
-          </div>
+              {children}
+            </div>
+          </main>
         </div>
-
-        {/* Mobile Navigation */}
-        {!hideMobileChrome && <MobileNav />}
-
-        {/* Mobile Menu FAB */}
-        {!hideMobileChrome && <MobileMenuFAB />}
-
-        {/* Floating Add Transaction Button */}
-        {showGlobalFab && (
-          <FloatingActionButton
-            onClick={() => router.push('/transactions/add')}
-            label="Nueva"
-            icon={<Plus className="h-6 w-6" />}
-            mobileOnly={true}
-            position="bottom-right"
-            variant="success"
-            className="z-40"
-          />
-        )}
-
-        {/* Transaction Form Modal */}
-        {isModalOpen && (
-          <TransactionForm
-            isOpen={isModalOpen}
-            onClose={closeModal}
-            type={TransactionType.EXPENSE}
-          />
-        )}
       </div>
-    </MotionConfig>
+
+      {/* Mobile Navigation */}
+      {!hideMobileChrome && <MobileNav />}
+
+      {/* Mobile Menu FAB */}
+      {!hideMobileChrome && <MobileMenuFAB />}
+
+      {/* Floating Add Transaction Button */}
+      {showGlobalFab && (
+        <FloatingActionButton
+          onClick={() => router.push('/transactions/add')}
+          label="Nueva"
+          icon={<Plus className="h-6 w-6" />}
+          mobileOnly={true}
+          position="bottom-right"
+          variant="success"
+          className="z-40"
+        />
+      )}
+
+      {/* Transaction Form Modal */}
+      {isModalOpen && (
+        <TransactionForm
+          isOpen={isModalOpen}
+          onClose={closeModal}
+          type={TransactionType.EXPENSE}
+        />
+      )}
+    </div>
   );
 }
 

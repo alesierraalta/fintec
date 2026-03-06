@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
+import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { FeatureBadge } from '@/components/subscription/feature-badge';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
 import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
@@ -51,8 +50,6 @@ export function Sidebar() {
   const router = useRouter();
   const { closeSidebar, isMobile, isOpen } = useSidebar();
   const { tier, isPremium, isBase } = useSubscription();
-  const [logoError, setLogoError] = useState(false);
-
   const handleLinkClick = () => {
     if (isMobile) {
       closeSidebar();
@@ -70,24 +67,14 @@ export function Sidebar() {
       <div className="flex h-16 items-center border-b border-white/10 px-4 lg:px-6">
         <div className="flex w-full items-center justify-center">
           <div className="relative">
-            {logoError ? (
-              <div className="px-4 text-xl font-bold text-white">FinTec</div>
-            ) : (
-              <Image
-                src="/finteclogodark.jpg"
-                alt="FinTec Logo"
-                width={isMinimized ? 40 : 120}
-                height={40}
-                className="object-contain transition-all duration-300"
-                style={{ width: isMinimized ? 40 : 'auto', height: 'auto' }}
-                priority
-                sizes="(max-width: 768px) 120px, 120px"
-                loading="eager"
-                onError={(e) => {
-                  setLogoError(true);
-                }}
-              />
-            )}
+            <FinTecLogo
+              containerClassName={cn(
+                'transition-all duration-300',
+                isMinimized ? 'h-10 w-10' : 'h-10 w-32'
+              )}
+              priority
+              sizes="(max-width: 768px) 128px, 128px"
+            />
           </div>
         </div>
       </div>
