@@ -25,7 +25,7 @@ import {
   calculateExchangeRateFromAmounts,
   calculateSourceAmountFromTarget,
   calculateTargetAmountFromSource,
-  isUsdVesTransferPair,
+  isExchangeableTransferPair,
   recalculateTransferAmounts,
 } from '@/lib/transfers/exchange-calculations';
 import { logger } from '@/lib/utils/logger';
@@ -225,9 +225,12 @@ export function MobileTransfer() {
     const to = getToAccount();
     if (!from || !to) return;
 
-    // Same currency
+    // Same currency parsing logic
     if (from.currencyCode === to.currencyCode) {
-      if (transferData.exchangeRate !== 1.0) {
+      if (
+        !isExchangeableTransferPair(from.currencyCode, to.currencyCode) &&
+        transferData.exchangeRate !== 1.0
+      ) {
         setTransferData((prev) => ({
           ...prev,
           exchangeRate: 1.0,
@@ -239,7 +242,7 @@ export function MobileTransfer() {
 
     if (
       exchangeMode === 'auto' &&
-      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       return;
     }
@@ -293,7 +296,7 @@ export function MobileTransfer() {
     if (
       !from ||
       !to ||
-      !isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      !isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       if (targetAmount !== 0) {
         setTargetAmount(0);
@@ -348,7 +351,7 @@ export function MobileTransfer() {
 
     if (
       exchangeMode === 'auto' &&
-      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       return targetAmount;
     }
@@ -663,7 +666,10 @@ export function MobileTransfer() {
                     exchangeMode === 'auto' &&
                     from &&
                     to &&
-                    isUsdVesTransferPair(from.currencyCode, to.currencyCode) &&
+                    isExchangeableTransferPair(
+                      from.currencyCode,
+                      to.currencyCode
+                    ) &&
                     newAmount > 0 &&
                     targetAmount > 0
                   ) {
@@ -687,7 +693,10 @@ export function MobileTransfer() {
                     exchangeMode === 'manual' &&
                     from &&
                     to &&
-                    isUsdVesTransferPair(from.currencyCode, to.currencyCode) &&
+                    isExchangeableTransferPair(
+                      from.currencyCode,
+                      to.currencyCode
+                    ) &&
                     transferData.exchangeRate
                   ) {
                     setTargetAmount(
@@ -730,7 +739,7 @@ export function MobileTransfer() {
 
             {getFromAccount() &&
               getToAccount() &&
-              isUsdVesTransferPair(
+              isExchangeableTransferPair(
                 getFromAccount()!.currencyCode,
                 getToAccount()!.currencyCode
               ) && (
@@ -781,7 +790,7 @@ export function MobileTransfer() {
                           exchangeMode === 'auto' &&
                           from &&
                           to &&
-                          isUsdVesTransferPair(
+                          isExchangeableTransferPair(
                             from.currencyCode,
                             to.currencyCode
                           ) &&
@@ -895,7 +904,7 @@ export function MobileTransfer() {
               Tasa de Cambio
             </h3>
 
-            {(!isUsdVesTransferPair(
+            {(!isExchangeableTransferPair(
               getFromAccount()!.currencyCode,
               getToAccount()!.currencyCode
             ) ||

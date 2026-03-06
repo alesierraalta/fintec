@@ -26,7 +26,7 @@ import {
   calculateExchangeRateFromAmounts,
   calculateSourceAmountFromTarget,
   calculateTargetAmountFromSource,
-  isUsdVesTransferPair,
+  isExchangeableTransferPair,
   recalculateTransferAmounts,
 } from '@/lib/transfers/exchange-calculations';
 import { logger } from '@/lib/utils/logger';
@@ -226,9 +226,12 @@ export function DesktopTransfer() {
     const to = getToAccount();
     if (!from || !to) return;
 
-    // Same currency
+    // Same currency parsing logic
     if (from.currencyCode === to.currencyCode) {
-      if (transferData.exchangeRate !== 1.0) {
+      if (
+        !isExchangeableTransferPair(from.currencyCode, to.currencyCode) &&
+        transferData.exchangeRate !== 1.0
+      ) {
         setTransferData((prev) => ({
           ...prev,
           exchangeRate: 1.0,
@@ -240,7 +243,7 @@ export function DesktopTransfer() {
 
     if (
       exchangeMode === 'auto' &&
-      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       return;
     }
@@ -294,7 +297,7 @@ export function DesktopTransfer() {
     if (
       !from ||
       !to ||
-      !isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      !isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       if (targetAmount !== 0) {
         setTargetAmount(0);
@@ -349,7 +352,7 @@ export function DesktopTransfer() {
 
     if (
       exchangeMode === 'auto' &&
-      isUsdVesTransferPair(from.currencyCode, to.currencyCode)
+      isExchangeableTransferPair(from.currencyCode, to.currencyCode)
     ) {
       return targetAmount;
     }
@@ -699,7 +702,7 @@ export function DesktopTransfer() {
                         exchangeMode === 'auto' &&
                         from &&
                         to &&
-                        isUsdVesTransferPair(
+                        isExchangeableTransferPair(
                           from.currencyCode,
                           to.currencyCode
                         ) &&
@@ -726,7 +729,7 @@ export function DesktopTransfer() {
                         exchangeMode === 'manual' &&
                         from &&
                         to &&
-                        isUsdVesTransferPair(
+                        isExchangeableTransferPair(
                           from.currencyCode,
                           to.currencyCode
                         ) &&
@@ -772,7 +775,7 @@ export function DesktopTransfer() {
 
                 {getFromAccount() &&
                   getToAccount() &&
-                  isUsdVesTransferPair(
+                  isExchangeableTransferPair(
                     getFromAccount()!.currencyCode,
                     getToAccount()!.currencyCode
                   ) && (
@@ -824,7 +827,7 @@ export function DesktopTransfer() {
                               exchangeMode === 'auto' &&
                               from &&
                               to &&
-                              isUsdVesTransferPair(
+                              isExchangeableTransferPair(
                                 from.currencyCode,
                                 to.currencyCode
                               ) &&
@@ -945,7 +948,7 @@ export function DesktopTransfer() {
                 Tasa de Cambio
               </h2>
 
-              {(!isUsdVesTransferPair(
+              {(!isExchangeableTransferPair(
                 getFromAccount()!.currencyCode,
                 getToAccount()!.currencyCode
               ) ||

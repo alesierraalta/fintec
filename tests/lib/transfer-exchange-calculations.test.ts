@@ -2,15 +2,16 @@ import {
   calculateExchangeRateFromAmounts,
   calculateSourceAmountFromTarget,
   calculateTargetAmountFromSource,
-  isUsdVesTransferPair,
+  isExchangeableTransferPair,
   recalculateTransferAmounts,
 } from '@/lib/transfers/exchange-calculations';
 
 describe('transfer exchange calculations', () => {
-  it('detects USD/VES pair in both directions', () => {
-    expect(isUsdVesTransferPair('USD', 'VES')).toBe(true);
-    expect(isUsdVesTransferPair('VES', 'USD')).toBe(true);
-    expect(isUsdVesTransferPair('USD', 'EUR')).toBe(false);
+  it('detects exchangeable pairs in both directions', () => {
+    expect(isExchangeableTransferPair('USD', 'VES')).toBe(true);
+    expect(isExchangeableTransferPair('VES', 'USD')).toBe(true);
+    expect(isExchangeableTransferPair('USD', 'USD')).toBe(true);
+    expect(isExchangeableTransferPair('USD', 'EUR')).toBe(false);
   });
 
   it('converts source to target with deterministic minor-unit rounding', () => {

@@ -36,13 +36,14 @@ function divideByRate(minorAmount: number, exchangeRate: number): number {
   return Math.round((minorAmount * RATE_SCALE) / scaledRate);
 }
 
-export function isUsdVesTransferPair(
+export function isExchangeableTransferPair(
   fromCurrency?: string,
   toCurrency?: string
 ): boolean {
   return (
     (fromCurrency === 'USD' && toCurrency === 'VES') ||
-    (fromCurrency === 'VES' && toCurrency === 'USD')
+    (fromCurrency === 'VES' && toCurrency === 'USD') ||
+    (fromCurrency === 'USD' && toCurrency === 'USD')
   );
 }
 
@@ -112,7 +113,7 @@ export function recalculateTransferAmounts(
     lastEdited,
   } = input;
 
-  if (!isUsdVesTransferPair(fromCurrency, toCurrency)) {
+  if (!isExchangeableTransferPair(fromCurrency, toCurrency)) {
     return {
       sourceAmountMajor,
       targetAmountMajor,
