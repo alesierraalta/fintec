@@ -73,12 +73,21 @@ npm run clean:all
 ## Testing y CI
 
 - Unit/integration: Jest configurado con proyectos `dom` y `node` (`jest.config.js`).
-- E2E: Playwright (`playwright.config.ts`) con navegadores desktop y mobile.
-- Modo E2E sin login (`npm run e2e:no-auth`): habilita `PLAYWRIGHT_NO_AUTH_SETUP=1` y `FRONTEND_AUTH_BYPASS=1` para probar rutas protegidas del frontend sin setup de sesion.
+- E2E: Playwright usa contrato de dos lanes (`no-auth` por defecto + `auth-required` explicito) en `playwright.config.ts`.
+- Comando canonico por defecto: `npm run e2e` (equivale a no-auth y excluye specs `@auth-required`).
+- Comando canonico para autenticacion real: `npm run e2e:auth-required` (chromium + setup/auth storage + filtro `@auth-required`).
+- Comandos E2E usan `scripts/testing/run-playwright-with-guard.mjs` para timeout global y apagado forzado del arbol de procesos si una corrida se cuelga.
+- CI ejecuta lanes separadas con comandos dedicados: `npm run e2e:ci:no-auth` y `npm run e2e:ci:auth-required`.
 - Performance baseline: k6 (`k6/api-stress-test.js`) via `npm run test:load`.
 - Mutation testing: Stryker (`stryker.config.json`) via `npm run test:mutate`.
-- CI: GitHub Actions ejecuta validaciones en PR/push via `.github/workflows/ci.yml`.
-- Estado de calidad actual: `type-check`, `lint`, `test` y `build` pasan en local.
+- Estado de calidad local de referencia: `type-check`, `lint`, `test` y `build`.
+
+### Contrato de lanes Playwright
+
+- `no-auth` (default): sin bootstrap de login UI; usa `PLAYWRIGHT_NO_AUTH_SETUP=1` y `FRONTEND_AUTH_BYPASS=1` para cubrir rutas frontend protegidas sin sesion.
+- `auth-required` (opt-in): ejecuta validaciones de login/sesion real; requiere setup de auth y no permite bypass frontend.
+- Marcador obligatorio: toda spec que dependa de identidad autenticada debe usar `@auth-required`.
+- Guardrail CLI para exclusiones: usa `--grep-invert` (flag valida de Playwright), nunca `--grepInvert`.
 
 ### Frontend auth bypass (solo testing local)
 

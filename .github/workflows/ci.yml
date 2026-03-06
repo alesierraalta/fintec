@@ -34,3 +34,63 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  e2e-no-auth:
+    name: E2E no-auth
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium firefox webkit
+
+      - name: Validate Playwright lane (no-auth)
+        run: npm run e2e:validate-lane
+        env:
+          PLAYWRIGHT_LANE: no-auth
+          PLAYWRIGHT_NO_AUTH_SETUP: '1'
+          FRONTEND_AUTH_BYPASS: '1'
+
+      - name: Run Playwright no-auth lane
+        run: npm run e2e:ci:no-auth
+
+  e2e-auth-required:
+    name: E2E auth-required
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate Playwright lane (auth-required)
+        run: npm run e2e:validate-lane
+        env:
+          PLAYWRIGHT_LANE: auth-required
+
+      - name: Run Playwright auth-required lane
+        run: npm run e2e:ci:auth-required
