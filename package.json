@@ -18,6 +18,7 @@
     "test:coverage": "cross-env BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true jest --coverage",
     "test:load": "k6 run k6/api-stress-test.js",
     "perf:smoke": "k6 run tests/performance/k6/scenarios/smoke.js",
+    "perf:precommit": "node scripts/testing/perf-precommit.mjs",
     "perf:load": "k6 run tests/performance/k6/scenarios/load.js",
     "perf:stress": "k6 run tests/performance/k6/scenarios/stress.js",
     "perf:spike": "k6 run tests/performance/k6/scenarios/spike.js",

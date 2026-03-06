@@ -2,3 +2,4 @@
 
 npm run precommit:staged
 npm run guard:db-access
+npm run perf:precommit
