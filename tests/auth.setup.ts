@@ -1,110 +1,39 @@
-import { test as setup, expect } from '@playwright/test';
+import { expect, test as setup } from '@playwright/test';
 
 const authFile = 'playwright/.auth/user.json';
+const AUTH_REQUIRED_LANE = 'auth-required';
 
-setup('authenticate', async ({ page }) => {
-  console.log('🚀 Iniciando setup de autenticación automática...');
-  
-  // Configurar timeout más largo
-  page.setDefaultTimeout(60000);
-  
-  try {
-    // Ir directamente a login con el usuario existente
-    console.log('📍 Navegando a /auth/login...');
-    await page.goto('/auth/login', { waitUntil: 'networkidle' });
-    
-    // Verificar que estamos en login
-    if (!page.url().includes('/auth/login')) {
-      throw new Error('No se pudo navegar a la página de login');
-    }
-    
-    // Esperar formulario
-    await page.waitForSelector('input[name="email"]', { timeout: 15000 });
-    console.log('✅ Formulario de login encontrado');
-    
-    // Usar el usuario que ya existe y está configurado
-    const existingUser = {
-      email: 'test@fintec.com',
-      password: 'Test123!'
-    };
-    
-    // Llenar formulario
-    console.log('📝 Llenando formulario de login...');
-    await page.fill('input[name="email"]', existingUser.email);
-    await page.fill('input[name="password"]', existingUser.password);
-    
-    // Enviar formulario
-    console.log('🔘 Enviando formulario...');
-    await page.click('button[type="submit"]');
-    
-    // Esperar respuesta
-    await page.waitForTimeout(5000);
-    
-    const currentUrl = page.url();
-    console.log('📍 URL después del login:', currentUrl);
-    
-    // Verificar si hay errores
-    const errorElements = await page.locator('[class*="error"], [class*="Error"], .text-red-500, .bg-red-50').all();
-    for (let i = 0; i < errorElements.length; i++) {
-      const text = await errorElements[i].textContent();
-      if (text && text.trim()) {
-        console.log(`❌ Error encontrado: ${text.trim()}`);
-      }
-    }
-    
-    // Verificar si estamos autenticados
-    if (currentUrl.includes('/auth/')) {
-      console.log('❌ Login falló, aún en página de auth');
-      throw new Error('No se pudo autenticar con el usuario existente');
-    } else {
-      console.log('✅ Login exitoso!');
-    }
-    
-    // Verificar indicadores de autenticación
-    console.log('🔍 Verificando autenticación...');
-    
-    // Buscar elementos que indiquen que estamos autenticados
-    const authIndicators = [
-      '[data-testid="user-menu"]',
-      'button:has-text("Cerrar")',
-      'button:has-text("Logout")',
-      'text=Dashboard',
-      '.dashboard'
-    ];
-    
-    let authenticated = false;
-    for (const indicator of authIndicators) {
-      try {
-        await expect(page.locator(indicator)).toBeVisible({ timeout: 3000 });
-        authenticated = true;
-        console.log(`✅ Indicador de autenticación encontrado: ${indicator}`);
-        break;
-      } catch {
-        // Continuar con el siguiente indicador
-      }
-    }
-    
-    if (!authenticated) {
-      console.log('⚠️ No se encontraron indicadores específicos, pero la URL sugiere autenticación exitosa');
-    }
-    
-    // Guardar estado de autenticación
-    console.log('💾 Guardando estado de autenticación...');
-    await page.context().storageState({ path: authFile });
-    
-    console.log('🎉 Setup de autenticación completado exitosamente!');
-    
-  } catch (error) {
-    console.error('❌ Error en setup de autenticación:', error instanceof Error ? error.message : String(error));
-    
-    // Intentar guardar el estado actual de todas formas
-    try {
-      await page.context().storageState({ path: authFile });
-      console.log('💾 Estado parcial guardado');
-    } catch (saveError) {
-      console.error('❌ No se pudo guardar el estado:', saveError instanceof Error ? saveError.message : String(saveError));
-    }
-    
-    throw error;
+function failSetup(message: string): never {
+  throw new Error(`[auth.setup] ${message}`);
+}
+
+setup('authenticate for auth-required lane', async ({ page }) => {
+  const lane = process.env.PLAYWRIGHT_LANE ?? 'no-auth';
+  const bypass = (process.env.FRONTEND_AUTH_BYPASS ?? '').toLowerCase();
+
+  if (lane !== AUTH_REQUIRED_LANE) {
+    failSetup(
+      `This setup can run only in PLAYWRIGHT_LANE=${AUTH_REQUIRED_LANE}. Current lane: ${lane}.`
+    );
   }
+
+  if (['1', 'true', 'yes'].includes(bypass)) {
+    failSetup('FRONTEND_AUTH_BYPASS must be disabled in auth-required lane.');
+  }
+
+  page.setDefaultTimeout(60_000);
+
+  await page.goto('/auth/login', { waitUntil: 'networkidle' });
+  await expect(page).toHaveURL(/\/auth\/login/);
+
+  await page.fill('input[name="email"]', 'test@fintec.com');
+  await page.fill('input[name="password"]', 'Test123!');
+
+  await page.click('button[type="submit"]');
+  await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), {
+    timeout: 20_000,
+  });
+
+  await page.context().storageState({ path: authFile });
+  console.log(`[auth.setup] Saved authenticated storage state at ${authFile}`);
 });
