@@ -35,11 +35,11 @@ interface SwipeableCardProps {
 }
 
 const colorClasses = {
-  blue: 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700',
-  amber: 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700',
-  red: 'bg-red-500 hover:bg-red-600 active:bg-red-700',
-  green: 'bg-green-500 hover:bg-green-600 active:bg-green-700',
-  gray: 'bg-gray-500 hover:bg-gray-600 active:bg-gray-700',
+  blue: 'bg-black/90 border border-white/20 hover:bg-black active:bg-black/70',
+  amber: 'bg-black/90 border border-white/20 hover:bg-black active:bg-black/70',
+  red: 'bg-black/90 border border-white/20 hover:bg-black active:bg-black/70',
+  green: 'bg-black/90 border border-white/20 hover:bg-black active:bg-black/70',
+  gray: 'bg-black/90 border border-white/20 hover:bg-black active:bg-black/70',
 };
 
 function SwipeableCardComponent({
@@ -132,7 +132,7 @@ function SwipeableCardComponent({
     action();
   }, []);
 
-  const maxDrag = -(actionWidth * actions.length);
+  const maxDrag = -(actionWidth * actions.length + (actions.length - 1) * 4);
 
   return (
     <div
@@ -144,8 +144,10 @@ function SwipeableCardComponent({
       {/* Action buttons revealed on swipe */}
       <motion.div
         className={cn(
-          'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch transition-opacity duration-150',
-          isRevealed || isDragging ? 'opacity-100' : 'opacity-90'
+          'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch gap-1 py-1 pr-1 transition-opacity duration-200',
+          isRevealed || isDragging
+            ? 'opacity-100'
+            : 'pointer-events-none opacity-0'
         )}
       >
         {actions.map((action, index) => (
@@ -157,16 +159,19 @@ function SwipeableCardComponent({
               handleAction(action.onClick);
             }}
             className={cn(
-              'z-10 flex flex-col items-center justify-center px-4 text-white transition-colors',
-              colorClasses[action.color],
-              `min-w-[${actionWidth}px]`
+              'z-10 flex flex-col items-center justify-center rounded-xl px-4 text-white shadow-lg transition-all duration-150',
+              colorClasses[action.color]
             )}
             style={{ minWidth: actionWidth }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.92 }}
             aria-label={action.label}
           >
-            {action.icon}
-            <span className="mt-1 text-xs font-medium">{action.label}</span>
+            <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+              {action.icon}
+            </div>
+            <span className="text-[11px] font-semibold tracking-wide">
+              {action.label}
+            </span>
           </motion.button>
         ))}
       </motion.div>
