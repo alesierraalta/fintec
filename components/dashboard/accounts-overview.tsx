@@ -24,17 +24,21 @@ export const AccountsOverview = memo(function AccountsOverview() {
       return { accounts: [], totalBalance: 0, totalBalanceChange: null };
 
     const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
-    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
+
+    // Generate prefixes like "YYYY-MM" to avoid timezone parsing issues with "YYYY-MM-DD"
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const previousMonthDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+    const lastMonthPrefix = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     // Calculate transactions per account for current and previous month
     const accountTransactions = rawTransactions.reduce(
       (acc, t) => {
-        const date = new Date(t.date);
-        const month = date.getMonth();
-        const year = date.getFullYear();
+        const isCurrentMonth = t.date && t.date.startsWith(currentMonthPrefix);
+        const isLastMonth = t.date && t.date.startsWith(lastMonthPrefix);
         const accountId = t.accountId;
 
         if (!acc[accountId]) {
@@ -52,9 +56,9 @@ export const AccountsOverview = memo(function AccountsOverview() {
 
         const amount = amountUSD;
 
-        if (month === thisMonth && year === thisYear) {
+        if (isCurrentMonth) {
           acc[accountId].currentMonth += amount;
-        } else if (month === lastMonth && year === lastMonthYear) {
+        } else if (isLastMonth) {
           acc[accountId].lastMonth += amount;
         }
 
@@ -137,12 +141,7 @@ export const AccountsOverview = memo(function AccountsOverview() {
     let balanceChange = null;
     if (rawTransactions.length > 0) {
       const totalCurrentMonthTransactions = rawTransactions
-        .filter((t) => {
-          const date = new Date(t.date);
-          return (
-            date.getMonth() === thisMonth && date.getFullYear() === thisYear
-          );
-        })
+        .filter((t) => t.date && t.date.startsWith(currentMonthPrefix))
         .reduce((sum, t) => {
           const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
           // Convert VES to USD for consistent calculation
@@ -153,13 +152,7 @@ export const AccountsOverview = memo(function AccountsOverview() {
         }, 0);
 
       const totalLastMonthTransactions = rawTransactions
-        .filter((t) => {
-          const date = new Date(t.date);
-          return (
-            date.getMonth() === lastMonth &&
-            date.getFullYear() === lastMonthYear
-          );
-        })
+        .filter((t) => t.date && t.date.startsWith(lastMonthPrefix))
         .reduce((sum, t) => {
           const amountMajor = fromMinorUnits(t.amountMinor, t.currencyCode);
           // Convert VES to USD for consistent calculation

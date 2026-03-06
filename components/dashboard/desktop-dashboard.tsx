@@ -210,24 +210,25 @@ export function DesktopDashboard() {
       }, 0);
 
     const now = new Date();
-    const thisMonth = now.getMonth();
-    const thisYear = now.getFullYear();
+
+    // Generate prefixes like "YYYY-MM" to avoid timezone parsing issues with "YYYY-MM-DD"
+    const currentMonthPrefix = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const previousMonthDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1
+    );
+    const lastMonthPrefix = `${previousMonthDate.getFullYear()}-${String(previousMonthDate.getMonth() + 1).padStart(2, '0')}`;
 
     // Transacciones del mes actual
-    const monthTransactions = rawTransactions.filter((t) => {
-      const date = new Date(t.date);
-      return date.getMonth() === thisMonth && date.getFullYear() === thisYear;
-    });
+    const monthTransactions = rawTransactions.filter(
+      (t) => t.date && t.date.startsWith(currentMonthPrefix)
+    );
 
     // Transacciones del mes anterior
-    const lastMonth = thisMonth === 0 ? 11 : thisMonth - 1;
-    const lastMonthYear = thisMonth === 0 ? thisYear - 1 : thisYear;
-    const lastMonthTransactions = rawTransactions.filter((t) => {
-      const date = new Date(t.date);
-      return (
-        date.getMonth() === lastMonth && date.getFullYear() === lastMonthYear
-      );
-    });
+    const lastMonthTransactions = rawTransactions.filter(
+      (t) => t.date && t.date.startsWith(lastMonthPrefix)
+    );
 
     // Calcular ingresos y gastos actuales con conversión dinámica
     const monthlyIncome = monthTransactions
@@ -477,17 +478,16 @@ export function DesktopDashboard() {
                     })}
                   </div>
                 )}
-                {monthlyIncomeUSD > 0 && (
+                {(monthlyIncomeUSD > 0 ||
+                  (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
                   <div className="amount-positive text-lg">
                     ${monthlyIncomeUSD.toFixed(2)}
                   </div>
                 )}
-                {(monthlyIncomeVES > 0 || monthlyIncomeUSD > 0) && (
-                  <div className="amount-emphasis-white text-sm text-white">
-                    Total: ${monthlyIncome.toFixed(2)} (
-                    {getRateName(usdEquivalentType)})
-                  </div>
-                )}
+                <div className="amount-emphasis-white text-sm text-white">
+                  Total: ${monthlyIncome.toFixed(2)} (
+                  {getRateName(usdEquivalentType)})
+                </div>
               </div>
             </div>
 
@@ -508,17 +508,16 @@ export function DesktopDashboard() {
                     })}
                   </div>
                 )}
-                {monthlyExpensesUSD > 0 && (
+                {(monthlyExpensesUSD > 0 ||
+                  (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
                   <div className="amount-negative text-lg">
                     ${monthlyExpensesUSD.toFixed(2)}
                   </div>
                 )}
-                {(monthlyExpensesVES > 0 || monthlyExpensesUSD > 0) && (
-                  <div className="amount-emphasis-white text-sm text-white">
-                    Total: ${monthlyExpenses.toFixed(2)} (
-                    {getRateName(usdEquivalentType)})
-                  </div>
-                )}
+                <div className="amount-emphasis-white text-sm text-white">
+                  Total: ${monthlyExpenses.toFixed(2)} (
+                  {getRateName(usdEquivalentType)})
+                </div>
               </div>
             </div>
 
