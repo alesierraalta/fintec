@@ -3,6 +3,11 @@ import { render, screen } from '@testing-library/react';
 import { RouteAwareProviders } from '@/app/route-aware-providers';
 
 const mockUsePathname = jest.fn();
+const mockMotionConfig = jest.fn(
+  ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="motion-config">{children}</div>
+  )
+);
 
 const mockAuthProvider = jest.fn(
   ({ children }: { children: React.ReactNode }) => (
@@ -20,6 +25,11 @@ jest.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
 }));
 
+jest.mock('framer-motion', () => ({
+  MotionConfig: (props: { reducedMotion: 'user'; children: React.ReactNode }) =>
+    mockMotionConfig(props),
+}));
+
 jest.mock('@/contexts/auth-context', () => ({
   AuthProvider: (props: { children: React.ReactNode }) =>
     mockAuthProvider(props),
@@ -35,7 +45,7 @@ describe('RouteAwareProviders', () => {
     jest.clearAllMocks();
   });
 
-  it('bypasses app providers on /landing', () => {
+  it('keeps landing routes provider-free while still honoring global reduced-motion policy', () => {
     mockUsePathname.mockReturnValue('/landing');
 
     render(
@@ -45,29 +55,37 @@ describe('RouteAwareProviders', () => {
     );
 
     expect(screen.getByText('Landing content')).toBeInTheDocument();
+    expect(screen.getByTestId('motion-config')).toBeInTheDocument();
     expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
     expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
+    expect(mockMotionConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ reducedMotion: 'user' })
+    );
     expect(mockAuthProvider).not.toHaveBeenCalled();
     expect(mockRepositoryProvider).not.toHaveBeenCalled();
   });
 
-  it('bypasses app providers on /landing/* routes', () => {
-    mockUsePathname.mockReturnValue('/landing/promo');
+  it('applies auth/app providers on auth routes under the same reduced-motion policy', () => {
+    mockUsePathname.mockReturnValue('/auth/login');
 
     render(
       <RouteAwareProviders>
-        <div>Landing subroute content</div>
+        <div>Auth content</div>
       </RouteAwareProviders>
     );
 
-    expect(screen.getByText('Landing subroute content')).toBeInTheDocument();
-    expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
-    expect(mockAuthProvider).not.toHaveBeenCalled();
-    expect(mockRepositoryProvider).not.toHaveBeenCalled();
+    expect(screen.getByText('Auth content')).toBeInTheDocument();
+    expect(screen.getByTestId('motion-config')).toBeInTheDocument();
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(mockMotionConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ reducedMotion: 'user' })
+    );
+    expect(mockAuthProvider).toHaveBeenCalledTimes(1);
+    expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
   });
 
-  it('applies both providers on non-landing routes', () => {
+  it('applies app providers on dashboard routes under the same reduced-motion policy', () => {
     mockUsePathname.mockReturnValue('/dashboard');
 
     render(
@@ -78,7 +96,11 @@ describe('RouteAwareProviders', () => {
 
     expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('motion-config')).toBeInTheDocument();
     expect(screen.getByText('App content')).toBeInTheDocument();
+    expect(mockMotionConfig).toHaveBeenCalledWith(
+      expect.objectContaining({ reducedMotion: 'user' })
+    );
     expect(mockAuthProvider).toHaveBeenCalledTimes(1);
     expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
   });

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { MotionConfig } from 'framer-motion';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 
@@ -20,13 +21,22 @@ function shouldBypassAppProviders(pathname: string | null): boolean {
 export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
   const pathname = usePathname();
 
+  const reducedMotionSetting =
+    process.env.NODE_ENV === 'development' ? 'never' : 'user';
+
   if (shouldBypassAppProviders(pathname)) {
-    return <>{children}</>;
+    return (
+      <MotionConfig reducedMotion={reducedMotionSetting}>
+        {children}
+      </MotionConfig>
+    );
   }
 
   return (
-    <AuthProvider>
-      <RepositoryProvider>{children}</RepositoryProvider>
-    </AuthProvider>
+    <MotionConfig reducedMotion={reducedMotionSetting}>
+      <AuthProvider>
+        <RepositoryProvider>{children}</RepositoryProvider>
+      </AuthProvider>
+    </MotionConfig>
   );
 }

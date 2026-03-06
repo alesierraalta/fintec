@@ -756,7 +756,7 @@ export default function TransactionsPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="content-visibility-auto border-b border-border/40 last:border-0"
+                      className="content-visibility-auto"
                     >
                       <SwipeableCard
                         actions={swipeActions}
