@@ -223,117 +223,124 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="black-theme-header sticky top-0 z-50 flex h-[calc(4rem_+_env(safe-area-inset-top))] min-h-16 items-center justify-between px-4 pt-safe-top">
-        <div className="flex items-center">
-          <RateSelector />
-        </div>
-        <FinTecLogo
-          containerClassName="h-10 w-24"
-          priority
-          sizes="(max-width: 768px) 100px, 100px"
-        />
-        <div className="relative">
-          <button
-            ref={mobileUserButtonRef}
-            type="button"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            aria-expanded={showUserMenu}
-            aria-controls="user-menu-mobile"
-            aria-label={
-              showUserMenu ? 'Cerrar menú de usuario' : 'Abrir menú de usuario'
-            }
-            className="black-theme-card focus-ring flex min-h-[44px] min-w-[44px] cursor-pointer items-center rounded-xl p-2 transition-all duration-200 hover:bg-white/5"
-          >
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg ${
-                isPremium ? 'ring-2 ring-amber-400' : ''
-              }`}
+      <header className="black-theme-header sticky top-0 z-50 flex w-full flex-col shadow-sm">
+        {/* Safe area spacer */}
+        <div className="h-[env(safe-area-inset-top)] w-full" style={{ paddingTop: 'env(safe-area-inset-top)' }} />
+        
+        <div className="flex min-h-[4rem] w-full items-center justify-between px-4 py-2">
+          <div className="flex items-center">
+            <RateSelector />
+          </div>
+          <FinTecLogo
+            containerClassName="h-8 w-20 sm:h-10 sm:w-24"
+            priority
+            sizes="(max-width: 768px) 100px, 100px"
+          />
+          <div className="relative">
+            <button
+              ref={mobileUserButtonRef}
+              type="button"
+              onClick={() => setShowUserMenu(!showUserMenu)}
+              aria-expanded={showUserMenu}
+              aria-controls="user-menu-mobile"
+              aria-label={
+                showUserMenu
+                  ? 'Cerrar menú de usuario'
+                  : 'Abrir menú de usuario'
+              }
+              className="black-theme-card focus-ring flex min-h-[44px] min-w-[44px] cursor-pointer items-center rounded-xl p-2 transition-all duration-200 hover:bg-white/5"
             >
-              {isPremium ? (
-                <Crown className="h-4 w-4 text-white" />
-              ) : (
-                <User className="h-4 w-4 text-white" />
-              )}
-            </div>
-          </button>
+              <div
+                className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg ${
+                  isPremium ? 'ring-2 ring-amber-400' : ''
+                }`}
+              >
+                {isPremium ? (
+                  <Crown className="h-4 w-4 text-white" />
+                ) : (
+                  <User className="h-4 w-4 text-white" />
+                )}
+              </div>
+            </button>
 
-          {showUserMenu &&
-            overlayHost &&
-            createPortal(
-              <>
-                <div
-                  id="user-menu-mobile"
-                  className="black-theme-card fixed z-[55] rounded-xl py-2 shadow-xl"
-                  style={
-                    mobileUserMenuStyle ?? {
-                      top: 'calc(env(safe-area-inset-top) + 4.5rem)',
-                      right: '1rem',
-                      width: '16rem',
+            {showUserMenu &&
+              overlayHost &&
+              createPortal(
+                <>
+                  <div
+                    id="user-menu-mobile"
+                    className="black-theme-card fixed z-[55] rounded-xl py-2 shadow-xl"
+                    style={
+                      mobileUserMenuStyle ?? {
+                        top: 'calc(env(safe-area-inset-top) + 4.5rem)',
+                        right: '1rem',
+                        width: '16rem',
+                      }
                     }
-                  }
-                >
-                  <div className="border-b border-white/10 px-4 py-3">
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
-                          isPremium ? 'ring-2 ring-amber-400' : ''
-                        }`}
-                      >
-                        {isPremium ? (
-                          <Crown className="h-5 w-5 text-white" />
-                        ) : (
-                          <User className="h-5 w-5 text-white" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-white">
-                          {user?.user_metadata?.full_name || 'Usuario'}
-                        </p>
-                        <p className="text-sm text-white/70">{user?.email}</p>
-                        {/* * Display tier name */}
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <p className="text-xs text-white/60">Plan:</p>
-                          <p
-                            className={`text-xs font-semibold ${
-                              isPremium ? 'text-amber-400' : 'text-white/80'
-                            }`}
-                          >
-                            {tierName}
-                          </p>
-                          {isPremium && (
-                            <Crown className="h-3 w-3 text-amber-400" />
+                  >
+                    <div className="border-b border-white/10 px-4 py-3">
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 ${
+                            isPremium ? 'ring-2 ring-amber-400' : ''
+                          }`}
+                        >
+                          {isPremium ? (
+                            <Crown className="h-5 w-5 text-white" />
+                          ) : (
+                            <User className="h-5 w-5 text-white" />
                           )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium text-white">
+                            {user?.user_metadata?.full_name || 'Usuario'}
+                          </p>
+                          <p className="text-sm text-white/70">{user?.email}</p>
+                          {/* * Display tier name */}
+                          <div className="mt-1 flex items-center gap-1.5">
+                            <p className="text-xs text-white/60">Plan:</p>
+                            <p
+                              className={`text-xs font-semibold ${
+                                isPremium ? 'text-amber-400' : 'text-white/80'
+                              }`}
+                            >
+                              {tierName}
+                            </p>
+                            {isPremium && (
+                              <Crown className="h-3 w-3 text-amber-400" />
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <div className="py-2">
+                      <button
+                        type="button"
+                        onClick={handleProfile}
+                        className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
+                      >
+                        <User className="h-4 w-4" />
+                        <span>Mi Perfil</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        <span>Cerrar Sesión</span>
+                      </button>
+                    </div>
                   </div>
-                  <div className="py-2">
-                    <button
-                      type="button"
-                      onClick={handleProfile}
-                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-white/80 transition-colors hover:bg-white/10"
-                    >
-                      <User className="h-4 w-4" />
-                      <span>Mi Perfil</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full items-center space-x-3 px-4 py-2 text-sm text-red-400 transition-colors hover:bg-red-500/10"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>Cerrar Sesión</span>
-                    </button>
-                  </div>
-                </div>
-                <div
-                  data-overlay-backdrop="mobile-user-menu"
-                  className="fixed inset-0 z-[54]"
-                  onClick={() => setShowUserMenu(false)}
-                />
-              </>,
-              overlayHost
-            )}
+                  <div
+                    data-overlay-backdrop="mobile-user-menu"
+                    className="fixed inset-0 z-[54]"
+                    onClick={() => setShowUserMenu(false)}
+                  />
+                </>,
+                overlayHost
+              )}
+          </div>
         </div>
       </header>
     );

@@ -132,10 +132,11 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-bottom: constant(safe-area-inset-bottom); /* iOS < 11.2 fallback */
+  /* El scroll lo maneja #root para evitar saltos en mobile */
   background-color: #000000;
   min-height: 100%;
+  /* Prevenir pull-to-refresh accidental si se desea, pero dejamos por defecto */
+  overscroll-behavior-y: none;
 }
 
 /* Contenedor raíz - único scroll owner vertical */
@@ -231,11 +232,23 @@ body {
   box-sizing: border-box;
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 /* Black Theme Utilities */
 .black-theme-header {
   background-color: rgba(8, 8, 8, 0.95) !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   backdrop-filter: blur(20px);
+  /* Asegurar que el fondo cubra el safe area superior */
+  -webkit-backdrop-filter: blur(20px);
 }
 
 .black-theme-sidebar {

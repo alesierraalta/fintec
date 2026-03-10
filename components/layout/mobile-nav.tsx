@@ -38,7 +38,8 @@ export function MobileNav() {
     <div className="pointer-events-auto fixed inset-x-0 bottom-0 z-[45] border-t border-border-primary/30 bg-background-primary/95 backdrop-blur-lg will-change-transform lg:hidden">
       {/* Safe area for iOS */}
       <div className="pb-safe-bottom">
-        <div className="flex items-center justify-around overflow-hidden px-1 py-1">
+        {/* Usamos overflow-x-auto nativo y snap para deslizar items en pantallas muy finas sin romper flex */}
+        <div className="no-scrollbar flex w-full snap-x snap-mandatory items-center gap-1 overflow-x-auto overscroll-x-contain px-2 py-1 sm:justify-between">
           {mobileNavigation.map((item) => {
             const isActive = pathname === item.href;
             return (
@@ -47,7 +48,7 @@ export function MobileNav() {
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'focus-ring relative mx-0.5 flex min-h-[48px] min-w-0 flex-1 flex-col items-center rounded-2xl px-1 py-3 transition-all duration-200',
+                  'focus-ring relative flex min-h-[48px] min-w-[4.25rem] flex-shrink-0 snap-center flex-col items-center justify-center gap-0.5 rounded-2xl p-1 transition-all duration-200 sm:min-w-0 sm:flex-1',
                   isActive
                     ? 'text-primary'
                     : 'text-text-muted active:scale-95 active:text-text-primary'
@@ -59,13 +60,13 @@ export function MobileNav() {
                 )}
                 <item.icon
                   className={cn(
-                    'relative z-10 mb-1 h-6 w-6',
+                    'relative z-10 h-5 w-5 sm:h-6 sm:w-6',
                     isActive && 'drop-shadow-sm'
                   )}
                 />
                 <span
                   className={cn(
-                    'relative z-10 truncate text-center text-xs font-medium',
+                    'relative z-10 truncate text-center text-[10px] font-medium leading-tight sm:text-xs',
                     isActive && 'font-semibold'
                   )}
                 >
