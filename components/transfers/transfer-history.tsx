@@ -14,10 +14,9 @@ import {
   ChevronUp,
   RefreshCw,
   TrendingUp,
-  Info
+  Info,
 } from 'lucide-react';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
-import { fromMinorUnits } from '@/lib/money';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { logger } from '@/lib/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
@@ -63,12 +62,14 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>('date');
+  const [sortBy, setSortBy] = useState<'date' | 'amount' | 'description'>(
+    'date'
+  );
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
   const [dateFilter, setDateFilter] = useState({
     startDate: '',
-    endDate: ''
+    endDate: '',
   });
   const [showExchangeRates, setShowExchangeRates] = useState(false);
 
@@ -84,7 +85,8 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       setError(null);
 
       const params = new URLSearchParams();
-      if (dateFilter.startDate) params.append('startDate', dateFilter.startDate);
+      if (dateFilter.startDate)
+        params.append('startDate', dateFilter.startDate);
       if (dateFilter.endDate) params.append('endDate', dateFilter.endDate);
 
       const headers: HeadersInit = {};
@@ -92,7 +94,9 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
         headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
-      const response = await fetch(`/api/transfers?${params.toString()}`, { headers });
+      const response = await fetch(`/api/transfers?${params.toString()}`, {
+        headers,
+      });
       const result = await response.json();
 
       if (!response.ok || !result.success) {
@@ -120,12 +124,14 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
   }, [loadTransfers, authLoading, session?.access_token]);
 
   const filteredTransfers = transfers
-    .filter(transfer => {
+    .filter((transfer) => {
       if (!searchTerm) return true;
       const searchLower = searchTerm.toLowerCase();
       return (
         transfer.description.toLowerCase().includes(searchLower) ||
-        transfer.fromTransaction.accountName?.toLowerCase().includes(searchLower) ||
+        transfer.fromTransaction.accountName
+          ?.toLowerCase()
+          .includes(searchLower) ||
         transfer.toTransaction.accountName?.toLowerCase().includes(searchLower)
       );
     })
@@ -163,38 +169,61 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
-  const formatAmount = (amount: number, currencyCode: string) => {
-    return formatCurrencyWithBCV(fromMinorUnits(amount, currencyCode), currencyCode, {
+  const formatAmount = (amountMinor: number, currencyCode: string) => {
+    return formatCurrencyWithBCV(amountMinor, currencyCode, {
       showUSDEquivalent: currencyCode === 'VES',
-      locale: 'es-ES'
+      locale: 'es-ES',
     });
   };
 
-  const getExchangeRateInfo = (transaction: Transfer['fromTransaction'] | Transfer['toTransaction']) => {
-    if (!transaction.exchangeRate) return null;
+  const getExchangeRateText = (transfer: Transfer) => {
+    const from = transfer.fromTransaction;
+    const to = transfer.toTransaction;
+    if (
+      !from ||
+      !to ||
+      !from.exchangeRate ||
+      from.exchangeRate === 1 ||
+      from.currencyCode === to.currencyCode
+    )
+      return null;
 
-    const isVES = transaction.currencyCode === 'VES';
-    const currentRate = isVES ? currentBCVRates.usd : null;
-    const rateChange = currentRate ? ((currentRate - transaction.exchangeRate) / transaction.exchangeRate * 100) : null;
+    const rate = from.exchangeRate;
 
-    return {
-      rate: transaction.exchangeRate,
-      isVES,
-      currentRate,
-      rateChange,
-      hasChanged: rateChange !== null && Math.abs(rateChange) > 0.1
-    };
-  };
-
-  const formatExchangeRate = (rate: number, currencyCode: string) => {
-    if (currencyCode === 'VES') {
+    if (from.currencyCode === 'VES' && to.currencyCode === 'USD') {
+      return `1 USD = ${(1 / rate).toFixed(2)} VES`;
+    }
+    if (from.currencyCode === 'USD' && to.currencyCode === 'VES') {
       return `1 USD = ${rate.toFixed(2)} VES`;
     }
-    return `1 USD = ${rate.toFixed(4)} ${currencyCode}`;
+
+    if (from.currencyCode === 'USD') {
+      return `1 USD = ${rate.toFixed(4)} ${to.currencyCode}`;
+    }
+    if (to.currencyCode === 'USD') {
+      return `1 USD = ${(1 / rate).toFixed(4)} ${from.currencyCode}`;
+    }
+
+    return `1 ${from.currencyCode} = ${rate.toFixed(4)} ${to.currencyCode}`;
+  };
+
+  const getExchangeRateInfo = (transfer: Transfer) => {
+    const from = transfer.fromTransaction;
+    if (!from || !from.exchangeRate || from.exchangeRate === 1) return null;
+
+    const isVES =
+      from.currencyCode === 'VES' ||
+      transfer.toTransaction?.currencyCode === 'VES';
+    const rateText = getExchangeRateText(transfer);
+
+    return {
+      text: rateText,
+      isVES,
+    };
   };
 
   const handleSort = (field: 'date' | 'amount' | 'description') => {
@@ -220,11 +249,13 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
+        <div className="rounded-3xl border border-neutral-200 bg-white p-8 dark:border-neutral-700 dark:bg-neutral-800">
           <div className="flex items-center justify-center py-12">
             <div className="flex items-center space-x-3">
               <RefreshCw className="h-6 w-6 animate-spin text-primary-600" />
-              <span className="text-neutral-600 dark:text-neutral-400">Cargando transferencias...</span>
+              <span className="text-neutral-600 dark:text-neutral-400">
+                Cargando transferencias...
+              </span>
             </div>
           </div>
         </div>
@@ -242,18 +273,18 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
-          <div className="text-center py-12">
-            <ArrowRightLeft className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+        <div className="rounded-3xl border border-neutral-200 bg-white p-8 dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="py-12 text-center">
+            <ArrowRightLeft className="mx-auto mb-4 h-12 w-12 text-neutral-400" />
+            <h3 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
               Inicia sesión para ver tu historial
             </h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-4">
+            <p className="mb-4 text-neutral-600 dark:text-neutral-400">
               Necesitas estar autenticado para consultar tus transferencias.
             </p>
             <a
               href="/auth/login"
-              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700"
             >
               Ir a iniciar sesión
             </a>
@@ -272,18 +303,20 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
           </h2>
         </div>
 
-        <div className="bg-white dark:bg-neutral-800 rounded-3xl p-8 border border-neutral-200 dark:border-neutral-700">
-          <div className="text-center py-12">
-            <div className="text-red-500 mb-4">
-              <ArrowRightLeft className="h-12 w-12 mx-auto" />
+        <div className="rounded-3xl border border-neutral-200 bg-white p-8 dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="py-12 text-center">
+            <div className="mb-4 text-red-500">
+              <ArrowRightLeft className="mx-auto h-12 w-12" />
             </div>
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+            <h3 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
               Error al cargar transferencias
             </h3>
-            <p className="text-neutral-600 dark:text-neutral-400 mb-4">{error}</p>
+            <p className="mb-4 text-neutral-600 dark:text-neutral-400">
+              {error}
+            </p>
             <button
               onClick={loadTransfers}
-              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
+              className="rounded-lg bg-primary-600 px-4 py-2 text-white transition-colors hover:bg-primary-700"
             >
               Reintentar
             </button>
@@ -302,17 +335,20 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
             Historial de Transferencias
           </h2>
           <p className="text-neutral-600 dark:text-neutral-400">
-            {filteredTransfers.length} transferencia{filteredTransfers.length !== 1 ? 's' : ''} encontrada{filteredTransfers.length !== 1 ? 's' : ''}
+            {filteredTransfers.length} transferencia
+            {filteredTransfers.length !== 1 ? 's' : ''} encontrada
+            {filteredTransfers.length !== 1 ? 's' : ''}
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowExchangeRates(!showExchangeRates)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showExchangeRates
-              ? 'bg-green-50 border-green-200 text-green-700 dark:bg-green-900/20 dark:border-green-700 dark:text-green-300'
-              : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700'
-              }`}
+            className={`flex items-center space-x-2 rounded-lg border px-4 py-2 transition-colors ${
+              showExchangeRates
+                ? 'border-green-200 bg-green-50 text-green-700 dark:border-green-700 dark:bg-green-900/20 dark:text-green-300'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
+            }`}
           >
             <TrendingUp className="h-4 w-4" />
             <span>Tasas de Cambio</span>
@@ -320,19 +356,24 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
 
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-colors ${showFilters
-              ? 'bg-primary-50 border-primary-200 text-primary-700 dark:bg-primary-900/20 dark:border-primary-700 dark:text-primary-300'
-              : 'bg-white border-neutral-200 text-neutral-700 hover:bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700'
-              }`}
+            className={`flex items-center space-x-2 rounded-lg border px-4 py-2 transition-colors ${
+              showFilters
+                ? 'border-primary-200 bg-primary-50 text-primary-700 dark:border-primary-700 dark:bg-primary-900/20 dark:text-primary-300'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700'
+            }`}
           >
             <Filter className="h-4 w-4" />
             <span>Filtros</span>
-            {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            {showFilters ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
           </button>
 
           <button
             onClick={loadTransfers}
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-white border border-neutral-200 text-neutral-700 hover:bg-neutral-50 dark:bg-neutral-800 dark:border-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-700 transition-colors"
+            className="flex items-center space-x-2 rounded-lg border border-neutral-200 bg-white px-4 py-2 text-neutral-700 transition-colors hover:bg-neutral-50 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
           >
             <RefreshCw className="h-4 w-4" />
             <span>Actualizar</span>
@@ -342,21 +383,21 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
 
       {/* Filters */}
       {showFilters && (
-        <div className="bg-white dark:bg-neutral-800 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-700">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-700 dark:bg-neutral-800">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {/* Search */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
                 Buscar
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-500" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-neutral-500" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Buscar por descripción o cuenta..."
-                  className="w-full pl-10 pr-4 py-2 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
+                  className="w-full rounded-lg border border-neutral-200 bg-neutral-50 py-2 pl-10 pr-4 text-neutral-900 focus:border-primary-500 focus:outline-none dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100 dark:focus:border-primary-400"
                 />
               </div>
             </div>
@@ -369,8 +410,13 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
               <input
                 type="date"
                 value={dateFilter.startDate}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, startDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
+                onChange={(e) =>
+                  setDateFilter((prev) => ({
+                    ...prev,
+                    startDate: e.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-900 focus:border-primary-500 focus:outline-none dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100 dark:focus:border-primary-400"
               />
             </div>
 
@@ -381,16 +427,21 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
               <input
                 type="date"
                 value={dateFilter.endDate}
-                onChange={(e) => setDateFilter(prev => ({ ...prev, endDate: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-600 bg-neutral-50 dark:bg-neutral-700 text-neutral-900 dark:text-neutral-100 focus:outline-none focus:border-primary-500 dark:focus:border-primary-400"
+                onChange={(e) =>
+                  setDateFilter((prev) => ({
+                    ...prev,
+                    endDate: e.target.value,
+                  }))
+                }
+                className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-neutral-900 focus:border-primary-500 focus:outline-none dark:border-neutral-600 dark:bg-neutral-700 dark:text-neutral-100 dark:focus:border-primary-400"
               />
             </div>
           </div>
 
-          <div className="flex justify-end mt-4">
+          <div className="mt-4 flex justify-end">
             <button
               onClick={clearFilters}
-              className="text-sm text-neutral-600 dark:text-neutral-400 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+              className="text-sm text-neutral-600 transition-colors hover:text-neutral-800 dark:text-neutral-400 dark:hover:text-neutral-200"
             >
               Limpiar filtros
             </button>
@@ -399,11 +450,11 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       )}
 
       {/* Transfers List */}
-      <div className="bg-white dark:bg-neutral-800 rounded-3xl border border-neutral-200 dark:border-neutral-700 overflow-hidden">
+      <div className="overflow-hidden rounded-3xl border border-neutral-200 bg-white dark:border-neutral-700 dark:bg-neutral-800">
         {filteredTransfers.length === 0 ? (
-          <div className="text-center py-12">
-            <ArrowRightLeft className="h-12 w-12 text-neutral-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100 mb-2">
+          <div className="py-12 text-center">
+            <ArrowRightLeft className="mx-auto mb-4 h-12 w-12 text-neutral-400" />
+            <h3 className="mb-2 text-lg font-semibold text-neutral-900 dark:text-neutral-100">
               No hay transferencias
             </h3>
             <p className="text-neutral-600 dark:text-neutral-400">
@@ -415,18 +466,26 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
         ) : (
           <>
             {/* Table Header */}
-            <div className="bg-neutral-50 dark:bg-neutral-700 px-6 py-4 border-b border-neutral-200 dark:border-neutral-600">
-              <div className={`grid gap-4 text-sm font-medium text-neutral-600 dark:text-neutral-400 ${showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'
-                }`}>
-                <div className={showExchangeRates ? 'col-span-2' : 'col-span-3'}>
+            <div className="border-b border-neutral-200 bg-neutral-50 px-6 py-4 dark:border-neutral-600 dark:bg-neutral-700">
+              <div
+                className={`grid gap-4 text-sm font-medium text-neutral-600 dark:text-neutral-400 ${
+                  showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'
+                }`}
+              >
+                <div
+                  className={showExchangeRates ? 'col-span-2' : 'col-span-3'}
+                >
                   <button
                     onClick={() => handleSort('description')}
-                    className="flex items-center space-x-1 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                    className="flex items-center space-x-1 transition-colors hover:text-neutral-800 dark:hover:text-neutral-200"
                   >
                     <span>Descripción</span>
-                    {sortBy === 'description' && (
-                      sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                    )}
+                    {sortBy === 'description' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      ))}
                   </button>
                 </div>
                 <div className="col-span-2">
@@ -438,12 +497,15 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                 <div className="col-span-2">
                   <button
                     onClick={() => handleSort('amount')}
-                    className="flex items-center space-x-1 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                    className="flex items-center space-x-1 transition-colors hover:text-neutral-800 dark:hover:text-neutral-200"
                   >
                     <span>Monto</span>
-                    {sortBy === 'amount' && (
-                      sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                    )}
+                    {sortBy === 'amount' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      ))}
                   </button>
                 </div>
                 {showExchangeRates && (
@@ -457,12 +519,15 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                 <div className="col-span-2">
                   <button
                     onClick={() => handleSort('date')}
-                    className="flex items-center space-x-1 hover:text-neutral-800 dark:hover:text-neutral-200 transition-colors"
+                    className="flex items-center space-x-1 transition-colors hover:text-neutral-800 dark:hover:text-neutral-200"
                   >
                     <span>Fecha</span>
-                    {sortBy === 'date' && (
-                      sortOrder === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
-                    )}
+                    {sortBy === 'date' &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="h-4 w-4" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4" />
+                      ))}
                   </button>
                 </div>
                 <div className="col-span-1">
@@ -474,7 +539,7 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
             {/* Table Body - Virtualized for performance */}
             <div
               ref={parentRef}
-              className="divide-y divide-neutral-200 dark:divide-neutral-600 max-h-[600px] overflow-auto"
+              className="max-h-[600px] divide-y divide-neutral-200 overflow-auto dark:divide-neutral-600"
             >
               {shouldVirtualize ? (
                 // Virtualized rendering for large lists
@@ -487,8 +552,8 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                 >
                   {rowVirtualizer.getVirtualItems().map((virtualRow) => {
                     const transfer = filteredTransfers[virtualRow.index];
-                    const fromRateInfo = getExchangeRateInfo(transfer.fromTransaction);
-                    const toRateInfo = getExchangeRateInfo(transfer.toTransaction);
+                    const fromRateInfo = getExchangeRateInfo(transfer);
+                    const toRateInfo = null;
                     const hasExchangeRates = fromRateInfo || toRateInfo;
 
                     return (
@@ -502,38 +567,61 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                           height: `${virtualRow.size}px`,
                           transform: `translateY(${virtualRow.start}px)`,
                         }}
-                        className="px-6 py-4 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors border-b border-neutral-200 dark:border-neutral-600"
+                        className="border-b border-neutral-200 px-6 py-4 transition-colors hover:bg-neutral-50 dark:border-neutral-600 dark:hover:bg-neutral-700/50"
                       >
-                        <div className={`grid gap-4 items-center ${showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'}`}>
-                          <div className={showExchangeRates ? 'col-span-2' : 'col-span-3'}>
-                            <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{transfer.description}</p>
+                        <div
+                          className={`grid items-center gap-4 ${showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'}`}
+                        >
+                          <div
+                            className={
+                              showExchangeRates ? 'col-span-2' : 'col-span-3'
+                            }
+                          >
+                            <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                              {transfer.description}
+                            </p>
                           </div>
                           <div className="col-span-2">
                             <div className="flex items-center space-x-2">
                               <Wallet className="h-4 w-4 text-red-500" />
-                              <span className="text-sm text-neutral-700 dark:text-neutral-300 truncate">{transfer.fromTransaction.accountName || 'Cuenta origen'}</span>
+                              <span className="truncate text-sm text-neutral-700 dark:text-neutral-300">
+                                {transfer.fromTransaction.accountName ||
+                                  'Cuenta origen'}
+                              </span>
                             </div>
                           </div>
                           <div className="col-span-2">
                             <div className="flex items-center space-x-2">
                               <Wallet className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-neutral-700 dark:text-neutral-300 truncate">{transfer.toTransaction.accountName || 'Cuenta destino'}</span>
+                              <span className="truncate text-sm text-neutral-700 dark:text-neutral-300">
+                                {transfer.toTransaction.accountName ||
+                                  'Cuenta destino'}
+                              </span>
                             </div>
                           </div>
                           <div className="col-span-2">
                             <div className="flex items-center space-x-2">
                               <DollarSign className="h-4 w-4 text-primary-600" />
-                              <span className="font-semibold text-neutral-900 dark:text-neutral-100">{formatAmount(transfer.amount, transfer.fromTransaction.currencyCode)}</span>
+                              <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                                {formatAmount(
+                                  transfer.amount,
+                                  transfer.fromTransaction.currencyCode
+                                )}
+                              </span>
                             </div>
                           </div>
                           {showExchangeRates && (
                             <div className="col-span-3">
                               {hasExchangeRates ? (
-                                <div className="text-xs text-neutral-600 dark:text-neutral-400">Tasa aplicada</div>
+                                <div className="text-xs text-neutral-600 dark:text-neutral-400">
+                                  {fromRateInfo?.text || 'Tasa aplicada'}
+                                </div>
                               ) : (
                                 <div className="flex items-center space-x-2">
                                   <Info className="h-3 w-3 text-neutral-400" />
-                                  <span className="text-xs text-neutral-500">Sin tasa</span>
+                                  <span className="text-xs text-neutral-500">
+                                    Sin tasa
+                                  </span>
                                 </div>
                               )}
                             </div>
@@ -541,13 +629,17 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                           <div className="col-span-2">
                             <div className="flex items-center space-x-2">
                               <Calendar className="h-4 w-4 text-neutral-500" />
-                              <span className="text-sm text-neutral-600 dark:text-neutral-400">{formatDate(transfer.date)}</span>
+                              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                                {formatDate(transfer.date)}
+                              </span>
                             </div>
                           </div>
                           <div className="col-span-1">
                             <div className="flex items-center space-x-2">
-                              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                              <span className="text-xs text-green-600 dark:text-green-400 font-medium">OK</span>
+                              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                              <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                OK
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -558,49 +650,75 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
               ) : (
                 // Regular rendering for small lists
                 filteredTransfers.map((transfer) => {
-                  const fromRateInfo = getExchangeRateInfo(transfer.fromTransaction);
-                  const toRateInfo = getExchangeRateInfo(transfer.toTransaction);
+                  const fromRateInfo = getExchangeRateInfo(transfer);
+                  const toRateInfo = null;
                   const hasExchangeRates = fromRateInfo || toRateInfo;
 
                   return (
-                    <div key={transfer.id} className="px-6 py-4 hover:bg-neutral-50 dark:hover:bg-neutral-700/50 transition-colors">
-                      <div className={`grid gap-4 items-center ${showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'}`}>
-                        <div className={showExchangeRates ? 'col-span-2' : 'col-span-3'}>
-                          <p className="font-medium text-neutral-900 dark:text-neutral-100 truncate">{transfer.description}</p>
+                    <div
+                      key={transfer.id}
+                      className="px-6 py-4 transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-700/50"
+                    >
+                      <div
+                        className={`grid items-center gap-4 ${showExchangeRates ? 'grid-cols-16' : 'grid-cols-12'}`}
+                      >
+                        <div
+                          className={
+                            showExchangeRates ? 'col-span-2' : 'col-span-3'
+                          }
+                        >
+                          <p className="truncate font-medium text-neutral-900 dark:text-neutral-100">
+                            {transfer.description}
+                          </p>
                         </div>
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <Wallet className="h-4 w-4 text-red-500" />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300 truncate">{transfer.fromTransaction.accountName || 'Cuenta origen'}</span>
+                            <span className="truncate text-sm text-neutral-700 dark:text-neutral-300">
+                              {transfer.fromTransaction.accountName ||
+                                'Cuenta origen'}
+                            </span>
                           </div>
                         </div>
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <Wallet className="h-4 w-4 text-green-500" />
-                            <span className="text-sm text-neutral-700 dark:text-neutral-300 truncate">{transfer.toTransaction.accountName || 'Cuenta destino'}</span>
+                            <span className="truncate text-sm text-neutral-700 dark:text-neutral-300">
+                              {transfer.toTransaction.accountName ||
+                                'Cuenta destino'}
+                            </span>
                           </div>
                         </div>
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <DollarSign className="h-4 w-4 text-primary-600" />
-                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">{formatAmount(transfer.amount, transfer.fromTransaction.currencyCode)}</span>
+                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                              {formatAmount(
+                                transfer.amount,
+                                transfer.fromTransaction.currencyCode
+                              )}
+                            </span>
                           </div>
                         </div>
                         {showExchangeRates && (
                           <div className="col-span-3">
                             {hasExchangeRates ? (
                               <div className="space-y-1">
-                                {fromRateInfo && (
+                                {fromRateInfo && fromRateInfo.text && (
                                   <div className="flex items-center space-x-2">
                                     <TrendingUp className="h-3 w-3 text-blue-500" />
-                                    <span className="text-xs text-neutral-600 dark:text-neutral-400">{formatExchangeRate(fromRateInfo.rate, transfer.fromTransaction.currencyCode)}</span>
+                                    <span className="text-xs text-neutral-600 dark:text-neutral-400">
+                                      {fromRateInfo.text}
+                                    </span>
                                   </div>
                                 )}
                               </div>
                             ) : (
                               <div className="flex items-center space-x-2">
                                 <Info className="h-3 w-3 text-neutral-400" />
-                                <span className="text-xs text-neutral-500 dark:text-neutral-400">Sin tasa</span>
+                                <span className="text-xs text-neutral-500 dark:text-neutral-400">
+                                  Sin tasa
+                                </span>
                               </div>
                             )}
                           </div>
@@ -608,13 +726,17 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <Calendar className="h-4 w-4 text-neutral-500" />
-                            <span className="text-sm text-neutral-600 dark:text-neutral-400">{formatDate(transfer.date)}</span>
+                            <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                              {formatDate(transfer.date)}
+                            </span>
                           </div>
                         </div>
                         <div className="col-span-1">
                           <div className="flex items-center space-x-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-xs text-green-600 dark:text-green-400 font-medium">Completada</span>
+                            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                            <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                              Completada
+                            </span>
                           </div>
                         </div>
                       </div>
