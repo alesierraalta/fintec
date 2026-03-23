@@ -1,4 +1,8 @@
-import { ExchangeRatesRepository } from '@/repositories/contracts';
+import {
+  ExchangeRatesRepository,
+  CreateExchangeRateDTO,
+  UpdateExchangeRateDTO,
+} from '@/repositories/contracts';
 import { ExchangeRate, PaginationParams, PaginatedResult } from '@/types';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from './client';
@@ -8,7 +12,6 @@ import {
   mapSupabaseExchangeRateArrayToDomain,
 } from './mappers';
 
-// @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseExchangeRatesRepository
   implements ExchangeRatesRepository
 {
@@ -81,16 +84,13 @@ export class SupabaseExchangeRatesRepository
       .eq('quote_currency', quoteCurrency)
       .order('date', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
-      }
       throw new Error(`Failed to fetch latest exchange rate: ${error.message}`);
     }
 
-    return mapSupabaseExchangeRateToDomain(data);
+    return data ? mapSupabaseExchangeRateToDomain(data) : null;
   }
 
   async findByDate(date: string): Promise<ExchangeRate[]> {
@@ -150,25 +150,7 @@ export class SupabaseExchangeRatesRepository
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async findByCurrency(currency: string): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .or(`base_currency.eq.${currency},quote_currency.eq.${currency}`)
-      .order('date', { ascending: false })
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
-
-    if (error) {
-      throw new Error(
-        `Failed to fetch exchange rates by currency: ${error.message}`
-      );
-    }
-
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
-  }
-
-  async findWithPagination(
+  async findPaginated(
     params: PaginationParams
   ): Promise<PaginatedResult<ExchangeRate>> {
     const { page, limit, sortBy = 'date', sortOrder = 'desc' } = params;
@@ -188,8 +170,6 @@ export class SupabaseExchangeRatesRepository
       .from('exchange_rates')
       .select('*')
       .order(sortBy, { ascending: sortOrder === 'asc' })
-      .order('base_currency', { ascending: true }) // Secondary sort
-      .order('quote_currency', { ascending: true }) // Tertiary sort
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -208,13 +188,18 @@ export class SupabaseExchangeRatesRepository
     };
   }
 
-  async create(
-    exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>
-  ): Promise<ExchangeRate> {
-    const supabaseExchangeRate = mapDomainExchangeRateToSupabase(exchangeRate);
+  async create(data: CreateExchangeRateDTO): Promise<ExchangeRate> {
+    const supabaseRate = {
+      base_currency: data.baseCurrency,
+      quote_currency: data.quoteCurrency,
+      rate: data.rate,
+      date: data.date,
+      provider: data.provider,
+    };
 
-    const { data, error } = await (this.client.from('exchange_rates') as any)
-      .insert(supabaseExchangeRate as any)
+    const { data: inserted, error } = await this.client
+      .from('exchange_rates')
+      .insert(supabaseRate)
       .select()
       .single();
 
@@ -222,17 +207,46 @@ export class SupabaseExchangeRatesRepository
       throw new Error(`Failed to create exchange rate: ${error.message}`);
     }
 
-    return mapSupabaseExchangeRateToDomain(data);
+    return mapSupabaseExchangeRateToDomain(inserted);
+  }
+
+  async createMany(data: CreateExchangeRateDTO[]): Promise<ExchangeRate[]> {
+    const supabaseRates = data.map((d) => ({
+      base_currency: d.baseCurrency,
+      quote_currency: d.quoteCurrency,
+      rate: d.rate,
+      date: d.date,
+      provider: d.provider,
+    }));
+
+    const { data: inserted, error } = await this.client
+      .from('exchange_rates')
+      .insert(supabaseRates)
+      .select();
+
+    if (error) {
+      throw new Error(`Failed to bulk create exchange rates: ${error.message}`);
+    }
+
+    return mapSupabaseExchangeRateArrayToDomain(inserted || []);
   }
 
   async update(
     id: string,
-    updates: Partial<ExchangeRate>
+    updates: UpdateExchangeRateDTO
   ): Promise<ExchangeRate> {
-    const supabaseUpdates = mapDomainExchangeRateToSupabase(updates);
+    const supabaseUpdates: any = {};
+    if (updates.baseCurrency)
+      supabaseUpdates.base_currency = updates.baseCurrency;
+    if (updates.quoteCurrency)
+      supabaseUpdates.quote_currency = updates.quoteCurrency;
+    if (updates.rate !== undefined) supabaseUpdates.rate = updates.rate;
+    if (updates.date) supabaseUpdates.date = updates.date;
+    if (updates.provider) supabaseUpdates.provider = updates.provider;
 
-    const { data, error } = await (this.client.from('exchange_rates') as any)
-      .update(supabaseUpdates as any)
+    const { data, error } = await this.client
+      .from('exchange_rates')
+      .update(supabaseUpdates)
       .eq('id', id)
       .select()
       .single();
@@ -255,6 +269,17 @@ export class SupabaseExchangeRatesRepository
     }
   }
 
+  async deleteMany(ids: string[]): Promise<void> {
+    const { error } = await this.client
+      .from('exchange_rates')
+      .delete()
+      .in('id', ids);
+
+    if (error) {
+      throw new Error(`Failed to bulk delete exchange rates: ${error.message}`);
+    }
+  }
+
   async count(): Promise<number> {
     const { count, error } = await this.client
       .from('exchange_rates')
@@ -267,151 +292,197 @@ export class SupabaseExchangeRatesRepository
     return count || 0;
   }
 
-  async upsert(
-    exchangeRate: Omit<ExchangeRate, 'id' | 'createdAt'>
-  ): Promise<ExchangeRate> {
-    // Try to find existing rate for the same pair, date, and provider
-    const existing: any = await this.client
+  async exists(id: string): Promise<boolean> {
+    const { data, error } = await this.client
       .from('exchange_rates')
       .select('id')
-      .eq('base_currency', exchangeRate.baseCurrency)
-      .eq('quote_currency', exchangeRate.quoteCurrency)
-      .eq('date', exchangeRate.date)
-      .eq('provider', exchangeRate.provider)
-      .single();
+      .eq('id', id)
+      .maybeSingle();
 
-    if (existing.data && !existing.error) {
-      // Update existing rate
-      return this.update(existing.data.id, exchangeRate);
+    return !!data && !error;
+  }
+
+  // Rate retrieval with fallback
+  async getRate(
+    baseCurrency: string,
+    quoteCurrency: string,
+    date?: string
+  ): Promise<number> {
+    if (baseCurrency === quoteCurrency) return 1;
+
+    let query = this.client
+      .from('exchange_rates')
+      .select('rate')
+      .eq('base_currency', baseCurrency)
+      .eq('quote_currency', quoteCurrency);
+
+    if (date) {
+      query = query.eq('date', date);
     } else {
-      // Create new rate
-      return this.create(exchangeRate);
-    }
-  }
-
-  async bulkCreate(
-    exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]
-  ): Promise<ExchangeRate[]> {
-    const supabaseExchangeRates = exchangeRates.map((rate) =>
-      mapDomainExchangeRateToSupabase(rate)
-    );
-
-    const { data, error } = await (this.client.from('exchange_rates') as any)
-      .insert(supabaseExchangeRates as any)
-      .select();
-
-    if (error) {
-      throw new Error(`Failed to bulk create exchange rates: ${error.message}`);
+      query = query.order('date', { ascending: false }).limit(1);
     }
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+    const { data, error } = await query.maybeSingle();
+
+    if (error || !data) {
+      // Try reverse pair
+      let reverseQuery = this.client
+        .from('exchange_rates')
+        .select('rate')
+        .eq('base_currency', quoteCurrency)
+        .eq('quote_currency', baseCurrency);
+
+      if (date) {
+        reverseQuery = reverseQuery.eq('date', date);
+      } else {
+        reverseQuery = reverseQuery
+          .order('date', { ascending: false })
+          .limit(1);
+      }
+
+      const { data: revData, error: revError } =
+        await reverseQuery.maybeSingle();
+      if (!revError && revData && revData.rate > 0) {
+        return 1 / revData.rate;
+      }
+
+      throw new Error(
+        `Exchange rate not found for ${baseCurrency}/${quoteCurrency}`
+      );
+    }
+
+    return data.rate;
   }
 
-  async bulkUpsert(
-    exchangeRates: Omit<ExchangeRate, 'id' | 'createdAt'>[]
-  ): Promise<ExchangeRate[]> {
-    const supabaseExchangeRates = exchangeRates.map((rate) =>
-      mapDomainExchangeRateToSupabase(rate)
-    );
+  async getRateWithFallback(
+    baseCurrency: string,
+    quoteCurrency: string,
+    date?: string
+  ): Promise<{
+    rate: number;
+    source: 'exact' | 'latest' | 'fallback';
+    date: string;
+  }> {
+    if (baseCurrency === quoteCurrency) {
+      return {
+        rate: 1,
+        source: 'exact',
+        date: date || new Date().toISOString().split('T')[0],
+      };
+    }
 
-    const { data, error } = await (this.client.from('exchange_rates') as any)
-      .upsert(supabaseExchangeRates as any, {
+    try {
+      // 1. Try exact date
+      if (date) {
+        const rate = await this.getRate(baseCurrency, quoteCurrency, date);
+        return { rate, source: 'exact', date };
+      }
+    } catch (e) {}
+
+    // 2. Try latest
+    try {
+      const latest = await this.findLatestByPair(baseCurrency, quoteCurrency);
+      if (latest) {
+        return { rate: latest.rate, source: 'latest', date: latest.date };
+      }
+    } catch (e) {}
+
+    // 3. Last fallback (e.g., 1 if same currency or global default)
+    return {
+      rate: 1,
+      source: 'fallback',
+      date: new Date().toISOString().split('T')[0],
+    };
+  }
+
+  // Bulk operations
+  async updateRatesFromProvider(
+    rates: CreateExchangeRateDTO[]
+  ): Promise<ExchangeRate[]> {
+    const supabaseRates = rates.map((r) => ({
+      base_currency: r.baseCurrency,
+      quote_currency: r.quoteCurrency,
+      rate: r.rate,
+      date: r.date,
+      provider: r.provider,
+    }));
+
+    const { data, error } = await this.client
+      .from('exchange_rates')
+      .upsert(supabaseRates, {
         onConflict: 'base_currency,quote_currency,date,provider',
       })
       .select();
 
     if (error) {
-      throw new Error(`Failed to bulk upsert exchange rates: ${error.message}`);
+      throw new Error(`Failed to update rates from provider: ${error.message}`);
     }
 
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
-  async deleteByDateRange(startDate: string, endDate: string): Promise<void> {
-    const { error } = await this.client
+  // Cache management
+  async clearOldRates(olderThanDays: number): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+    const dateStr = cutoffDate.toISOString().split('T')[0];
+
+    const { error, count } = await this.client
       .from('exchange_rates')
-      .delete()
-      .gte('date', startDate)
-      .lte('date', endDate);
+      .delete({ count: 'exact' })
+      .lt('date', dateStr);
 
     if (error) {
-      throw new Error(
-        `Failed to delete exchange rates by date range: ${error.message}`
-      );
+      throw new Error(`Failed to clear old rates: ${error.message}`);
     }
+
+    return count || 0;
   }
 
-  async deleteByProvider(provider: string): Promise<void> {
-    const { error } = await this.client
-      .from('exchange_rates')
-      .delete()
-      .eq('provider', provider);
-
-    if (error) {
-      throw new Error(
-        `Failed to delete exchange rates by provider: ${error.message}`
-      );
-    }
-  }
-
-  async getAvailableCurrencyPairs(): Promise<
-    { baseCurrency: string; quoteCurrency: string }[]
-  > {
+  // Supported currencies
+  async getSupportedCurrencies(): Promise<string[]> {
     const { data, error } = await this.client
       .from('exchange_rates')
-      .select('base_currency, quote_currency')
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
+      .select('base_currency, quote_currency');
 
-    if (error) {
-      throw new Error(
-        `Failed to get available currency pairs: ${error.message}`
-      );
-    }
+    if (error) return [];
 
-    // Remove duplicates
-    const pairs = new Set<string>();
-    const result: { baseCurrency: string; quoteCurrency: string }[] = [];
-
-    ((data as any[]) || []).forEach((item: any) => {
-      const key = `${item.base_currency}-${item.quote_currency}`;
-      if (!pairs.has(key)) {
-        pairs.add(key);
-        result.push({
-          baseCurrency: item.base_currency,
-          quoteCurrency: item.quote_currency,
-        });
-      }
+    const currencies = new Set<string>();
+    (data || []).forEach((row) => {
+      currencies.add(row.base_currency);
+      currencies.add(row.quote_currency);
     });
 
-    return result;
+    return Array.from(currencies).sort();
   }
 
-  async getLatestRates(baseCurrency?: string): Promise<ExchangeRate[]> {
-    let query = this.client.from('exchange_rates').select('*');
+  // Rate history
+  async getRateHistory(
+    baseCurrency: string,
+    quoteCurrency: string,
+    days: number
+  ): Promise<
+    {
+      date: string;
+      rate: number;
+    }[]
+  > {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
-    if (baseCurrency) {
-      query = query.eq('base_currency', baseCurrency);
-    }
+    const { data, error } = await this.client
+      .from('exchange_rates')
+      .select('date, rate')
+      .eq('base_currency', baseCurrency)
+      .eq('quote_currency', quoteCurrency)
+      .gte('date', startDate.toISOString().split('T')[0])
+      .order('date', { ascending: true });
 
-    // Get the latest rate for each currency pair
-    const { data, error } = await query.order('date', { ascending: false });
+    if (error) return [];
 
-    if (error) {
-      throw new Error(`Failed to get latest rates: ${error.message}`);
-    }
-
-    // Group by currency pair and get the latest for each
-    const latestRates = new Map<string, any>();
-    ((data as any[]) || []).forEach((rate: any) => {
-      const key = `${rate.base_currency}-${rate.quote_currency}`;
-      if (!latestRates.has(key)) {
-        latestRates.set(key, rate);
-      }
-    });
-
-    return mapSupabaseExchangeRateArrayToDomain(
-      Array.from(latestRates.values())
-    );
+    return (data || []).map((row) => ({
+      date: row.date,
+      rate: row.rate,
+    }));
   }
 }

@@ -2,7 +2,7 @@ import { Budget } from '@/types';
 import { BaseRepository } from './base-repository';
 
 export interface CreateBudgetDTO {
-  name: string;
+  name?: string;
   categoryId: string;
   monthYear: string; // YYYY-MM format
   amountBaseMinor: number;
@@ -20,16 +20,17 @@ export interface BudgetWithProgress extends Budget {
   isOverBudget: boolean;
 }
 
-export interface BudgetsRepository extends BaseRepository<Budget, CreateBudgetDTO, UpdateBudgetDTO> {
+export interface BudgetsRepository
+  extends BaseRepository<Budget, CreateBudgetDTO, UpdateBudgetDTO> {
   // Budget-specific queries
   findByMonthYear(monthYear: string): Promise<Budget[]>;
   findByCategoryId(categoryId: string): Promise<Budget[]>;
   findActive(): Promise<Budget[]>;
-  
+
   // Budget progress
   getBudgetWithProgress(id: string): Promise<BudgetWithProgress | null>;
   getBudgetsWithProgress(monthYear: string): Promise<BudgetWithProgress[]>;
-  
+
   // Monthly budget overview
   getMonthlyBudgetSummary(monthYear: string): Promise<{
     totalBudgetBaseMinor: number;
@@ -38,13 +39,19 @@ export interface BudgetsRepository extends BaseRepository<Budget, CreateBudgetDT
     overBudgetCount: number;
     budgetsCount: number;
   }>;
-  
+
   // Budget alerts
   getOverBudgetAlerts(monthYear?: string): Promise<BudgetWithProgress[]>;
-  getBudgetAlerts(monthYear: string, threshold: number): Promise<BudgetWithProgress[]>; // threshold as percentage (0-100)
-  
+  getBudgetAlerts(
+    monthYear: string,
+    threshold: number
+  ): Promise<BudgetWithProgress[]>; // threshold as percentage (0-100)
+
   // Budget comparison
-  compareBudgets(monthYear1: string, monthYear2: string): Promise<{
+  compareBudgets(
+    monthYear1: string,
+    monthYear2: string
+  ): Promise<{
     month1: BudgetWithProgress[];
     month2: BudgetWithProgress[];
     comparison: {
@@ -58,10 +65,13 @@ export interface BudgetsRepository extends BaseRepository<Budget, CreateBudgetDT
       spentChange: number;
     }[];
   }>;
-  
+
   // Bulk operations
-  copyBudgetsToNextMonth(fromMonthYear: string, toMonthYear: string): Promise<Budget[]>;
-  
+  copyBudgetsToNextMonth(
+    fromMonthYear: string,
+    toMonthYear: string
+  ): Promise<Budget[]>;
+
   // Validation
   budgetExists(categoryId: string, monthYear: string): Promise<boolean>;
 }

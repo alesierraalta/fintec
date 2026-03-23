@@ -1,4 +1,4 @@
-import { SavingsGoal } from '@/types';
+import { GoalAnalytics, SavingsGoal } from '@/types';
 import { BaseRepository } from './base-repository';
 
 export interface CreateGoalDTO {
@@ -23,39 +23,42 @@ export interface GoalWithProgress extends SavingsGoal {
   suggestedMonthlyContribution?: number;
 }
 
-export interface GoalsRepository extends BaseRepository<SavingsGoal, CreateGoalDTO, UpdateGoalDTO> {
+export interface GoalsRepository
+  extends BaseRepository<SavingsGoal, CreateGoalDTO, UpdateGoalDTO> {
   // Goal-specific queries
   findActive(): Promise<SavingsGoal[]>;
   findByAccountId(accountId: string): Promise<SavingsGoal[]>;
-  findByTargetDateRange(startDate: string, endDate: string): Promise<SavingsGoal[]>;
-  
+  findByTargetDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<SavingsGoal[]>;
+
   // Goal progress
   getGoalWithProgress(id: string): Promise<GoalWithProgress | null>;
   getGoalsWithProgress(): Promise<GoalWithProgress[]>;
-  
+
   // Goal contributions
-  addContribution(goalId: string, amountBaseMinor: number, note?: string): Promise<SavingsGoal>;
-  removeContribution(goalId: string, amountBaseMinor: number, note?: string): Promise<SavingsGoal>;
-  
+  addContribution(
+    goalId: string,
+    amountBaseMinor: number,
+    note?: string
+  ): Promise<SavingsGoal>;
+  removeContribution(
+    goalId: string,
+    amountBaseMinor: number,
+    note?: string
+  ): Promise<SavingsGoal>;
+
   // Goal analytics
-  getGoalAnalytics(goalId: string): Promise<{
-    totalContributions: number;
-    averageMonthlyContribution: number;
-    contributionHistory: {
-      date: string;
-      amountBaseMinor: number;
-      note?: string;
-    }[];
-    projectedCompletionDate?: string;
-  }>;
-  
+  getGoalAnalytics(goalId: string): Promise<GoalAnalytics>;
+
   // Goal tracking
-  updateGoalProgress(): Promise<void>; // Recalculate all goal progress based on linked accounts
-  
+  updateGoalProgress(goalId?: string): Promise<void>; // Recalculate linked goal progress for one goal or all linked goals
+
   // Goal alerts
   getGoalsNearingDeadline(days: number): Promise<GoalWithProgress[]>;
   getOffTrackGoals(): Promise<GoalWithProgress[]>;
-  
+
   // Goal statistics
   getGoalsSummary(): Promise<{
     totalGoals: number;
@@ -65,7 +68,7 @@ export interface GoalsRepository extends BaseRepository<SavingsGoal, CreateGoalD
     totalSavedBaseMinor: number;
     averageProgress: number;
   }>;
-  
+
   // Bulk operations
   markGoalAsCompleted(goalId: string): Promise<SavingsGoal>;
   archiveCompletedGoals(): Promise<number>; // Returns count of archived goals

@@ -1,9 +1,16 @@
-import { SavingsGoal, PaginatedResult, PaginationParams } from '@/types';
-import { 
-  GoalsRepository, 
-  CreateGoalDTO, 
-  UpdateGoalDTO, 
-  GoalWithProgress 
+import {
+  GoalAnalytics,
+  GoalContribution,
+  GoalContributionHistoryEntry,
+  SavingsGoal,
+  PaginatedResult,
+  PaginationParams,
+} from '@/types';
+import {
+  GoalsRepository,
+  CreateGoalDTO,
+  UpdateGoalDTO,
+  GoalWithProgress,
 } from '@/repositories/contracts';
 import { db } from './db';
 import { generateId } from '@/lib/utils';
@@ -45,7 +52,7 @@ export class LocalGoalsRepository implements GoalsRepository {
     const updated: SavingsGoal = {
       ...existing,
       ...data,
-      id, // Ensure ID doesn't change
+      id,
       updatedAt: new Date().toISOString(),
     };
 
@@ -55,10 +62,12 @@ export class LocalGoalsRepository implements GoalsRepository {
 
   async delete(id: string): Promise<void> {
     await db.goals.delete(id);
+    await db.goalContributions.where('goalId').equals(id).delete();
   }
 
   async createMany(data: CreateGoalDTO[]): Promise<SavingsGoal[]> {
-    const goals: SavingsGoal[] = data.map(item => ({
+    const now = new Date().toISOString();
+    const goals: SavingsGoal[] = data.map((item) => ({
       id: generateId('goal'),
       name: item.name,
       description: item.description,
@@ -67,8 +76,8 @@ export class LocalGoalsRepository implements GoalsRepository {
       targetDate: item.targetDate,
       accountId: item.accountId,
       active: item.active ?? true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: now,
+      updatedAt: now,
     }));
 
     await db.goals.bulkAdd(goals);
@@ -77,9 +86,14 @@ export class LocalGoalsRepository implements GoalsRepository {
 
   async deleteMany(ids: string[]): Promise<void> {
     await db.goals.bulkDelete(ids);
+    await Promise.all(
+      ids.map((id) => db.goalContributions.where('goalId').equals(id).delete())
+    );
   }
 
-  async findPaginated(params: PaginationParams): Promise<PaginatedResult<SavingsGoal>> {
+  async findPaginated(
+    params: PaginationParams
+  ): Promise<PaginatedResult<SavingsGoal>> {
     const { page, limit, sortBy = 'createdAt', sortOrder = 'desc' } = params;
     const offset = (page - 1) * limit;
 
@@ -108,7 +122,6 @@ export class LocalGoalsRepository implements GoalsRepository {
     return (await db.goals.get(id)) !== undefined;
   }
 
-  // Goal-specific methods
   async findActive(): Promise<SavingsGoal[]> {
     return db.goals.where('active').equals(1).toArray();
   }
@@ -117,7 +130,10 @@ export class LocalGoalsRepository implements GoalsRepository {
     return db.goals.where('accountId').equals(accountId).toArray();
   }
 
-  async findByTargetDateRange(startDate: string, endDate: string): Promise<SavingsGoal[]> {
+  async findByTargetDateRange(
+    startDate: string,
+    endDate: string
+  ): Promise<SavingsGoal[]> {
     return db.goals
       .where('targetDate')
       .between(startDate, endDate, true, true)
@@ -135,83 +151,115 @@ export class LocalGoalsRepository implements GoalsRepository {
 
   async getGoalsWithProgress(): Promise<GoalWithProgress[]> {
     const goals = await this.findActive();
-    return Promise.all(goals.map(goal => this.calculateGoalProgress(goal)));
+    return Promise.all(goals.map((goal) => this.calculateGoalProgress(goal)));
   }
 
-  async addContribution(goalId: string, amountBaseMinor: number, note?: string): Promise<SavingsGoal> {
-    const goal = await this.findById(goalId);
-    if (!goal) {
-      throw new Error(`Goal with id ${goalId} not found`);
-    }
+  async addContribution(
+    goalId: string,
+    amountBaseMinor: number,
+    note?: string
+  ): Promise<SavingsGoal> {
+    this.assertPositiveAmount(amountBaseMinor);
 
-    const newCurrentAmount = goal.currentBaseMinor + amountBaseMinor;
-    
-    // TODO: Log contribution history in a separate table
-    // For now, we'll just update the current amount
-    
-    return this.update(goalId, {
-      id: goalId,
-      currentBaseMinor: newCurrentAmount,
+    const goal = await this.getManualGoal(goalId);
+    await db.goalContributions.add({
+      id: generateId('goalc'),
+      goalId,
+      deltaBaseMinor: amountBaseMinor,
+      note,
+      source: 'manual',
+      createdAt: new Date().toISOString(),
     });
+
+    return this.recomputeManualGoal(goal.id);
   }
 
-  async removeContribution(goalId: string, amountBaseMinor: number, note?: string): Promise<SavingsGoal> {
-    const goal = await this.findById(goalId);
-    if (!goal) {
-      throw new Error(`Goal with id ${goalId} not found`);
+  async removeContribution(
+    goalId: string,
+    amountBaseMinor: number,
+    note?: string
+  ): Promise<SavingsGoal> {
+    this.assertPositiveAmount(amountBaseMinor);
+
+    const goal = await this.getManualGoal(goalId);
+    if (goal.currentBaseMinor < amountBaseMinor) {
+      throw new Error('Cannot remove more than the currently saved amount');
     }
 
-    const newCurrentAmount = Math.max(0, goal.currentBaseMinor - amountBaseMinor);
-    
-    return this.update(goalId, {
-      id: goalId,
-      currentBaseMinor: newCurrentAmount,
+    await db.goalContributions.add({
+      id: generateId('goalc'),
+      goalId,
+      deltaBaseMinor: -amountBaseMinor,
+      note,
+      source: 'manual',
+      createdAt: new Date().toISOString(),
     });
+
+    return this.recomputeManualGoal(goal.id);
   }
 
-  async getGoalAnalytics(goalId: string): Promise<{
-    totalContributions: number;
-    averageMonthlyContribution: number;
-    contributionHistory: {
-      date: string;
-      amountBaseMinor: number;
-      note?: string;
-    }[];
-    projectedCompletionDate?: string;
-  }> {
+  async getGoalAnalytics(goalId: string): Promise<GoalAnalytics> {
     const goal = await this.findById(goalId);
     if (!goal) {
       throw new Error(`Goal with id ${goalId} not found`);
     }
 
-    // TODO: Implement contribution history tracking
-    // For now, return basic analytics based on current progress
-    const totalContributions = goal.currentBaseMinor;
-    const monthsSinceCreation = dateDifference(goal.createdAt, getCurrentDate(), 'months') || 1;
-    const averageMonthlyContribution = totalContributions / monthsSinceCreation;
-
-    // Calculate projected completion date
-    let projectedCompletionDate: string | undefined;
-    if (averageMonthlyContribution > 0) {
-      const remainingAmount = goal.targetBaseMinor - goal.currentBaseMinor;
-      const monthsToCompletion = Math.ceil(remainingAmount / averageMonthlyContribution);
-      const projectedDate = new Date();
-      projectedDate.setMonth(projectedDate.getMonth() + monthsToCompletion);
-      projectedCompletionDate = projectedDate.toISOString();
+    if (goal.accountId) {
+      return {
+        totalContributions: goal.currentBaseMinor,
+        averageMonthlyContribution: 0,
+        contributionHistory: [],
+        projectedCompletionDate: undefined,
+        progressSource: 'linked_account',
+        message:
+          'El progreso de esta meta se calcula desde el saldo de la cuenta vinculada.',
+      };
     }
+
+    const contributions = await this.getGoalContributionRows(goalId);
+    const totalContributions = contributions.reduce(
+      (sum, contribution) => sum + contribution.deltaBaseMinor,
+      0
+    );
+    const averageMonthlyContribution =
+      this.calculateAverageMonthlyContribution(contributions);
 
     return {
       totalContributions,
       averageMonthlyContribution,
-      contributionHistory: [], // TODO: Implement contribution history
-      projectedCompletionDate,
+      contributionHistory: contributions.map((contribution) =>
+        this.mapContributionToHistoryEntry(contribution)
+      ),
+      projectedCompletionDate: this.calculateProjectedCompletionDate(
+        goal,
+        totalContributions,
+        averageMonthlyContribution
+      ),
+      progressSource: 'manual_ledger',
     };
   }
 
-  async updateGoalProgress(): Promise<void> {
-    // Update goals based on linked account balances
+  async updateGoalProgress(goalId?: string): Promise<void> {
+    if (goalId) {
+      const goal = await this.findById(goalId);
+      if (!goal?.accountId) {
+        return;
+      }
+
+      const account = await db.accounts.get(goal.accountId);
+      if (!account) {
+        return;
+      }
+
+      await this.update(goal.id, {
+        id: goal.id,
+        currentBaseMinor: Math.max(0, account.balance),
+      });
+      return;
+    }
+
     const goalsWithAccounts = await db.goals
-      .filter(goal => goal.accountId !== undefined)
+      .filter((goal) => goal.accountId !== undefined)
       .toArray();
 
     for (const goal of goalsWithAccounts) {
@@ -235,15 +283,15 @@ export class LocalGoalsRepository implements GoalsRepository {
     const goals = await db.goals
       .where('targetDate')
       .between(currentDate, futureDate.toISOString(), true, true)
-      .and(goal => goal.active)
+      .and((goal) => goal.active)
       .toArray();
 
-    return Promise.all(goals.map(goal => this.calculateGoalProgress(goal)));
+    return Promise.all(goals.map((goal) => this.calculateGoalProgress(goal)));
   }
 
   async getOffTrackGoals(): Promise<GoalWithProgress[]> {
     const goals = await this.getGoalsWithProgress();
-    return goals.filter(goal => goal.isOnTrack === false);
+    return goals.filter((goal) => goal.isOnTrack === false);
   }
 
   async getGoalsSummary(): Promise<{
@@ -255,15 +303,24 @@ export class LocalGoalsRepository implements GoalsRepository {
     averageProgress: number;
   }> {
     const allGoals = await this.findAll();
-    const activeGoals = allGoals.filter(goal => goal.active);
-    const completedGoals = allGoals.filter(goal => goal.currentBaseMinor >= goal.targetBaseMinor);
+    const activeGoals = allGoals.filter((goal) => goal.active);
+    const completedGoals = allGoals.filter(
+      (goal) => goal.currentBaseMinor >= goal.targetBaseMinor
+    );
 
-    const totalTargetBaseMinor = activeGoals.reduce((sum, goal) => sum + goal.targetBaseMinor, 0);
-    const totalSavedBaseMinor = activeGoals.reduce((sum, goal) => sum + goal.currentBaseMinor, 0);
-    
-    const averageProgress = totalTargetBaseMinor > 0 
-      ? (totalSavedBaseMinor / totalTargetBaseMinor) * 100 
-      : 0;
+    const totalTargetBaseMinor = activeGoals.reduce(
+      (sum, goal) => sum + goal.targetBaseMinor,
+      0
+    );
+    const totalSavedBaseMinor = activeGoals.reduce(
+      (sum, goal) => sum + goal.currentBaseMinor,
+      0
+    );
+
+    const averageProgress =
+      totalTargetBaseMinor > 0
+        ? (totalSavedBaseMinor / totalTargetBaseMinor) * 100
+        : 0;
 
     return {
       totalGoals: allGoals.length,
@@ -292,7 +349,9 @@ export class LocalGoalsRepository implements GoalsRepository {
     const completedGoals = await db.goals
       .where('currentBaseMinor')
       .aboveOrEqual(0)
-      .and(goal => goal.currentBaseMinor >= goal.targetBaseMinor && goal.active)
+      .and(
+        (goal) => goal.currentBaseMinor >= goal.targetBaseMinor && goal.active
+      )
       .toArray();
 
     for (const goal of completedGoals) {
@@ -302,13 +361,126 @@ export class LocalGoalsRepository implements GoalsRepository {
     return completedGoals.length;
   }
 
-  // Helper method to calculate goal progress
+  private assertPositiveAmount(amountBaseMinor: number): void {
+    if (!Number.isInteger(amountBaseMinor) || amountBaseMinor <= 0) {
+      throw new Error(
+        'Contribution amount must be a positive integer in minor units'
+      );
+    }
+  }
+
+  private async getManualGoal(goalId: string): Promise<SavingsGoal> {
+    const goal = await this.findById(goalId);
+    if (!goal) {
+      throw new Error(`Goal with id ${goalId} not found`);
+    }
+
+    if (goal.accountId) {
+      throw new Error(
+        'Linked-account goals derive progress from the linked account balance and do not accept manual contributions'
+      );
+    }
+
+    return goal;
+  }
+
+  private async getGoalContributionRows(
+    goalId: string
+  ): Promise<GoalContribution[]> {
+    const rows = await db.goalContributions
+      .where('goalId')
+      .equals(goalId)
+      .toArray();
+    return rows.sort((left, right) =>
+      right.createdAt.localeCompare(left.createdAt)
+    );
+  }
+
+  private mapContributionToHistoryEntry(
+    contribution: GoalContribution
+  ): GoalContributionHistoryEntry {
+    return {
+      id: contribution.id,
+      date: contribution.createdAt,
+      amountBaseMinor: contribution.deltaBaseMinor,
+      note: contribution.note,
+      source: contribution.source,
+    };
+  }
+
+  private calculateAverageMonthlyContribution(
+    contributions: GoalContribution[]
+  ): number {
+    if (contributions.length === 0) {
+      return 0;
+    }
+
+    const totalsByMonth = new Map<string, number>();
+    for (const contribution of contributions) {
+      const monthKey = contribution.createdAt.slice(0, 7);
+      totalsByMonth.set(
+        monthKey,
+        (totalsByMonth.get(monthKey) ?? 0) + contribution.deltaBaseMinor
+      );
+    }
+
+    const total = Array.from(totalsByMonth.values()).reduce(
+      (sum, value) => sum + value,
+      0
+    );
+
+    return totalsByMonth.size > 0 ? total / totalsByMonth.size : 0;
+  }
+
+  private calculateProjectedCompletionDate(
+    goal: SavingsGoal,
+    totalContributions: number,
+    averageMonthlyContribution: number
+  ): string | undefined {
+    if (averageMonthlyContribution <= 0) {
+      return undefined;
+    }
+
+    const remainingAmount = goal.targetBaseMinor - totalContributions;
+    if (remainingAmount <= 0) {
+      return new Date().toISOString();
+    }
+
+    const monthsToCompletion = Math.ceil(
+      remainingAmount / averageMonthlyContribution
+    );
+    const projectedDate = new Date();
+    projectedDate.setMonth(projectedDate.getMonth() + monthsToCompletion);
+    return projectedDate.toISOString();
+  }
+
+  private async recomputeManualGoal(goalId: string): Promise<SavingsGoal> {
+    const contributions = await this.getGoalContributionRows(goalId);
+    const netTotal = contributions.reduce(
+      (sum, contribution) => sum + contribution.deltaBaseMinor,
+      0
+    );
+
+    if (netTotal < 0) {
+      throw new Error('Goal contributions cannot result in a negative balance');
+    }
+
+    return this.update(goalId, {
+      id: goalId,
+      currentBaseMinor: netTotal,
+    });
+  }
+
   private calculateGoalProgress(goal: SavingsGoal): GoalWithProgress {
-    const progressPercentage = goal.targetBaseMinor > 0 
-      ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100) 
-      : 0;
-    
-    const remainingBaseMinor = Math.max(0, goal.targetBaseMinor - goal.currentBaseMinor);
+    const progressPercentage =
+      goal.targetBaseMinor > 0
+        ? Math.min((goal.currentBaseMinor / goal.targetBaseMinor) * 100, 100)
+        : 0;
+
+    const remainingBaseMinor = Math.max(
+      0,
+      goal.targetBaseMinor - goal.currentBaseMinor
+    );
 
     let daysRemaining: number | undefined;
     let isOnTrack: boolean | undefined;
@@ -316,13 +488,18 @@ export class LocalGoalsRepository implements GoalsRepository {
 
     if (goal.targetDate) {
       daysRemaining = dateDifference(getCurrentDate(), goal.targetDate, 'days');
-      
+
       if (daysRemaining > 0) {
-        const monthsRemaining = daysRemaining / 30.44; // Average days per month
+        const monthsRemaining = daysRemaining / 30.44;
         suggestedMonthlyContribution = remainingBaseMinor / monthsRemaining;
-        
-        // Check if on track (simplified logic)
-        const currentMonthlyRate = goal.currentBaseMinor / dateDifference(goal.createdAt, getCurrentDate(), 'days') * 30.44;
+
+        const currentMonthlyRate =
+          (goal.currentBaseMinor /
+            Math.max(
+              dateDifference(goal.createdAt, getCurrentDate(), 'days'),
+              1
+            )) *
+          30.44;
         isOnTrack = currentMonthlyRate >= suggestedMonthlyContribution;
       } else {
         isOnTrack = progressPercentage >= 100;

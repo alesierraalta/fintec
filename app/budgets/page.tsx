@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
 import { BudgetCard } from '@/components/budgets';
-import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useAuth } from '@/hooks/use-auth';
 import { useRepository } from '@/providers/repository-provider';
@@ -19,6 +18,7 @@ import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import type { Budget, Category } from '@/types';
+import { toast } from 'sonner';
 
 const BudgetForm = dynamic(
   () => import('@/components/forms/budget-form').then((mod) => mod.BudgetForm),
@@ -30,41 +30,58 @@ export default function BudgetsPage() {
   const { user } = useAuth();
   const repository = useRepository();
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [budgets, setBudgets] = useState<
+    import('@/repositories/contracts').BudgetWithProgress[]
+  >([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState('202412');
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, '0')}`;
+  });
+  const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [copyingBudgets, setCopyingBudgets] = useState(false);
 
-  // Load budgets and categories from database
+  const reloadBudgetData = async (month: string) => {
+    const [budgetsWithProgress, allCategories, monthSummary] =
+      await Promise.all([
+        repository.budgets.getBudgetsWithProgress(month),
+        repository.categories.findAll(),
+        repository.budgets.getMonthlyBudgetSummary(month),
+      ]);
+    setBudgets(budgetsWithProgress);
+    setCategories(allCategories);
+    setSummary(monthSummary);
+  };
+
   useEffect(() => {
     const loadData = async () => {
       if (!user) return;
       try {
         setLoading(true);
-        const [allBudgets, allCategories] = await Promise.all([
-          repository.budgets.findAll(),
-          repository.categories.findAll(),
-        ]);
-        setBudgets(allBudgets);
-        setCategories(allCategories);
+        await reloadBudgetData(selectedMonth);
       } catch (error) {
+        console.error('Failed to load budget data:', error);
         setBudgets([]);
         setCategories([]);
+        setSummary(null);
+        toast.error('No se pudieron cargar los presupuestos');
       } finally {
         setLoading(false);
       }
     };
-    loadData();
-  }, [user, repository]);
+    void loadData();
+  }, [user, repository, selectedMonth]);
 
-  // Generate month options
   const generateMonthOptions = () => {
     const months = [];
     const now = new Date();
 
     for (let i = -2; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
-      const monthKey = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+      const monthKey = `${date.getFullYear()}${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, '0')}`;
       const monthLabel = date.toLocaleDateString('es-ES', {
         year: 'numeric',
         month: 'long',
@@ -79,24 +96,33 @@ export default function BudgetsPage() {
     return months;
   };
 
+  const getPreviousMonth = (monthYYYYMM: string) => {
+    const year = Number.parseInt(monthYYYYMM.slice(0, 4), 10);
+    const month = Number.parseInt(monthYYYYMM.slice(4, 6), 10) - 1;
+    const date = new Date(year, month - 1, 1);
+    return `${date.getFullYear()}${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, '0')}`;
+  };
+
   const monthOptions = generateMonthOptions();
   const filteredBudgets = budgets.filter(
     (budget) => budget.monthYYYYMM === selectedMonth
   );
 
-  // Calculate statistics
-  const totalBudgeted = filteredBudgets.reduce(
-    (sum, budget) => sum + budget.amountBaseMinor,
-    0
-  );
-  const totalSpent = filteredBudgets.reduce(
-    (sum, budget) => sum + (budget.spentMinor || 0),
-    0
-  );
-  const remaining = totalBudgeted - totalSpent;
-  const overBudgetCount = filteredBudgets.filter(
-    (budget) => (budget.spentMinor || 0) > budget.amountBaseMinor
-  ).length;
+  const totalBudgeted =
+    summary?.totalBudgetBaseMinor ??
+    budgets.reduce((sum, budget) => sum + budget.amountBaseMinor, 0);
+  const totalSpent =
+    summary?.totalSpentBaseMinor ??
+    budgets.reduce((sum, budget) => sum + (budget.spentMinor || 0), 0);
+  const remaining =
+    summary?.totalRemainingBaseMinor ?? totalBudgeted - totalSpent;
+  const overBudgetCount =
+    summary?.overBudgetCount ??
+    budgets.filter(
+      (budget) => (budget.spentMinor || 0) > budget.amountBaseMinor
+    ).length;
 
   const handleNewBudget = () => {
     setSelectedBudget(null);
@@ -110,28 +136,88 @@ export default function BudgetsPage() {
 
   const handleSaveBudget = async (budgetData: Partial<Budget>) => {
     try {
+      setLoading(true);
       if (selectedBudget) {
-        // Update existing budget - aquí implementarías la lógica real
-        setBudgets((prev) =>
-          prev.map((budget) =>
-            budget.id === selectedBudget.id
-              ? { ...budget, ...budgetData }
-              : budget
-          )
-        );
+        await repository.budgets.update(selectedBudget.id, {
+          ...budgetData,
+          id: selectedBudget.id,
+        } as any);
+        toast.success('Presupuesto actualizado correctamente');
       } else {
-        // Add new budget - aquí implementarías la lógica real
-        setBudgets((prev) => [...prev, budgetData as Budget]);
+        await repository.budgets.create({
+          categoryId: budgetData.categoryId!,
+          monthYear: selectedMonth,
+          amountBaseMinor: budgetData.amountBaseMinor || 0,
+          active: true,
+        });
+        toast.success('Presupuesto creado correctamente');
       }
+
+      await reloadBudgetData(selectedMonth);
       closeModal();
-    } catch (error) {}
+    } catch (error) {
+      console.error('Failed to save budget:', error);
+      toast.error('No se pudo guardar el presupuesto');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDeleteBudget = async (budgetId: string) => {
+    if (
+      !window.confirm('¿Estás seguro de que deseas eliminar este presupuesto?')
+    )
+      return;
+
     try {
-      // Aquí implementarías la lógica real de eliminación
-      setBudgets((prev) => prev.filter((budget) => budget.id !== budgetId));
-    } catch (error) {}
+      setLoading(true);
+      await repository.budgets.delete(budgetId);
+      await reloadBudgetData(selectedMonth);
+      toast.success('Presupuesto eliminado correctamente');
+    } catch (error) {
+      console.error('Failed to delete budget:', error);
+      toast.error('No se pudo eliminar el presupuesto');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCopyPreviousMonth = async () => {
+    const previousMonth = getPreviousMonth(selectedMonth);
+
+    try {
+      setCopyingBudgets(true);
+      const sourceBudgets =
+        await repository.budgets.findByMonthYear(previousMonth);
+      if (sourceBudgets.length === 0) {
+        toast.info('El mes anterior no tiene presupuestos para copiar');
+        return;
+      }
+
+      const copiedBudgets = await repository.budgets.copyBudgetsToNextMonth(
+        previousMonth,
+        selectedMonth
+      );
+      const skippedCount = sourceBudgets.length - copiedBudgets.length;
+
+      await reloadBudgetData(selectedMonth);
+
+      if (copiedBudgets.length === 0) {
+        toast.info(
+          'Todos los presupuestos del mes anterior ya existen en este mes'
+        );
+        return;
+      }
+
+      toast.success(
+        `Copiados ${copiedBudgets.length} presupuesto${copiedBudgets.length === 1 ? '' : 's'}; ${skippedCount} omitido${skippedCount === 1 ? '' : 's'}`
+      );
+    } catch (error) {
+      console.error('Failed to copy budgets:', error);
+      toast.error('No se pudieron copiar los presupuestos del mes anterior');
+    } finally {
+      setCopyingBudgets(false);
+    }
   };
 
   const formatCurrency = (amountMinor: number) => {
@@ -186,24 +272,35 @@ export default function BudgetsPage() {
             </h2>
           </div>
 
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center space-x-3">
               <Calendar className="h-5 w-5 text-blue-600" />
               <span className="text-ios-body font-medium text-foreground">
                 Mes seleccionado:
               </span>
             </div>
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="rounded-2xl border border-border/40 bg-card px-4 py-3 text-ios-body text-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
-            >
-              {monthOptions.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="rounded-2xl border border-border/40 bg-card px-4 py-3 text-ios-body text-foreground transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+              >
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                onClick={handleCopyPreviousMonth}
+                disabled={copyingBudgets}
+                className="rounded-2xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm font-medium text-blue-200 transition-colors hover:bg-blue-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {copyingBudgets
+                  ? 'Copiando presupuestos...'
+                  : 'Copiar presupuestos del mes anterior'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -319,7 +416,7 @@ export default function BudgetsPage() {
             />
           ) : (
             <div className="grid gap-4">
-              {filteredBudgets.map((budget) => {
+              {budgets.map((budget) => {
                 const category = categories.find(
                   (cat) => cat.id === budget.categoryId
                 );

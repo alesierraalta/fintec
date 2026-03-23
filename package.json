@@ -20,6 +20,7 @@
     "perf:smoke": "k6 run tests/performance/k6/scenarios/smoke.js",
     "perf:precommit": "node scripts/testing/perf-precommit.mjs",
     "perf:load": "k6 run tests/performance/k6/scenarios/load.js",
+    "perf:journey": "k6 run tests/performance/k6/scenarios/full-app-user-flow.js",
     "perf:stress": "k6 run tests/performance/k6/scenarios/stress.js",
     "perf:spike": "k6 run tests/performance/k6/scenarios/spike.js",
     "perf:soak": "k6 run tests/performance/k6/scenarios/soak.js",

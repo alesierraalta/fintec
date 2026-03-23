@@ -5,6 +5,9 @@ import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
 import { createClient } from '@/lib/supabase/server';
 import { createServerAppRepository } from '@/repositories/factory';
 
+// Deferred follow-up: goal progress auto-sync for linked accounts should be wired
+// after transaction writes once Phase 1 semantics/performance are validated.
+
 // GET /api/transactions - Fetch all transactions
 export async function GET(request: NextRequest) {
   try {

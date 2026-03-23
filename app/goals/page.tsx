@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
 import { GoalCard } from '@/components/goals';
-import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import {
   Plus,
@@ -16,32 +15,62 @@ import {
   DollarSign,
   Filter,
   Search,
+  Loader2,
 } from 'lucide-react';
+import { useRepository } from '@/providers/repository-provider';
+import { useAuth } from '@/hooks/use-auth';
+import type { GoalWithProgress } from '@/repositories/contracts';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import type { SavingsGoal } from '@/types';
+import { toast } from 'sonner';
 
 const GoalForm = dynamic(
   () => import('@/components/forms/goal-form').then((mod) => mod.GoalForm),
   { loading: () => <FormLoading />, ssr: false }
 );
 
-// Goals and accounts will be loaded from Supabase database
-const mockGoals: SavingsGoal[] = [];
-const mockAccounts: any[] = [];
-
 export default function GoalsPage() {
   const { isOpen, openModal, closeModal } = useModal();
+  const repository = useRepository();
+  const { user } = useAuth();
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
-  const [goals, setGoals] = useState(mockGoals);
+  const [goals, setGoals] = useState<GoalWithProgress[]>([]);
+  const [summary, setSummary] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshingGoalId, setRefreshingGoalId] = useState<string | null>(null);
   const [filter, setFilter] = useState<
     'all' | 'active' | 'completed' | 'overdue'
   >('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter goals
+  const reloadGoalsData = async () => {
+    const [goalsData, stats] = await Promise.all([
+      repository.goals.getGoalsWithProgress(),
+      repository.goals.getGoalsSummary(),
+    ]);
+    setGoals(goalsData);
+    setSummary(stats);
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) return;
+      try {
+        setLoading(true);
+        await reloadGoalsData();
+      } catch (error) {
+        console.error('Failed to load goals:', error);
+        toast.error('No se pudieron cargar las metas');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void loadData();
+  }, [user, repository]);
+
   const filteredGoals = goals.filter((goal) => {
     const matchesSearch =
       goal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -65,14 +94,16 @@ export default function GoalsPage() {
     }
   });
 
-  // Calculate statistics
-  const totalGoals = goals.length;
-  const completedGoals = goals.filter(
-    (goal) => goal.currentBaseMinor >= goal.targetBaseMinor
-  ).length;
-  const activeGoals = goals.filter(
-    (goal) => goal.active && goal.currentBaseMinor < goal.targetBaseMinor
-  ).length;
+  const totalGoals = summary?.totalGoals ?? goals.length;
+  const completedGoals =
+    summary?.completedGoals ??
+    goals.filter((goal) => goal.currentBaseMinor >= goal.targetBaseMinor)
+      .length;
+  const activeGoals =
+    summary?.activeGoals ??
+    goals.filter(
+      (goal) => goal.active && goal.currentBaseMinor < goal.targetBaseMinor
+    ).length;
   const overdueGoals = goals.filter(
     (goal) =>
       goal.targetDate &&
@@ -80,16 +111,15 @@ export default function GoalsPage() {
       goal.currentBaseMinor < goal.targetBaseMinor
   ).length;
 
-  const totalTarget = goals.reduce(
-    (sum, goal) => sum + goal.targetBaseMinor,
-    0
-  );
-  const totalSaved = goals.reduce(
-    (sum, goal) => sum + goal.currentBaseMinor,
-    0
-  );
+  const totalTarget =
+    summary?.totalTargetBaseMinor ??
+    goals.reduce((sum, goal) => sum + goal.targetBaseMinor, 0);
+  const totalSaved =
+    summary?.totalSavedBaseMinor ??
+    goals.reduce((sum, goal) => sum + goal.currentBaseMinor, 0);
   const overallProgress =
-    totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0;
+    summary?.averageProgress ??
+    (totalTarget > 0 ? (totalSaved / totalTarget) * 100 : 0);
 
   const handleNewGoal = () => {
     setSelectedGoal(null);
@@ -101,34 +131,101 @@ export default function GoalsPage() {
     openModal();
   };
 
-  const handleSaveGoal = (goalData: Partial<SavingsGoal>) => {
-    if (selectedGoal) {
-      // Update existing goal
-      setGoals((prev) =>
-        prev.map((goal) =>
-          goal.id === selectedGoal.id ? { ...goal, ...goalData } : goal
-        )
-      );
-    } else {
-      // Add new goal
-      setGoals((prev) => [...prev, goalData as SavingsGoal]);
+  const handleSaveGoal = async (goalData: Partial<SavingsGoal>) => {
+    try {
+      setLoading(true);
+      if (selectedGoal) {
+        await repository.goals.update(selectedGoal.id, {
+          ...goalData,
+          id: selectedGoal.id,
+        } as any);
+        toast.success('Meta actualizada correctamente');
+      } else {
+        await repository.goals.create({
+          name: goalData.name!,
+          description: goalData.description,
+          targetBaseMinor: goalData.targetBaseMinor!,
+          targetDate: goalData.targetDate,
+          accountId: goalData.accountId,
+          active: true,
+        });
+        toast.success('Meta creada correctamente');
+      }
+
+      await reloadGoalsData();
+      closeModal();
+    } catch (error) {
+      console.error('Failed to save goal:', error);
+      toast.error('No se pudo guardar la meta');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteGoal = (goalId: string) => {
-    setGoals((prev) => prev.filter((goal) => goal.id !== goalId));
+  const handleDeleteGoal = async (goalId: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar esta meta?'))
+      return;
+
+    try {
+      setLoading(true);
+      await repository.goals.delete(goalId);
+      await reloadGoalsData();
+      toast.success('Meta eliminada correctamente');
+    } catch (error) {
+      console.error('Failed to delete goal:', error);
+      toast.error('No se pudo eliminar la meta');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddMoney = (goalId: string) => {
-    // This would typically open a transaction form or modal
-    // For demo purposes, add $100 to the goal
-    setGoals((prev) =>
-      prev.map((goal) =>
-        goal.id === goalId
-          ? { ...goal, currentBaseMinor: goal.currentBaseMinor + 10000 } // Add $100
-          : goal
-      )
-    );
+  const handleAddMoney = async (goalId: string) => {
+    const amount = window.prompt('¿Cuánto deseas aportar? (Ej: 100.00)');
+    if (!amount) return;
+
+    const amountMinor = Math.round(Number.parseFloat(amount) * 100);
+    if (Number.isNaN(amountMinor) || amountMinor <= 0) {
+      window.alert('Por favor ingresa un monto válido');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await repository.goals.addContribution(
+        goalId,
+        amountMinor,
+        'Aporte manual desde la UI'
+      );
+      await reloadGoalsData();
+      toast.success('Aporte registrado correctamente');
+    } catch (error) {
+      console.error('Failed to add contribution:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo registrar el aporte'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefreshGoalProgress = async (goalId: string) => {
+    try {
+      setRefreshingGoalId(goalId);
+      await repository.goals.updateGoalProgress(goalId);
+      await reloadGoalsData();
+      toast.success('Progreso refrescado correctamente');
+    } catch (error) {
+      console.error('Failed to refresh goal progress:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'No se pudo refrescar el progreso de la meta'
+      );
+    } finally {
+      setRefreshingGoalId(null);
+    }
   };
 
   const formatCurrency = (amountMinor: number) => {
@@ -343,7 +440,14 @@ export default function GoalsPage() {
             </span>
           </div>
 
-          {filteredGoals.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="h-10 w-10 animate-spin text-primary opacity-50" />
+              <p className="mt-4 text-muted-foreground">
+                Cargando tus metas...
+              </p>
+            </div>
+          ) : filteredGoals.length === 0 ? (
             <EmptyState
               title={
                 searchTerm || filter !== 'all'
@@ -368,17 +472,17 @@ export default function GoalsPage() {
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {filteredGoals.map((goal) => {
-                const account = mockAccounts.find(
-                  (acc) => acc.id === goal.accountId
-                );
                 return (
                   <GoalCard
                     key={goal.id}
                     goal={goal}
-                    account={account}
                     onEdit={() => handleEditGoal(goal)}
                     onDelete={() => handleDeleteGoal(goal.id)}
-                    onAddMoney={() => handleAddMoney(goal.id)}
+                    onAddMoney={goal.accountId ? undefined : handleAddMoney}
+                    onRefreshProgress={
+                      goal.accountId ? handleRefreshGoalProgress : undefined
+                    }
+                    isRefreshing={refreshingGoalId === goal.id}
                   />
                 );
               })}

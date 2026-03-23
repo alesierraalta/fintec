@@ -153,6 +153,33 @@ export interface SavingsGoal {
   updatedAt: string;
 }
 
+export interface GoalContribution {
+  id: string;
+  goalId: string;
+  deltaBaseMinor: number;
+  note?: string;
+  source?: string;
+  relatedTransactionId?: string;
+  createdAt: string;
+}
+
+export interface GoalContributionHistoryEntry {
+  id: string;
+  date: string;
+  amountBaseMinor: number;
+  note?: string;
+  source?: string;
+}
+
+export interface GoalAnalytics {
+  totalContributions: number;
+  averageMonthlyContribution: number;
+  contributionHistory: GoalContributionHistoryEntry[];
+  projectedCompletionDate?: string;
+  progressSource: 'manual_ledger' | 'linked_account';
+  message?: string;
+}
+
 export interface RecurringRule {
   id: string;
   name: string;

@@ -1,5 +1,9 @@
-// @ts-nocheck
-import { BudgetsRepository, CreateBudgetDTO } from '@/repositories/contracts';
+import {
+  BudgetsRepository,
+  CreateBudgetDTO,
+  UpdateBudgetDTO,
+  BudgetWithProgress,
+} from '@/repositories/contracts';
 import { Budget, PaginationParams, PaginatedResult } from '@/types';
 import { supabase } from './client';
 import type { SupabaseClient } from '@supabase/supabase-js';
@@ -10,7 +14,6 @@ import {
   mapSupabaseBudgetArrayToDomain,
 } from './mappers';
 
-// @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseBudgetsRepository implements BudgetsRepository {
   private client: SupabaseClient;
 
@@ -23,6 +26,19 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       data: { user },
     } = await this.client.auth.getUser();
     return user?.id || null;
+  }
+
+  private async getOwnedAccountIds(userId: string): Promise<string[]> {
+    const { data, error } = await this.client
+      .from('accounts')
+      .select('id')
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to fetch owned accounts: ${error.message}`);
+    }
+
+    return (data || []).map((account) => account.id);
   }
   async findAll(): Promise<Budget[]> {
     const userId = await this.getUserId();
@@ -83,23 +99,136 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     return mapSupabaseBudgetArrayToDomain(data || []);
   }
 
-  async findByMonth(monthYYYYMM: string): Promise<Budget[]> {
+  async findByMonthYear(monthYear: string): Promise<Budget[]> {
     const userId = await this.getUserId();
     if (!userId) return [];
 
     const { data, error } = await this.client
       .from('budgets')
       .select('*')
-      .eq('month_year', monthYYYYMM)
+      .eq('month_year', monthYear)
       .eq('user_id', userId)
-      .eq('active', true)
-      .order('name', { ascending: true });
+      .eq('active', true);
 
     if (error) {
       throw new Error(`Failed to fetch budgets by month: ${error.message}`);
     }
 
     return mapSupabaseBudgetArrayToDomain(data || []);
+  }
+
+  async findActive(): Promise<Budget[]> {
+    const userId = await this.getUserId();
+    if (!userId) return [];
+
+    const { data, error } = await this.client
+      .from('budgets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('active', true);
+
+    if (error) {
+      throw new Error(`Failed to fetch active budgets: ${error.message}`);
+    }
+
+    return mapSupabaseBudgetArrayToDomain(data || []);
+  }
+
+  // Budget progress
+  async getBudgetWithProgress(id: string): Promise<BudgetWithProgress | null> {
+    const budget = await this.findById(id);
+    if (!budget) return null;
+
+    const spent = await this.calculateSpentAmount(
+      budget.categoryId,
+      budget.monthYYYYMM
+    );
+    return this.enrichWithProgress(budget, spent);
+  }
+
+  async getBudgetsWithProgress(
+    monthYear: string
+  ): Promise<BudgetWithProgress[]> {
+    const budgets = await this.findByMonthYear(monthYear);
+    if (budgets.length === 0) return [];
+
+    // Optimize by getting all transactions for the month in one go if needed,
+    // but for now we'll do them in parallel
+    return Promise.all(
+      budgets.map(async (budget) => {
+        const spent = await this.calculateSpentAmount(
+          budget.categoryId,
+          budget.monthYYYYMM
+        );
+        return this.enrichWithProgress(budget, spent);
+      })
+    );
+  }
+
+  private async calculateSpentAmount(
+    categoryId: string,
+    monthYYYYMM: string
+  ): Promise<number> {
+    const userId = await this.getUserId();
+    if (!userId) return 0;
+
+    const ownedAccountIds = await this.getOwnedAccountIds(userId);
+    if (ownedAccountIds.length === 0) {
+      return 0;
+    }
+
+    const monthYear = `${monthYYYYMM.substring(0, 4)}-${monthYYYYMM.substring(4)}`;
+    const dateFrom = `${monthYear}-01`;
+    const nextMonthDate = new Date(
+      Number.parseInt(monthYYYYMM.substring(0, 4), 10),
+      Number.parseInt(monthYYYYMM.substring(4), 10),
+      1
+    );
+    const dateTo = nextMonthDate.toISOString().split('T')[0];
+
+    const { data, error } = await this.client
+      .from('transactions')
+      .select('amount_base_minor')
+      .eq('category_id', categoryId)
+      .eq('type', 'EXPENSE')
+      .in('account_id', ownedAccountIds)
+      .gte('date', dateFrom)
+      .lt('date', dateTo);
+
+    if (error) {
+      throw new Error(`Failed to calculate spent amount: ${error.message}`);
+    }
+
+    return (data || []).reduce(
+      (sum, transaction) => sum + (transaction.amount_base_minor || 0),
+      0
+    );
+  }
+
+  private enrichWithProgress(
+    budget: Budget,
+    spentBaseMinor: number
+  ): BudgetWithProgress {
+    const remainingBaseMinor = budget.amountBaseMinor - spentBaseMinor;
+    const percentageUsed =
+      budget.amountBaseMinor > 0
+        ? (spentBaseMinor / budget.amountBaseMinor) * 100
+        : 0;
+
+    return {
+      ...budget,
+      spentMinor: spentBaseMinor,
+      spentBaseMinor,
+      remainingBaseMinor,
+      percentageUsed,
+      isOverBudget: spentBaseMinor > budget.amountBaseMinor,
+    };
+  }
+
+  async findByMonth(monthYYYYMM: string): Promise<Budget[]> {
+    // Standardize to use month_year format internally
+    const monthYear = `${monthYYYYMM.substring(0, 4)}-${monthYYYYMM.substring(4)}`;
+    return this.findByMonthYear(monthYear);
   }
 
   async findByCategoryAndMonth(
@@ -109,19 +238,19 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     const userId = await this.getUserId();
     if (!userId) return null;
 
+    const monthYear = `${monthYYYYMM.substring(0, 4)}-${monthYYYYMM.substring(4)}`;
+
     const { data, error } = await this.client
       .from('budgets')
       .select('*')
       .eq('category_id', categoryId)
-      .eq('month_year', monthYYYYMM)
+      .eq('month_year', monthYear)
       .eq('user_id', userId)
       .eq('active', true)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
-      }
+      if (error.code === 'PGRST116') return null;
       throw new Error(
         `Failed to fetch budget by category and month: ${error.message}`
       );
@@ -130,7 +259,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     return mapSupabaseBudgetToDomain(data);
   }
 
-  async findWithPagination(
+  async findPaginated(
     params: PaginationParams
   ): Promise<PaginatedResult<Budget>> {
     const { page, limit, sortBy = 'month_year', sortOrder = 'desc' } = params;
@@ -164,7 +293,6 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       .eq('user_id', userId)
       .eq('active', true)
       .order(sortBy, { ascending: sortOrder === 'asc' })
-      .order('name', { ascending: true }) // Secondary sort
       .range(offset, offset + limit - 1);
 
     if (error) {
@@ -183,57 +311,71 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     };
   }
 
+  // Backward compatibility
+  async findWithPagination(
+    params: PaginationParams
+  ): Promise<PaginatedResult<Budget>> {
+    return this.findPaginated(params);
+  }
+
   async create(data: CreateBudgetDTO): Promise<Budget> {
     const userId = await this.getUserId();
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    const budget: Budget = {
-      id: crypto.randomUUID(),
-      userId,
-      categoryId: data.categoryId,
-      monthYYYYMM: data.monthYear.replace('-', ''), // Convert YYYY-MM to YYYYMM
-      amountBaseMinor: data.amountBaseMinor,
-      spentMinor: 0, // Will be calculated
+    const { error: insertError } = await this.client.from('budgets').insert({
+      user_id: userId,
+      name: data.name,
+      category_id: data.categoryId,
+      month_year: data.monthYear,
+      amount_base_minor: data.amountBaseMinor,
+      spent_base_minor: 0,
       active: data.active ?? true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    });
 
-    const supabaseBudget = mapDomainBudgetToSupabase(budget);
-    const insertData =
-      supabaseBudget as unknown as Database['public']['Tables']['budgets']['Insert'];
+    if (insertError) {
+      throw new Error(`Failed to create budget: ${insertError.message}`);
+    }
 
-    const { data: insertedData, error } = await (
-      this.client.from('budgets') as any
-    )
-      .insert(insertData)
-      .select()
+    // Fetch the created budget to return it fully (with ID generated by DB)
+    const { data: insertedData, error: fetchError } = await this.client
+      .from('budgets')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('category_id', data.categoryId)
+      .eq('month_year', data.monthYear)
       .single();
 
-    if (error) {
-      throw new Error(`Failed to create budget: ${error.message}`);
+    if (fetchError) {
+      throw new Error(`Failed to fetch created budget: ${fetchError.message}`);
     }
 
     return mapSupabaseBudgetToDomain(insertedData);
   }
 
-  async update(id: string, updates: Partial<Budget>): Promise<Budget> {
+  async update(id: string, updates: UpdateBudgetDTO): Promise<Budget> {
     const userId = await this.getUserId();
     if (!userId) {
       throw new Error('Unauthorized');
     }
 
-    const supabaseUpdates = mapDomainBudgetToSupabase({
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    });
-    const updateData =
-      supabaseUpdates as unknown as Database['public']['Tables']['budgets']['Update'];
+    const supabaseUpdates: any = {
+      updated_at: new Date().toISOString(),
+    };
 
-    const { data, error } = await (this.client.from('budgets') as any)
-      .update(updateData)
+    if (updates.name !== undefined) supabaseUpdates.name = updates.name;
+    if (updates.categoryId !== undefined)
+      supabaseUpdates.category_id = updates.categoryId;
+    if (updates.monthYear !== undefined)
+      supabaseUpdates.month_year = updates.monthYear;
+    if (updates.amountBaseMinor !== undefined)
+      supabaseUpdates.amount_base_minor = updates.amountBaseMinor;
+    if (updates.active !== undefined) supabaseUpdates.active = updates.active;
+
+    const { data, error } = await this.client
+      .from('budgets')
+      .update(supabaseUpdates)
       .eq('id', id)
       .eq('user_id', userId)
       .select()
@@ -244,6 +386,34 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     }
 
     return mapSupabaseBudgetToDomain(data);
+  }
+
+  async createMany(data: CreateBudgetDTO[]): Promise<Budget[]> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const inserts = data.map((item) => ({
+      user_id: userId,
+      name: item.name,
+      category_id: item.categoryId,
+      month_year: item.monthYear,
+      amount_base_minor: item.amountBaseMinor,
+      spent_base_minor: 0,
+      active: item.active ?? true,
+    }));
+
+    const { data: insertedData, error } = await this.client
+      .from('budgets')
+      .insert(inserts)
+      .select();
+
+    if (error) {
+      throw new Error(`Failed to create budgets: ${error.message}`);
+    }
+
+    return mapSupabaseBudgetArrayToDomain(insertedData || []);
   }
 
   async delete(id: string): Promise<void> {
@@ -263,6 +433,23 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     if (error) {
       throw new Error(`Failed to delete budget: ${error.message}`);
+    }
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    const { error } = await this.client
+      .from('budgets')
+      .update({ active: false })
+      .in('id', ids)
+      .eq('user_id', userId);
+
+    if (error) {
+      throw new Error(`Failed to delete budgets: ${error.message}`);
     }
   }
 
@@ -300,6 +487,20 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     return count || 0;
   }
 
+  async exists(id: string): Promise<boolean> {
+    const userId = await this.getUserId();
+    if (!userId) return false;
+
+    const { data, error } = await this.client
+      .from('budgets')
+      .select('id')
+      .eq('id', id)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    return !!data && !error;
+  }
+
   async updateSpentAmount(id: string, spentMinor: number): Promise<Budget> {
     const userId = await this.getUserId();
     if (!userId) {
@@ -325,114 +526,137 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     return mapSupabaseBudgetToDomain(data);
   }
 
-  async getBudgetSummary(monthYYYYMM: string): Promise<{
-    totalBudget: number;
-    totalSpent: number;
-    budgetCount: number;
+  async getMonthlyBudgetSummary(monthYear: string): Promise<{
+    totalBudgetBaseMinor: number;
+    totalSpentBaseMinor: number;
+    totalRemainingBaseMinor: number;
+    overBudgetCount: number;
+    budgetsCount: number;
   }> {
-    const userId = await this.getUserId();
-    if (!userId) {
-      return { totalBudget: 0, totalSpent: 0, budgetCount: 0 };
-    }
+    const budgetsWithProgress = await this.getBudgetsWithProgress(monthYear);
 
-    const { data, error } = await this.client
-      .from('budgets')
-      .select('amount_base_minor, spent_base_minor')
-      .eq('month_year', monthYYYYMM)
-      .eq('user_id', userId)
-      .eq('active', true);
-
-    if (error) {
-      throw new Error(`Failed to get budget summary: ${error.message}`);
-    }
-
-    const budgets = (data || []) as Array<{
-      amount_base_minor: number;
-      spent_base_minor: number | null;
-    }>;
-    const totalBudget = budgets.reduce(
-      (sum, budget) => sum + budget.amount_base_minor,
+    const totalBudgetBaseMinor = budgetsWithProgress.reduce(
+      (sum, b) => sum + b.amountBaseMinor,
       0
     );
-    const totalSpent = budgets.reduce(
-      (sum, budget) => sum + (budget.spent_base_minor || 0),
+    const totalSpentBaseMinor = budgetsWithProgress.reduce(
+      (sum, b) => sum + b.spentBaseMinor,
       0
     );
+    const totalRemainingBaseMinor = totalBudgetBaseMinor - totalSpentBaseMinor;
+    const overBudgetCount = budgetsWithProgress.filter(
+      (b) => b.isOverBudget
+    ).length;
 
     return {
-      totalBudget,
-      totalSpent,
-      budgetCount: budgets.length,
+      totalBudgetBaseMinor,
+      totalSpentBaseMinor,
+      totalRemainingBaseMinor,
+      overBudgetCount,
+      budgetsCount: budgetsWithProgress.length,
     };
   }
 
-  async getOverBudgetCategories(monthYYYYMM: string): Promise<Budget[]> {
-    const userId = await this.getUserId();
-    if (!userId) return [];
-
-    const { data, error } = await this.client
-      .from('budgets')
-      .select('*')
-      .eq('month_year', monthYYYYMM)
-      .eq('user_id', userId)
-      .eq('active', true);
-
-    if (error) {
-      throw new Error(`Failed to get over-budget categories: ${error.message}`);
-    }
-
-    const budgets = mapSupabaseBudgetArrayToDomain(data || []);
-    return budgets.filter(
-      (budget) => (budget.spentMinor || 0) > budget.amountBaseMinor
-    );
+  async getOverBudgetAlerts(monthYear?: string): Promise<BudgetWithProgress[]> {
+    const myMonthYear = monthYear || new Date().toISOString().substring(0, 7);
+    const budgets = await this.getBudgetsWithProgress(myMonthYear);
+    return budgets.filter((b) => b.isOverBudget);
   }
 
-  async getBudgetProgress(
-    categoryId: string,
-    monthYYYYMM: string
+  async getBudgetAlerts(
+    monthYear: string,
+    threshold: number
+  ): Promise<BudgetWithProgress[]> {
+    const budgets = await this.getBudgetsWithProgress(monthYear);
+    return budgets.filter((b) => b.percentageUsed >= threshold);
+  }
+
+  async compareBudgets(
+    monthYear1: string,
+    monthYear2: string
   ): Promise<{
-    budgeted: number;
-    spent: number;
-    remaining: number;
-    percentageUsed: number;
-  } | null> {
+    month1: BudgetWithProgress[];
+    month2: BudgetWithProgress[];
+    comparison: {
+      categoryId: string;
+      categoryName: string;
+      month1Budget: number;
+      month2Budget: number;
+      month1Spent: number;
+      month2Spent: number;
+      budgetChange: number;
+      spentChange: number;
+    }[];
+  }> {
+    const [month1Progress, month2Progress] = await Promise.all([
+      this.getBudgetsWithProgress(monthYear1),
+      this.getBudgetsWithProgress(monthYear2),
+    ]);
+
+    // This would ideally fetch category names too, but we'll use IDs for now
+    // or assume the caller handles names. The contract has categoryName.
+    // To get names, we'd need to fetch categories.
+
+    const comparison = month1Progress.map((b1) => {
+      const b2 = month2Progress.find((b) => b.categoryId === b1.categoryId);
+      return {
+        categoryId: b1.categoryId,
+        categoryName: `Category ${b1.categoryId}`, // Placeholder
+        month1Budget: b1.amountBaseMinor,
+        month2Budget: b2?.amountBaseMinor || 0,
+        month1Spent: b1.spentBaseMinor,
+        month2Spent: b2?.spentBaseMinor || 0,
+        budgetChange: (b2?.amountBaseMinor || 0) - b1.amountBaseMinor,
+        spentChange: (b2?.spentBaseMinor || 0) - b1.spentBaseMinor,
+      };
+    });
+
+    return {
+      month1: month1Progress,
+      month2: month2Progress,
+      comparison,
+    };
+  }
+
+  async copyBudgetsToNextMonth(
+    fromMonthYear: string,
+    toMonthYear: string
+  ): Promise<Budget[]> {
+    const budgets = await this.findByMonthYear(fromMonthYear);
+    if (budgets.length === 0) return [];
+
+    const results: Budget[] = [];
+    for (const budget of budgets) {
+      // Check if already exists in target month
+      const exists = await this.budgetExists(budget.categoryId, toMonthYear);
+      if (!exists) {
+        const newBudget = await this.create({
+          name: `Budget for ${budget.categoryId}`,
+          categoryId: budget.categoryId,
+          monthYear: toMonthYear,
+          amountBaseMinor: budget.amountBaseMinor,
+          active: true,
+        });
+        results.push(newBudget);
+      }
+    }
+
+    return results;
+  }
+
+  async budgetExists(categoryId: string, monthYear: string): Promise<boolean> {
     const userId = await this.getUserId();
-    if (!userId) return null;
+    if (!userId) return false;
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('amount_base_minor, spent_base_minor')
+      .select('id')
       .eq('category_id', categoryId)
-      .eq('month_year', monthYYYYMM)
+      .eq('month_year', monthYear)
       .eq('user_id', userId)
-      .eq('active', true)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
-      }
-      throw new Error(`Failed to fetch budget progress: ${error.message}`);
-    }
-
-    if (!data) {
-      return null;
-    }
-
-    const row = data as {
-      amount_base_minor: number;
-      spent_base_minor: number | null;
-    };
-    const budgeted = row.amount_base_minor;
-    const spent = row.spent_base_minor || 0;
-    const remaining = budgeted - spent;
-    const percentageUsed = budgeted > 0 ? (spent / budgeted) * 100 : 0;
-
-    return {
-      budgeted,
-      spent,
-      remaining,
-      percentageUsed,
-    };
+    return !!data && !error;
   }
 }

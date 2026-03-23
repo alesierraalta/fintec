@@ -35,15 +35,14 @@ import { SupabaseExchangeRatesRepository } from './exchange-rates-repository-imp
 import { SupabaseNotificationsRepository } from './notifications-repository-impl';
 import { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 
-// @ts-ignore - Incomplete implementation, using LocalAppRepository instead
 export class SupabaseAppRepository implements AppRepository {
   public readonly accounts: SupabaseAccountsRepository;
   public readonly transactions: SupabaseTransactionsRepository;
   public readonly categories: SupabaseCategoriesRepository;
-  public readonly budgets: any; // SupabaseBudgetsRepository - incomplete implementation
-  public readonly goals: any; // SupabaseGoalsRepository - incomplete implementation
-  public readonly exchangeRates: any; // SupabaseExchangeRatesRepository - incomplete implementation
-  public readonly notifications: any; // SupabaseNotificationsRepository - incomplete implementation
+  public readonly budgets: SupabaseBudgetsRepository;
+  public readonly goals: SupabaseGoalsRepository;
+  public readonly exchangeRates: SupabaseExchangeRatesRepository;
+  public readonly notifications: SupabaseNotificationsRepository;
   public readonly recurringTransactions: SupabaseRecurringTransactionsRepository;
   private readonly client: SupabaseClient;
 

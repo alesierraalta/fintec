@@ -5,6 +5,7 @@ import {
   Category,
   Budget,
   SavingsGoal,
+  GoalContribution,
   ExchangeRate,
   Transfer,
   User,
@@ -22,6 +23,7 @@ export class FinanceDB extends Dexie {
   categories!: Table<Category>;
   budgets!: Table<Budget>;
   goals!: Table<SavingsGoal>;
+  goalContributions!: Table<GoalContribution>;
   exchangeRates!: Table<ExchangeRate>;
   recurringRules!: Table<RecurringRule>;
 
@@ -87,6 +89,27 @@ export class FinanceDB extends Dexie {
             }
           });
       });
+
+    this.version(3).stores({
+      users: 'id, email, baseCurrency, createdAt',
+      accounts:
+        'id, userId, name, type, currencyCode, balance, active, createdAt, [type+active], [currencyCode+active], [userId+active]',
+      transactions:
+        'id, type, accountId, categoryId, currencyCode, date, amountMinor, amountBaseMinor, transferId, isDebt, debtDirection, debtStatus, settledAt, createdAt, [accountId+date], [categoryId+date], [type+date], [date+type], [isDebt+debtStatus], [isDebt+debtDirection+date]',
+      transfers: 'id, fromTransactionId, toTransactionId, createdAt',
+      categories:
+        'id, name, kind, parentId, active, createdAt, [kind+active], [parentId+active]',
+      budgets:
+        'id, categoryId, monthYear, amountBaseMinor, active, createdAt, [categoryId+monthYear], [monthYear+active]',
+      goals:
+        'id, name, targetBaseMinor, currentBaseMinor, targetDate, accountId, active, createdAt, [active+targetDate]',
+      goalContributions:
+        'id, goalId, createdAt, source, relatedTransactionId, [goalId+createdAt]',
+      exchangeRates:
+        'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency]',
+      recurringRules:
+        'id, name, frequency, nextRunDate, active, createdAt, [active+nextRunDate]',
+    });
   }
 
   // Initialize database with default data
@@ -336,6 +359,7 @@ export class FinanceDB extends Dexie {
     categories: Category[];
     budgets: Budget[];
     goals: SavingsGoal[];
+    goalContributions: GoalContribution[];
     exchangeRates: ExchangeRate[];
     recurringRules: RecurringRule[];
   }> {
@@ -347,6 +371,7 @@ export class FinanceDB extends Dexie {
       categories: await this.categories.toArray(),
       budgets: await this.budgets.toArray(),
       goals: await this.goals.toArray(),
+      goalContributions: await this.goalContributions.toArray(),
       exchangeRates: await this.exchangeRates.toArray(),
       recurringRules: await this.recurringRules.toArray(),
     };
@@ -361,6 +386,7 @@ export class FinanceDB extends Dexie {
     categories?: Category[];
     budgets?: Budget[];
     goals?: SavingsGoal[];
+    goalContributions?: GoalContribution[];
     exchangeRates?: ExchangeRate[];
     recurringRules?: RecurringRule[];
   }): Promise<void> {
@@ -372,6 +398,8 @@ export class FinanceDB extends Dexie {
       if (data.transfers) await this.transfers.bulkPut(data.transfers);
       if (data.budgets) await this.budgets.bulkPut(data.budgets);
       if (data.goals) await this.goals.bulkPut(data.goals);
+      if (data.goalContributions)
+        await this.goalContributions.bulkPut(data.goalContributions);
       if (data.exchangeRates)
         await this.exchangeRates.bulkPut(data.exchangeRates);
       if (data.recurringRules)

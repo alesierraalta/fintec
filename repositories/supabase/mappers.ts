@@ -204,12 +204,14 @@ export function mapDomainCategoryToSupabase(
 export function mapSupabaseBudgetToDomain(
   supabaseBudget: SupabaseBudget
 ): Budget {
+  // Convert YYYY-MM to YYYYMM
+  const monthYYYYMM = supabaseBudget.month_year.replace('-', '');
+
   return {
     id: supabaseBudget.id,
     userId: supabaseBudget.user_id,
-    // name: supabaseBudget.name, // Budget domain object doesn't have name property
     categoryId: supabaseBudget.category_id,
-    monthYYYYMM: supabaseBudget.month_year,
+    monthYYYYMM,
     amountBaseMinor: supabaseBudget.amount_base_minor,
     spentMinor: supabaseBudget.spent_base_minor,
     active: supabaseBudget.active,
@@ -221,11 +223,9 @@ export function mapSupabaseBudgetToDomain(
 export function mapDomainBudgetToSupabase(
   budget: Partial<Budget>
 ): Partial<SupabaseBudget> {
-  return {
+  const result: Partial<SupabaseBudget> = {
     id: budget.id,
-    // name: budget.name, // Budget domain object doesn't have name property
     category_id: budget.categoryId,
-    month_year: budget.monthYYYYMM,
     amount_base_minor: budget.amountBaseMinor,
     spent_base_minor: budget.spentMinor,
     active: budget.active,
@@ -233,6 +233,22 @@ export function mapDomainBudgetToSupabase(
     created_at: budget.createdAt,
     updated_at: budget.updatedAt,
   };
+
+  if (budget.monthYYYYMM) {
+    // Convert YYYYMM to YYYY-MM
+    result.month_year = `${budget.monthYYYYMM.substring(0, 4)}-${budget.monthYYYYMM.substring(4)}`;
+  }
+
+  // Budget table in DB requires a name, use category_id or generic name if missing
+  // Since we don't have it in the domain, we'll set a default or omit if it's Partial
+  // and we are updating. If creating, it might be required.
+  // In our case, we'll use a placeholder or omit and see if DB allows null (Schema says NOT NULL)
+  // Let's check the schema again: name TEXT NOT NULL
+  if (!result.name && budget.categoryId) {
+    result.name = `Budget for ${budget.categoryId}`;
+  }
+
+  return result;
 }
 
 // Goal mappers

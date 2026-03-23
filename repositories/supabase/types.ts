@@ -79,6 +79,17 @@ export interface SupabaseGoal {
   updated_at: string;
 }
 
+export interface SupabaseGoalContribution {
+  id: string;
+  goal_id: string;
+  user_id: string;
+  delta_base_minor: number;
+  note?: string | null;
+  source?: string | null;
+  related_transaction_id?: string | null;
+  created_at: string;
+}
+
 export interface SupabaseExchangeRate {
   id: string;
   base_currency: string;
@@ -186,6 +197,14 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<SupabaseGoal>;
+      };
+      goal_contributions: {
+        Row: SupabaseGoalContribution;
+        Insert: Omit<SupabaseGoalContribution, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<SupabaseGoalContribution>;
       };
       exchange_rates: {
         Row: SupabaseExchangeRate;
