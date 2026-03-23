@@ -88,8 +88,11 @@ function ProfileContent() {
               <User className="h-12 w-12 text-white" />
             </div>
 
-            <h1 className="mb-4 bg-gradient-to-r from-primary via-indigo-600 to-purple-500 bg-clip-text text-ios-large-title font-bold tracking-tight text-transparent">
-              👤 Mi Perfil
+            <h1 className="mb-4 text-ios-large-title font-bold tracking-tight">
+              <span className="mr-2">👤</span>
+              <span className="bg-gradient-to-r from-primary via-indigo-600 to-purple-500 bg-clip-text text-transparent">
+                Mi Perfil
+              </span>
             </h1>
             <p className="mb-6 font-light text-muted-foreground">
               Gestiona tu información personal

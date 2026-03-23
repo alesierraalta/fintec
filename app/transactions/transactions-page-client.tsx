@@ -462,8 +462,11 @@ export default function TransactionsPage() {
               <span className="text-ios-caption font-medium">Tus finanzas</span>
             </div>
 
-            <h1 className="mb-6 bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
-              💳 Transacciones
+            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-6xl">
+              <span className="mr-2">💳</span>
+              <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+                Transacciones
+              </span>
             </h1>
             <p className="mb-6 font-light text-muted-foreground">
               Controla todos tus ingresos y gastos

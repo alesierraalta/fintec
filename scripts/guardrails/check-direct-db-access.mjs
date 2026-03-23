@@ -16,7 +16,11 @@ const SKIP_DIRS = new Set([
 
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 
-const ALLOWED_PREFIXES = ['repositories/supabase/', 'tests/'];
+const ALLOWED_PREFIXES = [
+  'repositories/supabase/',
+  'tests/',
+  'supabase/functions/',
+];
 
 const ALLOWED_FILES = new Set([
   'lib/payment-orders/order-service.ts',

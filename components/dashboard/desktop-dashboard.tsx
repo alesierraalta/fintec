@@ -372,8 +372,11 @@ export function DesktopDashboard() {
           <span className="text-ios-caption font-medium">Tus finanzas</span>
         </div>
 
-        <h1 className="mb-4 bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
-          💳 Dashboard Financiero
+        <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
+          <span className="mr-2">💳</span>
+          <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+            Dashboard Financiero
+          </span>
         </h1>
         <p className="mb-4 font-light text-muted-foreground md:mb-6">
           Controla todos tus ingresos y gastos

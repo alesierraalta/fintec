@@ -646,8 +646,9 @@ export default function AccountsPage() {
 
             {/* Main Title */}
             <h1 className="relative mb-3 text-4xl font-bold tracking-tight sm:mb-4 sm:text-5xl md:text-6xl lg:text-6xl">
+              <span className="mr-2">💼</span>
               <span className="animate-gradient bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent [background-size:200%_200%]">
-                💼 Mis Cuentas
+                Mis Cuentas
               </span>
             </h1>
 
