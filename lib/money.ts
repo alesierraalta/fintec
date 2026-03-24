@@ -20,7 +20,13 @@ export const CURRENCIES: Record<string, Currency> = {
   CLP: { code: 'CLP', symbol: '$', name: 'Chilean Peso', decimals: 0 },
   COP: { code: 'COP', symbol: '$', name: 'Colombian Peso', decimals: 0 },
   PEN: { code: 'PEN', symbol: 'S/', name: 'Peruvian Sol', decimals: 2 },
-  VES: { code: 'VES', symbol: 'Bs.', name: 'Venezuelan Bolívar', decimals: 2, requiresBCVRate: true },
+  VES: {
+    code: 'VES',
+    symbol: 'Bs.',
+    name: 'Venezuelan Bolívar',
+    decimals: 2,
+    requiresBCVRate: true,
+  },
   // * Cryptocurrencies
   BTC: { code: 'BTC', symbol: '₿', name: 'Bitcoin', decimals: 8 },
   ETH: { code: 'ETH', symbol: 'Ξ', name: 'Ethereum', decimals: 8 },
@@ -32,10 +38,13 @@ const formattersCache = new Map<string, Intl.NumberFormat>();
 const getFormatter = (locale: string, decimals: number) => {
   const key = `${locale}-${decimals}`;
   if (!formattersCache.has(key)) {
-    formattersCache.set(key, new Intl.NumberFormat(locale, {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    }));
+    formattersCache.set(
+      key,
+      new Intl.NumberFormat(locale, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+      })
+    );
   }
   return formattersCache.get(key)!;
 };
@@ -57,7 +66,12 @@ export class Money {
 
   // Create from major units (e.g., dollars)
   static fromMajor(amount: number, currencyCode: string): Money {
-    const currency = CURRENCIES[currencyCode] || { code: currencyCode, symbol: currencyCode, name: currencyCode, decimals: 2 };
+    const currency = CURRENCIES[currencyCode] || {
+      code: currencyCode,
+      symbol: currencyCode,
+      name: currencyCode,
+      decimals: 2,
+    };
     const amountMinor = Math.round(amount * Math.pow(10, currency.decimals));
     return new Money(amountMinor, currencyCode);
   }
@@ -97,7 +111,9 @@ export class Money {
   // Subtract money (must be same currency)
   subtract(other: Money): Money {
     if (this.currency.code !== other.currency.code) {
-      throw new Error('Cannot subtract different currencies without exchange rate');
+      throw new Error(
+        'Cannot subtract different currencies without exchange rate'
+      );
     }
     const result = this.amountMinor - other.amountMinor;
     if (!Number.isFinite(result)) {
@@ -128,7 +144,10 @@ export class Money {
     if (!Number.isFinite(divisor)) {
       throw new Error('Cannot divide by NaN or Infinity');
     }
-    return new Money(Math.round(this.amountMinor / divisor), this.currency.code);
+    return new Money(
+      Math.round(this.amountMinor / divisor),
+      this.currency.code
+    );
   }
 
   // Check if amount is zero
@@ -158,13 +177,18 @@ export class Money {
 
   // Compare with another Money object
   equals(other: Money): boolean {
-    return this.currency.code === other.currency.code && this.amountMinor === other.amountMinor;
+    return (
+      this.currency.code === other.currency.code &&
+      this.amountMinor === other.amountMinor
+    );
   }
 
   // Compare amounts (must be same currency)
   compare(other: Money): number {
     if (this.currency.code !== other.currency.code) {
-      throw new Error('Cannot compare different currencies without exchange rate');
+      throw new Error(
+        'Cannot compare different currencies without exchange rate'
+      );
     }
     return this.amountMinor - other.amountMinor;
   }
@@ -184,7 +208,9 @@ export class Money {
     const amount = this.getMajorAmount();
 
     // * Optimized: Use cached formatter
-    const formatted = getFormatter(locale, this.currency.decimals).format(amount);
+    const formatted = getFormatter(locale, this.currency.decimals).format(
+      amount
+    );
 
     let result = formatted;
 
@@ -215,7 +241,9 @@ export class Money {
     // Convert to major units, apply exchange rate, then to minor units
     const majorAmount = this.getMajorAmount();
     const convertedMajorAmount = majorAmount * exchangeRate;
-    const convertedMinorAmount = Math.round(convertedMajorAmount * Math.pow(10, targetCurrency.decimals));
+    const convertedMinorAmount = Math.round(
+      convertedMajorAmount * Math.pow(10, targetCurrency.decimals)
+    );
 
     return new Money(convertedMinorAmount, targetCurrencyCode);
   }
@@ -235,7 +263,9 @@ export class Money {
     let remainder = this.amountMinor;
 
     for (let i = 0; i < ratios.length; i++) {
-      const allocation = Math.floor((this.amountMinor * ratios[i]) / totalRatio);
+      const allocation = Math.floor(
+        (this.amountMinor * ratios[i]) / totalRatio
+      );
       results.push(new Money(allocation, this.currency.code));
       remainder -= allocation;
     }
@@ -243,7 +273,10 @@ export class Money {
     // Distribute remainder to first results
     for (let i = 0; i < remainder; i++) {
       const currentAmount = results[i % results.length].getMinorAmount();
-      results[i % results.length] = new Money(currentAmount + 1, this.currency.code);
+      results[i % results.length] = new Money(
+        currentAmount + 1,
+        this.currency.code
+      );
     }
 
     // Normalize -0 to 0
@@ -297,12 +330,15 @@ export function toMinorUnits(amount: number, currencyCode: string): number {
   return Money.fromMajor(amount, currencyCode).getMinorAmount();
 }
 
-export function fromMinorUnits(amountMinor: number, currencyCode: string): number {
+export function fromMinorUnits(
+  amountMinor: number,
+  currencyCode: string
+): number {
   return Money.fromMinor(amountMinor, currencyCode).getMajorAmount();
 }
 
 export function getCurrencyDecimals(currencyCode: string): number {
-  return CURRENCIES[currencyCode]?.decimals || 2;
+  return CURRENCIES[currencyCode]?.decimals ?? 2;
 }
 
 export function getSupportedCurrencies(): Currency[] {
