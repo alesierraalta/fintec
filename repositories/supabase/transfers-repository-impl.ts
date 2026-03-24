@@ -8,6 +8,7 @@ import type {
 } from '@/repositories/contracts';
 import { mapSupabaseTransactionToDomain } from './mappers';
 import { supabase } from './client';
+import { getOwnedAccountScope, hasOwnedAccounts } from './account-scope';
 
 export class SupabaseTransfersRepository implements TransfersRepository {
   private readonly client: SupabaseClient;
@@ -20,15 +21,15 @@ export class SupabaseTransfersRepository implements TransfersRepository {
     userId: string,
     filters?: TransferFilters
   ): Promise<TransferRecord[]> {
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      return [];
+    }
+
     let query = this.client
       .from('transactions')
-      .select(
-        `
-        *,
-        accounts!inner(user_id)
-      `
-      )
-      .eq('accounts.user_id', userId)
+      .select('*, account:accounts(name)')
+      .in('account_id', scope.accountIds)
       .in('type', ['TRANSFER_OUT', 'TRANSFER_IN'])
       .not('transfer_id', 'is', null)
       .order('date', { ascending: false });
@@ -57,11 +58,19 @@ export class SupabaseTransfersRepository implements TransfersRepository {
 
     const grouped = new Map<
       string,
-      ReturnType<typeof mapSupabaseTransactionToDomain>[]
+      (ReturnType<typeof mapSupabaseTransactionToDomain> & {
+        accountName?: string;
+      })[]
     >();
 
     for (const row of data || []) {
-      const mapped = mapSupabaseTransactionToDomain(row as any);
+      const mapped = mapSupabaseTransactionToDomain(row as any) as ReturnType<
+        typeof mapSupabaseTransactionToDomain
+      > & { accountName?: string };
+      if (row.account && row.account.name) {
+        mapped.accountName = row.account.name;
+      }
+
       if (!mapped.transferId) {
         continue;
       }
@@ -134,15 +143,15 @@ export class SupabaseTransfersRepository implements TransfersRepository {
   }
 
   async delete(userId: string, transferId: string): Promise<void> {
+    const scope = await getOwnedAccountScope(this.client, userId);
+    if (!hasOwnedAccounts(scope)) {
+      throw new Error('Transfer not found');
+    }
+
     const { data, error } = await this.client
       .from('transactions')
-      .select(
-        `
-        id,
-        accounts!inner(user_id)
-      `
-      )
-      .eq('accounts.user_id', userId)
+      .select('id')
+      .in('account_id', scope.accountIds)
       .eq('transfer_id', transferId);
 
     if (error) {

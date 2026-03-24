@@ -9,8 +9,8 @@ export interface TransferFilters {
 
 export interface TransferRecord {
   id: string;
-  fromTransaction: Transaction | null;
-  toTransaction: Transaction | null;
+  fromTransaction: (Transaction & { accountName?: string }) | null;
+  toTransaction: (Transaction & { accountName?: string }) | null;
   amountMinor: number;
   date?: string;
   description?: string;
