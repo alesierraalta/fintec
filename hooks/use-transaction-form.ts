@@ -138,33 +138,46 @@ export function useTransactionForm(): UseTransactionFormReturn {
 
   // * Load categories and accounts from database
   useEffect(() => {
+    let mounted = true;
     const loadData = async () => {
       if (!user) {
-        setLoadingCategories(false);
-        setLoadingAccounts(false);
+        if (mounted) {
+          setLoadingCategories(false);
+          setLoadingAccounts(false);
+        }
         return;
       }
 
       try {
-        // Load categories
-        setLoadingCategories(true);
-        const allCategories = await repository.categories.findAll();
-        setCategories(allCategories.filter((cat) => cat.active));
-        setLoadingCategories(false);
+        if (mounted) {
+          setLoadingCategories(true);
+          setLoadingAccounts(true);
+        }
 
-        // Load user accounts
-        setLoadingAccounts(true);
-        const userAccounts = await repository.accounts.findByUserId(user.id);
-        setAccounts(userAccounts.filter((acc) => acc.active));
-        setLoadingAccounts(false);
+        const [allCategories, userAccounts] = await Promise.all([
+          repository.categories.findAll(),
+          repository.accounts.findByUserId(user.id),
+        ]);
+
+        if (mounted) {
+          setCategories(allCategories.filter((cat) => cat.active));
+          setAccounts(userAccounts.filter((acc) => acc.active));
+          setLoadingCategories(false);
+          setLoadingAccounts(false);
+        }
       } catch (err) {
         logger.error('Error loading data:', err);
-        setLoadingCategories(false);
-        setLoadingAccounts(false);
+        if (mounted) {
+          setLoadingCategories(false);
+          setLoadingAccounts(false);
+        }
       }
     };
 
     loadData();
+    return () => {
+      mounted = false;
+    };
   }, [repository, user]);
 
   // * Initialize date on client side
