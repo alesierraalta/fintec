@@ -1,28 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-
-async function getSeedData(page: Page) {
-  const [accountsResponse, categoriesResponse] = await Promise.all([
-    page.request.get('/api/accounts?active=true'),
-    page.request.get('/api/categories'),
-  ]);
-
-  expect(accountsResponse.ok()).toBeTruthy();
-  expect(categoriesResponse.ok()).toBeTruthy();
-
-  const accounts = (await accountsResponse.json()).data || [];
-  const categories = (await categoriesResponse.json()).data || [];
-
-  return {
-    account: accounts[0],
-    incomeCategory: categories.find(
-      (category: any) => category.kind === 'INCOME'
-    ),
-    expenseCategory: categories.find(
-      (category: any) => category.kind === 'EXPENSE'
-    ),
-  };
-}
+import { bootstrapCanonicalFixtures } from '@/tests/support/auth/bootstrap';
 
 async function createTransaction(page: Page, payload: Record<string, unknown>) {
   const response = await page.request.post('/api/transactions', {
@@ -31,7 +9,7 @@ async function createTransaction(page: Page, payload: Record<string, unknown>) {
   expect(response.ok()).toBeTruthy();
 }
 
-test.describe('Reports Period Selector Boundaries', () => {
+test.describe('Reports Period Selector Boundaries @auth-required', () => {
   test('keeps operational KPI separate from debt portfolio totals', async ({
     page,
   }, testInfo) => {
@@ -41,12 +19,7 @@ test.describe('Reports Period Selector Boundaries', () => {
     );
 
     const { account, incomeCategory, expenseCategory } =
-      await getSeedData(page);
-    test.skip(
-      !account || !incomeCategory || !expenseCategory,
-      'Missing seed account/category data for test user'
-    );
-
+      await bootstrapCanonicalFixtures(page);
     const token = Date.now().toString();
     const testDate = '2099-02-01';
     const debtDescription = `E2E deuda reporte ${token}`;

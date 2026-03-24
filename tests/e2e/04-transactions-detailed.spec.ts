@@ -1,46 +1,8 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
+import { bootstrapCanonicalFixtures } from '@/tests/support/auth/bootstrap';
 
-async function fetchSeedData(page: Page) {
-  const [accountsResponse, categoriesResponse] = await Promise.all([
-    page.request.get('/api/accounts?active=true'),
-    page.request.get('/api/categories'),
-  ]);
-
-  if (!accountsResponse.ok() || !categoriesResponse.ok()) {
-    return { account: null, incomeCategory: null, expenseCategory: null };
-  }
-
-  const accountsPayload = await accountsResponse.json();
-  const categoriesPayload = await categoriesResponse.json();
-
-  const account = (accountsPayload.data || [])[0];
-  const incomeCategory = (categoriesPayload.data || []).find(
-    (category: any) => category.kind === 'INCOME'
-  );
-  const expenseCategory = (categoriesPayload.data || []).find(
-    (category: any) => category.kind === 'EXPENSE'
-  );
-
-  return { account, incomeCategory, expenseCategory };
-}
-
-async function createDebtTransaction(
-  page: Page,
-  payload: Record<string, unknown>
-) {
-  const response = await page.request.post('/api/transactions', {
-    data: payload,
-  });
-
-  expect(response.ok()).toBeTruthy();
-  return response.json();
-}
-
-async function createSimpleTransaction(
-  page: Page,
-  payload: Record<string, unknown>
-) {
+async function createTransaction(page: Page, payload: Record<string, unknown>) {
   const response = await page.request.post('/api/transactions', {
     data: payload,
   });
@@ -63,7 +25,7 @@ async function swipeLeft(page: Page, target: Locator) {
   await page.mouse.up();
 }
 
-test.describe('Transactions Debt Detailed', () => {
+test.describe('Transactions Debt Detailed @auth-required', () => {
   test('creates and lists debt transactions with direction and status', async ({
     page,
   }, testInfo) => {
@@ -73,19 +35,14 @@ test.describe('Transactions Debt Detailed', () => {
     );
 
     const { account, incomeCategory, expenseCategory } =
-      await fetchSeedData(page);
-
-    test.skip(
-      !account || !incomeCategory || !expenseCategory,
-      'Missing seed account/category data for test user'
-    );
+      await bootstrapCanonicalFixtures(page);
 
     const uniqueToken = Date.now().toString();
     const baseDate = '2099-01-02';
     const incomeDescription = `E2E deuda ingreso ${uniqueToken}`;
     const expenseDescription = `E2E deuda gasto ${uniqueToken}`;
 
-    await createDebtTransaction(page, {
+    await createTransaction(page, {
       accountId: account.id,
       categoryId: incomeCategory.id,
       amount: 12345,
@@ -98,7 +55,7 @@ test.describe('Transactions Debt Detailed', () => {
       debtStatus: 'OPEN',
     });
 
-    await createDebtTransaction(page, {
+    await createTransaction(page, {
       accountId: account.id,
       categoryId: expenseCategory.id,
       amount: 5432,
@@ -137,17 +94,12 @@ test.describe('Transactions Debt Detailed', () => {
       'Run this swipe arbitration flow on mobile projects only'
     );
 
-    const { account, expenseCategory } = await fetchSeedData(page);
-
-    test.skip(
-      !account || !expenseCategory,
-      'Missing seed account/category data for test user'
-    );
+    const { account, expenseCategory } = await bootstrapCanonicalFixtures(page);
 
     const uniqueToken = Date.now().toString();
     const description = `E2E swipe tx ${uniqueToken}`;
 
-    await createSimpleTransaction(page, {
+    await createTransaction(page, {
       accountId: account.id,
       categoryId: expenseCategory.id,
       amount: 3210,
@@ -207,18 +159,26 @@ test.describe('Transactions Debt Detailed', () => {
       'Run this non-regression smoke on the desktop Chromium project'
     );
 
+    const { account, expenseCategory } = await bootstrapCanonicalFixtures(page);
+    const description = `E2E desktop swipe ${Date.now().toString()}`;
+
+    await createTransaction(page, {
+      accountId: account.id,
+      categoryId: expenseCategory.id,
+      amount: 4510,
+      currencyCode: account.currencyCode,
+      type: 'EXPENSE',
+      date: '2099-02-05',
+      description,
+    });
+
     await page.goto('/transactions');
     await expect(page).toHaveURL(/\/transactions/);
 
-    const swipeableRows = page.locator('div[role="button"]');
-    const rowCount = await swipeableRows.count();
-
-    test.skip(
-      rowCount === 0,
-      'No swipeable transaction rows available for desktop interaction checks in this environment'
-    );
-
-    const targetRow = swipeableRows.first();
+    const targetRow = page
+      .locator('div[role="button"]')
+      .filter({ hasText: description })
+      .first();
     await expect(targetRow).toBeVisible();
 
     await targetRow.click();

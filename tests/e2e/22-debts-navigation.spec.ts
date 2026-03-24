@@ -1,28 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
-
-async function loadSeed(page: Page) {
-  const [accountsResponse, categoriesResponse] = await Promise.all([
-    page.request.get('/api/accounts?active=true'),
-    page.request.get('/api/categories'),
-  ]);
-
-  expect(accountsResponse.ok()).toBeTruthy();
-  expect(categoriesResponse.ok()).toBeTruthy();
-
-  const accounts = (await accountsResponse.json()).data || [];
-  const categories = (await categoriesResponse.json()).data || [];
-
-  return {
-    account: accounts[0],
-    incomeCategory: categories.find(
-      (category: any) => category.kind === 'INCOME'
-    ),
-    expenseCategory: categories.find(
-      (category: any) => category.kind === 'EXPENSE'
-    ),
-  };
-}
+import { bootstrapCanonicalFixtures } from '@/tests/support/auth/bootstrap';
 
 async function postTransaction(page: Page, payload: Record<string, unknown>) {
   const response = await page.request.post('/api/transactions', {
@@ -31,7 +9,7 @@ async function postTransaction(page: Page, payload: Record<string, unknown>) {
   expect(response.ok()).toBeTruthy();
 }
 
-test.describe('Debts Navigation and Totals', () => {
+test.describe('Debts Navigation and Totals @auth-required', () => {
   test('opens /debts and reflects zero + mixed OPEN/SETTLED behavior', async ({
     page,
   }, testInfo) => {
@@ -54,12 +32,8 @@ test.describe('Debts Navigation and Totals', () => {
       page.getByText('No hay deudas para este filtro.')
     ).toBeVisible();
 
-    const { account, incomeCategory, expenseCategory } = await loadSeed(page);
-    test.skip(
-      !account || !incomeCategory || !expenseCategory,
-      'Missing seed account/category data for test user'
-    );
-
+    const { account, incomeCategory, expenseCategory } =
+      await bootstrapCanonicalFixtures(page);
     const token = Date.now().toString();
     const mixedDate = '2099-03-01';
     const openDescription = `E2E deuda abierta ${token}`;

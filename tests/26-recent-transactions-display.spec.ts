@@ -69,8 +69,10 @@ test.describe('Recent Transactions Display @auth-required', () => {
     await expect(recentTransactionsSection).toBeVisible();
 
     // Verify the heading is present
-    const heading = recentTransactionsSection.locator('h2, h3');
-    const headingText = await heading.innerText();
+    const heading = recentTransactionsSection.getByRole('heading', {
+      name: 'Movimientos Recientes',
+    });
+    const headingText = await heading.first().innerText();
     expect(headingText).toContain('Movimientos Recientes');
   });
 

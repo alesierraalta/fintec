@@ -1,4 +1,7 @@
 import { test, expect } from '@playwright/test';
+import { getCanonicalTestUserConfig } from './support/auth/canonical-user';
+
+const canonicalUser = getCanonicalTestUserConfig();
 
 test.describe('Authentication Analysis and Debugging @auth-required', () => {
   test('should analyze authentication persistence issue', async ({ page }) => {
@@ -30,7 +33,7 @@ test.describe('Authentication Analysis and Debugging @auth-required', () => {
     console.log('📍 Paso 1: Verificando estado inicial...');
     await page.waitForTimeout(3000);
 
-    const initialUserInfo = page.locator('text=Test User');
+    const initialUserInfo = page.locator(`text=${canonicalUser.displayName}`);
     const isInitiallyAuthenticated = await initialUserInfo.isVisible({
       timeout: 5000,
     });
@@ -82,7 +85,7 @@ test.describe('Authentication Analysis and Debugging @auth-required', () => {
     console.log('📍 Paso 3: Verificando estado después de navegaciones...');
     await page.waitForTimeout(3000);
 
-    const finalUserInfo = page.locator('text=Test User');
+    const finalUserInfo = page.locator(`text=${canonicalUser.displayName}`);
     const isStillAuthenticated = await finalUserInfo.isVisible({
       timeout: 5000,
     });
@@ -155,7 +158,7 @@ test.describe('Authentication Analysis and Debugging @auth-required', () => {
     console.log('\n📍 Paso 6: Verificando elementos de UI...');
 
     const uiElements = [
-      'text=Test User',
+      `text=${canonicalUser.displayName}`,
       'text=Dashboard',
       'text=¡FinTec! 💼',
       'button:has-text("Cerrar")',
@@ -221,7 +224,7 @@ test.describe('Authentication Analysis and Debugging @auth-required', () => {
 
     // Verificar múltiples indicadores de autenticación
     const authIndicators = [
-      'text=Test User',
+      `text=${canonicalUser.displayName}`,
       'text=Dashboard',
       'text=¡FinTec! 💼',
       'text=Tu dinero total',
@@ -267,7 +270,7 @@ test.describe('Authentication Analysis and Debugging @auth-required', () => {
 
       // Verificar indicadores de autenticación en cada página
       const userVisible = await page
-        .locator('text=Test User')
+        .locator(`text=${canonicalUser.displayName}`)
         .isVisible({ timeout: 2000 });
       console.log(
         `📊 Usuario visible en ${pageUrl}: ${userVisible ? 'SÍ' : 'NO'}`
