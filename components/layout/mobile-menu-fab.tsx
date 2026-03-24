@@ -196,8 +196,8 @@ export function MobileMenuFAB() {
           className={cn(
             'transition-ios focus-ring flex h-14 min-h-[44px] w-14 min-w-[44px] items-center justify-center rounded-full shadow-ios-lg backdrop-blur-sm',
             isOpen
-              ? 'rotate-90 bg-primary hover:bg-primary/90'
-              : 'bg-gray-900 hover:bg-gray-800 active:scale-95'
+              ? 'rotate-90 bg-black text-white hover:bg-black/95 active:scale-95'
+              : 'bg-black text-white hover:bg-black/95 active:scale-95'
           )}
           title="Más opciones"
           aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -205,7 +205,7 @@ export function MobileMenuFAB() {
           aria-expanded={isOpen}
         >
           {isOpen ? (
-            <X className="h-6 w-6 text-primary-foreground" />
+            <X className="h-6 w-6 text-white" />
           ) : (
             <span className="relative h-8 w-8" aria-hidden="true">
               <Image
