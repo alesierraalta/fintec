@@ -194,7 +194,7 @@ export function MobileMenuFAB() {
           type="button"
           onClick={toggleMenu}
           className={cn(
-            'transition-ios focus-ring flex h-14 w-14 items-center justify-center overflow-hidden rounded-full shadow-ios-lg backdrop-blur-sm',
+            'transition-ios focus-ring flex h-14 min-h-[44px] w-14 min-w-[44px] items-center justify-center rounded-full shadow-ios-lg backdrop-blur-sm',
             isOpen
               ? 'rotate-90 bg-primary hover:bg-primary/90'
               : 'bg-gray-900 hover:bg-gray-800 active:scale-95'
@@ -207,15 +207,16 @@ export function MobileMenuFAB() {
           {isOpen ? (
             <X className="h-6 w-6 text-primary-foreground" />
           ) : (
-            <Image
-              src="/fintecminilogodark.png"
-              alt="FinTec Menu"
-              width={44}
-              height={44}
-              className="object-contain"
-              style={{ width: 'auto', height: 'auto' }}
-              unoptimized
-            />
+            <span className="relative h-8 w-8" aria-hidden="true">
+              <Image
+                src="/fintecminilogodark.png"
+                alt="FinTec Menu"
+                fill
+                sizes="32px"
+                className="object-contain"
+                priority
+              />
+            </span>
           )}
         </button>
       </div>
