@@ -44,6 +44,7 @@
     "guard:db-access": "node scripts/guardrails/check-direct-db-access.mjs",
     "prepare": "husky",
     "precommit:staged": "lint-staged",
+    "test:staged": "jest --findRelatedTests --bail --passWithNoTests",
     "spellcheck": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\" || true",
     "spellcheck:strict": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\"",
     "secretlint": "secretlint \"{app,components,hooks,lib,repositories,tests,docs}/**/*\" --secretlintignore .secretlintignore",

@@ -1,8 +1,8 @@
 {
   "mcpServers": {
-    "sequential-thinking": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    "engram": {
+      "command": "C:\\Users\\ismar\\bin\\engram.exe",
+      "args": ["mcp"]
     },
     "serena": {
       "command": "uvx",
@@ -13,9 +13,27 @@
         "start-mcp-server"
       ]
     },
-    "mem0": {
-      "command": "uvx",
-      "args": ["mem0-mcp-server"]
+    "supabase": {
+      "httpUrl": "https://mcp.supabase.com/mcp"
+    },
+    "obsidian": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@mauricio.wolff/mcp-obsidian@latest",
+        "C:\\Users\\ismar\\Documents\\obsidian\\ale"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp",
+        "--headless",
+        "--caps",
+        "vision,devtools",
+        "--isolated"
+      ]
     }
   }
 }
