@@ -7,12 +7,24 @@
 
 export const CONFIG = {
   baseUrl: __ENV.BASE_URL || 'http://localhost:3000',
-  supabaseUrl: __ENV.SUPABASE_URL || 'http://localhost:54321',
-  supabaseAnonKey: __ENV.SUPABASE_ANON_KEY || '',
+  supabaseUrl:
+    __ENV.SUPABASE_URL ||
+    __ENV.NEXT_PUBLIC_SUPABASE_URL ||
+    'http://localhost:54321',
+  supabaseAnonKey:
+    __ENV.SUPABASE_ANON_KEY || __ENV.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
 
   // Test user pool
-  testUserEmail: __ENV.TEST_USER_EMAIL || 'perf-test@fintec.test',
-  testUserPassword: __ENV.TEST_USER_PASSWORD || 'perf-test-password',
+  testUserEmail:
+    __ENV.FINTEC_TEST_USER_EMAIL ||
+    __ENV.E2E_CANONICAL_USER_EMAIL ||
+    __ENV.TEST_USER_EMAIL ||
+    'test@fintec.com',
+  testUserPassword:
+    __ENV.FINTEC_TEST_USER_PASSWORD ||
+    __ENV.E2E_CANONICAL_USER_PASSWORD ||
+    __ENV.TEST_USER_PASSWORD ||
+    'Test123!',
   testUserPoolSize: parseInt(__ENV.TEST_USER_POOL_SIZE || '10', 10),
 
   // API paths (relative to baseUrl)
@@ -22,10 +34,13 @@ export const CONFIG = {
     categories: '/api/categories',
     trends: '/api/trends',
     transfers: '/api/transfers',
+    recurringTransactions: '/api/recurring-transactions',
+    subscriptionStatus: '/api/subscription/status',
     binanceRates: '/api/binance-rates',
     bcvRates: '/api/bcv-rates',
     authProfile: '/api/auth/profile',
     scrapersHealth: '/api/scrapers/health',
+    waitlist: '/api/waitlist',
   },
 
   // Supabase Auth paths

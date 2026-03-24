@@ -7,10 +7,18 @@
  */
 
 import http from 'k6/http';
+import { check } from 'k6';
 import { sleep } from 'k6';
 import { CONFIG, apiUrl } from '../lib/config.js';
-import { checkOk, checkNoServerError } from '../lib/checks.js';
+import {
+  checkCreated,
+  checkNoServerError,
+  checkOk,
+  checkSuccess,
+} from '../lib/checks.js';
 import { generateAccount } from '../lib/data-generators.js';
+import { extractData } from '../lib/resource-helpers.js';
+import { randomIntBetween } from '../lib/jslib.js';
 
 /**
  * Execute an account management flow.
@@ -27,8 +35,8 @@ export function accountManagement(headers) {
 
   sleep(0.5);
 
-  // 2. Create an account (occasional — not every iteration)
-  if (Math.random() < 0.2) {
+  // 2. Create an account (occasional)
+  if (Math.random() < 0.25) {
     const payload = generateAccount();
     const createRes = http.post(
       apiUrl(CONFIG.api.accounts),
@@ -38,7 +46,37 @@ export function accountManagement(headers) {
         tags: { endpoint: 'accounts', operation: 'create' },
       }
     );
-    checkNoServerError(createRes, 'acct:create');
+
+    checkCreated(createRes, 'acct:create');
+
+    const createdAccount = extractData(createRes);
+    if (createdAccount && typeof createdAccount.id === 'string') {
+      const detailRes = http.get(
+        apiUrl(`${CONFIG.api.accounts}/${createdAccount.id}`),
+        {
+          headers,
+          tags: { endpoint: 'accounts', operation: 'detail' },
+        }
+      );
+      checkSuccess(detailRes, 'acct:detail');
+
+      if (Math.random() < 0.2) {
+        const patchRes = http.patch(
+          apiUrl(`${CONFIG.api.accounts}/${createdAccount.id}`),
+          JSON.stringify({ balance: randomIntBetween(1000, 750000) }),
+          {
+            headers,
+            tags: { endpoint: 'accounts', operation: 'patch-balance' },
+          }
+        );
+
+        check(patchRes, {
+          'acct:patch status 200': (r) => r.status === 200,
+        });
+      }
+    } else {
+      checkNoServerError(createRes, 'acct:create-fallback');
+    }
   }
 
   sleep(0.3);

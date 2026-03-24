@@ -5,13 +5,14 @@
  * All data is synthetic — no real financial data is ever used.
  */
 
+import { randomIntBetween, randomItem, uuidv4 } from './jslib.js';
+
 /**
  * Transaction types with realistic distribution weights.
  */
 const TRANSACTION_TYPES = [
-  { type: 'EXPENSE', weight: 0.6 },
-  { type: 'INCOME', weight: 0.3 },
-  { type: 'TRANSFER', weight: 0.1 },
+  { type: 'EXPENSE', weight: 0.65 },
+  { type: 'INCOME', weight: 0.35 },
 ];
 
 /**
@@ -44,23 +45,31 @@ const INCOME_CATEGORIES = [
   'Others',
 ];
 
+const ACCOUNT_TYPES = ['BANK', 'CASH', 'INVESTMENT', 'SAVINGS'];
+
+const RECURRENCE_FREQUENCIES = ['daily', 'weekly', 'monthly', 'yearly'];
+
+const CATEGORY_COLORS = ['#2563eb', '#059669', '#dc2626', '#d97706', '#7c3aed'];
+
+const CATEGORY_ICONS = ['Tag', 'Wallet', 'Briefcase', 'TrendingUp', 'Coins'];
+
 /**
  * Generate a random integer between min and max (inclusive).
  */
 function randomInt(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+  return randomIntBetween(min, max);
 }
 
 /**
  * Pick a random item from an array.
  */
 function randomPick(arr) {
-  return arr[randomInt(0, arr.length - 1)];
+  return randomItem(arr);
 }
 
 /**
  * Pick a transaction type based on weighted distribution.
- * 60% expense, 30% income, 10% transfer.
+ * 65% expense, 35% income.
  */
 function weightedTransactionType() {
   const rand = Math.random();
@@ -94,22 +103,33 @@ export function generateAmount() {
 /**
  * Generate a complete transaction payload for POST /api/transactions.
  *
- * @param {string} [accountId] Optional account ID to associate
+ * @param {object|string} [options]
+ * @param {string} [options.accountId]
+ * @param {string} [options.categoryId]
+ * @param {string} [options.type]
+ * @param {string} [options.currencyCode]
  * @returns {object} Transaction payload
  */
-export function generateTransaction(accountId) {
-  const type = weightedTransactionType();
+export function generateTransaction(options = {}) {
+  const normalizedOptions =
+    typeof options === 'string' ? { accountId: options } : options;
+
+  const type = normalizedOptions.type || weightedTransactionType();
   const categories =
     type === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+  const currencyCode = normalizedOptions.currencyCode || randomPick(CURRENCIES);
+  const amount = generateAmount();
 
   return {
-    amount: generateAmount(),
-    currency: randomPick(CURRENCIES),
+    accountId: normalizedOptions.accountId,
+    categoryId: normalizedOptions.categoryId,
+    amount,
+    currencyCode,
     type,
-    category: type !== 'TRANSFER' ? randomPick(categories) : undefined,
-    description: `Perf test ${type.toLowerCase()} ${Date.now()}`,
+    description: `Perf ${type.toLowerCase()} ${uuidv4().slice(0, 8)}`,
+    note: `Synthetic payload ${uuidv4().slice(0, 6)}`,
+    tags: ['perf', type.toLowerCase(), randomPick(categories).toLowerCase()],
     date: new Date().toISOString(),
-    accountId: accountId || undefined,
   };
 }
 
@@ -119,15 +139,40 @@ export function generateTransaction(accountId) {
  * @returns {object} Account payload
  */
 export function generateAccount() {
-  const accountTypes = ['BANK', 'CASH', 'INVESTMENT'];
-  const banks = ['Chase', 'BOA', 'Wells Fargo', 'Citibank', 'Capital One'];
+  const institutions = [
+    'Chase',
+    'BOA',
+    'Wells Fargo',
+    'Citibank',
+    'Capital One',
+  ];
 
   return {
-    name: `Perf Test Account ${randomInt(1, 9999)}`,
-    type: randomPick(accountTypes),
-    currency: randomPick(CURRENCIES),
+    name: `Perf Account ${uuidv4().slice(0, 8)}`,
+    type: randomPick(ACCOUNT_TYPES),
+    currencyCode: randomPick(CURRENCIES),
     balance: generateAmount(),
-    institution: randomPick(banks),
+    institution: randomPick(institutions),
+    active: true,
+  };
+}
+
+/**
+ * Generate a category payload for POST /api/categories.
+ *
+ * @param {'EXPENSE'|'INCOME'} [kind]
+ * @returns {object} Category payload
+ */
+export function generateCategory(kind = 'EXPENSE') {
+  const names = kind === 'EXPENSE' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
+
+  return {
+    name: `Perf ${randomPick(names)} ${uuidv4().slice(0, 6)}`,
+    kind,
+    color: randomPick(CATEGORY_COLORS),
+    icon: randomPick(CATEGORY_ICONS),
+    active: true,
+    isDefault: false,
   };
 }
 
@@ -139,13 +184,45 @@ export function generateAccount() {
  * @returns {object} Transfer payload
  */
 export function generateTransfer(fromAccountId, toAccountId) {
+  const amountMajor = Number((randomInt(100, 5000) / 100).toFixed(2));
+
   return {
     fromAccountId,
     toAccountId,
-    amount: randomInt(1000, 50000), // $10 - $500
+    amount: amountMajor,
     currency: 'USD',
-    description: `Perf test transfer ${Date.now()}`,
+    description: `Perf transfer ${uuidv4().slice(0, 8)}`,
     date: new Date().toISOString(),
+  };
+}
+
+/**
+ * Generate a recurring transaction payload for POST /api/recurring-transactions.
+ *
+ * @param {string} accountId
+ * @param {string} [categoryId]
+ * @param {'EXPENSE'|'INCOME'} [type]
+ * @returns {object}
+ */
+export function generateRecurringTransaction(
+  accountId,
+  categoryId,
+  type = 'EXPENSE'
+) {
+  const startDate = new Date().toISOString().slice(0, 10);
+
+  return {
+    name: `Perf recurring ${uuidv4().slice(0, 8)}`,
+    type,
+    accountId,
+    categoryId,
+    currencyCode: randomPick(CURRENCIES),
+    amountMinor: generateAmount(),
+    description: `Recurring ${type.toLowerCase()} test`,
+    frequency: randomPick(RECURRENCE_FREQUENCIES),
+    intervalCount: 1,
+    startDate,
+    isActive: true,
   };
 }
 
@@ -156,6 +233,6 @@ export function generateTransfer(fromAccountId, toAccountId) {
  * @param {string} [accountId]
  * @returns {object[]}
  */
-export function generateTransactionBatch(count, accountId) {
-  return Array.from({ length: count }, () => generateTransaction(accountId));
+export function generateTransactionBatch(count, options = {}) {
+  return Array.from({ length: count }, () => generateTransaction(options));
 }

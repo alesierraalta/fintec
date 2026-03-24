@@ -61,6 +61,12 @@ npm run test:coverage
 npm run e2e
 npm run e2e:ui
 npm run test:load
+npm run perf:smoke
+npm run perf:load
+npm run perf:stress
+npm run perf:spike
+npm run perf:soak
+npm run perf:journey
 npm run test:mutate
 
 # Limpieza
@@ -78,7 +84,7 @@ npm run clean:all
 - Comando canonico para autenticacion real: `npm run e2e:auth-required` (chromium + setup/auth storage + filtro `@auth-required`).
 - Comandos E2E usan `scripts/testing/run-playwright-with-guard.mjs` para timeout global y apagado forzado del arbol de procesos si una corrida se cuelga.
 - CI ejecuta lanes separadas con comandos dedicados: `npm run e2e:ci:no-auth` y `npm run e2e:ci:auth-required`.
-- Performance baseline: k6 (`k6/api-stress-test.js`) via `npm run test:load`.
+- Performance baseline: k6 scripts in `tests/performance/k6/` (`perf:smoke`, `perf:load`, `perf:stress`, `perf:spike`, `perf:soak`, `perf:journey`) and legacy baseline `k6/api-stress-test.js` via `npm run test:load`.
 - Mutation testing: Stryker (`stryker.config.json`) via `npm run test:mutate`.
 - Estado de calidad local de referencia: `type-check`, `lint`, `test` y `build`.
 

@@ -15,12 +15,7 @@ import { browser } from 'k6/browser';
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { API_THRESHOLDS, BROWSER_THRESHOLDS } from '../lib/thresholds.js';
-import {
-  authenticateUserPool,
-  getVUToken,
-  authHeaders,
-  quickAuth,
-} from '../lib/auth.js';
+import { authenticateUserPool, getVUToken, authHeaders } from '../lib/auth.js';
 import { CONFIG, apiUrl } from '../lib/config.js';
 import { generateTransaction } from '../lib/data-generators.js';
 
