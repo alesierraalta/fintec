@@ -19,6 +19,8 @@
     "test:load": "k6 run k6/api-stress-test.js",
     "perf:smoke": "k6 run tests/performance/k6/scenarios/smoke.js",
     "perf:precommit": "node scripts/testing/perf-precommit.mjs",
+    "precommit:supabase": "node scripts/testing/supabase-hook-checks.mjs --staged",
+    "prepush:supabase": "node scripts/testing/supabase-hook-checks.mjs --prepush",
     "perf:load": "k6 run tests/performance/k6/scenarios/load.js",
     "perf:journey": "k6 run tests/performance/k6/scenarios/full-app-user-flow.js",
     "perf:stress": "k6 run tests/performance/k6/scenarios/stress.js",
@@ -33,6 +35,7 @@
     "e2e:ui": "cross-env PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 npm run e2e:validate-lane && cross-env PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 node scripts/testing/run-playwright-with-guard.mjs --ui",
     "e2e:no-auth": "cross-env PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 npm run e2e:validate-lane && cross-env PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 node scripts/testing/run-playwright-with-guard.mjs",
     "e2e:auth-required": "cross-env PLAYWRIGHT_LANE=auth-required npm run e2e:validate-lane && cross-env PLAYWRIGHT_LANE=auth-required node scripts/testing/run-playwright-with-guard.mjs --project=chromium",
+    "e2e:smoke:auth-required": "cross-env PLAYWRIGHT_LANE=auth-required npm run e2e:validate-lane && cross-env PLAYWRIGHT_LANE=auth-required node scripts/testing/run-playwright-with-guard.mjs tests/e2e/00-supabase-auth-smoke.spec.ts --project=chromium",
     "e2e:ci:no-auth": "cross-env CI=1 PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 npm run e2e:validate-lane && cross-env CI=1 PLAYWRIGHT_LANE=no-auth PLAYWRIGHT_NO_AUTH_SETUP=1 FRONTEND_AUTH_BYPASS=1 node scripts/testing/run-playwright-with-guard.mjs",
     "e2e:ci:auth-required": "cross-env CI=1 PLAYWRIGHT_LANE=auth-required npm run e2e:validate-lane && cross-env CI=1 PLAYWRIGHT_LANE=auth-required node scripts/testing/run-playwright-with-guard.mjs --project=chromium",
     "clean": "node scripts/clean.mjs build deps-cache ts",
@@ -45,10 +48,11 @@
     "prepare": "husky",
     "precommit:staged": "lint-staged",
     "test:staged": "jest --findRelatedTests --bail --passWithNoTests",
+    "test:supabase": "cross-env BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true jest --selectProjects node --runInBand --passWithNoTests",
     "spellcheck": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\" || true",
     "spellcheck:strict": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\"",
     "secretlint": "secretlint \"{app,components,hooks,lib,repositories,tests,docs}/**/*\" --secretlintignore .secretlintignore",
-    "prepush:verify": "npm run type-check && npm run lint && npm run test:ci && npm run build"
+    "prepush:verify": "npm run prepush:supabase && npm run type-check && npm run lint && npm run test:ci && npm run build"
   },
   "overrides": {
     "next-auth": {

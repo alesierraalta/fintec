@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
 npm run precommit:staged
+npm run precommit:supabase
 npm run type-check
 npm run guard:db-access
 npm run perf:precommit
