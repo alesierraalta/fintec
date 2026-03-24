@@ -223,20 +223,32 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="black-theme-header sticky top-0 z-50 flex w-full flex-col shadow-sm">
-        {/* Safe area spacer */}
-        <div className="h-[env(safe-area-inset-top)] w-full" style={{ paddingTop: 'env(safe-area-inset-top)' }} />
-        
-        <div className="flex min-h-[4rem] w-full items-center justify-between px-4 py-2">
-          <div className="flex items-center">
-            <RateSelector />
+      <header className="black-theme-header sticky top-0 z-50 flex w-full max-w-full flex-col overflow-x-hidden shadow-sm">
+        <div
+          aria-hidden="true"
+          className="w-full shrink-0"
+          style={{ height: 'env(safe-area-inset-top)' }}
+        />
+        <div
+          className="grid min-h-[4rem] w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2"
+          style={{
+            paddingLeft: 'max(1rem, env(safe-area-inset-left))',
+            paddingRight: 'max(1rem, env(safe-area-inset-right))',
+          }}
+        >
+          <div className="flex min-w-0 items-center justify-start">
+            <div className="min-w-0 max-w-full">
+              <RateSelector />
+            </div>
           </div>
-          <FinTecLogo
-            containerClassName="h-8 w-20 sm:h-10 sm:w-24"
-            priority
-            sizes="(max-width: 768px) 100px, 100px"
-          />
-          <div className="relative">
+          <div className="flex shrink-0 items-center justify-center px-1">
+            <FinTecLogo
+              containerClassName="h-8 w-20 shrink-0 sm:h-10 sm:w-24"
+              priority
+              sizes="(max-width: 768px) 100px, 100px"
+            />
+          </div>
+          <div className="relative flex items-center justify-end">
             <button
               ref={mobileUserButtonRef}
               type="button"
@@ -248,7 +260,7 @@ export function Header() {
                   ? 'Cerrar menú de usuario'
                   : 'Abrir menú de usuario'
               }
-              className="black-theme-card focus-ring flex min-h-[44px] min-w-[44px] cursor-pointer items-center rounded-xl p-2 transition-all duration-200 hover:bg-white/5"
+              className="black-theme-card focus-ring flex min-h-[44px] min-w-[44px] shrink-0 cursor-pointer items-center rounded-xl p-2 transition-all duration-200 hover:bg-white/5"
             >
               <div
                 className={`flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-lg ${

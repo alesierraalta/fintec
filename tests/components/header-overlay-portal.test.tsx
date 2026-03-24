@@ -69,7 +69,13 @@ jest.mock('@/lib/rates', () => ({
 }));
 
 jest.mock('@/components/currency/rate-selector', () => ({
-  RateSelector: () => <div data-testid="rate-selector-mock" />,
+  RateSelector: () => (
+    <button
+      type="button"
+      data-testid="rate-selector-mock"
+      className="h-11 min-h-[44px] w-11 min-w-[44px]"
+    />
+  ),
 }));
 
 describe('Header overlay portalization', () => {
@@ -180,5 +186,30 @@ describe('Header overlay portalization', () => {
 
     expect(userPanel).toHaveClass('z-[55]');
     expect(backdrop).toHaveClass('z-[54]');
+  });
+
+  it('keeps the mobile header row shrink-safe on narrow layouts', () => {
+    mockUseSidebar.mockReturnValue({
+      isOpen: false,
+      isMobile: true,
+      toggleSidebar: mockToggleSidebar,
+    });
+
+    render(<Header />);
+
+    const header = screen.getByRole('banner');
+    const safeAreaSpacer = header.firstElementChild;
+    const mobileRow = header.lastElementChild;
+    const userButton = screen.getByLabelText('Abrir menú de usuario');
+    const rateSelector = screen.getByTestId('rate-selector-mock');
+
+    expect(header).toHaveClass('overflow-x-hidden');
+    expect(safeAreaSpacer).toHaveAttribute('aria-hidden', 'true');
+    expect(mobileRow).toHaveClass(
+      'grid',
+      'grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'
+    );
+    expect(rateSelector).toHaveClass('min-h-[44px]', 'min-w-[44px]', 'w-11');
+    expect(userButton).toHaveClass('min-h-[44px]', 'min-w-[44px]');
   });
 });

@@ -130,14 +130,15 @@ export function RateSelector() {
   const bcvEur = bcv.eur;
 
   return (
-    <div className="relative">
+    <div className="relative flex min-w-0 items-center">
       <button
         ref={triggerRef}
         type="button"
         onClick={toggle}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="focus-ring transition-ios flex items-center gap-1 rounded-xl p-2 text-white/80 hover:bg-white/10 hover:text-white"
+        aria-label="Seleccionar fuente de tasa"
+        className="focus-ring transition-ios flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center gap-1 overflow-hidden rounded-xl px-2 py-2 text-white/80 hover:bg-white/10 hover:text-white sm:w-auto sm:max-w-none sm:justify-start"
         title="Seleccionar fuente de tasa"
       >
         {triggerIcon}
