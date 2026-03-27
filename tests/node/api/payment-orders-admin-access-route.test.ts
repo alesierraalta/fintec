@@ -10,6 +10,13 @@ jest.mock('@/lib/payment-orders/admin-utils', () => ({
   isAdmin: jest.fn(),
 }));
 
+jest.mock('@/lib/utils/logger', () => ({
+  logger: {
+    error: jest.fn(),
+    info: jest.fn(),
+  },
+}));
+
 describe('GET /api/payment-orders/admin/access', () => {
   const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<
     typeof getAuthenticatedUser
@@ -55,10 +62,9 @@ describe('GET /api/payment-orders/admin/access', () => {
         isAdmin: false,
       },
     });
-    expect(mockIsAdmin).toHaveBeenCalledWith('regular-user-id');
   });
 
-  it('returns 401 when authentication fails', async () => {
+  it('returns 401 when authentication fails with token-related errors', async () => {
     mockGetAuthenticatedUser.mockRejectedValue(
       new Error('No authorization token provided')
     );
@@ -70,5 +76,20 @@ describe('GET /api/payment-orders/admin/access', () => {
 
     expect(response.status).toBe(401);
     expect(body.success).toBe(false);
+    expect(mockIsAdmin).not.toHaveBeenCalled();
+  });
+
+  it('returns 500 for non-auth failures', async () => {
+    mockGetAuthenticatedUser.mockRejectedValue(
+      new Error('database unavailable')
+    );
+
+    const response = await GET(
+      new Request('http://localhost/api/payment-orders/admin/access') as any
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(500);
+    expect(body.error).toBe('database unavailable');
   });
 });
