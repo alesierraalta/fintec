@@ -3,13 +3,22 @@
   "mcp": {
     "engram": {
       "type": "local",
-      "command": ["C:\\Users\\ismar\\bin\\engram-1.10.1.exe", "mcp"],
+      "command": ["C:\\Users\\ismar\\bin\\engram-1.10.4.exe", "mcp"],
       "enabled": true
     },
     "supabase": {
       "type": "remote",
       "url": "https://mcp.supabase.com/mcp?project_ref=bfxkcmoccqgvkrrkkdju",
       "timeout": 20000,
+      "enabled": true
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_PAT}"
+      },
       "enabled": true
     },
     "serena": {
