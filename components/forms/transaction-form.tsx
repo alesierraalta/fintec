@@ -34,6 +34,8 @@ interface TransactionFormProps {
   transaction?: Transaction | null;
   onSuccess?: () => void;
   type?: TransactionType;
+  /** When set, locks isDebt checkbox to checked and restricts type to INCOME/EXPENSE */
+  debtMode?: 'create' | 'edit';
 }
 
 const transactionTypes = [
@@ -69,6 +71,7 @@ export function TransactionForm({
   transaction,
   onSuccess,
   type = TransactionType.EXPENSE,
+  debtMode,
 }: TransactionFormProps) {
   const repository = useRepository();
   const { user } = useAuth();
@@ -128,7 +131,7 @@ export function TransactionForm({
     }
   }, [isOpen, user, repository]);
 
-  // Update form data when transaction changes
+  // Update form data when transaction changes or debtMode is set
   useEffect(() => {
     if (transaction) {
       setFormData({
@@ -148,6 +151,23 @@ export function TransactionForm({
           ? transaction.settledAt.split('T')[0]
           : '',
       });
+    } else if (debtMode === 'create') {
+      // Pre-fill for debt creation mode
+      setFormData({
+        type: TransactionType.EXPENSE,
+        accountId: '',
+        categoryId: '',
+        amount: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+        tags: '',
+        isDebt: true,
+        debtDirection: '',
+        debtStatus: DebtStatus.OPEN,
+        counterpartyName: '',
+        settledAt: '',
+      });
     } else {
       setFormData({
         type: type,
@@ -165,7 +185,7 @@ export function TransactionForm({
         settledAt: '',
       });
     }
-  }, [transaction, type]);
+  }, [transaction, type, debtMode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +251,7 @@ export function TransactionForm({
               .map((tag) => tag.trim())
               .filter(Boolean)
           : undefined,
-        isDebt: canShowDebtFields ? formData.isDebt : false,
+        isDebt: debtMode ? true : canShowDebtFields ? formData.isDebt : false,
         debtDirection:
           canShowDebtFields && formData.isDebt
             ? (formData.debtDirection as any)
@@ -256,9 +276,19 @@ export function TransactionForm({
         // Update existing transaction
         const updateData = { ...transactionData, id: transaction.id };
         await repository.transactions.update(transaction.id, updateData);
+        toast.success(
+          debtMode
+            ? 'Deuda actualizada exitosamente'
+            : 'Transaccion actualizada exitosamente'
+        );
       } else {
         // Create new transaction
         await repository.transactions.create(transactionData);
+        toast.success(
+          debtMode
+            ? 'Deuda creada exitosamente'
+            : 'Transaccion creada exitosamente'
+        );
       }
 
       onSuccess?.();
@@ -352,7 +382,13 @@ export function TransactionForm({
     <Modal
       open={isOpen}
       onClose={onClose}
-      title={transaction ? 'Editar Transacción' : 'Nueva Transacción'}
+      title={
+        transaction
+          ? 'Editar Deuda'
+          : debtMode === 'create'
+            ? 'Nueva Deuda'
+            : 'Nueva Transacción'
+      }
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -361,34 +397,38 @@ export function TransactionForm({
           <label className="mb-3 block text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
             Tipo de Transacción
           </label>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {transactionTypes.map((typeOption) => {
-              const Icon = typeOption.icon;
-              const isSelected = formData.type === typeOption.value;
+          <div
+            className={`grid grid-cols-1 gap-3 ${debtMode ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
+          >
+            {transactionTypes
+              .filter((t) => !debtMode || t.value !== 'TRANSFER_OUT')
+              .map((typeOption) => {
+                const Icon = typeOption.icon;
+                const isSelected = formData.type === typeOption.value;
 
-              return (
-                <button
-                  key={typeOption.value}
-                  type="button"
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      type: typeOption.value as TransactionType,
-                    })
-                  }
-                  className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
-                    isSelected
-                      ? `${typeOption.borderColor} ${typeOption.bgColor} ${typeOption.color} shadow-ios-sm`
-                      : 'border-border/20 bg-card/30 text-muted-foreground hover:border-border/30 hover:bg-card/50'
-                  }`}
-                >
-                  <Icon className="mx-auto mb-2 h-6 w-6" />
-                  <span className="text-ios-caption font-medium">
-                    {typeOption.label}
-                  </span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={typeOption.value}
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        type: typeOption.value as TransactionType,
+                      })
+                    }
+                    className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
+                      isSelected
+                        ? `${typeOption.borderColor} ${typeOption.bgColor} ${typeOption.color} shadow-ios-sm`
+                        : 'border-border/20 bg-card/30 text-muted-foreground hover:border-border/30 hover:bg-card/50'
+                    }`}
+                  >
+                    <Icon className="mx-auto mb-2 h-6 w-6" />
+                    <span className="text-ios-caption font-medium">
+                      {typeOption.label}
+                    </span>
+                  </button>
+                );
+              })}
           </div>
         </div>
 
@@ -474,11 +514,17 @@ export function TransactionForm({
                 className="text-ios-body font-medium text-foreground"
               >
                 Es deuda
+                {debtMode && (
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    (modo deuda)
+                  </span>
+                )}
               </label>
               <input
                 id="transaction-is-debt"
                 type="checkbox"
-                checked={formData.isDebt}
+                checked={debtMode ? true : formData.isDebt}
+                disabled={!!debtMode}
                 onChange={(e) =>
                   setFormData((prev) => ({
                     ...prev,
