@@ -40,7 +40,7 @@ export default function PricingPageClient({
 
   return (
     <MainLayout>
-      <div className="container mx-auto max-w-7xl px-4 py-8">
+      <div className="container mx-auto max-w-7xl px-4 pb-32 pt-8">
         {/* Header */}
         <div className="mb-12 space-y-4 text-center">
           <h1 className="text-4xl font-bold">Elige tu plan</h1>

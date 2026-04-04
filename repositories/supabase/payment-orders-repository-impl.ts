@@ -17,6 +17,7 @@ function mapSupabaseToDomain(row: any): PaymentOrder {
     currencyCode: row.currency_code,
     description: row.description || undefined,
     status: row.status,
+    paymentMethod: row.payment_method || undefined,
     receiptUrl: row.receipt_url || undefined,
     receiptFilename: row.receipt_filename || undefined,
     adminNotes: row.admin_notes || undefined,
@@ -49,6 +50,7 @@ export class SupabasePaymentOrdersRepository
         amount_minor: data.amountMinor,
         currency_code: data.currencyCode || 'VES',
         description: data.description || null,
+        payment_method: data.paymentMethod,
         status: 'pending',
       })
       .select()

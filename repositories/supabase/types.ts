@@ -128,6 +128,7 @@ export interface SupabasePaymentOrder {
   currency_code: string;
   description?: string;
   status: 'pending' | 'pending_review' | 'approved' | 'rejected' | 'expired';
+  payment_method?: 'ubii' | 'pagoflash' | 'binance_pay' | null;
   receipt_url?: string;
   receipt_filename?: string;
   admin_notes?: string;
@@ -226,9 +227,10 @@ export interface Database {
         Row: SupabasePaymentOrder;
         Insert: Omit<
           SupabasePaymentOrder,
-          'id' | 'created_at' | 'updated_at'
+          'id' | 'created_at' | 'updated_at' | 'payment_method'
         > & {
           id?: string;
+          payment_method?: 'ubii' | 'pagoflash' | 'binance_pay' | null;
           created_at?: string;
           updated_at?: string;
         };

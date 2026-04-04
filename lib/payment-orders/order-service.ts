@@ -30,6 +30,16 @@ export async function createOrder(
   data: CreatePaymentOrderDTO
 ): Promise<PaymentOrder> {
   try {
+    // Validate payment method
+    if (!data.paymentMethod) {
+      throw new Error('Payment method is required');
+    }
+
+    const validMethods = ['ubii', 'pagoflash', 'binance_pay'];
+    if (!validMethods.includes(data.paymentMethod)) {
+      throw new Error(`Invalid payment method: ${data.paymentMethod}`);
+    }
+
     return await getPaymentOrdersRepository().create(userId, data);
   } catch (error) {
     logger.error('[OrderService] Error in createOrder:', error);

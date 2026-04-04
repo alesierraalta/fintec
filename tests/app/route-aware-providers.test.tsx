@@ -85,6 +85,68 @@ describe('RouteAwareProviders', () => {
     expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
   });
 
+  it('bypasses providers for root path /', () => {
+    mockUsePathname.mockReturnValue('/');
+
+    render(
+      <RouteAwareProviders>
+        <div>Root content</div>
+      </RouteAwareProviders>
+    );
+
+    expect(screen.getByText('Root content')).toBeInTheDocument();
+    expect(screen.getByTestId('motion-config')).toBeInTheDocument();
+    expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
+    expect(mockAuthProvider).not.toHaveBeenCalled();
+    expect(mockRepositoryProvider).not.toHaveBeenCalled();
+  });
+
+  it('handles null pathname safely', () => {
+    mockUsePathname.mockReturnValue(null);
+
+    render(
+      <RouteAwareProviders>
+        <div>Null pathname content</div>
+      </RouteAwareProviders>
+    );
+
+    expect(screen.getByText('Null pathname content')).toBeInTheDocument();
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+  });
+
+  it('bypasses providers for root path /', () => {
+    mockUsePathname.mockReturnValue('/');
+
+    render(
+      <RouteAwareProviders>
+        <div>Root content</div>
+      </RouteAwareProviders>
+    );
+
+    expect(screen.getByText('Root content')).toBeInTheDocument();
+    expect(screen.getByTestId('motion-config')).toBeInTheDocument();
+    expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
+    expect(mockAuthProvider).not.toHaveBeenCalled();
+    expect(mockRepositoryProvider).not.toHaveBeenCalled();
+  });
+
+  it('handles null pathname safely', () => {
+    mockUsePathname.mockReturnValue(null);
+
+    render(
+      <RouteAwareProviders>
+        <div>Null pathname content</div>
+      </RouteAwareProviders>
+    );
+
+    expect(screen.getByText('Null pathname content')).toBeInTheDocument();
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+  });
+
   it('applies app providers on dashboard routes under the same reduced-motion policy', () => {
     mockUsePathname.mockReturnValue('/dashboard');
 

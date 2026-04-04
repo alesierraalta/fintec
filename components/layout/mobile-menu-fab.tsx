@@ -189,37 +189,39 @@ export function MobileMenuFAB() {
       </div>
 
       {/* FAB Button */}
-      <div className="fixed bottom-24 left-6 z-[45] lg:hidden">
-        <button
-          type="button"
-          onClick={toggleMenu}
-          className={cn(
-            'transition-ios focus-ring flex h-14 min-h-[44px] w-14 min-w-[44px] items-center justify-center rounded-full shadow-ios-lg backdrop-blur-sm',
-            isOpen
-              ? 'rotate-90 bg-black text-white hover:bg-black/95 active:scale-95'
-              : 'bg-black text-white hover:bg-black/95 active:scale-95'
-          )}
-          title="Más opciones"
-          aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
-          aria-controls="mobile-menu-dialog"
-          aria-expanded={isOpen}
-        >
-          {isOpen ? (
-            <X className="h-6 w-6 text-white" />
-          ) : (
-            <span className="relative h-8 w-8" aria-hidden="true">
-              <Image
-                src="/fintecminilogodark.png"
-                alt="FinTec Menu"
-                fill
-                sizes="32px"
-                className="object-contain"
-                priority
-              />
-            </span>
-          )}
-        </button>
-      </div>
+      {!isOpen && (
+        <div className="fixed bottom-[120px] left-6 z-50 lg:hidden">
+          <button
+            type="button"
+            onClick={toggleMenu}
+            className={cn(
+              'transition-ios focus-ring flex h-14 min-h-[44px] w-14 min-w-[44px] items-center justify-center rounded-full shadow-ios-lg backdrop-blur-sm',
+              isOpen
+                ? 'rotate-90 bg-black text-white hover:bg-black/95 active:scale-95'
+                : 'bg-black text-white hover:bg-black/95 active:scale-95'
+            )}
+            title="Más opciones"
+            aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
+            aria-controls="mobile-menu-dialog"
+            aria-expanded={isOpen}
+          >
+            {isOpen ? (
+              <X className="h-6 w-6 text-white" />
+            ) : (
+              <span className="relative h-8 w-8" aria-hidden="true">
+                <Image
+                  src="/fintecminilogodark.png"
+                  alt="FinTec Menu"
+                  fill
+                  sizes="32px"
+                  className="object-contain"
+                  priority
+                />
+              </span>
+            )}
+          </button>
+        </div>
+      )}
     </>,
     overlayHost
   );

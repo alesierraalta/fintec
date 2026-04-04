@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description:
     'Controla tus finanzas con tasas del BCV y Binance en tiempo real. Gestiona cuentas, transacciones y presupuestos en un solo lugar.',
   alternates: {
-    canonical: '/landing',
+    canonical: '/', // Primary entry is now at root `/`
   },
   openGraph: {
     title: 'FinTec - Controla tus Finanzas con Tasas Actualizadas',

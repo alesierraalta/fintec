@@ -491,7 +491,7 @@ export function Header() {
           <div className="text-right">
             <div className="flex items-center space-x-1">
               <Sparkles className="h-3 w-3 text-primary" />
-              <p className="text-sm font-bold text-text-primary lg:text-lg">
+              <p className="text-sm font-bold text-text-primary lg:text-xl">
                 {formattedBalance}
               </p>
             </div>

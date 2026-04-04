@@ -22,10 +22,10 @@ interface FloatingActionButtonProps {
 }
 
 const positionClasses = {
-  'bottom-right': 'right-4 sm:right-6 bottom-24 sm:bottom-6 mb-safe-bottom',
+  'bottom-right': 'right-4 sm:right-6 bottom-[120px] sm:bottom-6 mb-safe-bottom',
   'bottom-center':
-    'left-1/2 transform -translate-x-1/2 bottom-24 sm:bottom-6 mb-safe-bottom',
-  'bottom-left': 'left-4 sm:left-6 bottom-24 sm:bottom-6 mb-safe-bottom',
+    'left-1/2 transform -translate-x-1/2 bottom-[120px] sm:bottom-6 mb-safe-bottom',
+  'bottom-left': 'left-4 sm:left-6 bottom-[120px] sm:bottom-6 mb-safe-bottom',
 };
 
 const variantClasses = {

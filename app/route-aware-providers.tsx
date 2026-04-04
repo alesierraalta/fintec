@@ -15,7 +15,14 @@ function shouldBypassAppProviders(pathname: string | null): boolean {
     return false;
   }
 
-  return pathname === '/landing' || pathname.startsWith('/landing/');
+  // Root path bypass: landing renders at "/" for unauthenticated users.
+  // When "/" renders dashboard (authenticated), providers are mounted
+  // locally via LocalProvidersForRootDashboard in app/page.tsx.
+  return (
+    pathname === '/' ||
+    pathname === '/landing' ||
+    pathname.startsWith('/landing/')
+  );
 }
 
 export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {

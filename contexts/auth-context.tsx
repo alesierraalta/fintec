@@ -57,6 +57,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  baseCurrency: string;
   authError: string | null;
   clearAuthError: () => void;
   signUp: (
@@ -85,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [baseCurrency, setBaseCurrency] = useState<string>('USD');
   const [authError, setAuthError] = useState<string | null>(null); // Cambiar a true para cargar sesión inicial
 
   // Initialize Supabase auth session
@@ -95,6 +97,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
   }, []);
+
+  // Fetch user's base_currency from DB profile whenever user changes
+  useEffect(() => {
+    if (!user?.id) {
+      setBaseCurrency('USD');
+      return;
+    }
+
+    supabase
+      .from('users')
+      .select('base_currency')
+      .eq('id', user.id)
+      .single()
+      .then(({ data }: { data: any }) => {
+        if (data?.base_currency) {
+          setBaseCurrency(data.base_currency);
+        }
+      });
+  }, [user?.id]);
 
   useEffect(() => {
     // Get initial session
@@ -117,6 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearAllOptimizedDataCaches();
         setUser(null);
         setSession(null);
+        setBaseCurrency('USD');
       }
     });
 
@@ -447,6 +469,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       session,
       loading,
+      baseCurrency,
       authError,
       clearAuthError,
       signUp,
@@ -459,6 +482,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       session,
       loading,
+      baseCurrency,
       authError,
       clearAuthError,
       signUp,

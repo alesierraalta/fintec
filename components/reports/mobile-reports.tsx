@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 
 export function MobileReports() {
-  const { user } = useAuth();
+  const { user, baseCurrency } = useAuth();
   const { transactions, categories, accounts, loading, loadAllData } =
     useOptimizedData();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -243,9 +243,7 @@ export function MobileReports() {
   })();
 
   const renderOverview = () => {
-    // Cast to any to avoid TS error since Supabase User type doesn't have baseCurrency directly
-    // In the future, we should merge the DB profile into the auth user context
-    const baseCurrency = (user as any)?.baseCurrency || 'USD';
+
     const netBalance = totalIncome - totalExpenses;
     const daysInPeriod = Math.max(
       1,
@@ -454,9 +452,12 @@ export function MobileReports() {
   );
 
   const renderTrends = () => {
-    const baseCurrency = (user as any)?.baseCurrency || 'USD';
     const displayCurrency =
-      selectedCurrency === 'ALL' ? baseCurrency : selectedCurrency;
+      selectedCurrency === 'ALL'
+        ? availableCurrencies.length === 2
+          ? availableCurrencies[1]
+          : baseCurrency
+        : selectedCurrency;
 
     // 1. Configuración de Periodo
     let isLongPeriod = ['year', 'quarter'].includes(selectedPeriod);
@@ -879,7 +880,7 @@ export function MobileReports() {
   };
 
   const renderDebts = () => {
-    const baseCurrency = (user as any)?.baseCurrency || 'USD';
+
     const totalOwe = openDebtTransactions
       .filter((transaction) => transaction.debtDirection === DebtDirection.OWE)
       .reduce(

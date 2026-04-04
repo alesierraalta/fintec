@@ -525,7 +525,7 @@ export function DesktopAddTransaction() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-5xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <button
@@ -537,7 +537,7 @@ export function DesktopAddTransaction() {
             <span>Volver</span>
           </button>
 
-          <h1 className="text-center text-3xl font-bold text-foreground">
+          <h1 className="text-center text-6xl font-bold text-foreground">
             Nueva Transacción
           </h1>
 

@@ -67,8 +67,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!body.paymentMethod) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'paymentMethod is required',
+        },
+        { status: 400 }
+      );
+    }
+
     const order = await createOrder(userId, {
       amountMinor: body.amountMinor,
+      paymentMethod: body.paymentMethod,
       currencyCode: body.currencyCode,
       description: body.description,
     });

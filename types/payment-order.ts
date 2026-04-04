@@ -9,6 +9,8 @@ export type PaymentOrderStatus =
   | 'rejected'          // Rejected by admin
   | 'expired';          // Order expired (optional)
 
+export type PaymentMethod = 'ubii' | 'pagoflash' | 'binance_pay';
+
 export interface PaymentOrder {
   id: string;
   userId: string;
@@ -16,6 +18,7 @@ export interface PaymentOrder {
   currencyCode: string;
   description?: string;
   status: PaymentOrderStatus;
+  paymentMethod?: PaymentMethod;
   receiptUrl?: string;
   receiptFilename?: string;
   adminNotes?: string;
@@ -28,6 +31,7 @@ export interface PaymentOrder {
 
 export interface CreatePaymentOrderDTO {
   amountMinor: number;
+  paymentMethod: PaymentMethod;
   currencyCode?: string;
   description?: string;
 }

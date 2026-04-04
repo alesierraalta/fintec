@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, Input } from '@/components/ui';
+import { Button, Input, Select } from '@/components/ui';
 import { DollarSign, FileText } from 'lucide-react';
 import { toMinorUnits } from '@/lib/money';
 import { supabase } from '@/repositories/supabase/client';
@@ -18,6 +18,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
   const [formData, setFormData] = useState({
     amount: '',
     description: '',
+    paymentMethod: 'ubii' as const,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,6 +44,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
 
       const orderData: CreatePaymentOrderDTO = {
         amountMinor,
+        paymentMethod: formData.paymentMethod,
         currencyCode: 'VES',
         description: formData.description || undefined,
       };
@@ -94,6 +96,17 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         value={formData.description}
         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
         icon={<FileText className="h-5 w-5" />}
+      />
+
+      <Select
+        label="Método de Pago"
+        value={formData.paymentMethod}
+        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value as any })}
+        options={[
+          { value: 'ubii', label: 'Ubii (Link / Pago Móvil)' },
+          { value: 'pagoflash', label: 'PagoFlash (Tarjetas / Otros)' },
+          { value: 'binance_pay', label: 'Binance Pay (USDT)' },
+        ]}
       />
 
       {error && formData.amount !== '' && (
