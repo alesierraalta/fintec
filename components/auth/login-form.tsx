@@ -3,7 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Eye, EyeOff, Mail, Lock, LogIn, AlertCircle } from 'lucide-react';
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  LogIn,
+  AlertCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useMobileInputAutoScroll } from '@/hooks';
 import { Button, Input, Checkbox } from '@/components/ui';
@@ -37,7 +45,7 @@ function getInitialEmailConfirmationMessage(): EmailConfirmationMessage | null {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter();
-  const { signIn, authError, clearAuthError } = useAuth();
+  const { signIn, authError, clearAuthError, resendVerification } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -49,6 +57,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [emailConfirmationMessage] = useState<EmailConfirmationMessage | null>(
     getInitialEmailConfirmationMessage
   );
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
   useEffect(() => {
     if (emailConfirmationMessage?.show) {
@@ -56,6 +66,25 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
       sessionStorage.removeItem('pendingEmail');
     }
   }, [emailConfirmationMessage?.show]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
+
+  const handleResendVerification = async () => {
+    if (!emailConfirmationMessage?.email || resendCooldown > 0) return;
+
+    setResendSuccess(false);
+    const { error } = await resendVerification(emailConfirmationMessage.email);
+
+    if (!error) {
+      setResendSuccess(true);
+      setResendCooldown(60);
+      setTimeout(() => setResendSuccess(false), 3000);
+    }
+  };
 
   // Auto-scroll global para inputs en móvil (ahora usando hook reutilizable)
   useMobileInputAutoScroll();
@@ -150,6 +179,22 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                     ⚠️ No podrás iniciar sesión hasta que confirmes tu email
                   </p>
                 </div>
+                <button
+                  onClick={handleResendVerification}
+                  disabled={resendCooldown > 0}
+                  className="mt-4 flex w-full items-center justify-center space-x-2 rounded-lg border border-primary/30 px-4 py-2 text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <RefreshCw
+                    className={`h-4 w-4 ${resendCooldown > 0 ? 'animate-spin' : ''}`}
+                  />
+                  <span>
+                    {resendSuccess
+                      ? '¡Correo reenviado!'
+                      : resendCooldown > 0
+                        ? `Reenviar en ${resendCooldown}s`
+                        : 'Reenviar correo de verificación'}
+                  </span>
+                </button>
               </div>
             </div>
           </motion.div>

@@ -78,6 +78,7 @@ interface AuthContextType {
     data: any
   ) => Promise<{ error: AuthError | PostgrestError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
+  resendVerification: (email: string) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -174,7 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             errorMessage.includes('weak password') ||
             errorMessage.includes('Password')
           ) {
-            errorMessage = 'La contraseña debe tener al menos 6 caracteres';
+            errorMessage =
+              'La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números';
           } else if (
             errorMessage.includes('Email address') &&
             errorMessage.includes('is invalid')
@@ -460,6 +462,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const resendVerification = useCallback(async (email: string) => {
+    try {
+      setLoading(true);
+      setAuthError(null);
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) {
+        let errorMessage = error.message;
+
+        if (
+          errorMessage.includes('rate limit') ||
+          errorMessage.includes('Too many requests')
+        ) {
+          errorMessage =
+            'Demasiados intentos. Por favor espera un momento antes de reenviar el correo.';
+        } else if (errorMessage.includes('Invalid email')) {
+          errorMessage = 'El formato del correo electrónico no es válido';
+        }
+
+        setAuthError(errorMessage);
+      }
+
+      return { error };
+    } catch (err) {
+      const msg =
+        (err as Error)?.message ||
+        'Error al reenviar el correo de verificación';
+      setAuthError(msg);
+      return { error: err as AuthError };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const clearAuthError = useCallback(() => {
     setAuthError(null);
   }, []);
@@ -477,6 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       updateProfile,
       resetPassword,
+      resendVerification,
     }),
     [
       user,
@@ -490,6 +531,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       updateProfile,
       resetPassword,
+      resendVerification,
     ]
   );
 

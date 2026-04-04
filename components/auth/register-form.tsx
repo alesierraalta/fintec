@@ -39,6 +39,22 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     email?: string;
   } | null>(null);
 
+  const validatePasswordComplexity = (password: string): string | null => {
+    if (password.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres';
+    }
+    if (!/(?=.*[a-z])/.test(password)) {
+      return 'La contraseña debe contener al menos una letra minúscula';
+    }
+    if (!/(?=.*[A-Z])/.test(password)) {
+      return 'La contraseña debe contener al menos una letra mayúscula';
+    }
+    if (!/(?=.*\d)/.test(password)) {
+      return 'La contraseña debe contener al menos un número';
+    }
+    return null;
+  };
+
   const validateForm = () => {
     if (!formData.fullName.trim()) {
       setValidationError('El nombre completo es requerido');
@@ -48,8 +64,9 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
       setValidationError('El email es requerido');
       return false;
     }
-    if (formData.password.length < 6) {
-      setValidationError('La contraseña debe tener al menos 6 caracteres');
+    const passwordError = validatePasswordComplexity(formData.password);
+    if (passwordError) {
+      setValidationError(passwordError);
       return false;
     }
     if (formData.password !== formData.confirmPassword) {
@@ -337,7 +354,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               </button>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Mínimo 6 caracteres
+              Mínimo 8 caracteres, incluyendo mayúsculas, minúsculas y números
             </p>
           </div>
 
