@@ -11,14 +11,16 @@ jest.mock('@/lib/auth/is-frontend-auth-bypass-enabled', () => ({
   isFrontendAuthBypassEnabled: jest.fn(),
 }));
 
-// Mock the landing page client as a simple component
-jest.mock('@/app/landing/landing-page-client', () => {
-  return function MockLandingPageClient() {
-    return React.createElement(
-      'div',
-      { 'data-testid': 'landing-page' },
-      'Landing Page'
-    );
+// Mock the landing page as a simple component
+jest.mock('@/app/(public)/components/landing-page', () => {
+  return {
+    LandingPage: function MockLandingPage() {
+      return React.createElement(
+        'div',
+        { 'data-testid': 'landing-page' },
+        'Landing Page'
+      );
+    },
   };
 });
 
@@ -134,7 +136,7 @@ describe('HomePage (app/page.tsx)', () => {
 
     // Check that it renders the landing component (type is the mocked LandingPageClient)
     expect(result).toBeDefined();
-    expect(result.type.name).toBe('MockLandingPageClient');
+    expect(result.type.name).toBe('MockLandingPage');
   });
 
   it('renders dashboard when user is authenticated', async () => {
@@ -183,7 +185,7 @@ describe('HomePage (app/page.tsx)', () => {
     const result = await HomePage();
 
     expect(result).toBeDefined();
-    expect(result.type.name).toBe('MockLandingPageClient');
+    expect(result.type.name).toBe('MockLandingPage');
   });
 
   it('renders dashboard when FRONTEND_AUTH_BYPASS is enabled', async () => {
