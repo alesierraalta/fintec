@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -74,6 +75,9 @@ const scaleIn = {
 
 export default function LandingPageClient() {
   const [shouldLoadLiveRates, setShouldLoadLiveRates] = useState(false);
+  const binanceRatesState = useBinanceRates({
+    enabled: shouldLoadLiveRates,
+  });
   const liveRatesRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -261,7 +265,7 @@ export default function LandingPageClient() {
                   {shouldLoadLiveRates ? (
                     <>
                       <BCVRates />
-                      <BinanceRatesComponent />
+                      <BinanceRatesComponent snapshot={binanceRatesState} />
                     </>
                   ) : (
                     <>
