@@ -39,17 +39,20 @@ describe('POST /api/testing/bootstrap', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.NODE_ENV = 'test';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.env as any).NODE_ENV = 'test';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'mock-service-role-key';
   });
 
   afterAll(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.env as any).NODE_ENV = originalNodeEnv;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
   });
 
   it('rejects bootstrap calls in production', async () => {
-    process.env.NODE_ENV = 'production';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (process.env as any).NODE_ENV = 'production';
 
     const response = await POST();
     const body = await response.json();

@@ -99,7 +99,9 @@ describe('RecurringPage edit/delete flows', () => {
     jest.clearAllMocks();
     (global.fetch as any) = jest.fn();
 
-    (useAppStore as jest.Mock).mockImplementation((selector: any) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockedUseAppStore = useAppStore as any;
+    mockedUseAppStore.mockImplementation((selector: any) =>
       selector({ selectedRateSource: 'bcv_usd' })
     );
     (useBCVRates as jest.Mock).mockReturnValue({ usd: 36.5, eur: 40 });

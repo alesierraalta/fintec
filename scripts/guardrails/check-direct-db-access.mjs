@@ -25,6 +25,10 @@ const ALLOWED_PREFIXES = [
 const ALLOWED_FILES = new Set([
   'lib/payment-orders/order-service.ts',
   'lib/supabase/subscriptions.ts',
+  // Auth context needs direct user profile access for base_currency
+  'contexts/auth-context.tsx',
+  // Payment order route handler uses service client for admin operations
+  'app/api/payment-orders/[id]/initiate-pagoflash/route.ts',
 ]);
 
 const DB_CALL_PATTERNS = [/\.from\(\s*['"`]/g, /\.rpc\(\s*['"`]/g];

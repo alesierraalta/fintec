@@ -2,55 +2,69 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPagoFlashOrder } from '@/lib/payment-orders/providers/pagoflash';
 import { createServiceClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/utils/logger';
-import { SupabasePaymentOrder } from '@/repositories/supabase/types';
 
 const supabase = createServiceClient();
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const orderId = params.id;
-    
+    const { id: orderId } = await params;
+
     // Auth check
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
     }
 
     // Get order
-    const { data: orderData, error: orderError } = await supabase
+    const { data: order, error: orderError } = (await supabase
       .from('payment_orders')
       .select('*')
       .eq('id', orderId)
       .eq('user_id', user.id)
-      .single();
+      .single()) as { data: Record<string, unknown> | null; error: unknown };
 
-    if (orderError || !orderData) {
-      return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    if (orderError || !order) {
+      return NextResponse.json(
+        { success: false, error: 'Order not found' },
+        { status: 404 }
+      );
     }
 
-    const order = orderData as SupabasePaymentOrder;
-
-    if (order.payment_method !== 'pagoflash') {
-      return NextResponse.json({ success: false, error: 'Order is not configured for PagoFlash' }, { status: 400 });
+    if ((order as Record<string, unknown>).payment_method !== 'pagoflash') {
+      return NextResponse.json(
+        { success: false, error: 'Order is not configured for PagoFlash' },
+        { status: 400 }
+      );
     }
 
     // Initiate PagoFlash
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    
+
     const pagoflashResult = await createPagoFlashOrder({
-      amount: order.amount_minor / 100, // PagoFlash likely expects decimals
-      description: order.description || `Pago de orden ${orderId.substring(0, 8)}`,
-      orderId: order.id,
+      amount: ((order as Record<string, unknown>).amount_minor as number) / 100,
+      description:
+        ((order as Record<string, unknown>).description as string) ||
+        `Pago de orden ${orderId.substring(0, 8)}`,
+      orderId: (order as Record<string, unknown>).id as string,
       payerEmail: user.email!,
       payerName: user.user_metadata?.full_name || user.email,
       successRedirectUrl: `${baseUrl}/payment-orders/${orderId}?status=success`,
@@ -58,10 +72,13 @@ export async function POST(
     });
 
     if (!pagoflashResult.success || !pagoflashResult.result) {
-      return NextResponse.json({ 
-        success: false, 
-        error: pagoflashResult.error || 'Failed to create PagoFlash order' 
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          success: false,
+          error: pagoflashResult.error || 'Failed to create PagoFlash order',
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -69,9 +86,11 @@ export async function POST(
       url: pagoflashResult.result.url,
       pagoflashOrderId: pagoflashResult.result.id,
     });
-
   } catch (error: any) {
     logger.error('[API] Error initiating PagoFlash:', error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message },
+      { status: 500 }
+    );
   }
 }

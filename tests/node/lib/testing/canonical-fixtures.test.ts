@@ -26,12 +26,12 @@ describe('ensureCanonicalUserFixtures', () => {
         accounts: {
           findActive: jest.fn(),
           create: jest.fn(),
-        },
+        } as any,
         categories: {
           findByKind: jest.fn(),
           create: jest.fn(),
-        },
-      },
+        } as any,
+      } as any,
     };
   }
 
