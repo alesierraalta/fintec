@@ -141,7 +141,8 @@ export default function AccountsPage() {
   const { user } = useAuth();
   const repository = useRepository();
   const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
+  const binanceRatesState = useBinanceRates();
+  const { rates: binanceRates } = binanceRatesState;
   const [showBalances, setShowBalances] = useState(true);
   const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const [showRatesHistory, setShowRatesHistory] = useState(false);
@@ -1323,7 +1324,7 @@ export default function AccountsPage() {
 
           <div className="space-y-6">
             <BCVRates />
-            <BinanceRatesComponent />
+            <BinanceRatesComponent snapshot={binanceRatesState} />
 
             {/* History Button - Mobile Responsive */}
             <motion.div
