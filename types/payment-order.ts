@@ -2,14 +2,12 @@
  * Payment Order domain types
  */
 
-export type PaymentOrderStatus = 
-  | 'pending'           // Order created, waiting for receipt
-  | 'pending_review'    // Receipt uploaded, waiting for admin review
-  | 'approved'          // Approved by admin, transaction created
-  | 'rejected'          // Rejected by admin
-  | 'expired';          // Order expired (optional)
-
-export type PaymentMethod = 'ubii' | 'pagoflash' | 'binance_pay';
+export type PaymentOrderStatus =
+  | 'pending' // Order created, waiting for receipt
+  | 'pending_review' // Receipt uploaded, waiting for admin review
+  | 'approved' // Approved by admin, transaction created
+  | 'rejected' // Rejected by admin
+  | 'expired'; // Order expired (optional)
 
 export interface PaymentOrder {
   id: string;
@@ -18,7 +16,6 @@ export interface PaymentOrder {
   currencyCode: string;
   description?: string;
   status: PaymentOrderStatus;
-  paymentMethod?: PaymentMethod;
   receiptUrl?: string;
   receiptFilename?: string;
   adminNotes?: string;
@@ -31,7 +28,6 @@ export interface PaymentOrder {
 
 export interface CreatePaymentOrderDTO {
   amountMinor: number;
-  paymentMethod: PaymentMethod;
   currencyCode?: string;
   description?: string;
 }
@@ -51,6 +47,3 @@ export interface RejectPaymentOrderDTO {
   reason: string;
   adminNotes?: string;
 }
-
-
-

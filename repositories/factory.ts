@@ -3,6 +3,7 @@ import type {
   AIInfraRepository,
   AppRepository,
   ApprovalRequestsRepository,
+  OrdersRepository,
   PaymentOrdersRepository,
   SubscriptionsRepository,
   TransfersRepository,
@@ -14,6 +15,7 @@ import {
   SupabaseAIInfraRepository,
   SupabaseAppRepository,
   SupabaseApprovalRequestsRepository,
+  SupabaseOrdersRepository,
   SupabasePaymentOrdersRepository,
   SupabaseSubscriptionsRepository,
   SupabaseTransfersRepository,
@@ -260,6 +262,27 @@ export function createServerPaymentOrdersRepository(
     case 'postgres': {
       throw new Error(
         `Payment orders repository is not implemented for DB_PROVIDER=${provider}`
+      );
+    }
+    default: {
+      return assertNever(provider);
+    }
+  }
+}
+
+export function createServerOrdersRepository(
+  options: CreateServerScopedRepositoryOptions = {}
+): OrdersRepository {
+  const provider = options.provider ?? getServerDBProvider();
+
+  switch (provider) {
+    case 'supabase': {
+      return new SupabaseOrdersRepository(options.serviceSupabase);
+    }
+    case 'local':
+    case 'postgres': {
+      throw new Error(
+        `Orders repository is not implemented for DB_PROVIDER=${provider}`
       );
     }
     default: {

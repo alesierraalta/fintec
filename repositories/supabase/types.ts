@@ -128,7 +128,6 @@ export interface SupabasePaymentOrder {
   currency_code: string;
   description?: string;
   status: 'pending' | 'pending_review' | 'approved' | 'rejected' | 'expired';
-  payment_method?: 'ubii' | 'pagoflash' | 'binance_pay' | null;
   receipt_url?: string;
   receipt_filename?: string;
   admin_notes?: string;
@@ -137,6 +136,16 @@ export interface SupabasePaymentOrder {
   transaction_id?: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface SupabaseOrder {
+  id: string;
+  user_id: string;
+  service_name: string;
+  amount: string;
+  sender_reference: string;
+  status: 'pending' | 'paid';
+  created_at: string;
 }
 
 // Database interface for TypeScript with Supabase
@@ -227,14 +236,21 @@ export interface Database {
         Row: SupabasePaymentOrder;
         Insert: Omit<
           SupabasePaymentOrder,
-          'id' | 'created_at' | 'updated_at' | 'payment_method'
+          'id' | 'created_at' | 'updated_at'
         > & {
           id?: string;
-          payment_method?: 'ubii' | 'pagoflash' | 'binance_pay' | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<SupabasePaymentOrder>;
+      };
+      orders: {
+        Row: SupabaseOrder;
+        Insert: Omit<SupabaseOrder, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<SupabaseOrder>;
       };
     };
     Views: {
