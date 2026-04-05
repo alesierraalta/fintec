@@ -141,7 +141,8 @@ export default function AccountsPage() {
   const { user } = useAuth();
   const repository = useRepository();
   const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
+  const binanceRatesState = useBinanceRates();
+  const { rates: binanceRates } = binanceRatesState;
   const [showBalances, setShowBalances] = useState(true);
   const usdEquivalentType = useAppStore((s) => s.selectedRateSource);
   const [showRatesHistory, setShowRatesHistory] = useState(false);
@@ -1323,7 +1324,7 @@ export default function AccountsPage() {
 
           <div className="space-y-6">
             <BCVRates />
-            <BinanceRatesComponent />
+            <BinanceRatesComponent snapshot={binanceRatesState} />
 
             {/* History Button - Mobile Responsive */}
             <motion.div
@@ -1491,23 +1492,11 @@ export default function AccountsPage() {
 
       {/* Balance Alert Settings Modal */}
       {showAlertSettings && selectedAccountForAlert && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          {/* * Modal wrapper with max-height for mobile scrolling */}
-          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border/40 bg-card/95 shadow-xl backdrop-blur-xl">
-            <div className="flex-shrink-0 border-b border-border/40 p-4">
-              <h3 className="text-2xl font-semibold text-foreground">
-                Alertas de Saldo - {selectedAccountForAlert.name}
-              </h3>
-            </div>
-            <div className="flex-1 overflow-y-auto">
-              <BalanceAlertSettings
-                isOpen={showAlertSettings}
-                account={selectedAccountForAlert}
-                onClose={handleCloseAlertSettings}
-              />
-            </div>
-          </div>
-        </div>
+        <BalanceAlertSettings
+          isOpen={showAlertSettings}
+          account={selectedAccountForAlert}
+          onClose={handleCloseAlertSettings}
+        />
       )}
 
       {/* Floating Action Button for Mobile */}
