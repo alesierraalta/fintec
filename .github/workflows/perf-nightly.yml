@@ -85,6 +85,10 @@ jobs:
     name: k6 Browser Hybrid
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -139,6 +143,10 @@ jobs:
     name: Lighthouse Full Audit
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
