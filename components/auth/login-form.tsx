@@ -54,11 +54,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [emailConfirmationMessage] = useState<EmailConfirmationMessage | null>(
     getInitialEmailConfirmationMessage
   );
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendSuccess, setResendSuccess] = useState(false);
+
+  const visibleError = authError ?? submitError;
 
   useEffect(() => {
     if (emailConfirmationMessage?.show) {
@@ -86,36 +89,62 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   };
 
+  const getValidationError = () => {
+    const email = formData.email.trim();
+    const password = formData.password;
+
+    if (!email && !password) {
+      return 'Ingresa tu email y contraseña.';
+    }
+
+    if (!email) {
+      return 'El email es requerido.';
+    }
+
+    if (!password) {
+      return 'La contraseña es requerida.';
+    }
+
+    return null;
+  };
+
   // Auto-scroll global para inputs en móvil (ahora usando hook reutilizable)
   useMobileInputAutoScroll();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmitError(null);
     clearAuthError();
-    setLoading(true);
 
-    if (!formData.email || !formData.password) {
-      // For validation errors, we can still use a local approach or set in context
-      // For now keeping it simple with a check that prevents submission
-      setLoading(false);
+    const validationError = getValidationError();
+    if (validationError) {
+      setSubmitError(validationError);
       return;
     }
 
+    setLoading(true);
+
     try {
       const result = await signIn(
-        formData.email,
+        formData.email.trim(),
         formData.password,
         rememberMe
       );
 
       if (!result.error) {
-        setLoading(false);
         onSuccess?.();
         router.push('/');
-      } else {
-        setLoading(false);
+        return;
       }
-    } catch (err) {
+
+      setSubmitError(
+        'No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.'
+      );
+    } catch {
+      setSubmitError(
+        'Ocurrió un error inesperado al iniciar sesión. Intentá de nuevo.'
+      );
+    } finally {
       setLoading(false);
     }
   };
@@ -123,6 +152,11 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (submitError) {
+      setSubmitError(null);
+    }
+
     // Clear error when user starts typing
     if (authError) clearAuthError();
   };
@@ -200,21 +234,23 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           </motion.div>
         )}
 
-        {authError && (
+        {visibleError && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-6 rounded-xl border-2 border-destructive/20 bg-destructive/10 p-5"
+            role="alert"
+            aria-live="assertive"
           >
             <div className="flex items-start space-x-3">
               <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-destructive" />
               <div className="flex-1">
                 <p className="mb-2 font-semibold text-destructive">
-                  {authError}
+                  {visibleError}
                 </p>
-                {authError.includes('confirmado') ||
-                authError.includes('verificar') ||
-                authError.includes('Email') ? (
+                {visibleError.includes('confirmado') ||
+                visibleError.includes('verificar') ||
+                visibleError.includes('Email') ? (
                   <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
                     <p className="mb-2 text-sm font-medium text-primary">
                       📧 ¿No recibiste el correo de verificación?
