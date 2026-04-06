@@ -207,6 +207,7 @@ export interface CreateTransactionDTO {
   categoryId?: string;
   currencyCode: string;
   amountMinor: number;
+  exchangeRate?: number; // Optional exchange rate for VES transactions
   date: string;
   description?: string;
   note?: string;

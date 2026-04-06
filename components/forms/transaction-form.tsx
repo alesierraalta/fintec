@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
+import { useActiveUsdVesRate } from '@/lib/rates';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -81,6 +82,7 @@ export function TransactionForm({
     closeModal: closeCategoryModal,
   } = useModal();
   const { usageStatus, isAtLimit, tier } = useSubscription();
+  const activeUsdVes = useActiveUsdVesRate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -236,12 +238,17 @@ export function TransactionForm({
       );
       const currencyCode = selectedAccount?.currencyCode || 'USD';
 
+      // Calculate exchange rate for VES transactions
+      const isVesCurrency = currencyCode === 'VES';
+      const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+
       const transactionData = {
         type: formData.type as TransactionType,
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
         amountMinor: Math.round(amount * 100),
+        exchangeRate,
         date: formData.date,
         description: formData.description.trim(),
         note: formData.note?.trim() || undefined,

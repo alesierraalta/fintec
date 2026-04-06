@@ -325,12 +325,25 @@ export function useTransactionForm(): UseTransactionFormReturn {
       );
       const currencyCode = selectedAccount?.currencyCode || 'USD';
 
+      // Calculate exchange rate for VES transactions
+      const isVesCurrency = currencyCode === 'VES';
+      const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+
+      if (isVesCurrency && (!exchangeRate || exchangeRate <= 0)) {
+        alert(
+          'No se pudo obtener la tasa de cambio. Asegurate de que las tasas BCV/Binance estén actualizadas.'
+        );
+        setLoading(false);
+        return;
+      }
+
       const transactionData: CreateTransactionDTO = {
         type: (formData.type as TransactionType) || 'EXPENSE',
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
         amountMinor: Math.round(amount * 100),
+        exchangeRate,
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description,
         note: formData.note || undefined,

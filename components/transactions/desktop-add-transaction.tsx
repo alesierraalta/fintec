@@ -361,12 +361,17 @@ export function DesktopAddTransaction() {
       );
       const currencyCode = selectedAccount?.currencyCode || 'USD';
 
+      // Calculate exchange rate for VES transactions
+      const isVesCurrency = currencyCode === 'VES';
+      const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+
       const transactionData: CreateTransactionDTO = {
         type: formData.type as TransactionType,
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
         amountMinor: Math.round(amount * 100),
+        exchangeRate,
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description.trim(),
         note: formData.note?.trim() || undefined,
