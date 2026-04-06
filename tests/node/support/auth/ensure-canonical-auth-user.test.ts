@@ -28,7 +28,7 @@ describe('ensureCanonicalAuthUser', () => {
 
     (canonicalUser.getCanonicalTestUserConfig as jest.Mock).mockReturnValue({
       email: 'test@fintec.com',
-      password: 'Test123!',
+      password: 'test-password-placeholder',
       displayName: 'Test User',
       baseCurrency: 'USD',
       authRequiredLane: 'auth-required',
@@ -70,7 +70,7 @@ describe('ensureCanonicalAuthUser', () => {
     expect(mockAuth.admin.createUser).toHaveBeenCalledWith(
       expect.objectContaining({
         email: 'test@fintec.com',
-        password: 'Test123!',
+        password: 'test-password-placeholder',
         email_confirm: true,
         user_metadata: {
           isCanonicalTestUser: true,

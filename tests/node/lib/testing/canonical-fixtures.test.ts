@@ -13,7 +13,7 @@ describe('ensureCanonicalUserFixtures', () => {
       },
       canonicalUser: {
         email: 'test@fintec.com',
-        password: 'Test123!',
+        password: 'test-password-placeholder',
         displayName: 'Test User',
         baseCurrency: 'USD',
         authRequiredLane: 'auth-required' as const,
