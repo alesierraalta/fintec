@@ -1,0 +1,51 @@
+{
+	"subagents": {
+		"agentOverrides": {
+			"sdd-init": {
+				"model": "gemini-acp/gemini-3.1-flash-lite-preview"
+			},
+			"sdd-explore": {
+				"model": "gemini-acp/gemini-3-flash-preview"
+			},
+			"sdd-proposal": {
+				"model": "gemini-acp/gemini-3.1-pro-preview"
+			},
+			"sdd-spec": {
+				"model": "gemini-acp/gemini-3.1-pro-preview"
+			},
+			"sdd-design": {
+				"model": "openai-codex/gpt-5.5"
+			},
+			"sdd-tasks": {
+				"model": "opencode-go/qwen3.6-plus"
+			},
+			"sdd-apply": {
+				"model": "gemini-acp/gemini-3-flash-preview"
+			},
+			"sdd-verify": {
+				"model": "gemini-acp/gemini-3-flash-preview"
+			},
+			"sdd-archive": {
+				"model": "gemini-acp/gemini-3.1-flash-lite-preview"
+			},
+			"context-builder": {
+				"model": "gemini-acp/gemini-3.1-pro-preview"
+			},
+			"planner": {
+				"model": "openai-codex/gpt-5.5"
+			},
+			"reviewer": {
+				"model": "opencode-go/deepseek-v4-flash"
+			},
+			"scout": {
+				"model": "gemini-acp/gemini-3-flash-preview"
+			},
+			"worker": {
+				"model": "gemini-acp/gemini-3-flash-preview"
+			},
+			"researcher": {
+				"model": "opencode-go/deepseek-v4-flash"
+			}
+		}
+	}
+}

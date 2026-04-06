@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "files": {
+    "app\\api\\payment-orders\\[id]\\initiate-pagoflash\\route.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:12.464Z",
+        "mi": 41.5,
+        "cognitive": 18,
+        "nesting": 3,
+        "lines": 59,
+        "maxCyclomatic": 16,
+        "entropy": 5.48
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:12.464Z",
+          "mi": 41.5,
+          "cognitive": 18,
+          "nesting": 3,
+          "lines": 59,
+          "maxCyclomatic": 16,
+          "entropy": 5.48
+        }
+      ],
+      "trend": "stable"
+    },
+    "lib\\payment-orders\\order-service.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:15.463Z",
+        "mi": 36.2,
+        "cognitive": 51,
+        "nesting": 5,
+        "lines": 206,
+        "maxCyclomatic": 9,
+        "entropy": 5.88
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:15.463Z",
+          "mi": 36.2,
+          "cognitive": 51,
+          "nesting": 5,
+          "lines": 206,
+          "maxCyclomatic": 9,
+          "entropy": 5.88
+        }
+      ],
+      "trend": "stable"
+    },
+    "lib\\supabase\\server.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:24.404Z",
+        "mi": 57,
+        "cognitive": 6,
+        "nesting": 4,
+        "lines": 29,
+        "maxCyclomatic": 1,
+        "entropy": 4.89
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:24.404Z",
+          "mi": 57,
+          "cognitive": 6,
+          "nesting": 4,
+          "lines": 29,
+          "maxCyclomatic": 1,
+          "entropy": 4.89
+        }
+      ],
+      "trend": "stable"
+    },
+    "repositories\\supabase\\payment-orders-repository-impl.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:39.411Z",
+        "mi": 25.2,
+        "cognitive": 62,
+        "nesting": 4,
+        "lines": 193,
+        "maxCyclomatic": 14,
+        "entropy": 6.24
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:39.411Z",
+          "mi": 25.2,
+          "cognitive": 62,
+          "nesting": 4,
+          "lines": 193,
+          "maxCyclomatic": 14,
+          "entropy": 6.24
+        }
+      ],
+      "trend": "stable"
+    },
+    "repositories\\contracts\\payment-orders-repository.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:39.499Z",
+        "mi": 49.5,
+        "cognitive": 0,
+        "nesting": 0,
+        "lines": 33,
+        "maxCyclomatic": 1,
+        "entropy": 4.41
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:39.499Z",
+          "mi": 49.5,
+          "cognitive": 0,
+          "nesting": 0,
+          "lines": 33,
+          "maxCyclomatic": 1,
+          "entropy": 4.41
+        }
+      ],
+      "trend": "stable"
+    },
+    "lib\\supabase\\admin.ts": {
+      "latest": {
+        "commit": "4ff7b97",
+        "timestamp": "2026-05-19T13:11:47.593Z",
+        "mi": 60.1,
+        "cognitive": 2,
+        "nesting": 2,
+        "lines": 15,
+        "maxCyclomatic": 1,
+        "entropy": 4.4
+      },
+      "history": [
+        {
+          "commit": "4ff7b97",
+          "timestamp": "2026-05-19T13:11:47.593Z",
+          "mi": 60.1,
+          "cognitive": 2,
+          "nesting": 2,
+          "lines": 15,
+          "maxCyclomatic": 1,
+          "entropy": 4.4
+        }
+      ],
+      "trend": "stable"
+    },
+    "next.config.js": {
+      "latest": {
+        "commit": "a05b5d4",
+        "timestamp": "2026-05-19T13:28:12.000Z",
+        "mi": 41.8,
+        "cognitive": 0,
+        "nesting": 1,
+        "lines": 75,
+        "maxCyclomatic": 1,
+        "entropy": 3.91
+      },
+      "history": [
+        {
+          "commit": "a05b5d4",
+          "timestamp": "2026-05-19T13:28:12.000Z",
+          "mi": 41.8,
+          "cognitive": 0,
+          "nesting": 1,
+          "lines": 75,
+          "maxCyclomatic": 1,
+          "entropy": 3.91
+        }
+      ],
+      "trend": "stable"
+    },
+    "scripts\\testing\\perf-precommit.mjs": {
+      "latest": {
+        "commit": "a05b5d4",
+        "timestamp": "2026-05-19T13:34:29.246Z",
+        "mi": 33.8,
+        "cognitive": 43,
+        "nesting": 5,
+        "lines": 116,
+        "maxCyclomatic": 5,
+        "entropy": 5.4
+      },
+      "history": [
+        {
+          "commit": "a05b5d4",
+          "timestamp": "2026-05-19T13:34:29.246Z",
+          "mi": 33.8,
+          "cognitive": 43,
+          "nesting": 5,
+          "lines": 116,
+          "maxCyclomatic": 5,
+          "entropy": 5.4
+        }
+      ],
+      "trend": "stable"
+    },
+    "lib\\money.ts": {
+      "latest": {
+        "commit": "0a3cd66",
+        "timestamp": "2026-05-19T13:39:19.680Z",
+        "mi": 27.2,
+        "cognitive": 66,
+        "nesting": 3,
+        "lines": 264,
+        "maxCyclomatic": 18,
+        "entropy": 5.97
+      },
+      "history": [
+        {
+          "commit": "0a3cd66",
+          "timestamp": "2026-05-19T13:39:19.680Z",
+          "mi": 27.2,
+          "cognitive": 66,
+          "nesting": 3,
+          "lines": 264,
+          "maxCyclomatic": 18,
+          "entropy": 5.97
+        }
+      ],
+      "trend": "stable"
+    },
+    "tests\\unit\\lib\\money.test.ts": {
+      "latest": {
+        "commit": "0a3cd66",
+        "timestamp": "2026-05-19T13:39:25.823Z",
+        "mi": 21.7,
+        "cognitive": 0,
+        "nesting": 5,
+        "lines": 256,
+        "maxCyclomatic": 1,
+        "entropy": 4.39
+      },
+      "history": [
+        {
+          "commit": "0a3cd66",
+          "timestamp": "2026-05-19T13:39:25.823Z",
+          "mi": 21.7,
+          "cognitive": 0,
+          "nesting": 5,
+          "lines": 256,
+          "maxCyclomatic": 1,
+          "entropy": 4.39
+        }
+      ],
+      "trend": "stable"
+    },
+    "tests\\lib\\money.edge-cases.test.ts": {
+      "latest": {
+        "commit": "0a3cd66",
+        "timestamp": "2026-05-19T13:40:19.312Z",
+        "mi": 45.3,
+        "cognitive": 0,
+        "nesting": 3,
+        "lines": 53,
+        "maxCyclomatic": 1,
+        "entropy": 4.15
+      },
+      "history": [
+        {
+          "commit": "0a3cd66",
+          "timestamp": "2026-05-19T13:40:19.312Z",
+          "mi": 45.3,
+          "cognitive": 0,
+          "nesting": 3,
+          "lines": 53,
+          "maxCyclomatic": 1,
+          "entropy": 4.15
+        }
+      ],
+      "trend": "stable"
+    }
+  },
+  "capturedAt": "2026-05-19T13:40:24.320Z"
+}
