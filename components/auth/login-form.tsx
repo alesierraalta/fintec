@@ -60,10 +60,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     }
   }, [emailConfirmationMessage?.show]);
 
-<<<<<<< HEAD
-=======
 
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
   const getValidationError = () => {
     const email = formData.email.trim();
     const password = formData.password;
@@ -219,67 +216,53 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
             </motion.div>
           )}
 
-<<<<<<< HEAD
           {visibleError && (
             <motion.div
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6 rounded-xl border-2 border-destructive/20 bg-destructive/10 p-5"
               role="alert"
+              aria-live="assertive"
             >
               <div className="flex items-start space-x-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive/80" />
-                <div className="flex-1 text-sm font-medium text-destructive-foreground/90">
-                  {visibleError}
+                <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-destructive" />
+                <div className="flex-1">
+                  <p className="mb-2 font-semibold text-destructive">
+                    {visibleError}
+                  </p>
+                  {visibleError.includes('confirmado') ||
+                  visibleError.includes('verificar') ||
+                  visibleError.includes('Email') ? (
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
+                      <p className="mb-2 text-sm font-medium text-primary">
+                        📧 ¿No recibiste el correo de verificación?
+                      </p>
+                      <ul className="space-y-1 pl-4 text-sm text-primary/80">
+                        <li>• Revisa tu carpeta de spam</li>
+                        <li>• Espera unos minutos y recarga tu bandeja</li>
+                        <li>
+                          • Verifica que escribiste bien tu email al registrarte
+                        </li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
+                      <p className="mb-2 text-sm font-medium text-warning">
+                        🔍 ¿Problemas para iniciar sesión?
+                      </p>
+                      <ul className="space-y-1 pl-4 text-sm text-warning/80">
+                        <li>
+                          • Verifica que tu email y contraseña sean correctos
+                        </li>
+                        <li>• Asegúrate de que tu cuenta esté verificada</li>
+                        <li>
+                          • Si olvidaste tu contraseña, usa &quot;¿Olvidaste tu
+                          contraseña?&quot;
+                        </li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
-=======
-        {visibleError && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 rounded-xl border-2 border-destructive/20 bg-destructive/10 p-5"
-            role="alert"
-            aria-live="assertive"
-          >
-            <div className="flex items-start space-x-3">
-              <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-destructive" />
-              <div className="flex-1">
-                <p className="mb-2 font-semibold text-destructive">
-                  {visibleError}
-                </p>
-                {visibleError.includes('confirmado') ||
-                visibleError.includes('verificar') ||
-                visibleError.includes('Email') ? (
-                  <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
-                    <p className="mb-2 text-sm font-medium text-primary">
-                      📧 ¿No recibiste el correo de verificación?
-                    </p>
-                    <ul className="space-y-1 pl-4 text-sm text-primary/80">
-                      <li>• Revisa tu carpeta de spam</li>
-                      <li>• Espera unos minutos y recarga tu bandeja</li>
-                      <li>
-                        • Verifica que escribiste bien tu email al registrarte
-                      </li>
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 p-3">
-                    <p className="mb-2 text-sm font-medium text-warning">
-                      🔍 ¿Problemas para iniciar sesión?
-                    </p>
-                    <ul className="space-y-1 pl-4 text-sm text-warning/80">
-                      <li>
-                        • Verifica que tu email y contraseña sean correctos
-                      </li>
-                      <li>• Asegúrate de que tu cuenta esté verificada</li>
-                      <li>
-                        • Si olvidaste tu contraseña, usa &quot;¿Olvidaste tu
-                        contraseña?&quot;
-                      </li>
-                    </ul>
-                  </div>
-                )}
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
               </div>
             </motion.div>
           )}

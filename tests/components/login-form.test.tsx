@@ -47,16 +47,11 @@ jest.mock('@/components/ui', () => ({
       {children}
     </button>
   ),
-<<<<<<< HEAD
   Input: ({ label, id, ...props }: any) => (
     <div>
       {label && <label htmlFor={id}>{label}</label>}
       <input id={id} {...props} />
     </div>
-=======
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
   ),
   Checkbox: ({
     checked,
@@ -81,7 +76,6 @@ describe('LoginForm', () => {
     mockSignIn.mockResolvedValue({ error: null });
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
-<<<<<<< HEAD
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
@@ -92,22 +86,13 @@ describe('LoginForm', () => {
       authError: null,
       clearAuthError: mockClearAuthError,
     } as any);
-=======
-      authError: null,
-      clearAuthError: mockClearAuthError,
-    } as ReturnType<typeof useAuth>);
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
   });
 
   it('shows explicit validation when email and password are missing', () => {
     render(<LoginForm />);
 
     const submitButton = screen.getByRole('button', {
-<<<<<<< HEAD
       name: /entrar/i,
-=======
-      name: /iniciar sesión/i,
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
     });
     const form = submitButton.closest('form');
 
@@ -126,7 +111,6 @@ describe('LoginForm', () => {
   it('renders auth-context login errors visibly for the user', () => {
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
-<<<<<<< HEAD
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
@@ -137,11 +121,6 @@ describe('LoginForm', () => {
       authError: 'Credenciales incorrectas. Verifica tu email y contraseña.',
       clearAuthError: mockClearAuthError,
     } as any);
-=======
-      authError: 'Credenciales incorrectas. Verifica tu email y contraseña.',
-      clearAuthError: mockClearAuthError,
-    } as ReturnType<typeof useAuth>);
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
 
     render(<LoginForm />);
 
@@ -160,11 +139,7 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
-<<<<<<< HEAD
     await user.click(screen.getByRole('button', { name: /entrar/i }));
-=======
-    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.'
@@ -179,11 +154,7 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
-<<<<<<< HEAD
     await user.click(screen.getByRole('button', { name: /entrar/i }));
-=======
-    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
->>>>>>> 4c24e64 (fix(auth): show login error feedback)
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Ocurrió un error inesperado al iniciar sesión. Intentá de nuevo.'
