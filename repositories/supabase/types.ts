@@ -138,6 +138,16 @@ export interface SupabasePaymentOrder {
   updated_at: string;
 }
 
+export interface SupabaseOrder {
+  id: string;
+  user_id: string;
+  service_name: string;
+  amount: string;
+  sender_reference: string;
+  status: 'pending' | 'paid';
+  created_at: string;
+}
+
 // Database interface for TypeScript with Supabase
 export interface Database {
   public: {
@@ -233,6 +243,14 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<SupabasePaymentOrder>;
+      };
+      orders: {
+        Row: SupabaseOrder;
+        Insert: Omit<SupabaseOrder, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<SupabaseOrder>;
       };
     };
     Views: {

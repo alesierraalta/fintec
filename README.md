@@ -82,6 +82,8 @@ npm run clean:all
 - E2E: Playwright usa contrato de dos lanes (`no-auth` por defecto + `auth-required` explicito) en `playwright.config.ts`.
 - Comando canonico por defecto: `npm run e2e` (equivale a no-auth y excluye specs `@auth-required`).
 - Comando canonico para autenticacion real: `npm run e2e:auth-required` (chromium + setup/auth storage + filtro `@auth-required`).
+- Smoke rapido de auth/Supabase para hooks: `npm run e2e:smoke:auth-required`.
+- Suite Node rapida para cambios Supabase: `npm run test:supabase`.
 - Comandos E2E usan `scripts/testing/run-playwright-with-guard.mjs` para timeout global y apagado forzado del arbol de procesos si una corrida se cuelga.
 - CI ejecuta lanes separadas con comandos dedicados: `npm run e2e:ci:no-auth` y `npm run e2e:ci:auth-required`.
 - Performance baseline: k6 scripts in `tests/performance/k6/` (`perf:smoke`, `perf:load`, `perf:stress`, `perf:spike`, `perf:soak`, `perf:journey`) and legacy baseline `k6/api-stress-test.js` via `npm run test:load`.
@@ -110,7 +112,10 @@ npm run clean:all
 - `eslint` + `prettier` + `markdownlint-cli2` para estilo/consistencia.
 - `secretlint` para detectar secretos antes de commit.
 - `commitlint` (conventional commits) en `commit-msg`.
-- `pre-push` bloqueante con `type-check`, `lint`, `test` y `build`.
+- `pre-commit` ejecuta `lint-staged`, `precommit:supabase`, `type-check`, `guard:db-access` y `perf:precommit`.
+- `precommit:supabase` detecta archivos Supabase staged y corre `jest --findRelatedTests` para codigo relacionado; si cambian `supabase/migrations/*.sql`, exige y ejecuta tests de migracion dedicados.
+- `pre-push` agrega `prepush:supabase` antes de `type-check`, `lint`, `test` y `build`.
+- `prepush:supabase` reutiliza la suite Node de Supabase y corre `npm run e2e:smoke:auth-required` para validar login real + bootstrap + acceso a una ruta protegida cuando hay cambios relevantes.
 - `spellcheck` disponible como chequeo asesor (`npm run spellcheck`) para evitar friccion por vocabulario bilingue.
 
 ## Arquitectura y proceso para trabajo en equipo

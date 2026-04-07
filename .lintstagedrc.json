@@ -1,5 +1,9 @@
 {
-  "*.{ts,tsx,js,jsx}": ["oxlint --quiet --fix", "prettier --write"],
+  "*.{ts,tsx,js,jsx}": [
+    "oxlint --quiet --fix",
+    "prettier --write",
+    "npm run test:staged --"
+  ],
   "*.{json,yml,yaml}": ["prettier --write"],
   "{README.md,AGENTS.md,docs/**/*.md}": [
     "markdownlint-cli2 --config .markdownlint.json --fix",

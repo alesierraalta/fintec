@@ -2,12 +2,12 @@
  * Payment Order domain types
  */
 
-export type PaymentOrderStatus = 
-  | 'pending'           // Order created, waiting for receipt
-  | 'pending_review'    // Receipt uploaded, waiting for admin review
-  | 'approved'          // Approved by admin, transaction created
-  | 'rejected'          // Rejected by admin
-  | 'expired';          // Order expired (optional)
+export type PaymentOrderStatus =
+  | 'pending' // Order created, waiting for receipt
+  | 'pending_review' // Receipt uploaded, waiting for admin review
+  | 'approved' // Approved by admin, transaction created
+  | 'rejected' // Rejected by admin
+  | 'expired'; // Order expired (optional)
 
 export interface PaymentOrder {
   id: string;
@@ -47,6 +47,3 @@ export interface RejectPaymentOrderDTO {
   reason: string;
   adminNotes?: string;
 }
-
-
-

@@ -97,7 +97,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
               className={cn(
                 isMobile
                   ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
-                  : 'no-horizontal-scroll mx-auto max-w-7xl px-6 py-8' // Desktop padding
+                  : 'no-horizontal-scroll mx-auto max-w-6xl px-6 py-8' // Desktop padding
               )}
             >
               {children}

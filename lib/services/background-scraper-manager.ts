@@ -3,6 +3,7 @@ import BackgroundScraperService from './background-scraper';
 import WebSocketService from './websocket-server';
 import ExchangeRateDatabase from './exchange-rate-db';
 import { healthMonitor } from '@/lib/scrapers/health-monitor';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 
 import { logger } from '@/lib/utils/logger';
 
@@ -11,6 +12,7 @@ class BackgroundScraperManager {
   private scraper: BackgroundScraperService;
   private websocket: WebSocketService;
   private database: ExchangeRateDatabase;
+  private ratesHistoryRepo: SupabaseRatesHistoryRepository;
   private isRunning = false;
 
   constructor(httpServer: HTTPServer) {
@@ -18,7 +20,8 @@ class BackgroundScraperManager {
     this.scraper = new BackgroundScraperService(60000); // 1 minute interval
     this.websocket = new WebSocketService(httpServer);
     this.database = new ExchangeRateDatabase();
-    
+    this.ratesHistoryRepo = new SupabaseRatesHistoryRepository();
+
     this.setupScraperCallbacks();
   }
 
@@ -30,10 +33,10 @@ class BackgroundScraperManager {
 
     logger.info('Starting background scraper manager...');
     this.isRunning = true;
-    
+
     // Start WebSocket service
     this.websocket.start();
-    
+
     // Start background scraper
     this.scraper.start((data) => {
       this.handleScraperUpdate(data);
@@ -49,10 +52,10 @@ class BackgroundScraperManager {
 
     logger.info('Stopping background scraper manager...');
     this.isRunning = false;
-    
+
     this.scraper.stop();
     this.websocket.stop();
-    
+
     logger.info('Background scraper manager stopped');
   }
 
@@ -66,17 +69,37 @@ class BackgroundScraperManager {
 
     if (data.success && data.data) {
       try {
-        // Lógica correcta: 
+        // Lógica correcta:
         // - SELL del scraper = personas que VENDEN USDT (reciben VES) = precio de VENTA para usuario
         // - BUY del scraper = personas que COMPRAN USDT (pagan VES) = precio de COMPRA para usuario
         await this.database.storeExchangeRate({
           usd_ves: data.data.usd_ves,
           usdt_ves: data.data.usdt_ves,
           sell_rate: data.data.sell_rate, // SELL del scraper = precio de VENTA para usuario
-          buy_rate: data.data.buy_rate,   // BUY del scraper = precio de COMPRA para usuario
+          buy_rate: data.data.buy_rate, // BUY del scraper = precio de COMPRA para usuario
           lastUpdated: data.data.lastUpdated,
-          source: data.data.source
+          source: data.data.source,
         });
+
+        // Also save to rate history tables (bcv_rate_history and binance_rate_history)
+        // for the historical rates feature used in transaction details
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date().toISOString();
+
+        // Save Binance rate to history
+        try {
+          await this.ratesHistoryRepo.upsertBinanceRate({
+            date: today,
+            usd: data.data.usdt_ves,
+            source: 'Binance',
+            timestamp: now,
+          });
+        } catch (historyError) {
+          logger.warn(
+            '[BackgroundScraper] Failed to save Binance rate to history:',
+            historyError
+          );
+        }
 
         // Record success in health monitor
         healthMonitor.recordSuccess('binance-background', responseTime);

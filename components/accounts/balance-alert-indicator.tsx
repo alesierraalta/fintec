@@ -10,30 +10,34 @@ interface BalanceAlertIndicatorProps {
 
 export function BalanceAlertIndicator({ account }: BalanceAlertIndicatorProps) {
   const { getAlertStatus, calculateAmountNeeded } = useBalanceAlerts();
-  
+
   const alertStatus = getAlertStatus(account);
-  
+
   if (alertStatus === 'none') {
     return null;
   }
 
   const amountNeeded = calculateAmountNeeded(account);
-  
+
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: account.currencyCode === 'VES' ? 'VES' : 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('es-VE', {
+        style: 'currency',
+        currency: account.currencyCode,
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    } catch (e) {
+      return `${account.currencyCode} ${Math.round(amount)}`;
+    }
   };
 
   if (alertStatus === 'critical') {
     return (
-      <div className="flex items-center space-x-1 text-xs">
-        <div className="flex items-center space-x-1 bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-lg font-medium">
+      <div className="flex items-center space-x-1 text-[10px] sm:text-xs">
+        <div className="flex items-center space-x-1 whitespace-nowrap rounded-lg bg-destructive/10 px-1.5 py-0.5 font-medium text-destructive">
           <AlertCircle className="h-3 w-3" />
-          <span>Crítico</span>
+          <span>Faltan {formatCurrency(amountNeeded)}</span>
         </div>
       </div>
     );
@@ -41,10 +45,10 @@ export function BalanceAlertIndicator({ account }: BalanceAlertIndicatorProps) {
 
   if (alertStatus === 'warning') {
     return (
-      <div className="flex items-center space-x-1 text-xs">
-        <div className="flex items-center space-x-1 bg-warning/10 text-warning-600 px-1.5 py-0.5 rounded-lg font-medium">
+      <div className="flex items-center space-x-1 text-[10px] sm:text-xs">
+        <div className="flex items-center space-x-1 whitespace-nowrap rounded-lg bg-warning/10 px-1.5 py-0.5 font-medium text-warning-600">
           <AlertTriangle className="h-3 w-3" />
-          <span>Bajo</span>
+          <span>Faltan {formatCurrency(amountNeeded)}</span>
         </div>
       </div>
     );

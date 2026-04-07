@@ -29,7 +29,7 @@ import {
 } from 'lucide-react';
 
 export function DesktopReports() {
-  const { user } = useAuth();
+  const { user, baseCurrency } = useAuth();
   const { transactions, categories, accounts, loading, loadAllData } =
     useOptimizedData();
   const [selectedPeriod, setSelectedPeriod] = useState('month');
@@ -252,9 +252,12 @@ export function DesktopReports() {
   })();
 
   // --- Logic for Trends/Charts ---
-  const baseCurrency = (user as any)?.baseCurrency || 'USD';
   const displayCurrency =
-    selectedCurrency === 'ALL' ? baseCurrency : selectedCurrency;
+    selectedCurrency === 'ALL'
+      ? availableCurrencies.length === 2
+        ? availableCurrencies[1]
+        : baseCurrency
+      : selectedCurrency;
 
   let isLongPeriod = ['year', 'quarter'].includes(selectedPeriod);
   if (selectedPeriod === 'custom') {

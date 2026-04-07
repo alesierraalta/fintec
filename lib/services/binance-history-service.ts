@@ -206,9 +206,39 @@ class BinanceHistoryService {
 
   async getRatesForDate(date: string): Promise<BinanceHistoryRecord | null> {
     try {
-      return (
-        (await this.db.binanceRates.where('date').equals(date).first()) || null
-      );
+      // Try local IndexedDB first
+      let record = await this.db.binanceRates
+        .where('date')
+        .equals(date)
+        .first();
+
+      if (record) return record;
+
+      // Fallback: try to load from Supabase
+      try {
+        const supabaseRecords =
+          await this.ratesHistoryRepository.listBinanceRatesSince(date);
+        if (supabaseRecords && supabaseRecords.length > 0) {
+          const matchingRecord = supabaseRecords.find((r) => r.date === date);
+          if (matchingRecord) {
+            const localRecord: BinanceHistoryRecord = {
+              date: matchingRecord.date,
+              usd: matchingRecord.usd,
+              timestamp: matchingRecord.timestamp,
+              source: 'Binance',
+            };
+            await this.db.binanceRates.add(localRecord);
+            return localRecord;
+          }
+        }
+      } catch (supabaseError) {
+        logger.warn(
+          '[BinanceHistoryService] Supabase fallback failed:',
+          supabaseError
+        );
+      }
+
+      return null;
     } catch (error) {
       logger.error('Error getting Binance rates for date:', error);
       return null;
@@ -306,10 +336,30 @@ class BinanceHistoryService {
 
   async getLatestRate(): Promise<BinanceHistoryRecord | null> {
     try {
-      return (
-        (await this.db.binanceRates.orderBy('timestamp').reverse().first()) ||
-        null
-      );
+      // Try local IndexedDB first
+      let record = await this.db.binanceRates
+        .orderBy('timestamp')
+        .reverse()
+        .first();
+
+      if (record) return record;
+
+      // Fallback: load from Supabase
+      try {
+        await this.loadFromSupabase(90);
+        record = await this.db.binanceRates
+          .orderBy('timestamp')
+          .reverse()
+          .first();
+        return record || null;
+      } catch (supabaseError) {
+        logger.warn(
+          '[BinanceHistoryService] Supabase fallback for getLatestRate failed:',
+          supabaseError
+        );
+      }
+
+      return null;
     } catch (error) {
       logger.error('Error getting latest Binance rate:', error);
       return null;

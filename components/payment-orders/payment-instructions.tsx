@@ -1,6 +1,12 @@
 'use client';
 
-import { CheckCircle2, Smartphone, ArrowRight, Copy, Check } from 'lucide-react';
+import {
+  CheckCircle2,
+  Smartphone,
+  ArrowRight,
+  Copy,
+  Check,
+} from 'lucide-react';
 import { useState } from 'react';
 import { formatCurrency } from '@/lib/money';
 import type { PaymentOrder } from '@/types/payment-order';
@@ -48,7 +54,8 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
     {
       number: 3,
       title: 'Copia la referencia de pago',
-      description: 'Usa esta referencia única en el concepto de la transferencia',
+      description:
+        'Usa esta referencia única en el concepto de la transferencia',
       icon: Copy,
     },
     {
@@ -63,7 +70,7 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
     <div className="space-y-6">
       <div className="rounded-xl border bg-card p-6 shadow-lg">
         <h3 className="mb-4 text-lg font-semibold">Instrucciones de Pago</h3>
-        
+
         <div className="space-y-4">
           {steps.map((step, index) => {
             const Icon = step.icon;
@@ -74,7 +81,9 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium">{step.title}</h4>
-                  <p className="text-sm text-muted-foreground">{step.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {step.description}
+                  </p>
                 </div>
               </div>
             );
@@ -84,17 +93,21 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
 
       <div className="rounded-xl border bg-card p-6 shadow-lg">
         <h3 className="mb-4 text-lg font-semibold">Información de la Cuenta</h3>
-        
+
         <div className="space-y-3">
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
             <span className="text-sm text-muted-foreground">Banco:</span>
             <span className="font-medium">{MERCHANT_ACCOUNT.bankName}</span>
           </div>
-          
+
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-            <span className="text-sm text-muted-foreground">Número de Cuenta:</span>
+            <span className="text-sm text-muted-foreground">
+              Número de Cuenta:
+            </span>
             <div className="flex items-center gap-2">
-              <span className="font-mono font-medium">{MERCHANT_ACCOUNT.accountNumber}</span>
+              <span className="font-mono font-medium">
+                {MERCHANT_ACCOUNT.accountNumber}
+              </span>
               <button
                 onClick={() => copyToClipboard(MERCHANT_ACCOUNT.accountNumber)}
                 className="rounded p-1 hover:bg-muted"
@@ -108,12 +121,14 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
               </button>
             </div>
           </div>
-          
+
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
-            <span className="text-sm text-muted-foreground">Tipo de Cuenta:</span>
+            <span className="text-sm text-muted-foreground">
+              Tipo de Cuenta:
+            </span>
             <span className="font-medium">{MERCHANT_ACCOUNT.accountType}</span>
           </div>
-          
+
           <div className="flex items-center justify-between rounded-lg bg-muted/50 p-3">
             <span className="text-sm text-muted-foreground">Monto:</span>
             <span className="font-semibold text-primary">
@@ -148,4 +163,3 @@ export function PaymentInstructions({ order }: PaymentInstructionsProps) {
     </div>
   );
 }
-

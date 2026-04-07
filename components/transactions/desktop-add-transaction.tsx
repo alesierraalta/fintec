@@ -361,12 +361,17 @@ export function DesktopAddTransaction() {
       );
       const currencyCode = selectedAccount?.currencyCode || 'USD';
 
+      // Calculate exchange rate for VES transactions
+      const isVesCurrency = currencyCode === 'VES';
+      const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+
       const transactionData: CreateTransactionDTO = {
         type: formData.type as TransactionType,
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
         amountMinor: Math.round(amount * 100),
+        exchangeRate,
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description.trim(),
         note: formData.note?.trim() || undefined,
@@ -525,7 +530,7 @@ export function DesktopAddTransaction() {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-5xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <button
@@ -537,7 +542,7 @@ export function DesktopAddTransaction() {
             <span>Volver</span>
           </button>
 
-          <h1 className="text-center text-3xl font-bold text-foreground">
+          <h1 className="text-center text-6xl font-bold text-foreground">
             Nueva Transacción
           </h1>
 

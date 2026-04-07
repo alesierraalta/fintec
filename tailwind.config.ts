@@ -9,6 +9,7 @@ const config: Config = {
   darkMode: 'class',
   theme: {
     screens: {
+      tiny: '350px',
       xs: '475px',
       sm: '640px',
       md: '768px',

@@ -1,4 +1,5 @@
-import { Money, Currency } from '@/lib/money';
+import { Money } from '@/lib/money';
+import { Currency } from '@/types';
 
 describe('Money edge cases and error handling', () => {
   it('should handle NaN amounts gracefully on construction', () => {

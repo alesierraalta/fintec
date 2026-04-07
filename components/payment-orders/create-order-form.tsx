@@ -33,7 +33,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
       }
 
       // Get authenticated user
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) {
         throw new Error('No autenticado');
       }
@@ -52,7 +54,7 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(orderData),
       });
@@ -92,7 +94,9 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
         label="Descripción (opcional)"
         placeholder="Ej: Pago de suscripción"
         value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+        onChange={(e) =>
+          setFormData({ ...formData, description: e.target.value })
+        }
         icon={<FileText className="h-5 w-5" />}
       />
 
@@ -124,6 +128,3 @@ export function CreateOrderForm({ onSuccess, onCancel }: CreateOrderFormProps) {
     </form>
   );
 }
-
-
-

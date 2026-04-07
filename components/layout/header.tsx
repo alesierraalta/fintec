@@ -223,7 +223,7 @@ export function Header() {
 
   if (isMobile) {
     return (
-      <header className="black-theme-header sticky top-0 z-50 flex w-full max-w-full flex-col overflow-x-hidden shadow-sm">
+      <header className="black-theme-header sticky top-0 z-50 flex w-full max-w-full shrink-0 flex-col overflow-x-hidden shadow-sm">
         <div
           aria-hidden="true"
           className="w-full shrink-0"
@@ -491,7 +491,7 @@ export function Header() {
           <div className="text-right">
             <div className="flex items-center space-x-1">
               <Sparkles className="h-3 w-3 text-primary" />
-              <p className="text-sm font-bold text-text-primary lg:text-lg">
+              <p className="text-sm font-bold text-text-primary lg:text-xl">
                 {formattedBalance}
               </p>
             </div>

@@ -15,6 +15,7 @@ export { SupabaseApprovalRequestsRepository } from './approval-requests-reposito
 export { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
 export { SupabaseSubscriptionsRepository } from './subscriptions-repository-impl';
 export { SupabasePaymentOrdersRepository } from './payment-orders-repository-impl';
+export { SupabaseOrdersRepository } from './orders-repository-impl';
 export { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
 export { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
 

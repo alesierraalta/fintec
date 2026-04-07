@@ -55,7 +55,7 @@ export function MobileNav() {
                 href={item.href}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'focus-ring relative flex min-h-[52px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl px-1.5 py-1.5 text-center transition-all duration-200',
+                  'focus-ring relative flex min-h-[52px] min-w-0 flex-1 basis-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-2xl px-1 py-1.5 text-center transition-all duration-200',
                   isActive
                     ? 'text-primary'
                     : 'text-text-muted active:scale-95 active:text-text-primary'
@@ -73,12 +73,17 @@ export function MobileNav() {
                 />
                 <span
                   className={cn(
-                    'relative z-10 block w-full truncate px-0.5 text-center text-[10px] font-medium leading-[1.1] tracking-[0.01em]',
+                    'nav-label-mobile relative z-10 mt-1 w-full truncate px-0.5 text-center text-[10px] font-medium leading-[1.1] tracking-tighter sm:text-xs',
                     isActive && 'font-semibold'
                   )}
                 >
                   {item.name}
                 </span>
+                <style dangerouslySetInnerHTML={{ __html: `
+                  @media (max-width: 350px) {
+                    .nav-label-mobile { display: none !important; }
+                  }
+                `}} />
               </Link>
             );
           })}

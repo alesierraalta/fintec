@@ -1,7 +1,7 @@
 import { Account } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
-
-// Simple console-based notifications for now
+import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/money';
 
 export interface BalanceAlert {
   accountId: string;
@@ -14,31 +14,36 @@ export interface BalanceAlert {
 
 export class BalanceAlertService {
   private static readonly WARNING_THRESHOLD = 1.2; // 20% above minimum
-  private static readonly CRITICAL_THRESHOLD = 1.05; // 5% above minimum
+  private static readonly CRITICAL_THRESHOLD = 1.0; // Equal to minimum
 
   /**
    * Check if an account balance is approaching or below the minimum threshold
    */
   static checkAccountBalance(account: Account): BalanceAlert | null {
-    if (!account.alertEnabled || !account.minimumBalance || account.minimumBalance <= 0) {
+    if (
+      !account.alertEnabled ||
+      account.minimumBalance === undefined ||
+      account.minimumBalance === null
+    ) {
       return null;
     }
 
     const { balance, minimumBalance, currencyCode } = account;
-    
+
     // Convert to major units for comparison
     const currentBalanceMajor = balance / 100;
     const minimumBalanceMajor = minimumBalance / 100;
 
-    // Check if balance is at or below minimum
-    if (currentBalanceMajor <= minimumBalanceMajor) {
+    // Check if balance is at or below critical threshold
+    const criticalThreshold = minimumBalanceMajor * this.CRITICAL_THRESHOLD;
+    if (currentBalanceMajor <= criticalThreshold) {
       return {
         accountId: account.id,
         accountName: account.name,
         currentBalance: currentBalanceMajor,
         minimumBalance: minimumBalanceMajor,
         currencyCode,
-        alertType: 'critical'
+        alertType: 'critical',
       };
     }
 
@@ -51,7 +56,7 @@ export class BalanceAlertService {
         currentBalance: currentBalanceMajor,
         minimumBalance: minimumBalanceMajor,
         currencyCode,
-        alertType: 'warning'
+        alertType: 'warning',
       };
     }
 
@@ -63,7 +68,7 @@ export class BalanceAlertService {
    */
   static checkAccountsBalance(accounts: Account[]): BalanceAlert[] {
     return accounts
-      .map(account => this.checkAccountBalance(account))
+      .map((account) => this.checkAccountBalance(account))
       .filter((alert): alert is BalanceAlert => alert !== null);
   }
 
@@ -71,47 +76,62 @@ export class BalanceAlertService {
    * Show toast notification for a balance alert
    */
   static showBalanceAlert(alert: BalanceAlert): void {
-    const { accountName, currentBalance, minimumBalance, currencyCode, alertType } = alert;
-    
+    const {
+      accountId,
+      accountName,
+      currentBalance,
+      minimumBalance,
+      currencyCode,
+      alertType,
+    } = alert;
+
     const formatAmount = (amount: number) => {
-      return new Intl.NumberFormat('es-VE', {
-        style: 'currency',
-        currency: currencyCode === 'VES' ? 'VES' : 'USD',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }).format(amount);
+      try {
+        return new Intl.NumberFormat('es-VE', {
+          style: 'currency',
+          currency: currencyCode,
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        }).format(amount);
+      } catch (e) {
+        // Fallback for invalid currency codes
+        return `${currencyCode} ${amount.toFixed(2)}`;
+      }
     };
 
     const currentFormatted = formatAmount(currentBalance);
     const minimumFormatted = formatAmount(minimumBalance);
+    const toastId = `balance-alert-${accountId}`;
 
     if (alertType === 'critical') {
       logger.warn(`⚠️ Saldo Crítico: ${accountName}`, {
         description: `Tu saldo actual (${currentFormatted}) está por debajo del mínimo establecido (${minimumFormatted}).`,
         currentBalance,
         minimumBalance,
-        currencyCode
+        currencyCode,
       });
-      
-      // Simple browser alert for now - can be enhanced later
-      if (typeof window !== 'undefined') {
-        window.alert(`⚠️ Saldo Crítico: ${accountName}
 
-Tu saldo actual (${currentFormatted}) está por debajo del mínimo establecido (${minimumFormatted}).`);
+      if (typeof window !== 'undefined') {
+        toast.error(`Saldo Crítico: ${accountName}`, {
+          id: toastId,
+          description: `Tu saldo actual (${currentFormatted}) está por debajo del mínimo establecido (${minimumFormatted}).`,
+          duration: 10000,
+        });
       }
     } else {
       logger.warn(`🔔 Alerta de Saldo: ${accountName}`, {
         description: `Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFormatted}).`,
         currentBalance,
         minimumBalance,
-        currencyCode
+        currencyCode,
       });
-      
-      // Simple browser alert for now - can be enhanced later
-      if (typeof window !== 'undefined') {
-        window.alert(`🔔 Alerta de Saldo: ${accountName}
 
-Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFormatted}).`);
+      if (typeof window !== 'undefined') {
+        toast.warning(`Alerta de Saldo: ${accountName}`, {
+          id: toastId,
+          description: `Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFormatted}).`,
+          duration: 5000,
+        });
       }
     }
   }
@@ -127,11 +147,9 @@ Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFo
       return 0;
     });
 
-    // Show alerts with a slight delay between them
-    sortedAlerts.forEach((alert, index) => {
-      setTimeout(() => {
-        this.showBalanceAlert(alert);
-      }, index * 1000); // 1 second delay between alerts
+    // Show alerts
+    sortedAlerts.forEach((alert) => {
+      this.showBalanceAlert(alert);
     });
   }
 
@@ -147,7 +165,11 @@ Tu saldo actual (${currentFormatted}) se está acercando al mínimo (${minimumFo
    * Calculate how much money is needed to reach the safe threshold
    */
   static calculateAmountNeeded(account: Account): number {
-    if (!account.alertEnabled || !account.minimumBalance || account.minimumBalance <= 0) {
+    if (
+      !account.alertEnabled ||
+      !account.minimumBalance ||
+      account.minimumBalance <= 0
+    ) {
       return 0;
     }
 

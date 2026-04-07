@@ -15,6 +15,8 @@ import { CONFIG, apiUrl } from '../lib/config.js';
 import { quickAuth } from '../lib/auth.js';
 import { checkOk, checkNoServerError } from '../lib/checks.js';
 
+const skipAuthSetup = __ENV.K6_SKIP_AUTH_SETUP === '1';
+
 export const options = {
   vus: 5,
   duration: '30s',
@@ -22,6 +24,16 @@ export const options = {
 };
 
 export function setup() {
+  if (skipAuthSetup) {
+    console.warn(
+      '[smoke] Skipping auth bootstrap because Supabase is unavailable in this environment.'
+    );
+    return {
+      headers: { 'Content-Type': 'application/json' },
+      authenticated: false,
+    };
+  }
+
   const auth = quickAuth();
   if (!auth) {
     console.error(

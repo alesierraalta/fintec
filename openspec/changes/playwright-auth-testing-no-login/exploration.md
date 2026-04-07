@@ -2,7 +2,7 @@
 
 ### Current State
 
-Playwright is configured so all browser projects depend on a global `setup` project that runs `tests/auth.setup.ts` (`playwright.config.ts`). That setup performs UI login with hardcoded credentials (`test@fintec.com` / `Test123!`) and throws if still on `/auth/*`.
+Playwright is configured so all browser projects depend on a global `setup` project that runs `tests/auth.setup.ts` (`playwright.config.ts`). That setup performs UI login with hardcoded credentials (`test@fintec.com` / `[TEST_PASSWORD]`) and throws if still on `/auth/*`.
 
 Running the setup in this environment reproduces the reported failure: login stays on `/auth/login` and throws `No se pudo autenticar con el usuario existente` (`tests/auth.setup.ts:58`). Because setup is a dependency for all projects by default, many unrelated tests are blocked behind this fragile authentication bootstrap.
 

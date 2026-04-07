@@ -236,12 +236,38 @@ export class BCVHistoryService {
   // Get rates for a specific date
   async getRatesForDate(date: string): Promise<BCVHistoryRecord | null> {
     try {
-      const record = await this.db.bcvHistory
-        .where('date')
-        .equals(date)
-        .first();
+      // Try local IndexedDB first
+      let record = await this.db.bcvHistory.where('date').equals(date).first();
 
-      return record || null;
+      if (record) return record;
+
+      // Fallback: try to load from Supabase
+      try {
+        const supabaseRecords =
+          await this.ratesHistoryRepository.listBCVRatesSince(date);
+        if (supabaseRecords && supabaseRecords.length > 0) {
+          // Find the exact date match
+          const matchingRecord = supabaseRecords.find((r) => r.date === date);
+          if (matchingRecord) {
+            // Save to local DB for future use
+            await this.db.bcvHistory.add({
+              date: matchingRecord.date,
+              usd: matchingRecord.usd,
+              eur: matchingRecord.eur,
+              timestamp: matchingRecord.timestamp,
+              source: matchingRecord.source,
+            });
+            return matchingRecord;
+          }
+        }
+      } catch (supabaseError) {
+        logger.warn(
+          '[BCVHistoryService] Supabase fallback failed:',
+          supabaseError
+        );
+      }
+
+      return null;
     } catch (error) {
       return null;
     }
@@ -371,10 +397,30 @@ export class BCVHistoryService {
   // Get latest available rate record (by timestamp)
   async getLatestRate(): Promise<BCVHistoryRecord | null> {
     try {
-      return (
-        (await this.db.bcvHistory.orderBy('timestamp').reverse().first()) ||
-        null
-      );
+      // Try local IndexedDB first
+      let record = await this.db.bcvHistory
+        .orderBy('timestamp')
+        .reverse()
+        .first();
+
+      if (record) return record;
+
+      // Fallback: load from Supabase
+      try {
+        await this.loadFromSupabase(90);
+        record = await this.db.bcvHistory
+          .orderBy('timestamp')
+          .reverse()
+          .first();
+        return record || null;
+      } catch (supabaseError) {
+        logger.warn(
+          '[BCVHistoryService] Supabase fallback for getLatestRate failed:',
+          supabaseError
+        );
+      }
+
+      return null;
     } catch (error) {
       return null;
     }

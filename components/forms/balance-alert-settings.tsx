@@ -77,12 +77,16 @@ export function BalanceAlertSettings({
   };
 
   const formatCurrency = (amount: number, currencyCode: string) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: currencyCode === 'VES' ? 'VES' : 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
+    try {
+      return new Intl.NumberFormat('es-VE', {
+        style: 'currency',
+        currency: currencyCode,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(amount);
+    } catch (e) {
+      return `${currencyCode} ${amount.toFixed(2)}`;
+    }
   };
 
   const getCurrentBalance = () => {
@@ -96,7 +100,7 @@ export function BalanceAlertSettings({
 
   const isMinimumValid = () => {
     const minBalance = getMinimumBalanceNumber();
-    return minBalance >= 0 && minBalance <= getCurrentBalance();
+    return minBalance >= 0;
   };
 
   if (!isOpen || !account) return null;
@@ -104,18 +108,20 @@ export function BalanceAlertSettings({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
       {/* * Modal container with max-height and flex layout for mobile scrolling */}
-      <div className="flex max-h-[90dvh] w-full max-w-md flex-col rounded-2xl border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl">
+      <div className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-2xl border border-border/40 bg-card shadow-ios">
         {/* Header - fixed at top */}
-        <div className="flex flex-shrink-0 items-center justify-between border-b border-border/20 p-6">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-border/20 p-4 sm:p-6">
           <div className="flex items-center space-x-3">
             <div className="rounded-xl bg-blue-500/10 p-2">
               <Bell className="h-5 w-5 text-blue-500" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-foreground">
+              <h2 className="text-ios-headline font-semibold text-foreground">
                 Configurar Alertas
               </h2>
-              <p className="text-sm text-muted-foreground">{account.name}</p>
+              <p className="text-ios-caption text-muted-foreground">
+                {account.name}
+              </p>
             </div>
           </div>
           <Button
@@ -129,14 +135,14 @@ export function BalanceAlertSettings({
         </div>
 
         {/* Content - scrollable area */}
-        <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-6">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 sm:space-y-6 sm:p-6">
           {/* Current Balance Info */}
           <div className="rounded-xl bg-muted/10 p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">
+              <span className="text-ios-body text-muted-foreground">
                 Saldo Actual
               </span>
-              <span className="text-lg font-semibold text-foreground">
+              <span className="text-ios-headline font-semibold text-foreground">
                 {formatCurrency(getCurrentBalance(), account.currencyCode)}
               </span>
             </div>
@@ -144,11 +150,11 @@ export function BalanceAlertSettings({
 
           {/* Alert Toggle */}
           <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <label className="text-sm font-medium text-foreground">
+            <div className="flex-1 pr-4">
+              <label className="text-ios-body font-medium text-foreground">
                 Activar Alertas de Saldo
               </label>
-              <p className="mt-1 text-xs text-muted-foreground">
+              <p className="mt-1 text-ios-caption text-muted-foreground">
                 Recibe notificaciones cuando el saldo sea bajo
               </p>
             </div>
@@ -158,7 +164,7 @@ export function BalanceAlertSettings({
           {/* Minimum Balance Input */}
           {alertEnabled && (
             <div className="space-y-3">
-              <label className="text-sm font-medium text-foreground">
+              <label className="text-ios-body font-medium text-foreground">
                 Cantidad Mínima
               </label>
               <div className="relative">
@@ -167,19 +173,18 @@ export function BalanceAlertSettings({
                   type="number"
                   step="0.01"
                   min="0"
-                  max={getCurrentBalance()}
                   value={minimumBalance}
                   onChange={(e) => setMinimumBalance(e.target.value)}
                   placeholder="0.00"
-                  className="rounded-xl border-border/20 bg-muted/10 pl-10"
+                  className="rounded-xl border-border/20 bg-muted/10 pl-10 text-[16px]"
                 />
               </div>
 
               {/* Validation Message */}
               {minimumBalance && !isMinimumValid() && (
-                <div className="flex items-center space-x-2 text-xs text-destructive">
+                <div className="flex items-center space-x-2 text-ios-caption text-destructive">
                   <AlertTriangle className="h-3 w-3" />
-                  <span>El mínimo debe ser menor o igual al saldo actual</span>
+                  <span>El mínimo debe ser mayor o igual a 0</span>
                 </div>
               )}
 
@@ -188,7 +193,7 @@ export function BalanceAlertSettings({
                 <div className="rounded-xl border border-warning/20 bg-warning/10 p-3">
                   <div className="flex items-start space-x-2">
                     <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-warning" />
-                    <div className="text-warning-foreground text-xs">
+                    <div className="text-warning-foreground text-ios-caption">
                       <p className="font-medium">Vista Previa de Alerta</p>
                       <p className="mt-1">
                         Recibirás una alerta cuando tu saldo sea menor a{' '}
@@ -216,19 +221,19 @@ export function BalanceAlertSettings({
 
         {/* Success/Error Messages */}
         {successMessage && (
-          <div className="mx-6 mb-4 rounded-xl border border-green-200 bg-green-50 p-3">
-            <p className="text-sm text-green-800">{successMessage}</p>
+          <div className="mx-4 mb-4 rounded-xl border border-green-200 bg-green-50 p-3 sm:mx-6">
+            <p className="text-ios-body text-green-800">{successMessage}</p>
           </div>
         )}
 
         {errorMessage && (
-          <div className="mx-6 mb-4 rounded-xl border border-red-200 bg-red-50 p-3">
-            <p className="text-sm text-red-800">{errorMessage}</p>
+          <div className="mx-4 mb-4 rounded-xl border border-red-200 bg-red-50 p-3 sm:mx-6">
+            <p className="text-ios-body text-red-800">{errorMessage}</p>
           </div>
         )}
 
         {/* Footer - fixed at bottom */}
-        <div className="flex flex-shrink-0 items-center justify-end space-x-3 border-t border-border/20 px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-6 sm:pb-6">
+        <div className="flex flex-shrink-0 items-center justify-end space-x-3 border-t border-border/20 px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-4 sm:px-6 sm:pb-6 sm:pt-6">
           <Button
             variant="ghost"
             onClick={onClose}

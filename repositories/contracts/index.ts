@@ -14,6 +14,7 @@ export * from './approval-requests-repository';
 export * from './ai-infra-repository';
 export * from './subscriptions-repository';
 export * from './payment-orders-repository';
+export * from './orders-repository';
 export * from './rates-history-repository';
 export * from './users-profile-repository';
 

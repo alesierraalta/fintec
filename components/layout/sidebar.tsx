@@ -152,7 +152,7 @@ export function Sidebar() {
       <PremiumStatusCard isMinimized={isMinimized} />
 
       {/* User Profile - More friendly */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-white/10 p-6">
         <div
           className={`black-theme-card flex items-center rounded-2xl p-3 shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}
         >

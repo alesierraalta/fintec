@@ -45,8 +45,9 @@ describe('exchange-rate sync job', () => {
       error: jest.fn(),
     };
 
-    const fetchImpl = jest.fn(async (url: string) => {
-      if (url.includes('bcv')) {
+    const fetchImpl = jest.fn(async (url: RequestInfo | URL) => {
+      const urlStr = typeof url === 'string' ? url : url.toString();
+      if (urlStr.includes('bcv')) {
         return {
           ok: true,
           json: async () => ({ data: { usd: 36.5, eur: 39.1 } }),

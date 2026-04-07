@@ -37,9 +37,11 @@ Estado actual de CI:
 
 Guardrails locales:
 
-- `pre-commit`: `lint-staged` + `guard:db-access`.
+- `pre-commit`: `lint-staged` + `precommit:supabase` + `type-check` + `guard:db-access`.
 - `commit-msg`: validacion de formato con `commitlint`.
-- `pre-push`: `type-check` + `lint` + `test` + `build`.
+- `pre-push`: `prepush:supabase` + `type-check` + `lint` + `test` + `build`.
+- `precommit:supabase`: detecta cambios staged en `supabase/`, `lib/supabase/`, `repositories/supabase/` y helpers auth; para `supabase/migrations/*.sql` obliga tests dedicados de migracion y no depende solo de `jest --findRelatedTests`.
+- `prepush:supabase`: reusa la suite Node rapida (`npm run test:supabase`) y ejecuta `npm run e2e:smoke:auth-required` cuando hay cambios Supabase relevantes.
 - `spellcheck`: disponible como chequeo asesor (`npm run spellcheck`).
 
 Segun tipo de cambio:

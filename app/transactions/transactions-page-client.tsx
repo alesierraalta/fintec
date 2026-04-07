@@ -534,6 +534,7 @@ export default function TransactionsPage() {
                     $
                     {totalesEnUSD.income.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{' '}
                     USD
                   </p>
@@ -592,6 +593,7 @@ export default function TransactionsPage() {
                     $
                     {totalesEnUSD.expenses.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{' '}
                     USD
                   </p>
@@ -658,6 +660,7 @@ export default function TransactionsPage() {
                     {totalesEnUSD.net >= 0 ? '+' : ''}$
                     {totalesEnUSD.net.toLocaleString('en-US', {
                       minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
                     })}{' '}
                     USD
                   </p>

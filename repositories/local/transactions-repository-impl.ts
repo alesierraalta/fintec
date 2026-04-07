@@ -38,6 +38,12 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     }
 
     const isDebt = data.isDebt === true;
+    const isVesCurrency = data.currencyCode === 'VES';
+    const exchangeRate = isVesCurrency ? data.exchangeRate || 1 : 1;
+    const amountBaseMinor = isVesCurrency
+      ? Math.round(data.amountMinor / exchangeRate)
+      : data.amountMinor;
+
     const transaction: Transaction = {
       id: generateId('txn'),
       type: data.type,
@@ -45,8 +51,8 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       categoryId: data.categoryId,
       currencyCode: data.currencyCode,
       amountMinor: data.amountMinor,
-      amountBaseMinor: data.amountMinor, // TODO: Convert using exchange rate
-      exchangeRate: 1, // TODO: Get actual exchange rate
+      amountBaseMinor,
+      exchangeRate,
       date: data.date,
       description: data.description,
       note: data.note,

@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
       amountMinor: body.amount, // Convert to minor units if needed
       currencyCode: body.currencyCode || 'USD',
       type: body.type,
+      exchangeRate: body.exchangeRate,
       categoryId: body.categoryId,
       description: body.description || '',
       note: body.note || undefined,

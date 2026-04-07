@@ -1,4 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
+import { TransactionType } from '@/types';
 import {
   filterTransactionsByDebtMode,
   matchesDebtMode,
@@ -9,24 +10,24 @@ import {
 const transactions = [
   {
     id: 'legacy-income',
-    type: 'INCOME',
+    type: TransactionType.INCOME,
     amountBaseMinor: 1000,
   },
   {
     id: 'normal-expense',
-    type: 'EXPENSE',
+    type: TransactionType.EXPENSE,
     amountBaseMinor: 500,
     isDebt: false,
   },
   {
     id: 'debt-owe',
-    type: 'EXPENSE',
+    type: TransactionType.EXPENSE,
     amountBaseMinor: 200,
     isDebt: true,
   },
   {
     id: 'debt-owed-to-me',
-    type: 'INCOME',
+    type: TransactionType.INCOME,
     amountBaseMinor: 300,
     isDebt: true,
   },

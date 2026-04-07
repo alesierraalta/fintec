@@ -295,6 +295,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('settledAt is required when debtStatus=SETTLED');
     }
 
+    const isVesCurrency = transactionData.currencyCode === 'VES';
+    const exchangeRate = isVesCurrency ? transactionData.exchangeRate || 1 : 1;
+    const amountBaseMinor = isVesCurrency
+      ? Math.round(transactionData.amountMinor / exchangeRate)
+      : transactionData.amountMinor;
+
     const transaction = {
       ...transactionData,
       isDebt: transactionData.isDebt === true,
@@ -302,8 +308,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         transactionData.isDebt === true
           ? transactionData.debtStatus || DebtStatus.OPEN
           : undefined,
-      amountBaseMinor: transactionData.amountMinor, // TODO: Apply exchange rate conversion
-      exchangeRate: 1, // TODO: Get actual exchange rate
+      amountBaseMinor,
+      exchangeRate,
     };
 
     const supabaseTransaction = mapDomainTransactionToSupabase(transaction);
