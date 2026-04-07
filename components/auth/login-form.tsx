@@ -217,15 +217,40 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
           {visibleError && (
             <motion.div
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-xl border-2 border-destructive/20 bg-destructive/10 p-5 shadow-2xl"
               role="alert"
+              aria-live="assertive"
             >
               <div className="flex items-start space-x-3">
-                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive/80" />
-                <div className="flex-1 text-sm font-medium text-destructive-foreground/90">
-                  {visibleError}
+                <AlertCircle className="mt-0.5 h-6 w-6 flex-shrink-0 text-destructive" />
+                <div className="flex-1">
+                  <p className="mb-2 font-bold text-destructive">
+                    {visibleError}
+                  </p>
+                  {visibleError.includes('confirmado') ||
+                  visibleError.includes('verificar') ||
+                  visibleError.includes('Email') ? (
+                    <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
+                      <p className="mb-2 text-sm font-medium text-primary">
+                        📧 ¿No recibiste el correo?
+                      </p>
+                      <ul className="space-y-1 pl-4 text-[11px] text-primary/80">
+                        <li>• Revisa tu carpeta de spam</li>
+                        <li>• Espera unos minutos y recarga</li>
+                        <li>• Verifica que el email sea correcto</li>
+                      </ul>
+                    </div>
+                  ) : (
+                    <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 p-3 text-[11px] text-warning/80">
+                      <p className="mb-1 font-medium text-warning">🔍 Tips:</p>
+                      <ul className="space-y-0.5 pl-2">
+                        <li>• Revisa email y contraseña</li>
+                        <li>• Asegura cuenta verificada</li>
+                      </ul>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
