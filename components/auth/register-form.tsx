@@ -113,93 +113,117 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
     if (validationError) setValidationError(null);
     if (authError) clearAuthError();
   };
-
   if (success) {
     if (successMessage?.type === 'emailVerification') {
       return (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="mx-auto w-full max-w-md"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 },
+          }}
+          className="mx-auto w-full max-w-md px-4"
         >
-          <div className="rounded-3xl border border-border bg-card p-8 shadow-2xl">
+          <div className="black-theme-card relative overflow-hidden rounded-3xl p-8 text-center shadow-2xl backdrop-blur-2xl">
             <motion.div
-              className="mx-auto mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10"
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
+              initial={{ scale: 0, rotate: -45 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-3xl bg-primary/10 shadow-inner ring-1 ring-primary/20"
             >
-              <Mail className="h-10 w-10 text-primary" />
+              <Mail className="h-12 w-12 animate-pulse text-primary" />
             </motion.div>
 
-            <h2 className="mb-4 text-center text-3xl font-bold text-primary">
-              📧 ¡Revisa tu Correo!
+            <h2 className="mb-4 text-3xl font-bold tracking-tight text-white">
+              📧 <span className="italic text-primary">Revisá</span> tu Correo
             </h2>
 
-            <div className="mb-6 space-y-4">
-              <p className="text-center text-foreground">
-                Hemos enviado un correo de verificación a:
+            <div className="mb-8 space-y-6">
+              <p className="text-sm text-white/50">
+                Enviamos un enlace mágico de verificación a:
               </p>
-              <p className="rounded-lg bg-primary/10 px-4 py-3 text-center text-lg font-bold text-primary">
+              <div className="mx-auto max-w-[280px] rounded-xl border border-primary/20 bg-black/40 px-4 py-3 font-mono text-xs font-semibold text-primary/90 shadow-inner">
                 {successMessage.email}
-              </p>
+              </div>
 
-              <div className="space-y-2 rounded-xl border border-primary/20 bg-primary/10 p-4">
-                <p className="text-sm font-semibold text-primary">
-                  ⚠️ Importante:
+              <div className="glass-card space-y-3 rounded-2xl border border-white/5 bg-white/5 p-6 text-left">
+                <p className="text-xs font-bold uppercase tracking-wider text-primary/80">
+                  Próximos pasos:
                 </p>
-                <ul className="space-y-1 pl-4 text-sm text-primary/80">
-                  <li>✅ Revisa tu bandeja de entrada</li>
-                  <li>✅ Verifica la carpeta de spam</li>
-                  <li>✅ Haz clic en el enlace de verificación</li>
-                </ul>
-                <p className="mt-3 text-sm font-medium text-primary">
-                  No podrás iniciar sesión hasta confirmar tu email
-                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Revisá tu bandeja de entrada</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Chequeá la carpeta de Spam</span>
+                  </div>
+                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                    <span>Confirmá el enlace para entrar</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <span className="text-sm">
-                Redirigiendo al login en 5 segundos...
-              </span>
-            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-3 text-white/40">
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                <span className="text-xs font-medium">
+                  Redirigiendo al login en 5 segundos...
+                </span>
+              </div>
 
-            <button
-              onClick={() => router.push('/auth/login')}
-              className="mt-4 w-full text-sm font-medium text-primary hover:text-primary/80"
-            >
-              Ir al login ahora →
-            </button>
+              <Button
+                onClick={() => router.push('/auth/login')}
+                variant="ghost"
+                className="w-full text-white/60 hover:text-primary"
+              >
+                Ir al login ahora →
+              </Button>
+            </div>
           </div>
         </motion.div>
       );
     } else {
-      // Account created without email verification
       return (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="mx-auto w-full max-w-md"
+          className="mx-auto w-full max-w-md px-4"
         >
-          <div className="rounded-3xl border border-border/20 bg-card/50 p-8 text-center shadow-2xl backdrop-blur-sm">
+          <div className="black-theme-card rounded-3xl p-10 text-center shadow-2xl">
             <motion.div
-              className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 300 }}
+              className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-green-500/10 shadow-inner ring-1 ring-green-500/20"
             >
-              <CheckCircle className="h-8 w-8 text-success" />
+              <CheckCircle className="h-10 w-10 text-green-500" />
             </motion.div>
-            <h2 className="mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-3xl font-bold text-foreground text-transparent">
+            <h2 className="mb-2 text-3xl font-bold text-white">
               ¡Cuenta Creada!
             </h2>
-            <p className="mb-4 text-muted-foreground">
-              Tu cuenta ha sido creada exitosamente. Serás redirigido
-              automáticamente.
+            <p className="mb-8 text-sm text-white/50">
+              Bienvenido a la familia. Estamos preparando todo para vos.
             </p>
-            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-success border-t-transparent" />
+            <div className="flex flex-col items-center gap-4">
+              <div className="h-2 w-48 overflow-hidden rounded-full bg-white/5">
+                <motion.div
+                  initial={{ x: '-100%' }}
+                  animate={{ x: '100%' }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: 'linear',
+                  }}
+                  className="h-full w-full bg-gradient-to-r from-transparent via-green-500 to-transparent"
+                />
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-green-500/80">
+                Cargando tu experiencia
+              </span>
+            </div>
           </div>
         </motion.div>
       );
@@ -208,200 +232,208 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="mx-auto w-full max-w-md"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.08,
+            delayChildren: 0.1,
+          },
+        },
+      }}
+      className="mx-auto w-full max-w-md px-4"
     >
-      <div className="rounded-3xl border border-border bg-card p-8 shadow-2xl">
-        <div className="mb-8 text-center">
-          <motion.div
-            className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10"
-            whileHover={{ scale: 1.05, rotate: -5 }}
-            transition={{ type: 'spring', stiffness: 400 }}
-          >
-            <UserPlus className="h-8 w-8 text-success" />
-          </motion.div>
-          <h2 className="mb-2 bg-gradient-to-r from-success to-green-500 bg-clip-text text-3xl font-bold text-foreground text-transparent">
-            Crear Cuenta
-          </h2>
-          <p className="text-muted-foreground">
-            Únete para gestionar tus finanzas
-          </p>
-        </div>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 },
+        }}
+        className="black-theme-card relative overflow-hidden rounded-3xl p-8 shadow-2xl backdrop-blur-2xl"
+      >
+        {/* Decorative elements */}
+        <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl" />
 
-        {(validationError || authError) && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 flex items-start space-x-3 rounded-lg border border-error/20 bg-error/10 p-4"
-          >
-            <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-error" />
-            <div className="flex-1">
-              <p className="text-sm text-error">
-                {validationError || authError}
-              </p>
-              {authError && authError.includes('registrado') && (
-                <p className="mt-2 text-xs text-error/80">
-                  💡 Si ya tienes una cuenta, puedes{' '}
-                  <button
-                    onClick={() => router.push('/auth/login')}
-                    className="underline hover:text-error"
-                  >
-                    iniciar sesión aquí
-                  </button>
-                </p>
-              )}
+        <div className="relative space-y-8">
+          <div className="flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 shadow-inner ring-1 ring-primary/20">
+              <UserPlus className="h-8 w-8 text-primary" />
             </div>
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="fullName"
-              className="mb-2 block text-sm font-medium text-foreground"
-            >
-              Nombre Completo
-            </label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
-              <Input
-                id="fullName"
-                name="fullName"
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={handleChange}
-                className="pl-11"
-                placeholder="Tu nombre completo"
-                disabled={loading}
-              />
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight text-white md:text-3xl">
+                Unite a <span className="italic text-primary">FinTec</span>
+              </h1>
+              <p className="text-sm text-white/50">
+                Simple, rápido y potente. Gestioná tu dinero como un
+                profesional.
+              </p>
             </div>
           </div>
 
-          <div>
-            <label
-              htmlFor="email"
-              className="mb-2 block text-sm font-medium text-foreground"
+          {(validationError || authError) && (
+            <motion.div
+              initial={{ opacity: 0, x: -5 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+              role="alert"
             >
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
+              <div className="flex items-start space-x-3">
+                <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-destructive/80" />
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-destructive-foreground/90">
+                    {validationError || authError}
+                  </p>
+                  {authError && authError.includes('registrado') && (
+                    <button
+                      onClick={() => router.push('/auth/login')}
+                      className="text-xs font-bold text-destructive hover:underline"
+                    >
+                      💡 Ya tengo cuenta, quiero iniciar sesión
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, x: -10 },
+                visible: { opacity: 1, x: 0 },
+              }}
+              className="space-y-4"
+            >
+              <Input
+                id="fullName"
+                name="fullName"
+                label="Nombre Completo"
+                placeholder="Juan Pérez"
+                value={formData.fullName}
+                onChange={handleChange}
+                disabled={loading}
+                icon={<User className="h-5 w-5" />}
+                required
+              />
+
               <Input
                 id="email"
                 name="email"
                 type="email"
-                required
+                label="Email"
+                placeholder="juan@ejemplo.com"
                 value={formData.email}
                 onChange={handleChange}
-                className="pl-11"
-                placeholder="tu@email.com"
                 disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label
-              htmlFor="password"
-              className="mb-2 block text-sm font-medium text-foreground"
-            >
-              Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
-              <Input
-                id="password"
-                name="password"
-                type={showPassword ? 'text' : 'password'}
+                icon={<Mail className="h-5 w-5" />}
                 required
-                value={formData.password}
-                onChange={handleChange}
-                className="pl-11 pr-11"
-                placeholder="••••••••"
-                disabled={loading}
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="focus-ring absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
-                disabled={loading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Mínimo 6 caracteres
-            </p>
-          </div>
 
-          <div>
-            <label
-              htmlFor="confirmPassword"
-              className="mb-2 block text-sm font-medium text-foreground"
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  label="Contraseña"
+                  placeholder="••••••"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={loading}
+                  icon={<Lock className="h-5 w-5" />}
+                  required
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="mr-2 text-white/30 transition-colors hover:text-white/60"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  }
+                />
+                <Input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Confirmar"
+                  placeholder="••••••"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  disabled={loading}
+                  icon={<Lock className="h-5 w-5" />}
+                  required
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="mr-2 text-white/30 transition-colors hover:text-white/60"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </button>
+                  }
+                />
+              </div>
+            </motion.div>
+
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 10 },
+                visible: { opacity: 1, y: 0 },
+              }}
+              className="pt-2"
             >
-              Confirmar Contraseña
-            </label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
-              <Input
-                id="confirmPassword"
-                name="confirmPassword"
-                type={showConfirmPassword ? 'text' : 'password'}
-                required
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                className="pl-11 pr-11"
-                placeholder="••••••••"
-                disabled={loading}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="focus-ring absolute right-1 top-1/2 flex min-h-[44px] min-w-[44px] -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
-                disabled={loading}
+              <Button
+                type="submit"
+                className="group relative w-full overflow-hidden shadow-[0_0_20px_-5px_rgba(var(--primary),0.3)] transition-all duration-300"
+                loading={loading}
+                size="lg"
+                icon={
+                  !loading && (
+                    <UserPlus className="h-5 w-5 transition-transform group-hover:scale-110" />
+                  )
+                }
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
-          </div>
+                <span className="relative z-10 flex items-center justify-center gap-2">
+                  {loading ? 'Creando cuenta...' : 'Registrarme'}
+                </span>
+                <div className="absolute inset-0 z-0 translate-x-[-100%] bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 transition-transform duration-700 group-hover:translate-x-[100%]" />
+              </Button>
+            </motion.div>
 
-          <Button
-            type="submit"
-            variant="success"
-            size="lg"
-            className="w-full"
-            loading={loading}
-            disabled={loading}
-            icon={!loading && <UserPlus className="h-5 w-5" />}
-          >
-            {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-          </Button>
-        </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-muted-foreground">
-            ¿Ya tienes cuenta?{' '}
-            <button
-              onClick={() => router.push('/auth/login')}
-              className="font-semibold text-primary transition-all hover:text-primary/80"
-              disabled={loading}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 },
+              }}
+              className="pt-4 text-center"
             >
-              Inicia sesión aquí
-            </button>
-          </p>
+              <p className="text-xs text-white/40">
+                ¿Ya sos parte?{' '}
+                <button
+                  type="button"
+                  onClick={() => router.push('/auth/login')}
+                  className="font-bold text-primary underline-offset-4 transition-all hover:text-primary/80 hover:underline"
+                  disabled={loading}
+                >
+                  Iniciá sesión
+                </button>
+              </p>
+            </motion.div>
+          </form>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

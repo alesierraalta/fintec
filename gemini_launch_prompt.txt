@@ -1,0 +1,23 @@
+Perform an SDD exploration for a change named `supabase-backend-testing-hardening`.
+Investigate the current Supabase backend testing posture across:
+1. database migrations/schema coverage,
+2. RLS/security/auth coverage,
+3. repository and API integration coverage,
+4. performance/load coverage for backend flows,
+5. fast-feedback / developer agility guardrails.
+
+Requirements:
+- Read the relevant codebase areas needed to understand the current state.
+- Identify strengths, gaps, risks, and the highest-value next moves.
+- Explicitly map existing tests/files/scripts already present.
+- Include a recommended validation matrix (what commands/tests should run per change type).
+- Return the SDD phase contract: status, executive_summary, artifacts, next_recommended, risks, skill_resolution.
+
+Project Standards:
+- Honor AGENTS.md, supabase/AGENTS.md, repositories/AGENTS.md, and tests/AGENTS.md boundaries.
+- Use Serena for repository inspection and RTK in terminal for compact command validation.
+- Use Engram as persistence backend.
+- Relevant skills: supabase-integration, supabase-postgres-best-practices, testing-strategy, architecture-patterns.
+- Include testing/verification angle in every step; inventory existing tests and define executable validation per proposed workstream.
+- Use Context7 Supabase docs to ground official recommendations for database/RLS/local CI testing.
+- Persist exploration artifact to Engram topic key `sdd/supabase-backend-testing-hardening/explore` for project `fintec`.

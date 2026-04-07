@@ -14,7 +14,7 @@ interface ForgotPasswordFormProps {
 export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   const router = useRouter();
   const { resetPassword, loading } = useAuth();
-  
+
   const [email, setEmail] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -37,7 +37,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
 
     if (error) {
       setError(
-        error.message === 'User not found' 
+        error.message === 'User not found'
           ? 'No encontramos una cuenta con ese email.'
           : error.message
       );
@@ -56,46 +56,50 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
   if (success) {
     return (
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md mx-auto"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ type: 'spring', duration: 0.5 }}
+        className="mx-auto w-full max-w-md"
       >
-        <div className="bg-card rounded-3xl p-8 border border-border shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-success/10 rounded-full mb-4">
-              <CheckCircle className="h-8 w-8 text-success" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Email Enviado</h2>
-            <p className="text-muted-foreground">
-              Te hemos enviado un link para restablecer tu contraseña a{' '}
-              <span className="font-medium text-foreground">{email}</span>
-            </p>
-          </div>
+        <div className="rounded-[2.5rem] border border-white/10 bg-card/40 p-10 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-500/10"
+          >
+            <CheckCircle className="h-10 w-10 text-emerald-400" />
+          </motion.div>
+
+          <h2 className="mb-4 text-3xl font-black tracking-tight text-white">
+            ¡Email Enviado!
+          </h2>
+          <p className="mb-8 leading-relaxed text-white/60">
+            Te hemos enviado un link para restablecer tu contraseña a{' '}
+            <span className="font-bold italic text-white">{email}</span>
+          </p>
 
           <div className="space-y-4">
-            <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-left">
+              <div className="flex items-start space-x-4">
+                <div className="mt-1">
                   <Mail className="h-5 w-5 text-primary" />
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-primary">
-                    Revisa tu email
+                <div>
+                  <h3 className="mb-1 text-sm font-bold text-white">
+                    Revisá tu casilla
                   </h3>
-                  <div className="mt-2 text-sm text-primary/80">
-                    <p>
-                      El link de restablecimiento expira en 1 hora. Si no ves el email, 
-                      revisa tu carpeta de spam.
-                    </p>
-                  </div>
+                  <p className="text-xs leading-relaxed text-white/50">
+                    El link de restablecimiento expira en 1 hora. Si no lo ves,
+                    chequeá la carpeta de spam.
+                  </p>
                 </div>
               </div>
             </div>
 
             <button
               onClick={() => router.push('/auth/login')}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-border rounded-lg text-foreground hover:bg-muted/50 transition-colors"
+              className="flex h-14 w-full items-center justify-center space-x-2 rounded-2xl border border-white/10 bg-white/5 font-bold text-white transition-all hover:bg-white/10 active:scale-95"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Volver al inicio de sesión</span>
@@ -108,87 +112,127 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="w-full max-w-md mx-auto"
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="mx-auto w-full max-w-md"
     >
-      <div className="bg-card/60 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-full mb-4">
-            <Mail className="h-8 w-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-foreground mb-2">¿Olvidaste tu contraseña?</h2>
-          <p className="text-muted-foreground">
-            Ingresa tu email y te enviaremos un link para restablecer tu contraseña
-          </p>
-        </div>
+      <motion.div
+        layout
+        className="group relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-card/40 p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+      >
+        {/* Decorative elements */}
+        <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-primary/20 blur-[80px]" />
 
-        {error && (
+        <div className="relative z-10">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center space-x-3"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1 }}
+            className="mb-10 text-center"
           >
-            <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-            <p className="text-destructive text-sm">{error}</p>
-          </motion.div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-2">
-              Email
-            </label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={email}
-                onChange={handleChange}
-                className="pl-11"
-                placeholder="tu@email.com"
-                disabled={loading}
-              />
+            <div className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 transition-transform duration-500 group-hover:scale-110">
+              <AlertCircle className="h-8 w-8 text-primary" />
             </div>
-          </div>
+            <h2 className="mb-3 text-3xl font-black italic tracking-tight text-white">
+              ¿Olvidaste la clave?
+            </h2>
+            <p className="px-4 text-sm leading-relaxed text-white/50">
+              No pasa nada, a todos nos pasa. Ingresá tu email y te mandamos un
+              link para que elijas una nueva.
+            </p>
+          </motion.div>
 
-          <button
-            type="submit"
-            className="w-full text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 hover:opacity-90 disabled:opacity-50"
-            style={{ background: 'linear-gradient(to right, #7c3aed, #a855f7)' }}
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="flex items-center justify-center space-x-2">
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Enviando...</span>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-8 flex items-center space-x-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4"
+            >
+              <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-500/20">
+                <AlertCircle className="h-4 w-4 text-red-400" />
               </div>
-            ) : (
-              <div className="flex items-center justify-center space-x-2">
-                <Send className="h-4 w-4" />
-                <span>Enviar link de restablecimiento</span>
-              </div>
-            )}
-          </button>
-        </form>
+              <p className="text-xs font-bold leading-tight text-red-400">
+                {error}
+              </p>
+            </motion.div>
+          )}
 
-        <div className="mt-6 text-center">
-          <p className="text-gray-600">
-            ¿Recordaste tu contraseña?{' '}
-            <button
-              onClick={() => router.push('/auth/login')}
-              className="text-purple-600 hover:text-purple-700 font-medium"
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <label
+                htmlFor="email"
+                className="mb-3 ml-1 block text-xs font-black uppercase tracking-widest text-white/40"
+              >
+                Email de tu cuenta
+              </label>
+              <div className="group/input relative">
+                <div className="absolute left-4 top-1/2 z-10 -translate-y-1/2">
+                  <Mail className="h-5 w-5 text-white/20 transition-colors group-focus-within/input:text-primary" />
+                </div>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={handleChange}
+                  className="h-14 rounded-2xl border-white/10 bg-white/5 pl-12 text-base text-white transition-all placeholder:text-white/20 focus:border-primary/50 focus:bg-white/10"
+                  placeholder="ejemplo@email.com"
+                  disabled={loading}
+                />
+              </div>
+            </motion.div>
+
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              type="submit"
+              className="flex h-14 w-full items-center justify-center gap-3 rounded-2xl bg-primary text-base font-black text-white shadow-[0_10px_20px_-10px_rgba(124,58,237,0.5)] transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:hover:scale-100"
               disabled={loading}
             >
-              Iniciar sesión
-            </button>
-          </p>
+              {loading ? (
+                <div className="flex items-center space-x-2">
+                  <div className="border-3 h-5 w-5 animate-spin rounded-full border-white/30 border-t-white" />
+                  <span className="text-sm uppercase tracking-widest">
+                    Enviando...
+                  </span>
+                </div>
+              ) : (
+                <>
+                  <span className="text-sm uppercase tracking-widest">
+                    Mandar Link
+                  </span>
+                  <Send className="h-4 w-4" />
+                </>
+              )}
+            </motion.button>
+          </form>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="mt-10 text-center"
+          >
+            <p className="text-xs text-white/40">
+              ¿Te acordaste?{' '}
+              <button
+                onClick={() => router.push('/auth/login')}
+                className="ml-1 font-black uppercase tracking-widest text-primary transition-colors hover:text-primary/80"
+                disabled={loading}
+              >
+                Iniciá sesión
+              </button>
+            </p>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 }

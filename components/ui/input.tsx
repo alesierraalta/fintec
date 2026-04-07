@@ -10,8 +10,9 @@ export interface InputProps
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type, label, error, icon, suffix, ...props }, ref) => {
-    const inputId = React.useId();
+  ({ className, type, label, error, icon, suffix, id, ...props }, ref) => {
+    const fallbackId = React.useId();
+    const inputId = id || fallbackId;
     const errorId = React.useId();
 
     return (
@@ -37,7 +38,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               // Base styles with enhanced animations and improved text visibility
               'flex h-12 w-full rounded-xl border-2 border-input/50 bg-background/80 px-4 py-3',
               // * Text size adjusted for mobile to prevent iOS zoom (16px base)
-              'text-base md:text-sm font-medium ring-offset-background file:border-0 file:bg-transparent',
+              'text-base font-medium ring-offset-background file:border-0 file:bg-transparent md:text-sm',
               'file:text-sm file:font-medium',
               'focus-glow disabled:cursor-not-allowed disabled:opacity-50',
               'transition-smooth backdrop-blur-sm',
@@ -55,11 +56,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
               // Glass morphism and elegant styling
               'glass-light shadow-lg hover:shadow-xl',
-              'hover:border-primary/30 focus:border-primary/60 hover:bg-background/90',
+              'hover:border-primary/30 hover:bg-background/90 focus:border-primary/60',
               'animate-fade-in-up',
 
               // Conditional styles
-              error && 'border-destructive/50 focus:border-destructive hover:border-destructive/70 animate-wiggle',
+              error &&
+                'animate-wiggle border-destructive/50 hover:border-destructive/70 focus:border-destructive',
               icon && 'pl-12',
               suffix && 'pr-12',
               className
@@ -76,7 +78,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           )}
         </div>
         {error && (
-          <p id={errorId} className="mt-2 text-sm text-destructive animate-fade-in">
+          <p
+            id={errorId}
+            className="mt-2 animate-fade-in text-sm text-destructive"
+          >
             {error}
           </p>
         )}

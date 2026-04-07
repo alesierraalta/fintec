@@ -47,8 +47,11 @@ jest.mock('@/components/ui', () => ({
       {children}
     </button>
   ),
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
+  Input: ({ label, id, ...props }: any) => (
+    <div>
+      {label && <label htmlFor={id}>{label}</label>}
+      <input id={id} {...props} />
+    </div>
   ),
   Checkbox: ({
     checked,
@@ -73,16 +76,23 @@ describe('LoginForm', () => {
     mockSignIn.mockResolvedValue({ error: null });
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      resetPassword: jest.fn(),
+      updatePassword: jest.fn(),
+      user: null,
+      session: null,
+      loading: false,
       authError: null,
       clearAuthError: mockClearAuthError,
-    } as ReturnType<typeof useAuth>);
+    } as any);
   });
 
   it('shows explicit validation when email and password are missing', () => {
     render(<LoginForm />);
 
     const submitButton = screen.getByRole('button', {
-      name: /iniciar sesión/i,
+      name: /entrar/i,
     });
     const form = submitButton.closest('form');
 
@@ -101,9 +111,16 @@ describe('LoginForm', () => {
   it('renders auth-context login errors visibly for the user', () => {
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      resetPassword: jest.fn(),
+      updatePassword: jest.fn(),
+      user: null,
+      session: null,
+      loading: false,
       authError: 'Credenciales incorrectas. Verifica tu email y contraseña.',
       clearAuthError: mockClearAuthError,
-    } as ReturnType<typeof useAuth>);
+    } as any);
 
     render(<LoginForm />);
 
@@ -122,7 +139,7 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
-    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'No pudimos iniciar sesión. Revisá tus datos e intentá nuevamente.'
@@ -137,7 +154,7 @@ describe('LoginForm', () => {
 
     await user.type(screen.getByLabelText(/email/i), 'test@example.com');
     await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
-    await user.click(screen.getByRole('button', { name: /iniciar sesión/i }));
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Ocurrió un error inesperado al iniciar sesión. Intentá de nuevo.'
