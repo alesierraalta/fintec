@@ -143,6 +143,38 @@ Automated tests for transaction-like ownership logic MUST validate observable ac
 - THEN tests fail due to incorrect returned results
 - AND test failure does not depend on matching internal select/filter string literals
 
+### Requirement: Sanitize Supabase Error Messages
+
+The repository MUST sanitize error messages from Supabase to prevent HTML leakage (e.g., Cloudflare 5xx errors). If the error message starts with `<html>` or contains common HTML tags, it MUST be replaced with a generic "Database Unavailable" message.
+
+#### Scenario: Sanitize HTML error
+
+- GIVEN Supabase returns a 521 error with HTML body
+- WHEN `listBCVRatesSince` is called
+- THEN the thrown Error message MUST NOT contain HTML
+- AND the Error message SHOULD be "Database Unavailable (521)"
+
+### Requirement: Automatic Stale Cache Fallback
+
+If Supabase is unreachable (ENOTFOUND, ETIMEDOUT) or returns 5xx, the repository MUST attempt to return the last known good value from the shared cache, even if the cache entry is technically expired (if the cache implementation supports stale-if-error).
+
+#### Scenario: Fallback to cache on ENOTFOUND
+
+- GIVEN Supabase is down (DNS ENOTFOUND)
+- AND the shared cache contains a previously stored value for `rates_history:bcv:since:2026-01-01`
+- WHEN `listBCVRatesSince("2026-01-01")` is called
+- THEN it MUST return the cached value instead of throwing an error
+
+### Requirement: Exponential Backoff Retry Policy
+
+For transient 5xx errors, the repository SHOULD implement a retry policy (e.g., 3 attempts with exponential backoff). This MUST NOT be applied to 4xx errors.
+
+#### Scenario: Retry on 503
+
+- GIVEN Supabase returns a 503 error
+- WHEN `getLatestExchangeRateSnapshot` is called
+- THEN it MUST retry up to 3 times before failing or falling back to cache
+
 ## Testability Guidance
 
 The system SHOULD provide deterministic fixtures that combine debt and non-debt transactions across `INCOME` and `EXPENSE`, and tests SHOULD verify: directional debt totals, status-based inclusion/exclusion (`OPEN` vs `SETTLED`), and non-regression parity for legacy transactions without debt metadata.

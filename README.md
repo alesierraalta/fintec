@@ -88,6 +88,7 @@ npm run clean:all
 - CI ejecuta lanes separadas con comandos dedicados: `npm run e2e:ci:no-auth` y `npm run e2e:ci:auth-required`.
 - Performance baseline: k6 scripts in `tests/performance/k6/` (`perf:smoke`, `perf:load`, `perf:stress`, `perf:spike`, `perf:soak`, `perf:journey`) and legacy baseline `k6/api-stress-test.js` via `npm run test:load`.
 - Mutation testing: Stryker (`stryker.config.json`) via `npm run test:mutate`.
+- Resiliencia de Datos: Implementado patrón `stale-if-error` y reintentos exponenciales para Supabase (Data Access layer) para mitigar errores de red/DNS (ENOTFOUND).
 - Estado de calidad local de referencia: `type-check`, `lint`, `test` y `build`.
 
 ### Contrato de lanes Playwright
