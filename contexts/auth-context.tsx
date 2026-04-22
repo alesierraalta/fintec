@@ -149,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = useCallback(
     async (email: string, password: string, userData?: any) => {
       try {
-        setLoading(true);
         setAuthError(null); // Clear any previous errors
 
         const { data, error } = await supabase.auth.signUp({
@@ -255,8 +254,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'Error inesperado durante el registro. Por favor intenta de nuevo.'
         );
         return { error: err as AuthError };
-      } finally {
-        setLoading(false);
       }
     },
     []
@@ -265,7 +262,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(
     async (email: string, password: string, rememberMe: boolean = false) => {
       try {
-        setLoading(true);
         setAuthError(null); // Clear any previous errors
 
         // Store rememberMe preference for cookie management
@@ -337,8 +333,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const msg = err?.message || 'Error inesperado al iniciar sesión';
         setAuthError(msg);
         return { error: err as AuthError };
-      } finally {
-        setLoading(false);
       }
     },
     []
@@ -367,8 +361,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      setLoading(true);
-
       // Check if user had "remember me" preference
       const hadRememberMe =
         localStorage.getItem('fintec_remember_me') === 'true';
@@ -400,16 +392,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const msg = err?.message || 'Error al cerrar sesión';
       setAuthError(msg);
       return { error: err as AuthError };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const updateProfile = useCallback(
     async (data: any) => {
       try {
-        setLoading(true);
-
         // Update auth user metadata
         const { error: authError } = await supabase.auth.updateUser({
           data: data,
@@ -440,16 +428,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { error: null };
       } catch (err) {
         return { error: err as AuthError };
-      } finally {
-        setLoading(false);
       }
     },
     [user]
   );
   const resetPassword = useCallback(async (email: string) => {
     try {
-      setLoading(true);
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
@@ -457,14 +441,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { error };
     } catch (err) {
       return { error: err as AuthError };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
   const resendVerification = useCallback(async (email: string) => {
     try {
-      setLoading(true);
       setAuthError(null);
 
       const { error } = await supabase.auth.resend({
@@ -495,8 +476,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         'Error al reenviar el correo de verificación';
       setAuthError(msg);
       return { error: err as AuthError };
-    } finally {
-      setLoading(false);
     }
   }, []);
 
