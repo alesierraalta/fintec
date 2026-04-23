@@ -61,7 +61,13 @@ describe('Mobile navigation layout contract', () => {
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
     for (const link of links) {
-      expect(link).toHaveClass('min-h-[52px]', 'min-w-0', 'basis-0', 'px-1.5');
+      expect(link).toHaveClass(
+        'min-h-[52px]',
+        'min-w-0',
+        'basis-0',
+        'px-1',
+        'py-1.5'
+      );
     }
   });
 

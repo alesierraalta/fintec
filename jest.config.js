@@ -42,6 +42,8 @@ const customJestConfig = {
         '<rootDir>/tests/node/',
         '<rootDir>/tests/e2e/',
         '<rootDir>/.stryker-tmp/',
+        '<rootDir>/.agent/',
+        '<rootDir>/.agents/',
       ],
       collectCoverageFrom: [
         'components/**/*.{js,jsx,ts,tsx}',
@@ -73,6 +75,8 @@ const customJestConfig = {
         '<rootDir>/node_modules/',
         '<rootDir>/tests/e2e/',
         '<rootDir>/.stryker-tmp/',
+        '<rootDir>/.agent/',
+        '<rootDir>/.agents/',
       ],
       collectCoverageFrom: ['lib/scrapers/**/*.{js,jsx,ts,tsx}', '!**/*.d.ts'],
       moduleDirectories: ['node_modules', '<rootDir>/'],
