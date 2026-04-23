@@ -276,11 +276,7 @@ export interface Database {
 }
 
 // Database schema definition for Supabase migration
-export const SUPABASE_SCHEMA = `
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- Users table (extends Supabase auth.users)
+export const SUPABASE_SCHEMA = `\n-- Enable UUID extension\nCREATE EXTENSION IF NOT EXISTS "uuid-ossp";\n\n-- Enum types for debts\nCREATE TYPE debt_direction AS ENUM ('OWE', 'OWED_TO_ME');\nCREATE TYPE debt_status AS ENUM ('OPEN', 'SETTLED');\n\n-- Users table (extends Supabase auth.users)
 CREATE TABLE users (
   id UUID REFERENCES auth.users(id) PRIMARY KEY,
   email TEXT NOT NULL,
@@ -296,9 +292,7 @@ CREATE TABLE accounts (
   user_id UUID REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   type TEXT NOT NULL CHECK (type IN ('CASH', 'BANK', 'CARD', 'INVESTMENT', 'SAVINGS', 'CRYPTO')),
-  currency_code TEXT NOT NULL,
-  balance BIGINT NOT NULL DEFAULT 0,
-  active BOOLEAN NOT NULL DEFAULT true,
+  currency_code TEXT NOT NULL,\n  balance BIGINT NOT NULL DEFAULT 0,\n  minimum_balance BIGINT NOT NULL DEFAULT 0,\n  alert_enabled BOOLEAN NOT NULL DEFAULT false,\n  active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -330,9 +324,7 @@ CREATE TABLE transactions (
   exchange_rate DECIMAL(10, 6) NOT NULL DEFAULT 1,
   date DATE NOT NULL,
   description TEXT,
-  note TEXT,
-  tags TEXT[],
-  transfer_id UUID,
+  note TEXT,\n  tags TEXT[],\n  is_debt BOOLEAN NOT NULL DEFAULT false,\n  debt_direction debt_direction,\n  debt_status debt_status,\n  counterparty_name TEXT,\n  settled_at TIMESTAMP WITH TIME ZONE,\n  transfer_id UUID,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

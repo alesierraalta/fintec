@@ -1,0 +1,2 @@
+ALTER TABLE public.accounts ADD COLUMN minimum_balance BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE public.accounts ADD COLUMN alert_enabled BOOLEAN NOT NULL DEFAULT FALSE;
