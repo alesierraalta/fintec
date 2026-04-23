@@ -30,9 +30,7 @@ const lane =
     ? 'auth-required'
     : DEFAULT_LANE;
 const isAuthRequiredLane = lane === 'auth-required';
-const reuseExistingServer =
-  parseBooleanEnv(process.env.PLAYWRIGHT_REUSE_EXISTING_SERVER) ??
-  !process.env.CI;
+const reuseExistingServer = false;
 const reporter: ReporterDescription[] = process.env.CI
   ? [['line'], ['html', { open: 'never' }]]
   : [['list'], ['html', { open: 'never' }]];
@@ -64,6 +62,7 @@ export default defineConfig({
   workers: isAuthRequiredLane ? 1 : process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter,
+  timeout: 60_000,
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
@@ -143,9 +142,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    timeout:
-      Number.parseInt(process.env.PLAYWRIGHT_WEB_SERVER_TIMEOUT_MS ?? '', 10) ||
-      120_000,
+    timeout: 120_000,
     reuseExistingServer,
     gracefulShutdown: {
       signal: 'SIGTERM',

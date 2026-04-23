@@ -4,6 +4,7 @@ import {
   PaginatedResult,
   PaginationParams,
 } from '@/types';
+import type { RequestContext } from '@/lib/cache/request-context';
 import {
   AccountsRepository,
   CreateAccountDTO,
@@ -16,16 +17,32 @@ import {
   mapDomainAccountToSupabase,
   mapSupabaseAccountArrayToDomain,
 } from './mappers';
+import { invalidateMemoizedOwnedAccountScope } from './memoized-account-scope';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { ACCOUNT_LIST_PROJECTION } from './account-projections';
 
 export class SupabaseAccountsRepository implements AccountsRepository {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
+  }
+
+  private invalidateOwnedAccountScope(userId: string): void {
+    if (!this.requestContext || this.requestContext.userId !== userId) {
+      return;
+    }
+
+    invalidateMemoizedOwnedAccountScope(this.requestContext, userId);
   }
 
   private async getUserId(): Promise<string | null> {
+    if (this.requestContext) {
+      return this.requestContext.userId;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
@@ -37,7 +54,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -47,7 +64,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to find account: ${error.message}`);
     }
 
-    return mapSupabaseAccountToDomain(data);
+    return mapSupabaseAccountToDomain(data as any);
   }
 
   async findAll(): Promise<Account[]> {
@@ -56,7 +73,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('active', true)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -65,7 +82,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to fetch accounts: ${error.message}`);
     }
 
-    return mapSupabaseAccountArrayToDomain(data || []);
+    return mapSupabaseAccountArrayToDomain((data as any) || []);
   }
 
   async findByUserId(userId: string): Promise<Account[]> {
@@ -81,7 +98,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order('created_at', { ascending: false });
@@ -90,7 +107,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to fetch user accounts: ${error.message}`);
     }
 
-    return mapSupabaseAccountArrayToDomain(data || []);
+    return mapSupabaseAccountArrayToDomain((data as any) || []);
   }
 
   async findByType(type: AccountType): Promise<Account[]> {
@@ -99,7 +116,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('type', type)
       .eq('user_id', userId)
       .eq('active', true)
@@ -109,7 +126,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to fetch accounts by type: ${error.message}`);
     }
 
-    return mapSupabaseAccountArrayToDomain(data || []);
+    return mapSupabaseAccountArrayToDomain((data as any) || []);
   }
 
   async findByCurrency(currencyCode: string): Promise<Account[]> {
@@ -118,7 +135,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('currency_code', currencyCode)
       .eq('user_id', userId)
       .eq('active', true)
@@ -128,7 +145,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       throw new Error(`Failed to fetch accounts by currency: ${error.message}`);
     }
 
-    return mapSupabaseAccountArrayToDomain(data || []);
+    return mapSupabaseAccountArrayToDomain((data as any) || []);
   }
 
   async create(accountData: CreateAccountDTO): Promise<Account> {
@@ -149,12 +166,14 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await (this.client.from('accounts') as any)
       .insert(supabaseData as any)
-      .select()
+      .select(ACCOUNT_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to create account: ${error.message}`);
     }
+
+    this.invalidateOwnedAccountScope(userId);
 
     return mapSupabaseAccountToDomain(data);
   }
@@ -186,12 +205,14 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       .update(updatePayload as any)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(ACCOUNT_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update account: ${error.message}`);
     }
+
+    this.invalidateOwnedAccountScope(userId);
 
     return mapSupabaseAccountToDomain(data);
   }
@@ -211,6 +232,8 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     if (error) {
       throw new Error(`Failed to delete account: ${error.message}`);
     }
+
+    this.invalidateOwnedAccountScope(userId);
   }
 
   async findPaginated(
@@ -237,7 +260,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const query = this.client
       .from('accounts')
-      .select('*', { count: 'exact' })
+      .select(ACCOUNT_LIST_PROJECTION, { count: 'exact' })
       .eq('active', true)
       .eq('user_id', userId)
       .range(offset, offset + limit - 1);
@@ -253,7 +276,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     }
 
     return {
-      data: mapSupabaseAccountArrayToDomain(data || []),
+      data: mapSupabaseAccountArrayToDomain((data as any) || []),
       total: count || 0,
       page,
       limit,
@@ -284,16 +307,37 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { data, error } = await this.client
       .from('accounts')
-      .select('*')
+      .select(ACCOUNT_LIST_PROJECTION)
       .eq('active', true)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) {
+      // Resilience: handle missing columns during migration rollout
+      if (
+        error.message.includes('minimum_balance') ||
+        error.message.includes('alert_enabled')
+      ) {
+        const fallbackProjection =
+          'id,user_id,name,type,currency_code,balance,active,created_at,updated_at';
+        const { data: fallbackData, error: fallbackError } = await this.client
+          .from('accounts')
+          .select(fallbackProjection)
+          .eq('active', true)
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+
+        if (fallbackError) {
+          throw new Error(
+            `Failed to fetch active accounts (fallback): ${fallbackError.message}`
+          );
+        }
+        return mapSupabaseAccountArrayToDomain((fallbackData as any) || []);
+      }
       throw new Error(`Failed to fetch active accounts: ${error.message}`);
     }
 
-    return mapSupabaseAccountArrayToDomain(data || []);
+    return mapSupabaseAccountArrayToDomain((data as any) || []);
   }
 
   async updateBalance(id: string, newBalance: number): Promise<Account> {
@@ -309,7 +353,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
       } as any)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(ACCOUNT_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -528,6 +572,8 @@ export class SupabaseAccountsRepository implements AccountsRepository {
     if (error) {
       throw new Error(`Failed to delete accounts: ${error.message}`);
     }
+
+    this.invalidateOwnedAccountScope(userId);
   }
 
   async count(): Promise<number> {
@@ -536,7 +582,7 @@ export class SupabaseAccountsRepository implements AccountsRepository {
 
     const { count, error } = await this.client
       .from('accounts')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('active', true);
 
