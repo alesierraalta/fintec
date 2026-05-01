@@ -36,13 +36,14 @@ When performing these actions, ALWAYS invoke the corresponding skill FIRST:
 | Writing new React components or Next.js pages                                 | `vercel-react-best-practices`      |
 | Writing SQL queries or designing schemas                                      | `supabase-postgres-best-practices` |
 | Writing tests, testing components, or ensuring test coverage                  | `testing-strategy`                 |
+| Performing git commits, pushes, or managing git hooks                         | `no-verify-guard`                  |
 
 ## FinTec Project Skills
 
-| Action                                                                        | Skill                              |
-| ----------------------------------------------------------------------------- | ---------------------------------- |
-| Creating new UI components, pages, modals, forms, or styling any interface    | `fintec-frontend-design`           |
-| Styling components with Tailwind, working with breakpoints, shadows, or tokens| `fintec-tailwind-patterns`         |
-| Creating routes, pages, API routes, or implementing data patterns in Next.js  | `fintec-nextjs-patterns`           |
-| Implementing complex TypeScript types, generics, or type-safe components      | `fintec-typescript-patterns`       |
-| Auditing accessibility, keyboard navigation, ARIA, or screen reader support   | `fintec-accessibility`             |
+| Action                                                                         | Skill                        |
+| ------------------------------------------------------------------------------ | ---------------------------- |
+| Creating new UI components, pages, modals, forms, or styling any interface     | `fintec-frontend-design`     |
+| Styling components with Tailwind, working with breakpoints, shadows, or tokens | `fintec-tailwind-patterns`   |
+| Creating routes, pages, API routes, or implementing data patterns in Next.js   | `fintec-nextjs-patterns`     |
+| Implementing complex TypeScript types, generics, or type-safe components       | `fintec-typescript-patterns` |
+| Auditing accessibility, keyboard navigation, ARIA, or screen reader support    | `fintec-accessibility`       |

@@ -197,3 +197,20 @@ toml/test.toml
 # Local agent runtime configs
 .serena/project.yml
 opencode.jsonc
+
+# Agent-specific folders
+.agent/
+.agents/
+.claude/
+.codex/
+.gemini/
+
+# Test artifacts
+jest_output*.txt
+available_models.txt
+models_output.txt
+failed_run.txt
+gemini_launch_prompt.txt
+jest_final_check.txt
+test_output.txt
+reports-verification.png
