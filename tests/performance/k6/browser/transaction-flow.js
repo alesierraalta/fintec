@@ -34,7 +34,9 @@ export default async function () {
 
   try {
     // 0. Login
-    await page.goto(`${CONFIG.baseUrl}/login`, { waitUntil: 'networkidle' });
+    await page.goto(`${CONFIG.baseUrl}/auth/login`, {
+      waitUntil: 'networkidle',
+    });
 
     // We assume the test user credentials are in environment variables
     // or hardcoded specifically for test environment

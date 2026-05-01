@@ -378,7 +378,7 @@ export default function LandingPageClient() {
                 ¿Listo para tomar control de tus finanzas?
               </h2>
               <p className="mb-8 text-xl text-muted-foreground">
-                Únete a miles de usuarios que ya confían en FinTec
+                Miles de usuarios ya confían en FinTec
               </p>
 
               <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">

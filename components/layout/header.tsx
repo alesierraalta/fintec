@@ -130,7 +130,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
   const handleLogout = async () => {
     setShowUserMenu(false);
     await signOut();
-    router.push('/login');
+    router.push('/auth/login');
   };
 
   const getPageTitle = () => {

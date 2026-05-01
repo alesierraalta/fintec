@@ -12,7 +12,7 @@ export function CTASection() {
           ¿Listo para tomar control de tus finanzas?
         </h2>
         <p className="mb-8 text-xl text-muted-foreground">
-          Únete a FinTec y empieza a gestionar tu dinero de forma inteligente
+          Empieza a gestionar tu dinero de forma inteligente con FinTec
         </p>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">

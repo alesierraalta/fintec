@@ -1,10 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-describe('proxy.ts (R6 compliance)', () => {
-  it('proxy only calls updateSession', () => {
-    const proxyPath = path.join(process.cwd(), 'proxy.ts');
-    const content = fs.readFileSync(proxyPath, 'utf-8');
+describe('middleware.ts (R6 compliance)', () => {
+  it('middleware only calls updateSession', () => {
+    const middlewarePath = path.join(process.cwd(), 'middleware.ts');
+    const content = fs.readFileSync(middlewarePath, 'utf-8');
 
     // Must contain updateSession call
     expect(content).toContain('updateSession');
@@ -20,9 +20,9 @@ describe('proxy.ts (R6 compliance)', () => {
     expect(content).not.toContain('auth.');
   });
 
-  it('proxy has correct matcher config', () => {
-    const proxyPath = path.join(process.cwd(), 'proxy.ts');
-    const content = fs.readFileSync(proxyPath, 'utf-8');
+  it('middleware has correct matcher config', () => {
+    const middlewarePath = path.join(process.cwd(), 'middleware.ts');
+    const content = fs.readFileSync(middlewarePath, 'utf-8');
 
     // Must have matcher config
     expect(content).toContain('matcher');

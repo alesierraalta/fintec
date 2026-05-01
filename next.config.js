@@ -19,6 +19,14 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/login',
+        destination: '/auth/login',
+      },
+    ];
+  },
   async redirects() {
     return [
       {

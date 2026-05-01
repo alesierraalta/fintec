@@ -51,9 +51,9 @@ export default function WaitlistPage() {
           </h1>
 
           <p className="mx-auto mb-10 max-w-2xl animate-fade-in-up text-lg leading-relaxed text-muted-foreground [animation-delay:400ms] sm:text-xl">
-            Deja de luchar con múltiples apps y tasas desactualizadas. Únete al
-            waitlist para obtener acceso prioritario y beneficios exclusivos de
-            lanzamiento.
+            Deja de luchar con múltiples apps y tasas desactualizadas.
+            Regístrate en la lista de espera para obtener acceso prioritario y
+            beneficios exclusivos de lanzamiento.
           </p>
 
           <div className="animate-fade-in-up [animation-delay:600ms]">

@@ -263,10 +263,11 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             </div>
             <div className="space-y-2">
               <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-3xl">
-                Unite a <span className="italic text-primary">FinTec</span>
+                Forma parte de{' '}
+                <span className="italic text-primary">FinTec</span>
               </h1>
               <p className="text-sm text-muted-foreground">
-                Simple, rápido y potente. Gestioná tu dinero como un
+                Simple, rápido y potente. Gestiona tu dinero como un
                 profesional.
               </p>
             </div>
