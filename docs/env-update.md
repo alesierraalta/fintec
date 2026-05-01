@@ -7,17 +7,21 @@ Se han actualizado los archivos de configuración de variables de entorno para e
 ## Archivos Creados
 
 ### 1. `.env.local.example`
+
 Archivo de ejemplo con descripciones detalladas de cada variable:
+
 - **Supabase Configuration**: URL, anon key, y service role key
 - **Admin Configuration**: Lista de UUIDs de administradores
 - **WebSocket Configuration**: URL para actualizaciones en tiempo real (opcional)
 
 ### 2. `.env.example`
+
 Archivo genérico con valores vacíos para todas las variables requeridas.
 
 ## Archivos Modificados
 
 ### 1. `README.md`
+
 - ✅ Actualizada la sección de Variables de Entorno
 - ✅ Agregadas instrucciones para copiar `.env.local.example`
 - ✅ Incluidas instrucciones detalladas para obtener credenciales de Supabase
@@ -25,11 +29,13 @@ Archivo genérico con valores vacíos para todas las variables requeridas.
 - ✅ Eliminadas referencias a proveedores de pago obsoletos
 
 ### 2. `jest.setup.js`
+
 - ✅ Eliminada referencia a LemonSqueezy en comentario del mock de fetch
 
 ## Variables de Entorno Documentadas
 
 ### Requeridas para Supabase
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=          # URL de tu proyecto Supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=     # Clave pública/anon de Supabase
@@ -37,11 +43,13 @@ SUPABASE_SERVICE_ROLE_KEY=         # Clave de servicio (¡mantener secreta!)
 ```
 
 ### Configuración de Administradores
+
 ```env
 ADMIN_USER_IDS=                    # UUIDs separados por comas
 ```
 
 ### Opcional
+
 ```env
 NEXT_PUBLIC_WEBSOCKET_URL=         # URL del servidor WebSocket (default: http://localhost:3001)
 ```
@@ -49,6 +57,7 @@ NEXT_PUBLIC_WEBSOCKET_URL=         # URL del servidor WebSocket (default: http:/
 ## Cómo Usar
 
 1. **Copiar el archivo de ejemplo:**
+
    ```bash
    cp .env.local.example .env.local
    ```
@@ -84,6 +93,7 @@ NEXT_PUBLIC_WEBSOCKET_URL=         # URL del servidor WebSocket (default: http:/
 ## Archivos con Referencias a Paddle (No Modificados)
 
 Los siguientes archivos aún contienen referencias a Paddle en términos y políticas:
+
 - `app/terms/page.tsx`
 - `app/privacy/page.tsx`
 - `components/subscription/pricing-cards.tsx`

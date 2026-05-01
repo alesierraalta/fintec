@@ -1,0 +1,52 @@
+schema: spec-driven
+
+context: |
+  Tech stack: Next.js 16 (App Router), React 19, TypeScript 5.9, Tailwind CSS 3.4
+  Backend: Supabase (PostgreSQL), @supabase/ssr, next-auth 4.24
+  State: Zustand 5.0, TanStack React Query 5.90, React Hook Form 7.65
+  Mobile: Capacitor 8 (iOS/Android)
+  AI: Vercel AI SDK (Anthropic, OpenAI, Google)
+  Real-time: Socket.io 4.8, Supabase Realtime
+  Testing: Jest 29.7 (dom + node projects, 80% coverage), Playwright 1.56 (no-auth/auth-required lanes), k6 load testing, Stryker mutations
+
+rules:
+  proposal:
+    - Specify which Playwright lane applies (no-auth or auth-required)
+    - Identify affected Supabase tables/RLS policies
+    - Include performance impact if applicable (k6 smoke test)
+    - Rollback plan for data migrations or breaking changes
+
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Specify test lane explicitly (no-auth for UI isolation, auth-required for integration)
+    - 'Include mobile responsiveness scenarios (test on tiny: 350px, xs: 475px, sm: 640px)'
+
+  design:
+    - Document Supabase schema changes (new tables, RLS policies)
+    - Include authentication/authorization flow if user-facing
+    - Sequence diagrams for complex real-time or multi-service flows
+    - Architecture decisions with tradeoffs and rationale
+
+  tasks:
+    - 'Group by phase: schema/db, business logic, ui, testing'
+    - Hierarchical numbering (1.1, 1.2, 1.3, etc.)
+    - Keep tasks small (completable in one session)
+    - Explicitly link to spec scenarios
+
+  apply:
+    - 'Follow existing patterns: repository layer for data access, hooks for state, Zod for validation'
+    - Load skill-registry for required skills before implementation
+    - Run lint + type-check during development (oxlint, tsc --noEmit)
+    - Jest must pass with 80% coverage before commit
+
+  verify:
+    - 'Run full test suite: `npm run test:ci` (Jest unit+integration)'
+    - 'Run E2E tests for affected lane(s): `npm run e2e:no-auth` or `npm run e2e:auth-required`'
+    - 'Run performance smoke test: `npm run perf:smoke`'
+    - Compare implementation against EVERY spec scenario (Given/When/Then)
+
+  archive:
+    - Warn before merging destructive deltas (table drops, major RLS rewrites)
+    - Sync delta specs to main specs if change affects shared patterns
+    - Tag archived change with timestamp and brief summary
