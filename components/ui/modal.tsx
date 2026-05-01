@@ -61,7 +61,8 @@ export function Modal({
     }
 
     const active = document.activeElement;
-    lastActiveElementRef.current = active instanceof HTMLElement ? active : null;
+    lastActiveElementRef.current =
+      active instanceof HTMLElement ? active : null;
 
     // Move focus into the dialog for keyboard users.
     requestAnimationFrame(() => {
@@ -96,7 +97,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-background/60 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -110,7 +111,7 @@ export function Modal({
             ref={modalRef}
             className={cn(
               // * Modal container with flex layout for proper content scrolling
-              'relative w-full mx-4 bg-card/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 max-h-[90dvh] flex flex-col overflow-hidden',
+              'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
               sizeClasses[size],
               className
             )}
@@ -123,7 +124,7 @@ export function Modal({
           >
             {/* Header - solo si hay título */}
             {(title || description) && (
-              <div className="px-4 sm:px-6 py-4 border-b border-white/10 flex-shrink-0">
+              <div className="flex-shrink-0 border-b border-border/50 px-4 py-4 sm:px-6">
                 {title && (
                   <h2
                     id="modal-title"
@@ -147,11 +148,15 @@ export function Modal({
             {title && (
               <button
                 type="button"
-                className="absolute top-4 right-4 rounded-full p-2 text-muted-foreground/70 hover:text-foreground hover:bg-white/10 transition-colors focus-ring"
+                className="focus-ring absolute right-4 top-4 rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-muted/20 hover:text-foreground"
                 onClick={onClose}
                 aria-label="Cerrar modal"
               >
-                <svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <svg
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
                   <path
                     fillRule="evenodd"
                     d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
@@ -163,10 +168,12 @@ export function Modal({
 
             {/* Content - scrollable area with flex-1 to fill remaining space */}
             {/* * min-h-0 is essential for overflow to work in flex containers */}
-            <div className={cn(
-              "overflow-y-auto flex-1 min-h-0 overscroll-contain",
-              title || description ? "px-4 sm:px-6 py-4" : ""
-            )}>
+            <div
+              className={cn(
+                'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+                title || description ? 'px-4 py-4 sm:px-6' : ''
+              )}
+            >
               {children}
             </div>
           </motion.div>
@@ -183,7 +190,7 @@ export interface ModalHeaderProps {
 
 export function ModalHeader({ children, className }: ModalHeaderProps) {
   return (
-    <div className={cn('px-6 py-4 border-b border-white/20', className)}>
+    <div className={cn('border-b border-border/50 px-6 py-4', className)}>
       {children}
     </div>
   );
@@ -205,7 +212,12 @@ export interface ModalFooterProps {
 
 export function ModalFooter({ children, className }: ModalFooterProps) {
   return (
-    <div className={cn('px-6 py-4 border-t border-white/20 flex justify-end space-x-3', className)}>
+    <div
+      className={cn(
+        'flex justify-end space-x-3 border-t border-border/50 px-6 py-4',
+        className
+      )}
+    >
       {children}
     </div>
   );

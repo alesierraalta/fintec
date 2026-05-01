@@ -174,6 +174,7 @@ describe('AccountsPage Binance state wiring', () => {
     });
 
     const lastCall = mockBinanceRatesComponent.mock.calls.at(-1)?.[0];
+    if (!lastCall) throw new Error('mockBinanceRatesComponent was not called');
     expect(lastCall.snapshot).toBe(mockSnapshot);
   });
 });

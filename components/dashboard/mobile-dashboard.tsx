@@ -248,7 +248,7 @@ export function MobileDashboard() {
       </div>
 
       {/* Balance Total Card with Rate Selector */}
-      <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -302,7 +302,7 @@ export function MobileDashboard() {
 
       {/* iOS-style Summary Cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
           <div className="mb-4 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
             <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -337,7 +337,7 @@ export function MobileDashboard() {
           </div>
         </div>
 
-        <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
           <div className="mb-4 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
             <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -372,7 +372,7 @@ export function MobileDashboard() {
           </div>
         </div>
 
-        <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
           <div className="mb-4 flex items-center space-x-2">
             <div
               className={`h-2 w-2 ${monthlyIncome - monthlyExpenses >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
@@ -428,7 +428,7 @@ export function MobileDashboard() {
       {/* iOS-style Quick Actions */}
       <div
         id="quick-actions"
-        className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl"
+        className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]"
       >
         <div className="mb-6 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -440,7 +440,7 @@ export function MobileDashboard() {
       </div>
 
       {/* iOS-style Recent Transactions */}
-      <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
         <div className="mb-6 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -456,7 +456,7 @@ export function MobileDashboard() {
       </div>
 
       {/* iOS-style Accounts Overview */}
-      <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
         <div className="mb-6 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -467,14 +467,14 @@ export function MobileDashboard() {
       </div>
 
       {/* iOS-style Mobile Insights */}
-      <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
         <div className="mb-4 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-gradient-to-r from-primary to-blue-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
             PERSPECTIVA FINANCIERA
           </h3>
         </div>
-        <p className="mb-4 text-ios-body leading-relaxed text-foreground">
+        <p className="mb-4 text-ios-body leading-relaxed text-foreground/80">
           Tu gestión financiera está en buen camino. Mantén el equilibrio entre
           ingresos y gastos.
         </p>

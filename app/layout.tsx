@@ -47,9 +47,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es" suppressHydrationWarning className="dark">
+    <html lang="es" suppressHydrationWarning>
       <head></head>
-      <body className={`${inter.className} dark overflow-x-hidden`}>
+      <body className={`${inter.className} overflow-x-hidden`}>
         <RouteAwareProviders>
           <div id="root" className="h-dynamic-screen w-full overflow-x-hidden">
             {children}

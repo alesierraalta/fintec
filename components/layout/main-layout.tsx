@@ -4,7 +4,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
-import { Header } from './header';
+import Header from './header';
 import { MobileNav } from './mobile-nav';
 import { MobileMenuFAB } from './mobile-menu-fab';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
@@ -67,7 +67,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         {/* Mobile Backdrop */}
         {isMobile && isOpen && (
           <div
-            className="fixed inset-0 z-40 animate-fade-in bg-black/30 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 animate-fade-in bg-background/30 backdrop-blur-sm lg:hidden"
             onClick={closeSidebar}
           />
         )}
@@ -84,7 +84,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <div className="no-horizontal-scroll flex min-w-0 flex-1 flex-col">
-          <Header />
+          <Header
+            onMenuClick={() => {}} // This is traditionally handled by sidebar context or separate state
+            isMobileMenuOpen={isOpen}
+          />
 
           {/* Page Content */}
           <main

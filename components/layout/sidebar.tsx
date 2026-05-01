@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { FeatureBadge } from '@/components/subscription/feature-badge';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
@@ -60,11 +61,11 @@ export function Sidebar() {
 
   return (
     <div
-      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} black-theme-sidebar transition-ios flex-col`}
+      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} ios-sidebar transition-ios flex-col`}
       suppressHydrationWarning
     >
       {/* Logo */}
-      <div className="flex h-16 items-center border-b border-white/10 px-4 lg:px-6">
+      <div className="flex h-16 items-center border-b border-border px-4 lg:px-6">
         <div className="flex w-full items-center justify-center">
           <div className="relative">
             <FinTecLogo
@@ -95,7 +96,8 @@ export function Sidebar() {
 
       {/* Minimized Quick Action */}
       {isMinimized && (
-        <div className="p-2">
+        <div className="flex flex-col items-center gap-2 p-2">
+          <ThemeToggle isMinimized={true} />
           <button
             onClick={() => router.push('/transactions/add')}
             className="transition-ios flex h-12 w-full items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-ios-md backdrop-blur-sm hover:scale-105 hover:bg-primary/90 active:scale-95"
@@ -107,7 +109,7 @@ export function Sidebar() {
       )}
 
       {/* Navigation - More friendly spacing */}
-      <nav className="flex-1 space-y-2 px-4">
+      <nav className="no-scrollbar flex-1 space-y-2 overflow-y-auto px-4">
         {navigation.map((item) => {
           // Solo mostrar items premium si el usuario es premium
           if (item.premium && !isPremium) {
@@ -126,7 +128,7 @@ export function Sidebar() {
                 isMinimized ? 'justify-center px-3 py-3' : 'px-4 py-3',
                 isActive
                   ? 'border border-primary/30 bg-primary/20 text-primary shadow-ios-sm backdrop-blur-sm'
-                  : 'text-white/70 hover:scale-[1.02] hover:bg-white/10 hover:text-white hover:shadow-ios-sm'
+                  : 'text-muted-foreground hover:scale-[1.02] hover:bg-secondary hover:text-foreground hover:shadow-ios-sm'
               )}
               title={isMinimized ? item.name : undefined}
             >
@@ -136,7 +138,7 @@ export function Sidebar() {
                   isMinimized ? '' : 'mr-3',
                   isActive
                     ? 'text-primary'
-                    : 'text-white/70 group-hover:text-white'
+                    : 'text-muted-foreground group-hover:text-foreground'
                 )}
               />
               {!isMinimized && item.name}
@@ -151,39 +153,43 @@ export function Sidebar() {
       {/* Premium Status Card - Only for premium users */}
       <PremiumStatusCard isMinimized={isMinimized} />
 
-      {/* User Profile - More friendly */}
-      <div className="border-t border-white/10 p-6">
+      {/* User Profile & Theme Toggle */}
+      <div className="mt-auto space-y-4 border-t border-border/10 p-4">
+        {!isMinimized && (
+          <div className="flex items-center justify-between px-2">
+            <p className="text-ios-caption font-medium uppercase tracking-wider text-muted-foreground">
+              Preferencias
+            </p>
+            <ThemeToggle isMinimized={true} />
+          </div>
+        )}
+
         <div
-          className={`black-theme-card flex items-center rounded-2xl p-3 shadow-ios-sm ${isMinimized ? 'justify-center' : 'space-x-3'}`}
+          className={cn(
+            'ios-card flex items-center rounded-2xl p-3',
+            isMinimized ? 'justify-center' : 'space-x-3'
+          )}
         >
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
             {isPremium ? (
-              <Crown className="h-5 w-5 text-white" />
+              <Crown className="h-5 w-5 text-primary-foreground" />
             ) : (
-              <DollarSign className="h-5 w-5 text-white" />
+              <DollarSign className="h-5 w-5 text-primary-foreground" />
             )}
           </div>
           {!isMinimized && (
             <div className="min-w-0 flex-1">
-              <p className="truncate text-ios-body font-semibold text-white">
+              <p className="truncate text-ios-body font-semibold text-foreground">
                 ¡FinTec! 💼
               </p>
-              <div className="mt-1 flex items-center gap-2">
-                <p className="text-ios-caption text-white/70">
-                  Plan{' '}
-                  {tier === 'free'
-                    ? 'Gratis'
-                    : tier === 'base'
-                      ? 'Base'
-                      : 'Premium'}
-                </p>
-                {(isPremium || isBase) && (
-                  <FeatureBadge
-                    tier={isPremium ? 'premium' : 'base'}
-                    variant="compact"
-                  />
-                )}
-              </div>
+              <p className="min-w-0 truncate text-ios-caption text-muted-foreground">
+                Plan{' '}
+                {tier === 'free'
+                  ? 'Gratis'
+                  : tier === 'base'
+                    ? 'Base'
+                    : 'Premium'}
+              </p>
             </div>
           )}
         </div>

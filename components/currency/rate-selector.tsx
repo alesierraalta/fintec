@@ -138,7 +138,7 @@ export function RateSelector() {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Seleccionar fuente de tasa"
-        className="focus-ring transition-ios flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center gap-1 overflow-hidden rounded-xl px-2 py-2 text-white/80 hover:bg-white/10 hover:text-white sm:w-auto sm:max-w-none sm:justify-start"
+        className="focus-ring transition-ios flex h-11 min-h-[44px] w-11 min-w-[44px] shrink-0 items-center justify-center gap-1 overflow-hidden rounded-xl px-2 py-2 text-foreground/80 hover:bg-accent/10 hover:text-foreground sm:w-auto sm:max-w-none sm:justify-start"
         title="Seleccionar fuente de tasa"
       >
         {triggerIcon}
@@ -150,21 +150,21 @@ export function RateSelector() {
         createPortal(
           <>
             <div
-              className="black-theme-card fixed z-[55] w-56 animate-scale-in rounded-xl shadow-2xl"
+              className="ios-card fixed z-[55] w-56 animate-scale-in rounded-xl shadow-2xl"
               style={menuStyle ?? { top: '4.5rem', left: '1rem' }}
             >
               <div className="py-2">
                 <button
                   type="button"
                   onClick={() => handleSelect('binance')}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                    selectedRateSource === 'binance' ? 'bg-white/10' : ''
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-foreground/5 ${
+                    selectedRateSource === 'binance' ? 'bg-foreground/10' : ''
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <Coins className="h-4 w-4" /> Binance
                   </span>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {binanceUsdVes ? binanceUsdVes.toFixed(2) + ' VES' : '...'}
                   </span>
                 </button>
@@ -172,14 +172,14 @@ export function RateSelector() {
                 <button
                   type="button"
                   onClick={() => handleSelect('bcv_usd')}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                    selectedRateSource === 'bcv_usd' ? 'bg-white/10' : ''
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-foreground/5 ${
+                    selectedRateSource === 'bcv_usd' ? 'bg-foreground/10' : ''
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4" /> BCV USD
                   </span>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {bcvUsd ? bcvUsd.toFixed(2) + ' VES' : '...'}
                   </span>
                 </button>
@@ -187,14 +187,14 @@ export function RateSelector() {
                 <button
                   type="button"
                   onClick={() => handleSelect('bcv_eur')}
-                  className={`flex w-full items-center justify-between px-3 py-2 text-left hover:bg-white/10 ${
-                    selectedRateSource === 'bcv_eur' ? 'bg-white/10' : ''
+                  className={`flex w-full items-center justify-between px-3 py-2 text-left transition-colors hover:bg-foreground/5 ${
+                    selectedRateSource === 'bcv_eur' ? 'bg-foreground/10' : ''
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <Euro className="h-4 w-4" /> BCV EUR
                   </span>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-muted-foreground">
                     {bcvEur ? bcvEur.toFixed(2) + ' VES' : '...'}
                   </span>
                 </button>

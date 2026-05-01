@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { MotionConfig } from 'framer-motion';
+import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 
@@ -33,17 +34,21 @@ export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
 
   if (shouldBypassAppProviders(pathname)) {
     return (
-      <MotionConfig reducedMotion={reducedMotionSetting}>
-        {children}
-      </MotionConfig>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <MotionConfig reducedMotion={reducedMotionSetting}>
+          {children}
+        </MotionConfig>
+      </ThemeProvider>
     );
   }
 
   return (
-    <MotionConfig reducedMotion={reducedMotionSetting}>
-      <AuthProvider>
-        <RepositoryProvider>{children}</RepositoryProvider>
-      </AuthProvider>
-    </MotionConfig>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+      <MotionConfig reducedMotion={reducedMotionSetting}>
+        <AuthProvider>
+          <RepositoryProvider>{children}</RepositoryProvider>
+        </AuthProvider>
+      </MotionConfig>
+    </ThemeProvider>
   );
 }

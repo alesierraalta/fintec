@@ -10,6 +10,7 @@ import { Filter, Search, DollarSign, Tag, X, ArrowUpDown } from 'lucide-react';
 interface TransactionFiltersProps {
   onFiltersChange: (filters: any) => void;
   className?: string;
+  initialSearch?: string;
 }
 
 const transactionTypes = [
@@ -37,12 +38,13 @@ const debtModeOptions = [
 export function TransactionFilters({
   onFiltersChange,
   className,
+  initialSearch = '',
 }: TransactionFiltersProps) {
   const { accounts: rawAccounts, categories: rawCategories } =
     useOptimizedData();
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState({
-    search: '',
+    search: initialSearch,
     accountId: '',
     categoryId: '',
     type: '',

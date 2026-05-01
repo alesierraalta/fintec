@@ -28,6 +28,7 @@ interface SwipeableCardProps {
   threshold?: number;
   actionWidth?: number;
   className?: string;
+  contentClassName?: string;
   onClick?: () => void;
   disableSwipe?: boolean;
   showSwipeHint?: boolean;
@@ -48,6 +49,7 @@ function SwipeableCardComponent({
   threshold = 80,
   actionWidth = 70,
   className,
+  contentClassName,
   onClick,
   disableSwipe = false,
   showSwipeHint = true,
@@ -179,7 +181,8 @@ function SwipeableCardComponent({
       {/* Main card content - draggable */}
       <motion.div
         className={cn(
-          'relative z-10 touch-pan-y bg-background',
+          'relative z-10 touch-pan-y',
+          contentClassName || 'bg-background',
           onClick && 'focus-ring cursor-pointer'
         )}
         drag={disableSwipe ? false : 'x'}

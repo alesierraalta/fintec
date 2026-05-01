@@ -187,9 +187,9 @@ export default function DebtsPageClient() {
 
   return (
     <div className="space-y-6 p-4 pb-24 md:p-6">
-      <div className="rounded-2xl border border-border-primary bg-background-elevated p-4">
-        <h1 className="text-2xl font-semibold text-text-primary">Deudas</h1>
-        <p className="mt-1 text-sm text-text-muted">
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <h1 className="text-2xl font-semibold text-foreground">Deudas</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Seguimiento de cuanto debes y cuanto te deben.
         </p>
       </div>
@@ -216,7 +216,7 @@ export default function DebtsPageClient() {
           >
             {formatCurrency(summary.netDebtBaseMinor, baseCurrency)}
           </p>
-          <p className="mt-1 text-xs text-text-muted">{netLabel}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{netLabel}</p>
         </div>
       </div>
 
@@ -229,7 +229,7 @@ export default function DebtsPageClient() {
               onChange={(event) =>
                 setDebtDirection(event.target.value as DirectionFilter)
               }
-              className="mt-1 w-full rounded-lg border border-border-secondary bg-background px-3 py-2 text-sm text-text-primary"
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground"
             >
               <option value="ALL">Todas</option>
               <option value={DebtDirection.OWE}>Debo</option>
@@ -302,7 +302,7 @@ export default function DebtsPageClient() {
                 setSelectedDebt(null);
                 openCreateModal();
               }}
-              className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+              className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-green-700"
               aria-label="Crear nueva deuda"
             >
               <Plus className="h-3.5 w-3.5" />
@@ -339,18 +339,18 @@ export default function DebtsPageClient() {
             {debts.map((debt) => (
               <div
                 key={debt.id}
-                className="rounded-xl border border-border-secondary bg-background p-3"
+                className="rounded-xl border border-border bg-background p-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-medium text-text-primary">
+                  <p className="font-medium text-foreground">
                     {debt.description || 'Sin descripcion'}
                   </p>
-                  <p className="font-semibold text-text-primary">
+                  <p className="font-semibold text-foreground">
                     {formatCurrency(debt.amountMinor || 0, debt.currencyCode)}
                   </p>
                 </div>
 
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <span>
                     {debt.debtDirection === DebtDirection.OWE
                       ? 'Debo'
@@ -379,7 +379,7 @@ export default function DebtsPageClient() {
                 </div>
 
                 {/* Action buttons */}
-                <div className="mt-3 flex items-center gap-2 border-t border-border-secondary pt-3">
+                <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
                   {debt.debtStatus === DebtStatus.OPEN && (
                     <button
                       type="button"

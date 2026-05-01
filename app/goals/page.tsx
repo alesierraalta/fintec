@@ -245,7 +245,7 @@ export default function GoalsPage() {
             <span className="text-ios-caption font-medium">Objetivos</span>
           </div>
 
-          <h1 className="mb-6 bg-gradient-to-r from-primary via-green-600 to-emerald-500 bg-clip-text text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-6xl">
+          <h1 className="mb-6 bg-gradient-to-r from-primary via-green-600 to-emerald-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
             🎯 Metas de Ahorro
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
@@ -256,7 +256,7 @@ export default function GoalsPage() {
           <div className="mb-4 hidden items-center justify-center space-x-4 sm:flex">
             <button
               onClick={handleNewGoal}
-              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-green-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-green-600 hover:to-primary"
+              className="group relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-green-600 px-6 py-3 text-ios-body font-medium text-primary-foreground shadow-lg transition-all duration-300 hover:from-green-600 hover:to-primary"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
               <div className="relative flex items-center space-x-2">
@@ -411,7 +411,7 @@ export default function GoalsPage() {
                 placeholder="Buscar metas..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full rounded-lg border border-border bg-background py-2 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
           </div>
@@ -421,7 +421,7 @@ export default function GoalsPage() {
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value as any)}
-              className="rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="all">Todas</option>
               <option value="active">En Progreso</option>
@@ -434,7 +434,7 @@ export default function GoalsPage() {
         {/* Goals Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Tus Metas</h2>
+            <h2 className="text-xl font-semibold text-foreground">Tus Metas</h2>
             <span className="text-sm text-gray-400">
               {filteredGoals.length} meta{filteredGoals.length !== 1 ? 's' : ''}
             </span>

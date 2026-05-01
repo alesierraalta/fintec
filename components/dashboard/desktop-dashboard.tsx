@@ -400,7 +400,7 @@ export function DesktopDashboard() {
       </div>
 
       {/* Balance Total Card with Rate Selector */}
-      <div className="mb-8 rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+      <div className="glass-card transition-smooth hover-lift mb-8 rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -429,7 +429,7 @@ export function DesktopDashboard() {
           {showBalances ? (
             <div className="space-y-2">
               {totalBalanceVES > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold text-white">
+                <p className="amount-emphasis-white text-2xl font-semibold">
                   Bs.{' '}
                   {totalBalanceVES.toLocaleString('es-VE', {
                     minimumFractionDigits: 2,
@@ -437,11 +437,11 @@ export function DesktopDashboard() {
                 </p>
               )}
               {totalBalanceUSD > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold text-white">
+                <p className="amount-emphasis-white text-2xl font-semibold">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="amount-emphasis-white text-lg font-semibold text-white">
+              <p className="amount-emphasis-white text-lg font-semibold">
                 Total: ${totalBalance.toFixed(2)} (
                 {getRateName(usdEquivalentType)})
               </p>
@@ -465,7 +465,7 @@ export function DesktopDashboard() {
         ) : (
           <>
             {/* Monthly Income Card */}
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -487,7 +487,7 @@ export function DesktopDashboard() {
                     ${monthlyIncomeUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-sm text-white">
+                <div className="amount-emphasis-white text-sm">
                   Total: ${monthlyIncome.toFixed(2)} (
                   {getRateName(usdEquivalentType)})
                 </div>
@@ -495,7 +495,7 @@ export function DesktopDashboard() {
             </div>
 
             {/* Monthly Expenses Card */}
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -517,7 +517,7 @@ export function DesktopDashboard() {
                     ${monthlyExpensesUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-sm text-white">
+                <div className="amount-emphasis-white text-sm">
                   Total: ${monthlyExpenses.toFixed(2)} (
                   {getRateName(usdEquivalentType)})
                 </div>
@@ -525,7 +525,7 @@ export function DesktopDashboard() {
             </div>
 
             {/* Total Transactions Card */}
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -620,7 +620,7 @@ export function DesktopDashboard() {
                 Tip del Día
               </h3>
             </div>
-            <p className="text-ios-body leading-relaxed text-muted-foreground">
+            <p className="text-ios-body leading-relaxed text-foreground/80">
               {savingsRate > 50 ? (
                 <>
                   🌟 ¡Excelente! Estás ahorrando {savingsRate.toFixed(0)}% de

@@ -195,14 +195,14 @@ export default function BackupsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="mb-2 text-3xl font-bold text-white">
+            <h1 className="mb-2 text-3xl font-bold text-foreground">
               Respaldo de Datos
             </h1>
-            <p className="text-gray-400">
+            <p className="text-muted-foreground">
               Exporta e importa tus datos financieros de forma segura
             </p>
           </div>
-          <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
             <Shield className="h-4 w-4" />
             <span>Datos encriptados</span>
           </div>
@@ -225,16 +225,16 @@ export default function BackupsPage() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* Export Section */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="mb-4 flex items-center space-x-3">
               <div className="rounded-lg bg-green-500/10 p-2">
                 <Download className="h-6 w-6 text-green-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   Exportar Datos
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Crear respaldo de tus datos
                 </p>
               </div>
@@ -242,7 +242,7 @@ export default function BackupsPage() {
 
             <div className="space-y-4">
               {lastBackup && (
-                <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                   <Clock className="h-4 w-4" />
                   <span>
                     Último respaldo:{' '}
@@ -272,8 +272,8 @@ export default function BackupsPage() {
 
               {/* Advanced Options */}
               {showAdvancedOptions && (
-                <div className="space-y-4 rounded-lg border border-gray-700 p-4">
-                  <h4 className="text-sm font-medium text-white">
+                <div className="space-y-4 rounded-lg border border-border p-4">
+                  <h4 className="text-sm font-medium text-foreground">
                     Opciones Avanzadas
                   </h4>
 
@@ -290,14 +290,14 @@ export default function BackupsPage() {
                         }
                         className="rounded border-gray-600"
                       />
-                      <span className="text-sm text-gray-300">
+                      <span className="text-sm text-foreground/80">
                         Incluir cuentas inactivas
                       </span>
                     </label>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="mb-1 block text-xs text-gray-400">
+                        <label className="mb-1 block text-xs text-muted-foreground">
                           Desde
                         </label>
                         <input
@@ -309,11 +309,11 @@ export default function BackupsPage() {
                               dateFrom: e.target.value,
                             }))
                           }
-                          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white"
+                          className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs text-gray-400">
+                        <label className="mb-1 block text-xs text-muted-foreground">
                           Hasta
                         </label>
                         <input
@@ -325,7 +325,7 @@ export default function BackupsPage() {
                               dateTo: e.target.value,
                             }))
                           }
-                          className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white"
+                          className="w-full rounded-lg border border-border bg-muted px-3 py-2 text-sm text-foreground"
                         />
                       </div>
                     </div>
@@ -348,25 +348,25 @@ export default function BackupsPage() {
           </div>
 
           {/* Import Section */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="mb-4 flex items-center space-x-3">
               <div className="rounded-lg bg-blue-500/10 p-2">
                 <Upload className="h-6 w-6 text-blue-400" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   Importar Datos
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Restaurar desde respaldo
                 </p>
               </div>
             </div>
 
             <div className="space-y-4">
-              <div className="rounded-lg border-2 border-dashed border-gray-700 p-6 text-center">
-                <FileText className="mx-auto mb-2 h-8 w-8 text-gray-400" />
-                <p className="mb-3 text-sm text-gray-400">
+              <div className="rounded-lg border-2 border-dashed border-border p-6 text-center">
+                <FileText className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                <p className="mb-3 text-sm text-muted-foreground">
                   Selecciona un archivo de respaldo (.json)
                 </p>
 
@@ -392,7 +392,7 @@ export default function BackupsPage() {
               {/* Import Result */}
               {importResult && (
                 <div className="rounded-lg border border-gray-700 p-4">
-                  <h4 className="mb-3 flex items-center space-x-2 text-sm font-medium text-white">
+                  <h4 className="mb-3 flex items-center space-x-2 text-sm font-medium text-foreground">
                     {importResult.errors.length === 0 ? (
                       <CheckCircle className="h-4 w-4 text-green-400" />
                     ) : (
@@ -402,7 +402,7 @@ export default function BackupsPage() {
                   </h4>
 
                   <div className="space-y-2 text-sm">
-                    <div className="grid grid-cols-2 gap-4 text-gray-300">
+                    <div className="grid grid-cols-2 gap-4 text-foreground/80">
                       <div>
                         <p>
                           Cuentas: {importResult.imported.accounts} importadas
@@ -462,38 +462,38 @@ export default function BackupsPage() {
 
         {/* Information Cards */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center space-x-3">
               <Database className="h-5 w-5 text-blue-400" />
               <div>
-                <p className="text-sm font-medium text-white">
+                <p className="text-sm font-medium text-foreground">
                   Datos Incluidos
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   Cuentas, transacciones, categorías, presupuestos y metas
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center space-x-3">
               <Shield className="h-5 w-5 text-green-400" />
               <div>
-                <p className="text-sm font-medium text-white">Seguridad</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm font-medium text-foreground">Seguridad</p>
+                <p className="text-xs text-muted-foreground">
                   Los datos se mantienen locales y privados
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center space-x-3">
               <FileText className="h-5 w-5 text-purple-400" />
               <div>
-                <p className="text-sm font-medium text-white">Formato</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm font-medium text-foreground">Formato</p>
+                <p className="text-xs text-muted-foreground">
                   Archivo JSON estándar y portable
                 </p>
               </div>
@@ -533,10 +533,10 @@ export default function BackupsPage() {
               <Trash2 className="h-6 w-6 text-red-400" />
             </div>
             <div className="flex-1">
-              <h3 className="mb-1 text-lg font-semibold text-red-400">
+              <h3 className="mb-1 text-lg font-semibold text-red-500">
                 Zona de Peligro
               </h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-muted-foreground">
                 Esta acción es irreversible y eliminará TODOS tus datos
                 financieros
               </p>
@@ -564,7 +564,7 @@ export default function BackupsPage() {
                 </div>
               </div>
 
-              <p className="mb-3 text-xs italic text-gray-400">
+              <p className="mb-3 text-xs italic text-muted-foreground">
                 💡 Recomendación: Crea un respaldo antes de vaciar tu cuenta
               </p>
 
@@ -585,7 +585,7 @@ export default function BackupsPage() {
       {showClearModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           {/* * Modal with max-height for mobile scrolling */}
-          <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-red-500/30 bg-gray-900 p-6 shadow-2xl">
+          <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-red-500/30 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center space-x-3">
               <div className="rounded-lg bg-red-500/10 p-2">
                 <XCircle className="h-6 w-6 text-red-400" />
@@ -608,19 +608,19 @@ export default function BackupsPage() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-white">
+                <label className="mb-2 block text-sm font-medium text-foreground">
                   Para confirmar, escribe exactamente:{' '}
-                  <span className="font-mono text-red-400">VACIAR CUENTA</span>
+                  <span className="font-mono text-red-500">VACIAR CUENTA</span>
                 </label>
                 <input
                   type="text"
                   value={clearConfirmation}
                   onChange={(e) => setClearConfirmation(e.target.value)}
                   placeholder="Escribe VACIAR CUENTA"
-                  className="w-full rounded-lg border border-gray-700 bg-gray-800 px-4 py-3 text-white placeholder-gray-500 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
+                  className="w-full rounded-lg border border-border bg-muted px-4 py-3 text-foreground placeholder-muted-foreground focus:border-transparent focus:outline-none focus:ring-2 focus:ring-red-500"
                   disabled={clearLoading}
                 />
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-2 text-xs text-muted-foreground">
                   Debe coincidir exactamente (en mayúsculas)
                 </p>
               </div>

@@ -9,103 +9,81 @@
   --safe-area-bottom: env(safe-area-inset-bottom);
   --safe-area-left: env(safe-area-inset-left);
 
-  /* Base Colors - Clean and Minimal */
-  --background: 0 0% 98%;
-  /* Slightly off-white for better contrast */
-  --foreground: 0 0% 5%;
-  /* Darker text for better readability */
-  /* Near Black */
-  --card: 0 0% 100%;
-  /* Pure white cards for strong contrast */
-  --card-foreground: 0 0% 5%;
-  /* Dark text on cards */
-  /* Near Black */
+  /* iOS Light Theme - System Colors */
+  --background: 240 5% 96%;   /* System Background (Grayish) */
+  --foreground: 0 0% 0%;
+
+  /* Elevated Surfaces */
+  --card: 0 0% 100%;          /* White cards */
+  --card-foreground: 0 0% 0%;
+  
   --popover: 0 0% 100%;
-  /* Pure White */
-  --popover-foreground: 0 0% 9%;
-  /* Near Black */
+  --popover-foreground: 0 0% 0%;
 
-  /* Primary Blue - Elegant and Sophisticated */
-  --primary: 211 100% 50%;
-  /* Existing Blue */
+  --primary: 211 100% 50%;    /* iOS Blue */
   --primary-foreground: 0 0% 100%;
-  /* White */
-  --secondary: 0 0% 96%;
-  /* Light Gray */
-  --secondary-foreground: 0 0% 9%;
-  /* Near Black */
+  
+  --secondary: 0 0% 92%;      /* System Gray 6 */
+  --secondary-foreground: 0 0% 0%;
 
-  /* Grayscale System - Minimalist Approach */
-  --muted: 0 0% 92%;
-  /* Darker muted background */
-  --muted-foreground: 0 0% 35%;
-  /* Darker muted text for better readability */
-  /* Medium Gray */
+  --muted: 0 0% 85%;          /* System Gray 5 */
+  --muted-foreground: 0 0% 40%;
+  
   --accent: 211 100% 50%;
-  /* Blue Accent */
   --accent-foreground: 0 0% 100%;
-  /* White */
 
-  /* Semantic Colors - Refined */
   --destructive: 0 84% 60%;
-  /* Refined Red */
   --destructive-foreground: 0 0% 100%;
 
-  /* UI Elements */
-  --border: 0 0% 85%;
-  /* Darker borders for visibility */
-  --input: 0 0% 94%;
-  /* Slightly darker input background */
-  /* Input Background */
+  --border: 0 0% 80%;         /* Visible separator */
+  --input: 0 0% 100%;         /* White inputs */
   --ring: 211 100% 50%;
-  /* Focus Ring */
+
+  /* Financial Status Colors */
+  --success: 142 70% 45%;    /* iOS Green */
+  --error: 354 84% 60%;      /* iOS Red */
+  --warning: 38 92% 50%;     /* iOS Orange */
+  --info: 211 100% 50%;      /* iOS Blue */
 
   /* Radius */
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: 0 0% 0%;
-  /* Pure Black Background */
+  /* iOS System Background Colors */
+  --background: 0 0% 0%;      /* System Background (Base) */
   --foreground: 0 0% 98%;
-  /* Near White Text */
-  --card: 0 0% 3%;
-  /* Very Dark Card */
+
+  /* iOS Secondary/Tertiary surfaces for elevation */
+  --card: 0 0% 9%;            /* System Secondary Background */
   --card-foreground: 0 0% 98%;
-  /* Near White Card Text */
-  --popover: 0 0% 3%;
-  /* Very Dark Popover */
+  
+  --popover: 0 0% 12%;        /* System Tertiary Background */
   --popover-foreground: 0 0% 98%;
-  /* Near White Popover Text */
 
   --primary: 211 100% 65%;
-  /* Bright Blue for Black */
   --primary-foreground: 0 0% 0%;
-  /* Black Text on Blue */
-  --secondary: 0 0% 8%;
-  /* Very Dark Secondary */
+  
+  --secondary: 0 0% 16%;      /* Elevated Fill */
   --secondary-foreground: 0 0% 98%;
-  /* Near White Secondary Text */
 
-  --muted: 0 0% 5%;
-  /* Very Dark Muted */
-  --muted-foreground: 0 0% 70%;
-  /* Light Gray Text */
+  --muted: 0 0% 12%;
+  --muted-foreground: 0 0% 65%;
+  
   --accent: 211 100% 65%;
-  /* Bright Blue Accent */
   --accent-foreground: 0 0% 0%;
-  /* Black Accent Text */
 
   --destructive: 0 75% 70%;
-  /* Bright Red for Black */
   --destructive-foreground: 0 0% 98%;
 
-  --border: 0 0% 12%;
-  /* Dark Border */
-  --input: 0 0% 5%;
-  /* Very Dark Input */
+  --border: 0 0% 18%;         /* Opaque Separator */
+  --input: 0 0% 12%;
   --ring: 211 100% 65%;
-  /* Bright Focus Ring */
+
+  /* Financial Status Colors (Dark Mode) */
+  --success: 142 70% 60%;
+  --error: 354 75% 70%;
+  --warning: 38 90% 65%;
 }
 
 /* Base Styles */
@@ -144,10 +122,7 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
-  /* El scroll lo maneja #root para evitar saltos en mobile */
-  background-color: #000000;
   min-height: 100%;
-  /* Prevenir pull-to-refresh accidental si se desea, pero dejamos por defecto */
   overscroll-behavior-y: none;
 }
 
@@ -159,6 +134,7 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   position: relative;
+  background-color: hsl(var(--background));
 }
 
 #root main.app-shell-main {
@@ -255,26 +231,22 @@ body {
   scrollbar-width: none; /* Firefox */
 }
 
-/* Black Theme Utilities */
-.black-theme-header {
-  background-color: rgba(8, 8, 8, 0.95) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px);
-  /* Asegurar que el fondo cubra el safe area superior */
-  -webkit-backdrop-filter: blur(20px);
+/* iOS-style Material Utilities */
+.ios-header {
+  @apply bg-background/80 border-b border-border/50 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60;
 }
 
-.black-theme-sidebar {
-  background-color: rgba(8, 8, 8, 0.95) !important;
-  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(20px);
+.ios-sidebar {
+  @apply bg-background/80 border-r border-border/50 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60;
 }
 
-.black-theme-card {
-  background-color: rgba(8, 8, 8, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  backdrop-filter: blur(20px);
+.ios-card {
+  @apply bg-card/60 border border-border/40 backdrop-blur-xl shadow-ios-sm transition-ios hover:shadow-ios-md;
 }
+
+.black-theme-header { @apply ios-header; }
+.black-theme-sidebar { @apply ios-sidebar; }
+.black-theme-card { @apply ios-card; }
 
 /* Financial amount styling utility: stronger weight and tabular numbers */
 .amount-strong {
@@ -283,48 +255,51 @@ body {
 }
 
 /* Vivid emphasis styles for monetary amounts */
+.amount-emphasis-main {
+  @apply amount-strong text-foreground;
+}
+
 .amount-emphasis-white {
-  @apply amount-strong;
-  color: #ffffff;
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.25);
+  @apply amount-emphasis-main;
 }
 
 .amount-positive {
   @apply amount-strong;
-  color: #34d399;
-  /* emerald-400 */
-  text-shadow: 0 0 8px rgba(52, 211, 153, 0.25);
+  color: hsl(var(--success));
 }
 
 .amount-negative {
   @apply amount-strong;
-  color: #f43f5e;
-  /* rose-500 */
-  text-shadow: 0 0 8px rgba(244, 63, 94, 0.25);
+  color: hsl(var(--error));
 }
 
-/* iOS Safari input visibility fix (dark theme) */
-.dark input,
-.dark textarea,
-.dark select {
-  color: #ffffff;
-  caret-color: #ffffff;
-  -webkit-text-fill-color: #ffffff;
+.text-success { color: hsl(var(--success)); }
+.text-error { color: hsl(var(--error)); }
+.text-warning { color: hsl(var(--warning)); }
+
+
+/* iOS Safari input visibility fix (light/dark theme) */
+input,
+textarea,
+select {
+  color: hsl(var(--foreground));
+  caret-color: hsl(var(--foreground));
+  -webkit-text-fill-color: hsl(var(--foreground));
   -webkit-appearance: none;
   appearance: none;
   background-clip: padding-box;
 }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: rgba(255, 255, 255, 0.6);
+input::placeholder,
+textarea::placeholder {
+  color: hsl(var(--muted-foreground) / 0.6);
 }
 
 /* Override iOS autofill styles to keep text visible on dark backgrounds */
-.dark input:-webkit-autofill,
-.dark textarea:-webkit-autofill,
-.dark select:-webkit-autofill {
-  -webkit-text-fill-color: #ffffff !important;
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
   transition: background-color 9999s ease-in-out 0s;
   box-shadow: 0 0 0px 1000px rgba(255, 255, 255, 0.08) inset;
 }
@@ -334,19 +309,19 @@ body {
   filter: invert(1) opacity(0.8);
 }
 
-/* Ensure disabled inputs with light backgrounds remain readable on iOS */
-.dark input:disabled,
-.dark textarea:disabled,
-.dark select:disabled {
-  -webkit-text-fill-color: #111111;
-  /* readable on bg-gray-50 */
-  color: #111111;
+/* Ensure disabled inputs remain readable */
+input:disabled,
+textarea:disabled,
+select:disabled {
+  -webkit-text-fill-color: hsl(var(--muted-foreground));
+  color: hsl(var(--muted-foreground));
+  opacity: 0.6;
 }
 
-/* Utility to force input visibility in dark mode (overrides disabled input styling) */
-.dark .input-force-visible {
-  -webkit-text-fill-color: #ffffff !important;
-  color: #ffffff !important;
+/* Utility to force input visibility */
+.input-force-visible {
+  -webkit-text-fill-color: hsl(var(--foreground)) !important;
+  color: hsl(var(--foreground)) !important;
 }
 
 /* Reduced motion: keep the iOS-like feel, but respect accessibility */

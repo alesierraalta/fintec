@@ -48,7 +48,8 @@ export function BCVRates() {
   );
 
   // Get Binance rates for comparison
-  const { rates: binanceRates } = useBinanceRates();
+  const { rates: binanceRates, isFallback: binanceIsFallback } =
+    useBinanceRates();
 
   // Currency converter state
   const [showConverter, setShowConverter] = useState(false); // Already closed by default
@@ -117,9 +118,12 @@ export function BCVRates() {
     };
   }, []);
 
+  const isBinanceValid =
+    binanceRates && !binanceIsFallback && binanceRates.sell_rate?.avg > 0;
+
   // Calculate percentage difference with Binance for both USD and EUR
   const usdRateComparison: RateComparison | null =
-    rates && binanceRates
+    rates && isBinanceValid
       ? calculateAverageRateDifference(
           rates.usd,
           binanceRates.sell_rate.avg,
@@ -128,7 +132,7 @@ export function BCVRates() {
       : null;
 
   const eurRateComparison: RateComparison | null =
-    rates && binanceRates
+    rates && isBinanceValid
       ? calculateEurUsdRateDifference(
           rates.eur,
           binanceRates.sell_rate.avg,

@@ -101,7 +101,7 @@ export function MobileMenuFAB() {
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 animate-fade-in bg-black/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 animate-fade-in bg-background/30 backdrop-blur-sm lg:hidden"
           onClick={closeMenu}
           aria-label="Cerrar menú"
         />
@@ -110,6 +110,7 @@ export function MobileMenuFAB() {
       {/* Bottom Sheet */}
       <div
         aria-hidden={!isOpen}
+        inert={!isOpen ? true : undefined}
         className={cn(
           'fixed inset-x-0 bottom-0 z-50 transition-all duration-300 ease-out lg:hidden',
           isOpen ? 'translate-y-0' : 'translate-y-full'
@@ -196,8 +197,8 @@ export function MobileMenuFAB() {
           className={cn(
             'transition-ios focus-ring flex h-14 min-h-[44px] w-14 min-w-[44px] items-center justify-center rounded-full shadow-ios-lg backdrop-blur-sm',
             isOpen
-              ? 'rotate-90 bg-black text-white hover:bg-black/95 active:scale-95'
-              : 'bg-black text-white hover:bg-black/95 active:scale-95'
+              ? 'rotate-90 bg-foreground text-white hover:bg-foreground/95 active:scale-95'
+              : 'bg-foreground text-white hover:bg-foreground/95 active:scale-95'
           )}
           title="Más opciones"
           aria-label={isOpen ? 'Cerrar menú' : 'Abrir menú'}
@@ -213,7 +214,7 @@ export function MobileMenuFAB() {
                 alt="FinTec Menu"
                 fill
                 sizes="32px"
-                className="object-contain"
+                className="object-contain invert dark:invert-0"
                 priority
               />
             </span>

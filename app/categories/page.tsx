@@ -260,7 +260,7 @@ export default function CategoriesPage() {
             <span className="text-ios-caption font-medium">Organización</span>
           </div>
 
-          <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-blue-500 bg-clip-text text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-6xl">
+          <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-blue-500 bg-clip-text text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-6xl">
             🏷️ Categorías
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
@@ -450,7 +450,7 @@ export default function CategoriesPage() {
         {loading ? (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-blue-500"></div>
-            <p className="text-gray-400">Cargando categorías...</p>
+            <p className="text-muted-foreground">Cargando categorías...</p>
           </div>
         ) : (
           /* Categories Grid/List */
@@ -477,14 +477,14 @@ export default function CategoriesPage() {
 
         {/* Empty state */}
         {filteredCategories.length === 0 && (
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gray-800">
-              <Filter className="h-8 w-8 text-gray-400" />
+          <div className="rounded-xl border border-border bg-card p-12 text-center">
+            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <Filter className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-white">
+            <h3 className="mb-2 text-lg font-semibold text-foreground">
               No se encontraron categorías
             </h3>
-            <p className="mb-4 text-gray-400">
+            <p className="mb-4 text-muted-foreground">
               {searchTerm
                 ? `No hay categorías que coincidan con "${searchTerm}"`
                 : 'No hay categorías para mostrar con los filtros actuales'}

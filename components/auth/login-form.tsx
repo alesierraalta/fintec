@@ -171,13 +171,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               <LogIn className="h-8 w-8 text-primary transition-transform duration-300 group-hover:scale-110" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
                 <span className="bg-gradient-to-br from-white to-white/60 bg-clip-text text-transparent">
                   Fin
                 </span>
                 <span className="text-primary">Tec</span>
               </h1>
-              <p className="text-sm text-white/50">
+              <p className="text-sm text-foreground/50">
                 Tu futuro financiero comienza acá.
               </p>
             </div>
@@ -197,13 +197,13 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                   <h3 className="text-md mb-2 font-bold text-primary">
                     📧 ¡Verifica tu correo!
                   </h3>
-                  <p className="mb-3 text-xs text-white/70">
+                  <p className="mb-3 text-xs text-foreground/70">
                     Hemos enviado un correo a:
                   </p>
                   <p className="mb-3 truncate rounded-lg border border-primary/20 bg-black/40 px-3 py-2 font-mono text-xs font-semibold text-primary/90">
                     {emailConfirmationMessage.email}
                   </p>
-                  <div className="space-y-1 text-[11px] text-white/50">
+                  <div className="space-y-1 text-[11px] text-foreground/50">
                     <p>• Revisa tu bandeja de entrada</p>
                     <p>• Verifica la carpeta de spam</p>
                     <p className="mt-2 font-medium text-primary/80">
@@ -293,7 +293,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="flex h-10 w-10 items-center justify-center text-white/40 transition-colors hover:text-white/70"
+                      className="flex h-10 w-10 items-center justify-center text-foreground/40 transition-colors hover:text-foreground/70"
                       disabled={loading}
                     >
                       {showPassword ? (
@@ -323,7 +323,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 />
                 <label
                   htmlFor="remember-me"
-                  className="cursor-pointer text-xs font-medium text-white/60 transition-colors hover:text-white/80"
+                  className="cursor-pointer text-xs font-medium text-foreground/60 transition-colors hover:text-foreground/80"
                 >
                   Recordar sesión
                 </label>
@@ -370,7 +370,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
               }}
               className="pt-2 text-center"
             >
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-foreground/40">
                 ¿No tenés una cuenta?{' '}
                 <button
                   type="button"

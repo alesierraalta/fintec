@@ -517,12 +517,12 @@ export function DesktopAddTransaction() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-fade-in text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success">
-            <Check className="h-10 w-10 text-white" />
+            <Check className="h-10 w-10 text-foreground" />
           </div>
-          <h2 className="mb-2 text-2xl font-bold text-white">
+          <h2 className="mb-2 text-2xl font-bold text-foreground">
             ¡Transacción Creada!
           </h2>
-          <p className="text-gray-300">Redirigiendo...</p>
+          <p className="text-muted-foreground">Redirigiendo...</p>
         </div>
       </div>
     );
@@ -554,8 +554,8 @@ export function DesktopAddTransaction() {
           {/* Left Column - Transaction Type & Account */}
           <div className="space-y-6">
             {/* Transaction Type */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
-              <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+              <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <Repeat className="mr-2 h-5 w-5 text-blue-400" />
                 Tipo de Transacción
               </h3>
@@ -577,22 +577,22 @@ export function DesktopAddTransaction() {
                       className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                         isSelected
                           ? `bg-gradient-to-r ${type.color} border-0 shadow-xl`
-                          : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                          : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
                         <div
                           className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                            isSelected ? 'bg-white/20' : 'bg-white/10'
+                            isSelected ? 'bg-muted/30' : 'bg-muted/20'
                           }`}
                         >
                           <Icon
-                            className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-300'}`}
+                            className={`h-5 w-5 ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}
                           />
                         </div>
                         <div className="text-left">
                           <p
-                            className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}
+                            className={`font-semibold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}
                           >
                             {type.label}
                           </p>
@@ -606,18 +606,18 @@ export function DesktopAddTransaction() {
 
             {/* Account Selection */}
             {formData.type && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
-                <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
+              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+                <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                   <Wallet className="mr-2 h-5 w-5 text-green-400" />
                   Cuenta
                 </h3>
                 <div className="space-y-3">
                   {loadingAccounts ? (
-                    <div className="col-span-full text-center text-gray-400">
+                    <div className="col-span-full text-center text-muted-foreground/80">
                       Cargando cuentas...
                     </div>
                   ) : accounts.length === 0 ? (
-                    <div className="col-span-full text-center text-gray-400">
+                    <div className="col-span-full text-center text-muted-foreground/80">
                       No tienes cuentas disponibles. <br />
                       <span className="text-sm">
                         Crea una cuenta primero en la sección de Cuentas.
@@ -637,13 +637,13 @@ export function DesktopAddTransaction() {
                           className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                             isSelected
                               ? 'border border-success/40 bg-success/90 shadow-xl'
-                              : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                              : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
                             <div
                               className={`flex h-10 w-10 items-center justify-center rounded-lg ${
-                                isSelected ? 'bg-white/20' : 'bg-white/10'
+                                isSelected ? 'bg-muted/30' : 'bg-muted/20'
                               }`}
                             >
                               <span className="text-xl">
@@ -660,12 +660,12 @@ export function DesktopAddTransaction() {
                             </div>
                             <div className="flex-1 text-left">
                               <p
-                                className={`font-semibold ${isSelected ? 'text-white' : 'text-gray-300'}`}
+                                className={`font-semibold ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}
                               >
                                 {account.name}
                               </p>
                               <p
-                                className={`amount-strong text-sm ${isSelected ? 'text-white/80' : 'text-gray-400'}`}
+                                className={`amount-strong text-sm ${isSelected ? 'text-white/80' : 'text-muted-foreground/80'}`}
                               >
                                 {account.currencyCode === 'VES'
                                   ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
@@ -686,9 +686,9 @@ export function DesktopAddTransaction() {
           <div className="space-y-6">
             {/* Category Selection */}
             {formData.type && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
                 <div className="mb-4 flex items-center justify-between">
-                  <h3 className="flex items-center text-xl font-semibold text-white">
+                  <h3 className="flex items-center text-xl font-semibold text-foreground">
                     <Tag className="mr-2 h-5 w-5 text-pink-400" />
                     Categoría
                   </h3>
@@ -703,7 +703,7 @@ export function DesktopAddTransaction() {
                 </div>
                 <div className="grid max-h-96 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
                   {loadingCategories ? (
-                    <div className="col-span-full text-center text-gray-400">
+                    <div className="col-span-full text-center text-muted-foreground/80">
                       Cargando categorías...
                     </div>
                   ) : (
@@ -729,7 +729,7 @@ export function DesktopAddTransaction() {
                             className={`relative rounded-xl p-3 transition-all duration-300 ${
                               isSelected
                                 ? 'border-0 shadow-xl'
-                                : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                                : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
                             }`}
                             style={
                               isSelected
@@ -740,7 +740,7 @@ export function DesktopAddTransaction() {
                             <div className="flex flex-col items-center space-y-2">
                               <div
                                 className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                                  isSelected ? 'bg-white/20' : 'bg-white/10'
+                                  isSelected ? 'bg-muted/30' : 'bg-muted/20'
                                 }`}
                               >
                                 <span className="text-lg">
@@ -809,7 +809,9 @@ export function DesktopAddTransaction() {
                               </div>
                               <span
                                 className={`text-center text-xs font-medium ${
-                                  isSelected ? 'text-white' : 'text-gray-300'
+                                  isSelected
+                                    ? 'text-foreground'
+                                    : 'text-muted-foreground'
                                 }`}
                               >
                                 {category.name}
@@ -825,15 +827,15 @@ export function DesktopAddTransaction() {
             )}
 
             {/* Visual Calculator */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
-              <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+              <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <DollarSign className="mr-2 h-5 w-5 text-yellow-400" />
                 Monto
               </h3>
 
               <div className="mb-4 rounded-xl bg-muted/20 p-4">
                 <div className="text-right">
-                  <div className="flex items-center justify-end gap-1 text-2xl font-bold text-white">
+                  <div className="flex items-center justify-end gap-1 text-2xl font-bold text-foreground">
                     <span>$</span>
                     <input
                       type="text"
@@ -853,7 +855,7 @@ export function DesktopAddTransaction() {
                           handleCalculatorClick(mappedButton);
                         }
                       }}
-                      className="w-full max-w-52 bg-transparent text-right text-white outline-none"
+                      className="w-full max-w-52 bg-transparent text-right text-foreground outline-none"
                       aria-label="Monto de la transacción"
                     />
                   </div>
@@ -910,7 +912,7 @@ export function DesktopAddTransaction() {
                         ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
                         : ['/', '*', '-', '+', '='].includes(btn)
                           ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
-                          : 'bg-white/10 text-white hover:bg-white/20'
+                          : 'bg-muted/20 text-foreground hover:bg-muted/30'
                     } ${btn === '0' ? 'col-span-2' : ''}`}
                   >
                     {btn}
@@ -922,15 +924,15 @@ export function DesktopAddTransaction() {
 
           {/* Right Column - Details */}
           <div className="space-y-6">
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
-              <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+              <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <FileText className="mr-2 h-5 w-5 text-cyan-400" />
                 Detalles
               </h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
                     Descripción (Opcional)
                   </label>
                   <input
@@ -946,12 +948,12 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
                     Fecha
                   </label>
                   <input
@@ -960,12 +962,12 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, date: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
                     Nota (Opcional)
                   </label>
                   <textarea
@@ -975,11 +977,11 @@ export function DesktopAddTransaction() {
                       setFormData({ ...formData, note: e.target.value })
                     }
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full resize-none rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-300">
+                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
                     Etiquetas (Opcional)
                   </label>
                   <input
@@ -989,17 +991,17 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, tags: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
                 {(formData.type === TransactionType.INCOME ||
                   formData.type === TransactionType.EXPENSE) && (
-                  <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <div className="rounded-xl border border-border/40 bg-muted/10 p-4">
                     <div className="mb-3 flex items-center justify-between">
                       <label
                         htmlFor="isDebt"
-                        className="text-sm font-medium text-white"
+                        className="text-sm font-medium text-foreground"
                       >
                         Es deuda
                       </label>
@@ -1025,14 +1027,14 @@ export function DesktopAddTransaction() {
                               : '',
                           })
                         }
-                        className="h-5 w-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                        className="h-5 w-5 rounded border-border/50 bg-muted/20 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
                       />
                     </div>
 
                     {formData.isDebt && (
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
                             Direccion de deuda
                           </label>
                           <select
@@ -1043,22 +1045,25 @@ export function DesktopAddTransaction() {
                                 debtDirection: e.target.value as any,
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           >
-                            <option value="" className="bg-gray-800">
+                            <option value="" className="bg-background">
                               Selecciona una opcion
                             </option>
-                            <option value="OWE" className="bg-gray-800">
+                            <option value="OWE" className="bg-background">
                               Debo
                             </option>
-                            <option value="OWED_TO_ME" className="bg-gray-800">
+                            <option
+                              value="OWED_TO_ME"
+                              className="bg-background"
+                            >
                               Me deben
                             </option>
                           </select>
                         </div>
 
                         <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
                             Estado
                           </label>
                           <select
@@ -1073,17 +1078,17 @@ export function DesktopAddTransaction() {
                                     : '',
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           >
                             <option
                               value={DebtStatus.OPEN}
-                              className="bg-gray-800"
+                              className="bg-background"
                             >
                               Abierta
                             </option>
                             <option
                               value={DebtStatus.SETTLED}
-                              className="bg-gray-800"
+                              className="bg-background"
                             >
                               Saldada
                             </option>
@@ -1092,7 +1097,7 @@ export function DesktopAddTransaction() {
 
                         {formData.debtStatus === DebtStatus.SETTLED && (
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-gray-300">
+                            <label className="mb-2 block text-sm font-medium text-muted-foreground">
                               Fecha de liquidacion
                             </label>
                             <input
@@ -1104,13 +1109,13 @@ export function DesktopAddTransaction() {
                                   settledAt: e.target.value,
                                 })
                               }
-                              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             />
                           </div>
                         )}
 
                         <div>
-                          <label className="mb-2 block text-sm font-medium text-gray-300">
+                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
                             Contraparte (opcional)
                           </label>
                           <input
@@ -1123,7 +1128,7 @@ export function DesktopAddTransaction() {
                                 counterpartyName: e.target.value,
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           />
                         </div>
                       </div>
@@ -1132,7 +1137,7 @@ export function DesktopAddTransaction() {
                 )}
 
                 {/* Recurring Transaction Settings */}
-                <div className="border-t border-white/10 pt-4">
+                <div className="border-t border-border/40 pt-4">
                   <div className="mb-4 flex items-center space-x-3">
                     <input
                       type="checkbox"
@@ -1144,11 +1149,11 @@ export function DesktopAddTransaction() {
                           isRecurring: e.target.checked,
                         })
                       }
-                      className="h-5 w-5 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
+                      className="h-5 w-5 rounded border-border/50 bg-muted/20 text-blue-500 focus:ring-2 focus:ring-blue-500/50"
                     />
                     <label
                       htmlFor="isRecurring"
-                      className="font-medium text-white"
+                      className="font-medium text-foreground"
                     >
                       🔄 Transacción Recurrente
                     </label>
@@ -1157,7 +1162,7 @@ export function DesktopAddTransaction() {
                   {formData.isRecurring && (
                     <div className="space-y-4 pl-8">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-300">
+                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
                           Frecuencia
                         </label>
                         <select
@@ -1171,22 +1176,22 @@ export function DesktopAddTransaction() {
                                 | 'yearly',
                             })
                           }
-                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         >
-                          <option value="weekly" className="bg-gray-800">
+                          <option value="weekly" className="bg-background">
                             Semanal
                           </option>
-                          <option value="monthly" className="bg-gray-800">
+                          <option value="monthly" className="bg-background">
                             Mensual
                           </option>
-                          <option value="yearly" className="bg-gray-800">
+                          <option value="yearly" className="bg-background">
                             Anual
                           </option>
                         </select>
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-300">
+                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
                           Finalizar el (Opcional)
                         </label>
                         <input
@@ -1198,9 +1203,9 @@ export function DesktopAddTransaction() {
                               endDate: e.target.value,
                             })
                           }
-                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         />
-                        <p className="mt-1 text-xs text-gray-400">
+                        <p className="mt-1 text-xs text-muted-foreground/80">
                           Deja vacío para que continúe indefinidamente
                         </p>
                       </div>
@@ -1230,7 +1235,7 @@ export function DesktopAddTransaction() {
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="focus-ring flex min-h-[44px] transform items-center justify-center space-x-3 rounded-xl border-2 border-success/60 bg-success px-8 py-4 text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="focus-ring flex min-h-[44px] transform items-center justify-center space-x-3 rounded-xl border-2 border-success/60 bg-success px-8 py-4 text-foreground shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-50"
             title="Finalizar Transacción"
           >
             {loading ? (
@@ -1259,7 +1264,7 @@ export function DesktopAddTransaction() {
 
         {/* Summary Card (if form is partially filled) */}
         {(formData.type || formData.amount) && (
-          <div className="fixed right-8 top-20 z-40 max-w-sm rounded-2xl border border-border/50 bg-card/80 p-4 shadow-2xl backdrop-blur-md">
+          <div className="transition-ios fixed right-8 top-20 z-40 max-w-sm rounded-2xl border border-border/50 bg-card/80 p-4 shadow-ios-lg backdrop-blur-xl">
             <h4 className="mb-2 font-semibold text-foreground">Resumen</h4>
             <div className="space-y-1 text-sm text-muted-foreground">
               {formData.type && (

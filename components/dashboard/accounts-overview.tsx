@@ -261,23 +261,23 @@ export const AccountsOverview = memo(function AccountsOverview() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="amount-emphasis-white text-ios-body font-semibold text-white">
+                  <p className="amount-emphasis-main text-ios-body font-semibold">
                     {account.balance}
                   </p>
                   <div className="mt-1 flex items-center justify-end">
                     {account.change !== 'Nuevo' && (
                       <>
                         {account.changeType === 'positive' ? (
-                          <TrendingUp className="mr-1 h-3 w-3 text-green-600" />
+                          <TrendingUp className="mr-1 h-3 w-3 text-success" />
                         ) : account.changeType === 'negative' ? (
-                          <TrendingDown className="mr-1 h-3 w-3 text-red-600" />
+                          <TrendingDown className="mr-1 h-3 w-3 text-error" />
                         ) : null}
                         <p
                           className={`text-ios-caption font-medium ${
                             account.changeType === 'positive'
-                              ? 'text-green-600'
+                              ? 'text-success'
                               : account.changeType === 'negative'
-                                ? 'text-red-600'
+                                ? 'text-error'
                                 : 'text-muted-foreground'
                           }`}
                         >
@@ -300,25 +300,25 @@ export const AccountsOverview = memo(function AccountsOverview() {
 
       {/* iOS-style Total Balance */}
       <div className="border-t border-border/10 pt-6">
-        <div className="from-blue-500/8 to-purple-500/8 rounded-2xl border border-blue-500/15 bg-gradient-to-br p-6 text-center shadow-ios-sm backdrop-blur-xl">
+        <div className="ios-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 text-center">
           <p className="mb-3 text-ios-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Balance Total
           </p>
-          <p className="amount-emphasis-white text-ios-large-title font-bold text-white">
+          <p className="amount-emphasis-main text-ios-large-title font-bold">
             ${totalBalance.toFixed(2)}
           </p>
           {totalBalanceChange && (
             <div className="mt-2 flex items-center justify-center">
               {totalBalanceChange.startsWith('+') ? (
-                <TrendingUp className="mr-2 h-4 w-4 text-green-600" />
+                <TrendingUp className="mr-2 h-4 w-4 text-success" />
               ) : (
-                <TrendingDown className="mr-2 h-4 w-4 text-red-600" />
+                <TrendingDown className="mr-2 h-4 w-4 text-error" />
               )}
               <p
                 className={`text-ios-caption font-medium ${
                   totalBalanceChange.startsWith('+')
-                    ? 'text-green-600'
-                    : 'text-red-600'
+                    ? 'text-success'
+                    : 'text-error'
                 }`}
               >
                 {totalBalanceChange} este mes

@@ -125,7 +125,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           }}
           className="mx-auto w-full max-w-md px-4"
         >
-          <div className="black-theme-card relative overflow-hidden rounded-3xl p-8 text-center shadow-2xl backdrop-blur-2xl">
+          <div className="black-theme-card relative overflow-hidden rounded-3xl p-8 text-center shadow-ios-lg backdrop-blur-2xl">
             <motion.div
               initial={{ scale: 0, rotate: -45 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -134,32 +134,32 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               <Mail className="h-12 w-12 animate-pulse text-primary" />
             </motion.div>
 
-            <h2 className="mb-4 text-3xl font-bold tracking-tight text-white">
+            <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
               📧 <span className="italic text-primary">Revisá</span> tu Correo
             </h2>
 
             <div className="mb-8 space-y-6">
-              <p className="text-sm text-white/50">
+              <p className="text-sm text-muted-foreground">
                 Enviamos un enlace mágico de verificación a:
               </p>
-              <div className="mx-auto max-w-[280px] rounded-xl border border-primary/20 bg-black/40 px-4 py-3 font-mono text-xs font-semibold text-primary/90 shadow-inner">
+              <div className="mx-auto max-w-[280px] rounded-xl border border-primary/20 bg-muted/40 px-4 py-3 font-mono text-xs font-semibold text-primary/90 shadow-inner">
                 {successMessage.email}
               </div>
 
-              <div className="glass-card space-y-3 rounded-2xl border border-white/5 bg-white/5 p-6 text-left">
+              <div className="glass-card space-y-3 rounded-2xl border border-border/50 bg-muted/20 p-6 text-left">
                 <p className="text-xs font-bold uppercase tracking-wider text-primary/80">
                   Próximos pasos:
                 </p>
                 <div className="space-y-2">
-                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                  <div className="flex items-center space-x-3 text-xs text-muted-foreground/80">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                     <span>Revisá tu bandeja de entrada</span>
                   </div>
-                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                  <div className="flex items-center space-x-3 text-xs text-muted-foreground/80">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                     <span>Chequeá la carpeta de Spam</span>
                   </div>
-                  <div className="flex items-center space-x-3 text-xs text-white/70">
+                  <div className="flex items-center space-x-3 text-xs text-muted-foreground/80">
                     <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                     <span>Confirmá el enlace para entrar</span>
                   </div>
@@ -168,7 +168,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center justify-center space-x-3 text-white/40">
+              <div className="flex items-center justify-center space-x-3 text-muted-foreground/60">
                 <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                 <span className="text-xs font-medium">
                   Redirigiendo al login en 5 segundos...
@@ -201,14 +201,14 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             >
               <CheckCircle className="h-10 w-10 text-green-500" />
             </motion.div>
-            <h2 className="mb-2 text-3xl font-bold text-white">
+            <h2 className="mb-2 text-3xl font-bold text-foreground">
               ¡Cuenta Creada!
             </h2>
-            <p className="mb-8 text-sm text-white/50">
+            <p className="mb-8 text-sm text-muted-foreground">
               Bienvenido a la familia. Estamos preparando todo para vos.
             </p>
             <div className="flex flex-col items-center gap-4">
-              <div className="h-2 w-48 overflow-hidden rounded-full bg-white/5">
+              <div className="h-2 w-48 overflow-hidden rounded-full bg-muted/20">
                 <motion.div
                   initial={{ x: '-100%' }}
                   animate={{ x: '100%' }}
@@ -262,10 +262,10 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               <UserPlus className="h-8 w-8 text-primary" />
             </div>
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold tracking-tight text-white md:text-3xl">
+              <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-3xl">
                 Unite a <span className="italic text-primary">FinTec</span>
               </h1>
-              <p className="text-sm text-white/50">
+              <p className="text-sm text-muted-foreground">
                 Simple, rápido y potente. Gestioná tu dinero como un
                 profesional.
               </p>
@@ -419,7 +419,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
               }}
               className="pt-4 text-center"
             >
-              <p className="text-xs text-white/40">
+              <p className="text-xs text-muted-foreground/60">
                 ¿Ya sos parte?{' '}
                 <button
                   type="button"

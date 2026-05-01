@@ -709,7 +709,7 @@ export default function AccountsPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 }}
               >
-                <TrendingUp className="h-3 w-3 text-green-600" />
+                <TrendingUp className="h-3 w-3 text-success" />
                 <span className="text-ios-caption font-medium text-foreground">
                   +{balanceGrowth.toFixed(1)}% este mes
                 </span>
@@ -799,17 +799,17 @@ export default function AccountsPage() {
         >
           {/* Balance Total Card - iOS Style Mobile Responsive */}
           <motion.div
-            className="black-theme-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
+            className="ios-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
             variants={fadeInUp}
             {...cardHover}
           >
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
-              <h3 className="text-lg font-medium tracking-wide text-white">
+              <h3 className="text-lg font-medium tracking-wide text-foreground">
                 BALANCE TOTAL
               </h3>
             </div>
-            <p className="amount-emphasis-white mb-2 text-2xl font-semibold text-white sm:text-3xl">
+            <p className="amount-emphasis-main mb-2 text-2xl font-semibold sm:text-3xl">
               {showBalances ? (
                 <NumberTicker
                   value={totalBalance}
@@ -849,13 +849,13 @@ export default function AccountsPage() {
 
           {/* Cuentas Activas Card - iOS Style Mobile Responsive */}
           <motion.div
-            className="black-theme-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
+            className="ios-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
             variants={fadeInUp}
             {...cardHover}
           >
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-              <h3 className="text-lg font-medium tracking-wide text-white">
+              <h3 className="text-lg font-medium tracking-wide text-foreground">
                 CUENTAS ACTIVAS
               </h3>
             </div>
@@ -890,13 +890,13 @@ export default function AccountsPage() {
 
           {/* Criptomonedas Card - iOS Style Mobile Responsive */}
           <motion.div
-            className="black-theme-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
+            className="ios-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
             variants={fadeInUp}
             {...cardHover}
           >
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-warning-500"></div>
-              <h3 className="text-lg font-medium tracking-wide text-white">
+              <h3 className="text-lg font-medium tracking-wide text-foreground">
                 CRIPTOMONEDAS
               </h3>
             </div>
@@ -926,13 +926,13 @@ export default function AccountsPage() {
 
           {/* Diversificación Card - iOS Style Mobile Responsive */}
           <motion.div
-            className="black-theme-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
+            className="ios-card group rounded-3xl p-4 shadow-lg transition-all duration-300 hover:shadow-xl sm:p-6"
             variants={fadeInUp}
             {...cardHover}
           >
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
-              <h3 className="text-lg font-medium tracking-wide text-white">
+              <h3 className="text-lg font-medium tracking-wide text-foreground">
                 DIVERSIFICACIÓN
               </h3>
             </div>
@@ -966,7 +966,7 @@ export default function AccountsPage() {
         </motion.div>
 
         {/* Accounts List - iOS Style */}
-        <div className="black-theme-card no-horizontal-scroll w-full overflow-hidden rounded-3xl shadow-lg">
+        <div className="ios-card no-horizontal-scroll w-full overflow-hidden rounded-3xl shadow-lg">
           <div className="border-b border-border/40 p-6">
             <div className="flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -1120,7 +1120,7 @@ export default function AccountsPage() {
 
                         <div className="flex items-center space-x-4">
                           <div className="flex-shrink-0 text-right">
-                            <p className="amount-emphasis-white truncate text-sm font-semibold text-white sm:text-ios-title">
+                            <p className="amount-emphasis-main truncate text-sm font-semibold sm:text-ios-title">
                               {showBalances
                                 ? account.type === 'CRYPTO'
                                   ? `$${convertToUSD(
@@ -1265,7 +1265,7 @@ export default function AccountsPage() {
                                           </p>
                                         )}
                                         {stat.expenses > 0 && (
-                                          <p className="text-xs font-medium text-red-600">
+                                          <p className="text-xs font-medium text-error">
                                             -
                                             {getCurrencySymbol(
                                               account.currencyCode
@@ -1277,7 +1277,7 @@ export default function AccountsPage() {
                                           className={`text-xs font-semibold ${
                                             stat.net >= 0
                                               ? 'text-green-600'
-                                              : 'text-red-600'
+                                              : 'text-error'
                                           }`}
                                         >
                                           {stat.net >= 0 ? '+' : ''}

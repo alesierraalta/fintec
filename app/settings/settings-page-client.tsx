@@ -60,7 +60,7 @@ export default function SettingsPage() {
             <span className="text-ios-caption font-medium">Sistema</span>
           </div>
 
-          <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-indigo-500 bg-clip-text text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-6xl">
+          <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-indigo-500 bg-clip-text text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-6xl">
             ⚙️ Configuración
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
@@ -207,7 +207,7 @@ export default function SettingsPage() {
               {/* Frequency */}
               {settings.enabled && (
                 <div>
-                  <p className="mb-3 text-sm font-medium text-white">
+                  <p className="mb-3 text-sm font-medium text-foreground">
                     Frecuencia
                   </p>
                   <div className="grid grid-cols-3 gap-2">
@@ -223,8 +223,8 @@ export default function SettingsPage() {
                         }
                         className={`rounded-lg border p-3 text-sm transition-colors ${
                           settings.frequency === option.value
-                            ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                            : 'border-gray-700 bg-gray-800 text-gray-400 hover:border-gray-600'
+                            ? 'border-blue-500 bg-blue-500/10 text-blue-500'
+                            : 'border-border bg-muted/50 text-muted-foreground hover:border-foreground/20'
                         }`}
                       >
                         <option.icon className="mx-auto mb-1 h-4 w-4" />
@@ -239,10 +239,10 @@ export default function SettingsPage() {
               {settings.enabled && (
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-white">
+                    <p className="text-sm font-medium text-foreground">
                       Descarga automática
                     </p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-xs text-muted-foreground">
                       Descargar archivo al realizar respaldo
                     </p>
                   </div>
@@ -264,11 +264,11 @@ export default function SettingsPage() {
               )}
 
               {/* Status */}
-              <div className="border-t border-gray-700 pt-4">
+              <div className="border-t border-border pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-400">Estado</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm text-muted-foreground">Estado</p>
+                    <p className="text-xs text-muted-foreground/70">
                       {settings.lastBackup
                         ? `Último: ${new Date(settings.lastBackup).toLocaleDateString('es-ES')}`
                         : 'Sin respaldos previos'}
@@ -297,16 +297,16 @@ export default function SettingsPage() {
           </div>
 
           {/* Notifications Settings */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="mb-6 flex items-center space-x-3">
               <div className="rounded-lg bg-yellow-500/10 p-2">
-                <Bell className="h-6 w-6 text-yellow-400" />
+                <Bell className="h-6 w-6 text-yellow-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   Notificaciones
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Configura las alertas y notificaciones
                 </p>
               </div>
@@ -314,24 +314,28 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="py-8 text-center">
-                <Bell className="mx-auto mb-3 h-12 w-12 text-gray-600" />
-                <p className="mb-2 text-sm text-gray-400">
+                <Bell className="mx-auto mb-3 h-12 w-12 text-muted-foreground/20" />
+                <p className="mb-2 text-sm text-muted-foreground">
                   Configuración de notificaciones
                 </p>
-                <p className="text-xs text-gray-500">Próximamente disponible</p>
+                <p className="text-xs text-muted-foreground/70">
+                  Próximamente disponible
+                </p>
               </div>
             </div>
           </div>
 
           {/* App Settings */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="mb-6 flex items-center space-x-3">
               <div className="rounded-lg bg-purple-500/10 p-2">
-                <Smartphone className="h-6 w-6 text-purple-400" />
+                <Smartphone className="h-6 w-6 text-purple-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">Aplicación</h3>
-                <p className="text-sm text-gray-400">
+                <h3 className="text-lg font-semibold text-foreground">
+                  Aplicación
+                </h3>
+                <p className="text-sm text-muted-foreground">
                   Configuraciones generales de la app
                 </p>
               </div>
@@ -339,26 +343,28 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="py-8 text-center">
-                <Smartphone className="mx-auto mb-3 h-12 w-12 text-gray-600" />
-                <p className="mb-2 text-sm text-gray-400">
+                <Smartphone className="mx-auto mb-3 h-12 w-12 text-muted-foreground/20" />
+                <p className="mb-2 text-sm text-muted-foreground">
                   Configuraciones de la aplicación
                 </p>
-                <p className="text-xs text-gray-500">Próximamente disponible</p>
+                <p className="text-xs text-muted-foreground/70">
+                  Próximamente disponible
+                </p>
               </div>
             </div>
           </div>
 
           {/* Data Management */}
-          <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
+          <div className="rounded-xl border border-border bg-card p-6">
             <div className="mb-6 flex items-center space-x-3">
               <div className="rounded-lg bg-red-500/10 p-2">
-                <Database className="h-6 w-6 text-red-400" />
+                <Database className="h-6 w-6 text-red-500" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-white">
+                <h3 className="text-lg font-semibold text-foreground">
                   Gestión de Datos
                 </h3>
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-muted-foreground">
                   Administra tus datos y privacidad
                 </p>
               </div>
@@ -366,11 +372,13 @@ export default function SettingsPage() {
 
             <div className="space-y-4">
               <div className="py-8 text-center">
-                <Database className="mx-auto mb-3 h-12 w-12 text-gray-600" />
-                <p className="mb-2 text-sm text-gray-400">
+                <Database className="mx-auto mb-3 h-12 w-12 text-muted-foreground/20" />
+                <p className="mb-2 text-sm text-muted-foreground">
                   Gestión y privacidad de datos
                 </p>
-                <p className="text-xs text-gray-500">Próximamente disponible</p>
+                <p className="text-xs text-muted-foreground/70">
+                  Próximamente disponible
+                </p>
               </div>
             </div>
           </div>
@@ -378,10 +386,10 @@ export default function SettingsPage() {
 
         {/* Info Card */}
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
-          <h3 className="mb-2 text-sm font-medium text-blue-400">
+          <h3 className="mb-2 text-sm font-medium text-blue-500">
             💡 Acerca de los Respaldos Automáticos
           </h3>
-          <ul className="space-y-1 text-sm text-blue-300">
+          <ul className="space-y-1 text-sm text-blue-600/80">
             <li>
               • Los respaldos se crean automáticamente según la frecuencia
               configurada

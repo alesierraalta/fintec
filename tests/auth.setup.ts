@@ -30,7 +30,8 @@ setup(
 
     page.setDefaultTimeout(60_000);
 
-    await page.goto('/auth/login', { waitUntil: 'networkidle' });
+    await page.goto('/auth/login');
+    await page.waitForSelector('input[name="email"]');
     await expect(page).toHaveURL(/\/auth\/login/);
 
     await page.fill('input[name="email"]', canonicalUser.email);

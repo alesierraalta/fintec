@@ -40,7 +40,7 @@ describe('MobileMenuFAB', () => {
     const trigger = screen.getByTitle('Más opciones');
 
     expect(trigger).toBeInTheDocument();
-    expect(trigger).toHaveClass('bg-black');
+    expect(trigger).toHaveClass('bg-foreground');
     expect(trigger).toHaveAttribute('aria-label', 'Abrir menú');
     expect(screen.getByAltText('FinTec Menu')).toBeInTheDocument();
     expect(trigger.querySelector('img[alt="FinTec Menu"]')).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe('MobileMenuFAB', () => {
 
     await user.click(trigger);
 
-    expect(trigger).toHaveClass('bg-black');
+    expect(trigger).toHaveClass('bg-foreground');
     expect(trigger).toHaveAttribute('aria-label', 'Cerrar menú');
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     expect(

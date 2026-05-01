@@ -85,7 +85,7 @@ function ProfileContent() {
             </div>
 
             <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-r from-primary to-indigo-600 shadow-lg">
-              <User className="h-12 w-12 text-white" />
+              <User className="h-12 w-12 text-primary-foreground" />
             </div>
 
             <h1 className="mb-4 text-ios-large-title font-bold tracking-tight">
@@ -193,8 +193,8 @@ function ProfileContent() {
               </div>
 
               {/* Account Info */}
-              <div className="border-t border-gray-200 pt-6">
-                <h3 className="mb-4 text-lg font-medium text-gray-900">
+              <div className="border-t border-border pt-6">
+                <h3 className="mb-4 text-lg font-medium text-foreground">
                   Información de la Cuenta
                 </h3>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -225,7 +225,7 @@ function ProfileContent() {
               </div>
 
               {isEditing && (
-                <div className="flex items-center justify-end space-x-4 border-t border-gray-200 pt-6">
+                <div className="flex items-center justify-end space-x-4 border-t border-border pt-6">
                   <Button
                     type="button"
                     variant="secondary"
