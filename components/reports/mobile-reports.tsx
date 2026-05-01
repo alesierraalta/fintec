@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { formatCurrency } from '@/lib/money';
+import { getTransactionDisplayName } from '@/lib/transactions/display';
 import {
   DEBT_PORTFOLIO_MODE,
   filterTransactionsByDebtMode,
@@ -243,7 +244,6 @@ export function MobileReports() {
   })();
 
   const renderOverview = () => {
-
     const netBalance = totalIncome - totalExpenses;
     const daysInPeriod = Math.max(
       1,
@@ -431,7 +431,7 @@ export function MobileReports() {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-text-primary">
-                      {transaction.description}
+                      {getTransactionDisplayName(transaction)}
                     </p>
                     <p className="text-xs text-text-muted">
                       {new Date(transaction.date).toLocaleDateString('es-ES')}
@@ -880,7 +880,6 @@ export function MobileReports() {
   };
 
   const renderDebts = () => {
-
     const totalOwe = openDebtTransactions
       .filter((transaction) => transaction.debtDirection === DebtDirection.OWE)
       .reduce(
@@ -932,7 +931,9 @@ export function MobileReports() {
                 >
                   <div>
                     <p className="text-sm font-medium text-text-primary">
-                      {transaction.description || 'Sin descripción'}
+                      {getTransactionDisplayName(transaction, {
+                        fallback: 'Sin descripción',
+                      })}
                     </p>
                     <p className="text-xs text-text-muted">
                       {transaction.debtDirection === DebtDirection.OWE

@@ -39,7 +39,8 @@ jest.mock('@/components/layout/sidebar', () => ({
 }));
 
 jest.mock('@/components/layout/header', () => ({
-  Header: () => <header data-testid="header" />,
+  __esModule: true,
+  default: () => <header data-testid="header" />,
 }));
 
 jest.mock('@/components/layout/mobile-nav', () => ({

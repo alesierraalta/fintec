@@ -15,6 +15,7 @@ import {
   X,
   TrendingUp,
 } from 'lucide-react';
+import { getTransactionDisplayName } from '@/lib/transactions/display';
 import { bcvHistoryService } from '@/lib/services/bcv-history-service';
 import { binanceHistoryService } from '@/lib/services/binance-history-service';
 
@@ -193,13 +194,13 @@ export function TransactionDetailPanel({
       <div className="fixed inset-0 z-[60] flex flex-col">
         {/* Backdrop - click to close */}
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
 
         {/* Modal Panel - full screen with iOS-style rounded top corners */}
-        <div className="relative mt-auto flex flex-1 animate-fade-in flex-col overflow-hidden rounded-t-3xl border-t border-border/40 bg-card/90 shadow-2xl backdrop-blur-xl">
+        <div className="glass-card relative mt-auto flex flex-1 animate-fade-in flex-col overflow-hidden rounded-t-3xl border-t border-border/50 bg-card/80 shadow-ios-lg backdrop-blur-xl">
           {/* Header */}
           <div className="flex-shrink-0 border-b border-border/20 p-6">
             <div className="flex items-center justify-between">
@@ -254,8 +255,10 @@ export function TransactionDetailPanel({
                   <FileText className="mr-2 h-4 w-4" />
                   Descripción
                 </h4>
-                <p className="rounded-lg bg-card/40 p-3 text-foreground">
-                  {transaction.description || 'Sin descripción'}
+                <p className="rounded-lg bg-muted/30 p-3 text-foreground">
+                  {getTransactionDisplayName(transaction, {
+                    fallback: 'Sin descripción',
+                  })}
                 </p>
               </div>
 
@@ -266,7 +269,7 @@ export function TransactionDetailPanel({
                     <Building2 className="mr-2 h-4 w-4" />
                     Cuenta
                   </h4>
-                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
+                  <p className="rounded-lg bg-muted/30 p-3 text-foreground">
                     {accountName}
                   </p>
                 </div>
@@ -275,7 +278,7 @@ export function TransactionDetailPanel({
                     <Tag className="mr-2 h-4 w-4" />
                     Categoría
                   </h4>
-                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
+                  <p className="rounded-lg bg-muted/30 p-3 text-foreground">
                     {categoryName}
                   </p>
                 </div>
@@ -288,7 +291,7 @@ export function TransactionDetailPanel({
                     <FileText className="mr-2 h-4 w-4" />
                     Nota
                   </h4>
-                  <p className="rounded-lg bg-card/40 p-3 text-foreground">
+                  <p className="rounded-lg bg-muted/30 p-3 text-foreground">
                     {transaction.note}
                   </p>
                 </div>
@@ -304,7 +307,7 @@ export function TransactionDetailPanel({
                   <div className="space-y-2">
                     {/* BCV USD */}
                     {vesRates.bcvUsd && vesRates.equivalentUsdBcv && (
-                      <div className="rounded-lg bg-card/40 p-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-muted-foreground">
@@ -328,7 +331,7 @@ export function TransactionDetailPanel({
 
                     {/* BCV EUR */}
                     {vesRates.bcvEur && vesRates.equivalentEurBcv && (
-                      <div className="rounded-lg bg-card/40 p-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-muted-foreground">
@@ -352,7 +355,7 @@ export function TransactionDetailPanel({
 
                     {/* Binance USD */}
                     {vesRates.binanceUsd && vesRates.equivalentUsdBinance && (
-                      <div className="rounded-lg bg-card/40 p-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-xs text-muted-foreground">
@@ -378,7 +381,7 @@ export function TransactionDetailPanel({
                     {!vesRates.bcvUsd &&
                       !vesRates.bcvEur &&
                       !vesRates.binanceUsd && (
-                        <div className="rounded-lg bg-card/40 p-3">
+                        <div className="rounded-lg bg-muted/30 p-3">
                           <p className="text-sm text-muted-foreground">
                             No hay tasas históricas disponibles para esta fecha
                           </p>
@@ -435,13 +438,13 @@ export function TransactionDetailPanel({
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="animate-slide-in-right ml-auto w-full max-w-md border-l border-border/40 bg-card/90 shadow-2xl backdrop-blur-xl">
+      <div className="animate-slide-in-right glass-card ml-auto w-full max-w-md border-l border-border/50 bg-card/80 shadow-ios-lg backdrop-blur-xl">
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="border-b border-border/20 p-6">
@@ -497,7 +500,9 @@ export function TransactionDetailPanel({
                   Descripción
                 </h3>
                 <p className="rounded-xl bg-card/40 p-4 text-ios-body text-foreground">
-                  {transaction.description || 'Sin descripción'}
+                  {getTransactionDisplayName(transaction, {
+                    fallback: 'Sin descripción',
+                  })}
                 </p>
               </div>
 

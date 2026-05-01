@@ -12,8 +12,9 @@ import {
 } from 'react';
 import dynamic from 'next/dynamic';
 import { FormLoading } from '@/components/ui/suspense-loading';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
+import { PageHeader } from '@/components/ui/page-header';
 import { TransactionFilters } from '@/components/filters/transaction-filters';
 import { TransactionActionsDropdown } from '@/components/transactions/transaction-actions-dropdown';
 import { TransactionDetailPanel } from '@/components/transactions/transaction-detail-panel';
@@ -35,7 +36,10 @@ import {
   Filter,
   Edit,
   ArrowRight,
+  Search,
+  X,
 } from 'lucide-react';
+import { getTransactionDisplayName } from '@/lib/transactions/display';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { SwipeableCard } from '@/components/ui/swipeable-card';
@@ -75,6 +79,9 @@ export default function TransactionsPage() {
   const [selectedDetailTransaction, setSelectedDetailTransaction] =
     useState<Transaction | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const searchQuery = searchParams.get('search') || '';
   const { isOpen, openModal, closeModal } = useModal();
   const {
     transactions,
@@ -121,7 +128,9 @@ export default function TransactionsPage() {
     amountMax?: string;
     tags?: string;
     debtMode?: 'ALL' | 'ONLY_DEBT' | 'EXCLUDE_DEBT';
-  }>({});
+  }>({
+    search: searchQuery || undefined,
+  });
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] =
@@ -134,22 +143,46 @@ export default function TransactionsPage() {
   };
 
   // Virtual pagination state
-  const ITEMS_PER_PAGE = 50;
   const [displayedCount, setDisplayedCount] = useState(ITEMS_PER_PAGE);
   const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    setDisplayedCount(ITEMS_PER_PAGE);
+  }, [filters]);
+
+  // Helper functions memoized - MOVED UP TO AVOID REFERENCE ERROR
+  const getAccountName = useCallback(
+    (id?: string) => accounts.find((a) => a.id === id)?.name || 'Cuenta',
+    [accounts]
+  );
+
+  const getCategoryName = useCallback(
+    (id?: string) => categories.find((c) => c.id === id)?.name || 'Categoría',
+    [categories]
+  );
 
   // Memoized filtered transactions
   const filteredTransactionsMemo = useMemo(() => {
     let filtered = [...transactions];
 
-    // Apply search filter
-    if (filters.search) {
-      const searchTerm = filters.search.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.description?.toLowerCase().includes(searchTerm) ||
-          t.note?.toLowerCase().includes(searchTerm)
-      );
+    const effectiveSearch = (filters.search || searchQuery || '').toLowerCase();
+    if (effectiveSearch) {
+      filtered = filtered.filter((t) => {
+        const description = t.description?.toLowerCase() || '';
+        const note = t.note?.toLowerCase() || '';
+        const category = getCategoryName(t.categoryId).toLowerCase();
+        const account = getAccountName(t.accountId).toLowerCase();
+        const tags = t.tags?.join(' ').toLowerCase() || '';
+
+        return (
+          description.includes(effectiveSearch) ||
+          note.includes(effectiveSearch) ||
+          category.includes(effectiveSearch) ||
+          account.includes(effectiveSearch) ||
+          tags.includes(effectiveSearch)
+        );
+      });
     }
 
     // Apply account filter
@@ -276,22 +309,6 @@ export default function TransactionsPage() {
     return () => observer.disconnect();
   }, [loadMore, displayedCount, filteredTransactionsMemo.length]);
 
-  // Reset displayed count when filters change
-  useEffect(() => {
-    setDisplayedCount(ITEMS_PER_PAGE);
-  }, [filters]);
-
-  // Helper functions memoized
-  const getAccountName = useCallback(
-    (id?: string) => accounts.find((a) => a.id === id)?.name || 'Cuenta',
-    [accounts]
-  );
-
-  const getCategoryName = useCallback(
-    (id?: string) => categories.find((c) => c.id === id)?.name || 'Categoría',
-    [categories]
-  );
-
   const formatAmount = useCallback((minor: number) => {
     if (!minor || isNaN(minor) || !isFinite(minor)) {
       return '0.00';
@@ -304,9 +321,24 @@ export default function TransactionsPage() {
   }, []);
 
   // Optimized filter handler
-  const handleFiltersChange = useCallback((newFilters: any) => {
-    setFilters(newFilters);
-  }, []);
+  const handleFiltersChange = useCallback(
+    (newFilters: any) => {
+      setFilters(newFilters);
+
+      // Sync search to URL if it changed in filters
+      if (typeof newFilters.search !== 'undefined') {
+        const params = new URLSearchParams(searchParams.toString());
+        if (newFilters.search) {
+          params.set('search', newFilters.search);
+        } else {
+          params.delete('search');
+        }
+        const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    },
+    [router, pathname, searchParams]
+  );
 
   // Optimized sorting handler
   const sortTransactions = useCallback(
@@ -359,14 +391,28 @@ export default function TransactionsPage() {
   const getIcon = useCallback((type: string) => {
     switch (type) {
       case 'INCOME':
-        return <ArrowDownLeft className="h-4 w-4 text-success" />;
+        return <ArrowDownLeft className="h-5 w-5" />;
       case 'EXPENSE':
-        return <ArrowUpRight className="h-4 w-4 text-destructive" />;
+        return <ArrowUpRight className="h-5 w-5" />;
       case 'TRANSFER_OUT':
       case 'TRANSFER_IN':
-        return <Repeat className="h-4 w-4 text-primary" />;
+        return <Repeat className="h-5 w-5" />;
       default:
-        return <ArrowUpRight className="h-4 w-4 text-muted-foreground" />;
+        return <ArrowUpRight className="h-5 w-5" />;
+    }
+  }, []);
+
+  const getIconContainerColor = useCallback((type: string) => {
+    switch (type) {
+      case 'INCOME':
+        return 'bg-success/20 text-success';
+      case 'EXPENSE':
+        return 'bg-destructive/20 text-destructive';
+      case 'TRANSFER_OUT':
+      case 'TRANSFER_IN':
+        return 'bg-primary/20 text-primary';
+      default:
+        return 'bg-muted/50 text-muted-foreground';
     }
   }, []);
 
@@ -455,38 +501,25 @@ export default function TransactionsPage() {
     <>
       <MainLayout>
         <div className="animate-fade-in space-y-8">
-          {/* iOS-style Header */}
-          <div className="py-8 text-center">
-            <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-              <span className="text-ios-caption font-medium">Tus finanzas</span>
-            </div>
-
-            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-6xl">
-              <span className="mr-2">💳</span>
-              <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
-                Transacciones
-              </span>
-            </h1>
-            <p className="mb-6 font-light text-muted-foreground">
-              Controla todos tus ingresos y gastos
-            </p>
-
-            {/* Quick Actions Header - Hidden on mobile (FAB replaces it) */}
-            <div className="mb-4 hidden items-center justify-center space-x-4 sm:flex">
-              <button
-                type="button"
-                onClick={handleNewTransaction}
-                className="focus-ring group relative min-h-[44px] overflow-hidden rounded-xl bg-gradient-to-r from-primary to-blue-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-primary"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
-                <div className="relative flex items-center space-x-2">
-                  <Sparkles className="h-5 w-5" />
-                  <span>Nueva Transacción</span>
-                </div>
-              </button>
-            </div>
-          </div>
+          <PageHeader
+            title="Transacciones"
+            subtitle="Controla todos tus ingresos y gastos"
+            actions={
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  onClick={handleNewTransaction}
+                  className="ios-button-primary group relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
+                  <div className="relative flex items-center space-x-2">
+                    <Sparkles className="h-5 w-5" />
+                    <span>Nueva Transacción</span>
+                  </div>
+                </Button>
+              </div>
+            }
+          />
 
           {/* iOS-style Summary Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -542,8 +575,8 @@ export default function TransactionsPage() {
               )}
 
               <div className="mt-3 flex items-center space-x-2">
-                <ArrowDownLeft className="h-4 w-4 text-green-600" />
-                <span className="text-ios-footnote font-medium text-green-600">
+                <ArrowDownLeft className="h-4 w-4 text-success" />
+                <span className="text-ios-footnote font-medium text-success">
                   Ingresos
                 </span>
               </div>
@@ -601,8 +634,8 @@ export default function TransactionsPage() {
               )}
 
               <div className="mt-3 flex items-center space-x-2">
-                <ArrowUpRight className="h-4 w-4 text-red-600" />
-                <span className="text-ios-footnote font-medium text-red-600">
+                <ArrowUpRight className="h-4 w-4 text-error" />
+                <span className="text-ios-footnote font-medium text-error">
                   Gastos
                 </span>
               </div>
@@ -669,9 +702,9 @@ export default function TransactionsPage() {
 
               <div className="mt-3 flex items-center space-x-2">
                 {totalesEnUSD.net >= 0 ? (
-                  <ArrowDownLeft className="h-4 w-4 text-green-600" />
+                  <ArrowDownLeft className="h-4 w-4 text-success" />
                 ) : (
-                  <ArrowUpRight className="h-4 w-4 text-red-600" />
+                  <ArrowUpRight className="h-4 w-4 text-error" />
                 )}
                 <span
                   className={`text-ios-footnote font-medium ${totalesEnUSD.net >= 0 ? 'amount-positive' : 'amount-negative'}`}
@@ -688,7 +721,7 @@ export default function TransactionsPage() {
                   TRANSACCIONES
                 </h3>
               </div>
-              <p className="amount-emphasis-white mb-2 text-3xl text-white">
+              <p className="amount-emphasis-main mb-2 text-3xl">
                 {filteredTransactionsMemo.length}
               </p>
               <div className="flex items-center space-x-2">
@@ -708,27 +741,59 @@ export default function TransactionsPage() {
             defaultExpanded={false}
             icon={<Filter className="h-5 w-5" />}
           >
-            <TransactionFilters onFiltersChange={handleFiltersChange} />
+            <TransactionFilters
+              onFiltersChange={handleFiltersChange}
+              initialSearch={searchQuery}
+            />
           </CollapsibleSection>
 
+          {/* Search Feedback Indicator */}
+          {(filters.search || searchQuery) && (
+            <div className="mx-2 mb-4 flex animate-fade-in-up items-center justify-between rounded-2xl border border-primary/10 bg-primary/5 px-4 py-3">
+              <div className="flex items-center space-x-2">
+                <Search className="h-4 w-4 text-primary" />
+                <p className="text-sm font-medium text-foreground">
+                  Resultados para:{' '}
+                  <span className="font-bold text-primary">
+                    "{filters.search || searchQuery}"
+                  </span>
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  handleFiltersChange({ ...filters, search: '' });
+                  router.push(pathname);
+                }}
+                className="h-8 w-8 rounded-full p-0 text-primary hover:bg-primary/10"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
           {/* iOS-style Transactions List */}
-          <div className="overflow-hidden rounded-3xl border border-border/40 bg-card/90 shadow-lg backdrop-blur-xl">
-            <div className="border-b border-border/40 p-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between px-2">
               <div className="flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
                 <h3 className="text-ios-title font-semibold text-foreground">
-                  Todas las Transacciones ({filteredTransactionsMemo.length})
+                  Todas las Transacciones{' '}
+                  <span className="ml-1 text-sm font-normal text-muted-foreground">
+                    ({filteredTransactionsMemo.length})
+                  </span>
                 </h3>
               </div>
-              <div className="transactions-mobile-swipe-hint sm:hidden">
+              <div className="transactions-mobile-swipe-hint flex items-center gap-1 text-xs text-muted-foreground sm:hidden">
                 <ArrowRight className="h-3 w-3" aria-hidden="true" />
-                <span>Desliza una fila para ver acciones</span>
+                <span>Deslizar</span>
               </div>
             </div>
 
-            <div className="divide-y divide-border/40">
+            <div className="space-y-3">
               {showTransactionsLoading ? (
-                <div className="p-8 text-center">
+                <div className="rounded-3xl border border-border/40 bg-card/90 p-8 text-center shadow-sm">
                   <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                   <p className="text-ios-body text-muted-foreground">
                     ✨ Cargando transacciones...
@@ -762,33 +827,40 @@ export default function TransactionsPage() {
                   return (
                     <div
                       key={transaction.id}
-                      className="content-visibility-auto"
+                      className="content-visibility-auto group"
                     >
                       <SwipeableCard
                         actions={swipeActions}
                         onClick={() => handleTransactionClick(transaction)}
                         showSwipeHint={false}
-                        className="cursor-pointer border-l-0 p-4 transition-all duration-200 hover:border-l-4 hover:border-l-primary/40 hover:bg-card/60 sm:p-6"
+                        className="overflow-hidden rounded-2xl border border-border/40 shadow-sm transition-all duration-200 hover:border-border/80 hover:shadow-md"
+                        contentClassName="cursor-pointer bg-card p-4 sm:p-5"
                       >
-                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                          <div className="flex min-w-0 flex-1 items-start space-x-3 overflow-hidden">
-                            <div className="flex-shrink-0 rounded-2xl bg-muted/20 p-3 transition-colors duration-200 group-hover:bg-primary/10">
+                        <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex min-w-0 flex-1 items-center space-x-4 overflow-hidden">
+                            <div
+                              className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full ${getIconContainerColor(transaction.type)}`}
+                            >
                               {getIcon(transaction.type)}
                             </div>
                             <div className="min-w-0 flex-1 overflow-hidden">
-                              <h4 className="mb-2 truncate text-ios-body font-medium text-foreground">
-                                {transaction.description || 'Sin descripción'}
+                              <h4 className="mb-1 truncate text-base font-semibold tracking-tight text-foreground">
+                                {getTransactionDisplayName(transaction, {
+                                  categoryName: getCategoryName(
+                                    transaction.categoryId
+                                  ),
+                                })}
                               </h4>
 
                               {/* Desktop info */}
-                              <div className="hidden items-center space-x-2 overflow-hidden text-ios-caption text-muted-foreground sm:flex">
-                                <span className="flex-shrink-0">
+                              <div className="hidden items-center space-x-2 overflow-hidden text-sm text-muted-foreground sm:flex">
+                                <span className="flex-shrink-0 font-medium">
                                   {getTypeLabel(transaction.type)}
                                 </span>
                                 {transaction.isDebt === true && (
                                   <>
                                     <div className="h-1 w-1 rounded-full bg-amber-500"></div>
-                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700">
+                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-medium text-amber-700">
                                       {transaction.debtDirection === 'OWE'
                                         ? 'Deuda: Debo'
                                         : transaction.debtDirection ===
@@ -797,7 +869,7 @@ export default function TransactionsPage() {
                                           : 'Deuda'}
                                     </span>
                                     {transaction.debtStatus && (
-                                      <span className="rounded-full bg-muted/70 px-2 py-0.5 text-[11px] text-muted-foreground">
+                                      <span className="rounded-full bg-muted/70 px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                         {transaction.debtStatus === 'SETTLED'
                                           ? 'Saldada'
                                           : 'Abierta'}
@@ -805,28 +877,28 @@ export default function TransactionsPage() {
                                     )}
                                   </>
                                 )}
-                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <div className="h-1 w-1 rounded-full bg-border"></div>
                                 <span className="break-words">
                                   {getCategoryName(transaction.categoryId)}
                                 </span>
-                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <div className="h-1 w-1 rounded-full bg-border"></div>
                                 <span className="break-words">
                                   {getAccountName(transaction.accountId)}
                                 </span>
-                                <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                <div className="h-1 w-1 rounded-full bg-border"></div>
                                 <span className="flex-shrink-0">
                                   {transaction.date}
                                 </span>
                               </div>
 
                               {/* Mobile info - stacked */}
-                              <div className="space-y-1 text-ios-caption text-muted-foreground sm:hidden">
+                              <div className="space-y-1 text-sm text-muted-foreground sm:hidden">
                                 <div className="flex min-w-0 items-center space-x-2">
-                                  <span className="flex-shrink-0">
+                                  <span className="flex-shrink-0 font-medium">
                                     {getTypeLabel(transaction.type)}
                                   </span>
                                   {transaction.isDebt === true && (
-                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] text-amber-700">
+                                    <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-medium text-amber-700">
                                       {transaction.debtDirection === 'OWE'
                                         ? 'Debo'
                                         : transaction.debtDirection ===
@@ -835,7 +907,7 @@ export default function TransactionsPage() {
                                           : 'Deuda'}
                                     </span>
                                   )}
-                                  <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                  <div className="h-1 w-1 rounded-full bg-border"></div>
                                   <span className="min-w-0 truncate">
                                     {getCategoryName(transaction.categoryId)}
                                   </span>
@@ -844,7 +916,7 @@ export default function TransactionsPage() {
                                   <span className="min-w-0 truncate">
                                     {getAccountName(transaction.accountId)}
                                   </span>
-                                  <div className="h-1 w-1 rounded-full bg-muted-foreground"></div>
+                                  <div className="h-1 w-1 rounded-full bg-border"></div>
                                   <span className="flex-shrink-0">
                                     {transaction.date}
                                   </span>
@@ -857,7 +929,7 @@ export default function TransactionsPage() {
                                     {transaction.tags.map((tag) => (
                                       <span
                                         key={tag}
-                                        className="flex-shrink-0 rounded-full bg-muted/60 px-2 py-1 text-xs text-muted-foreground"
+                                        className="flex-shrink-0 rounded-md bg-muted/60 px-2 py-0.5 text-xs font-medium text-muted-foreground"
                                       >
                                         {tag}
                                       </span>
@@ -867,10 +939,10 @@ export default function TransactionsPage() {
                             </div>
                           </div>
 
-                          <div className="ml-0 flex flex-shrink-0 items-start space-x-2 self-end sm:ml-4 sm:space-x-4">
+                          <div className="ml-0 flex flex-shrink-0 items-start space-x-2 self-end sm:ml-4 sm:items-center">
                             <div className="text-right">
                               <p
-                                className={`truncate text-sm font-semibold sm:text-xl ${transaction.type === 'INCOME' ? 'amount-positive' : transaction.type === 'EXPENSE' ? 'amount-negative' : 'amount-emphasis-white'}`}
+                                className={`truncate text-lg font-bold tracking-tight sm:text-xl ${transaction.type === 'INCOME' ? 'text-success' : transaction.type === 'EXPENSE' ? 'text-foreground' : 'text-primary'}`}
                               >
                                 {transaction.type === 'INCOME'
                                   ? '+'
@@ -885,19 +957,16 @@ export default function TransactionsPage() {
                                     : 0
                                 )}
                               </p>
-                              <span className="text-xs text-muted-foreground">
-                                {transaction.currencyCode}
-                              </span>
                               {/* Selected rate equivalence */}
                               {(transaction.currencyCode === 'VES' ||
                                 transaction.currencyCode === 'USD') && (
-                                <div className="mt-1 text-[11px] text-muted-foreground/70">
+                                <div className="mt-0.5 text-xs font-medium text-muted-foreground/70">
                                   {(() => {
                                     const usd = convertMinorToUSDSelected(
                                       Math.abs(transaction.amountMinor || 0),
                                       transaction.currencyCode
                                     );
-                                    return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD · ${selectedRateSource.toUpperCase()}`;
+                                    return `≈ $${usd.toLocaleString('en-US', { minimumFractionDigits: 2 })} USD`;
                                   })()}
                                 </div>
                               )}
@@ -912,9 +981,9 @@ export default function TransactionsPage() {
 
               {/* Infinite scroll sentinel */}
               {displayedCount < filteredTransactionsMemo.length && (
-                <div ref={sentinelRef} className="p-4 text-center">
-                  <div className="mx-auto mb-2 h-6 w-6 animate-spin rounded-full border-b-2 border-primary"></div>
-                  <p className="text-sm text-muted-foreground">
+                <div ref={sentinelRef} className="p-6 text-center">
+                  <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-b-2 border-primary"></div>
+                  <p className="text-sm font-medium text-muted-foreground">
                     Cargando más transacciones...
                   </p>
                 </div>
@@ -965,7 +1034,9 @@ export default function TransactionsPage() {
                 </p>
                 <div className="rounded-lg border border-border/40 bg-muted/20 p-3">
                   <p className="font-medium text-foreground">
-                    {transactionToDelete.description || 'Sin descripción'}
+                    {getTransactionDisplayName(transactionToDelete, {
+                      fallback: 'Sin descripción',
+                    })}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {formatAmount(transactionToDelete.amountMinor)} •{' '}
