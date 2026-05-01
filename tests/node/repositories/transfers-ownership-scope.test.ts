@@ -95,11 +95,21 @@ describe('SupabaseTransfersRepository ownership scoping', () => {
     const from = jest.fn((table: string) => {
       if (table === 'accounts') {
         return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [{ id: 'acc-owned-a' }, { id: 'acc-owned-b' }],
-              error: null,
-            }),
+          select: jest.fn().mockImplementation(() => {
+            const query: any = {
+              eq: jest.fn((column: string) => {
+                if (column === 'active') {
+                  return Promise.resolve({
+                    data: [{ id: 'acc-owned-a' }, { id: 'acc-owned-b' }],
+                    error: null,
+                  });
+                }
+
+                return query;
+              }),
+            };
+
+            return query;
           }),
         };
       }
@@ -166,11 +176,21 @@ describe('SupabaseTransfersRepository ownership scoping', () => {
     const from = jest.fn((table: string) => {
       if (table === 'accounts') {
         return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockResolvedValue({
-              data: [{ id: 'acc-owned-a' }],
-              error: null,
-            }),
+          select: jest.fn().mockImplementation(() => {
+            const query: any = {
+              eq: jest.fn((column: string) => {
+                if (column === 'active') {
+                  return Promise.resolve({
+                    data: [{ id: 'acc-owned-a' }],
+                    error: null,
+                  });
+                }
+
+                return query;
+              }),
+            };
+
+            return query;
           }),
         };
       }

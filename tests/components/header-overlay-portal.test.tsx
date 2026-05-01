@@ -1,6 +1,6 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { Header } from '@/components/layout/header';
+import Header from '@/components/layout/header';
 
 const mockUseSidebar = jest.fn();
 const mockPush = jest.fn();
@@ -24,6 +24,8 @@ jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  usePathname: () => '/',
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 jest.mock('@/contexts/sidebar-context', () => ({
@@ -69,7 +71,8 @@ jest.mock('@/lib/rates', () => ({
 }));
 
 jest.mock('@/components/currency/rate-selector', () => ({
-  RateSelector: () => (
+  __esModule: true,
+  default: () => (
     <button
       type="button"
       data-testid="rate-selector-mock"
@@ -103,7 +106,7 @@ describe('Header overlay portalization', () => {
   });
 
   it('portals user menu outside the header and closes by backdrop', async () => {
-    render(<Header />);
+    render(<Header onMenuClick={() => {}} isMobileMenuOpen={false} />);
 
     const header = screen.getByRole('banner');
     fireEvent.click(screen.getByLabelText('Abrir menú de usuario'));
@@ -129,30 +132,19 @@ describe('Header overlay portalization', () => {
     });
   });
 
-  it('portals notifications outside the header and closes by backdrop', async () => {
-    render(<Header />);
+  it('shows notifications inline and closes by clicking the bell again', async () => {
+    render(<Header onMenuClick={() => {}} isMobileMenuOpen={false} />);
 
     const header = screen.getByRole('banner');
     fireEvent.click(screen.getByLabelText('Notificaciones'));
 
     const notificationsTitle = await screen.findByText('Notificaciones');
-    expect(header.contains(notificationsTitle)).toBe(false);
+    expect(header.contains(notificationsTitle)).toBe(true);
 
-    const panel = document.getElementById('notifications-panel');
-    expect(panel).toBeInTheDocument();
-    expect(panel).toHaveClass('z-[55]');
-
-    const backdrop = document.querySelector(
-      '[data-overlay-backdrop="notifications"]'
-    );
-    expect(backdrop).toHaveClass('z-[54]');
-
-    fireEvent.click(backdrop as Element);
+    fireEvent.click(screen.getByLabelText('Notificaciones'));
 
     await waitFor(() => {
-      expect(
-        document.getElementById('notifications-panel')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Notificaciones')).not.toBeInTheDocument();
     });
   });
 
@@ -161,7 +153,7 @@ describe('Header overlay portalization', () => {
 
     render(
       <>
-        <Header />
+        <Header onMenuClick={() => {}} isMobileMenuOpen={false} />
         <button
           type="button"
           data-testid="top-layer"
@@ -195,21 +187,31 @@ describe('Header overlay portalization', () => {
       toggleSidebar: mockToggleSidebar,
     });
 
-    render(<Header />);
+    Object.defineProperty(window, 'innerWidth', {
+      writable: true,
+      configurable: true,
+      value: 375,
+    });
+    window.dispatchEvent(new Event('resize'));
+
+    render(<Header onMenuClick={() => {}} isMobileMenuOpen={false} />);
 
     const header = screen.getByRole('banner');
     const safeAreaSpacer = header.firstElementChild;
     const mobileRow = header.lastElementChild;
     const userButton = screen.getByLabelText('Abrir menú de usuario');
-    const rateSelector = screen.getByTestId('rate-selector-mock');
 
     expect(header).toHaveClass('overflow-x-hidden');
     expect(safeAreaSpacer).toHaveAttribute('aria-hidden', 'true');
     expect(mobileRow).toHaveClass(
-      'grid',
-      'grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'
+      'flex',
+      'h-14',
+      'w-full',
+      'shrink-0',
+      'items-center',
+      'justify-between',
+      'px-4'
     );
-    expect(rateSelector).toHaveClass('min-h-[44px]', 'min-w-[44px]', 'w-11');
     expect(userButton).toHaveClass('min-h-[44px]', 'min-w-[44px]');
   });
 });

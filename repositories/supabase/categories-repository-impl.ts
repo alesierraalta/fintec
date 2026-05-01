@@ -9,6 +9,9 @@ import {
   PaginationParams,
   PaginatedResult,
 } from '@/types';
+import { RequestContext } from '@/lib/cache/request-context';
+import { ServerReadCache } from '@/lib/cache/server-read-cache';
+import { isBackendSharedReadCacheEnabled } from '@/lib/backend/feature-flags';
 import { supabase } from './client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
@@ -16,114 +19,267 @@ import {
   mapDomainCategoryToSupabase,
   mapSupabaseCategoryArrayToDomain,
 } from './mappers';
+import { CATEGORY_LIST_PROJECTION } from './category-projections';
 
 export class SupabaseCategoriesRepository implements CategoriesRepository {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
+  private readonly readCache: ServerReadCache;
 
-  constructor(client?: SupabaseClient) {
+  constructor(
+    client?: SupabaseClient,
+    requestContext?: RequestContext,
+    readCache?: ServerReadCache
+  ) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
+    // Default to a no-op cache (no Redis client) to stay client-safe
+    this.readCache = readCache ?? new ServerReadCache(null);
   }
-  async findAll(): Promise<Category[]> {
+
+  private shouldUseSharedCache(): boolean {
+    return isBackendSharedReadCacheEnabled() && this.readCache.isAvailable();
+  }
+
+  private recordCacheEvent(
+    name: string,
+    status: 'hit' | 'miss',
+    value: unknown
+  ) {
+    if (!this.requestContext) {
+      return;
+    }
+
+    const bytes = JSON.stringify(value)?.length ?? 0;
+    const rowCount = Array.isArray(value) ? value.length : value ? 1 : 0;
+
+    this.requestContext.profiler.record({
+      name: `cache_${status}_${name}`,
+      durationMs: 0,
+      bytes,
+      queryCount: 0,
+      rowCount,
+    });
+  }
+
+  private async readThroughDefaultCache<T>(
+    name: string,
+    key: string,
+    loader: () => Promise<T>,
+    ttlSeconds = 600
+  ): Promise<T> {
+    if (!this.shouldUseSharedCache()) {
+      return loader();
+    }
+
+    const cached = await this.readCache.get<T>(key);
+    if (cached) {
+      this.recordCacheEvent(name, 'hit', cached);
+      return cached;
+    }
+
+    const loaded = await loader();
+    await this.readCache.set(key, loaded, ttlSeconds);
+    this.recordCacheEvent(name, 'miss', loaded);
+    return loaded;
+  }
+
+  private async invalidateDefaultCategoryCache(): Promise<void> {
+    if (!this.readCache.isAvailable()) {
+      return;
+    }
+
+    await this.readCache.invalidatePattern('categories:default:*');
+  }
+
+  private async getCurrentUser() {
+    if (this.requestContext) {
+      // Return a partial user object with the ID if we only have the ID
+      return { id: this.requestContext.userId } as any;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
 
+    return user;
+  }
+
+  private async fetchDefaultCategories(options: {
+    cacheKeyParts: string[];
+    kind?: CategoryKind;
+    parentId?: string | null;
+    search?: string;
+  }): Promise<Category[]> {
+    const cacheKey = this.readCache.makeKey(
+      'categories',
+      'default',
+      ...options.cacheKeyParts
+    );
+
+    return this.readThroughDefaultCache(
+      'categories_default',
+      cacheKey,
+      async () => {
+        let query = this.client
+          .from('categories')
+          .select(CATEGORY_LIST_PROJECTION)
+          .eq('active', true)
+          .eq('is_default', true)
+          .order('kind', { ascending: true })
+          .order('name', { ascending: true });
+
+        if (options.kind) {
+          query = query.eq('kind', options.kind);
+        }
+
+        if (options.parentId === null) {
+          query = query.is('parent_id', null);
+        } else if (options.parentId) {
+          query = query.eq('parent_id', options.parentId);
+        }
+
+        if (options.search) {
+          query = query.ilike('name', `%${options.search}%`);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          throw new Error(
+            `Failed to fetch default categories: ${error.message}`
+          );
+        }
+
+        return mapSupabaseCategoryArrayToDomain(data || []);
+      }
+    );
+  }
+
+  private async fetchUserCategories(
+    userId: string,
+    options: {
+      kind?: CategoryKind;
+      parentId?: string | null;
+      search?: string;
+    }
+  ): Promise<Category[]> {
     let query = this.client
       .from('categories')
-      .select('*')
+      .select(CATEGORY_LIST_PROJECTION)
       .eq('active', true)
+      .eq('user_id', userId)
       .order('kind', { ascending: true })
       .order('name', { ascending: true });
 
-    if (user) {
-      query = query.or(`is_default.eq.true,user_id.eq.${user.id}`);
-    } else {
-      query = query.eq('is_default', true);
+    if (options.kind) {
+      query = query.eq('kind', options.kind);
+    }
+
+    if (options.parentId === null) {
+      query = query.is('parent_id', null);
+    } else if (options.parentId) {
+      query = query.eq('parent_id', options.parentId);
+    }
+
+    if (options.search) {
+      query = query.ilike('name', `%${options.search}%`);
     }
 
     const { data, error } = await query;
 
     if (error) {
-      throw new Error(`Failed to fetch categories: ${error.message}`);
+      throw new Error(`Failed to fetch user categories: ${error.message}`);
     }
 
     return mapSupabaseCategoryArrayToDomain(data || []);
+  }
+
+  private mergeCategories(
+    defaultCategories: Category[],
+    userCategories: Category[]
+  ): Category[] {
+    return [...defaultCategories, ...userCategories];
+  }
+  async findAll(): Promise<Category[]> {
+    const user = await this.getCurrentUser();
+    const defaultCategories = await this.fetchDefaultCategories({
+      cacheKeyParts: ['all'],
+    });
+
+    if (!user) {
+      return defaultCategories;
+    }
+
+    const userCategories = await this.fetchUserCategories(user.id, {});
+    return this.mergeCategories(defaultCategories, userCategories);
   }
 
   async findById(id: string): Promise<Category | null> {
+    const cacheKey = this.readCache.makeKey('categories', 'id', id);
+
+    // Try shared cache first
+    const cached = await this.readCache.get<Category>(cacheKey);
+    if (cached) {
+      this.recordCacheEvent('categories_findById', 'hit', cached);
+      return cached;
+    }
+
     const { data, error } = await this.client
       .from('categories')
-      .select('*')
+      .select(CATEGORY_LIST_PROJECTION)
       .eq('id', id)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
-      }
       throw new Error(`Failed to fetch category: ${error.message}`);
     }
 
-    return mapSupabaseCategoryToDomain(data);
+    if (!data) {
+      return null;
+    }
+
+    const result = mapSupabaseCategoryToDomain(data as any);
+
+    // Only cache in shared cache if it's a default category
+    if (result.isDefault) {
+      await this.readCache.set(cacheKey, result, 600);
+      this.recordCacheEvent('categories_findById', 'miss', result);
+    }
+
+    return result;
   }
 
   async findByKind(kind: CategoryKind): Promise<Category[]> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    const user = await this.getCurrentUser();
+    const defaultCategories = await this.fetchDefaultCategories({
+      cacheKeyParts: ['kind', kind],
+      kind,
+    });
 
-    let query = this.client
-      .from('categories')
-      .select('*')
-      .eq('kind', kind)
-      .eq('active', true)
-      .order('name', { ascending: true });
-
-    if (user) {
-      query = query.or(`is_default.eq.true,user_id.eq.${user.id}`);
-    } else {
-      query = query.eq('is_default', true);
+    if (!user) {
+      return defaultCategories;
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch categories by kind: ${error.message}`);
-    }
-
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    const userCategories = await this.fetchUserCategories(user.id, { kind });
+    return this.mergeCategories(defaultCategories, userCategories);
   }
 
   async findByParent(parentId: string | null): Promise<Category[]> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    const user = await this.getCurrentUser();
+    const defaultCategories = await this.fetchDefaultCategories({
+      cacheKeyParts: ['parent', parentId ?? 'root'],
+      parentId,
+    });
 
-    let query = this.client
-      .from('categories')
-      .select('*')
-      .eq('active', true)
-      .order('name', { ascending: true });
-
-    if (parentId === null) {
-      query = query.is('parent_id', null);
-    } else {
-      query = query.eq('parent_id', parentId);
+    if (!user) {
+      return defaultCategories;
     }
 
-    if (user) {
-      query = query.or(`is_default.eq.true,user_id.eq.${user.id}`);
-    } else {
-      query = query.eq('is_default', true);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      throw new Error(`Failed to fetch categories by parent: ${error.message}`);
-    }
-
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    const userCategories = await this.fetchUserCategories(user.id, {
+      parentId,
+    });
+    return this.mergeCategories(defaultCategories, userCategories);
   }
 
   async findWithPagination(
@@ -137,7 +293,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
 
     let query = this.client
       .from('categories')
-      .select('*', { count: 'exact' })
+      .select(CATEGORY_LIST_PROJECTION, { count: 'exact' })
       .eq('active', true)
       .order(sortBy, { ascending: sortOrder === 'asc' })
       .range(offset, offset + limit - 1);
@@ -158,7 +314,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: mapSupabaseCategoryArrayToDomain(data || []),
+      data: mapSupabaseCategoryArrayToDomain((data as any) || []),
       total,
       page,
       limit,
@@ -167,12 +323,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async create(category: CreateCategoryDTO): Promise<Category> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
-
-    // Note: Privacy validation is handled at the API level
-    // The DTO doesn't include userId, so we can't validate here
+    const user = await this.getCurrentUser();
 
     if (!user && !category.isDefault) {
       throw new Error('Unauthorized');
@@ -189,32 +340,33 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
 
     const { data, error } = await (this.client.from('categories') as any)
       .insert(supabaseCategory as any)
-      .select()
+      .select(CATEGORY_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to create category: ${error.message}`);
     }
 
-    return mapSupabaseCategoryToDomain(data);
+    const createdCategory = mapSupabaseCategoryToDomain(data as any);
+    if (createdCategory.isDefault) {
+      await this.invalidateDefaultCategoryCache();
+    }
+
+    return createdCategory;
   }
 
   async update(id: string, updates: UpdateCategoryDTO): Promise<Category> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    const user = await this.getCurrentUser();
 
     if (!user) {
       throw new Error('Unauthorized');
     }
 
-    // First verify that the user owns this category or it's a default category
     const existing = await this.findById(id);
     if (!existing) {
       throw new Error(`Category not found: ${id}`);
     }
 
-    // Users can only update their own categories or default categories (if they have admin permissions)
     if (existing.userId !== user?.id && !existing.isDefault) {
       throw new Error(`You can only update your own categories`);
     }
@@ -228,14 +380,23 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     const { data, error } = await (this.client.from('categories') as any)
       .update(supabaseUpdates as any)
       .eq('id', id)
-      .select()
+      .select(CATEGORY_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update category: ${error.message}`);
     }
 
-    return mapSupabaseCategoryToDomain(data);
+    const updatedCategory = mapSupabaseCategoryToDomain(data as any);
+    if (existing.isDefault || updatedCategory.isDefault) {
+      await this.invalidateDefaultCategoryCache();
+      // Also invalidate the specific ID key in the shared cache
+      await this.readCache.delete(
+        this.readCache.makeKey('categories', 'id', id)
+      );
+    }
+
+    return updatedCategory;
   }
 
   async delete(id: string): Promise<void> {
@@ -266,9 +427,18 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     if (error) {
       throw new Error(`Failed to delete category: ${error.message}`);
     }
+
+    if (existing?.isDefault) {
+      await this.invalidateDefaultCategoryCache();
+      await this.readCache.delete(
+        this.readCache.makeKey('categories', 'id', id)
+      );
+    }
   }
 
   async hardDelete(id: string): Promise<void> {
+    const existing = await this.findById(id);
+
     const { error } = await this.client
       .from('categories')
       .delete()
@@ -277,6 +447,13 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
     if (error) {
       throw new Error(`Failed to hard delete category: ${error.message}`);
     }
+
+    if (existing?.isDefault) {
+      await this.invalidateDefaultCategoryCache();
+      await this.readCache.delete(
+        this.readCache.makeKey('categories', 'id', id)
+      );
+    }
   }
 
   async count(): Promise<number> {
@@ -284,18 +461,35 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
       data: { user },
     } = await this.client.auth.getUser();
 
-    let query = this.client
-      .from('categories')
-      .select('id', { count: 'exact', head: true })
-      .eq('active', true);
+    // If no user, we only count default categories, which can be cached
+    if (!user) {
+      const cacheKey = this.readCache.makeKey('categories', 'default-count');
+      return this.readThroughDefaultCache(
+        'categories_count_default',
+        cacheKey,
+        async () => {
+          const { count, error } = await this.client
+            .from('categories')
+            .select('id', { count: 'exact', head: true })
+            .eq('active', true)
+            .eq('is_default', true);
 
-    if (user) {
-      query = query.or(`is_default.eq.true,user_id.eq.${user.id}`);
-    } else {
-      query = query.eq('is_default', true);
+          if (error) {
+            throw new Error(`Failed to count categories: ${error.message}`);
+          }
+
+          return count || 0;
+        }
+      );
     }
 
-    const { count, error } = await query;
+    // For authenticated users, the count is mixed and harder to cache in shared cache
+    // (We could use private memoization but that's handled by RequestContext)
+    const { count, error } = await this.client
+      .from('categories')
+      .select('id', { count: 'exact', head: true })
+      .eq('active', true)
+      .or(`is_default.eq.true,user_id.eq.${user.id}`);
 
     if (error) {
       throw new Error(`Failed to count categories: ${error.message}`);
@@ -305,32 +499,21 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async search(query: string): Promise<Category[]> {
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    const user = await this.getCurrentUser();
+    const defaultCategories = await this.fetchDefaultCategories({
+      cacheKeyParts: ['search', query],
+      search: query,
+    });
 
-    let queryBuilder = this.client
-      .from('categories')
-      .select('*')
-      .eq('active', true)
-      .ilike('name', `%${query}%`)
-      .order('name', { ascending: true });
-
-    if (user) {
-      queryBuilder = queryBuilder.or(
-        `is_default.eq.true,user_id.eq.${user.id}`
-      );
-    } else {
-      queryBuilder = queryBuilder.eq('is_default', true);
+    if (!user) {
+      return defaultCategories;
     }
 
-    const { data, error } = await queryBuilder;
+    const userCategories = await this.fetchUserCategories(user.id, {
+      search: query,
+    });
 
-    if (error) {
-      throw new Error(`Failed to search categories: ${error.message}`);
-    }
-
-    return mapSupabaseCategoryArrayToDomain(data || []);
+    return this.mergeCategories(defaultCategories, userCategories);
   }
 
   // Missing methods from CategoriesRepository interface
@@ -533,17 +716,7 @@ export class SupabaseCategoriesRepository implements CategoriesRepository {
   }
 
   async exists(id: string): Promise<boolean> {
-    const { data, error } = await this.client
-      .from('categories')
-      .select('id')
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return false; // Not found
-      throw new Error(`Failed to check category existence: ${error.message}`);
-    }
-
-    return !!data;
+    const cat = await this.findById(id);
+    return !!cat;
   }
 }

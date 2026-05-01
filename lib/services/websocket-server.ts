@@ -1,36 +1,29 @@
 import { Server as SocketIOServer } from 'socket.io';
 import { Server as HTTPServer } from 'http';
-import BackgroundScraperService from './background-scraper';
 import type { ExchangeRateData } from '@/types/rates';
 import { logger } from '@/lib/utils/logger';
 
 class WebSocketService {
   private io: SocketIOServer;
-  private scraper: BackgroundScraperService;
   private connectedClients = 0;
 
   constructor(httpServer: HTTPServer) {
     this.io = new SocketIOServer(httpServer, {
       cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      }
+        origin: '*',
+        methods: ['GET', 'POST'],
+      },
     });
 
-    this.scraper = new BackgroundScraperService(60000); // 1 minute interval
     this.setupEventHandlers();
   }
 
   start(): void {
     logger.info('Starting WebSocket service...');
-    this.scraper.start((data) => {
-      this.broadcastUpdate(data);
-    });
   }
 
   stop(): void {
     logger.info('Stopping WebSocket service...');
-    this.scraper.stop();
     this.io.close();
   }
 
@@ -41,7 +34,9 @@ class WebSocketService {
 
       socket.on('disconnect', () => {
         this.connectedClients--;
-        logger.info(`Client disconnected. Total clients: ${this.connectedClients}`);
+        logger.info(
+          `Client disconnected. Total clients: ${this.connectedClients}`
+        );
       });
 
       socket.on('request-latest-rates', () => {
@@ -51,9 +46,9 @@ class WebSocketService {
     });
   }
 
-  private broadcastUpdate(data: any): void {
+  broadcastUpdate(data: any): void {
     if (data.success && data.data) {
-      // Lógica correcta: 
+      // Lógica correcta:
       // - SELL del scraper = personas que VENDEN USDT (reciben VES) = precio de VENTA para usuario
       // - BUY del scraper = personas que COMPRAN USDT (pagan VES) = precio de COMPRA para usuario
       const rateData: ExchangeRateData = {
@@ -61,13 +56,15 @@ class WebSocketService {
         usdt_ves: data.data.usdt_ves,
         busd_ves: data.data.busd_ves || data.data.usdt_ves,
         sell_rate: data.data.sell_rate, // SELL del scraper = precio de VENTA para usuario
-        buy_rate: data.data.buy_rate,   // BUY del scraper = precio de COMPRA para usuario
+        buy_rate: data.data.buy_rate, // BUY del scraper = precio de COMPRA para usuario
         lastUpdated: data.data.lastUpdated,
-        source: data.data.source
+        source: data.data.source,
       };
 
       this.io.emit('exchange-rate-update', rateData);
-      logger.info(`Broadcasted exchange rate update to ${this.connectedClients} clients`);
+      logger.info(
+        `Broadcasted exchange rate update to ${this.connectedClients} clients`
+      );
     } else {
       logger.error('Failed to broadcast update:', data.error);
     }
@@ -80,10 +77,10 @@ class WebSocketService {
       usd_ves: 228.25,
       usdt_ves: 228.25,
       busd_ves: 228.25,
-      sell_rate: 228.50, // Precio de VENTA para usuario (SELL del scraper)
-      buy_rate: 228.00,  // Precio de COMPRA para usuario (BUY del scraper)
+      sell_rate: 228.5, // Precio de VENTA para usuario (SELL del scraper)
+      buy_rate: 228.0, // Precio de COMPRA para usuario (BUY del scraper)
       lastUpdated: new Date().toISOString(),
-      source: 'Background Scraper'
+      source: 'Background Scraper',
     });
   }
 }

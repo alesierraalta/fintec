@@ -20,11 +20,14 @@ describe('getUserUsage', () => {
     const usageIn = jest.fn().mockReturnValue({ gte: usageGte });
     const usageSelect = jest.fn().mockReturnValue({ in: usageIn });
 
-    const accountsEq = jest.fn().mockResolvedValue({
+    const accountsEqActive = jest.fn().mockResolvedValue({
       data: [{ id: 'acc-1' }, { id: 'acc-2' }],
       error: null,
     });
-    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEq });
+    const accountsEqUserId = jest
+      .fn()
+      .mockReturnValue({ eq: accountsEqActive });
+    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEqUserId });
 
     const from = jest.fn((table: string) => {
       if (table === 'accounts') {
@@ -44,7 +47,8 @@ describe('getUserUsage', () => {
 
     expect(from).toHaveBeenCalledWith('accounts');
     expect(accountsSelect).toHaveBeenCalledWith('id');
-    expect(accountsEq).toHaveBeenCalledWith('user_id', 'user-123');
+    expect(accountsEqUserId).toHaveBeenCalledWith('user_id', 'user-123');
+    expect(accountsEqActive).toHaveBeenCalledWith('active', true);
 
     expect(from).toHaveBeenCalledWith('transactions');
     expect(usageSelect).toHaveBeenCalledWith('id', {
@@ -65,8 +69,13 @@ describe('getUserUsage', () => {
 
   it('returns zero usage when user has no owned accounts', async () => {
     const usageSelect = jest.fn();
-    const accountsEq = jest.fn().mockResolvedValue({ data: [], error: null });
-    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEq });
+    const accountsEqActive = jest
+      .fn()
+      .mockResolvedValue({ data: [], error: null });
+    const accountsEqUserId = jest
+      .fn()
+      .mockReturnValue({ eq: accountsEqActive });
+    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEqUserId });
 
     const from = jest.fn((table: string) => {
       if (table === 'accounts') {
@@ -102,10 +111,13 @@ describe('getUserUsage', () => {
     const usageIn = jest.fn().mockReturnValue({ gte: usageGte });
     const usageSelect = jest.fn().mockReturnValue({ in: usageIn });
 
-    const accountsEq = jest
+    const accountsEqActive = jest
       .fn()
       .mockResolvedValue({ data: [{ id: 'acc-1' }], error: null });
-    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEq });
+    const accountsEqUserId = jest
+      .fn()
+      .mockReturnValue({ eq: accountsEqActive });
+    const accountsSelect = jest.fn().mockReturnValue({ eq: accountsEqUserId });
 
     const from = jest.fn((table: string) => {
       if (table === 'accounts') {

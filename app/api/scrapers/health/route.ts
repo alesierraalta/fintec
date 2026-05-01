@@ -25,6 +25,7 @@ export async function GET() {
         lastFailureTime: status.lastFailureTime
           ? new Date(status.lastFailureTime).toISOString()
           : null,
+        lastErrorCategory: status.lastErrorCategory || null,
       };
     }
 
@@ -45,4 +46,3 @@ export async function GET() {
     );
   }
 }
-

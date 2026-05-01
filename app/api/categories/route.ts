@@ -1,14 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CreateCategoryDTO } from '@/repositories/contracts';
 import { CategoryKind } from '@/types';
-import { createClient } from '@/lib/supabase/server';
-import { createServerAppRepository } from '@/repositories/factory';
+import { getServerRepository } from '@/lib/backend/repository';
 
 // GET /api/categories - Fetch all categories
 export async function GET(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const repository = createServerAppRepository({ supabase });
+    const { repository } = await getServerRepository();
     const { searchParams } = new URL(request.url);
     const kind = searchParams.get('kind') as CategoryKind | null;
     const parentId = searchParams.get('parentId');
@@ -46,20 +44,14 @@ export async function GET(request: NextRequest) {
 // POST /api/categories - Create new category
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { repository, user } = await getServerRepository();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    const repository = createServerAppRepository({ supabase });
     const body = await request.json();
 
     // Validate required fields
@@ -130,20 +122,14 @@ export async function POST(request: NextRequest) {
 // PUT /api/categories - Update category
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { repository, user } = await getServerRepository();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    const repository = createServerAppRepository({ supabase });
     const body = await request.json();
 
     if (!body.id) {
@@ -178,20 +164,14 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/categories - Delete category
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
+    const { repository, user } = await getServerRepository();
 
-    if (authError || !user) {
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
-
-    const repository = createServerAppRepository({ supabase });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

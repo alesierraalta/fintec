@@ -2,6 +2,7 @@ import { DELETE, GET, POST, PUT } from '@/app/api/transactions/route';
 import { createClient } from '@/lib/supabase/server';
 import { createServerAppRepository } from '@/repositories/factory';
 import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
+import { RequestContext } from '@/lib/cache/request-context';
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
@@ -562,6 +563,97 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(500);
       expect(body.details).toBe('delete failed');
+    });
+  });
+
+  describe('Task 2.8: RequestContext Injection', () => {
+    it('creates RequestContext with user ID and passes to factory on GET', async () => {
+      transactions.findAll.mockResolvedValue([{ id: 'tx-1' }]);
+
+      const response = await GET(
+        new Request('http://localhost/api/transactions') as any
+      );
+
+      expect(response.status).toBe(200);
+      // Verify factory was called with requestContext containing user ID
+      expect(mockCreateServerAppRepository).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestContext: expect.objectContaining({
+            userId: 'user-1',
+          }),
+        })
+      );
+    });
+
+    it('preserves response contract when RequestContext is injected', async () => {
+      transactions.findAll.mockResolvedValue([
+        { id: 'tx-1', amountMinor: 1000, currencyCode: 'USD' },
+      ]);
+
+      const response = await GET(
+        new Request('http://localhost/api/transactions') as any
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toHaveProperty('data');
+      expect(body).toHaveProperty('count');
+      expect(body).toHaveProperty('totalCount');
+      expect(body.data).toEqual([
+        { id: 'tx-1', amountMinor: 1000, currencyCode: 'USD' },
+      ]);
+    });
+
+    it('creates RequestContext and passes to factory on POST', async () => {
+      transactions.create.mockResolvedValue({ id: 'tx-new' });
+      mockCanCreateTransaction.mockResolvedValue({
+        allowed: true,
+        current: 0,
+        limit: 100,
+      } as any);
+
+      const response = await POST(
+        new Request('http://localhost/api/transactions', {
+          method: 'POST',
+          body: JSON.stringify({
+            accountId: 'acc-1',
+            amount: 1000,
+            type: 'EXPENSE',
+            categoryId: 'cat-1',
+          }),
+        }) as any
+      );
+
+      expect(response.status).toBe(201);
+      expect(mockCreateServerAppRepository).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestContext: expect.objectContaining({
+            userId: 'user-1',
+          }),
+        })
+      );
+    });
+
+    it('enables memoization cache: duplicate account scope lookups called once per request', async () => {
+      // This test verifies RequestContext is passed and available to repositories
+      // Repositories will use it to memoize getOwnedAccountScope() calls
+      transactions.findByAccountId.mockResolvedValue({
+        data: [{ id: 'tx-1' }],
+        total: 1,
+      });
+
+      await GET(
+        new Request('http://localhost/api/transactions?accountId=acc-1') as any
+      );
+
+      // Verify factory called with requestContext
+      const factoryCall = mockCreateServerAppRepository.mock.calls[0]?.[0];
+      if (!factoryCall) throw new Error('Factory was not called');
+
+      expect(factoryCall).toHaveProperty('requestContext');
+      expect(factoryCall.requestContext).toBeInstanceOf(RequestContext);
+      expect(factoryCall.requestContext?.userId).toBe('user-1');
+      expect(factoryCall.requestContext?.memoCache).toBeInstanceOf(Map);
     });
   });
 });

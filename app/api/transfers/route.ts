@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createServerTransfersRepository } from '@/repositories/factory';
+import { RequestContext } from '@/lib/cache/request-context';
 import { logger } from '@/lib/utils/logger';
 
 async function getAuthenticatedUserId() {
@@ -26,7 +27,11 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || undefined;
     const limit = searchParams.get('limit');
 
-    const repository = createServerTransfersRepository({ supabase });
+    const requestContext = new RequestContext(userId);
+    const repository = createServerTransfersRepository({
+      supabase,
+      requestContext,
+    });
     const transfers = await repository.listByUserId(userId, {
       accountId,
       startDate,
@@ -110,7 +115,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const repository = createServerTransfersRepository({ supabase });
+    const requestContext = new RequestContext(userId);
+    const repository = createServerTransfersRepository({
+      supabase,
+      requestContext,
+    });
     const created = await repository.create(userId, {
       fromAccountId: body.fromAccountId,
       toAccountId: body.toAccountId,
@@ -199,7 +208,11 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const repository = createServerTransfersRepository({ supabase });
+    const requestContext = new RequestContext(userId);
+    const repository = createServerTransfersRepository({
+      supabase,
+      requestContext,
+    });
     await repository.delete(userId, transferId);
 
     return NextResponse.json({

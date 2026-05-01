@@ -5,7 +5,9 @@ import type {
   ApprovalStatus,
   CreateApprovalRequestInput,
 } from '@/repositories/contracts';
+import type { RequestContext } from '@/lib/cache/request-context';
 import { supabase } from './client';
+import { APPROVAL_REQUEST_DETAIL_PROJECTION } from './approval-request-projections';
 
 function mapApprovalRow(row: any): ApprovalRequestRow {
   return {
@@ -28,9 +30,11 @@ export class SupabaseApprovalRequestsRepository
   implements ApprovalRequestsRepository
 {
   private readonly client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   async create(input: CreateApprovalRequestInput): Promise<string> {
@@ -60,7 +64,7 @@ export class SupabaseApprovalRequestsRepository
   async findById(id: string): Promise<ApprovalRequestRow | null> {
     const { data, error } = await this.client
       .from('approval_requests')
-      .select('*')
+      .select(APPROVAL_REQUEST_DETAIL_PROJECTION)
       .eq('id', id)
       .single();
 
@@ -84,7 +88,7 @@ export class SupabaseApprovalRequestsRepository
   ): Promise<ApprovalRequestRow | null> {
     const { data, error } = await this.client
       .from('approval_requests')
-      .select('*')
+      .select(APPROVAL_REQUEST_DETAIL_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -106,7 +110,7 @@ export class SupabaseApprovalRequestsRepository
   async listByUserId(userId: string): Promise<ApprovalRequestRow[]> {
     const { data, error } = await this.client
       .from('approval_requests')
-      .select('*')
+      .select(APPROVAL_REQUEST_DETAIL_PROJECTION)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 

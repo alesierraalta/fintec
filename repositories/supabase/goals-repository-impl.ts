@@ -16,16 +16,24 @@ import {
   mapSupabaseGoalToDomain,
   mapSupabaseGoalArrayToDomain,
 } from './mappers';
+import { GOAL_LIST_PROJECTION } from './goal-projections';
 import { SupabaseClient } from '@supabase/supabase-js';
+import type { RequestContext } from '@/lib/cache/request-context';
 
 export class SupabaseGoalsRepository implements GoalsRepository {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   private async getUserId(): Promise<string | null> {
+    if (this.requestContext) {
+      return this.requestContext.userId;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
@@ -192,7 +200,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
@@ -202,7 +210,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       throw new Error(`Failed to fetch goals: ${error.message}`);
     }
 
-    return mapSupabaseGoalArrayToDomain(data || []);
+    return mapSupabaseGoalArrayToDomain((data as any) || []);
   }
 
   async findById(id: string): Promise<SavingsGoal | null> {
@@ -211,7 +219,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -223,7 +231,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       throw new Error(`Failed to fetch goal: ${error.message}`);
     }
 
-    return mapSupabaseGoalToDomain(data);
+    return mapSupabaseGoalToDomain(data as any);
   }
 
   async findByAccountId(accountId: string): Promise<SavingsGoal[]> {
@@ -232,7 +240,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('account_id', accountId)
       .eq('user_id', userId)
       .eq('active', true)
@@ -243,7 +251,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       throw new Error(`Failed to fetch goals by account: ${error.message}`);
     }
 
-    return mapSupabaseGoalArrayToDomain(data || []);
+    return mapSupabaseGoalArrayToDomain((data as any) || []);
   }
 
   async findActive(): Promise<SavingsGoal[]> {
@@ -252,7 +260,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order('target_date', { ascending: true })
@@ -262,7 +270,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       throw new Error(`Failed to fetch active goals: ${error.message}`);
     }
 
-    return mapSupabaseGoalArrayToDomain(data || []);
+    return mapSupabaseGoalArrayToDomain((data as any) || []);
   }
 
   async findCompleted(): Promise<SavingsGoal[]> {
@@ -271,7 +279,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true);
 
@@ -279,7 +287,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       throw new Error(`Failed to fetch completed goals: ${error.message}`);
     }
 
-    const goals = mapSupabaseGoalArrayToDomain(data || []);
+    const goals = mapSupabaseGoalArrayToDomain((data as any) || []);
     return goals.filter((g) => g.currentBaseMinor >= g.targetBaseMinor);
   }
 
@@ -292,7 +300,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .gte('target_date', startDate)
       .lte('target_date', endDate)
       .eq('user_id', userId)
@@ -306,7 +314,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       );
     }
 
-    return mapSupabaseGoalArrayToDomain(data || []);
+    return mapSupabaseGoalArrayToDomain((data as any) || []);
   }
 
   async findPaginated(
@@ -333,7 +341,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     // Get paginated data
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -347,7 +355,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: mapSupabaseGoalArrayToDomain(data || []),
+      data: mapSupabaseGoalArrayToDomain((data as any) || []),
       total,
       page,
       limit,
@@ -373,14 +381,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
         account_id: data.accountId,
         active: data.active ?? true,
       })
-      .select()
+      .select(GOAL_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to create goal: ${error.message}`);
     }
 
-    return mapSupabaseGoalToDomain(insertedData);
+    return mapSupabaseGoalToDomain(insertedData as any);
   }
 
   async createMany(data: CreateGoalDTO[]): Promise<SavingsGoal[]> {
@@ -403,13 +411,13 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     const { data: insertedData, error } = await this.client
       .from('goals')
       .insert(inserts)
-      .select();
+      .select(GOAL_LIST_PROJECTION);
 
     if (error) {
       throw new Error(`Failed to create goals: ${error.message}`);
     }
 
-    return mapSupabaseGoalArrayToDomain(insertedData || []);
+    return mapSupabaseGoalArrayToDomain((insertedData as any) || []);
   }
 
   async update(id: string, updates: UpdateGoalDTO): Promise<SavingsGoal> {
@@ -440,14 +448,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       .update(supabaseUpdates)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(GOAL_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update goal: ${error.message}`);
     }
 
-    return mapSupabaseGoalToDomain(data);
+    return mapSupabaseGoalToDomain(data as any);
   }
 
   async delete(id: string): Promise<void> {
@@ -709,7 +717,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     const { data, error } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .gte('target_date', today.toISOString().split('T')[0])
@@ -717,7 +725,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
 
     if (error) return [];
 
-    const goals = mapSupabaseGoalArrayToDomain(data || []);
+    const goals = mapSupabaseGoalArrayToDomain((data as any) || []);
     return Promise.all(goals.map((goal) => this.calculateGoalProgress(goal)));
   }
 
@@ -829,13 +837,13 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     // Actually we need to fetch all and check in JS because we can't compare two columns easily in a simple filter with JS client
     const { data: allActive, error: fetchError } = await this.client
       .from('goals')
-      .select('*')
+      .select(GOAL_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true);
 
     if (fetchError || !allActive) return 0;
 
-    const toArchive = allActive
+    const toArchive = (allActive as any[])
       .filter((g) => g.current_base_minor >= g.target_base_minor)
       .map((g) => g.id);
 

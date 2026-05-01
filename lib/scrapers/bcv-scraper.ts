@@ -7,9 +7,10 @@
 import * as cheerio from 'cheerio';
 import { BaseScraper } from './base-scraper';
 import { ScraperResult, ScraperError } from './types';
-import { BCV_CONFIG } from './config';
+import { BCV_CONFIG, BCV_URL, USER_AGENT, BCV_SELECTORS } from './config';
 import { parseLocaleNumber } from './parsers/number';
 import { STATIC_BCV_FALLBACK_RATES } from '@/lib/services/rates-fallback';
+import { ScraperErrorCategory } from './types';
 
 interface BCVData {
   usd: number;
@@ -18,9 +19,7 @@ interface BCVData {
   source: string;
 }
 
-const BCV_URL = 'https://www.bcv.org.ve';
-const USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+// URLs and UA now in config.ts
 
 // Reasonable rate ranges for validation
 const USD_MIN = 50;
@@ -44,22 +43,22 @@ export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
     selectors: string[],
     currencyCode: 'USD' | 'EUR'
   ): number | null => {
+    const min = currencyCode === 'USD' ? USD_MIN : EUR_MIN;
+    const max = currencyCode === 'USD' ? USD_MAX : EUR_MAX;
+
     for (const selector of selectors) {
       const container = $(selector);
       if (!container.length) {
         continue;
       }
 
-      const strongText = container.find('strong').first().text();
-      const rate = parseLocaleNumber(strongText);
-      if (!rate) {
-        continue;
-      }
+      // Check for strong within container or the container text itself
+      const text = container.find('strong').length
+        ? container.find('strong').first().text().trim()
+        : container.text().trim();
 
-      if (currencyCode === 'USD' && rate >= USD_MIN && rate <= USD_MAX) {
-        return rate;
-      }
-      if (currencyCode === 'EUR' && rate >= EUR_MIN && rate <= EUR_MAX) {
+      const rate = parseLocaleNumber(text);
+      if (rate && rate >= min && rate <= max) {
         return rate;
       }
     }
@@ -67,8 +66,8 @@ export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
     return null;
   };
 
-  let usd: number | null = extractFromSelectors(['#dolar'], 'USD');
-  let eur: number | null = extractFromSelectors(['#euro'], 'EUR');
+  let usd: number | null = extractFromSelectors(BCV_SELECTORS.USD, 'USD');
+  let eur: number | null = extractFromSelectors(BCV_SELECTORS.EUR, 'EUR');
 
   let strategyUsed: ParsedBCVRates['meta']['strategyUsed'] = 'known-container';
   let confidence = usd && eur ? 0.95 : 0.85;
@@ -97,11 +96,19 @@ export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
         .join(' ')
         .toUpperCase();
 
-      if (!usd && /USD/.test(contextText) && rate >= USD_MIN && rate <= USD_MAX) {
+      if (
+        !usd &&
+        /USD/.test(contextText) &&
+        rate >= USD_MIN &&
+        rate <= USD_MAX
+      ) {
         usd = rate;
-      }
-
-      if (!eur && /EUR/.test(contextText) && rate >= EUR_MIN && rate <= EUR_MAX) {
+      } else if (
+        !eur &&
+        /EUR/.test(contextText) &&
+        rate >= EUR_MIN &&
+        rate <= EUR_MAX
+      ) {
         eur = rate;
       }
     });
@@ -135,7 +142,10 @@ export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
   };
 }
 
-function extractRatesWithRegexFromHtml(html: string): { usd: number | null; eur: number | null } {
+function extractRatesWithRegexFromHtml(html: string): {
+  usd: number | null;
+  eur: number | null;
+} {
   let usd: number | null = null;
   let eur: number | null = null;
 
@@ -251,7 +261,7 @@ class BCVScraper extends BaseScraper<BCVData> {
             rejectUnauthorized,
           };
 
-          req = https.request(options, res => {
+          req = https.request(options, (res) => {
             const statusCode = res.statusCode ?? 0;
 
             // Follow redirects (defensive; should be rare for BCV_URL)
@@ -292,7 +302,7 @@ class BCVScraper extends BaseScraper<BCVData> {
             }
 
             let data = '';
-            res.on('data', chunk => {
+            res.on('data', (chunk) => {
               data += chunk.toString();
             });
 
@@ -331,14 +341,17 @@ class BCVScraper extends BaseScraper<BCVData> {
 
             const durationMs = Date.now() - startTime;
             const code = (error as any)?.code as string | undefined;
-            const message = error instanceof Error ? error.message : String(error);
+            const message =
+              error instanceof Error ? error.message : String(error);
 
             reject(
               new ScraperError(
                 `${message} (${durationMs}ms)`,
                 code || 'NETWORK_ERROR',
                 undefined,
-                code === 'ECONNRESET' || code === 'ECONNREFUSED' || code === 'ETIMEDOUT'
+                code === 'ECONNRESET' ||
+                  code === 'ECONNREFUSED' ||
+                  code === 'ETIMEDOUT'
               )
             );
           });
@@ -350,7 +363,10 @@ class BCVScraper extends BaseScraper<BCVData> {
     } catch (importError) {
       // Fallback to fetch if https module not available (Edge/Browser)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
+      const timeoutId = setTimeout(
+        () => controller.abort(),
+        this.config.timeout
+      );
 
       try {
         const response = await fetch(BCV_URL, {

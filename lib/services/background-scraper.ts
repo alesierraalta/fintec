@@ -1,16 +1,11 @@
 import { logger } from '@/lib/utils/logger';
 import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
+import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
 
 interface ScraperResult {
   success: boolean;
-  data?: {
-    usd_ves: number;
-    usdt_ves: number;
-    sell_rate: number;
-    buy_rate: number;
-    lastUpdated: string;
-    source: string;
-  };
+  binance?: any;
+  bcv?: any;
   error?: string;
 }
 
@@ -33,7 +28,7 @@ class BackgroundScraperService {
     this.onUpdateCallback = onUpdate;
     this.isRunning = true;
 
-    logger.info('Starting background scraper service (Native TS)...');
+    logger.info('Starting background scraper service (Unified)...');
     this.runScraperLoop();
   }
 
@@ -49,25 +44,35 @@ class BackgroundScraperService {
     if (!this.isRunning) return;
 
     try {
-      // Execute the scraper directly
-      const result = await scrapeBinanceRates();
+      // Execute both scrapers in parallel
+      const [binanceResult, bcvResult] = await Promise.all([
+        scrapeBinanceRates(),
+        scrapeBCVRates(),
+      ]);
 
       if (this.onUpdateCallback) {
-        this.onUpdateCallback(result);
+        this.onUpdateCallback({
+          success: binanceResult.success || bcvResult.success,
+          binance: binanceResult,
+          bcv: bcvResult,
+        });
       }
     } catch (error) {
-      logger.error('Scraper error:', error);
+      logger.error('Scraper loop error:', error);
       if (this.onUpdateCallback) {
         this.onUpdateCallback({
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
 
     // Schedule next run
     if (this.isRunning) {
-      this.timerId = setTimeout(() => this.runScraperLoop(), this.updateInterval);
+      this.timerId = setTimeout(
+        () => this.runScraperLoop(),
+        this.updateInterval
+      );
     }
   }
 }

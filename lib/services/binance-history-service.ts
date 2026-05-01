@@ -183,10 +183,16 @@ class BinanceHistoryService {
         });
       }
 
-      // Sync to Supabase (non-blocking)
+      /*
+       * Sync to Supabase is disabled from the client to avoid RLS permission errors.
+       * The global history is already synced by the server-side BackgroundScraperManager
+       * using service_role credentials. Client-side should only perform reads.
+       */
+      /*
       this.syncToSupabase(dateStr, usd, timestamp).catch((err) => {
         logger.error('[BinanceHistoryService] Background sync error:', err);
       });
+      */
 
       // Limpiar registros antiguos (mantener solo últimos 90 días)
       const cutoffDate = new Date();

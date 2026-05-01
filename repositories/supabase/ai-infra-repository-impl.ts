@@ -7,7 +7,12 @@ import type {
   CircuitBreakerStateUpdate,
   VerificationResultInput,
 } from '@/repositories/contracts';
+import { RequestContext } from '@/lib/cache/request-context';
 import { createServiceClient } from '@/lib/supabase/admin';
+import {
+  CIRCUIT_BREAKER_STATE_PROJECTION,
+  AGENT_CHECKPOINT_PROJECTION,
+} from './ai-infra-projections';
 
 function mapCircuitState(row: any): CircuitBreakerStateRow {
   return {
@@ -31,10 +36,16 @@ function mapCheckpoint(row: any): AgentCheckpointRow {
 
 export class SupabaseAIInfraRepository implements AIInfraRepository {
   private readonly userClient?: SupabaseClient;
+  private readonly requestContext?: RequestContext;
   private serviceClient?: SupabaseClient;
 
-  constructor(userClient?: SupabaseClient, serviceClient?: SupabaseClient) {
+  constructor(
+    userClient?: SupabaseClient,
+    requestContext?: RequestContext,
+    serviceClient?: SupabaseClient
+  ) {
     this.userClient = userClient;
+    this.requestContext = requestContext;
     this.serviceClient = serviceClient;
   }
 
@@ -64,7 +75,7 @@ export class SupabaseAIInfraRepository implements AIInfraRepository {
   ): Promise<CircuitBreakerStateRow | null> {
     const { data, error } = await this.getServiceClient()
       .from('circuit_breaker_state')
-      .select('*')
+      .select(CIRCUIT_BREAKER_STATE_PROJECTION)
       .eq('id', id)
       .maybeSingle();
 
@@ -146,7 +157,7 @@ export class SupabaseAIInfraRepository implements AIInfraRepository {
   ): Promise<AgentCheckpointRow | null> {
     const { data, error } = await this.getUserScopedClient()
       .from('agent_checkpoints')
-      .select('*')
+      .select(AGENT_CHECKPOINT_PROJECTION)
       .eq('thread_id', threadId)
       .eq('user_id', userId)
       .order('created_at', { ascending: false })

@@ -7,21 +7,25 @@ import {
   RecurringFrequency,
 } from '@/types/recurring-transactions';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { RECURRING_TRANSACTION_LIST_PROJECTION } from './recurring-transaction-projections';
+import type { RequestContext } from '@/lib/cache/request-context';
 
 export class SupabaseRecurringTransactionsRepository
   implements RecurringTransactionsRepository
 {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client: SupabaseClient) {
+  constructor(client: SupabaseClient, requestContext?: RequestContext) {
     this.client = client;
+    this.requestContext = requestContext;
   }
 
   async findByUserId(userId: string): Promise<RecurringTransaction[]> {
     this.requireUserId(userId);
     const { data, error } = await this.client
       .from('recurring_transactions')
-      .select('*')
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -41,7 +45,7 @@ export class SupabaseRecurringTransactionsRepository
     this.requireUserId(userId);
     const { data, error } = await this.client
       .from('recurring_transactions')
-      .select('*')
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -53,7 +57,7 @@ export class SupabaseRecurringTransactionsRepository
       );
     }
 
-    return data ? this.mapFromDatabase(data) : null;
+    return data ? this.mapFromDatabase(data as any) : null;
   }
 
   async findDueForExecution(date?: string): Promise<RecurringTransaction[]> {
@@ -61,7 +65,7 @@ export class SupabaseRecurringTransactionsRepository
 
     const { data, error } = await this.client
       .from('recurring_transactions')
-      .select('*')
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .eq('is_active', true)
       .lte('next_execution_date', executionDate)
       .or(`end_date.is.null,end_date.gte.${executionDate}`);
@@ -103,7 +107,7 @@ export class SupabaseRecurringTransactionsRepository
       this.client.from('recurring_transactions') as any
     )
       .insert(insertData as any)
-      .select()
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -112,7 +116,7 @@ export class SupabaseRecurringTransactionsRepository
       );
     }
 
-    return this.mapFromDatabase(result);
+    return this.mapFromDatabase(result as any);
   }
 
   async update(
@@ -148,7 +152,7 @@ export class SupabaseRecurringTransactionsRepository
       .update(updateData as any)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -157,7 +161,7 @@ export class SupabaseRecurringTransactionsRepository
       );
     }
 
-    return this.mapFromDatabase(result);
+    return this.mapFromDatabase(result as any);
   }
 
   async delete(id: string, userId: string): Promise<void> {
@@ -187,7 +191,7 @@ export class SupabaseRecurringTransactionsRepository
       .update({ is_active: isActive } as any)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -196,14 +200,14 @@ export class SupabaseRecurringTransactionsRepository
       );
     }
 
-    return this.mapFromDatabase(data);
+    return this.mapFromDatabase(data as any);
   }
 
   async getSummary(userId: string): Promise<RecurringTransactionSummary> {
     this.requireUserId(userId);
     const { data, error } = await this.client
       .from('recurring_transactions')
-      .select('*')
+      .select(RECURRING_TRANSACTION_LIST_PROJECTION)
       .eq('user_id', userId);
 
     if (error) {

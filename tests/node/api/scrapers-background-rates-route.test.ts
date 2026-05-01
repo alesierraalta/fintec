@@ -54,6 +54,7 @@ jest.mock('@/lib/utils/logger', () => ({
 }));
 
 describe('scraper health and background scraper routes', () => {
+  const originalUnifiedScraperFlag = process.env.BACKEND_UNIFIED_SCRAPER;
   const mockGetAuthenticatedUser = getAuthenticatedUser as jest.MockedFunction<
     typeof getAuthenticatedUser
   >;
@@ -81,6 +82,7 @@ describe('scraper health and background scraper routes', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    delete process.env.BACKEND_UNIFIED_SCRAPER;
     mockGetAuthenticatedUser.mockResolvedValue('admin-1');
     mockIsAdmin.mockReturnValue(true);
     httpServer = {
@@ -117,6 +119,15 @@ describe('scraper health and background scraper routes', () => {
       ]) as any
     );
     mockHealthMonitor.areAllHealthy.mockReturnValue(true);
+  });
+
+  afterAll(() => {
+    if (originalUnifiedScraperFlag === undefined) {
+      delete process.env.BACKEND_UNIFIED_SCRAPER;
+      return;
+    }
+
+    process.env.BACKEND_UNIFIED_SCRAPER = originalUnifiedScraperFlag;
   });
 
   it('returns serialized scraper health', async () => {
@@ -164,6 +175,22 @@ describe('scraper health and background scraper routes', () => {
 
     expect(response.status).toBe(200);
     expect(body.message).toContain('already running');
+    expect(mockBackgroundScraperManager).not.toHaveBeenCalled();
+  });
+
+  it('blocks startup when unified scraper rollout is disabled', async () => {
+    process.env.BACKEND_UNIFIED_SCRAPER = 'false';
+
+    const response = await START_BACKGROUND(
+      new Request('http://localhost/api/background-scraper/start', {
+        method: 'POST',
+      }) as any
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.error).toContain('BACKEND_UNIFIED_SCRAPER');
+    expect(mockCreateServer).not.toHaveBeenCalled();
     expect(mockBackgroundScraperManager).not.toHaveBeenCalled();
   });
 

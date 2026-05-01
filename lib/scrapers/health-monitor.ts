@@ -3,7 +3,11 @@
  * Tracks health status of all scrapers
  */
 
-import { HealthStatus, CircuitBreakerState } from './types';
+import {
+  HealthStatus,
+  CircuitBreakerState,
+  ScraperErrorCategory,
+} from './types';
 import { CircuitBreaker } from './circuit-breaker';
 import { ScraperMetrics } from './metrics';
 
@@ -17,10 +21,7 @@ export class HealthMonitor {
   /**
    * Register a scraper for monitoring
    */
-  registerScraper(
-    name: string,
-    circuitBreaker: CircuitBreaker
-  ): void {
+  registerScraper(name: string, circuitBreaker: CircuitBreaker): void {
     this.metrics.set(name, new ScraperMetrics(name));
     this.circuitBreakers.set(name, circuitBreaker);
   }
@@ -43,10 +44,14 @@ export class HealthMonitor {
   /**
    * Record a failed request
    */
-  recordFailure(name: string, responseTime: number): void {
+  recordFailure(
+    name: string,
+    responseTime: number,
+    category: ScraperErrorCategory = ScraperErrorCategory.UNKNOWN
+  ): void {
     const metrics = this.metrics.get(name);
     if (metrics) {
-      metrics.recordFailure(responseTime);
+      metrics.recordFailure(responseTime, category);
     }
 
     const circuitBreaker = this.circuitBreakers.get(name);
@@ -118,5 +123,3 @@ export class HealthMonitor {
  * Global health monitor instance
  */
 export const healthMonitor = new HealthMonitor();
-
-

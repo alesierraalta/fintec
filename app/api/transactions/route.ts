@@ -4,6 +4,7 @@ import { TransactionType } from '@/types';
 import { canCreateTransaction } from '@/lib/subscriptions/check-limit';
 import { createClient } from '@/lib/supabase/server';
 import { createServerAppRepository } from '@/repositories/factory';
+import { RequestContext } from '@/lib/cache/request-context';
 
 // Deferred follow-up: goal progress auto-sync for linked accounts should be wired
 // after transaction writes once Phase 1 semantics/performance are validated.
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const repository = createServerAppRepository({ supabase });
+    const requestContext = new RequestContext(user.id);
+    const repository = createServerAppRepository({ supabase, requestContext });
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') as TransactionType | null;
     const accountId = searchParams.get('accountId');
@@ -116,7 +118,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const repository = createServerAppRepository({ supabase });
+    const requestContext = new RequestContext(user.id);
+    const repository = createServerAppRepository({ supabase, requestContext });
     const body = await request.json();
 
     // Validate required fields
@@ -232,7 +235,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const repository = createServerAppRepository({ supabase });
+    const requestContext = new RequestContext(user.id);
+    const repository = createServerAppRepository({ supabase, requestContext });
     const body = await request.json();
 
     if (!body.id) {
@@ -280,7 +284,8 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const repository = createServerAppRepository({ supabase });
+    const requestContext = new RequestContext(user.id);
+    const repository = createServerAppRepository({ supabase, requestContext });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

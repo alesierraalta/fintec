@@ -5,149 +5,291 @@ import {
 } from '@/repositories/contracts';
 import { ExchangeRate, PaginationParams, PaginatedResult } from '@/types';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { RequestContext } from '@/lib/cache/request-context';
+import { ServerReadCache } from '@/lib/cache/server-read-cache';
+import { isBackendSharedReadCacheEnabled } from '@/lib/backend/feature-flags';
 import { supabase } from './client';
 import {
   mapSupabaseExchangeRateToDomain,
   mapDomainExchangeRateToSupabase,
   mapSupabaseExchangeRateArrayToDomain,
 } from './mappers';
+import { EXCHANGE_RATE_LIST_PROJECTION } from './exchange-rate-projections';
 
 export class SupabaseExchangeRatesRepository
   implements ExchangeRatesRepository
 {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
+  private readonly readCache: ServerReadCache;
 
-  constructor(client?: SupabaseClient) {
+  constructor(
+    client?: SupabaseClient,
+    requestContext?: RequestContext,
+    readCache?: ServerReadCache
+  ) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
+    // Default to a no-op cache (no Redis client) to stay client-safe
+    this.readCache = readCache ?? new ServerReadCache(null);
+  }
+
+  private shouldUseSharedCache(): boolean {
+    return isBackendSharedReadCacheEnabled() && this.readCache.isAvailable();
+  }
+
+  private recordCacheEvent(
+    name: string,
+    status: 'hit' | 'miss',
+    value: unknown
+  ) {
+    if (!this.requestContext) {
+      return;
+    }
+
+    const bytes = JSON.stringify(value)?.length ?? 0;
+    const rowCount = Array.isArray(value) ? value.length : value ? 1 : 0;
+
+    this.requestContext.profiler.record({
+      name: `cache_${status}_${name}`,
+      durationMs: 0,
+      bytes,
+      queryCount: 0,
+      rowCount,
+    });
+  }
+
+  private async readThroughSharedCache<T>(
+    name: string,
+    key: string,
+    loader: () => Promise<T>,
+    ttlSeconds = 300
+  ): Promise<T> {
+    if (!this.shouldUseSharedCache()) {
+      return loader();
+    }
+
+    const cached = await this.readCache.get<T>(key);
+    if (cached) {
+      this.recordCacheEvent(name, 'hit', cached);
+      return cached;
+    }
+
+    const loaded = await loader();
+    await this.readCache.set(key, loaded, ttlSeconds);
+    this.recordCacheEvent(name, 'miss', loaded);
+    return loaded;
+  }
+
+  private async invalidateSharedCache(): Promise<void> {
+    if (!this.readCache.isAvailable()) {
+      return;
+    }
+
+    await this.readCache.invalidatePattern('exchange_rates:*');
   }
 
   async findAll(): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .order('date', { ascending: false })
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
+    const cacheKey = this.readCache.makeKey('exchange_rates', 'list');
 
-    if (error) {
-      throw new Error(`Failed to fetch exchange rates: ${error.message}`);
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findAll',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .order('date', { ascending: false })
+          .order('base_currency', { ascending: true })
+          .order('quote_currency', { ascending: true });
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+        if (error) {
+          throw new Error(`Failed to fetch exchange rates: ${error.message}`);
+        }
+
+        return mapSupabaseExchangeRateArrayToDomain(data || []);
+      }
+    );
   }
 
   async findById(id: string): Promise<ExchangeRate | null> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .eq('id', id)
-      .single();
+    const cacheKey = this.readCache.makeKey('exchange_rates', 'id', id);
 
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Not found
+    return this.readThroughSharedCache(
+      'exchange_rates_findById',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .eq('id', id)
+          .maybeSingle();
+
+        if (error) {
+          throw new Error(`Failed to fetch exchange rate: ${error.message}`);
+        }
+
+        return data ? mapSupabaseExchangeRateToDomain(data as any) : null;
       }
-      throw new Error(`Failed to fetch exchange rate: ${error.message}`);
-    }
-
-    return mapSupabaseExchangeRateToDomain(data);
+    );
   }
 
   async findByPair(
     baseCurrency: string,
     quoteCurrency: string
   ): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .eq('base_currency', baseCurrency)
-      .eq('quote_currency', quoteCurrency)
-      .order('date', { ascending: false });
+    const cacheKey = this.readCache.makeKey(
+      'exchange_rates',
+      'pair',
+      baseCurrency,
+      quoteCurrency
+    );
 
-    if (error) {
-      throw new Error(
-        `Failed to fetch exchange rates by pair: ${error.message}`
-      );
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findByPair',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .eq('base_currency', baseCurrency)
+          .eq('quote_currency', quoteCurrency)
+          .order('date', { ascending: false });
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+        if (error) {
+          throw new Error(
+            `Failed to fetch exchange rates by pair: ${error.message}`
+          );
+        }
+
+        return mapSupabaseExchangeRateArrayToDomain(data || []);
+      }
+    );
   }
 
   async findLatestByPair(
     baseCurrency: string,
     quoteCurrency: string
   ): Promise<ExchangeRate | null> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .eq('base_currency', baseCurrency)
-      .eq('quote_currency', quoteCurrency)
-      .order('date', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const cacheKey = this.readCache.makeKey(
+      'exchange_rates',
+      'latest',
+      baseCurrency,
+      quoteCurrency
+    );
 
-    if (error) {
-      throw new Error(`Failed to fetch latest exchange rate: ${error.message}`);
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findLatestByPair',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .eq('base_currency', baseCurrency)
+          .eq('quote_currency', quoteCurrency)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-    return data ? mapSupabaseExchangeRateToDomain(data) : null;
+        if (error) {
+          throw new Error(
+            `Failed to fetch latest exchange rate: ${error.message}`
+          );
+        }
+
+        return data ? mapSupabaseExchangeRateToDomain(data as any) : null;
+      }
+    );
   }
 
   async findByDate(date: string): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .eq('date', date)
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
+    const cacheKey = this.readCache.makeKey('exchange_rates', 'date', date);
 
-    if (error) {
-      throw new Error(
-        `Failed to fetch exchange rates by date: ${error.message}`
-      );
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findByDate',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .eq('date', date)
+          .order('base_currency', { ascending: true })
+          .order('quote_currency', { ascending: true });
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+        if (error) {
+          throw new Error(
+            `Failed to fetch exchange rates by date: ${error.message}`
+          );
+        }
+
+        return mapSupabaseExchangeRateArrayToDomain(data || []);
+      }
+    );
   }
 
   async findByDateRange(
     startDate: string,
     endDate: string
   ): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: false })
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
+    const cacheKey = this.readCache.makeKey(
+      'exchange_rates',
+      'date-range',
+      startDate,
+      endDate
+    );
 
-    if (error) {
-      throw new Error(
-        `Failed to fetch exchange rates by date range: ${error.message}`
-      );
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findByDateRange',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .gte('date', startDate)
+          .lte('date', endDate)
+          .order('date', { ascending: false })
+          .order('base_currency', { ascending: true })
+          .order('quote_currency', { ascending: true });
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+        if (error) {
+          throw new Error(
+            `Failed to fetch exchange rates by date range: ${error.message}`
+          );
+        }
+
+        return mapSupabaseExchangeRateArrayToDomain(data || []);
+      }
+    );
   }
 
   async findByProvider(provider: string): Promise<ExchangeRate[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('*')
-      .eq('provider', provider)
-      .order('date', { ascending: false })
-      .order('base_currency', { ascending: true })
-      .order('quote_currency', { ascending: true });
+    const cacheKey = this.readCache.makeKey(
+      'exchange_rates',
+      'provider',
+      provider
+    );
 
-    if (error) {
-      throw new Error(
-        `Failed to fetch exchange rates by provider: ${error.message}`
-      );
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_findByProvider',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_LIST_PROJECTION)
+          .eq('provider', provider)
+          .order('date', { ascending: false })
+          .order('base_currency', { ascending: true })
+          .order('quote_currency', { ascending: true });
 
-    return mapSupabaseExchangeRateArrayToDomain(data || []);
+        if (error) {
+          throw new Error(
+            `Failed to fetch exchange rates by provider: ${error.message}`
+          );
+        }
+
+        return mapSupabaseExchangeRateArrayToDomain(data || []);
+      }
+    );
   }
 
   async findPaginated(
@@ -159,7 +301,7 @@ export class SupabaseExchangeRatesRepository
     // Get total count
     const { count, error: countError } = await this.client
       .from('exchange_rates')
-      .select('*', { count: 'exact', head: true });
+      .select(EXCHANGE_RATE_LIST_PROJECTION, { count: 'exact', head: true });
 
     if (countError) {
       throw new Error(`Failed to count exchange rates: ${countError.message}`);
@@ -168,7 +310,7 @@ export class SupabaseExchangeRatesRepository
     // Get paginated data
     const { data, error } = await this.client
       .from('exchange_rates')
-      .select('*')
+      .select(EXCHANGE_RATE_LIST_PROJECTION)
       .order(sortBy, { ascending: sortOrder === 'asc' })
       .range(offset, offset + limit - 1);
 
@@ -200,14 +342,15 @@ export class SupabaseExchangeRatesRepository
     const { data: inserted, error } = await this.client
       .from('exchange_rates')
       .insert(supabaseRate)
-      .select()
+      .select(EXCHANGE_RATE_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to create exchange rate: ${error.message}`);
     }
 
-    return mapSupabaseExchangeRateToDomain(inserted);
+    await this.invalidateSharedCache();
+    return mapSupabaseExchangeRateToDomain(inserted as any);
   }
 
   async createMany(data: CreateExchangeRateDTO[]): Promise<ExchangeRate[]> {
@@ -222,13 +365,14 @@ export class SupabaseExchangeRatesRepository
     const { data: inserted, error } = await this.client
       .from('exchange_rates')
       .insert(supabaseRates)
-      .select();
+      .select(EXCHANGE_RATE_LIST_PROJECTION);
 
     if (error) {
       throw new Error(`Failed to bulk create exchange rates: ${error.message}`);
     }
 
-    return mapSupabaseExchangeRateArrayToDomain(inserted || []);
+    await this.invalidateSharedCache();
+    return mapSupabaseExchangeRateArrayToDomain((inserted as any) || []);
   }
 
   async update(
@@ -248,14 +392,15 @@ export class SupabaseExchangeRatesRepository
       .from('exchange_rates')
       .update(supabaseUpdates)
       .eq('id', id)
-      .select()
+      .select(EXCHANGE_RATE_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update exchange rate: ${error.message}`);
     }
 
-    return mapSupabaseExchangeRateToDomain(data);
+    await this.invalidateSharedCache();
+    return mapSupabaseExchangeRateToDomain(data as any);
   }
 
   async delete(id: string): Promise<void> {
@@ -267,6 +412,8 @@ export class SupabaseExchangeRatesRepository
     if (error) {
       throw new Error(`Failed to delete exchange rate: ${error.message}`);
     }
+
+    await this.invalidateSharedCache();
   }
 
   async deleteMany(ids: string[]): Promise<void> {
@@ -278,18 +425,28 @@ export class SupabaseExchangeRatesRepository
     if (error) {
       throw new Error(`Failed to bulk delete exchange rates: ${error.message}`);
     }
+
+    await this.invalidateSharedCache();
   }
 
   async count(): Promise<number> {
-    const { count, error } = await this.client
-      .from('exchange_rates')
-      .select('*', { count: 'exact', head: true });
+    const cacheKey = this.readCache.makeKey('exchange_rates', 'count');
 
-    if (error) {
-      throw new Error(`Failed to count exchange rates: ${error.message}`);
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_count',
+      cacheKey,
+      async () => {
+        const { count, error } = await this.client
+          .from('exchange_rates')
+          .select('*', { count: 'exact', head: true });
 
-    return count || 0;
+        if (error) {
+          throw new Error(`Failed to count exchange rates: ${error.message}`);
+        }
+
+        return count || 0;
+      }
+    );
   }
 
   async exists(id: string): Promise<boolean> {
@@ -310,48 +467,61 @@ export class SupabaseExchangeRatesRepository
   ): Promise<number> {
     if (baseCurrency === quoteCurrency) return 1;
 
-    let query = this.client
-      .from('exchange_rates')
-      .select('rate')
-      .eq('base_currency', baseCurrency)
-      .eq('quote_currency', quoteCurrency);
+    const cacheKey = this.readCache.makeKey(
+      'exchange_rates',
+      'rate',
+      baseCurrency,
+      quoteCurrency,
+      date ?? 'latest'
+    );
 
-    if (date) {
-      query = query.eq('date', date);
-    } else {
-      query = query.order('date', { ascending: false }).limit(1);
-    }
+    return this.readThroughSharedCache(
+      'exchange_rates_getRate',
+      cacheKey,
+      async () => {
+        let query = this.client
+          .from('exchange_rates')
+          .select('rate')
+          .eq('base_currency', baseCurrency)
+          .eq('quote_currency', quoteCurrency);
 
-    const { data, error } = await query.maybeSingle();
+        if (date) {
+          query = query.eq('date', date);
+        } else {
+          query = query.order('date', { ascending: false }).limit(1);
+        }
 
-    if (error || !data) {
-      // Try reverse pair
-      let reverseQuery = this.client
-        .from('exchange_rates')
-        .select('rate')
-        .eq('base_currency', quoteCurrency)
-        .eq('quote_currency', baseCurrency);
+        const { data, error } = await query.maybeSingle();
 
-      if (date) {
-        reverseQuery = reverseQuery.eq('date', date);
-      } else {
-        reverseQuery = reverseQuery
-          .order('date', { ascending: false })
-          .limit(1);
+        if (error || !data) {
+          let reverseQuery = this.client
+            .from('exchange_rates')
+            .select('rate')
+            .eq('base_currency', quoteCurrency)
+            .eq('quote_currency', baseCurrency);
+
+          if (date) {
+            reverseQuery = reverseQuery.eq('date', date);
+          } else {
+            reverseQuery = reverseQuery
+              .order('date', { ascending: false })
+              .limit(1);
+          }
+
+          const { data: revData, error: revError } =
+            await reverseQuery.maybeSingle();
+          if (!revError && revData && revData.rate > 0) {
+            return 1 / revData.rate;
+          }
+
+          throw new Error(
+            `Exchange rate not found for ${baseCurrency}/${quoteCurrency}`
+          );
+        }
+
+        return data.rate;
       }
-
-      const { data: revData, error: revError } =
-        await reverseQuery.maybeSingle();
-      if (!revError && revData && revData.rate > 0) {
-        return 1 / revData.rate;
-      }
-
-      throw new Error(
-        `Exchange rate not found for ${baseCurrency}/${quoteCurrency}`
-      );
-    }
-
-    return data.rate;
+    );
   }
 
   async getRateWithFallback(
@@ -412,12 +582,13 @@ export class SupabaseExchangeRatesRepository
       .upsert(supabaseRates, {
         onConflict: 'base_currency,quote_currency,date,provider',
       })
-      .select();
+      .select(EXCHANGE_RATE_LIST_PROJECTION);
 
     if (error) {
       throw new Error(`Failed to update rates from provider: ${error.message}`);
     }
 
+    await this.invalidateSharedCache();
     return mapSupabaseExchangeRateArrayToDomain(data || []);
   }
 
@@ -436,24 +607,33 @@ export class SupabaseExchangeRatesRepository
       throw new Error(`Failed to clear old rates: ${error.message}`);
     }
 
+    await this.invalidateSharedCache();
     return count || 0;
   }
 
   // Supported currencies
   async getSupportedCurrencies(): Promise<string[]> {
-    const { data, error } = await this.client
-      .from('exchange_rates')
-      .select('base_currency, quote_currency');
+    const cacheKey = this.readCache.makeKey('exchange_rates', 'currencies');
 
-    if (error) return [];
+    return this.readThroughSharedCache(
+      'exchange_rates_getSupportedCurrencies',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select('base_currency,quote_currency');
 
-    const currencies = new Set<string>();
-    (data || []).forEach((row) => {
-      currencies.add(row.base_currency);
-      currencies.add(row.quote_currency);
-    });
+        if (error) return [];
 
-    return Array.from(currencies).sort();
+        const currencies = new Set<string>();
+        (data || []).forEach((row) => {
+          currencies.add(row.base_currency);
+          currencies.add(row.quote_currency);
+        });
+
+        return Array.from(currencies).sort();
+      }
+    );
   }
 
   // Rate history
@@ -472,7 +652,7 @@ export class SupabaseExchangeRatesRepository
 
     const { data, error } = await this.client
       .from('exchange_rates')
-      .select('date, rate')
+      .select('date,rate')
       .eq('base_currency', baseCurrency)
       .eq('quote_currency', quoteCurrency)
       .gte('date', startDate.toISOString().split('T')[0])

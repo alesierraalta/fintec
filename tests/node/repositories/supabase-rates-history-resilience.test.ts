@@ -23,8 +23,8 @@ describe('SupabaseRatesHistoryRepository Resilience', () => {
     };
 
     readCache = new ServerReadCache(mockRedis);
-    requestContext = new RequestContext();
-    
+    requestContext = new RequestContext('test-user-id');
+
     mockClient = {
       from: jest.fn().mockReturnThis(),
       select: jest.fn().mockReturnThis(),
@@ -34,25 +34,45 @@ describe('SupabaseRatesHistoryRepository Resilience', () => {
       maybeSingle: jest.fn(),
     };
 
-    repo = new SupabaseRatesHistoryRepository(mockClient, requestContext, readCache);
+    repo = new SupabaseRatesHistoryRepository(
+      mockClient,
+      requestContext,
+      readCache
+    );
   });
 
   describe('listBCVRatesSince Resilience', () => {
     const date = '2026-01-01';
     const cacheKey = `rates_history:bcv:since:${date}`;
-    const mockData = [{ date: '2026-01-01', usd: 36.5, eur: 40.0, source: 'bcv', timestamp: '2026-01-01T12:00:00Z' }];
+    const mockData = [
+      {
+        date: '2026-01-01',
+        usd: 36.5,
+        eur: 40.0,
+        source: 'bcv',
+        timestamp: '2026-01-01T12:00:00Z',
+      },
+    ];
 
     test('RED: should fallback to stale cache on Supabase ENOTFOUND', async () => {
       // GIVEN: Supabase fails with ENOTFOUND
-      mockClient.maybeSingle.mockResolvedValue({ data: null, error: { message: 'getaddrinfo ENOTFOUND bfxkcmoccqgvkrrkkdju.supabase.co' } });
+      mockClient.maybeSingle.mockResolvedValue({
+        data: null,
+        error: {
+          message: 'getaddrinfo ENOTFOUND bfxkcmoccqgvkrrkkdju.supabase.co',
+        },
+      });
       // In repository-impl.ts, listBCVRatesSince uses .from().select().gte().order()
       // We need to mock the last call in the chain
-      (mockClient.order as jest.Mock).mockResolvedValue({ data: null, error: { message: 'getaddrinfo ENOTFOUND' } });
+      (mockClient.order as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'getaddrinfo ENOTFOUND' },
+      });
 
       // AND: Cache has stale data (expiresAt in past)
       const staleValue = {
         value: mockData,
-        expiresAt: Date.now() - 10000
+        expiresAt: Date.now() - 10000,
       };
       mockRedis.get.mockResolvedValue(JSON.stringify(staleValue));
 
@@ -68,14 +88,19 @@ describe('SupabaseRatesHistoryRepository Resilience', () => {
 
     test('RED: should retry on 503 before failing', async () => {
       // GIVEN: Supabase returns 503 (retryable)
-      (mockClient.order as jest.Mock).mockResolvedValue({ data: null, error: { message: 'Database Unavailable (503)' } });
-      
+      (mockClient.order as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'Database Unavailable (503)' },
+      });
+
       // AND: Cache is empty
       mockRedis.get.mockResolvedValue(null);
 
       // WHEN / THEN: calling should throw after retries
-      await expect(repo.listBCVRatesSince(date)).rejects.toThrow(/Database Unavailable/);
-      
+      await expect(repo.listBCVRatesSince(date)).rejects.toThrow(
+        /Database Unavailable/
+      );
+
       // Verify retries (default 3 attempts)
       expect(mockClient.order).toHaveBeenCalledTimes(3);
     });
@@ -84,11 +109,21 @@ describe('SupabaseRatesHistoryRepository Resilience', () => {
   describe('listBinanceRatesSince Resilience', () => {
     const date = '2026-01-01';
     const cacheKey = `rates_history:binance:since:${date}`;
-    const mockData = [{ date: '2026-01-01', usd: 36.5, source: 'binance', timestamp: '2026-01-01T12:00:00Z' }];
+    const mockData = [
+      {
+        date: '2026-01-01',
+        usd: 36.5,
+        source: 'binance',
+        timestamp: '2026-01-01T12:00:00Z',
+      },
+    ];
 
     test('should fallback to stale cache on Supabase network error', async () => {
       // GIVEN: Supabase fails
-      (mockClient.order as jest.Mock).mockResolvedValue({ data: null, error: { message: 'ETIMEDOUT' } });
+      (mockClient.order as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'ETIMEDOUT' },
+      });
 
       // AND: Cache has stale data
       const staleValue = { value: mockData, expiresAt: Date.now() - 10000 };
@@ -105,12 +140,22 @@ describe('SupabaseRatesHistoryRepository Resilience', () => {
 
   describe('getLatestExchangeRateSnapshot Resilience', () => {
     const cacheKey = 'rates_history:snapshots:latest';
-    const mockData = { usdVes: 36.5, usdtVes: 37.0, sellRate: 36.8, buyRate: 36.2, lastUpdated: '2026-01-01T12:00:00Z', source: 'binance' };
+    const mockData = {
+      usdVes: 36.5,
+      usdtVes: 37.0,
+      sellRate: 36.8,
+      buyRate: 36.2,
+      lastUpdated: '2026-01-01T12:00:00Z',
+      source: 'binance',
+    };
 
     test('should fallback to stale cache on 5xx', async () => {
       // GIVEN: Supabase fails with 500
       // In getLatestExchangeRateSnapshot: .from().select().order().limit().maybeSingle()
-      (mockClient.maybeSingle as jest.Mock).mockResolvedValue({ data: null, error: { message: 'Database error (500)' } });
+      (mockClient.maybeSingle as jest.Mock).mockResolvedValue({
+        data: null,
+        error: { message: 'Database error (500)' },
+      });
 
       // AND: Cache has stale data
       const staleValue = { value: mockData, expiresAt: Date.now() - 10000 };

@@ -8,37 +8,50 @@ import { Budget, PaginationParams, PaginatedResult } from '@/types';
 import { supabase } from './client';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Database, SupabaseBudget } from './types';
+import type { RequestContext } from '@/lib/cache/request-context';
+import { getOwnedAccountScope } from './account-scope';
+import { getMemoizedOwnedAccountScope } from './memoized-account-scope';
 import {
   mapSupabaseBudgetToDomain,
   mapDomainBudgetToSupabase,
   mapSupabaseBudgetArrayToDomain,
 } from './mappers';
+import {
+  BUDGET_LIST_PROJECTION,
+  BUDGET_DETAIL_PROJECTION,
+} from './budget-projections';
 
 export class SupabaseBudgetsRepository implements BudgetsRepository {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   private async getUserId(): Promise<string | null> {
+    if (this.requestContext) {
+      return this.requestContext.userId;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
     return user?.id || null;
   }
 
-  private async getOwnedAccountIds(userId: string): Promise<string[]> {
-    const { data, error } = await this.client
-      .from('accounts')
-      .select('id')
-      .eq('user_id', userId);
-
-    if (error) {
-      throw new Error(`Failed to fetch owned accounts: ${error.message}`);
+  private async getAccountScope(userId: string) {
+    if (this.requestContext && this.requestContext.userId === userId) {
+      return getMemoizedOwnedAccountScope(this.requestContext, this.client);
     }
 
-    return (data || []).map((account) => account.id);
+    return getOwnedAccountScope(this.client, userId);
+  }
+
+  private async getOwnedAccountIds(userId: string): Promise<string[]> {
+    const scope = await this.getAccountScope(userId);
+    return scope.accountIds;
   }
   async findAll(): Promise<Budget[]> {
     const userId = await this.getUserId();
@@ -46,7 +59,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order('month_year', { ascending: false })
@@ -56,7 +69,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch budgets: ${error.message}`);
     }
 
-    return mapSupabaseBudgetArrayToDomain(data || []);
+    return mapSupabaseBudgetArrayToDomain((data as any) || []);
   }
 
   async findById(id: string): Promise<Budget | null> {
@@ -65,7 +78,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -77,7 +90,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch budget: ${error.message}`);
     }
 
-    return mapSupabaseBudgetToDomain(data);
+    return mapSupabaseBudgetToDomain(data as any);
   }
 
   async findByCategoryId(categoryId: string): Promise<Budget[]> {
@@ -86,7 +99,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('category_id', categoryId)
       .eq('user_id', userId)
       .eq('active', true)
@@ -96,7 +109,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch budgets by category: ${error.message}`);
     }
 
-    return mapSupabaseBudgetArrayToDomain(data || []);
+    return mapSupabaseBudgetArrayToDomain((data as any) || []);
   }
 
   async findByMonthYear(monthYear: string): Promise<Budget[]> {
@@ -105,7 +118,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('month_year', monthYear)
       .eq('user_id', userId)
       .eq('active', true);
@@ -114,7 +127,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch budgets by month: ${error.message}`);
     }
 
-    return mapSupabaseBudgetArrayToDomain(data || []);
+    return mapSupabaseBudgetArrayToDomain((data as any) || []);
   }
 
   async findActive(): Promise<Budget[]> {
@@ -123,7 +136,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true);
 
@@ -131,7 +144,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch active budgets: ${error.message}`);
     }
 
-    return mapSupabaseBudgetArrayToDomain(data || []);
+    return mapSupabaseBudgetArrayToDomain((data as any) || []);
   }
 
   // Budget progress
@@ -242,7 +255,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
 
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('category_id', categoryId)
       .eq('month_year', monthYear)
       .eq('user_id', userId)
@@ -256,7 +269,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       );
     }
 
-    return mapSupabaseBudgetToDomain(data);
+    return mapSupabaseBudgetToDomain(data as any);
   }
 
   async findPaginated(
@@ -289,7 +302,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     // Get paginated data
     const { data, error } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_LIST_PROJECTION)
       .eq('user_id', userId)
       .eq('active', true)
       .order(sortBy, { ascending: sortOrder === 'asc' })
@@ -303,7 +316,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     const totalPages = Math.ceil(total / limit);
 
     return {
-      data: mapSupabaseBudgetArrayToDomain(data || []),
+      data: mapSupabaseBudgetArrayToDomain((data as any) || []),
       total,
       page,
       limit,
@@ -341,7 +354,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     // Fetch the created budget to return it fully (with ID generated by DB)
     const { data: insertedData, error: fetchError } = await this.client
       .from('budgets')
-      .select('*')
+      .select(BUDGET_DETAIL_PROJECTION)
       .eq('user_id', userId)
       .eq('category_id', data.categoryId)
       .eq('month_year', data.monthYear)
@@ -351,7 +364,7 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       throw new Error(`Failed to fetch created budget: ${fetchError.message}`);
     }
 
-    return mapSupabaseBudgetToDomain(insertedData);
+    return mapSupabaseBudgetToDomain(insertedData as any);
   }
 
   async update(id: string, updates: UpdateBudgetDTO): Promise<Budget> {
@@ -378,14 +391,14 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       .update(supabaseUpdates)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(BUDGET_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update budget: ${error.message}`);
     }
 
-    return mapSupabaseBudgetToDomain(data);
+    return mapSupabaseBudgetToDomain(data as any);
   }
 
   async createMany(data: CreateBudgetDTO[]): Promise<Budget[]> {
@@ -407,13 +420,13 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
     const { data: insertedData, error } = await this.client
       .from('budgets')
       .insert(inserts)
-      .select();
+      .select(BUDGET_LIST_PROJECTION);
 
     if (error) {
       throw new Error(`Failed to create budgets: ${error.message}`);
     }
 
-    return mapSupabaseBudgetArrayToDomain(insertedData || []);
+    return mapSupabaseBudgetArrayToDomain((insertedData as any) || []);
   }
 
   async delete(id: string): Promise<void> {
@@ -516,14 +529,14 @@ export class SupabaseBudgetsRepository implements BudgetsRepository {
       .update(updates)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(BUDGET_LIST_PROJECTION)
       .single();
 
     if (error) {
       throw new Error(`Failed to update budget spent amount: ${error.message}`);
     }
 
-    return mapSupabaseBudgetToDomain(data);
+    return mapSupabaseBudgetToDomain(data as any);
   }
 
   async getMonthlyBudgetSummary(monthYear: string): Promise<{

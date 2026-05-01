@@ -34,12 +34,14 @@ export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
   }
 
   private shouldUseSharedCache(): boolean {
-    return (
-      isBackendSharedReadCacheEnabled() && this.readCache.isAvailable()
-    );
+    return isBackendSharedReadCacheEnabled() && this.readCache.isAvailable();
   }
 
-  private recordCacheEvent(name: string, status: 'hit' | 'miss', value: unknown) {
+  private recordCacheEvent(
+    name: string,
+    status: 'hit' | 'miss' | 'stale_fallback',
+    value: unknown
+  ) {
     if (!this.requestContext) {
       return;
     }
@@ -141,27 +143,36 @@ export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
   }
 
   async listBCVRatesSince(date: string): Promise<BCVRateHistoryEntry[]> {
-    const cacheKey = this.readCache.makeKey('rates_history', 'bcv', 'since', date);
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'bcv',
+      'since',
+      date
+    );
 
-    return this.readThroughSharedCache('rates_history_listBCVRatesSince', cacheKey, async () => {
-      const { data, error } = await this.client
-        .from('bcv_rate_history')
-        .select(BCV_RATE_HISTORY_LIST_PROJECTION)
-        .gte('date', date)
-        .order('date', { ascending: false });
+    return this.readThroughSharedCache(
+      'rates_history_listBCVRatesSince',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('bcv_rate_history')
+          .select(BCV_RATE_HISTORY_LIST_PROJECTION)
+          .gte('date', date)
+          .order('date', { ascending: false });
 
-      if (error) {
-        throw new Error(`Failed to load BCV rates: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to load BCV rates: ${error.message}`);
+        }
+
+        return (data || []).map((row: any) => ({
+          date: row.date,
+          usd: Number(row.usd),
+          eur: Number(row.eur),
+          source: row.source,
+          timestamp: row.timestamp,
+        }));
       }
-
-      return (data || []).map((row: any) => ({
-        date: row.date,
-        usd: Number(row.usd),
-        eur: Number(row.eur),
-        source: row.source,
-        timestamp: row.timestamp,
-      }));
-    });
+    );
   }
 
   async upsertBinanceRate(entry: BinanceRateHistoryEntry): Promise<void> {
@@ -185,26 +196,35 @@ export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
   async listBinanceRatesSince(
     date: string
   ): Promise<BinanceRateHistoryEntry[]> {
-    const cacheKey = this.readCache.makeKey('rates_history', 'binance', 'since', date);
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'binance',
+      'since',
+      date
+    );
 
-    return this.readThroughSharedCache('rates_history_listBinanceRatesSince', cacheKey, async () => {
-      const { data, error } = await this.client
-        .from('binance_rate_history')
-        .select(BINANCE_RATE_HISTORY_LIST_PROJECTION)
-        .gte('date', date)
-        .order('date', { ascending: false });
+    return this.readThroughSharedCache(
+      'rates_history_listBinanceRatesSince',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('binance_rate_history')
+          .select(BINANCE_RATE_HISTORY_LIST_PROJECTION)
+          .gte('date', date)
+          .order('date', { ascending: false });
 
-      if (error) {
-        throw new Error(`Failed to load Binance rates: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to load Binance rates: ${error.message}`);
+        }
+
+        return (data || []).map((row: any) => ({
+          date: row.date,
+          usd: Number(row.usd),
+          source: row.source,
+          timestamp: row.timestamp,
+        }));
       }
-
-      return (data || []).map((row: any) => ({
-        date: row.date,
-        usd: Number(row.usd),
-        source: row.source,
-        timestamp: row.timestamp,
-      }));
-    });
+    );
   }
 
   async insertExchangeRateSnapshot(
@@ -230,61 +250,151 @@ export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
   }
 
   async getLatestExchangeRateSnapshot(): Promise<ExchangeRateSnapshot | null> {
-    const cacheKey = this.readCache.makeKey('rates_history', 'snapshots', 'latest');
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'snapshots',
+      'latest'
+    );
 
-    return this.readThroughSharedCache('rates_history_getLatestSnapshot', cacheKey, async () => {
-      const { data, error } = await this.client
-        .from('exchange_rates')
-        .select(EXCHANGE_RATE_SNAPSHOT_LIST_PROJECTION)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    return this.readThroughSharedCache(
+      'rates_history_getLatestSnapshot',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_SNAPSHOT_LIST_PROJECTION)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-      if (error) {
-        throw new Error(`Failed to fetch latest exchange rate: ${error.message}`);
+        if (error) {
+          throw new Error(
+            `Failed to fetch latest exchange rate: ${error.message}`
+          );
+        }
+
+        if (!data) {
+          return null;
+        }
+
+        return {
+          usdVes: (data as any).usd_ves,
+          usdtVes: (data as any).usdt_ves,
+          sellRate: (data as any).sell_rate,
+          buyRate: (data as any).buy_rate,
+          lastUpdated: (data as any).last_updated,
+          source: (data as any).source,
+        };
       }
+    );
+  }
 
-      if (!data) {
-        return null;
+  async getLatestBCVRate(): Promise<BCVRateHistoryEntry | null> {
+    const cacheKey = this.readCache.makeKey('rates_history', 'bcv', 'latest');
+
+    return this.readThroughSharedCache(
+      'rates_history_getLatestBCVRate',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('bcv_rate_history')
+          .select(BCV_RATE_HISTORY_LIST_PROJECTION)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          throw new Error(`Failed to fetch latest BCV rate: ${error.message}`);
+        }
+
+        if (!data) return null;
+
+        const row = data as any;
+
+        return {
+          date: row.date,
+          usd: Number(row.usd),
+          eur: Number(row.eur),
+          source: row.source,
+          timestamp: row.timestamp,
+        };
       }
+    );
+  }
 
-      return {
-        usdVes: (data as any).usd_ves,
-        usdtVes: (data as any).usdt_ves,
-        sellRate: (data as any).sell_rate,
-        buyRate: (data as any).buy_rate,
-        lastUpdated: (data as any).last_updated,
-        source: (data as any).source,
-      };
-    });
+  async getLatestBinanceRate(): Promise<BinanceRateHistoryEntry | null> {
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'binance',
+      'latest'
+    );
+
+    return this.readThroughSharedCache(
+      'rates_history_getLatestBinanceRate',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('binance_rate_history')
+          .select(BINANCE_RATE_HISTORY_LIST_PROJECTION)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          throw new Error(
+            `Failed to fetch latest Binance rate: ${error.message}`
+          );
+        }
+
+        if (!data) return null;
+
+        const row = data as any;
+
+        return {
+          date: row.date,
+          usd: Number(row.usd),
+          source: row.source,
+          timestamp: row.timestamp,
+        };
+      }
+    );
   }
 
   async listExchangeRateSnapshots(
     limit: number
   ): Promise<ExchangeRateSnapshot[]> {
-    const cacheKey = this.readCache.makeKey('rates_history', 'snapshots', 'list', limit.toString());
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'snapshots',
+      'list',
+      limit.toString()
+    );
 
-    return this.readThroughSharedCache('rates_history_listSnapshots', cacheKey, async () => {
-      const { data, error } = await this.client
-        .from('exchange_rates')
-        .select(EXCHANGE_RATE_SNAPSHOT_LIST_PROJECTION)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+    return this.readThroughSharedCache(
+      'rates_history_listSnapshots',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('exchange_rates')
+          .select(EXCHANGE_RATE_SNAPSHOT_LIST_PROJECTION)
+          .order('created_at', { ascending: false })
+          .limit(limit);
 
-      if (error) {
-        throw new Error(
-          `Failed to fetch exchange rate history: ${error.message}`
-        );
+        if (error) {
+          throw new Error(
+            `Failed to fetch exchange rate history: ${error.message}`
+          );
+        }
+
+        return (data || []).map((row: any) => ({
+          usdVes: row.usd_ves,
+          usdtVes: row.usdt_ves,
+          sellRate: row.sell_rate,
+          buyRate: row.buy_rate,
+          lastUpdated: row.last_updated,
+          source: row.source,
+        }));
       }
-
-      return (data || []).map((row: any) => ({
-        usdVes: row.usd_ves,
-        usdtVes: row.usdt_ves,
-        sellRate: row.sell_rate,
-        buyRate: row.buy_rate,
-        lastUpdated: row.last_updated,
-        source: row.source,
-      }));
-    });
+    );
   }
 }

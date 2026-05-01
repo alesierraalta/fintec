@@ -4,6 +4,18 @@
  */
 
 /**
+ * Scraper error categories for granular diagnostics
+ */
+export enum ScraperErrorCategory {
+  TIMEOUT = 'TIMEOUT',
+  CONNECTIVITY = 'CONNECTIVITY',
+  PARSING = 'PARSING',
+  RATE_LIMIT = 'RATE_LIMIT',
+  VALIDATION = 'VALIDATION',
+  UNKNOWN = 'UNKNOWN',
+}
+
+/**
  * Generic scraper result interface
  */
 export interface ScraperResult<T> {
@@ -56,6 +68,7 @@ export interface HealthStatus {
   circuitBreakerState: CircuitBreakerState;
   lastSuccessTime: number | null;
   lastFailureTime: number | null;
+  lastErrorCategory?: ScraperErrorCategory; // Category of the last failure
   successRate: number; // 0-1
   averageResponseTime: number; // ms
   totalRequests: number;
@@ -71,11 +84,10 @@ export class ScraperError extends Error {
     message: string,
     public readonly code?: string,
     public readonly statusCode?: number,
-    public readonly retryable: boolean = false
+    public readonly retryable: boolean = false,
+    public readonly category: ScraperErrorCategory = ScraperErrorCategory.UNKNOWN
   ) {
     super(message);
     this.name = 'ScraperError';
   }
 }
-
-

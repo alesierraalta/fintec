@@ -1,87 +1,58 @@
 import { NextResponse } from 'next/server';
-import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
+import ExchangeRateDatabase from '@/lib/services/exchange-rate-db';
 import { buildBCVFallbackData } from '@/lib/services/rates-fallback';
+import { logger } from '@/lib/utils/logger';
 
 export const runtime = 'nodejs';
 
-// Cache optimizado para datos exitosos y errores
-let lastSuccessfulData: any = null;
-let lastSuccessfulTime = 0;
-const SUCCESS_CACHE_DURATION = 2 * 60 * 1000; // 2 minutos para datos exitosos
-
+/**
+ * GET /api/bcv-rates
+ * Returns the latest BCV exchange rates from the database.
+ * This endpoint is now READ-ONLY. Scraping is handled by the background service.
+ */
 export async function GET() {
   try {
-    const now = Date.now();
-    
-    // 1. Si tenemos datos exitosos recientes, devolverlos inmediatamente
-    if (lastSuccessfulData && (now - lastSuccessfulTime) < SUCCESS_CACHE_DURATION) {
+    const db = new ExchangeRateDatabase();
+    const latest = await db.getLatestExchangeRate();
+
+    if (latest) {
       return NextResponse.json({
-        ...lastSuccessfulData,
+        success: true,
+        data: {
+          usd: latest.usd_ves,
+          // Note: EUR is stored in bcv_rate_history but not in the unified snapshot.
+          // For most purposes, usd_ves is what's requested.
+          timestamp: latest.lastUpdated,
+          source: latest.source,
+        },
         cached: true,
-        cacheAge: Math.round((now - lastSuccessfulTime) / 1000),
+        cacheAge: Math.round(
+          (Date.now() - new Date(latest.lastUpdated).getTime()) / 1000
+        ),
         fallback: false,
       });
     }
-    
-    // 2. Intentar ejecutar el scraper TypeScript
-    const result = await scrapeBCVRates();
-    
-    if (result.success) {
-      lastSuccessfulData = result;
-      lastSuccessfulTime = now;
-      return NextResponse.json({ ...result, fallback: false });
-    }
 
-    // 3. Fallback: last known good (módulo) o fallback estático
-    if (lastSuccessfulData?.data) {
-      return NextResponse.json({
-        success: false,
-        data: {
-          ...lastSuccessfulData.data,
-          source: 'BCV (fallback - last-known-good)',
-        },
-        error: result.error || 'BCV scraper failed',
-        fallback: true,
-        fallbackReason: result.error || 'BCV scraper failed',
-        dataAge: Math.round((now - lastSuccessfulTime) / 1000),
-        circuitBreakerState: result.circuitBreakerState,
-      });
-    }
-
+    // Fallback if no data in database
+    logger.warn('BCV API: No data found in database, using static fallback');
     return NextResponse.json({
-      ...result,
+      success: true,
+      data: buildBCVFallbackData('static-default'),
       fallback: true,
-      fallbackReason: result.error || 'BCV scraper failed',
+      fallbackReason: 'No data in database',
     });
   } catch (error) {
-    // Si tenemos datos exitosos antiguos, usarlos
-    if (lastSuccessfulData) {
-      return NextResponse.json({
-        success: false,
-        data: {
-          ...lastSuccessfulData.data,
-          source: 'BCV (fallback - last-known-good)',
-        },
-        error: error instanceof Error ? error.message : 'Unknown error',
-        fallback: true,
-        fallbackReason: 'Failed to run BCV scraper',
-        dataAge: Math.round((Date.now() - lastSuccessfulTime) / 1000),
-        circuitBreakerState: lastSuccessfulData.circuitBreakerState,
-      });
-    }
-    
-    // Fallback final
+    logger.error('BCV API Error:', error);
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       data: buildBCVFallbackData('static-default'),
       fallback: true,
-      fallbackReason: 'Unhandled error',
+      fallbackReason: 'Database error',
     });
   }
 }
 
-// Alternative endpoint for CORS-enabled requests
 export async function POST() {
   return GET();
 }

@@ -64,7 +64,7 @@ describe('RateSelector overlay portalization', () => {
     const option = await screen.findByText('BCV USD');
     expect(header.contains(option)).toBe(false);
 
-    const panel = option.closest('div.black-theme-card');
+    const panel = option.closest('div.ios-card');
     expect(panel).toHaveClass('z-[55]');
 
     const backdrop = document.querySelector(
@@ -120,7 +120,7 @@ describe('RateSelector overlay portalization', () => {
     fireEvent.click(trigger);
 
     const option = await screen.findByText('BCV USD');
-    const panel = option.closest('div.black-theme-card');
+    const panel = option.closest('div.ios-card');
 
     expect(panel).toHaveStyle({
       width: '160px',

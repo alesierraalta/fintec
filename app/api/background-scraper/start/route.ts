@@ -4,6 +4,7 @@ import BackgroundScraperManager from '@/lib/services/background-scraper-manager'
 import ScraperInstanceManager from '@/lib/services/scraper-instance-manager';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
+import { isBackendUnifiedScraperEnabled } from '@/lib/backend/feature-flags';
 
 import { logger } from '@/lib/utils/logger';
 
@@ -28,6 +29,17 @@ export async function POST(request: NextRequest) {
         success: true,
         message: 'Background scraper already running',
       });
+    }
+
+    if (!isBackendUnifiedScraperEnabled()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'Background scraper rollout is disabled by BACKEND_UNIFIED_SCRAPER',
+        },
+        { status: 503 }
+      );
     }
 
     // Create HTTP server for WebSocket

@@ -8,6 +8,12 @@ import type {
   UpdatePaymentOrderDTO,
 } from '@/types/payment-order';
 import { createServiceClient } from '@/lib/supabase/admin';
+import type { RequestContext } from '@/lib/cache/request-context';
+import { supabase as browserClient } from './client';
+import {
+  PAYMENT_ORDER_LIST_PROJECTION,
+  PAYMENT_ORDER_DETAIL_PROJECTION,
+} from './payment-order-projections';
 
 function mapSupabaseToDomain(row: any): PaymentOrder {
   return {
@@ -32,10 +38,11 @@ export class SupabasePaymentOrdersRepository
   implements PaymentOrdersRepository
 {
   private readonly client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
-    this.client =
-      client || (createServiceClient() as unknown as SupabaseClient);
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
+    this.client = client || browserClient;
+    this.requestContext = requestContext;
   }
 
   async create(
@@ -51,7 +58,7 @@ export class SupabasePaymentOrdersRepository
         description: data.description || null,
         status: 'pending',
       })
-      .select()
+      .select(PAYMENT_ORDER_DETAIL_PROJECTION.join(', '))
       .single();
 
     if (error) {
@@ -67,7 +74,7 @@ export class SupabasePaymentOrdersRepository
   ): Promise<PaymentOrder | null> {
     let query = (this.client as any)
       .from('payment_orders')
-      .select('*')
+      .select(PAYMENT_ORDER_DETAIL_PROJECTION.join(', '))
       .eq('id', orderId)
       .single();
 
@@ -91,7 +98,7 @@ export class SupabasePaymentOrdersRepository
   async listByUserId(userId: string, status?: string): Promise<PaymentOrder[]> {
     let query = (this.client as any)
       .from('payment_orders')
-      .select('*')
+      .select(PAYMENT_ORDER_LIST_PROJECTION.join(', '))
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -115,7 +122,7 @@ export class SupabasePaymentOrdersRepository
   ): Promise<PaymentOrder[]> {
     let query = (this.client as any)
       .from('payment_orders')
-      .select('*')
+      .select(PAYMENT_ORDER_LIST_PROJECTION.join(', '))
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -154,7 +161,7 @@ export class SupabasePaymentOrdersRepository
       .update(updateData)
       .eq('id', orderId)
       .eq('user_id', userId)
-      .select()
+      .select(PAYMENT_ORDER_DETAIL_PROJECTION.join(', '))
       .single();
 
     if (error) {
@@ -210,7 +217,7 @@ export class SupabasePaymentOrdersRepository
         admin_notes: data.adminNotes || data.reason || null,
       })
       .eq('id', orderId)
-      .select()
+      .select(PAYMENT_ORDER_DETAIL_PROJECTION.join(', '))
       .single();
 
     if (error) {

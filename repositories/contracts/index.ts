@@ -25,8 +25,17 @@ import { CategoriesRepository } from './categories-repository';
 import { BudgetsRepository } from './budgets-repository';
 import { GoalsRepository } from './goals-repository';
 import { ExchangeRatesRepository } from './exchange-rates-repository';
-import { NotificationsRepository } from './notifications-repository';
 import { RecurringTransactionsRepository } from './recurring-transactions-repository';
+import { TransfersRepository } from './transfers-repository';
+import { PaymentOrdersRepository } from './payment-orders-repository';
+import { RatesHistoryRepository } from './rates-history-repository';
+import { NotificationsRepository } from './notifications-repository';
+import { UsersProfileRepository } from './users-profile-repository';
+import { WaitlistRepository } from './waitlist-repository';
+import { SubscriptionsRepository } from './subscriptions-repository';
+import { ApprovalRequestsRepository } from './approval-requests-repository';
+import { AIInfraRepository } from './ai-infra-repository';
+import { OrdersRepository } from './orders-repository';
 import { Repository } from './base-repository';
 
 export interface AppRepository extends Repository {
@@ -38,4 +47,13 @@ export interface AppRepository extends Repository {
   exchangeRates: ExchangeRatesRepository;
   notifications: NotificationsRepository;
   recurringTransactions: RecurringTransactionsRepository;
+  transfers: TransfersRepository;
+  paymentOrders: PaymentOrdersRepository;
+  ratesHistory: RatesHistoryRepository;
+  usersProfile: UsersProfileRepository;
+  waitlist: WaitlistRepository;
+  subscriptions: SubscriptionsRepository;
+  approvalRequests: ApprovalRequestsRepository;
+  aiInfra: AIInfraRepository;
+  orders: OrdersRepository;
 }

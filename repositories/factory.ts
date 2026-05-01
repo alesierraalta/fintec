@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { RequestContext } from '@/lib/cache/request-context';
+import { ServerReadCache } from '@/lib/cache/server-read-cache';
 import type {
   AIInfraRepository,
   AppRepository,
@@ -73,12 +75,15 @@ export function getClientDBProvider(): DBProvider {
 interface CreateServerRepositoryOptions {
   provider?: DBProvider;
   supabase?: SupabaseClient;
+  requestContext?: RequestContext;
+  readCache?: ServerReadCache;
 }
 
 interface CreateServerScopedRepositoryOptions {
   provider?: DBProvider;
   supabase?: SupabaseClient;
   serviceSupabase?: SupabaseClient;
+  requestContext?: RequestContext;
 }
 
 function requireSupabaseClient(client?: SupabaseClient): SupabaseClient {
@@ -96,7 +101,11 @@ export function createServerAppRepository(
 
   switch (provider) {
     case 'supabase': {
-      return new SupabaseAppRepository(requireSupabaseClient(options.supabase));
+      return new SupabaseAppRepository(
+        requireSupabaseClient(options.supabase),
+        options.requestContext,
+        options.readCache
+      );
     }
     case 'local': {
       return new LocalAppRepository();
@@ -141,7 +150,8 @@ export function createServerTransfersRepository(
   switch (provider) {
     case 'supabase': {
       return new SupabaseTransfersRepository(
-        requireSupabaseClient(options.supabase)
+        requireSupabaseClient(options.supabase),
+        options.requestContext
       );
     }
     case 'local':
@@ -164,7 +174,8 @@ export function createServerWaitlistRepository(
   switch (provider) {
     case 'supabase': {
       return new SupabaseWaitlistRepository(
-        requireSupabaseClient(options.supabase)
+        requireSupabaseClient(options.supabase),
+        options.requestContext
       );
     }
     case 'local':
@@ -187,7 +198,8 @@ export function createServerApprovalRequestsRepository(
   switch (provider) {
     case 'supabase': {
       return new SupabaseApprovalRequestsRepository(
-        requireSupabaseClient(options.supabase)
+        requireSupabaseClient(options.supabase),
+        options.requestContext
       );
     }
     case 'local':
@@ -211,6 +223,7 @@ export function createServerAIInfraRepository(
     case 'supabase': {
       return new SupabaseAIInfraRepository(
         options.supabase,
+        options.requestContext,
         options.serviceSupabase
       );
     }
@@ -234,7 +247,8 @@ export function createServerSubscriptionsRepository(
   switch (provider) {
     case 'supabase': {
       return new SupabaseSubscriptionsRepository(
-        requireSupabaseClient(options.supabase)
+        requireSupabaseClient(options.supabase),
+        options.requestContext
       );
     }
     case 'local':
@@ -256,7 +270,10 @@ export function createServerPaymentOrdersRepository(
 
   switch (provider) {
     case 'supabase': {
-      return new SupabasePaymentOrdersRepository(options.serviceSupabase);
+      return new SupabasePaymentOrdersRepository(
+        options.serviceSupabase,
+        options.requestContext
+      );
     }
     case 'local':
     case 'postgres': {
@@ -277,7 +294,10 @@ export function createServerOrdersRepository(
 
   switch (provider) {
     case 'supabase': {
-      return new SupabaseOrdersRepository(options.serviceSupabase);
+      return new SupabaseOrdersRepository(
+        options.serviceSupabase,
+        options.requestContext
+      );
     }
     case 'local':
     case 'postgres': {
@@ -299,7 +319,8 @@ export function createServerUsersProfileRepository(
   switch (provider) {
     case 'supabase': {
       return new SupabaseUsersProfileRepository(
-        requireSupabaseClient(options.supabase)
+        requireSupabaseClient(options.supabase),
+        options.requestContext
       );
     }
     case 'local':

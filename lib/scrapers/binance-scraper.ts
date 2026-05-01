@@ -5,7 +5,7 @@
  */
 
 import { BaseScraper } from './base-scraper';
-import { ScraperResult, ScraperError } from './types';
+import { ScraperResult, ScraperError, ScraperErrorCategory } from './types';
 import { BINANCE_CONFIG } from './config';
 import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 
@@ -56,12 +56,14 @@ interface BinanceApiResponse {
 }
 
 // Constants
-const BINANCE_P2P_API = 'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
+const BINANCE_P2P_API =
+  'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
 const MAX_PAGES = 2;
 const ROWS_PER_PAGE = 20;
-const PRICE_MIN = 10;    // More permissive range to avoid filtering valid prices
-const PRICE_MAX = 1000;  // Adjusted for current market conditions
-const USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+const PRICE_MIN = 10; // More permissive range to avoid filtering valid prices
+const PRICE_MAX = 1000; // Adjusted for current market conditions
+const USER_AGENT =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
 
 /**
  * Binance Scraper implementation
@@ -74,7 +76,10 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   /**
    * Fetch raw data from Binance API
    */
-  protected async _fetchData(): Promise<{ usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } }> {
+  protected async _fetchData(): Promise<{
+    usdt: { sell: PriceData[]; buy: PriceData[] };
+    busd: { sell: PriceData[]; buy: PriceData[] };
+  }> {
     // Fetch SELL and BUY offers concurrently for both assets
     const [usdtSell, usdtBuy, busdSell, busdBuy] = await Promise.all([
       this.fetchOffers('SELL', 'USDT'),
@@ -85,16 +90,17 @@ class BinanceScraper extends BaseScraper<BinanceData> {
 
     return {
       usdt: { sell: usdtSell, buy: usdtBuy },
-      busd: { sell: busdSell, buy: busdBuy }
+      busd: { sell: busdSell, buy: busdBuy },
     };
   }
 
   /**
    * Parse raw data
    */
-  protected async _parseData(
-    data: unknown
-  ): Promise<{ usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } }> {
+  protected async _parseData(data: unknown): Promise<{
+    usdt: { sell: PriceData[]; buy: PriceData[] };
+    busd: { sell: PriceData[]; buy: PriceData[] };
+  }> {
     if (
       !data ||
       typeof data !== 'object' ||
@@ -104,23 +110,32 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       throw new ScraperError('Invalid data structure', 'PARSE_ERROR');
     }
 
-    return data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
+    return data as {
+      usdt: { sell: PriceData[]; buy: PriceData[] };
+      busd: { sell: PriceData[]; buy: PriceData[] };
+    };
   }
 
   /**
    * Validate parsed data
    */
-  protected _validateData(
-    data: unknown
-  ): ScraperError | null {
-    const parsed = data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
+  protected _validateData(data: unknown): ScraperError | null {
+    const parsed = data as {
+      usdt: { sell: PriceData[]; buy: PriceData[] };
+      busd: { sell: PriceData[]; buy: PriceData[] };
+    };
 
     if (!parsed.usdt?.sell || !parsed.usdt?.buy) {
       return new ScraperError('Missing USDT data', 'VALIDATION_ERROR');
     }
 
     if (parsed.usdt.sell.length === 0 && parsed.usdt.buy.length === 0) {
-      return new ScraperError('No valid USDT prices found', 'NO_DATA_ERROR', undefined, true);
+      return new ScraperError(
+        'No valid USDT prices found',
+        'NO_DATA_ERROR',
+        undefined,
+        true
+      );
     }
 
     return null;
@@ -129,10 +144,11 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   /**
    * Transform parsed data into final format
    */
-  protected _transformData(
-    data: unknown
-  ): BinanceData {
-    const parsed = data as { usdt: { sell: PriceData[]; buy: PriceData[] }; busd: { sell: PriceData[]; buy: PriceData[] } };
+  protected _transformData(data: unknown): BinanceData {
+    const parsed = data as {
+      usdt: { sell: PriceData[]; buy: PriceData[] };
+      busd: { sell: PriceData[]; buy: PriceData[] };
+    };
 
     // --- Process USDT ---
     const usdtFilteredSell = this.filterOutliers(parsed.usdt.sell);
@@ -166,9 +182,9 @@ class BinanceScraper extends BaseScraper<BinanceData> {
     // Overall min/max (using USDT as reference)
     const allPrices = [...usdtFilteredSell, ...usdtFilteredBuy];
     const overallMin =
-      allPrices.length > 0 ? Math.min(...allPrices.map(p => p.price)) : 0;
+      allPrices.length > 0 ? Math.min(...allPrices.map((p) => p.price)) : 0;
     const overallMax =
-      allPrices.length > 0 ? Math.max(...allPrices.map(p => p.price)) : 0;
+      allPrices.length > 0 ? Math.max(...allPrices.map((p) => p.price)) : 0;
 
     // Calculate spread (USDT)
     const spread = Math.abs(usdtSellStats.avg - usdtBuyStats.avg);
@@ -255,7 +271,10 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   /**
    * Fetch offers for a specific trade type
    */
-  private async fetchOffers(tradeType: 'SELL' | 'BUY', asset: string = 'USDT'): Promise<PriceData[]> {
+  private async fetchOffers(
+    tradeType: 'SELL' | 'BUY',
+    asset: string = 'USDT'
+  ): Promise<PriceData[]> {
     const allPrices: PriceData[] = [];
 
     for (let page = 1; page <= MAX_PAGES; page++) {
@@ -281,11 +300,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
         try {
           const response = await fetch(BINANCE_P2P_API, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              'User-Agent': USER_AGENT,
-            },
+            headers: this.getBrowserHeaders(),
             body: JSON.stringify(payload),
             signal: controller.signal,
           });
@@ -298,7 +313,8 @@ class BinanceScraper extends BaseScraper<BinanceData> {
                 'Rate limited',
                 'RATE_LIMIT',
                 response.status,
-                true
+                true,
+                ScraperErrorCategory.RATE_LIMIT
               );
             }
             continue;
@@ -326,10 +342,11 @@ class BinanceScraper extends BaseScraper<BinanceData> {
             }
           }
 
-          // Delay between pages to respect rate limits
+          // Delay between pages to respect rate limits with randomized jitter
           if (page < MAX_PAGES && this.config.rateLimitDelay) {
-            await new Promise(resolve =>
-              setTimeout(resolve, this.config.rateLimitDelay!)
+            const jitter = Math.random() * 1000;
+            await new Promise((resolve) =>
+              setTimeout(resolve, this.config.rateLimitDelay! + jitter)
             );
           }
         } catch (fetchError) {
@@ -353,6 +370,23 @@ class BinanceScraper extends BaseScraper<BinanceData> {
   }
 
   /**
+   * Generate browser-like headers to avoid bot detection
+   */
+  private getBrowserHeaders(): Record<string, string> {
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json, text/plain, */*',
+      'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+      Origin: 'https://p2p.binance.com',
+      Referer: 'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES',
+      'User-Agent': USER_AGENT,
+      lang: 'en',
+    };
+  }
+
+  /**
    * Filter outliers using IQR method with extreme preservation
    */
   private filterOutliers(prices: PriceData[]): PriceData[] {
@@ -373,7 +407,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
     }
 
     // Calculate IQR for middle values
-    const middleValues = middle.map(p => p.price);
+    const middleValues = middle.map((p) => p.price);
     middleValues.sort((a, b) => a - b);
 
     const q1Index = Math.floor(middleValues.length * 0.25);
@@ -387,7 +421,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
 
     // Filter middle values
     const filteredMiddle = middle.filter(
-      p => p.price >= lowerBound && p.price <= upperBound
+      (p) => p.price >= lowerBound && p.price <= upperBound
     );
 
     // Combine preserved extremes with filtered middle
@@ -395,7 +429,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
 
     // Remove duplicates by adId
     const seen = new Set<string>();
-    return result.filter(p => {
+    return result.filter((p) => {
       if (seen.has(p.adId)) return false;
       seen.add(p.adId);
       return true;
@@ -410,7 +444,7 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       return { min: 0, avg: 0, max: 0 };
     }
 
-    const values = prices.map(p => p.price);
+    const values = prices.map((p) => p.price);
     const min = Math.min(...values);
     const max = Math.max(...values);
     const avg = values.reduce((sum, val) => sum + val, 0) / values.length;
@@ -429,7 +463,9 @@ let scraperInstance: BinanceScraper | null = null;
 /**
  * Main scraping function - maintains backward compatibility
  */
-export async function scrapeBinanceRates(): Promise<ScraperResult<BinanceData>> {
+export async function scrapeBinanceRates(): Promise<
+  ScraperResult<BinanceData>
+> {
   if (!scraperInstance) {
     scraperInstance = new BinanceScraper();
   }

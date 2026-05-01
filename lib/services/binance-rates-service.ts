@@ -60,6 +60,17 @@ class BinanceRatesService {
       });
 
       if (!response.ok) {
+        if (
+          response.status >= 500 ||
+          response.status === 404 ||
+          response.status === 503
+        ) {
+          logger.warn(
+            `[BinanceRatesService] API returned ${response.status}, attempting local fallback`
+          );
+          // Continue to catch block for local fallback
+          throw new Error(`API_ERROR_${response.status}`);
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 

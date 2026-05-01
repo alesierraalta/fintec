@@ -3,6 +3,9 @@ import { createServiceClient } from '@/lib/supabase/admin';
 import type { OrdersRepository } from '@/repositories/contracts';
 import type { CreateOrderDTO, Order, OrderStatus } from '@/types/order';
 
+import { ORDER_LIST_PROJECTION } from './order-projections';
+import { RequestContext } from '@/lib/cache/request-context';
+
 function mapSupabaseOrder(row: any): Order {
   return {
     id: row.id,
@@ -17,10 +20,12 @@ function mapSupabaseOrder(row: any): Order {
 
 export class SupabaseOrdersRepository implements OrdersRepository {
   private readonly client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client =
       client || (createServiceClient() as unknown as SupabaseClient);
+    this.requestContext = requestContext;
   }
 
   async create(userId: string, data: CreateOrderDTO): Promise<Order> {
@@ -33,7 +38,7 @@ export class SupabaseOrdersRepository implements OrdersRepository {
         sender_reference: data.senderReference,
         status: 'pending',
       })
-      .select('*')
+      .select(ORDER_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -46,7 +51,7 @@ export class SupabaseOrdersRepository implements OrdersRepository {
   async findById(orderId: string, userId: string): Promise<Order | null> {
     const { data, error } = await (this.client as any)
       .from('orders')
-      .select('*')
+      .select(ORDER_LIST_PROJECTION)
       .eq('id', orderId)
       .eq('user_id', userId)
       .maybeSingle();
@@ -61,7 +66,7 @@ export class SupabaseOrdersRepository implements OrdersRepository {
   async listByUserId(userId: string, status?: OrderStatus): Promise<Order[]> {
     let query = (this.client as any)
       .from('orders')
-      .select('*')
+      .select(ORDER_LIST_PROJECTION)
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
@@ -83,7 +88,7 @@ export class SupabaseOrdersRepository implements OrdersRepository {
       .from('orders')
       .update({ status: 'paid' })
       .eq('id', orderId)
-      .select('*')
+      .select(ORDER_LIST_PROJECTION)
       .maybeSingle();
 
     if (error) {

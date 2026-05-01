@@ -3,7 +3,11 @@
  * Tracks success/failure rates, response times, and health status
  */
 
-import { HealthStatus, CircuitBreakerState } from './types';
+import {
+  HealthStatus,
+  CircuitBreakerState,
+  ScraperErrorCategory,
+} from './types';
 
 interface MetricData {
   totalRequests: number;
@@ -12,6 +16,7 @@ interface MetricData {
   responseTimes: number[];
   lastSuccessTime: number | null;
   lastFailureTime: number | null;
+  lastErrorCategory?: ScraperErrorCategory;
   consecutiveFailures: number;
 }
 
@@ -30,6 +35,7 @@ export class ScraperMetrics {
       responseTimes: [],
       lastSuccessTime: null,
       lastFailureTime: null,
+      lastErrorCategory: undefined,
       consecutiveFailures: 0,
     };
   }
@@ -53,11 +59,15 @@ export class ScraperMetrics {
   /**
    * Record a failed request
    */
-  recordFailure(responseTime: number): void {
+  recordFailure(
+    responseTime: number,
+    category: ScraperErrorCategory = ScraperErrorCategory.UNKNOWN
+  ): void {
     this.data.totalRequests++;
     this.data.totalFailures++;
     this.data.consecutiveFailures++;
     this.data.lastFailureTime = Date.now();
+    this.data.lastErrorCategory = category;
 
     // Track response time even for failures
     this.data.responseTimes.push(responseTime);
@@ -69,9 +79,7 @@ export class ScraperMetrics {
   /**
    * Get health status
    */
-  getHealthStatus(
-    circuitBreakerState: CircuitBreakerState
-  ): HealthStatus {
+  getHealthStatus(circuitBreakerState: CircuitBreakerState): HealthStatus {
     const successRate =
       this.data.totalRequests > 0
         ? this.data.totalSuccesses / this.data.totalRequests
@@ -92,6 +100,7 @@ export class ScraperMetrics {
       circuitBreakerState,
       lastSuccessTime: this.data.lastSuccessTime,
       lastFailureTime: this.data.lastFailureTime,
+      lastErrorCategory: this.data.lastErrorCategory,
       successRate,
       averageResponseTime: Math.round(averageResponseTime),
       totalRequests: this.data.totalRequests,
@@ -111,6 +120,7 @@ export class ScraperMetrics {
       responseTimes: [],
       lastSuccessTime: null,
       lastFailureTime: null,
+      lastErrorCategory: undefined,
       consecutiveFailures: 0,
     };
   }
@@ -122,5 +132,3 @@ export class ScraperMetrics {
     return { ...this.data };
   }
 }
-
-

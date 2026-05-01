@@ -12,7 +12,8 @@ export async function getOwnedAccountScope(
   const { data, error } = await client
     .from('accounts')
     .select('id')
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .eq('active', true);
 
   if (error) {
     throw new Error(`Failed to fetch user accounts: ${error.message}`);

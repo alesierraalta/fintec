@@ -4,7 +4,12 @@
  * Each scraper extends this and implements abstract methods
  */
 
-import { ScraperResult, ScraperConfig, ScraperError } from './types';
+import {
+  ScraperResult,
+  ScraperConfig,
+  ScraperError,
+  ScraperErrorCategory,
+} from './types';
 import { CircuitBreaker } from './circuit-breaker';
 import { healthMonitor } from './health-monitor';
 import { withRetry, RetryOptions } from '@/lib/scrapers/retry-handler';
@@ -76,9 +81,7 @@ export abstract class BaseScraper<T> {
       this.circuitBreaker.recordSuccess();
       healthMonitor.recordSuccess(this.name, responseTime);
 
-      logger.info(
-        `[${this.name}] Scrape successful in ${responseTime}ms`
-      );
+      logger.info(`[${this.name}] Scrape successful in ${responseTime}ms`);
 
       return {
         success: true,
@@ -88,10 +91,11 @@ export abstract class BaseScraper<T> {
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
+      const category = this.inferErrorCategory(error);
 
       // Record failure
       this.circuitBreaker.recordFailure();
-      healthMonitor.recordFailure(this.name, responseTime);
+      healthMonitor.recordFailure(this.name, responseTime, category);
 
       const scraperError =
         error instanceof ScraperError
@@ -100,7 +104,8 @@ export abstract class BaseScraper<T> {
               error instanceof Error ? error.message : 'Unknown error',
               'SCRAPER_ERROR',
               undefined,
-              this.isRetryableError(error)
+              this.isRetryableError(error),
+              category
             );
 
       logger.error(`[${this.name}] Scrape failed: ${scraperError.message}`);
@@ -144,6 +149,46 @@ export abstract class BaseScraper<T> {
   /**
    * Check if error is retryable
    */
+  /**
+   * Infer error category from error object
+   */
+  protected inferErrorCategory(error: unknown): ScraperErrorCategory {
+    if (error instanceof ScraperError) {
+      return error.category;
+    }
+
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('timeout') || msg.includes('etimedout')) {
+        return ScraperErrorCategory.TIMEOUT;
+      }
+      if (
+        msg.includes('econnreset') ||
+        msg.includes('econnrefused') ||
+        msg.includes('network') ||
+        msg.includes('fetch')
+      ) {
+        return ScraperErrorCategory.CONNECTIVITY;
+      }
+      if (msg.includes('parse') || msg.includes('unexpected token')) {
+        return ScraperErrorCategory.PARSING;
+      }
+      if (msg.includes('rate limit') || msg.includes('429')) {
+        return ScraperErrorCategory.RATE_LIMIT;
+      }
+    }
+
+    // Check for status codes if not Error instance
+    if (typeof error === 'object' && error !== null) {
+      const err = error as { status?: number; statusCode?: number };
+      const status = err.status || err.statusCode;
+      if (status === 429) return ScraperErrorCategory.RATE_LIMIT;
+      if (status && status >= 500) return ScraperErrorCategory.CONNECTIVITY;
+    }
+
+    return ScraperErrorCategory.UNKNOWN;
+  }
+
   protected isRetryableError(error: unknown): boolean {
     if (error instanceof ScraperError) {
       return error.retryable;
@@ -185,5 +230,3 @@ export abstract class BaseScraper<T> {
     this.circuitBreaker.reset();
   }
 }
-
-

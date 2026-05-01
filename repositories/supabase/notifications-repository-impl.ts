@@ -5,17 +5,25 @@ import type {
 import type { NotificationsRepository } from '@/repositories/contracts/notifications-repository';
 import { supabase } from './client';
 import { SupabaseClient } from '@supabase/supabase-js';
+import type { RequestContext } from '@/lib/cache/request-context';
+import { NOTIFICATION_LIST_PROJECTION } from './notification-projections';
 
 export class SupabaseNotificationsRepository
   implements NotificationsRepository
 {
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   private async requireUserId(): Promise<string> {
+    if (this.requestContext) {
+      return this.requestContext.userId;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
@@ -48,7 +56,7 @@ export class SupabaseNotificationsRepository
 
     const { data, error } = await this.client
       .from('notifications')
-      .select('*')
+      .select(NOTIFICATION_LIST_PROJECTION)
       .eq('user_id', scopedUserId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -65,7 +73,7 @@ export class SupabaseNotificationsRepository
 
     const { data, error } = await this.client
       .from('notifications')
-      .select('*')
+      .select(NOTIFICATION_LIST_PROJECTION)
       .eq('user_id', scopedUserId)
       .eq('is_read', false)
       .order('created_at', { ascending: false });
@@ -82,7 +90,7 @@ export class SupabaseNotificationsRepository
 
     const { count, error } = await this.client
       .from('notifications')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('user_id', scopedUserId)
       .eq('is_read', false);
 
@@ -98,7 +106,7 @@ export class SupabaseNotificationsRepository
 
     const { data, error } = await this.client
       .from('notifications')
-      .select('*')
+      .select(NOTIFICATION_LIST_PROJECTION)
       .eq('id', id)
       .eq('user_id', userId)
       .single();
@@ -130,7 +138,7 @@ export class SupabaseNotificationsRepository
           is_read: false,
         },
       ] as any)
-      .select()
+      .select(NOTIFICATION_LIST_PROJECTION)
       .single();
 
     if (error) {
@@ -147,7 +155,7 @@ export class SupabaseNotificationsRepository
       .update({ is_read: true } as any)
       .eq('id', id)
       .eq('user_id', userId)
-      .select()
+      .select(NOTIFICATION_LIST_PROJECTION)
       .single();
 
     if (error) {

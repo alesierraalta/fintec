@@ -24,6 +24,8 @@ export * from './mappers';
 export * from './client';
 
 // Main Supabase repository implementation
+import type { RequestContext } from '@/lib/cache/request-context';
+import { ServerReadCache } from '@/lib/cache/server-read-cache';
 import { AppRepository } from '@/repositories/contracts';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase as browserClient } from './client';
@@ -36,6 +38,17 @@ import { SupabaseExchangeRatesRepository } from './exchange-rates-repository-imp
 import { SupabaseNotificationsRepository } from './notifications-repository-impl';
 import { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 
+import { SupabaseTransfersRepository } from './transfers-repository-impl';
+import { SupabaseWaitlistRepository } from './waitlist-repository-impl';
+import { SupabaseSubscriptionsRepository } from './subscriptions-repository-impl';
+import { SupabasePaymentOrdersRepository } from './payment-orders-repository-impl';
+import { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
+import { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
+
+import { SupabaseApprovalRequestsRepository } from './approval-requests-repository-impl';
+import { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
+import { SupabaseOrdersRepository } from './orders-repository-impl';
+
 export class SupabaseAppRepository implements AppRepository {
   public readonly accounts: SupabaseAccountsRepository;
   public readonly transactions: SupabaseTransactionsRepository;
@@ -45,20 +58,76 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly exchangeRates: SupabaseExchangeRatesRepository;
   public readonly notifications: SupabaseNotificationsRepository;
   public readonly recurringTransactions: SupabaseRecurringTransactionsRepository;
+  public readonly transfers: SupabaseTransfersRepository;
+  public readonly waitlist: SupabaseWaitlistRepository;
+  public readonly subscriptions: SupabaseSubscriptionsRepository;
+  public readonly paymentOrders: SupabasePaymentOrdersRepository;
+  public readonly ratesHistory: SupabaseRatesHistoryRepository;
+  public readonly usersProfile: SupabaseUsersProfileRepository;
+  public readonly approvalRequests: SupabaseApprovalRequestsRepository;
+  public readonly aiInfra: SupabaseAIInfraRepository;
+  public readonly orders: SupabaseOrdersRepository;
   private readonly client: SupabaseClient;
 
-  constructor(client?: SupabaseClient) {
+  constructor(
+    client?: SupabaseClient,
+    requestContext?: RequestContext,
+    readCache?: ServerReadCache
+  ) {
     this.client = client || browserClient;
-    this.accounts = new SupabaseAccountsRepository(this.client);
-    this.transactions = new SupabaseTransactionsRepository(this.client);
-    this.categories = new SupabaseCategoriesRepository(this.client);
-    this.budgets = new SupabaseBudgetsRepository(this.client);
-    this.goals = new SupabaseGoalsRepository(this.client);
-    this.exchangeRates = new SupabaseExchangeRatesRepository(this.client);
-    this.notifications = new SupabaseNotificationsRepository(this.client);
-    this.recurringTransactions = new SupabaseRecurringTransactionsRepository(
-      this.client
+    this.accounts = new SupabaseAccountsRepository(this.client, requestContext);
+    this.transactions = new SupabaseTransactionsRepository(
+      this.client,
+      requestContext
     );
+    this.categories = new SupabaseCategoriesRepository(
+      this.client,
+      requestContext,
+      readCache
+    );
+    this.budgets = new SupabaseBudgetsRepository(this.client, requestContext);
+    this.goals = new SupabaseGoalsRepository(this.client, requestContext);
+    this.exchangeRates = new SupabaseExchangeRatesRepository(
+      this.client,
+      requestContext,
+      readCache
+    );
+    this.notifications = new SupabaseNotificationsRepository(
+      this.client,
+      requestContext
+    );
+    this.recurringTransactions = new SupabaseRecurringTransactionsRepository(
+      this.client,
+      requestContext
+    );
+    this.transfers = new SupabaseTransfersRepository(
+      this.client,
+      requestContext
+    );
+    this.waitlist = new SupabaseWaitlistRepository(this.client, requestContext);
+    this.subscriptions = new SupabaseSubscriptionsRepository(
+      this.client,
+      requestContext
+    );
+    this.paymentOrders = new SupabasePaymentOrdersRepository(
+      this.client,
+      requestContext
+    );
+    this.ratesHistory = new SupabaseRatesHistoryRepository(
+      this.client,
+      requestContext,
+      readCache
+    );
+    this.usersProfile = new SupabaseUsersProfileRepository(
+      this.client,
+      requestContext
+    );
+    this.approvalRequests = new SupabaseApprovalRequestsRepository(
+      this.client,
+      requestContext
+    );
+    this.aiInfra = new SupabaseAIInfraRepository(this.client, requestContext);
+    this.orders = new SupabaseOrdersRepository(this.client, requestContext);
 
     // Set up dependencies
     this.transactions.setAccountsRepository(this.accounts);

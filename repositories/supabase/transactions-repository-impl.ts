@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/lib/cache/request-context';
 import { TransactionsRepository } from '@/repositories/contracts';
 import {
   Transaction,
@@ -23,18 +24,29 @@ import {
   hasOwnedAccounts,
   intersectOwnedAccountIds,
 } from './account-scope';
+import { getMemoizedOwnedAccountScope } from './memoized-account-scope';
+import {
+  TRANSACTION_LIST_PROJECTION,
+  TRANSACTION_DETAIL_PROJECTION,
+} from './transaction-projections';
 import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   private accountsRepository?: AccountsRepository;
   private client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   private async getUserId(): Promise<string | null> {
+    if (this.requestContext) {
+      return this.requestContext.userId;
+    }
+
     const {
       data: { user },
     } = await this.client.auth.getUser();
@@ -42,8 +54,16 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
   }
 
   private async getUserAccountIds(userId: string): Promise<string[]> {
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     return scope.accountIds;
+  }
+
+  private async getAccountScope(userId: string) {
+    if (this.requestContext && this.requestContext.userId === userId) {
+      return getMemoizedOwnedAccountScope(this.requestContext, this.client);
+    }
+
+    return getOwnedAccountScope(this.client, userId);
   }
 
   private async ensureAccountOwned(
@@ -66,56 +86,57 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     this.accountsRepository = accountsRepository;
   }
   async findAll(limit: number = 1000): Promise<Transaction[]> {
-    // Only allow authenticated users - no fallbacks
-    const {
-      data: { user },
-    } = await this.client.auth.getUser();
+    let userId: string;
 
-    if (!user) {
-      // No user authenticated = no transactions visible
-      console.warn('No authenticated user - returning empty transactions');
-      return [];
+    if (this.requestContext) {
+      userId = this.requestContext.userId;
+    } else {
+      // Only allow authenticated users - no fallbacks
+      const {
+        data: { user },
+      } = await this.client.auth.getUser();
+
+      if (!user) {
+        // No user authenticated = no transactions visible
+        console.warn('No authenticated user - returning empty transactions');
+        return [];
+      }
+      userId = user.id;
     }
 
-    const userId = user.id;
-
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return [];
     }
 
-    // * Payload Optimization: Select only essential fields for list view
+    // * Phase 2 Optimization: Use list projection (reduced fields for payload efficiency)
     const { data, error } = await this.client
       .from('transactions')
-      .select(
-        `
-        id, type, account_id, category_id, currency_code, amount_minor, amount_base_minor, exchange_rate, date, description, note, tags, transfer_id, is_debt, debt_direction, debt_status, counterparty_name, settled_at, created_at, updated_at
-      `
-      )
+      .select(TRANSACTION_LIST_PROJECTION)
       .in('account_id', scope.accountIds)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(limit); // Paginación por defecto para prevenir cargas masivas
+      .limit(limit);
 
     if (error) {
       throw new Error(`Failed to fetch transactions: ${error.message}`);
     }
 
-    return mapSupabaseTransactionArrayToDomain(data || []);
+    return mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any);
   }
 
   async findById(id: string): Promise<Transaction | null> {
     const userId = await this.getUserId();
     if (!userId) return null;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return null;
     }
 
     const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(TRANSACTION_DETAIL_PROJECTION)
       .eq('id', id)
       .in('account_id', scope.accountIds)
       .single();
@@ -127,7 +148,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to fetch transaction: ${error.message}`);
     }
 
-    return mapSupabaseTransactionToDomain(data);
+    return mapSupabaseTransactionToDomain(data as any);
   }
 
   async findByFilters(
@@ -153,7 +174,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return {
         data: [],
@@ -178,9 +199,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    // * Phase 2 Optimization: Use list projection with exact count for pagination efficiency
     let query = this.client
       .from('transactions')
-      .select('*', { count: 'exact' })
+      .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
       .in('account_id', scopedAccountIds);
 
     if (filters.categoryIds && filters.categoryIds.length > 0) {
@@ -263,7 +285,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return {
-      data: mapSupabaseTransactionArrayToDomain(data || []),
+      data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
       total: count || 0,
       page,
       limit,
@@ -452,7 +474,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { data, error } = await (this.client.from('transactions') as any)
       .update(supabaseUpdates as any)
       .eq('id', id)
-      .select()
+      .select(TRANSACTION_DETAIL_PROJECTION)
       .single();
 
     if (error) {
@@ -519,7 +541,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return 0;
     }
@@ -569,7 +591,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) return 0;
 
     let query = this.client
@@ -608,7 +630,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return [];
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) return [];
 
     const { data, error } = await this.client
@@ -676,9 +698,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     } = pagination || {};
     const offset = (page - 1) * limit;
 
+    // * Phase 2 Optimization: Use list projection for account transaction queries
     const { data, error, count } = await this.client
       .from('transactions')
-      .select('*', { count: 'exact' })
+      .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
       .eq('account_id', accountId)
       .order(
         sortBy === 'createdAt'
@@ -698,7 +721,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return {
-      data: mapSupabaseTransactionArrayToDomain(data || []),
+      data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
       total: count || 0,
       page,
       limit,
@@ -729,7 +752,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     } = pagination || {};
     const offset = (page - 1) * limit;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return {
         data: [],
@@ -740,9 +763,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    // * Phase 2 Optimization: Use list projection for category transaction queries
     const { data, error, count } = await this.client
       .from('transactions')
-      .select('*', { count: 'exact' })
+      .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
       .in('account_id', scope.accountIds)
       .eq('category_id', categoryId)
       .order(
@@ -763,7 +787,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return {
-      data: mapSupabaseTransactionArrayToDomain(data || []),
+      data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
       total: count || 0,
       page,
       limit,
@@ -794,7 +818,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     } = pagination || {};
     const offset = (page - 1) * limit;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return {
         data: [],
@@ -805,9 +829,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    // * Phase 2 Optimization: Use list projection for transaction type queries
     const { data, error, count } = await this.client
       .from('transactions')
-      .select('*', { count: 'exact' })
+      .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
       .in('account_id', scope.accountIds)
       .eq('type', type)
       .order(
@@ -826,7 +851,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return {
-      data: mapSupabaseTransactionArrayToDomain(data || []),
+      data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
       total: count || 0,
       page,
       limit,
@@ -850,7 +875,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return {
         data: [],
@@ -861,9 +886,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    // * Phase 2 Optimization: Use list projection for date range queries
     const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(TRANSACTION_LIST_PROJECTION)
       .in('account_id', scope.accountIds)
       .gte('date', startDate)
       .lte('date', endDate)
@@ -876,7 +902,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       );
     }
 
-    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    const transactions = mapSupabaseTransactionArrayToDomain(
+      (data || ([] as any)) as any
+    );
 
     if (!pagination) {
       return {
@@ -905,12 +933,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return [];
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) return [];
 
+    // * Phase 2 Optimization: Use list projection for transfer ID queries
     const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(TRANSACTION_LIST_PROJECTION)
       .eq('transfer_id', transferId)
       .in('account_id', scope.accountIds);
 
@@ -920,7 +949,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       );
     }
 
-    return mapSupabaseTransactionArrayToDomain(data || []);
+    return mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any);
   }
 
   async search(
@@ -938,7 +967,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return {
         data: [],
@@ -949,9 +978,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
+    // * Phase 2 Optimization: Use list projection for search queries
     const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(TRANSACTION_LIST_PROJECTION)
       .in('account_id', scope.accountIds)
       .or(`description.ilike.%${query}%,note.ilike.%${query}%`)
       .order('date', { ascending: false });
@@ -960,7 +990,9 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to search transactions: ${error.message}`);
     }
 
-    const transactions = mapSupabaseTransactionArrayToDomain(data || []);
+    const transactions = mapSupabaseTransactionArrayToDomain(
+      (data || ([] as any)) as any
+    );
 
     if (!pagination) {
       return {
@@ -1068,7 +1100,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const userId = await this.getUserId();
     if (!userId) return 0;
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) return 0;
 
     let query = this.client
@@ -1231,7 +1263,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
 
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return { data: [], total: 0, page, limit, totalPages: 0 };
     }
@@ -1252,9 +1284,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
           ? 'date'
           : sortBy;
 
+    // * Phase 2 Optimization: Use list projection for paginated queries
     const { data, error } = await this.client
       .from('transactions')
-      .select('*')
+      .select(TRANSACTION_LIST_PROJECTION)
       .in('account_id', scope.accountIds)
       .order(sortColumn, { ascending: sortOrder === 'asc' })
       .order('created_at', { ascending: false })
@@ -1265,7 +1298,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return {
-      data: mapSupabaseTransactionArrayToDomain(data || []),
+      data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
       total: count || 0,
       page,
       limit,

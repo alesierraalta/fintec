@@ -11,7 +11,12 @@ interface ExchangeRateData {
 }
 
 class ExchangeRateDatabase {
-  private ratesHistoryRepository = new SupabaseRatesHistoryRepository();
+  private ratesHistoryRepository: SupabaseRatesHistoryRepository;
+
+  constructor(repository?: SupabaseRatesHistoryRepository) {
+    this.ratesHistoryRepository =
+      repository || new SupabaseRatesHistoryRepository();
+  }
 
   async storeExchangeRate(data: ExchangeRateData): Promise<boolean> {
     try {
@@ -38,7 +43,8 @@ class ExchangeRateDatabase {
         await this.ratesHistoryRepository.getLatestExchangeRateSnapshot();
 
       if (!data) {
-        return null;
+        // Fallback to reconstruction if snapshot table is empty
+        return this.getReconstructedLatestRate();
       }
 
       return {
@@ -51,6 +57,41 @@ class ExchangeRateDatabase {
       };
     } catch (error) {
       logger.error('Database error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Reconstructs the latest rate from individual history tables.
+   * Useful when the unified snapshot is missing or stale.
+   */
+  async getReconstructedLatestRate(): Promise<ExchangeRateData | null> {
+    try {
+      const [bcv, binance] = await Promise.all([
+        this.ratesHistoryRepository.getLatestBCVRate(),
+        this.ratesHistoryRepository.getLatestBinanceRate(),
+      ]);
+
+      if (!bcv && !binance) {
+        return null;
+      }
+
+      // Merge data, prioritizing most recent timestamp
+      const lastUpdated =
+        new Date(bcv?.timestamp || 0) > new Date(binance?.timestamp || 0)
+          ? bcv?.timestamp
+          : binance?.timestamp;
+
+      return {
+        usd_ves: bcv?.usd || binance?.usd || 0,
+        usdt_ves: binance?.usd || bcv?.usd || 0,
+        sell_rate: binance?.usd || 0,
+        buy_rate: binance?.usd || 0,
+        lastUpdated: lastUpdated || new Date().toISOString(),
+        source: `Reconstructed (${bcv ? 'BCV' : ''}${bcv && binance ? '+' : ''}${binance ? 'Binance' : ''})`,
+      };
+    } catch (error) {
+      logger.error('Database reconstruction error:', error);
       return null;
     }
   }

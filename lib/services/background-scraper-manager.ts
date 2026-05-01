@@ -4,8 +4,13 @@ import WebSocketService from './websocket-server';
 import ExchangeRateDatabase from './exchange-rate-db';
 import { healthMonitor } from '@/lib/scrapers/health-monitor';
 import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
+import {
+  getBackendScraperIntervalMs,
+  isBackendUnifiedScraperEnabled,
+} from '@/lib/backend/feature-flags';
 
 import { logger } from '@/lib/utils/logger';
+import { createServiceClient } from '@/lib/supabase/admin';
 
 class BackgroundScraperManager {
   private httpServer: HTTPServer;
@@ -17,10 +22,13 @@ class BackgroundScraperManager {
 
   constructor(httpServer: HTTPServer) {
     this.httpServer = httpServer;
-    this.scraper = new BackgroundScraperService(60000); // 1 minute interval
+    this.scraper = new BackgroundScraperService(getBackendScraperIntervalMs());
     this.websocket = new WebSocketService(httpServer);
-    this.database = new ExchangeRateDatabase();
-    this.ratesHistoryRepo = new SupabaseRatesHistoryRepository();
+
+    // * Use service role client for background operations to bypass RLS
+    const serviceClient = createServiceClient();
+    this.ratesHistoryRepo = new SupabaseRatesHistoryRepository(serviceClient);
+    this.database = new ExchangeRateDatabase(this.ratesHistoryRepo);
 
     this.setupScraperCallbacks();
   }
@@ -28,6 +36,13 @@ class BackgroundScraperManager {
   async start(): Promise<void> {
     if (this.isRunning) {
       logger.info('Background scraper manager already running');
+      return;
+    }
+
+    if (!isBackendUnifiedScraperEnabled()) {
+      logger.warn(
+        'Background scraper manager start skipped because BACKEND_UNIFIED_SCRAPER is disabled'
+      );
       return;
     }
 
@@ -65,55 +80,91 @@ class BackgroundScraperManager {
 
   private async handleScraperUpdate(data: any): Promise<void> {
     const startTime = Date.now();
-    const responseTime = Date.now() - startTime;
 
-    if (data.success && data.data) {
+    // Check if we have any successful result
+    const binanceData = data.binance?.data;
+    const bcvData = data.bcv?.data;
+    const hasSuccess =
+      data.success && (data.binance?.success || data.bcv?.success);
+
+    if (hasSuccess) {
       try {
-        // Lógica correcta:
-        // - SELL del scraper = personas que VENDEN USDT (reciben VES) = precio de VENTA para usuario
-        // - BUY del scraper = personas que COMPRAN USDT (pagan VES) = precio de COMPRA para usuario
-        await this.database.storeExchangeRate({
-          usd_ves: data.data.usd_ves,
-          usdt_ves: data.data.usdt_ves,
-          sell_rate: data.data.sell_rate, // SELL del scraper = precio de VENTA para usuario
-          buy_rate: data.data.buy_rate, // BUY del scraper = precio de COMPRA para usuario
-          lastUpdated: data.data.lastUpdated,
-          source: data.data.source,
+        // Construct unified data object
+        const unifiedData = {
+          usd_ves: bcvData?.usd || binanceData?.usdt_ves || 0,
+          usdt_ves: binanceData?.usdt_ves || bcvData?.usd || 0,
+          sell_rate: binanceData?.sell_rate || 0,
+          buy_rate: binanceData?.buy_rate || 0,
+          lastUpdated: new Date().toISOString(),
+          source: `Unified (${data.binance?.success ? 'Binance' : ''}${data.binance?.success && data.bcv?.success ? '+' : ''}${data.bcv?.success ? 'BCV' : ''})`,
+        };
+
+        // 1. Broadcast the unified snapshot via WebSocket
+        // WebSocketService expects { success: true, data: { ... } }
+        this.websocket.broadcastUpdate({
+          success: true,
+          data: unifiedData,
         });
 
-        // Also save to rate history tables (bcv_rate_history and binance_rate_history)
-        // for the historical rates feature used in transaction details
+        // 2. Store unified snapshot for immediate retrieval
+        await this.database.storeExchangeRate(unifiedData);
+
         const today = new Date().toISOString().split('T')[0];
         const now = new Date().toISOString();
 
-        // Save Binance rate to history
-        try {
-          await this.ratesHistoryRepo.upsertBinanceRate({
-            date: today,
-            usd: data.data.usdt_ves,
-            source: 'Binance',
-            timestamp: now,
-          });
-        } catch (historyError) {
-          logger.warn(
-            '[BackgroundScraper] Failed to save Binance rate to history:',
-            historyError
-          );
+        // 2. Save Binance rate to history if successful
+        if (data.binance?.success && binanceData) {
+          try {
+            await this.ratesHistoryRepo.upsertBinanceRate({
+              date: today,
+              usd: binanceData.usdt_ves,
+              source: 'Binance',
+              timestamp: now,
+            });
+          } catch (historyError) {
+            logger.warn(
+              '[BackgroundScraper] Failed to save Binance rate to history:',
+              historyError
+            );
+          }
         }
 
-        // Record success in health monitor
-        healthMonitor.recordSuccess('binance-background', responseTime);
+        // 3. Save BCV rate to history if successful
+        if (data.bcv?.success && bcvData) {
+          try {
+            await this.ratesHistoryRepo.upsertBCVRate({
+              date: today,
+              usd: bcvData.usd,
+              eur: bcvData.eur,
+              source: 'BCV',
+              timestamp: now,
+            });
+          } catch (historyError) {
+            logger.warn(
+              '[BackgroundScraper] Failed to save BCV rate to history:',
+              historyError
+            );
+          }
+        }
 
-        logger.info('Exchange rate updated and stored in database');
+        logger.info('Unified exchange rates updated and stored in database');
+        healthMonitor.recordSuccess(
+          'BackgroundScraper',
+          Date.now() - startTime
+        );
       } catch (error) {
-        // Record failure in health monitor
-        healthMonitor.recordFailure('binance-background', responseTime);
+        healthMonitor.recordFailure(
+          'BackgroundScraper',
+          Date.now() - startTime
+        );
         logger.error('Error handling scraper update:', error);
       }
     } else {
-      // Record failure in health monitor
-      healthMonitor.recordFailure('binance-background', responseTime);
-      logger.error('Scraper update failed:', data.error);
+      healthMonitor.recordFailure('BackgroundScraper', Date.now() - startTime);
+      logger.error(
+        'Scraper update failed:',
+        data.error || 'All scrapers failed'
+      );
     }
   }
 

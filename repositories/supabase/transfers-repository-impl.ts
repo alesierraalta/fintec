@@ -1,3 +1,4 @@
+import type { RequestContext } from '@/lib/cache/request-context';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   CreateTransferInput,
@@ -9,26 +10,45 @@ import type {
 import { mapSupabaseTransactionToDomain } from './mappers';
 import { supabase } from './client';
 import { getOwnedAccountScope, hasOwnedAccounts } from './account-scope';
+import { getMemoizedOwnedAccountScope } from './memoized-account-scope';
+import {
+  TRANSFER_TRANSACTION_LIST_PROJECTION,
+  TRANSFER_TRANSACTION_DELETE_PROJECTION,
+  TRANSFER_ACCOUNT_NAME_PROJECTION,
+} from './transfer-projections';
 
 export class SupabaseTransfersRepository implements TransfersRepository {
   private readonly client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
+  }
+
+  private async getAccountScope(userId: string) {
+    if (this.requestContext && this.requestContext.userId === userId) {
+      return getMemoizedOwnedAccountScope(this.requestContext, this.client);
+    }
+
+    return getOwnedAccountScope(this.client, userId);
   }
 
   async listByUserId(
     userId: string,
     filters?: TransferFilters
   ): Promise<TransferRecord[]> {
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       return [];
     }
 
+    const projectionFields = TRANSFER_TRANSACTION_LIST_PROJECTION.join(', ');
+    const accountProjection = TRANSFER_ACCOUNT_NAME_PROJECTION.join(', ');
+
     let query = this.client
       .from('transactions')
-      .select('*, account:accounts(name)')
+      .select(`${projectionFields}, account:accounts(${accountProjection})`)
       .in('account_id', scope.accountIds)
       .in('type', ['TRANSFER_OUT', 'TRANSFER_IN'])
       .not('transfer_id', 'is', null)
@@ -63,8 +83,8 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       })[]
     >();
 
-    for (const row of data || []) {
-      const mapped = mapSupabaseTransactionToDomain(row as any) as ReturnType<
+    for (const row of (data as any[]) || []) {
+      const mapped = mapSupabaseTransactionToDomain(row) as ReturnType<
         typeof mapSupabaseTransactionToDomain
       > & { accountName?: string };
       if (row.account && row.account.name) {
@@ -143,14 +163,14 @@ export class SupabaseTransfersRepository implements TransfersRepository {
   }
 
   async delete(userId: string, transferId: string): Promise<void> {
-    const scope = await getOwnedAccountScope(this.client, userId);
+    const scope = await this.getAccountScope(userId);
     if (!hasOwnedAccounts(scope)) {
       throw new Error('Transfer not found');
     }
 
     const { data, error } = await this.client
       .from('transactions')
-      .select('id')
+      .select(TRANSFER_TRANSACTION_DELETE_PROJECTION.join(', '))
       .in('account_id', scope.accountIds)
       .eq('transfer_id', transferId);
 

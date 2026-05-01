@@ -3,15 +3,18 @@ import type {
   SubscriptionsRepository,
   UserSubscriptionSnapshot,
 } from '@/repositories/contracts';
+import { RequestContext } from '@/lib/cache/request-context';
 import { supabase } from './client';
 
 export class SupabaseSubscriptionsRepository
   implements SubscriptionsRepository
 {
   private readonly client: SupabaseClient;
+  private readonly requestContext?: RequestContext;
 
-  constructor(client?: SupabaseClient) {
+  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
     this.client = client || supabase;
+    this.requestContext = requestContext;
   }
 
   async getUserSubscriptionSnapshot(

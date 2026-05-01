@@ -212,7 +212,12 @@ export class BCVHistoryService {
         });
       }
 
-      // Sync to Supabase (non-blocking)
+      /*
+       * Sync to Supabase is disabled from the client to avoid RLS permission errors.
+       * The global history is already synced by the server-side BackgroundScraperManager
+       * using service_role credentials. Client-side should only perform reads.
+       */
+      /*
       this.syncToSupabase(
         today,
         Math.round(usd * 100) / 100,
@@ -222,6 +227,7 @@ export class BCVHistoryService {
       ).catch((err) => {
         logger.error('[BCVHistoryService] Background sync error:', err);
       });
+      */
 
       // Keep history bounded
       await this.cleanOldRecords(365);

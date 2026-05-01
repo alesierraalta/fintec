@@ -30,6 +30,15 @@ export class LocalAppRepository implements AppRepository {
   public readonly exchangeRates: LocalExchangeRatesRepository;
   public readonly notifications: LocalNotificationsRepository;
   public readonly recurringTransactions: LocalRecurringTransactionsRepository;
+  public readonly paymentOrders: any;
+  public readonly ratesHistory: any;
+  public readonly usersProfile: any;
+  public readonly transfers: any;
+  public readonly waitlist: any;
+  public readonly subscriptions: any;
+  public readonly approvalRequests: any;
+  public readonly aiInfra: any;
+  public readonly orders: any;
 
   constructor() {
     this.accounts = new LocalAccountsRepository();
@@ -40,6 +49,29 @@ export class LocalAppRepository implements AppRepository {
     this.exchangeRates = new LocalExchangeRatesRepository();
     this.notifications = new LocalNotificationsRepository();
     this.recurringTransactions = new LocalRecurringTransactionsRepository();
+
+    const notImplemented = (name: string) => ({
+      get: () => {
+        throw new Error(`${name} is not implemented in local mode`);
+      },
+      set: () => {
+        throw new Error(`${name} is not implemented in local mode`);
+      },
+      configurable: true,
+      enumerable: true,
+    });
+
+    Object.defineProperties(this, {
+      paymentOrders: notImplemented('paymentOrders'),
+      ratesHistory: notImplemented('ratesHistory'),
+      usersProfile: notImplemented('usersProfile'),
+      transfers: notImplemented('transfers'),
+      waitlist: notImplemented('waitlist'),
+      subscriptions: notImplemented('subscriptions'),
+      approvalRequests: notImplemented('approvalRequests'),
+      aiInfra: notImplemented('aiInfra'),
+      orders: notImplemented('orders'),
+    });
   }
 
   async isHealthy(): Promise<boolean> {
@@ -55,17 +87,18 @@ export class LocalAppRepository implements AppRepository {
     try {
       await db.initialize();
     } catch (error) {
-      
       // Check for recoverable database errors
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       const errorName = error instanceof Error ? error.name : '';
-      
-      const isRecoverableError = errorMessage.includes('DatabaseClosedError') || 
-                                errorMessage.includes('createIndex') ||
-                                errorMessage.includes('ConstraintError') ||
-                                errorName === 'DatabaseClosedError' ||
-                                errorName === 'ConstraintError';
-      
+
+      const isRecoverableError =
+        errorMessage.includes('DatabaseClosedError') ||
+        errorMessage.includes('createIndex') ||
+        errorMessage.includes('ConstraintError') ||
+        errorName === 'DatabaseClosedError' ||
+        errorName === 'ConstraintError';
+
       if (isRecoverableError) {
         await this.fixDatabaseIssues();
       } else {
@@ -78,32 +111,31 @@ export class LocalAppRepository implements AppRepository {
   private async fixDatabaseIssues(): Promise<void> {
     const maxAttempts = 2;
     let attempt = 0;
-    
+
     while (attempt < maxAttempts) {
       try {
-        
         // Force close any existing connections
         if (db.isOpen()) {
           db.close();
         }
-        
+
         // Wait a bit to ensure cleanup
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
         // Reset and reinitialize
         await db.resetDatabase();
         await db.initialize();
-        
+
         return;
       } catch (error) {
         attempt++;
-        
+
         if (attempt >= maxAttempts) {
           throw error;
         }
-        
+
         // Wait before retrying
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 200));
       }
     }
   }
