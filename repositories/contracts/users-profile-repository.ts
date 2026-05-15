@@ -8,10 +8,6 @@ export interface UpsertUserProfileInput {
 export interface UpdateUserProfileInput {
   name?: string;
   baseCurrency?: string;
-  tier?: string;
-  subscriptionStatus?: string;
-  subscriptionTier?: string;
-  subscriptionId?: string;
 }
 
 export interface UsersProfileRepository {

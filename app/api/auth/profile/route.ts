@@ -5,6 +5,39 @@ import {
   createServerUsersProfileRepository,
 } from '@/repositories/factory';
 
+type SelfServiceProfileUpdate = {
+  name?: string;
+  baseCurrency?: string;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function buildSelfServiceProfileUpdate(
+  body: unknown
+): SelfServiceProfileUpdate {
+  const update: SelfServiceProfileUpdate = {};
+
+  if (!isRecord(body)) {
+    return update;
+  }
+
+  if (body.name !== undefined) {
+    update.name = String(body.name);
+  }
+
+  if (body.baseCurrency !== undefined) {
+    update.baseCurrency = String(body.baseCurrency);
+  }
+
+  return update;
+}
+
+function hasProfileUpdateFields(update: SelfServiceProfileUpdate) {
+  return Object.keys(update).length > 0;
+}
+
 function getWelcomeNotifications(userId: string, userName: string) {
   return [
     {
@@ -93,18 +126,24 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
+
+    const profileUpdate = buildSelfServiceProfileUpdate(body);
+
+    if (!hasProfileUpdateFields(profileUpdate)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No valid profile fields provided',
+        },
+        { status: 400 }
+      );
+    }
+
     const usersProfileRepository = createServerUsersProfileRepository({
       supabase,
     });
 
-    await usersProfileRepository.update(user.id, {
-      name: body?.name,
-      baseCurrency: body?.baseCurrency,
-      tier: body?.tier,
-      subscriptionStatus: body?.subscription_status,
-      subscriptionTier: body?.subscription_tier,
-      subscriptionId: body?.subscription_id,
-    });
+    await usersProfileRepository.update(user.id, profileUpdate);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

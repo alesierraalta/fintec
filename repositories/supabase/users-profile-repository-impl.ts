@@ -39,13 +39,6 @@ export class SupabaseUsersProfileRepository implements UsersProfileRepository {
     if (input.name !== undefined) payload.name = input.name;
     if (input.baseCurrency !== undefined)
       payload.base_currency = input.baseCurrency;
-    if (input.tier !== undefined) payload.tier = input.tier;
-    if (input.subscriptionStatus !== undefined)
-      payload.subscription_status = input.subscriptionStatus;
-    if (input.subscriptionTier !== undefined)
-      payload.subscription_tier = input.subscriptionTier;
-    if (input.subscriptionId !== undefined)
-      payload.subscription_id = input.subscriptionId;
 
     const { error } = await (this.client.from('users') as any)
       .update(payload as any)

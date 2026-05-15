@@ -121,7 +121,25 @@ describe('auth profile route handlers', () => {
     expect(putResponse.status).toBe(401);
   });
 
-  it('updates mutable profile and subscription fields', async () => {
+  it('updates only allowed profile fields', async () => {
+    const response = await PUT(
+      new Request('http://localhost/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: 'Ada Updated',
+          baseCurrency: 'VES',
+        }),
+      }) as any
+    );
+
+    expect(response.status).toBe(200);
+    expect(usersProfileRepository.update).toHaveBeenCalledWith('user-1', {
+      name: 'Ada Updated',
+      baseCurrency: 'VES',
+    });
+  });
+
+  it('excludes privileged fields from mixed profile updates at runtime', async () => {
     const response = await PUT(
       new Request('http://localhost/api/auth/profile', {
         method: 'PUT',
@@ -140,11 +158,40 @@ describe('auth profile route handlers', () => {
     expect(usersProfileRepository.update).toHaveBeenCalledWith('user-1', {
       name: 'Ada Updated',
       baseCurrency: 'VES',
-      tier: 'pro',
-      subscriptionStatus: 'active',
-      subscriptionTier: 'premium',
-      subscriptionId: 'sub-1',
     });
+  });
+
+  it('excludes unknown nested fields from mixed profile updates at runtime', async () => {
+    const response = await PUT(
+      new Request('http://localhost/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: 'Grace',
+          metadata: { planOverride: 'enterprise' },
+          isAdmin: true,
+        }),
+      }) as any
+    );
+
+    expect(response.status).toBe(200);
+    expect(usersProfileRepository.update).toHaveBeenCalledWith('user-1', {
+      name: 'Grace',
+    });
+  });
+
+  it('rejects payloads with no allowed profile fields', async () => {
+    const response = await PUT(
+      new Request('http://localhost/api/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          isAdmin: true,
+          metadata: { planOverride: 'enterprise' },
+        }),
+      }) as any
+    );
+
+    expect(response.status).toBe(400);
+    expect(usersProfileRepository.update).not.toHaveBeenCalled();
   });
 
   it('returns 500 when repository operations fail', async () => {
@@ -164,7 +211,7 @@ describe('auth profile route handlers', () => {
     const putResponse = await PUT(
       new Request('http://localhost/api/auth/profile', {
         method: 'PUT',
-        body: JSON.stringify({}),
+        body: JSON.stringify({ name: 'Ada' }),
       }) as any
     );
 
