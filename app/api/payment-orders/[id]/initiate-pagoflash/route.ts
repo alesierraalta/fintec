@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPagoFlashOrder } from '@/lib/payment-orders/providers/pagoflash';
-import { createServiceClient } from '@/lib/supabase/admin';
+import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import { logger } from '@/lib/utils/logger';
-
-const supabase = createServiceClient();
+import { createClient } from '@/lib/supabase/server';
+import { PaymentOrderService } from '@/lib/payment-orders/order-service';
 
 export async function POST(
   req: NextRequest,
@@ -21,38 +21,17 @@ export async function POST(
       );
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
+    const userId = await getAuthenticatedUser(req);
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
+    // Use user-scoped client from request context
+    const client = await createClient();
+    const userService = new PaymentOrderService(client);
+    const order = await userService.getOrderById(orderId, userId);
 
-    // Get order
-    const { data: order, error: orderError } = (await supabase
-      .from('payment_orders')
-      .select('*')
-      .eq('id', orderId)
-      .eq('user_id', user.id)
-      .single()) as { data: Record<string, unknown> | null; error: unknown };
-
-    if (orderError || !order) {
+    if (!order) {
       return NextResponse.json(
         { success: false, error: 'Order not found' },
         { status: 404 }
-      );
-    }
-
-    if ((order as Record<string, unknown>).payment_method !== 'pagoflash') {
-      return NextResponse.json(
-        { success: false, error: 'Order is not configured for PagoFlash' },
-        { status: 400 }
       );
     }
 
@@ -60,13 +39,12 @@ export async function POST(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 
     const pagoflashResult = await createPagoFlashOrder({
-      amount: ((order as Record<string, unknown>).amount_minor as number) / 100,
+      amount: order.amountMinor / 100,
       description:
-        ((order as Record<string, unknown>).description as string) ||
-        `Pago de orden ${orderId.substring(0, 8)}`,
-      orderId: (order as Record<string, unknown>).id as string,
-      payerEmail: user.email!,
-      payerName: user.user_metadata?.full_name || user.email,
+        order.description || `Pago de orden ${orderId.substring(0, 8)}`,
+      orderId: order.id,
+      payerEmail: (order as any).userEmail || 'unknown@example.com',
+      payerName: (order as any).userName || 'User',
       successRedirectUrl: `${baseUrl}/payment-orders/${orderId}?status=success`,
       errorRedirectUrl: `${baseUrl}/payment-orders/${orderId}?status=error`,
     });

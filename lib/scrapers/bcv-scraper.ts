@@ -36,6 +36,12 @@ export type ParsedBCVRates = {
   };
 };
 
+export function hasCompleteBCVRates(
+  parsed: ParsedBCVRates
+): parsed is ParsedBCVRates & { usd: number; eur: number } {
+  return parsed.usd !== null && parsed.eur !== null;
+}
+
 export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
   const $ = cheerio.load(html);
 
@@ -434,9 +440,9 @@ class BCVScraper extends BaseScraper<BCVData> {
   protected _validateData(data: unknown): ScraperError | null {
     const parsed = data as ParsedBCVRates;
 
-    if (parsed.usd === null && parsed.eur === null) {
+    if (!hasCompleteBCVRates(parsed)) {
       return new ScraperError(
-        'Failed to extract USD and EUR rates',
+        'Failed to extract complete BCV USD and EUR rates',
         'VALIDATION_ERROR',
         undefined,
         true
@@ -452,15 +458,20 @@ class BCVScraper extends BaseScraper<BCVData> {
   protected _transformData(data: unknown): BCVData {
     const parsed = data as ParsedBCVRates;
 
-    // Use extracted rates or fallback to realistic defaults
-    const finalUsd = parsed.usd ?? STATIC_BCV_FALLBACK_RATES.usd;
-    const finalEur = parsed.eur ?? STATIC_BCV_FALLBACK_RATES.eur;
+    if (!hasCompleteBCVRates(parsed)) {
+      throw new ScraperError(
+        'Cannot transform incomplete BCV rates',
+        'VALIDATION_ERROR',
+        undefined,
+        true
+      );
+    }
 
     return {
-      usd: Math.round(finalUsd * 100) / 100,
-      eur: Math.round(finalEur * 100) / 100,
+      usd: Math.round(parsed.usd * 100) / 100,
+      eur: Math.round(parsed.eur * 100) / 100,
       lastUpdated: new Date().toISOString(),
-      source: parsed.usd && parsed.eur ? 'BCV' : 'BCV (fallback)',
+      source: 'BCV',
     };
   }
 

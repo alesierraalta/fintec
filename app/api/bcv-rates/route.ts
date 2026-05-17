@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import ExchangeRateDatabase from '@/lib/services/exchange-rate-db';
-import { buildBCVFallbackData } from '@/lib/services/rates-fallback';
+import {
+  buildBCVFallbackData,
+  isFallbackSource,
+} from '@/lib/services/rates-fallback';
+import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
 import { logger } from '@/lib/utils/logger';
 
 export const runtime = 'nodejs';
@@ -33,23 +37,48 @@ export async function GET() {
       });
     }
 
-    // Fallback if no data in database
-    logger.warn('BCV API: No data found in database, using static fallback');
-    return NextResponse.json({
-      success: true,
-      data: buildBCVFallbackData('static-default'),
-      fallback: true,
-      fallbackReason: 'No data in database',
-    });
+    logger.warn('BCV API: No data found in database, attempting live scrape');
+    const liveResult = await scrapeBCVRates();
+
+    if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          usd: liveResult.data.usd,
+          eur: liveResult.data.eur,
+          timestamp: liveResult.data.lastUpdated,
+          source: liveResult.data.source,
+        },
+        cached: false,
+        fromLiveScrape: true,
+        fallback: false,
+        executionTime: liveResult.executionTime,
+      });
+    }
+
+    logger.warn('BCV API: Live scrape failed, refusing successful static fallback');
+    return NextResponse.json(
+      {
+        success: false,
+        error: liveResult.error || 'No BCV exchange rate data available',
+        data: buildBCVFallbackData('live-scrape-failed'),
+        fallback: true,
+        fallbackReason: 'No database data and live BCV scrape failed',
+      },
+      { status: 503 }
+    );
   } catch (error) {
     logger.error('BCV API Error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      data: buildBCVFallbackData('static-default'),
-      fallback: true,
-      fallbackReason: 'Database error',
-    });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: buildBCVFallbackData('database-error'),
+        fallback: true,
+        fallbackReason: 'Database error',
+      },
+      { status: 503 }
+    );
   }
 }
 

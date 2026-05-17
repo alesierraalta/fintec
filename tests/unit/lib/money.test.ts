@@ -33,6 +33,18 @@ describe('money utils', () => {
       expect(money.getCurrency().decimals).toBe(2);
     });
 
+    it('throws if created with non-integer minor units', () => {
+      expect(() => new Money(10.5, 'USD')).toThrow(
+        'amountMinor must be an integer'
+      );
+    });
+
+    it('throws if fromMinor called with non-integer', () => {
+      expect(() => Money.fromMinor(10.5, 'USD')).toThrow(
+        'amountMinor must be an integer'
+      );
+    });
+
     describe('add / subtract', () => {
       it('adds two amounts of same currency', () => {
         const m1 = Money.fromMinor(100, 'USD');
@@ -77,9 +89,10 @@ describe('money utils', () => {
         expect(m1.multiply(2).getMinorAmount()).toBe(200);
       });
 
-      it('throws if multiplying from non-finite', () => {
-        const m1 = Money.fromMinor(Infinity as number, 'USD');
-        expect(() => m1.multiply(2)).toThrow();
+      it('throws if created from non-finite', () => {
+        expect(() => Money.fromMinor(Infinity as number, 'USD')).toThrow(
+          'amountMinor must be an integer'
+        );
       });
 
       it('throws if multiplier is non-finite', () => {
@@ -102,10 +115,7 @@ describe('money utils', () => {
         expect(() => m1.divide(Infinity as number)).toThrow();
       });
 
-      it('throws if dividing from non-finite', () => {
-        const m1 = Money.fromMinor(Infinity as number, 'USD');
-        expect(() => m1.divide(2)).toThrow();
-      });
+      // Already covered by 'throws if created from non-finite'
     });
 
     describe('boolean checks', () => {

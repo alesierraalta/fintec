@@ -13,14 +13,16 @@ interface UpgradeModalProps {
   reason?: string;
 }
 
-export function UpgradeModal({ 
-  isOpen, 
-  onClose, 
+export function UpgradeModal({
+  isOpen,
+  onClose,
   suggestedTier = 'base',
-  reason 
+  reason,
 }: UpgradeModalProps) {
   const { upgrade, loading } = useUpgrade();
-  const [selectedTier, setSelectedTier] = useState<'base' | 'premium'>(suggestedTier);
+  const [selectedTier, setSelectedTier] = useState<'base' | 'premium'>(
+    suggestedTier
+  );
 
   const handleUpgrade = async () => {
     await upgrade(selectedTier);
@@ -61,7 +63,7 @@ export function UpgradeModal({
       <div className="space-y-6">
         {/* Reason */}
         {reason && (
-          <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+          <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
             <p className="text-sm font-medium">{reason}</p>
           </div>
         )}
@@ -76,15 +78,15 @@ export function UpgradeModal({
               <button
                 key={key}
                 onClick={() => setSelectedTier(key as 'base' | 'premium')}
-                className={`relative p-4 rounded-lg border-2 transition-all text-left ${
+                className={`relative rounded-lg border-2 p-4 text-left transition-all ${
                   isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50'
                 }`}
               >
                 {isSelected && (
-                  <div className="absolute top-2 right-2">
-                    <div className="bg-primary text-primary-foreground rounded-full p-1">
+                  <div className="absolute right-2 top-2">
+                    <div className="rounded-full bg-primary p-1 text-primary-foreground">
                       <Zap className="h-3 w-3" />
                     </div>
                   </div>
@@ -95,14 +97,19 @@ export function UpgradeModal({
                     <Icon className={`h-5 w-5 ${tier.color}`} />
                     <div>
                       <h3 className="font-semibold">{tier.name}</h3>
-                      <p className="text-sm text-muted-foreground">{tier.price}/mes</p>
+                      <p className="text-sm text-muted-foreground">
+                        {tier.price}/mes
+                      </p>
                     </div>
                   </div>
 
                   <ul className="space-y-1">
                     {tier.features.map((feature, index) => (
-                      <li key={index} className="text-xs flex items-start gap-1">
-                        <span className="text-primary mt-0.5">✓</span>
+                      <li
+                        key={index}
+                        className="flex items-start gap-1 text-xs"
+                      >
+                        <span className="mt-0.5 text-primary">✓</span>
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -123,20 +130,18 @@ export function UpgradeModal({
           >
             Cancelar
           </Button>
-          <Button
-            className="flex-1"
-            onClick={handleUpgrade}
-            disabled={loading}
-          >
-            {loading ? 'Procesando...' : `Actualizar a ${tiers[selectedTier].name}`}
+          <Button className="flex-1" onClick={handleUpgrade} disabled={loading}>
+            {loading
+              ? 'Procesando...'
+              : `Actualizar a ${tiers[selectedTier].name}`}
           </Button>
         </div>
 
-        <p className="text-xs text-center text-muted-foreground">
-          Serás redirigido a Lemon Squeezy para completar el pago de forma segura
+        <p className="text-center text-xs text-muted-foreground">
+          Serás redirigido a Lemon Squeezy para completar el pago de forma
+          segura
         </p>
       </div>
     </Modal>
   );
 }
-

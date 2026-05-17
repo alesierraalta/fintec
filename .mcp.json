@@ -1,0 +1,37 @@
+{
+  "//": "Pi MCP Adapter config — restart Pi or run /mcp reconnect after changes.",
+  "mcpServers": {
+    "context-mode": {
+      "command": "context-mode",
+      "args": [],
+      "directTools": true
+    },
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "directTools": true
+    },
+    "engram": {
+      "command": "C:\\Users\\ismar\\AppData\\Local\\engram\\bin\\engram.exe",
+      "args": [
+        "mcp",
+        "--tools=agent"
+      ],
+      "directTools": true
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "directTools": true
+    },
+    "serena": {
+      "command": "serena",
+      "args": [
+        "start-mcp-server"
+      ],
+      "directTools": true
+    }
+  }
+}
