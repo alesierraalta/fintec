@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPagoFlashOrder } from '@/lib/payment-orders/providers/pagoflash';
 import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import { logger } from '@/lib/utils/logger';
-import { createClient } from '@/lib/supabase/server';
-import { PaymentOrderService } from '@/lib/payment-orders/order-service';
+import { getOrderById } from '@/lib/payment-orders/order-service';
 
 export async function POST(
   req: NextRequest,
@@ -23,10 +22,7 @@ export async function POST(
 
     const userId = await getAuthenticatedUser(req);
 
-    // Use user-scoped client from request context
-    const client = await createClient();
-    const userService = new PaymentOrderService(client);
-    const order = await userService.getOrderById(orderId, userId);
+    const order = await getOrderById(orderId, userId);
 
     if (!order) {
       return NextResponse.json(
