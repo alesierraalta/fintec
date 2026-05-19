@@ -204,6 +204,8 @@ opencode.jsonc
 .claude/
 .codex/
 .gemini/
+.pi/
+.pi-lens/
 
 # Test artifacts
 jest_output*.txt
