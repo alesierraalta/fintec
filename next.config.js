@@ -1,3 +1,5 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Note: 'output: export' removed - using Capacitor in server mode
@@ -15,6 +17,9 @@ const nextConfig = {
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
+  },
+  turbopack: {
+    root: path.join(__dirname),
   },
   typescript: {
     ignoreBuildErrors: false,
