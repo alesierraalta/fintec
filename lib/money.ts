@@ -54,7 +54,11 @@ export class Money {
   private readonly currency: Currency;
 
   constructor(amountMinor: number, currencyCode: string) {
-    this.amountMinor = Math.round(amountMinor);
+    if (!Number.isInteger(amountMinor)) {
+      throw new Error('amountMinor must be an integer');
+    }
+
+    this.amountMinor = amountMinor;
     if (Object.is(this.amountMinor, -0)) this.amountMinor = 0;
     this.currency = CURRENCIES[currencyCode] || {
       code: currencyCode,
