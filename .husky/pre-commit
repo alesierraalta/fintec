@@ -1,4 +1,8 @@
 #!/usr/bin/env sh
+set -e
+
+# Gentleman Guardian Angel - AI Code Review
+gga run || exit 1
 
 npm run precommit:staged
 npm run precommit:supabase
