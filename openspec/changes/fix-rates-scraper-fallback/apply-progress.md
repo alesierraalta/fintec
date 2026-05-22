@@ -34,6 +34,14 @@ npx jest --selectProjects node --runTestsByPath tests/node/scrapers/bcv-scraper-
 
 Result: PASS — 2 suites, 6 tests.
 
+Parser unit tests:
+
+```bash
+npx jest --selectProjects node --runTestsByPath tests/node/scrapers/bcv-parser.test.ts --runInBand 2>&1
+```
+
+Result: PASS — 1 suite, 6 tests.
+
 Type-check:
 
 ```bash
