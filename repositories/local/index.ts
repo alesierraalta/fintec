@@ -32,6 +32,7 @@ export class LocalAppRepository implements AppRepository {
   public readonly recurringTransactions: LocalRecurringTransactionsRepository;
   public readonly paymentOrders: any;
   public readonly ratesHistory: any;
+  public readonly scrapeAttempts: any;
   public readonly usersProfile: any;
   public readonly transfers: any;
   public readonly waitlist: any;
@@ -64,6 +65,7 @@ export class LocalAppRepository implements AppRepository {
     Object.defineProperties(this, {
       paymentOrders: notImplemented('paymentOrders'),
       ratesHistory: notImplemented('ratesHistory'),
+      scrapeAttempts: notImplemented('scrapeAttempts'),
       usersProfile: notImplemented('usersProfile'),
       transfers: notImplemented('transfers'),
       waitlist: notImplemented('waitlist'),

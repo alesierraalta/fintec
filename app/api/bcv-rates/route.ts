@@ -6,6 +6,11 @@ import {
 } from '@/lib/services/rates-fallback';
 import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
 import { logger } from '@/lib/utils/logger';
+import { ScrapeAndPersistRates } from '@/lib/rates/scrape-pipeline';
+import { InMemoryLock } from '@/lib/rates/simple-lock';
+import { SupabaseScrapeAttemptsRepository } from '@/repositories/supabase/scrape-attempts-repository-impl';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
+import { ExchangeRateDatabaseBCVWriter } from '@/lib/rates/bcv-rate-db-writer';
 
 export const runtime = 'nodejs';
 
@@ -56,7 +61,9 @@ export async function GET() {
       });
     }
 
-    logger.warn('BCV API: Live scrape failed, refusing successful static fallback');
+    logger.warn(
+      'BCV API: Live scrape failed, refusing successful static fallback'
+    );
     return NextResponse.json(
       {
         success: false,
@@ -83,5 +90,57 @@ export async function GET() {
 }
 
 export async function POST() {
-  return GET();
+  try {
+    const lock = new InMemoryLock();
+    const attemptsRepo = new SupabaseScrapeAttemptsRepository();
+    const ratesRepo = new SupabaseRatesHistoryRepository();
+    const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
+    const pipeline = new ScrapeAndPersistRates(lock, attemptsRepo, writer);
+
+    const result = await pipeline.execute('on-demand');
+
+    if (result.success) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          usd: result.result?.usd,
+          eur: result.result?.eur,
+          source: result.result?.source,
+          timestamp: result.result?.lastUpdated,
+        },
+        attemptId: result.attemptId,
+        fallback: false,
+      });
+    }
+
+    logger.warn('BCV API POST: Pipeline failed', {
+      status: result.status,
+      failureStage: result.failureStage,
+      failureReason: result.failureReason,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: result.failureReason || 'Pipeline execution failed',
+        data: buildBCVFallbackData('pipeline-failed'),
+        fallback: true,
+        attemptId: result.attemptId,
+        fallbackReason: result.failureReason || 'Scrape pipeline failed',
+      },
+      { status: 503 }
+    );
+  } catch (error) {
+    logger.error('BCV API POST Error:', error);
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        data: buildBCVFallbackData('database-error'),
+        fallback: true,
+        fallbackReason: 'Pipeline instantiation error',
+      },
+      { status: 503 }
+    );
+  }
 }

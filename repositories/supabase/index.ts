@@ -17,6 +17,7 @@ export { SupabaseSubscriptionsRepository } from './subscriptions-repository-impl
 export { SupabasePaymentOrdersRepository } from './payment-orders-repository-impl';
 export { SupabaseOrdersRepository } from './orders-repository-impl';
 export { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
+export { SupabaseScrapeAttemptsRepository } from './scrape-attempts-repository-impl';
 export { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
 
 export * from './types';
@@ -48,6 +49,7 @@ import { SupabaseUsersProfileRepository } from './users-profile-repository-impl'
 import { SupabaseApprovalRequestsRepository } from './approval-requests-repository-impl';
 import { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
 import { SupabaseOrdersRepository } from './orders-repository-impl';
+import { SupabaseScrapeAttemptsRepository } from './scrape-attempts-repository-impl';
 
 export class SupabaseAppRepository implements AppRepository {
   public readonly accounts: SupabaseAccountsRepository;
@@ -67,6 +69,7 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly approvalRequests: SupabaseApprovalRequestsRepository;
   public readonly aiInfra: SupabaseAIInfraRepository;
   public readonly orders: SupabaseOrdersRepository;
+  public readonly scrapeAttempts: SupabaseScrapeAttemptsRepository;
   private readonly client: SupabaseClient;
 
   constructor(
@@ -128,6 +131,7 @@ export class SupabaseAppRepository implements AppRepository {
     );
     this.aiInfra = new SupabaseAIInfraRepository(this.client, requestContext);
     this.orders = new SupabaseOrdersRepository(this.client, requestContext);
+    this.scrapeAttempts = new SupabaseScrapeAttemptsRepository(this.client);
 
     // Set up dependencies
     this.transactions.setAccountsRepository(this.accounts);

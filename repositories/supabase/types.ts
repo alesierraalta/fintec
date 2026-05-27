@@ -148,6 +148,21 @@ export interface SupabaseOrder {
   created_at: string;
 }
 
+export interface SupabaseScrapeAttempt {
+  id: string;
+  attempt_id: string;
+  provider: string;
+  trigger: string;
+  stage: string;
+  status: string;
+  failure_reason: string | null;
+  started_at: string;
+  finished_at: string | null;
+  extracted_currencies: string[] | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
 // Database interface for TypeScript with Supabase
 export interface Database {
   public: {
@@ -251,6 +266,14 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<SupabaseOrder>;
+      };
+      scrape_attempts: {
+        Row: SupabaseScrapeAttempt;
+        Insert: Omit<SupabaseScrapeAttempt, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<SupabaseScrapeAttempt>;
       };
     };
     Views: {

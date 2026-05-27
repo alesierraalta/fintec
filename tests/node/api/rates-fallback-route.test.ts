@@ -40,7 +40,7 @@ describe('BCV and Binance rate routes', () => {
     jest.restoreAllMocks();
   });
 
-  it('serves BCV data from database and POST mirrors GET', async () => {
+  it('serves BCV data from database', async () => {
     const now = 1000000;
     jest.spyOn(Date, 'now').mockImplementation(() => now);
     getLatestExchangeRate.mockResolvedValue({
@@ -55,12 +55,10 @@ describe('BCV and Binance rate routes', () => {
     const route = await import('@/app/api/bcv-rates/route');
     const first = await route.GET();
     const body = await first.json();
-    const post = await route.POST();
 
     expect(first.status).toBe(200);
     expect(body.data.usd).toBe(36);
     expect(body.data.source).toBe('BCV');
-    expect(post.status).toBe(200);
     expect(getLatestExchangeRate).toHaveBeenCalled();
   });
 

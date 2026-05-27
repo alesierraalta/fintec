@@ -38,6 +38,7 @@ import { SubscriptionsRepository } from './subscriptions-repository';
 import { ApprovalRequestsRepository } from './approval-requests-repository';
 import { AIInfraRepository } from './ai-infra-repository';
 import { OrdersRepository } from './orders-repository';
+import { ScrapeAttemptsRepository } from './scrape-attempts-repository';
 import { Repository } from './base-repository';
 
 export interface AppRepository extends Repository {
@@ -52,6 +53,7 @@ export interface AppRepository extends Repository {
   transfers: TransfersRepository;
   paymentOrders: PaymentOrdersRepository;
   ratesHistory: RatesHistoryRepository;
+  scrapeAttempts: ScrapeAttemptsRepository;
   usersProfile: UsersProfileRepository;
   waitlist: WaitlistRepository;
   subscriptions: SubscriptionsRepository;

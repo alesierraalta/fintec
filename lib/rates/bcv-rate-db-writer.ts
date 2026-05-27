@@ -1,8 +1,8 @@
-import ExchangeRateDatabase from '@/lib/services/exchange-rate-db';
+import type { RatesHistoryRepository } from '@/repositories/contracts';
 import { BCVRateWriter } from '@/repositories/contracts/bcv-rate-writer';
 
 export class ExchangeRateDatabaseBCVWriter implements BCVRateWriter {
-  constructor(private db: ExchangeRateDatabase) {}
+  constructor(private repository: RatesHistoryRepository) {}
 
   async write(data: {
     usd: number;
@@ -10,13 +10,18 @@ export class ExchangeRateDatabaseBCVWriter implements BCVRateWriter {
     source: string;
     lastUpdated: string;
   }): Promise<boolean> {
-    return this.db.storeExchangeRate({
-      usd_ves: data.usd,
-      usdt_ves: data.usd,
-      sell_rate: data.usd,
-      buy_rate: data.usd,
-      lastUpdated: data.lastUpdated,
-      source: data.source,
-    });
+    try {
+      await this.repository.insertExchangeRateSnapshot({
+        usdVes: data.usd,
+        usdtVes: data.usd,
+        sellRate: data.usd,
+        buyRate: data.usd,
+        lastUpdated: data.lastUpdated,
+        source: data.source,
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
