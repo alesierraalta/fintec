@@ -22,6 +22,7 @@ export interface ScraperResult<T> {
   success: boolean;
   data: T;
   error?: string;
+  errorCategory?: ScraperErrorCategory;
   executionTime?: number;
   cached?: boolean;
   circuitBreakerState?: CircuitBreakerState;

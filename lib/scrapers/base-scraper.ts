@@ -97,6 +97,7 @@ export abstract class BaseScraper<T> {
       this.circuitBreaker.recordFailure();
       healthMonitor.recordFailure(this.name, responseTime, category);
 
+      const errorCategory = category;
       const scraperError =
         error instanceof ScraperError
           ? error
@@ -105,12 +106,14 @@ export abstract class BaseScraper<T> {
               'SCRAPER_ERROR',
               undefined,
               this.isRetryableError(error),
-              category
+              errorCategory
             );
 
       logger.error(`[${this.name}] Scrape failed: ${scraperError.message}`);
 
-      return this.createErrorResult(scraperError, startTime);
+      const errorResult = this.createErrorResult(scraperError, startTime);
+      errorResult.errorCategory = errorCategory;
+      return errorResult;
     }
   }
 

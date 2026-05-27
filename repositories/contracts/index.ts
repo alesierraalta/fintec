@@ -16,6 +16,8 @@ export * from './subscriptions-repository';
 export * from './payment-orders-repository';
 export * from './orders-repository';
 export * from './rates-history-repository';
+export * from './scrape-attempts-repository';
+export * from './bcv-rate-writer';
 export * from './users-profile-repository';
 
 // Main repository interface that combines all repositories
