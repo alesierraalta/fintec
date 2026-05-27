@@ -30,4 +30,16 @@ describe('scrape attempts migration', () => {
     expect(migration).toContain('Allow all select');
     expect(migration).toContain('Allow all insert');
   });
+
+  it('creates refresh_pgrst_schema migration', () => {
+    const migration = readFileSync(
+      join(
+        process.cwd(),
+        'supabase/migrations/20260525000000_refresh_pgrst_schema.sql'
+      ),
+      'utf8'
+    );
+
+    expect(migration).toContain("NOTIFY pgrst, 'reload schema'");
+  });
 });

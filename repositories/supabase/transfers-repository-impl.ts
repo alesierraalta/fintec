@@ -143,6 +143,12 @@ export class SupabaseTransfersRepository implements TransfersRepository {
     });
 
     if (error) {
+      if (error.message && error.message.includes('Node cannot be found')) {
+        throw new Error(
+          'create_transfer RPC is not available — check that the migration was applied and PostgREST schema is up to date'
+        );
+      }
+
       throw new Error(error.message || 'Failed to create transfer');
     }
 
