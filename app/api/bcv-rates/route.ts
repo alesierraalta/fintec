@@ -15,9 +15,15 @@ import { ExchangeRateDatabaseBCVWriter } from '@/lib/rates/bcv-rate-db-writer';
 export const runtime = 'nodejs';
 
 /**
+ * How old (in seconds) can cached data be before we attempt a live scrape.
+ * 2 hours = 7200s — BCV updates once daily, but stale data >2h is risky.
+ */
+const STALE_THRESHOLD_SECONDS = 2 * 60 * 60;
+
+/**
  * GET /api/bcv-rates
- * Returns the latest BCV exchange rates from the database.
- * This endpoint is now READ-ONLY. Scraping is handled by the background service.
+ * Returns the latest BCV exchange rates.
+ * If database data is stale (>2h), attempts a live scrape before returning.
  */
 export async function GET() {
   try {
@@ -25,27 +31,104 @@ export async function GET() {
     const latest = await db.getLatestExchangeRate();
 
     if (latest) {
+      const cacheAgeSeconds = Math.round(
+        (Date.now() - new Date(latest.lastUpdated).getTime()) / 1000
+      );
+      const isStale = cacheAgeSeconds > STALE_THRESHOLD_SECONDS;
+
+      if (!isStale) {
+        // Data is fresh — return it directly
+        return NextResponse.json({
+          success: true,
+          data: {
+            usd: latest.usd_ves,
+            timestamp: latest.lastUpdated,
+            source: latest.source,
+          },
+          cached: true,
+          cacheAge: cacheAgeSeconds,
+          fallback: false,
+        });
+      }
+
+      // Data is stale — attempt live scrape
+      logger.warn(
+        `BCV API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), attempting live scrape`
+      );
+      const liveResult = await scrapeBCVRates();
+
+      if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
+        // Persist fresh data so subsequent requests don't hit stale path
+        try {
+          const ratesRepo = new SupabaseRatesHistoryRepository();
+          const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
+          await writer.write({
+            usd: liveResult.data.usd,
+            eur: liveResult.data.eur,
+            source: liveResult.data.source,
+            lastUpdated: liveResult.data.lastUpdated,
+          });
+        } catch (persistError) {
+          logger.error(
+            'BCV API: Failed to persist fresh scrape data:',
+            persistError
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            usd: liveResult.data.usd,
+            eur: liveResult.data.eur,
+            timestamp: liveResult.data.lastUpdated,
+            source: liveResult.data.source,
+          },
+          cached: false,
+          fromLiveScrape: true,
+          fallback: false,
+          executionTime: liveResult.executionTime,
+        });
+      }
+
+      // Live scrape failed — return stale data with warning
+      logger.warn('BCV API: Live scrape failed, returning stale database data');
       return NextResponse.json({
         success: true,
         data: {
           usd: latest.usd_ves,
-          // Note: EUR is stored in bcv_rate_history but not in the unified snapshot.
-          // For most purposes, usd_ves is what's requested.
           timestamp: latest.lastUpdated,
           source: latest.source,
         },
         cached: true,
-        cacheAge: Math.round(
-          (Date.now() - new Date(latest.lastUpdated).getTime()) / 1000
-        ),
+        cacheAge: cacheAgeSeconds,
+        stale: true,
+        staleReason: `Data is ${cacheAgeSeconds}s old, live scrape failed`,
         fallback: false,
       });
     }
 
+    // No data at all — attempt live scrape
     logger.warn('BCV API: No data found in database, attempting live scrape');
     const liveResult = await scrapeBCVRates();
 
     if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
+      // Persist fresh data so subsequent requests don't hit empty path
+      try {
+        const ratesRepo = new SupabaseRatesHistoryRepository();
+        const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
+        await writer.write({
+          usd: liveResult.data.usd,
+          eur: liveResult.data.eur,
+          source: liveResult.data.source,
+          lastUpdated: liveResult.data.lastUpdated,
+        });
+      } catch (persistError) {
+        logger.error(
+          'BCV API: Failed to persist fresh scrape data:',
+          persistError
+        );
+      }
+
       return NextResponse.json({
         success: true,
         data: {

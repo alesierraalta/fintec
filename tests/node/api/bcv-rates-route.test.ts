@@ -52,13 +52,17 @@ describe('/api/bcv-rates', () => {
   });
 
   describe('GET', () => {
-    it('returns cached database rates when available', async () => {
+    it('returns cached database rates when available and fresh', async () => {
+      // Use a recent timestamp (within 2 hours) so staleness check passes
+      const recentTimestamp = new Date(
+        Date.now() - 30 * 60 * 1000
+      ).toISOString();
       mockGetLatestExchangeRate.mockResolvedValue({
         usd_ves: 151.52,
         usdt_ves: 160,
         sell_rate: 160,
         buy_rate: 158,
-        lastUpdated: '2026-05-17T10:00:00.000Z',
+        lastUpdated: recentTimestamp,
         source: 'BCV',
       });
 
@@ -73,11 +77,49 @@ describe('/api/bcv-rates', () => {
         fallback: false,
         data: {
           usd: 151.52,
-          timestamp: '2026-05-17T10:00:00.000Z',
+          timestamp: recentTimestamp,
           source: 'BCV',
         },
       });
       expect(mockScrapeBCVRates).not.toHaveBeenCalled();
+    });
+
+    it('attempts live scrape when database data is stale', async () => {
+      // Use a stale timestamp (more than 2 hours old)
+      const staleTimestamp = new Date(
+        Date.now() - 3 * 60 * 60 * 1000
+      ).toISOString();
+      mockGetLatestExchangeRate.mockResolvedValue({
+        usd_ves: 151.52,
+        usdt_ves: 160,
+        sell_rate: 160,
+        buy_rate: 158,
+        lastUpdated: staleTimestamp,
+        source: 'BCV',
+      });
+      mockScrapeBCVRates.mockResolvedValue({
+        success: true,
+        data: {
+          usd: 544.58,
+          eur: 633.48,
+          lastUpdated: new Date().toISOString(),
+          source: 'BCV',
+        },
+        executionTime: 42,
+      });
+
+      const { GET } = await import('@/app/api/bcv-rates/route');
+      const response = await GET();
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toMatchObject({
+        success: true,
+        cached: false,
+        fromLiveScrape: true,
+        fallback: false,
+      });
+      expect(mockScrapeBCVRates).toHaveBeenCalled();
     });
 
     it('scrapes live BCV rates when the database is empty', async () => {
