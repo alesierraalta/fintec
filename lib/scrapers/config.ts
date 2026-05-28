@@ -18,10 +18,17 @@ export const BINANCE_P2P_API =
 
 /**
  * BCV Selectors - tiered strategy candidates
+ * Expanded with data-attribute and class-based fallbacks
  */
 export const BCV_SELECTORS = {
-  USD: ['#dolar', '#USD'],
-  EUR: ['#euro', '#EUR'],
+  USD: [
+    '#dolar',
+    '#USD',
+    '[data-currency="USD"]',
+    '.currency-usd',
+    '.bcv-dolar',
+  ],
+  EUR: ['#euro', '#EUR', '[data-currency="EUR"]', '.currency-eur', '.bcv-euro'],
 };
 
 import { ScraperConfig } from './types';

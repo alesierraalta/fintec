@@ -17,10 +17,10 @@ export type BinanceRateData = {
 
 // * Static BCV fallback rates should be treated as a *last resort*.
 // * Keep them reasonable and centralized to avoid inconsistent hardcodes across modules.
-// * Last updated: 2026-04-23
+// * Last updated: 2026-05-28
 export const STATIC_BCV_FALLBACK_RATES = {
-  usd: 60.15,
-  eur: 64.2,
+  usd: 544,
+  eur: 633,
 } as const;
 
 // * Static Binance P2P fallback rates - centralized to avoid hardcoded values
