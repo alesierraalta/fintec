@@ -196,8 +196,8 @@ export class BCVHistoryService {
         // Update existing record
         await this.db.bcvHistory.update(existingRecord.id!, {
           date: today,
-          usd: Math.round(usd * 100) / 100, // Ensure 2 decimals
-          eur: Math.round(eur * 100) / 100, // Ensure 2 decimals
+          usd: usd,
+          eur: eur,
           timestamp,
           source,
         });
@@ -205,8 +205,8 @@ export class BCVHistoryService {
         // Create new record
         await this.db.bcvHistory.add({
           date: today,
-          usd: Math.round(usd * 100) / 100,
-          eur: Math.round(eur * 100) / 100,
+          usd: usd,
+          eur: eur,
           timestamp,
           source,
         });

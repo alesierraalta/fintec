@@ -11,6 +11,7 @@ import { BCV_CONFIG, BCV_URL, USER_AGENT, BCV_SELECTORS } from './config';
 import { parseLocaleNumber } from './parsers/number';
 import { STATIC_BCV_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 import { ScraperErrorCategory } from './types';
+import { logger } from '@/lib/utils/logger';
 
 interface BCVData {
   usd: number;
@@ -123,6 +124,16 @@ export function parseBCVRatesFromHtml(html: string): ParsedBCVRates {
   }
 
   if (!usd || !eur) {
+    // Log warning before falling back to regex (lower confidence strategy)
+    logger.warn(
+      '[BCVScraper] Selector and DOM strategies failed, falling back to regex',
+      {
+        usdFound: usd !== null,
+        eurFound: eur !== null,
+        confidence: confidence,
+      }
+    );
+
     const regexResult = extractRatesWithRegexFromHtml(html);
     usd = usd ?? regexResult.usd;
     eur = eur ?? regexResult.eur;
@@ -468,8 +479,8 @@ class BCVScraper extends BaseScraper<BCVData> {
     }
 
     return {
-      usd: Math.round(parsed.usd * 100) / 100,
-      eur: Math.round(parsed.eur * 100) / 100,
+      usd: parsed.usd,
+      eur: parsed.eur,
       lastUpdated: new Date().toISOString(),
       source: 'BCV',
     };
@@ -483,6 +494,15 @@ class BCVScraper extends BaseScraper<BCVData> {
     startTime: number
   ): ScraperResult<BCVData> {
     const executionTime = Date.now() - startTime;
+
+    // Log warning when falling back to static rates
+    logger.warn('[BCVScraper] Using static fallback rates due to error:', {
+      error: error.message,
+      code: error.code,
+      executionTimeMs: executionTime,
+      fallbackUsd: STATIC_BCV_FALLBACK_RATES.usd,
+      fallbackEur: STATIC_BCV_FALLBACK_RATES.eur,
+    });
 
     return {
       success: false,
