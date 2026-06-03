@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { Button, Input } from '@/components/ui';
+import { GoogleSignInButton } from '@/components/auth/google-sign-in-button';
 
 interface RegisterFormProps {
   onSuccess?: () => void;
@@ -411,6 +412,28 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
                 </span>
                 <div className="absolute inset-0 z-0 translate-x-[-100%] bg-gradient-to-r from-primary/0 via-white/10 to-primary/0 transition-transform duration-700 group-hover:translate-x-[100%]" />
               </Button>
+            </motion.div>
+
+            {/* Divider + Google OAuth */}
+            <motion.div
+              variants={{
+                hidden: { opacity: 0 },
+                visible: { opacity: 1 },
+              }}
+              className="flex items-center gap-3"
+            >
+              <div className="h-px flex-1 bg-white/10" />
+              <span className="text-xs font-medium text-foreground/40">o</span>
+              <div className="h-px flex-1 bg-white/10" />
+            </motion.div>
+
+            <motion.div
+              variants={{
+                hidden: { opacity: 0, y: 5 },
+                visible: { opacity: 1, y: 0 },
+              }}
+            >
+              <GoogleSignInButton disabled={loading} />
             </motion.div>
 
             <motion.div

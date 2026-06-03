@@ -7,6 +7,7 @@ const mockPush = jest.fn();
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockSignIn = jest.fn();
 const mockClearAuthError = jest.fn();
+const mockSignInWithGoogle = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -34,6 +35,25 @@ jest.mock('framer-motion', () => ({
 
 jest.mock('@/hooks/use-auth', () => ({
   useAuth: jest.fn(),
+}));
+
+// Mock GoogleSignInButton to avoid needing full supabase/oauth setup in this test
+jest.mock('@/components/auth/google-sign-in-button', () => ({
+  GoogleSignInButton: ({
+    disabled,
+    next: _next,
+  }: {
+    disabled?: boolean;
+    next?: string;
+  }) => (
+    <button
+      type="button"
+      aria-label="Continue with Google"
+      disabled={disabled}
+    >
+      Continue with Google
+    </button>
+  ),
 }));
 
 jest.mock('@/hooks', () => ({
@@ -74,12 +94,14 @@ describe('LoginForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSignIn.mockResolvedValue({ error: null });
+    mockSignInWithGoogle.mockResolvedValue({ error: null });
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
       updatePassword: jest.fn(),
+      signInWithGoogle: mockSignInWithGoogle,
       user: null,
       session: null,
       loading: false,
@@ -159,5 +181,62 @@ describe('LoginForm', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Ocurrió un error inesperado al iniciar sesión. Intentá de nuevo.'
     );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// T1.6 — Google button integration in LoginForm
+// ---------------------------------------------------------------------------
+
+describe('LoginForm — Google sign-in button (T1.6)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockSignIn.mockResolvedValue({ error: null });
+    mockSignInWithGoogle.mockResolvedValue({ error: null });
+    mockUseAuth.mockReturnValue({
+      signIn: mockSignIn,
+      signUp: jest.fn(),
+      signOut: jest.fn(),
+      resetPassword: jest.fn(),
+      updatePassword: jest.fn(),
+      signInWithGoogle: mockSignInWithGoogle,
+      user: null,
+      session: null,
+      loading: false,
+      authError: null,
+      clearAuthError: mockClearAuthError,
+    } as any);
+  });
+
+  it('renders the GoogleSignInButton with accessible text', () => {
+    render(<LoginForm />);
+    expect(
+      screen.getByRole('button', { name: /continue with google/i })
+    ).toBeInTheDocument();
+  });
+
+  it('renders a divider (or) between submit and Google button', () => {
+    render(<LoginForm />);
+    // A divider separator with text "or" (case-insensitive) should be visible
+    expect(screen.getByText(/^o$/i)).toBeInTheDocument();
+  });
+
+  it('Google button is enabled by default', () => {
+    render(<LoginForm />);
+    expect(
+      screen.getByRole('button', { name: /continue with google/i })
+    ).toBeEnabled();
+  });
+
+  it('existing submit tests still pass with Google button present', async () => {
+    const user = userEvent.setup();
+    render(<LoginForm />);
+
+    // Make sure the normal form submission still works
+    await user.type(screen.getByLabelText(/email/i), 'test@example.com');
+    await user.type(screen.getByLabelText(/contraseña/i), 'secret123');
+    await user.click(screen.getByRole('button', { name: /entrar/i }));
+
+    expect(mockSignIn).toHaveBeenCalledTimes(1);
   });
 });
