@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
-import { MotionConfig } from 'framer-motion';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
+import { NativeOAuthListener } from '@/components/providers/native-oauth-listener';
 
 interface RouteAwareProvidersProps {
   children: ReactNode;
@@ -29,26 +29,21 @@ function shouldBypassAppProviders(pathname: string | null): boolean {
 export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
   const pathname = usePathname();
 
-  const reducedMotionSetting =
-    process.env.NODE_ENV === 'development' ? 'never' : 'user';
-
   if (shouldBypassAppProviders(pathname)) {
     return (
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <MotionConfig reducedMotion={reducedMotionSetting}>
-          {children}
-        </MotionConfig>
+        {children}
       </ThemeProvider>
     );
   }
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <MotionConfig reducedMotion={reducedMotionSetting}>
-        <AuthProvider>
+      <AuthProvider>
+        <NativeOAuthListener>
           <RepositoryProvider>{children}</RepositoryProvider>
-        </AuthProvider>
-      </MotionConfig>
+        </NativeOAuthListener>
+      </AuthProvider>
     </ThemeProvider>
   );
 }
