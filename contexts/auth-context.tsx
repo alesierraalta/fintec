@@ -4,6 +4,7 @@ import React, {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   useMemo,
   useCallback,
@@ -16,6 +17,7 @@ import {
 } from '@supabase/supabase-js';
 import { supabase } from '@/repositories/supabase/client';
 import { clearAllOptimizedDataCaches } from '@/lib/cache/optimized-data-cache';
+import { getOAuthRedirectTo } from '@/lib/auth/oauth-providers';
 
 async function upsertUserProfileOnServer(payload: {
   name?: string;
@@ -79,6 +81,7 @@ interface AuthContextType {
   ) => Promise<{ error: AuthError | PostgrestError | null }>;
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>;
   resendVerification: (email: string) => Promise<{ error: AuthError | null }>;
+  signInWithGoogle: (next?: string) => Promise<{ error: AuthError | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -88,7 +91,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [baseCurrency, setBaseCurrency] = useState<string>('USD');
-  const [authError, setAuthError] = useState<string | null>(null); // Cambiar a true para cargar sesión inicial
+  const [authError, setAuthError] = useState<string | null>(null);
+  // Debounce ref: tracks which user.id has already had profile sync fired this
+  // session to prevent duplicate welcome notifications on double SIGNED_IN.
+  const syncedUserRef = useRef<string | null>(null);
 
   // Initialize Supabase auth session
   useEffect(() => {
@@ -119,14 +125,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id]);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    // T1.3 — REQ-05: use getUser() (server-verified) instead of getSession()
+    // for the initial auth check. getSession() trusts client storage which can
+    // be tampered with; getUser() revalidates the JWT against Supabase servers.
+    supabase.auth.getUser().then(async ({ data: { user: verifiedUser } }) => {
+      if (verifiedUser) {
+        // Only fetch session (for access_token) when we KNOW the user is valid.
+        const { data: { session: currentSession } } =
+          await supabase.auth.getSession();
+        setSession(currentSession);
+        setUser(verifiedUser);
+      } else {
+        setSession(null);
+        setUser(null);
+      }
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth state changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -134,9 +150,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       setLoading(false);
 
+      // T1.4 — REQ-06: sync profile on SIGNED_IN (not TOKEN_REFRESHED).
+      // Debounced by user.id to prevent double-fire within one mount.
+      if (event === 'SIGNED_IN' && session?.user) {
+        const currentUser = session.user;
+
+        if (syncedUserRef.current !== currentUser.id) {
+          syncedUserRef.current = currentUser.id;
+
+          // First-login detection: created_at within ~10 s of now means this
+          // is the very first sign-in → gate welcome notifications to this case.
+          const createdMs = currentUser.created_at
+            ? new Date(currentUser.created_at).getTime()
+            : 0;
+          const isFirstLogin = Date.now() - createdMs < 10_000;
+
+          // Fire-and-forget — do NOT await so UI is not blocked.
+          upsertUserProfileOnServer({
+            name:
+              currentUser.user_metadata?.full_name ||
+              currentUser.user_metadata?.name ||
+              currentUser.email?.split('@')[0] ||
+              'Usuario',
+            createWelcomeNotifications: isFirstLogin,
+          }).catch(() => {
+            // Profile sync failure is non-fatal — do not surface to user.
+          });
+        }
+      }
+
       // Handle sign out
       if (event === 'SIGNED_OUT') {
         clearAllOptimizedDataCaches();
+        syncedUserRef.current = null;
         setUser(null);
         setSession(null);
         setBaseCurrency('USD');
@@ -483,6 +529,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthError(null);
   }, []);
 
+  /**
+   * T1.3 — REQ-09: Google OAuth sign-in (web flow).
+   *
+   * Uses the same supabase instance as the rest of AuthContext so the PKCE
+   * verifier cookie written by the browser client is consistent. (CRITICAL:
+   * do NOT use a different supabase instance or the callback route's
+   * exchangeCodeForSession will fail because the verifier won't match.)
+   *
+   * @param next - Optional post-login destination (relative path).
+   */
+  const signInWithGoogle = useCallback(async (next?: string) => {
+    setAuthError(null);
+    const origin =
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : (process.env.NEXT_PUBLIC_APP_URL ?? '');
+    const redirectTo = getOAuthRedirectTo(origin, next);
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        scopes: 'email profile',
+      },
+    });
+
+    if (error) {
+      setAuthError('No pudimos iniciar con Google. Intentá de nuevo.');
+    }
+
+    return { error };
+  }, []);
+
   const value = useMemo(
     () => ({
       user,
@@ -497,6 +576,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       resetPassword,
       resendVerification,
+      signInWithGoogle,
     }),
     [
       user,
@@ -511,6 +591,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile,
       resetPassword,
       resendVerification,
+      signInWithGoogle,
     ]
   );
 
