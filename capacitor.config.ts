@@ -24,6 +24,12 @@ const config: CapacitorConfig = {
       style: 'dark',
       backgroundColor: '#000000',
     },
+    // App plugin required for appUrlOpen deep-link listener (REQ-12, REQ-13, REQ-14)
+    // The fintec:// custom URL scheme is registered in:
+    //   Android: android/app/src/main/AndroidManifest.xml (intent-filter)
+    //   iOS:     ios/App/App/Info.plist (CFBundleURLTypes → CFBundleURLSchemes)
+    // Supabase redirect URL to allow: fintec://auth/callback
+    App: {},
   },
   ios: {
     contentInset: 'automatic',

@@ -71,6 +71,8 @@
     "@ai-sdk/openai": "^3.0.4",
     "@ai-sdk/react": "^3.0.9",
     "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/browser": "^8.0.3",
     "@capacitor/core": "^8.0.0",
     "@capacitor/ios": "^8.0.0",
     "@capacitor/keyboard": "^8.0.0",
