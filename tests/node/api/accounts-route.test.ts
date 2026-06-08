@@ -70,7 +70,7 @@ describe('accounts route handlers', () => {
 
       expect(response.status).toBe(200);
       expect(accounts.findAll).toHaveBeenCalled();
-      expect(body.count).toBe(1);
+      expect(body.data.count).toBe(1);
     });
 
     it('filters by type, active, and currency branches', async () => {
@@ -117,7 +117,7 @@ describe('accounts route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('db offline');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -156,7 +156,8 @@ describe('accounts route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe(
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe(
         'Missing required fields: name, type, currencyCode'
       );
     });

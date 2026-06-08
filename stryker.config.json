@@ -14,7 +14,10 @@
   "testRunner_comment": "Using 'command' test runner to execute 'npm test' directly, as Jest runner is having issues.",
   "mutate": [
     "lib/money.ts",
-    "lib/services/currency-service.ts"
+    "lib/services/currency-service.ts",
+    "lib/services/transaction-service.ts",
+    "lib/services/account-service.ts",
+    "lib/services/category-service.ts"
   ],
   "coverageAnalysis": "perTest"
 }

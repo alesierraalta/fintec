@@ -338,4 +338,35 @@ export class SupabaseRecurringTransactionsRepository
       throw new Error('Unauthorized');
     }
   }
+
+  async executeDue(
+    recurringTransactionId: string,
+    amountBaseMinor: number,
+    exchangeRate: number,
+    executionDate: string,
+    nextExecutionDate: string,
+    userId: string
+  ): Promise<string> {
+    this.requireUserId(userId);
+    const { data, error } = await this.client.rpc(
+      'execute_due_recurring_transaction',
+      {
+        p_recurring_transaction_id: recurringTransactionId,
+        p_amount_base_minor: amountBaseMinor,
+        p_exchange_rate: exchangeRate,
+        p_execution_date: executionDate,
+        p_next_execution_date: nextExecutionDate,
+      }
+    );
+
+    if (error) {
+      throw new Error(
+        `Failed to execute recurring transaction: ${error.message}`
+      );
+    }
+
+    return data as string;
+  }
 }
+
+

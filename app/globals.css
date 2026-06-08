@@ -324,15 +324,17 @@ select:disabled {
   color: hsl(var(--foreground)) !important;
 }
 
-/* Reduced motion: keep the iOS-like feel, but respect accessibility */
+/* Reduced motion: respect OS preference. Lists the animation classes that exist in
+ * the app (see tailwind.config.ts keyframes + the animate-* utilities). Keep this
+ * in sync when adding new animations. */
 @media (prefers-reduced-motion: reduce) {
-  .transition-ios {
-    transition-duration: 0ms !important;
-  }
-
-  .hover-lift,
-  .micro-bounce {
-    transform: none !important;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 
   .animate-fade-in,
@@ -341,13 +343,26 @@ select:disabled {
   .animate-scale-in,
   .animate-wiggle,
   .animate-slide-in-right,
-  .animate-gradient,
   .animate-bounce-gentle,
   .animate-pulse-soft,
   .animate-pulse,
-  .animate-glow {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
+  .animate-glow,
+  .animate-gradient {
+    animation: none !important;
+  }
+
+  .transition-ios,
+  .transition-smooth,
+  .transition-colors,
+  .transition-shadow,
+  .transition-transform,
+  .transition-all {
+    transition: none !important;
+  }
+
+  .hover-lift,
+  .micro-bounce {
+    transform: none !important;
   }
 }
 

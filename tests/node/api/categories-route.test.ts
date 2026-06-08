@@ -129,7 +129,7 @@ describe('categories route handlers', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toBe('Default categories cannot have a user_id');
+    expect(body.error.message).toBe('Default categories cannot have a user_id');
   });
 
   it('updates categories by body id', async () => {
@@ -171,7 +171,7 @@ describe('categories route handlers', () => {
     const body = await response.json();
 
     expect(response.status).toBe(400);
-    expect(body.error).toContain('Cannot delete category');
+    expect(body.error.message).toContain('Cannot delete category');
     expect(categories.delete).not.toHaveBeenCalled();
   });
 

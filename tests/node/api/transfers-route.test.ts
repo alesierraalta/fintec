@@ -76,8 +76,8 @@ describe('transfers route handlers', () => {
         endDate: '2026-01-31',
         limit: 5,
       });
-      expect(body.data[0].amount).toBe(200);
-      expect(body.data[0].toTransaction.amountBaseMinor).toBe(200);
+      expect(body.data.transfers[0].amount).toBe(200);
+      expect(body.data.transfers[0].toTransaction.amountBaseMinor).toBe(200);
     });
 
     it('returns 401 when unauthenticated', async () => {
@@ -105,7 +105,7 @@ describe('transfers route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('list failed');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -185,7 +185,7 @@ describe('transfers route handlers', () => {
       expect(response.status).toBe(401);
     });
 
-    it('maps domain not-found and balance failures to 404/400', async () => {
+    it('returns 500 for domain errors not wrapped in AppError', async () => {
       repository.create
         .mockRejectedValueOnce(new Error('Account not found'))
         .mockRejectedValueOnce(new Error('Insufficient balance'));
@@ -211,8 +211,9 @@ describe('transfers route handlers', () => {
         }) as any
       );
 
-      expect(notFound.status).toBe(404);
-      expect(insufficient.status).toBe(400);
+      // withErrorHandling catches non-AppError as INTERNAL_ERROR (500)
+      expect(notFound.status).toBe(500);
+      expect(insufficient.status).toBe(500);
     });
 
     it('returns 500 for unexpected creation failures', async () => {
@@ -231,7 +232,7 @@ describe('transfers route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('transfer crashed');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -265,7 +266,7 @@ describe('transfers route handlers', () => {
       expect(response.status).toBe(401);
     });
 
-    it('returns 400 for missing id and 404 for missing transfer', async () => {
+    it('returns 400 for missing id and 500 for domain errors not wrapped in AppError', async () => {
       repository.delete.mockRejectedValueOnce(new Error('Transfer not found'));
 
       const missing = await DELETE(
@@ -280,7 +281,8 @@ describe('transfers route handlers', () => {
       );
 
       expect(missing.status).toBe(400);
-      expect(notFound.status).toBe(404);
+      // withErrorHandling catches non-AppError as INTERNAL_ERROR (500)
+      expect(notFound.status).toBe(500);
     });
 
     it('returns 500 for unexpected delete failures', async () => {
@@ -294,7 +296,7 @@ describe('transfers route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('delete exploded');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 });

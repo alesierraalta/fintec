@@ -1,58 +1,48 @@
-import { NextRequest } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+import { cache } from 'react';
+import type { NextRequest } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
+import { AuthError } from '@/lib/errors/auth-error';
 
 /**
- * Extracts and validates the authenticated user from a Next.js request
- * 
- * @param request - The Next.js request object
+ * Extracts and validates the authenticated user from the current request context.
+ * Uses the project-standard Supabase server client (lib/supabase/server.ts)
+ * which reads auth state from cookies/headers via next/headers automatically.
+ *
+ * The `_request` parameter is kept for call-site compatibility during migration.
+ * Auth context is obtained from next/headers (not from the request object directly).
+ *
+ * Wrapped in React cache() to memoize the result across multiple calls
+ * within the same request lifecycle (avoids redundant network round-trips).
+ *
+ * @param _request - Unused; kept for call-site compatibility
  * @returns The authenticated user ID
- * @throws Error if no token is provided or authentication fails
- * 
+ * @throws AuthError if no valid session exists (statusCode 401)
+ *
  * @example
  * ```typescript
- * export async function GET(request: NextRequest) {
- *   try {
- *     const userId = await getAuthenticatedUser(request);
- *     // Use userId for database queries
- *   } catch (error) {
- *     return NextResponse.json(
- *       { error: 'Unauthorized' },
- *       { status: 401 }
- *     );
- *   }
- * }
+ * // Callers should use withErrorHandling — AuthError is caught and mapped to 401 automatically.
+ * export const GET = withErrorHandling(async (request: NextRequest) => {
+ *   const userId = await getAuthenticatedUser(request);
+ *   return NextResponse.json(successResponse({ userId }));
+ * });
  * ```
  */
-export async function getAuthenticatedUser(request: NextRequest): Promise<string> {
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace('Bearer ', '');
+const _getAuthenticatedUserCached = cache(async (): Promise<string> => {
+  const supabase = await createClient();
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
 
-    if (!token) {
-        throw new Error('No authorization token provided');
-    }
+  if (authError || !user) {
+    throw new AuthError('Authentication failed');
+  }
 
-    // Create a Supabase client with the token
-    const supabaseWithAuth = createClient(
-        supabaseUrl,
-        supabaseAnonKey,
-        {
-            global: {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
-        }
-    );
+  return user.id;
+});
 
-    const { data: { user }, error: authError } = await supabaseWithAuth.auth.getUser();
-
-    if (authError || !user) {
-        throw new Error('Authentication failed');
-    }
-
-    return user.id;
+export async function getAuthenticatedUser(
+  _request?: NextRequest
+): Promise<string> {
+  return _getAuthenticatedUserCached();
 }

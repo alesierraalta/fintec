@@ -1,6 +1,5 @@
 'use client';
 
-import { MotionConfig } from 'framer-motion';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 
@@ -21,14 +20,9 @@ interface LocalProvidersForRootDashboardProps {
 export function LocalProvidersForRootDashboard({
   children,
 }: LocalProvidersForRootDashboardProps) {
-  const reducedMotionSetting =
-    process.env.NODE_ENV === 'development' ? 'never' : 'user';
-
   return (
-    <MotionConfig reducedMotion={reducedMotionSetting}>
-      <AuthProvider>
-        <RepositoryProvider>{children}</RepositoryProvider>
-      </AuthProvider>
-    </MotionConfig>
+    <AuthProvider>
+      <RepositoryProvider>{children}</RepositoryProvider>
+    </AuthProvider>
   );
 }

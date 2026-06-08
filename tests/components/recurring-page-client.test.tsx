@@ -30,6 +30,13 @@ jest.mock('@/hooks/use-bcv-rates', () => ({
   useBCVRates: jest.fn(),
 }));
 
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: mockPush,
+  }),
+}));
+
 jest.mock('@/hooks/use-binance-rates', () => ({
   useBinanceRates: jest.fn(),
 }));
@@ -227,5 +234,39 @@ describe('RecurringPage edit/delete flows', () => {
     });
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('redirects to /transactions/add?recurring=true when clicking Nueva Recurrente button', async () => {
+    mockFetchJsonOnce(createRecurringGetResponse());
+    render(<RecurringPage />);
+    
+    expect(await screen.findByText('Arriendo')).toBeInTheDocument();
+    
+    const newBtn = screen.getByRole('button', { name: /Nueva Recurrente/i });
+    fireEvent.click(newBtn);
+    
+    expect(mockPush).toHaveBeenCalledWith('/transactions/add?recurring=true');
+  });
+
+  it('redirects to /transactions/add?recurring=true when clicking Crear Primera Recurrente button on empty state', async () => {
+    mockFetchJsonOnce({
+      success: true,
+      data: {
+        transactions: [],
+        summary: {
+          totalActive: 0,
+          totalInactive: 0,
+          nextExecutions: { today: 0, thisWeek: 0, thisMonth: 0 },
+          byFrequency: { daily: 0, weekly: 0, monthly: 0, yearly: 0 },
+        },
+      },
+    });
+    
+    render(<RecurringPage />);
+    
+    const createFirstBtn = await screen.findByRole('button', { name: /Crear Primera Recurrente/i });
+    fireEvent.click(createFirstBtn);
+    
+    expect(mockPush).toHaveBeenCalledWith('/transactions/add?recurring=true');
   });
 });

@@ -2,217 +2,123 @@ import { NextRequest, NextResponse } from 'next/server';
 import { CreateCategoryDTO } from '@/repositories/contracts';
 import { CategoryKind } from '@/types';
 import { getServerRepository } from '@/lib/backend/repository';
+import { withErrorHandling } from '@/lib/api-middleware';
+import { successResponse } from '@/lib/api-response';
+import { ValidationError } from '@/lib/errors/validation-error';
+import { AuthError } from '@/lib/errors/auth-error';
 
 // GET /api/categories - Fetch all categories
-export async function GET(request: NextRequest) {
-  try {
-    const { repository } = await getServerRepository();
-    const { searchParams } = new URL(request.url);
-    const kind = searchParams.get('kind') as CategoryKind | null;
-    const parentId = searchParams.get('parentId');
-    const active = searchParams.get('active');
+export const GET = withErrorHandling(async (request: NextRequest) => {
+  const { repository } = await getServerRepository();
+  const { searchParams } = new URL(request.url);
+  const kind = searchParams.get('kind') as CategoryKind | null;
+  const parentId = searchParams.get('parentId');
+  const active = searchParams.get('active');
 
-    let categories;
+  let categories;
 
-    if (kind) {
-      categories = await repository.categories.findByKind(kind);
-    } else if (parentId) {
-      categories = await repository.categories.findByParentId(parentId);
-    } else if (active === 'true') {
-      categories = await repository.categories.findActive();
-    } else {
-      categories = await repository.categories.findAll();
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: categories,
-      count: categories.length,
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch categories',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+  if (kind) {
+    categories = await repository.categories.findByKind(kind);
+  } else if (parentId) {
+    categories = await repository.categories.findByParentId(parentId);
+  } else if (active === 'true') {
+    categories = await repository.categories.findActive();
+  } else {
+    categories = await repository.categories.findAll();
   }
-}
+
+  return NextResponse.json(
+    successResponse({ categories, count: categories.length })
+  );
+});
 
 // POST /api/categories - Create new category
-export async function POST(request: NextRequest) {
-  try {
-    const { repository, user } = await getServerRepository();
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const { repository, user } = await getServerRepository();
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    const body = await request.json();
-
-    // Validate required fields
-    if (!body.name || !body.kind) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required fields: name, kind',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate privacy rules: default categories cannot have user_id
-    if (body.isDefault && body.userId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Default categories cannot have a user_id',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate privacy rules: user categories cannot be default
-    if (body.userId && body.isDefault) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'User categories cannot be marked as default',
-        },
-        { status: 400 }
-      );
-    }
-
-    const categoryData: CreateCategoryDTO = {
-      name: body.name,
-      kind: body.kind as CategoryKind,
-      color: body.color || '#6b7280',
-      icon: body.icon || 'Tag',
-      parentId: body.parentId,
-      active: body.active !== false, // Default to true
-      isDefault: body.isDefault || false,
-    };
-
-    const category = await repository.categories.create(categoryData);
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: category,
-        message: 'Category created successfully',
-      },
-      { status: 201 }
-    );
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to create category',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+  if (!user) {
+    throw new AuthError('Unauthorized');
   }
-}
+
+  const body = await request.json();
+
+  // Validate required fields
+  if (!body.name || !body.kind) {
+    throw new ValidationError('Missing required fields: name, kind');
+  }
+
+  // Validate privacy rules: default categories cannot have user_id
+  if (body.isDefault && body.userId) {
+    throw new ValidationError('Default categories cannot have a user_id');
+  }
+
+  // Validate privacy rules: user categories cannot be default
+  if (body.userId && body.isDefault) {
+    throw new ValidationError('User categories cannot be marked as default');
+  }
+
+  const categoryData: CreateCategoryDTO = {
+    name: body.name,
+    kind: body.kind as CategoryKind,
+    color: body.color || '#6b7280',
+    icon: body.icon || 'Tag',
+    parentId: body.parentId,
+    active: body.active !== false,
+    isDefault: body.isDefault || false,
+  };
+
+  const category = await repository.categories.create(categoryData);
+
+  return NextResponse.json(
+    successResponse(category),
+    { status: 201 }
+  );
+});
 
 // PUT /api/categories - Update category
-export async function PUT(request: NextRequest) {
-  try {
-    const { repository, user } = await getServerRepository();
+export const PUT = withErrorHandling(async (request: NextRequest) => {
+  const { repository, user } = await getServerRepository();
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    const body = await request.json();
-
-    if (!body.id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required field: id',
-        },
-        { status: 400 }
-      );
-    }
-
-    const category = await repository.categories.update(body.id, body);
-
-    return NextResponse.json({
-      success: true,
-      data: category,
-      message: 'Category updated successfully',
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update category',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
-    );
+  if (!user) {
+    throw new AuthError('Unauthorized');
   }
-}
+
+  const body = await request.json();
+
+  if (!body.id) {
+    throw new ValidationError('Missing required field: id');
+  }
+
+  const category = await repository.categories.update(body.id, body);
+
+  return NextResponse.json(successResponse(category));
+});
 
 // DELETE /api/categories - Delete category
-export async function DELETE(request: NextRequest) {
-  try {
-    const { repository, user } = await getServerRepository();
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  const { repository, user } = await getServerRepository();
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+  if (!user) {
+    throw new AuthError('Unauthorized');
+  }
 
-    if (!id) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Missing required parameter: id',
-        },
-        { status: 400 }
-      );
-    }
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get('id');
 
-    // Check if category can be deleted
-    const canDelete = await repository.categories.canDelete(id);
+  if (!id) {
+    throw new ValidationError('Missing required parameter: id');
+  }
 
-    if (!canDelete) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Cannot delete category: it has associated transactions or subcategories',
-        },
-        { status: 400 }
-      );
-    }
+  // Check if category can be deleted
+  const canDelete = await repository.categories.canDelete(id);
 
-    await repository.categories.delete(id);
-
-    return NextResponse.json({
-      success: true,
-      message: 'Category deleted successfully',
-    });
-  } catch (error) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete category',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
-      { status: 500 }
+  if (!canDelete) {
+    throw new ValidationError(
+      'Cannot delete category: it has associated transactions or subcategories'
     );
   }
-}
+
+  await repository.categories.delete(id);
+
+  return NextResponse.json(successResponse({ message: 'Category deleted successfully' }));
+});

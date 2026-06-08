@@ -7,6 +7,7 @@
       "directTools": true
     },
     "context7": {
+      "type": "http",
       "url": "https://mcp.context7.com/mcp",
       "directTools": true
     },

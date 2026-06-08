@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import {
   Card,
@@ -37,6 +38,7 @@ import { RecurringEditDialog } from '@/components/recurring/recurring-edit-dialo
 import { RecurringDeleteDialog } from '@/components/recurring/recurring-delete-dialog';
 
 export default function RecurringPage() {
+  const router = useRouter();
   const [recurringTransactions, setRecurringTransactions] = useState<
     RecurringTransaction[]
   >([]);
@@ -350,7 +352,10 @@ export default function RecurringPage() {
               Gestiona tus ingresos y gastos que se repiten automáticamente
             </p>
           </div>
-          <Button className="flex min-h-[44px] items-center gap-2 self-start">
+          <Button
+            className="flex min-h-[44px] items-center gap-2 self-start"
+            onClick={() => router.push('/transactions/add?recurring=true')}
+          >
             <Plus className="h-4 w-4" />
             Nueva Recurrente
           </Button>
@@ -535,7 +540,10 @@ export default function RecurringPage() {
                   Crea tu primera transacción recurrente para automatizar tus
                   finanzas
                 </p>
-                <Button className="flex min-h-[44px] items-center gap-2">
+                <Button
+                  className="flex min-h-[44px] items-center gap-2"
+                  onClick={() => router.push('/transactions/add?recurring=true')}
+                >
                   <Plus className="h-4 w-4" />
                   Crear Primera Recurrente
                 </Button>

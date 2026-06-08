@@ -1,7 +1,7 @@
 # Gentleman Guardian Angel config for FinTec
 # https://github.com/Gentleman-Programming/gentleman-guardian-angel
 
-PROVIDER="gemini:google/gemini-3-flash-preview"
+PROVIDER="opencode:google/gemini-3-flash-preview"
 FILE_PATTERNS="*.ts,*.tsx,*.js,*.jsx"
 EXCLUDE_PATTERNS="*.test.ts,*.spec.ts,*.test.tsx,*.d.ts,*.mjs,*.cjs"
 RULES_FILE="AGENTS.md"

@@ -73,8 +73,8 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(200);
       expect(transactions.findAll).toHaveBeenCalledWith(2);
-      expect(body.count).toBe(2);
-      expect(body.totalCount).toBe(2);
+      expect(body.data.count).toBe(2);
+      expect(body.data.totalCount).toBe(2);
     });
 
     it('forwards limit as pagination when filtering by account', async () => {
@@ -95,7 +95,7 @@ describe('transactions route handlers', () => {
         page: 1,
         limit: 5,
       });
-      expect(body.totalCount).toBe(8);
+      expect(body.data.totalCount).toBe(8);
     });
 
     it('queries category filter when categoryId is provided', async () => {
@@ -192,7 +192,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('limit must be a positive integer');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('limit must be a positive integer');
     });
 
     it('returns 500 when repository lookup fails', async () => {
@@ -204,8 +205,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.error).toBe('Failed to fetch transactions');
-      expect(body.details).toBe('db offline');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
+      expect(body.error.message).toBe('An unexpected error occurred');
     });
   });
 
@@ -335,7 +336,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe(
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe(
         'Missing required fields: accountId, amount, type, categoryId'
       );
     });
@@ -355,7 +357,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('amount must be an integer in minor units');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('amount must be an integer in minor units');
     });
 
     it('rejects debt payload without debtDirection', async () => {
@@ -375,7 +378,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('debtDirection is required when isDebt=true');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('debtDirection is required when isDebt=true');
       expect(transactions.create).not.toHaveBeenCalled();
     });
 
@@ -397,7 +401,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('settledAt is required when debtStatus=SETTLED');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('settledAt is required when debtStatus=SETTLED');
     });
 
     it('returns 403 when subscription limit is reached', async () => {
@@ -421,8 +426,11 @@ describe('transactions route handlers', () => {
       );
       const body = await response.json();
 
-      expect(response.status).toBe(403);
-      expect(body.limitReached).toBe(true);
+      expect(response.status).toBe(400);
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.details).toEqual(
+        expect.objectContaining({ limitReached: true })
+      );
       expect(transactions.create).not.toHaveBeenCalled();
     });
 
@@ -443,7 +451,7 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('write failed');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -495,7 +503,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('Transaction ID is required');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('Transaction ID is required');
     });
 
     it('returns 500 when update fails', async () => {
@@ -510,7 +519,7 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('update failed');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -523,7 +532,7 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(200);
       expect(transactions.delete).toHaveBeenCalledWith('tx-1');
-      expect(body.message).toBe('Transaction deleted successfully');
+      expect(body.data.message).toBe('Transaction deleted successfully');
     });
 
     it('returns 401 when delete is unauthenticated', async () => {
@@ -550,7 +559,8 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe('Transaction ID is required');
+      expect(body.error.code).toBe('VALIDATION_ERROR');
+      expect(body.error.message).toBe('Transaction ID is required');
     });
 
     it('returns 500 when delete fails', async () => {
@@ -562,7 +572,7 @@ describe('transactions route handlers', () => {
       const body = await response.json();
 
       expect(response.status).toBe(500);
-      expect(body.details).toBe('delete failed');
+      expect(body.error.code).toBe('INTERNAL_ERROR');
     });
   });
 
@@ -597,9 +607,9 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(200);
       expect(body).toHaveProperty('data');
-      expect(body).toHaveProperty('count');
-      expect(body).toHaveProperty('totalCount');
-      expect(body.data).toEqual([
+      expect(body).toHaveProperty('error');
+      expect(body).toHaveProperty('meta');
+      expect(body.data.transactions).toEqual([
         { id: 'tx-1', amountMinor: 1000, currencyCode: 'USD' },
       ]);
     });

@@ -37,6 +37,7 @@ jest.mock('@/hooks/use-auth', () => ({
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: pushMock }),
+  useSearchParams: () => ({ get: jest.fn().mockReturnValue(null) }),
 }));
 
 jest.mock('@/lib/rates', () => ({

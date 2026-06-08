@@ -64,13 +64,11 @@ export function Modal({
     lastActiveElementRef.current =
       active instanceof HTMLElement ? active : null;
 
-    // Move focus into the dialog for keyboard users.
     requestAnimationFrame(() => {
       modalRef.current?.focus();
     });
 
     return () => {
-      // Restore focus to the previously focused element (best effort).
       lastActiveElementRef.current?.focus?.();
       lastActiveElementRef.current = null;
     };
@@ -110,7 +108,6 @@ export function Modal({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             ref={modalRef}
             className={cn(
-              // * Modal container with flex layout for proper content scrolling
               'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
               sizeClasses[size],
               className
@@ -166,8 +163,7 @@ export function Modal({
               </button>
             )}
 
-            {/* Content - scrollable area with flex-1 to fill remaining space */}
-            {/* * min-h-0 is essential for overflow to work in flex containers */}
+            {/* Content - scrollable area */}
             <div
               className={cn(
                 'min-h-0 flex-1 overflow-y-auto overscroll-contain',

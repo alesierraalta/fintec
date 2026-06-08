@@ -97,4 +97,17 @@ export class LocalRecurringTransactionsRepository
     // Stub implementation - do nothing
     return;
   }
+
+  async executeDue(
+    recurringTransactionId: string,
+    amountBaseMinor: number,
+    exchangeRate: number,
+    executionDate: string,
+    nextExecutionDate: string,
+    userId: string
+  ): Promise<string> {
+    return 'mock-transaction-id';
+  }
 }
+
+

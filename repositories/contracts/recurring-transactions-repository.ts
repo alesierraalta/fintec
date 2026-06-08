@@ -77,4 +77,17 @@ export interface RecurringTransactionsRepository {
     nextDate: string,
     userId: string
   ): Promise<void>;
+
+  /**
+   * Executes a due recurring transaction atomically via database RPC
+   */
+  executeDue(
+    recurringTransactionId: string,
+    amountBaseMinor: number,
+    exchangeRate: number,
+    executionDate: string,
+    nextExecutionDate: string,
+    userId: string
+  ): Promise<string>;
 }
+

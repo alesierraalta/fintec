@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   DollarSign,
@@ -90,6 +90,7 @@ const transactionTypes = [
 
 export function DesktopAddTransaction() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const repository = useRepository();
   const { user } = useAuth();
   const { addNotification } = useNotifications();
@@ -202,11 +203,13 @@ export function DesktopAddTransaction() {
     }
   };
 
-  // Initialize date on client side
+  // Initialize date and recurring parameters on client side
   useEffect(() => {
+    const isRecurring = searchParams?.get('recurring') === 'true';
     setFormData((prev) => ({
       ...prev,
       date: new Date().toISOString().split('T')[0],
+      isRecurring: isRecurring || prev.isRecurring,
     }));
   }, []);
 

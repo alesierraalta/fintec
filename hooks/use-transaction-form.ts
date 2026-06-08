@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -119,6 +119,7 @@ export interface UseTransactionFormReturn {
  */
 export function useTransactionForm(): UseTransactionFormReturn {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const repository = useRepository();
   const { user } = useAuth();
 
@@ -180,11 +181,13 @@ export function useTransactionForm(): UseTransactionFormReturn {
     };
   }, [repository, user]);
 
-  // * Initialize date on client side
+  // * Initialize date and recurring status on client side
   useEffect(() => {
+    const isRecurring = searchParams?.get('recurring') === 'true';
     setFormData((prev) => ({
       ...prev,
       date: new Date().toISOString().split('T')[0],
+      isRecurring: isRecurring || prev.isRecurring,
     }));
   }, []);
 

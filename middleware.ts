@@ -1,6 +1,13 @@
 import { type NextRequest } from 'next/server';
 import { updateSession } from '@/lib/supabase/middleware';
 
+/**
+ * Edge middleware — runs on every matched request before the route handler.
+ *
+ * Error handling lives at the ROUTE level via the `withErrorHandling` wrapper
+ * in each API route (see lib/api-middleware.ts). This middleware only handles
+ * session/auth plumbing; API errors are caught and formatted by the route layer.
+ */
 export async function middleware(request: NextRequest) {
   return await updateSession(request);
 }

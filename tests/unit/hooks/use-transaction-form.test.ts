@@ -5,8 +5,10 @@ import {
 } from '../../../hooks/use-transaction-form';
 import { DebtStatus, TransactionType } from '@/types';
 
+const mockGet = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({ push: jest.fn() }),
+  useSearchParams: () => ({ get: mockGet }),
 }));
 
 const mockRepository = {
@@ -239,5 +241,19 @@ describe('useTransactionForm', () => {
         description: 'Test',
       })
     );
+  });
+
+  it('pre-selects isRecurring as true when recurring query param is true', async () => {
+    mockGet.mockReturnValueOnce('true');
+    const { result } = renderHook(() => useTransactionForm());
+    await waitFor(() => expect(result.current.loadingAccounts).toBe(false));
+    expect(result.current.formData.isRecurring).toBe(true);
+  });
+
+  it('keeps isRecurring as false when recurring query param is missing or not true', async () => {
+    mockGet.mockReturnValueOnce(null);
+    const { result } = renderHook(() => useTransactionForm());
+    await waitFor(() => expect(result.current.loadingAccounts).toBe(false));
+    expect(result.current.formData.isRecurring).toBe(false);
   });
 });

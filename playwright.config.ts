@@ -30,7 +30,8 @@ const lane =
     ? 'auth-required'
     : DEFAULT_LANE;
 const isAuthRequiredLane = lane === 'auth-required';
-const reuseExistingServer = false;
+const reuseExistingServer = process.env.REUSE_EXISTING_SERVER === 'true';
+const port = process.env.PORT || 3001;
 const reporter: ReporterDescription[] = process.env.CI
   ? [['line'], ['html', { open: 'never' }]]
   : [['list'], ['html', { open: 'never' }]];
@@ -66,7 +67,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL: `http://localhost:${port}`,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -140,8 +141,8 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
+    command: `npm run dev -- -p ${port}`,
+    url: `http://localhost:${port}`,
     timeout: 120_000,
     reuseExistingServer,
     gracefulShutdown: {

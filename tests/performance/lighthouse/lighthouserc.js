@@ -11,12 +11,12 @@ module.exports = {
     // ─── Collection ──────────────────────────────────────────
     collect: {
       url: [
-        'http://localhost:3000/',
-        'http://localhost:3000/dashboard',
-        'http://localhost:3000/transactions',
-        'http://localhost:3000/accounts',
+        `http://localhost:${process.env.PORT || 3000}/`,
+        `http://localhost:${process.env.PORT || 3000}/dashboard`,
+        `http://localhost:${process.env.PORT || 3000}/transactions`,
+        `http://localhost:${process.env.PORT || 3000}/accounts`,
       ],
-      startServerCommand: 'npm run start',
+      startServerCommand: `npm run start -- -p ${process.env.PORT || 3000}`,
       startServerReadyPattern: 'ready on',
       startServerReadyTimeout: 60000,
       numberOfRuns: 3, // 3 runs per URL for statistical stability
@@ -52,7 +52,7 @@ module.exports = {
         // Resource budget assertions
         'resource-summary:script:size': [
           'error',
-          { maxNumericValue: 153600 }, // 150KB
+          { maxNumericValue: 102400 }, // 100KB
         ],
         'resource-summary:stylesheet:size': [
           'error',

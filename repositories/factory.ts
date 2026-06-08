@@ -334,3 +334,54 @@ export function createServerUsersProfileRepository(
     }
   }
 }
+
+// ─── Context-Scoped Factory Functions ─────────────────────────────────────────
+
+import type { FinanceContext, CreateFinanceContextInput } from '@/repositories/contexts/finance';
+import type { RatesContext, CreateRatesContextInput } from '@/repositories/contexts/rates';
+import type { UsersContext, CreateUsersContextInput } from '@/repositories/contexts/users';
+import type { OperationsContext, CreateOperationsContextInput } from '@/repositories/contexts/operations';
+import { createFinanceContext } from '@/repositories/contexts/finance';
+import { createRatesContext } from '@/repositories/contexts/rates';
+import { createUsersContext } from '@/repositories/contexts/users';
+import { createOperationsContext } from '@/repositories/contexts/operations';
+
+/**
+ * Creates a Finance bounded context from repository instances.
+ * Groups: transactions, accounts, budgets, goals.
+ */
+export function createFinanceContextFromFactory(
+  input: CreateFinanceContextInput
+): FinanceContext {
+  return createFinanceContext(input);
+}
+
+/**
+ * Creates a Rates bounded context from repository instances.
+ * Groups: exchangeRates, ratesHistory, scrapeAttempts.
+ */
+export function createRatesContextFromFactory(
+  input: CreateRatesContextInput
+): RatesContext {
+  return createRatesContext(input);
+}
+
+/**
+ * Creates a Users bounded context from repository instances.
+ * Groups: usersProfile, subscriptions, waitlist.
+ */
+export function createUsersContextFromFactory(
+  input: CreateUsersContextInput
+): UsersContext {
+  return createUsersContext(input);
+}
+
+/**
+ * Creates an Operations bounded context from repository instances.
+ * Groups: orders, paymentOrders, recurringTransactions, transfers, notifications, approvalRequests.
+ */
+export function createOperationsContextFromFactory(
+  input: CreateOperationsContextInput
+): OperationsContext {
+  return createOperationsContext(input);
+}
