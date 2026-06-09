@@ -24,15 +24,15 @@ export const STATIC_BCV_FALLBACK_RATES = {
 } as const;
 
 // * Static Binance P2P fallback rates - centralized to avoid hardcoded values
-// * Last updated: 2026-04-23
+// * Last updated: 2026-06-09
 // * These represent typical VES/USDT P2P market rates
 export const STATIC_BINANCE_FALLBACK_RATES = {
-  usd_ves: 61.5,
-  usdt_ves: 61.5,
-  busd_ves: 61.5,
-  sell_rate: 62.0,
-  buy_rate: 61.0,
-  spread: 1.0,
+  usd_ves: 770.0,
+  usdt_ves: 770.0,
+  busd_ves: 770.0,
+  sell_rate: 771.0,
+  buy_rate: 769.0,
+  spread: 2.0,
 } as const;
 
 export function buildBCVFallbackData(

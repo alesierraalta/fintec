@@ -10,8 +10,8 @@ describe('Binance Scraper Fallback Logic', () => {
     jest.clearAllMocks();
   });
 
-  it('should fallback to USDT rates when BUSD returns no data', async () => {
-    // Mock fetch implementation to return different data based on asset
+  it('should call fetch exactly twice (only USDT SELL and BUY) and map BUSD 1:1 to USDT', async () => {
+    // Mock fetch implementation to return valid USDT data
     (global.fetch as jest.Mock).mockImplementation(async (url, options) => {
       if (!options || !options.body) {
         return { ok: false };
@@ -19,71 +19,60 @@ describe('Binance Scraper Fallback Logic', () => {
 
       const body = JSON.parse(options.body as string);
       const asset = body.asset;
+      const tradeType = body.tradeType;
 
-      // valid response structure
-      const validResponse = {
-        data: [
-          { adv: { price: '100', advNo: '1' } },
-          { adv: { price: '102', advNo: '2' } },
-        ]
-      };
-
-      // empty response for BUSD
-      const emptyResponse = { data: [] };
-
-      if (asset === 'USDT') {
-        return {
-          ok: true,
-          json: async () => validResponse
-        };
-      } else if (asset === 'BUSD') {
-        return {
-          ok: true,
-          json: async () => emptyResponse
-        };
+      if (asset !== 'USDT') {
+        throw new Error(`Unexpected asset fetch: ${asset}`);
       }
 
-      return { ok: false };
+      const price = tradeType === 'SELL' ? '772.0' : '768.0';
+
+      return {
+        ok: true,
+        json: async () => ({
+          data: [
+            { adv: { price, advNo: '1' } }
+          ]
+        })
+      };
     });
 
     const result = await scrapeBinanceRates();
 
     expect(result.success).toBe(true);
-    expect(result.data.usdt_ves).toBe(101); // (100 + 102) / 2
-    expect(result.data.busd_ves).toBe(101); // Should equal USDT avg because BUSD failed
-    
-    // Verify source indicates normal operation (not fallback source, but internal fallback logic)
-    // The source string "Binance P2P" stays the same in _transformData, 
-    // but the value is what we care about.
+    // Verify fetch was called exactly twice (once for SELL, once for BUY)
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+
+    // Verify assets requested in calls
+    const calls = (global.fetch as jest.Mock).mock.calls;
+    const body1 = JSON.parse(calls[0][1].body);
+    const body2 = JSON.parse(calls[1][1].body);
+
+    expect(body1.asset).toBe('USDT');
+    expect(body2.asset).toBe('USDT');
+
+    // Verify rates
+    expect(result.data.usdt_ves).toBe(770); // (772 + 768) / 2
+    expect(result.data.busd_ves).toBe(770); // Should equal USDT avg 1:1
+    expect(result.data.sell_rate).toBe(772);
+    expect(result.data.buy_rate).toBe(768);
   });
 
-  it('should use BUSD rates when available', async () => {
-    (global.fetch as jest.Mock).mockImplementation(async (url, options) => {
-      const body = JSON.parse(options.body as string);
-      const asset = body.asset;
-
-      if (asset === 'USDT') {
-        return {
-          ok: true,
-          json: async () => ({
-            data: [{ adv: { price: '100', advNo: '1' } }]
-          })
-        };
-      } else if (asset === 'BUSD') {
-        return {
-          ok: true,
-          json: async () => ({
-            data: [{ adv: { price: '200', advNo: '2' } }]
-          })
-        };
-      }
-      return { ok: false };
+  it('should handle timeout/network errors by returning static fallback rates in 770 range', async () => {
+    // Mock fetch to simulate error or timeout
+    (global.fetch as jest.Mock).mockImplementation(async () => {
+      throw new Error('Timeout or network failure');
     });
 
     const result = await scrapeBinanceRates();
 
-    expect(result.success).toBe(true);
-    expect(result.data.usdt_ves).toBe(100);
-    expect(result.data.busd_ves).toBe(200); // Should be distinct
+    expect(result.success).toBe(false);
+    expect(result.data).toBeDefined();
+    // Verify it uses updated fallback rates in ~770 range
+    expect(result.data.usd_ves).toBe(770.0);
+    expect(result.data.usdt_ves).toBe(770.0);
+    expect(result.data.busd_ves).toBe(770.0);
+    expect(result.data.sell_rate).toBe(771.0);
+    expect(result.data.buy_rate).toBe(769.0);
   });
 });

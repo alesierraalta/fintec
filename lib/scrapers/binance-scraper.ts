@@ -58,7 +58,7 @@ interface BinanceApiResponse {
 // Constants
 const BINANCE_P2P_API =
   'https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search';
-const MAX_PAGES = 2;
+const MAX_PAGES = 1;
 const ROWS_PER_PAGE = 20;
 const PRICE_MIN = 10; // More permissive range to avoid filtering valid prices
 const PRICE_MAX = 1000; // Adjusted for current market conditions
@@ -80,17 +80,16 @@ class BinanceScraper extends BaseScraper<BinanceData> {
     usdt: { sell: PriceData[]; buy: PriceData[] };
     busd: { sell: PriceData[]; buy: PriceData[] };
   }> {
-    // Fetch SELL and BUY offers concurrently for both assets
-    const [usdtSell, usdtBuy, busdSell, busdBuy] = await Promise.all([
+    // Fetch SELL and BUY offers concurrently only for USDT.
+    // BUSD P2P endpoints are deprecated, mapped 1:1 to USDT.
+    const [usdtSell, usdtBuy] = await Promise.all([
       this.fetchOffers('SELL', 'USDT'),
       this.fetchOffers('BUY', 'USDT'),
-      this.fetchOffers('SELL', 'BUSD'),
-      this.fetchOffers('BUY', 'BUSD'),
     ]);
 
     return {
       usdt: { sell: usdtSell, buy: usdtBuy },
-      busd: { sell: busdSell, buy: busdBuy },
+      busd: { sell: [], buy: [] },
     };
   }
 
@@ -163,21 +162,8 @@ class BinanceScraper extends BaseScraper<BinanceData> {
           : usdtBuyStats.avg;
 
     // --- Process BUSD ---
-    const busdFilteredSell = this.filterOutliers(parsed.busd.sell);
-    const busdFilteredBuy = this.filterOutliers(parsed.busd.buy);
-    const busdSellStats = this.calculateStats(busdFilteredSell);
-    const busdBuyStats = this.calculateStats(busdFilteredBuy);
-    let busdGeneralAvg =
-      busdFilteredSell.length > 0 && busdFilteredBuy.length > 0
-        ? (busdSellStats.avg + busdBuyStats.avg) / 2
-        : busdFilteredSell.length > 0
-          ? busdSellStats.avg
-          : busdBuyStats.avg;
-
-    // Fallback: If BUSD has no data (avg is 0), use USDT avg
-    if (busdGeneralAvg === 0) {
-      busdGeneralAvg = usdtGeneralAvg;
-    }
+    // BUSD P2P endpoints are deprecated. Map USDT avg and stats 1:1 to BUSD.
+    const busdGeneralAvg = usdtGeneralAvg;
 
     // Overall min/max (using USDT as reference)
     const allPrices = [...usdtFilteredSell, ...usdtFilteredBuy];
@@ -317,7 +303,13 @@ class BinanceScraper extends BaseScraper<BinanceData> {
                 ScraperErrorCategory.RATE_LIMIT
               );
             }
-            continue;
+            throw new ScraperError(
+              `API returned status ${response.status}`,
+              'CONNECTIVITY',
+              response.status,
+              true,
+              ScraperErrorCategory.CONNECTIVITY
+            );
           }
 
           const data = (await response.json()) as BinanceApiResponse;
@@ -349,13 +341,27 @@ class BinanceScraper extends BaseScraper<BinanceData> {
               setTimeout(resolve, this.config.rateLimitDelay! + jitter)
             );
           }
-        } catch (fetchError) {
+        } catch (fetchError: any) {
           clearTimeout(timeoutId);
           if (fetchError instanceof ScraperError) {
             throw fetchError;
           }
-          // Continue to next page on other errors
-          continue;
+          if (fetchError.name === 'AbortError') {
+            throw new ScraperError(
+              'Request timed out',
+              'TIMEOUT',
+              undefined,
+              true,
+              ScraperErrorCategory.TIMEOUT
+            );
+          }
+          throw new ScraperError(
+            fetchError.message || 'Network error',
+            'CONNECTIVITY',
+            undefined,
+            true,
+            ScraperErrorCategory.CONNECTIVITY
+          );
         }
       } catch (error) {
         // Error fetching page, continue to next
