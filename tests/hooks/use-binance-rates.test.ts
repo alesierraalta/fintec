@@ -121,4 +121,30 @@ describe('useBinanceRates', () => {
     expect(result.current.rates).not.toBeNull();
     expect(result.current.message).toMatch(/fallback|referencia/i);
   });
+
+  it('uses 770.0 as the fallback rate when fetch fails', async () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(null);
+    (currencyService.fetchBinanceRates as jest.Mock).mockRejectedValue(
+      new Error('Fetch failed')
+    );
+
+    const { result } = renderHook(() => useBinanceRates());
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.rates.usd_ves).toBe(770.0);
+    expect(result.current.rates.usdt_ves).toBe(770.0);
+  });
+
+  it('uses 770.0 as initial rates before any fetch', () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(null);
+    // Disable fetch by setting enabled: false or mocking
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.rates.usd_ves).toBe(770.0);
+    expect(result.current.rates.usdt_ves).toBe(770.0);
+  });
 });

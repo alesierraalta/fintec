@@ -128,10 +128,10 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       return new ScraperError('Missing USDT data', 'VALIDATION_ERROR');
     }
 
-    if (parsed.usdt.sell.length === 0 && parsed.usdt.buy.length === 0) {
+    if (parsed.usdt.sell.length === 0 || parsed.usdt.buy.length === 0) {
       return new ScraperError(
-        'No valid USDT prices found',
-        'NO_DATA_ERROR',
+        'Incomplete P2P data: missing BUY or SELL offers',
+        'VALIDATION_ERROR',
         undefined,
         true
       );
@@ -181,25 +181,40 @@ class BinanceScraper extends BaseScraper<BinanceData> {
       busd_ves: Math.round(busdGeneralAvg * 100) / 100,
       sell_rate: usdtSellStats.avg,
       buy_rate: usdtBuyStats.avg,
-      sell_min: usdtSellStats.min || 300.0,
-      sell_avg: usdtSellStats.avg || 302.0,
-      sell_max: usdtSellStats.max || 304.0,
-      buy_min: usdtBuyStats.min || 296.0,
-      buy_avg: usdtBuyStats.avg || 298.0,
-      buy_max: usdtBuyStats.max || 300.0,
-      overall_min: Math.round(overallMin * 100) / 100 || 296.0,
-      overall_max: Math.round(overallMax * 100) / 100 || 304.0,
+      // Transform fallbacks are last-resort safeguards; validation in _validateData rejects empty P2P sides first.
+      sell_min:
+        usdtSellStats.min || STATIC_BINANCE_FALLBACK_RATES.sell_rate - 1.0,
+      sell_avg: usdtSellStats.avg || STATIC_BINANCE_FALLBACK_RATES.sell_rate,
+      sell_max:
+        usdtSellStats.max || STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
+      buy_min: usdtBuyStats.min || STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+      buy_avg: usdtBuyStats.avg || STATIC_BINANCE_FALLBACK_RATES.buy_rate,
+      buy_max: usdtBuyStats.max || STATIC_BINANCE_FALLBACK_RATES.buy_rate + 1.0,
+      overall_min:
+        Math.round(overallMin * 100) / 100 ||
+        STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+      overall_max:
+        Math.round(overallMax * 100) / 100 ||
+        STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
       spread: Math.round(spread * 100) / 100,
       sell_prices_used: usdtFilteredSell.length,
       buy_prices_used: usdtFilteredBuy.length,
       prices_used: usdtFilteredSell.length + usdtFilteredBuy.length,
       price_range: {
-        sell_min: usdtSellStats.min || 300.0,
-        sell_max: usdtSellStats.max || 304.0,
-        buy_min: usdtBuyStats.min || 296.0,
-        buy_max: usdtBuyStats.max || 300.0,
-        min: Math.round(overallMin * 100) / 100 || 296.0,
-        max: Math.round(overallMax * 100) / 100 || 304.0,
+        sell_min:
+          usdtSellStats.min || STATIC_BINANCE_FALLBACK_RATES.sell_rate - 1.0,
+        sell_max:
+          usdtSellStats.max || STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
+        buy_min:
+          usdtBuyStats.min || STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+        buy_max:
+          usdtBuyStats.max || STATIC_BINANCE_FALLBACK_RATES.buy_rate + 1.0,
+        min:
+          Math.round(overallMin * 100) / 100 ||
+          STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+        max:
+          Math.round(overallMax * 100) / 100 ||
+          STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
       },
       lastUpdated: new Date().toISOString(),
       source: 'Binance P2P',
@@ -464,7 +479,11 @@ class BinanceScraper extends BaseScraper<BinanceData> {
 }
 
 // Singleton instance
-let scraperInstance: BinanceScraper | null = null;
+export let scraperInstance: BinanceScraper | null = null;
+
+export function resetScraperInstance(): void {
+  scraperInstance = null;
+}
 
 /**
  * Main scraping function - maintains backward compatibility
