@@ -1,36 +1,38 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { BinanceRates } from '@/types/rates';
 import { currencyService } from '@/lib/services/currency-service';
+import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
 
 const THROTTLE_MS = 10000;
 const AUTO_REFRESH_MS = 120000;
-const STALE_MS = 5 * 60 * 1000;
+// Aligned with API STALE_THRESHOLD_SECONDS (2h) — rates refresh on-demand in serverless.
+const STALE_MS = 2 * 60 * 60 * 1000;
 
 const DEFAULT_BINANCE_RATES: BinanceRates = {
-  usd_ves: 300.0,
-  usdt_ves: 300.0,
-  busd_ves: 300.0,
+  usd_ves: STATIC_BINANCE_FALLBACK_RATES.usd_ves,
+  usdt_ves: STATIC_BINANCE_FALLBACK_RATES.usdt_ves,
+  busd_ves: STATIC_BINANCE_FALLBACK_RATES.busd_ves,
   sell_rate: {
-    min: 300.0,
-    avg: 302.0,
-    max: 304.0,
+    min: STATIC_BINANCE_FALLBACK_RATES.sell_rate - 1.0,
+    avg: STATIC_BINANCE_FALLBACK_RATES.sell_rate,
+    max: STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
   },
   buy_rate: {
-    min: 296.0,
-    avg: 298.0,
-    max: 300.0,
+    min: STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+    avg: STATIC_BINANCE_FALLBACK_RATES.buy_rate,
+    max: STATIC_BINANCE_FALLBACK_RATES.buy_rate + 1.0,
   },
-  spread: 4.0,
+  spread: STATIC_BINANCE_FALLBACK_RATES.spread,
   sell_prices_used: 0,
   buy_prices_used: 0,
   prices_used: 0,
   price_range: {
-    sell_min: 300.0,
-    sell_max: 304.0,
-    buy_min: 296.0,
-    buy_max: 300.0,
-    min: 296.0,
-    max: 304.0,
+    sell_min: STATIC_BINANCE_FALLBACK_RATES.sell_rate - 1.0,
+    sell_max: STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
+    buy_min: STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+    buy_max: STATIC_BINANCE_FALLBACK_RATES.buy_rate + 1.0,
+    min: STATIC_BINANCE_FALLBACK_RATES.buy_rate - 1.0,
+    max: STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
   },
   lastUpdated: new Date().toISOString(),
 };

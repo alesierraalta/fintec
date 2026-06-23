@@ -20,20 +20,36 @@ describe('BCV and Binance rate routes', () => {
     warn: jest.fn(),
     error: jest.fn(),
   };
+  const mockScrapeBCVRates = jest.fn();
+  const mockScrapeBinanceRates = jest.fn();
 
   beforeEach(() => {
     jest.resetModules();
     jest.clearAllMocks();
+    mockScrapeBCVRates.mockReset();
+    mockScrapeBinanceRates.mockReset();
+
     jest.doMock('@/lib/services/exchange-rate-db', () => {
       return jest.fn().mockImplementation(() => mockDbInstance);
     });
     jest.doMock('@/lib/utils/logger', () => ({ logger }));
-    // Mock buildBCVFallbackData to avoid hitting actual logic
-    jest.doMock('@/lib/services/rates-fallback', () => ({
-      buildBCVFallbackData: jest
-        .fn()
-        .mockReturnValue({ usd: 30, source: 'static' }),
+    jest.doMock('@/lib/scrapers/bcv-scraper', () => ({
+      scrapeBCVRates: mockScrapeBCVRates,
     }));
+    jest.doMock('@/lib/scrapers/binance-scraper', () => ({
+      scrapeBinanceRates: mockScrapeBinanceRates,
+    }));
+
+    // Mock buildBCVFallbackData to avoid hitting actual logic
+    jest.doMock('@/lib/services/rates-fallback', () => {
+      const actual = jest.requireActual('@/lib/services/rates-fallback') as any;
+      return {
+        ...actual,
+        buildBCVFallbackData: jest
+          .fn()
+          .mockReturnValue({ usd: 30, source: 'static' }),
+      };
+    });
   });
 
   afterEach(() => {
@@ -64,6 +80,16 @@ describe('BCV and Binance rate routes', () => {
 
   it('falls back to static BCV data when database is empty', async () => {
     getLatestExchangeRate.mockResolvedValue(null);
+    mockScrapeBCVRates.mockResolvedValue({
+      success: false,
+      error: 'Scrape failed',
+      data: {
+        usd: 30,
+        eur: 35,
+        lastUpdated: new Date().toISOString(),
+        source: 'BCV (fallback - error)',
+      },
+    });
 
     const route = await import('@/app/api/bcv-rates/route');
     const response = await route.GET();
@@ -97,6 +123,11 @@ describe('BCV and Binance rate routes', () => {
 
   it('returns 503 on Binance when database is empty', async () => {
     getLatestExchangeRate.mockResolvedValue(null);
+    mockScrapeBinanceRates.mockResolvedValue({
+      success: false,
+      error: 'Scrape failed',
+      data: null,
+    });
 
     const route = await import('@/app/api/binance-rates/route');
     const response = await route.GET();

@@ -3,7 +3,10 @@
  * Tests for the TypeScript Binance scraper implementation
  */
 
-import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
+import {
+  scrapeBinanceRates,
+  resetScraperInstance,
+} from '@/lib/scrapers/binance-scraper';
 
 describe('Binance P2P Scraper', () => {
   // Increase timeout for network requests
@@ -149,5 +152,135 @@ describe('Binance P2P Scraper', () => {
     expect(result.data.price_range.sell_max).toBe(result.data.sell_max);
     expect(result.data.price_range.buy_min).toBe(result.data.buy_min);
     expect(result.data.price_range.buy_max).toBe(result.data.buy_max);
+  });
+});
+
+describe('Binance P2P Scraper - Validation checks', () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeAll(() => {
+    originalFetch = global.fetch;
+  });
+
+  afterAll(() => {
+    global.fetch = originalFetch;
+  });
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    resetScraperInstance();
+  });
+
+  it('rejects scrape when BUY offers are empty but SELL offers are populated', async () => {
+    global.fetch = jest.fn().mockImplementation((url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.tradeType === 'SELL') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [{ adv: { price: '771.50', advNo: '123' } }],
+            }),
+        } as Response);
+      } else {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [],
+            }),
+        } as Response);
+      }
+    });
+
+    const result = await scrapeBinanceRates();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Incomplete P2P data');
+    expect(result.data.usd_ves).toBe(770.0);
+  });
+
+  it('rejects scrape when SELL offers are empty but BUY offers are populated', async () => {
+    global.fetch = jest.fn().mockImplementation((url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.tradeType === 'BUY') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [{ adv: { price: '769.50', advNo: '456' } }],
+            }),
+        } as Response);
+      } else {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [],
+            }),
+        } as Response);
+      }
+    });
+
+    const result = await scrapeBinanceRates();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('Incomplete P2P data');
+    expect(result.data.usd_ves).toBe(770.0);
+  });
+
+  it('succeeds when both BUY and SELL offers are populated', async () => {
+    global.fetch = jest.fn().mockImplementation((url, init) => {
+      const body = JSON.parse(init.body);
+      if (body.tradeType === 'SELL') {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [{ adv: { price: '771.00', advNo: '123' } }],
+            }),
+        } as Response);
+      } else {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              data: [{ adv: { price: '769.00', advNo: '456' } }],
+            }),
+        } as Response);
+      }
+    });
+
+    const result = await scrapeBinanceRates();
+    expect(result.success).toBe(true);
+    expect(result.data.sell_rate).toBe(771.0);
+    expect(result.data.buy_rate).toBe(769.0);
+    expect(result.data.usd_ves).toBe(770.0);
+  });
+
+  it('uses 770-series values for transform fallback defaults when statistical prices are zero or invalid', async () => {
+    // 1. Initialize scraperInstance
+    await scrapeBinanceRates();
+
+    // 2. Import scraperInstance and override _validateData
+    const { scraperInstance } = require('@/lib/scrapers/binance-scraper');
+    if (scraperInstance) {
+      scraperInstance._validateData = () => null;
+    }
+
+    // 3. Mock fetch to return empty data so parsed prices are empty
+    global.fetch = jest.fn().mockImplementation(() => {
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ data: [] }),
+      } as Response);
+    });
+
+    const result = await scrapeBinanceRates();
+    expect(result.success).toBe(true);
+    expect(result.data.sell_min).not.toBe(300.0);
+    expect(result.data.sell_avg).not.toBe(302.0);
+    expect(result.data.sell_max).not.toBe(304.0);
+    expect(result.data.buy_min).not.toBe(296.0);
+    expect(result.data.buy_avg).not.toBe(298.0);
+    expect(result.data.buy_max).not.toBe(300.0);
   });
 });
