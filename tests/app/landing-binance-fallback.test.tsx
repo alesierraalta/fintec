@@ -84,6 +84,6 @@ describe('Landing Binance fallback regression', () => {
     expect(
       screen.getByText(/datos de referencia de Binance P2P/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Bs\. 105\.00/i).length).toBeGreaterThan(0);
   });
 });

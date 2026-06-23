@@ -27,6 +27,7 @@ import {
   getPercentageColorClass,
   type RateComparison,
 } from '@/lib/rate-comparison';
+import { BinanceEstimator } from '@/components/currency/binance-estimator';
 
 export interface BinanceRatesCardProps {
   snapshot: BinanceRatesSnapshot;
@@ -427,6 +428,8 @@ export const BinanceRatesComponent = React.memo(function BinanceRatesComponent({
           </div>
         </div>
       </motion.div>
+
+      <BinanceEstimator baseRateRaw={Math.round(rates.sell_rate.avg * 100)} />
 
       <div className="flex flex-col gap-2 text-ios-footnote text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-0">
         <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-x-3 sm:space-y-0">

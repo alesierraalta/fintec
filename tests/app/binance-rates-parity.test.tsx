@@ -91,7 +91,7 @@ describe('Binance rates parity', () => {
     expect(
       landing.getByText(/datos de referencia de Binance P2P/i)
     ).toBeInTheDocument();
-    expect(accounts.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
-    expect(landing.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    expect(accounts.getAllByText(/Bs\. 105\.00/i).length).toBeGreaterThan(0);
+    expect(landing.getAllByText(/Bs\. 105\.00/i).length).toBeGreaterThan(0);
   });
 });

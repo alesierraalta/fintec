@@ -89,7 +89,7 @@ describe('BinanceRatesComponent', () => {
     expect(
       screen.getByText(/datos de referencia de Binance P2P/i)
     ).toBeInTheDocument();
-    expect(screen.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Bs\. 105\.00/i).length).toBeGreaterThan(0);
   });
 
   it('renders stale messaging for old snapshots', () => {
@@ -120,5 +120,12 @@ describe('BinanceRatesComponent', () => {
     expect(refreshButton).toBeDisabled();
     await user.click(refreshButton);
     expect(refetch).not.toHaveBeenCalled();
+  });
+
+  it('embeds the BinanceEstimator widget below the rates', () => {
+    renderCard(createSnapshot());
+
+    expect(screen.getByText('Operación')).toBeInTheDocument();
+    expect(screen.getByText('Método de pago')).toBeInTheDocument();
   });
 });
