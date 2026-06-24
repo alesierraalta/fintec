@@ -23,8 +23,6 @@ export interface AccountsRatesPanelProps {
 // Resolves the user's "auto" preference to either "simple" or "full" based on
 // viewport width. 640px is the Tailwind `sm` breakpoint.
 const AUTO_BREAKPOINT = 640;
-const BINANCE_MODE_STORAGE_KEY = 'accounts-binance-mode';
-
 function resolveMode(
   stored: 'auto' | 'simple' | 'full',
   isMobile: boolean
@@ -56,14 +54,12 @@ function AccountsRatesPanelImpl({
   const handleModeChange = useCallback(
     (next: 'simple' | 'full') => {
       setStored(next);
-      try {
-        window.localStorage.setItem(BINANCE_MODE_STORAGE_KEY, next);
-      } catch {
-        // localStorage may be disabled; the zustand store still survives the session.
-      }
     },
     [setStored]
   );
+  const handleResetToAuto = useCallback(() => {
+    setStored('auto');
+  }, [setStored]);
 
   const usdVes = binance?.rates?.usd_ves ?? 0;
   const selectedValue = getExchangeRate(selectedSource, bcv, {
@@ -99,6 +95,19 @@ function AccountsRatesPanelImpl({
               onModeChange={handleModeChange}
             />
           </div>
+
+          {stored !== 'auto' && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={handleResetToAuto}
+                data-testid="binance-rate-mode-reset"
+                className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+              >
+                Restaurar modo automático (responsive)
+              </button>
+            </div>
+          )}
 
           <div className="flex justify-center">
             <button

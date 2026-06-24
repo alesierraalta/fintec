@@ -3,9 +3,6 @@
 import { memo, useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import {
   Zap,
-  TrendingUp,
-  TrendingDown,
-  Users,
   Minimize2,
   Activity,
   AlertTriangle,
@@ -16,12 +13,11 @@ import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
 import {
   KNOWN_BANKS,
   calculateAdjustedRate,
-  SAFE_FALLBACK_RATE,
+  withSafeFallback,
   type BankId,
   type Side,
+  type RateMode,
 } from '@/lib/binance-adjustment';
-
-export type RateMode = 'simple' | 'full';
 
 export interface BinanceRateAdvancedProps {
   snapshot: BinanceRatesSnapshot;
@@ -59,16 +55,13 @@ const BANK_LABELS: Record<BankId, string> = {
   other: 'Otro',
 };
 
-const FALLBACK_THRESHOLD_LOW = 7;
-const FALLBACK_THRESHOLD_HIGH = 9;
-
 function BinanceRateAdvancedImpl({
   snapshot,
   mode,
   onModeChange,
 }: BinanceRateAdvancedProps) {
   const [side, setSide] = useState<Side>('SELL');
-  const [bank, setBank] = useState<BankId>('mercantil');
+  const [bank, setBank] = useState<BankId>('banesco');
   const [amountMajor, setAmountMajor] = useState<number>(100);
 
   const status = snapshot.status;
@@ -76,19 +69,20 @@ function BinanceRateAdvancedImpl({
     STATUS_CHIP[status as keyof typeof STATUS_CHIP] ?? STATUS_CHIP.live;
   const ChipIcon = chip.Icon;
 
-  // Use the safe base rate (770.00 fallback if snapshot is out of range).
-  const rawAvg = snapshot.rates.sell_rate.avg;
-  const useFallback =
-    snapshot.isStale &&
-    (rawAvg < FALLBACK_THRESHOLD_LOW || rawAvg > FALLBACK_THRESHOLD_HIGH);
-  const baseRateMajor = useFallback ? SAFE_FALLBACK_RATE / 100 : rawAvg;
-  const baseRateMinor = Math.round(baseRateMajor * 100);
+  // Centralized safe base rate via the lib helper.
+  const rawAvgMinor = Math.round(snapshot.rates.sell_rate.avg * 100);
+  const safeBaseMinor = withSafeFallback(
+    rawAvgMinor,
+    snapshot.isStale ?? false
+  );
+  const usedFallback = safeBaseMinor !== rawAvgMinor;
+  const baseRateMajor = safeBaseMinor / 100;
   const amountMinor = Math.round(amountMajor * 100);
 
   // Adjusted rate uses the lib's pure calculation (basis points, integer math).
   const adjustedMinor = useMemo(
-    () => calculateAdjustedRate(baseRateMinor, side, bank, amountMinor),
-    [baseRateMinor, side, bank, amountMinor]
+    () => calculateAdjustedRate(safeBaseMinor, side, bank, amountMinor),
+    [safeBaseMinor, side, bank, amountMinor]
   );
   const adjustedMajor = (adjustedMinor / 100).toFixed(2);
 
@@ -156,7 +150,7 @@ function BinanceRateAdvancedImpl({
       <div className="mb-4 grid grid-cols-3 gap-2">
         <button
           type="button"
-          data-testid="side-selector-buy"
+          data-testid="binance-rate-side-buy"
           onClick={() => handleSideChange('BUY')}
           className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
             side === 'BUY'
@@ -168,7 +162,7 @@ function BinanceRateAdvancedImpl({
         </button>
         <button
           type="button"
-          data-testid="side-selector-sell"
+          data-testid="binance-rate-side-sell"
           onClick={() => handleSideChange('SELL')}
           className={`min-h-[44px] rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
             side === 'SELL'
@@ -179,7 +173,7 @@ function BinanceRateAdvancedImpl({
           VENTA
         </button>
         <select
-          data-testid="bank-select"
+          data-testid="binance-rate-bank"
           value={bank}
           onChange={handleBankChange}
           className="min-h-[44px] rounded-xl border border-border/40 bg-background px-3 py-2 text-sm"
@@ -194,14 +188,14 @@ function BinanceRateAdvancedImpl({
 
       <div className="mb-4">
         <label
-          htmlFor="binance-amount"
+          htmlFor="binance-rate-amount"
           className="mb-1 block text-xs font-medium text-muted-foreground"
         >
           Monto (USD)
         </label>
         <input
-          id="binance-amount"
-          data-testid="amount-input"
+          id="binance-rate-amount"
+          data-testid="binance-rate-amount"
           type="number"
           min={0}
           step={1}
@@ -220,7 +214,7 @@ function BinanceRateAdvancedImpl({
           Bs. {adjustedMajor}
         </p>
         <p className="mt-1 text-[10px] text-muted-foreground">
-          {useFallback ? `Fallback 770.00 · ` : ''}Base{' '}
+          {usedFallback ? 'Fallback 770.00 · ' : ''}Base{' '}
           {baseRateMajor.toFixed(2)} · {side} · {BANK_LABELS[bank]} ·{' '}
           {amountMajor} USD
         </p>

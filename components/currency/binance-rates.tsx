@@ -2,8 +2,9 @@
 
 import { memo } from 'react';
 import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
-import { BinanceRateCard, type RateMode } from './binance-rate-card';
+import { BinanceRateCard } from './binance-rate-card';
 import { BinanceRateAdvanced } from './binance-rate-advanced';
+import type { RateMode } from '@/lib/binance-adjustment';
 
 export interface BinanceRatesCardProps {
   snapshot: BinanceRatesSnapshot;

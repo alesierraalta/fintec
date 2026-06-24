@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { BinanceRates } from '@/types/rates';
 import { currencyService } from '@/lib/services/currency-service';
 import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
+import { logger } from '@/lib/utils/logger';
 
 const THROTTLE_MS = 10000;
 const AUTO_REFRESH_MS = 120000;
@@ -143,6 +144,12 @@ export function useBinanceRates(
         const nextRates = await currencyService.fetchBinanceRates();
         applySnapshot(nextRates);
       } catch (error) {
+        logger.error(
+          'useBinanceRates: failed to fetch rates, applying fallback',
+          {
+            error: error instanceof Error ? error.message : String(error),
+          }
+        );
         applySnapshot(rates ?? DEFAULT_BINANCE_RATES, true);
       } finally {
         setLoading(false);

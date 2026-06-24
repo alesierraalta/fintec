@@ -355,6 +355,7 @@ export const useAppStore = create<AppState & AppActions>()(
           settings: state.settings,
           selectedCurrency: state.selectedCurrency,
           selectedRateSource: state.selectedRateSource,
+          binanceRateMode: state.binanceRateMode,
           tutorialCompleted: state.tutorialCompleted,
           currentTutorialStep: state.currentTutorialStep,
           quickActionsVisible: state.quickActionsVisible,

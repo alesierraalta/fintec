@@ -13,6 +13,11 @@ export type BankId =
 export type Side = 'BUY' | 'SELL';
 export type AmountTier = 'small' | 'medium' | 'large';
 
+/** Visual mode for the Binance rate card. 'simple' = one rate; 'full' = breakdown. */
+export type RateMode = 'simple' | 'full';
+/** The full set of stored modes; 'auto' resolves to RateMode based on viewport. */
+export type StoredRateMode = 'auto' | RateMode;
+
 export const KNOWN_BANKS: readonly BankId[] = [
   'mercantil',
   'banesco',

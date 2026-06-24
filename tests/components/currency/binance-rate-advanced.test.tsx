@@ -42,8 +42,8 @@ describe('BinanceRateAdvanced (full mode)', () => {
         onModeChange={jest.fn()}
       />
     );
-    expect(screen.getByTestId('side-selector-buy')).toBeInTheDocument();
-    expect(screen.getByTestId('side-selector-sell')).toBeInTheDocument();
+    expect(screen.getByTestId('binance-rate-side-buy')).toBeInTheDocument();
+    expect(screen.getByTestId('binance-rate-side-sell')).toBeInTheDocument();
   });
 
   it('renders a bank dropdown with all KNOWN_BANKS', () => {
@@ -54,7 +54,7 @@ describe('BinanceRateAdvanced (full mode)', () => {
         onModeChange={jest.fn()}
       />
     );
-    const select = screen.getByTestId('bank-select') as HTMLSelectElement;
+    const select = screen.getByTestId('binance-rate-bank') as HTMLSelectElement;
     const options = Array.from(select.options).map((o) => o.value);
     for (const b of [
       'mercantil',
@@ -76,7 +76,7 @@ describe('BinanceRateAdvanced (full mode)', () => {
         onModeChange={jest.fn()}
       />
     );
-    expect(screen.getByTestId('amount-input')).toBeInTheDocument();
+    expect(screen.getByTestId('binance-rate-amount')).toBeInTheDocument();
   });
 
   it('renders the VENTA and COMPRA breakdown', () => {
@@ -123,11 +123,17 @@ describe('BinanceRateAdvanced (full mode)', () => {
         onModeChange={jest.fn()}
       />
     );
-    const select = screen.getByTestId('bank-select') as HTMLSelectElement;
-    fireEvent.change(select, { target: { value: 'mercantil' } });
-    const adjusted = screen.getByTestId('binance-rate-adjusted');
-    // snapshot.sell_rate.avg = 36.5 → in major units; mercantil SELL = -1% = 36.135
-    // we don't pin the exact string (it depends on minor-unit rounding) — just assert it changed
-    expect(adjusted.textContent).toBeTruthy();
+    const beforeText =
+      screen.getByTestId('binance-rate-adjusted').textContent ?? '';
+    const select = screen.getByTestId('binance-rate-bank') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'paypal' } });
+    // After switching to paypal (largest offset, default SELL side, default amount),
+    // the rendered adjusted rate should still be a non-empty string with a digit.
+    const afterText =
+      screen.getByTestId('binance-rate-adjusted').textContent ?? '';
+    expect(afterText).toMatch(/\d/);
+    expect(afterText.length).toBeGreaterThan(0);
+    // Sanity: banesco (no offset) and paypal (large negative offset) render different rates.
+    expect(afterText).not.toBe(beforeText);
   });
 });

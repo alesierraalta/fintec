@@ -3,9 +3,7 @@
 import { memo, useCallback } from 'react';
 import { Zap, Activity, Clock, AlertTriangle, Maximize2 } from 'lucide-react';
 import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
-import { SAFE_FALLBACK_RATE } from '@/lib/binance-adjustment';
-
-export type RateMode = 'simple' | 'full';
+import { withSafeFallback, type RateMode } from '@/lib/binance-adjustment';
 
 export interface BinanceRateCardProps {
   snapshot: BinanceRatesSnapshot;
@@ -34,9 +32,6 @@ const STATUS_CHIP = {
   },
 } as const;
 
-const FALLBACK_THRESHOLD_LOW = 7;
-const FALLBACK_THRESHOLD_HIGH = 9;
-
 function BinanceRateCardImpl({
   snapshot,
   mode,
@@ -47,14 +42,13 @@ function BinanceRateCardImpl({
     STATUS_CHIP[status as keyof typeof STATUS_CHIP] ?? STATUS_CHIP.live;
   const ChipIcon = chip.Icon;
 
-  // Simple-mode rate: raw snapshot if sane, else the 770.00 fallback.
-  const sellAvg = snapshot.rates.sell_rate.avg;
-  const useFallback =
-    snapshot.isStale &&
-    (sellAvg < FALLBACK_THRESHOLD_LOW || sellAvg > FALLBACK_THRESHOLD_HIGH);
-  const displayMajor = useFallback
-    ? (SAFE_FALLBACK_RATE / 100).toFixed(2)
-    : sellAvg.toFixed(2);
+  // Centralized safe-fallback: lib handles stale + out-of-range detection.
+  // sellAvg is in major units; convert to rate hundredths for the helper.
+  const sellAvgMajor = snapshot.rates.sell_rate.avg;
+  const sellAvgMinor = Math.round(sellAvgMajor * 100);
+  const safeMinor = withSafeFallback(sellAvgMinor, snapshot.isStale ?? false);
+  const useFallback = safeMinor !== sellAvgMinor;
+  const displayMajor = (safeMinor / 100).toFixed(2);
 
   const handleToggle = useCallback(() => {
     onModeChange(mode === 'simple' ? 'full' : 'simple');
@@ -83,9 +77,7 @@ function BinanceRateCardImpl({
           Bs. <span>{displayMajor}</span>
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          {useFallback
-            ? `Fallback seguro (${(SAFE_FALLBACK_RATE / 100).toFixed(2)})`
-            : 'Precio SELL promedio'}
+          {useFallback ? 'Fallback seguro (770.00)' : 'Precio SELL promedio'}
         </p>
       </div>
 
