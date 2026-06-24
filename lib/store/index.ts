@@ -137,7 +137,7 @@ const defaultSettings: AppSettings = {
 export const useAppStore = create<AppState & AppActions>()(
   devtools(
     persist(
-      immer((set, get) => ({
+      immer((set, _get) => ({
         // Initial State
         user: null,
         isAuthenticated: false,
