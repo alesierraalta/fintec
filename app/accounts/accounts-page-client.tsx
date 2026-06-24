@@ -1,17 +1,10 @@
 'use client';
 
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useMemo,
-} from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Button } from '@/components/ui';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,24 +30,19 @@ import {
   DollarSign,
   Sparkles,
   Target,
-  Award,
   Star,
-  History,
   Settings,
-  ChevronUp,
-  BarChart3,
 } from 'lucide-react';
-import { BCVRates } from '@/components/currency/bcv-rates';
-import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
-import { SwipeableAccountCard } from '@/components/accounts/swipeable-account-card';
 import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
 import { logger } from '@/lib/utils/logger';
 import { useAppStore } from '@/lib/store';
+import { getExchangeRate, convertBalanceToUSD } from '@/lib/rate-display';
+import { AccountsRatesPanel } from '@/components/accounts/accounts-rates-panel';
+import { RateBadge } from '@/components/accounts/rate-badge';
 import { AccountsSkeleton } from '@/components/skeletons/accounts-skeleton';
-import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { toast } from 'sonner';
@@ -162,7 +150,7 @@ export default function AccountsPage() {
   const { checkAlerts } = useBalanceAlerts();
   const [transactions, setTransactions] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
-  const [expandedAccount, setExpandedAccount] = useState<string | null>(null);
+  const [expandedAccount] = useState<string | null>(null);
   const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
@@ -376,10 +364,7 @@ export default function AccountsPage() {
     [transactions, getCategoryName]
   );
 
-  // Toggle account expansion
-  const toggleAccountExpansion = (accountId: string) => {
-    setExpandedAccount(expandedAccount === accountId ? null : accountId);
-  };
+  // toggleAccountExpansion removido en simplify-accounts-rates-section (era dead code).
 
   const formatBalance = (balanceMinor: number, currency: string) => {
     return formatCurrencyWithBCV(balanceMinor, currency, {
@@ -409,93 +394,9 @@ export default function AccountsPage() {
     return symbols[currencyCode] || currencyCode;
   }, []);
 
-  // Helper function to get rate name for display
-  const getRateName = useCallback((rateType: string) => {
-    switch (rateType) {
-      case 'binance':
-        return 'Binance';
-      case 'bcv_usd':
-        return 'BCV USD';
-      case 'bcv_eur':
-        return 'BCV EUR';
-      default:
-        return 'BCV USD';
-    }
-  }, []);
-
-  // Helper function to get exchange rate
-  const getExchangeRate = useCallback(
-    (rateType: string) => {
-      switch (rateType) {
-        case 'binance':
-          return binanceRates?.usd_ves || 1;
-        case 'bcv_usd':
-          return bcvRates?.usd || 1;
-        case 'bcv_eur':
-          return bcvRates?.eur || 1;
-        default:
-          return bcvRates?.usd || 1;
-      }
-    },
-    [bcvRates, binanceRates]
-  );
-
-  // Convertir balance a USD
-  const convertToUSD = useCallback(
-    (
-      balanceMinor: number,
-      currencyCode: string,
-      accountType?: string,
-      useRate: 'binance' | 'bcv_usd' | 'bcv_eur' = 'bcv_usd'
-    ): number => {
-      if (currencyCode === 'USD') return balanceMinor / 100;
-
-      // * Handle cryptocurrencies with proper decimal places
-      // * Crypto base value is in USD (at Binance rate). When BCV selected, multiply by ratio
-      if (
-        accountType === 'CRYPTO' ||
-        currencyCode === 'BTC' ||
-        currencyCode === 'ETH'
-      ) {
-        // Cryptocurrencies use 8 decimal places
-        const balanceMajor = balanceMinor / 100000000;
-
-        // Base value is already in USD (at Binance market rate)
-        // When BCV is selected, show "equivalent USD" using BCV rate
-        // Formula: USD_crypto × (Binance_rate / BCV_rate) = adjusted USD
-        if (useRate === 'bcv_usd' || useRate === 'bcv_eur') {
-          const bcvRate = useRate === 'bcv_eur' ? bcvRates.eur : bcvRates.usd;
-          const rateRatio = binanceRates.usd_ves / bcvRate;
-          return balanceMajor * rateRatio;
-        }
-
-        // For Binance view, return the base USD value
-        return balanceMajor;
-      }
-
-      const balanceMajor = balanceMinor / 100;
-
-      if (currencyCode === 'VES') {
-        switch (useRate) {
-          case 'binance':
-            // Usar tasa de Binance para conversión de mercado
-            return balanceMajor / binanceRates.usd_ves;
-          case 'bcv_usd':
-            // Usar tasa oficial BCV Dólar
-            return balanceMajor / bcvRates.usd;
-          case 'bcv_eur':
-            // Usar tasa oficial BCV Euro (conversión aproximada)
-            return (balanceMajor / bcvRates.eur) * 1.1; // EUR → USD aproximado
-          default:
-            return balanceMajor / bcvRates.usd;
-        }
-      }
-
-      // Agregar más monedas según necesidad
-      return balanceMajor;
-    },
-    [binanceRates, bcvRates]
-  );
+  // Helpers moved to @/lib/rate-display (getRateName, getExchangeRate, convertBalanceToUSD).
+  // They are pure functions that take the bcv/binance snapshots as parameters.
+  // The page passes them down directly. See SPEC: simplify-accounts-rates-section.
 
   // Cálculo optimizado con tasas seleccionadas
   const totalBalance = useMemo(() => {
@@ -505,23 +406,24 @@ export default function AccountsPage() {
 
       // * Include cryptocurrencies in total balance using USD conversion
       if (acc.type === 'CRYPTO') {
-        // For crypto, use the converted USD value from convertToUSD
-        const usdValue = convertToUSD(
+        const usdValue = convertBalanceToUSD(
           balanceMinor,
           acc.currencyCode,
           acc.type,
-          usdEquivalentType
+          usdEquivalentType,
+          bcvRates,
+          binanceRates
         );
         return sum + usdValue;
       }
 
       if (acc.currencyCode === 'VES') {
-        const rate = getExchangeRate(usdEquivalentType);
+        const rate = getExchangeRate(usdEquivalentType, bcvRates, binanceRates);
         return sum + balanceMajor / rate;
       }
       return sum + balanceMajor;
     }, 0);
-  }, [accounts, usdEquivalentType, getExchangeRate, convertToUSD]);
+  }, [accounts, usdEquivalentType, bcvRates, binanceRates]);
 
   // Calculate balance growth based on current month transactions
   const balanceGrowth = useMemo(() => {
@@ -543,19 +445,24 @@ export default function AccountsPage() {
 
         let amountUSD = 0;
         if (isCrypto) {
-          // Use convertToUSD for crypto transactions
-          amountUSD = convertToUSD(
+          amountUSD = convertBalanceToUSD(
             t.amountMinor || 0,
             t.currencyCode,
             account?.type,
-            usdEquivalentType
+            usdEquivalentType,
+            bcvRates,
+            binanceRates
           );
         } else {
           const amountMajor = (t.amountMinor || 0) / 100;
           amountUSD = amountMajor;
 
           if (t.currencyCode === 'VES') {
-            const rate = getExchangeRate(usdEquivalentType);
+            const rate = getExchangeRate(
+              usdEquivalentType,
+              bcvRates,
+              binanceRates
+            );
             amountUSD = amountMajor / rate;
           }
         }
@@ -574,24 +481,13 @@ export default function AccountsPage() {
     transactions,
     totalBalance,
     usdEquivalentType,
-    getExchangeRate,
     accounts,
-    convertToUSD,
+    bcvRates,
+    binanceRates,
   ]);
 
-  // Función para mostrar tasas actuales
-  const showCurrentRates = useCallback(() => {
-    // Tasas actuales - logging removido para build limpio
-    // Binance: ${binanceRates.usd_ves} Bs/USDT
-    // BCV USD: ${bcvRates.usd} Bs/USD
-    // BCV EUR: ${bcvRates.eur} Bs/EUR
-  }, []);
-
-  // Mostrar tasas actuales al cargar
-  useEffect(() => {
-    showCurrentRates();
-  }, [showCurrentRates]);
-
+  // Función para mostrar tasas actuales — eliminada en simplify-accounts-rates-section
+  // (era un no-op que solo loggeaba; el RateBadge ahora muestra la tasa activa).
   if (loading && accounts.length === 0) {
     return (
       <MainLayout>
@@ -821,9 +717,16 @@ export default function AccountsPage() {
               )}
             </p>
             {showBalances && (
-              <p className="text-xs text-muted-foreground">
-                ({getRateName(usdEquivalentType)})
-              </p>
+              <div className="mt-2">
+                <RateBadge
+                  source={usdEquivalentType}
+                  value={getExchangeRate(
+                    usdEquivalentType,
+                    bcvRates,
+                    binanceRates
+                  )}
+                />
+              </div>
             )}
             {balanceGrowth !== 0 && (
               <motion.div
@@ -1123,11 +1026,13 @@ export default function AccountsPage() {
                             <p className="amount-emphasis-main truncate text-sm font-semibold sm:text-ios-title">
                               {showBalances
                                 ? account.type === 'CRYPTO'
-                                  ? `$${convertToUSD(
+                                  ? `$${convertBalanceToUSD(
                                       Math.abs(account.balance),
                                       account.currencyCode,
                                       account.type,
-                                      usdEquivalentType
+                                      usdEquivalentType,
+                                      bcvRates,
+                                      binanceRates
                                     ).toLocaleString('en-US', {
                                       minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
@@ -1140,28 +1045,21 @@ export default function AccountsPage() {
                               showBalances && (
                                 <p className="mt-0.5 text-xs text-muted-foreground">
                                   ≈ $
-                                  {convertToUSD(
+                                  {convertBalanceToUSD(
                                     Math.abs(account.balance),
                                     account.currencyCode,
                                     account.type,
-                                    usdEquivalentType
+                                    usdEquivalentType,
+                                    bcvRates,
+                                    binanceRates
                                   ).toLocaleString('en-US', {
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
                                   })}{' '}
                                   USD
-                                  <span className="ml-1 text-xs text-muted-foreground">
-                                    ({getRateName(usdEquivalentType)})
-                                  </span>
                                 </p>
                               )}
-                            {account.type === 'CRYPTO' && showBalances && (
-                              <p className="mt-0.5 text-xs text-muted-foreground">
-                                <span className="text-xs text-muted-foreground">
-                                  ({getRateName(usdEquivalentType)})
-                                </span>
-                              </p>
-                            )}
+                            {account.type === 'CRYPTO' && showBalances && null}
                             {(account.currencyCode === 'USD' ||
                               account.currencyCode === 'USDT' ||
                               account.currencyCode === 'BUSD') &&
@@ -1302,63 +1200,13 @@ export default function AccountsPage() {
             )}
           </div>
         </div>
-        {/* Exchange Rates Section - Collapsible for Mobile */}
-        <CollapsibleSection
-          title="💱 Tasas de Cambio"
-          storageKey="accounts-exchange-rates"
-          collapseOnMobile={true}
-          defaultExpanded={true}
-          badge={
-            <div className="flex items-center space-x-2 rounded-xl bg-muted/20 px-3 py-1">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-success-500" />
-              <span className="text-ios-caption font-medium text-success-600">
-                EN VIVO
-              </span>
-            </div>
-          }
-        >
-          <p className="mb-6 text-center text-sm font-light text-muted-foreground sm:text-base md:text-left">
-            Tasas oficiales (BCV) y del mercado digital (Binance) para convertir
-            tus cuentas
-          </p>
-
-          <div className="space-y-6">
-            <BCVRates />
-            <BinanceRatesComponent snapshot={binanceRatesState} />
-
-            {/* History Button - Mobile Responsive */}
-            <motion.div
-              className="flex justify-center"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <button
-                onClick={() => setShowRatesHistory(true)}
-                className="flex min-h-[44px] w-full items-center justify-center space-x-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-500 transition-all duration-200 hover:scale-105 hover:bg-blue-500/20 sm:px-6 sm:text-base md:w-auto"
-              >
-                <History className="h-4 w-4" />
-                <span className="font-medium">Ver Historial y Calculadora</span>
-              </button>
-            </motion.div>
-          </div>
-
-          {/* Exchange Summary */}
-          <div className="mt-6 rounded-2xl border border-border/20 bg-muted/5 p-3 backdrop-blur-sm sm:p-4">
-            <div className="text-center text-xs text-muted-foreground sm:text-ios-caption">
-              <p className="mb-1 leading-relaxed">
-                💡 <strong>BCV:</strong> Tasa oficial del gobierno
-                <span className="hidden sm:inline"> · </span>
-                <br className="sm:hidden" />
-                <strong className="sm:ml-1">Binance:</strong> Precio real del
-                mercado digital
-              </p>
-              <p className="text-ios-footnote">
-                ℹ️ Estas tasas te ayudan a ver tus cuentas en diferentes monedas
-              </p>
-            </div>
-          </div>
-        </CollapsibleSection>
+        {/* Exchange Rates Section - now self-contained panel */}
+        <AccountsRatesPanel
+          bcv={bcvRates}
+          binance={binanceRatesState}
+          selectedSource={usdEquivalentType}
+          onOpenHistory={() => setShowRatesHistory(true)}
+        />
       </div>
 
       {isOpen && (
