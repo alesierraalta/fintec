@@ -5,18 +5,24 @@ import {
   type RateSource,
 } from '@/lib/rate-display';
 
+// Local constants keep the table-driven tests readable and silence
+// the duplicate-string-literal warning without weakening the test.
+const S_BINANCE = 'binance' as const;
+const S_BCV_USD = 'bcv_usd' as const;
+const S_BCV_EUR = 'bcv_eur' as const;
+
 const mockBcv = { usd: 36.5, eur: 40.0 };
 const mockBinance = { usd_ves: 37.0 };
 
 describe('getRateName', () => {
   it('returns "Binance" for binance', () => {
-    expect(getRateName('binance')).toBe('Binance');
+    expect(getRateName(S_BINANCE)).toBe('Binance');
   });
   it('returns "BCV USD" for bcv_usd', () => {
-    expect(getRateName('bcv_usd')).toBe('BCV USD');
+    expect(getRateName(S_BCV_USD)).toBe('BCV USD');
   });
   it('returns "BCV EUR" for bcv_eur', () => {
-    expect(getRateName('bcv_eur')).toBe('BCV EUR');
+    expect(getRateName(S_BCV_EUR)).toBe('BCV EUR');
   });
   it('falls back to "BCV USD" for unknown source', () => {
     expect(getRateName('unknown' as RateSource)).toBe('BCV USD');
@@ -25,13 +31,13 @@ describe('getRateName', () => {
 
 describe('getExchangeRate', () => {
   it('returns binance.usd_ves for binance', () => {
-    expect(getExchangeRate('binance', mockBcv, mockBinance)).toBe(37.0);
+    expect(getExchangeRate(S_BINANCE, mockBcv, mockBinance)).toBe(37.0);
   });
   it('returns bcv.usd for bcv_usd', () => {
-    expect(getExchangeRate('bcv_usd', mockBcv, mockBinance)).toBe(36.5);
+    expect(getExchangeRate(S_BCV_USD, mockBcv, mockBinance)).toBe(36.5);
   });
   it('returns bcv.eur for bcv_eur', () => {
-    expect(getExchangeRate('bcv_eur', mockBcv, mockBinance)).toBe(40.0);
+    expect(getExchangeRate(S_BCV_EUR, mockBcv, mockBinance)).toBe(40.0);
   });
   it('falls back to bcv.usd for unknown source', () => {
     expect(getExchangeRate('unknown' as RateSource, mockBcv, mockBinance)).toBe(
@@ -43,7 +49,7 @@ describe('getExchangeRate', () => {
 describe('convertBalanceToUSD', () => {
   it('USD is a passthrough', () => {
     expect(
-      convertBalanceToUSD(50000, 'USD', 'BANK', 'bcv_usd', mockBcv, mockBinance)
+      convertBalanceToUSD(50000, 'USD', 'BANK', S_BCV_USD, mockBcv, mockBinance)
     ).toBe(500);
   });
 
@@ -53,7 +59,7 @@ describe('convertBalanceToUSD', () => {
       1234567,
       'VES',
       'BANK',
-      'bcv_usd',
+      S_BCV_USD,
       mockBcv,
       mockBinance
     );
@@ -66,7 +72,7 @@ describe('convertBalanceToUSD', () => {
       1234567,
       'VES',
       'BANK',
-      'bcv_eur',
+      S_BCV_EUR,
       mockBcv,
       mockBinance
     );
@@ -79,7 +85,7 @@ describe('convertBalanceToUSD', () => {
       1234567,
       'VES',
       'BANK',
-      'binance',
+      S_BINANCE,
       mockBcv,
       mockBinance
     );
@@ -92,7 +98,7 @@ describe('convertBalanceToUSD', () => {
       100000000,
       'BTC',
       'CRYPTO',
-      'binance',
+      S_BINANCE,
       mockBcv,
       mockBinance
     );
@@ -105,7 +111,7 @@ describe('convertBalanceToUSD', () => {
       100000000,
       'BTC',
       'CRYPTO',
-      'bcv_usd',
+      S_BCV_USD,
       mockBcv,
       mockBinance
     );
@@ -118,7 +124,7 @@ describe('convertBalanceToUSD', () => {
       100000000,
       'BTC',
       'CRYPTO',
-      'bcv_eur',
+      S_BCV_EUR,
       mockBcv,
       mockBinance
     );
@@ -127,7 +133,7 @@ describe('convertBalanceToUSD', () => {
 
   it('zero balance returns zero', () => {
     expect(
-      convertBalanceToUSD(0, 'VES', 'BANK', 'bcv_usd', mockBcv, mockBinance)
+      convertBalanceToUSD(0, 'VES', 'BANK', S_BCV_USD, mockBcv, mockBinance)
     ).toBe(0);
   });
 
@@ -139,7 +145,7 @@ describe('convertBalanceToUSD', () => {
         1234567,
         'VES',
         'BANK',
-        'bcv_usd',
+        S_BCV_USD,
         zeroBcv,
         zeroBinance
       )
@@ -149,7 +155,7 @@ describe('convertBalanceToUSD', () => {
         1234567,
         'VES',
         'BANK',
-        'binance',
+        S_BINANCE,
         zeroBcv,
         zeroBinance
       )
@@ -159,7 +165,7 @@ describe('convertBalanceToUSD', () => {
         1234567,
         'VES',
         'BANK',
-        'bcv_eur',
+        S_BCV_EUR,
         zeroBcv,
         zeroBinance
       )
@@ -176,7 +182,7 @@ describe('convertBalanceToUSD', () => {
         100000000,
         'BTC',
         'CRYPTO',
-        'binance',
+        S_BINANCE,
         zeroBcv,
         zeroBinance
       )
@@ -191,7 +197,7 @@ describe('convertBalanceToUSD', () => {
       100000000,
       'BTC',
       'CRYPTO',
-      'bcv_usd',
+      S_BCV_USD,
       zeroBcv,
       zeroBinance
     );
@@ -205,7 +211,7 @@ describe('convertBalanceToUSD', () => {
         -1234567,
         'VES',
         'BANK',
-        'bcv_usd',
+        S_BCV_USD,
         mockBcv,
         mockBinance
       )
@@ -218,7 +224,7 @@ describe('convertBalanceToUSD', () => {
         50000,
         'USDT',
         'BANK',
-        'bcv_usd',
+        S_BCV_USD,
         mockBcv,
         mockBinance
       )
@@ -231,7 +237,7 @@ describe('convertBalanceToUSD', () => {
       250000000,
       'ETH',
       'CRYPTO',
-      'binance',
+      S_BINANCE,
       mockBcv,
       mockBinance
     );
