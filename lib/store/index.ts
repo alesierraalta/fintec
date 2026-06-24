@@ -59,6 +59,7 @@ interface AppState {
   selectedRateSource: 'binance' | 'bcv_usd' | 'bcv_eur';
   exchangeRates: Record<string, number>;
   lastRateUpdate: number | null;
+  binanceRateMode: 'auto' | 'simple' | 'full';
 
   // Quick Actions
   quickActionsVisible: boolean;
@@ -85,7 +86,9 @@ interface AppActions {
   closeModal: () => void;
 
   // Notifications
-  addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
+  addNotification: (
+    notification: Omit<Notification, 'id' | 'timestamp'>
+  ) => void;
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
   removeNotification: (id: string) => void;
@@ -98,6 +101,7 @@ interface AppActions {
   // Currency & Exchange Rates
   setSelectedCurrency: (currency: string) => void;
   setSelectedRateSource: (source: 'binance' | 'bcv_usd' | 'bcv_eur') => void;
+  setBinanceRateMode: (mode: 'auto' | 'simple' | 'full') => void;
   updateExchangeRates: (rates: Record<string, number>) => void;
 
   // Quick Actions
@@ -148,6 +152,7 @@ export const useAppStore = create<AppState & AppActions>()(
         selectedRateSource: 'binance',
         exchangeRates: {},
         lastRateUpdate: null,
+        binanceRateMode: 'auto',
         quickActionsVisible: true,
         recentTransactions: [],
         tutorialCompleted: false,
@@ -289,6 +294,11 @@ export const useAppStore = create<AppState & AppActions>()(
             state.selectedRateSource = source;
           }),
 
+        setBinanceRateMode: (mode: 'auto' | 'simple' | 'full') =>
+          set((state) => {
+            state.binanceRateMode = mode;
+          }),
+
         updateExchangeRates: (rates) =>
           set((state) => {
             state.exchangeRates = rates;
@@ -358,76 +368,84 @@ export const useAppStore = create<AppState & AppActions>()(
 );
 
 // Selectors (for better performance)
-export const useAuth = () => useAppStore(
-  useShallow((state) => ({
-    user: state.user,
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-    setUser: state.setUser,
-    setAuthenticated: state.setAuthenticated,
-    setLoading: state.setLoading,
-    logout: state.logout,
-  }))
-);
+export const useAuth = () =>
+  useAppStore(
+    useShallow((state) => ({
+      user: state.user,
+      isAuthenticated: state.isAuthenticated,
+      isLoading: state.isLoading,
+      setUser: state.setUser,
+      setAuthenticated: state.setAuthenticated,
+      setLoading: state.setLoading,
+      logout: state.logout,
+    }))
+  );
 
-export const useUI = () => useAppStore(
-  useShallow((state) => ({
-    sidebarOpen: state.sidebarOpen,
-    isMobile: state.isMobile,
-    activeModal: state.activeModal,
-    toggleSidebar: state.toggleSidebar,
-    setSidebarOpen: state.setSidebarOpen,
-    setIsMobile: state.setIsMobile,
-    openModal: state.openModal,
-    closeModal: state.closeModal,
-  }))
-);
+export const useUI = () =>
+  useAppStore(
+    useShallow((state) => ({
+      sidebarOpen: state.sidebarOpen,
+      isMobile: state.isMobile,
+      activeModal: state.activeModal,
+      toggleSidebar: state.toggleSidebar,
+      setSidebarOpen: state.setSidebarOpen,
+      setIsMobile: state.setIsMobile,
+      openModal: state.openModal,
+      closeModal: state.closeModal,
+    }))
+  );
 
-export const useNotifications = () => useAppStore(
-  useShallow((state) => ({
-    notifications: state.notifications,
-    unreadCount: state.unreadCount,
-    addNotification: state.addNotification,
-    markNotificationAsRead: state.markNotificationAsRead,
-    markAllNotificationsAsRead: state.markAllNotificationsAsRead,
-    removeNotification: state.removeNotification,
-    clearAllNotifications: state.clearAllNotifications,
-  }))
-);
+export const useNotifications = () =>
+  useAppStore(
+    useShallow((state) => ({
+      notifications: state.notifications,
+      unreadCount: state.unreadCount,
+      addNotification: state.addNotification,
+      markNotificationAsRead: state.markNotificationAsRead,
+      markAllNotificationsAsRead: state.markAllNotificationsAsRead,
+      removeNotification: state.removeNotification,
+      clearAllNotifications: state.clearAllNotifications,
+    }))
+  );
 
-export const useSettings = () => useAppStore(
-  useShallow((state) => ({
-    settings: state.settings,
-    updateSettings: state.updateSettings,
-    resetSettings: state.resetSettings,
-  }))
-);
+export const useSettings = () =>
+  useAppStore(
+    useShallow((state) => ({
+      settings: state.settings,
+      updateSettings: state.updateSettings,
+      resetSettings: state.resetSettings,
+    }))
+  );
 
-export const useCurrency = () => useAppStore(
-  useShallow((state) => ({
-    selectedCurrency: state.selectedCurrency,
-    exchangeRates: state.exchangeRates,
-    lastRateUpdate: state.lastRateUpdate,
-    setSelectedCurrency: state.setSelectedCurrency,
-    updateExchangeRates: state.updateExchangeRates,
-  }))
-);
+export const useCurrency = () =>
+  useAppStore(
+    useShallow((state) => ({
+      selectedCurrency: state.selectedCurrency,
+      exchangeRates: state.exchangeRates,
+      lastRateUpdate: state.lastRateUpdate,
+      setSelectedCurrency: state.setSelectedCurrency,
+      updateExchangeRates: state.updateExchangeRates,
+    }))
+  );
 
-export const useTutorial = () => useAppStore(
-  useShallow((state) => ({
-    tutorialCompleted: state.tutorialCompleted,
-    currentTutorialStep: state.currentTutorialStep,
-    showTutorialOverlay: state.showTutorialOverlay,
-    setTutorialCompleted: state.setTutorialCompleted,
-    setCurrentTutorialStep: state.setCurrentTutorialStep,
-    toggleTutorialOverlay: state.toggleTutorialOverlay,
-    nextTutorialStep: state.nextTutorialStep,
-    previousTutorialStep: state.previousTutorialStep,
-  }))
-);
+export const useTutorial = () =>
+  useAppStore(
+    useShallow((state) => ({
+      tutorialCompleted: state.tutorialCompleted,
+      currentTutorialStep: state.currentTutorialStep,
+      showTutorialOverlay: state.showTutorialOverlay,
+      setTutorialCompleted: state.setTutorialCompleted,
+      setCurrentTutorialStep: state.setCurrentTutorialStep,
+      toggleTutorialOverlay: state.toggleTutorialOverlay,
+      nextTutorialStep: state.nextTutorialStep,
+      previousTutorialStep: state.previousTutorialStep,
+    }))
+  );
 
 // Utility hooks
-export const useIsAuthenticated = () => useAppStore((state) => state.isAuthenticated);
+export const useIsAuthenticated = () =>
+  useAppStore((state) => state.isAuthenticated);
 export const useCurrentUser = () => useAppStore((state) => state.user);
 export const useTheme = () => useAppStore((state) => state.settings.theme);
-export const useLanguage = () => useAppStore((state) => state.settings.language);
+export const useLanguage = () =>
+  useAppStore((state) => state.settings.language);
