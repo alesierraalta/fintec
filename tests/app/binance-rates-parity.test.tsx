@@ -57,12 +57,12 @@ jest.mock('@/hooks/use-binance-rates', () => ({
 
 function AccountsBinanceSlot() {
   const snapshot = useBinanceRates();
-  return <BinanceRatesComponent snapshot={snapshot} />;
+  return <BinanceRatesComponent snapshot={snapshot} mode="full" />;
 }
 
 function LandingBinanceSlot() {
   const snapshot = useBinanceRates({ enabled: true });
-  return <BinanceRatesComponent snapshot={snapshot} />;
+  return <BinanceRatesComponent snapshot={snapshot} mode="full" />;
 }
 
 describe('Binance rates parity', () => {
@@ -85,13 +85,11 @@ describe('Binance rates parity', () => {
     const accounts = within(screen.getByRole('region', { name: 'accounts' }));
     const landing = within(screen.getByRole('region', { name: 'landing' }));
 
-    expect(
-      accounts.getByText(/datos de referencia de Binance P2P/i)
-    ).toBeInTheDocument();
-    expect(
-      landing.getByText(/datos de referencia de Binance P2P/i)
-    ).toBeInTheDocument();
-    expect(accounts.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
-    expect(landing.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    // Both pages must show the REFERENCIA status chip (the new fallback indicator)
+    expect(accounts.getByText('REFERENCIA')).toBeInTheDocument();
+    expect(landing.getByText('REFERENCIA')).toBeInTheDocument();
+    // Both pages must surface the snapshot's SELL avg
+    expect(accounts.getAllByText(/105\.00/).length).toBeGreaterThan(0);
+    expect(landing.getAllByText(/105\.00/).length).toBeGreaterThan(0);
   });
 });

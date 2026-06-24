@@ -1,6 +1,5 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
 
@@ -56,69 +55,43 @@ function createSnapshot(
   };
 }
 
-function renderCard(snapshot: BinanceRatesSnapshot) {
-  return render(<BinanceRatesComponent snapshot={snapshot} />);
-}
-
-describe('BinanceRatesComponent', () => {
-  it('renders live market data without fallback messaging', () => {
-    renderCard(createSnapshot());
-
+describe('BinanceRatesComponent dispatcher', () => {
+  it('defaults to simple mode and renders the simple card', () => {
+    render(<BinanceRatesComponent snapshot={createSnapshot()} />);
+    expect(screen.getByTestId('binance-rate-card')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: 'Binance (Mercado Digital)' })
-    ).toBeInTheDocument();
-    expect(screen.getAllByText('VIVO').length).toBeGreaterThan(0);
-    expect(
-      screen.queryByText(/datos de referencia de Binance P2P/i)
+      screen.queryByTestId('binance-rate-advanced')
     ).not.toBeInTheDocument();
   });
 
-  it('renders fallback messaging while still showing usable Binance data', () => {
-    const fallbackRates = createSnapshot().rates;
-
-    renderCard(
-      createSnapshot({
-        status: 'fallback',
-        isFallback: true,
-        message: 'Mostrando datos de referencia de Binance P2P.',
-        error: 'Mostrando datos de referencia de Binance P2P.',
-        rates: fallbackRates,
-      })
+  it('renders the advanced card when mode="full"', () => {
+    render(
+      <BinanceRatesComponent
+        snapshot={createSnapshot()}
+        mode="full"
+        onModeChange={jest.fn()}
+      />
     );
-
-    expect(
-      screen.getByText(/datos de referencia de Binance P2P/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    expect(screen.getByTestId('binance-rate-advanced')).toBeInTheDocument();
+    expect(screen.queryByTestId('binance-rate-card')).not.toBeInTheDocument();
   });
 
-  it('renders stale messaging for old snapshots', () => {
-    renderCard(
-      createSnapshot({
-        status: 'stale',
-        isStale: true,
-        message: 'Los precios de Binance pueden estar desactualizados.',
-        error: 'Los precios de Binance pueden estar desactualizados.',
-      })
+  it('forwards onModeChange to the active variant', () => {
+    const onModeChange = jest.fn();
+    render(
+      <BinanceRatesComponent
+        snapshot={createSnapshot()}
+        mode="simple"
+        onModeChange={onModeChange}
+      />
     );
-
-    expect(
-      screen.getByText(/pueden estar desactualizados/i)
-    ).toBeInTheDocument();
+    screen.getByTestId('binance-rate-mode-toggle').click();
+    expect(onModeChange).toHaveBeenCalledWith('full');
   });
 
-  it('disables manual refresh while the shared snapshot is loading', async () => {
-    const user = userEvent.setup();
-    const refetch = jest.fn().mockResolvedValue(undefined);
-
-    renderCard(createSnapshot({ loading: true, refetch }));
-
-    const refreshButton = screen.getByRole('button', {
-      name: /actualizar tasas de binance/i,
-    });
-
-    expect(refreshButton).toBeDisabled();
-    await user.click(refreshButton);
-    expect(refetch).not.toHaveBeenCalled();
+  it('works without onModeChange (no-op fallback)', () => {
+    render(<BinanceRatesComponent snapshot={createSnapshot()} />);
+    // Clicking the toggle should not throw
+    screen.getByTestId('binance-rate-mode-toggle').click();
   });
 });

@@ -67,7 +67,7 @@ function LandingLazyBinanceHarness() {
     return <div data-testid="rates-skeleton">loading</div>;
   }
 
-  return <BinanceRatesComponent snapshot={snapshot} />;
+  return <BinanceRatesComponent snapshot={snapshot} mode="full" />;
 }
 
 describe('Landing Binance fallback regression', () => {
@@ -78,12 +78,11 @@ describe('Landing Binance fallback regression', () => {
   it('renders fallback Binance data after the landing card lazy-load gate opens', async () => {
     render(<LandingLazyBinanceHarness />);
 
-    expect(
-      await screen.findByRole('heading', { name: 'Binance (Mercado Digital)' })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/datos de referencia de Binance P2P/i)
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Bs\. 105\.00/i)).toBeInTheDocument();
+    // After the lazy-load gate opens, the full-mode card must show the
+    // REFERENCIA status chip and the snapshot's SELL avg.
+    expect(await screen.findByText('REFERENCIA')).toBeInTheDocument();
+    // SELL avg (105) and base-rate label both render 105.00; assert presence
+    // without forcing a single match.
+    expect(screen.getAllByText(/105\.00/).length).toBeGreaterThan(0);
   });
 });

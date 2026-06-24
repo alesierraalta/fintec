@@ -1,6 +1,6 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { DollarSign, History } from 'lucide-react';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
 import { BCVRates } from '@/components/currency/bcv-rates';
@@ -11,6 +11,7 @@ import {
   getExchangeRate,
   type RateSource,
 } from '@/lib/rate-display';
+import { useAppStore } from '@/lib/store';
 
 export interface AccountsRatesPanelProps {
   bcv: { usd: number; eur: number };
@@ -19,12 +20,51 @@ export interface AccountsRatesPanelProps {
   onOpenHistory: () => void;
 }
 
+// Resolves the user's "auto" preference to either "simple" or "full" based on
+// viewport width. 640px is the Tailwind `sm` breakpoint.
+const AUTO_BREAKPOINT = 640;
+const BINANCE_MODE_STORAGE_KEY = 'accounts-binance-mode';
+
+function resolveMode(
+  stored: 'auto' | 'simple' | 'full',
+  isMobile: boolean
+): 'simple' | 'full' {
+  if (stored === 'auto') return isMobile ? 'simple' : 'full';
+  return stored;
+}
+
 function AccountsRatesPanelImpl({
   bcv,
   binance,
   selectedSource,
   onOpenHistory,
 }: AccountsRatesPanelProps) {
+  const stored = useAppStore((s) => s.binanceRateMode);
+  const setStored = useAppStore((s) => s.setBinanceRateMode);
+  const [viewportWidth, setViewportWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setViewportWidth(window.innerWidth);
+    const onResize = () => setViewportWidth(window.innerWidth);
+    window.addEventListener('resize', onResize, { passive: true });
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  const isMobile = viewportWidth !== null && viewportWidth < AUTO_BREAKPOINT;
+  const resolved = resolveMode(stored, isMobile);
+  const handleModeChange = useCallback(
+    (next: 'simple' | 'full') => {
+      setStored(next);
+      try {
+        window.localStorage.setItem(BINANCE_MODE_STORAGE_KEY, next);
+      } catch {
+        // localStorage may be disabled; the zustand store still survives the session.
+      }
+    },
+    [setStored]
+  );
+
   const usdVes = binance?.rates?.usd_ves ?? 0;
   const selectedValue = getExchangeRate(selectedSource, bcv, {
     usd_ves: usdVes,
@@ -53,7 +93,11 @@ function AccountsRatesPanelImpl({
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <BCVRates />
-            <BinanceRatesComponent snapshot={binance} />
+            <BinanceRatesComponent
+              snapshot={binance}
+              mode={resolved}
+              onModeChange={handleModeChange}
+            />
           </div>
 
           <div className="flex justify-center">
