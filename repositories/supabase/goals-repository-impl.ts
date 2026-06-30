@@ -48,8 +48,14 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     }
   }
 
-  // ponytail: form fields arrive as '' for "no value" — Supabase typed
-  // columns (UUID/DATE) reject empty strings, so coerce to null.
+  /**
+   * Normalizes an optional string value from form fields.
+   * Form fields arrive as '' for "no value", but Supabase typed columns
+   * (like UUID or DATE) reject empty strings, so we coerce them to null.
+   *
+   * @param value - The string to normalize.
+   * @returns The trimmed string or null if empty.
+   */
   private static normalizeOptionalString(
     value: string | null | undefined
   ): string | null {
