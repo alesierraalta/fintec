@@ -24,7 +24,7 @@ import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { ProgressRing } from '@/components/ui/progress-ring';
 import { FormLoading } from '@/components/ui/suspense-loading';
-import type { SavingsGoal } from '@/types';
+import type { Account, SavingsGoal } from '@/types';
 import { toast } from 'sonner';
 
 const GoalForm = dynamic(
@@ -39,6 +39,7 @@ export default function GoalsPage() {
   const [selectedGoal, setSelectedGoal] = useState<SavingsGoal | null>(null);
   const [goals, setGoals] = useState<GoalWithProgress[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshingGoalId, setRefreshingGoalId] = useState<string | null>(null);
   const [filter, setFilter] = useState<
@@ -47,12 +48,14 @@ export default function GoalsPage() {
   const [searchTerm, setSearchTerm] = useState('');
 
   const reloadGoalsData = async () => {
-    const [goalsData, stats] = await Promise.all([
+    const [goalsData, stats, accountsData] = await Promise.all([
       repository.goals.getGoalsWithProgress(),
       repository.goals.getGoalsSummary(),
+      repository.accounts.findAll(),
     ]);
     setGoals(goalsData);
     setSummary(stats);
+    setAccounts(accountsData);
   };
 
   useEffect(() => {
@@ -156,7 +159,12 @@ export default function GoalsPage() {
       closeModal();
     } catch (error) {
       console.error('Failed to save goal:', error);
-      toast.error('No se pudo guardar la meta');
+      // Surface the real repository error in the toast and rethrow so the
+      // awaited form stays open with its loading state cleared.
+      toast.error(
+        error instanceof Error ? error.message : 'No se pudo guardar la meta'
+      );
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -496,6 +504,7 @@ export default function GoalsPage() {
           isOpen={isOpen}
           onClose={closeModal}
           goal={selectedGoal}
+          accounts={accounts}
           onSave={handleSaveGoal}
         />
       )}

@@ -55,6 +55,9 @@ describe('GoalsPage refresh flow', () => {
 
   it('refreshes a linked goal and shows success feedback', async () => {
     const repository = {
+      accounts: {
+        findAll: jest.fn().mockResolvedValue([]),
+      },
       goals: {
         getGoalsWithProgress: jest
           .fn()

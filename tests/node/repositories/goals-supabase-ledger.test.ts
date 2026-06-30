@@ -81,6 +81,36 @@ function createGoalsClient(options?: {
           };
           return query;
         }),
+        insert: jest.fn(
+          (payload: Partial<GoalRow> | Array<Partial<GoalRow>>) => {
+            const rows = Array.isArray(payload) ? payload : [payload];
+            const inserted = rows.map(
+              (row, index): GoalRow => ({
+                id: row.id ?? `goal-inserted-${index}`,
+                user_id: 'user-1',
+                name: row.name ?? '',
+                description: row.description ?? null,
+                target_base_minor: row.target_base_minor ?? 0,
+                current_base_minor: row.current_base_minor ?? 0,
+                target_date: row.target_date ?? null,
+                account_id: row.account_id ?? null,
+                active: row.active ?? true,
+                created_at: '2026-01-01T00:00:00.000Z',
+                updated_at: '2026-01-01T00:00:00.000Z',
+              })
+            );
+            const query: any = {
+              select: jest.fn(() => query),
+              single: jest.fn().mockResolvedValue({
+                data: inserted[0] ?? null,
+                error: null,
+              }),
+              then: (resolve: (value: unknown) => void) =>
+                resolve({ data: inserted, error: null }),
+            };
+            return query;
+          }
+        ),
       };
     }
 
@@ -229,5 +259,104 @@ describe('SupabaseGoalsRepository ledger and refresh semantics', () => {
     setAccountBalance(5400);
     await repository.updateGoalProgress('goal-1');
     expect(getGoal().current_base_minor).toBe(5400);
+  });
+
+  it('normalizes empty/whitespace optional strings to null and trims valid ones', async () => {
+    const { client, getGoal } = createGoalsClient({
+      goal: { target_date: '2026-12-31', account_id: 'acc-1' },
+    });
+    const repository = new SupabaseGoalsRepository(client as any);
+
+    // The from() factory returns a fresh query object per call, so each
+    // insert/update jest.fn is independent. Walk results in reverse to find
+    // the most recent payload of the kind we want.
+    const lastInsertPayload = (): Record<string, unknown> | undefined => {
+      for (let i = client.from.mock.results.length - 1; i >= 0; i--) {
+        const value = client.from.mock.results[i].value;
+        if (value?.insert) {
+          return value.insert.mock.calls.at(-1)?.[0];
+        }
+      }
+      return undefined;
+    };
+    const lastUpdatePayload = (): Record<string, unknown> | undefined => {
+      for (let i = client.from.mock.results.length - 1; i >= 0; i--) {
+        const value = client.from.mock.results[i].value;
+        if (value?.update) {
+          return value.update.mock.calls.at(-1)?.[0];
+        }
+      }
+      return undefined;
+    };
+
+    // create: '' from the form must become null (not '') for typed columns
+    await repository.create({
+      name: 'Vacation',
+      targetBaseMinor: 50000,
+      targetDate: '  ',
+      accountId: '',
+    });
+    expect(lastInsertPayload()).toEqual(
+      expect.objectContaining({
+        target_date: null,
+        account_id: null,
+      })
+    );
+
+    // create: valid values get trimmed
+    await repository.create({
+      name: 'House',
+      targetBaseMinor: 100000,
+      targetDate: '  2027-06-30  ',
+      accountId: '  acc-2  ',
+    });
+    expect(lastInsertPayload()).toEqual(
+      expect.objectContaining({
+        target_date: '2027-06-30',
+        account_id: 'acc-2',
+      })
+    );
+
+    // createMany: bulk insert must apply the same normalization to every row
+    await repository.createMany([
+      {
+        name: 'Empty',
+        targetBaseMinor: 100,
+        targetDate: '',
+        accountId: '   ',
+      },
+      {
+        name: 'Trimmed',
+        targetBaseMinor: 200,
+        targetDate: '  2027-07-01  ',
+        accountId: '  acc-3  ',
+      },
+    ]);
+    const bulkPayload = lastInsertPayload() as Array<Record<string, unknown>>;
+    expect(bulkPayload).toHaveLength(2);
+    expect(bulkPayload[0]).toEqual(
+      expect.objectContaining({ target_date: null, account_id: null })
+    );
+    expect(bulkPayload[1]).toEqual(
+      expect.objectContaining({
+        target_date: '2027-07-01',
+        account_id: 'acc-3',
+      })
+    );
+
+    // update: '' explicitly clears the column to null
+    await repository.update('goal-1', {
+      id: 'goal-1',
+      targetDate: '',
+      accountId: '',
+    });
+    expect(getGoal().target_date).toBeNull();
+    expect(getGoal().account_id).toBeNull();
+
+    // update: undefined must NOT touch the column (preserves prior value)
+    await repository.update('goal-1', { id: 'goal-1' });
+    const payload = lastUpdatePayload();
+    expect(payload).not.toHaveProperty('target_date');
+    expect(payload).not.toHaveProperty('account_id');
   });
 });

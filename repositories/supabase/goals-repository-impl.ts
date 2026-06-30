@@ -48,6 +48,16 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     }
   }
 
+  // ponytail: form fields arrive as '' for "no value" — Supabase typed
+  // columns (UUID/DATE) reject empty strings, so coerce to null.
+  private static normalizeOptionalString(
+    value: string | null | undefined
+  ): string | null {
+    if (value === undefined || value === null) return null;
+    const trimmed = value.trim();
+    return trimmed.length === 0 ? null : trimmed;
+  }
+
   private async listGoalContributionRows(goalId: string): Promise<
     Array<{
       id: string;
@@ -377,8 +387,12 @@ export class SupabaseGoalsRepository implements GoalsRepository {
         description: data.description,
         target_base_minor: data.targetBaseMinor,
         current_base_minor: 0, // Goals always start at 0
-        target_date: data.targetDate,
-        account_id: data.accountId,
+        target_date: SupabaseGoalsRepository.normalizeOptionalString(
+          data.targetDate
+        ),
+        account_id: SupabaseGoalsRepository.normalizeOptionalString(
+          data.accountId
+        ),
         active: data.active ?? true,
       })
       .select(GOAL_LIST_PROJECTION)
@@ -403,8 +417,12 @@ export class SupabaseGoalsRepository implements GoalsRepository {
       description: item.description,
       target_base_minor: item.targetBaseMinor,
       current_base_minor: 0,
-      target_date: item.targetDate,
-      account_id: item.accountId,
+      target_date: SupabaseGoalsRepository.normalizeOptionalString(
+        item.targetDate
+      ),
+      account_id: SupabaseGoalsRepository.normalizeOptionalString(
+        item.accountId
+      ),
       active: item.active ?? true,
     }));
 
@@ -438,9 +456,11 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     if (updates.currentBaseMinor !== undefined)
       supabaseUpdates.current_base_minor = updates.currentBaseMinor;
     if (updates.targetDate !== undefined)
-      supabaseUpdates.target_date = updates.targetDate;
+      supabaseUpdates.target_date =
+        SupabaseGoalsRepository.normalizeOptionalString(updates.targetDate);
     if (updates.accountId !== undefined)
-      supabaseUpdates.account_id = updates.accountId;
+      supabaseUpdates.account_id =
+        SupabaseGoalsRepository.normalizeOptionalString(updates.accountId);
     if (updates.active !== undefined) supabaseUpdates.active = updates.active;
 
     const { data, error } = await this.client
