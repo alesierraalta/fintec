@@ -90,13 +90,12 @@ export function GoalForm({
         accounts.some((account) => account.id === goal.accountId);
       setValue('accountId', stillExists ? goal.accountId! : '');
     } else {
-      // Set default target date to 1 year from now
-      const nextYear = new Date();
-      nextYear.setFullYear(nextYear.getFullYear() + 1);
-      setValue('targetDate', nextYear.toISOString().split('T')[0]);
       setValue('currencyCode', baseCurrency);
+      setValue('targetDate', '');
     }
   }, [goal, accounts, setValue, baseCurrency]);
+
+  const targetDateValue = watch('targetDate');
 
   const onSubmit = async (data: GoalFormData) => {
     setIsLoading(true);
@@ -250,17 +249,29 @@ export function GoalForm({
           <label className="mb-2 block text-sm font-medium text-gray-300">
             Fecha Meta (Opcional)
           </label>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-              <Calendar className="h-5 w-5 text-gray-400" />
+          <div className="relative flex gap-2">
+            <div className="relative flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <Calendar className="h-5 w-5 text-gray-400" />
+              </div>
+              <Input
+                type="date"
+                {...register('targetDate')}
+                error={errors.targetDate?.message}
+                className="pl-10"
+                min={new Date().toISOString().split('T')[0]}
+              />
             </div>
-            <Input
-              type="date"
-              {...register('targetDate')}
-              error={errors.targetDate?.message}
-              className="pl-10"
-              min={new Date().toISOString().split('T')[0]}
-            />
+            {targetDateValue && (
+              <button
+                type="button"
+                onClick={() => setValue('targetDate', '')}
+                className="flex items-center justify-center rounded-xl border border-gray-700 bg-gray-800 px-3 transition-colors hover:bg-gray-700 hover:text-white focus:outline-none"
+                aria-label="Limpiar fecha"
+              >
+                <X className="h-5 w-5 text-gray-400" />
+              </button>
+            )}
           </div>
           <p className="mt-1 text-xs text-gray-500">
             Opcional: Establece una fecha límite para tu meta
