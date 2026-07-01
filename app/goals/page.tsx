@@ -188,7 +188,7 @@ export default function GoalsPage() {
   };
 
   const handleAddMoney = async (goalId: string) => {
-    const amount = window.prompt('¿Cuánto deseas aportar? (Ej: 100.00)');
+    const amount = window.prompt('¿Cuánto deseas aportar en USD? (Ej: 100.00)');
     if (!amount) return;
 
     const amountMinor = Math.round(Number.parseFloat(amount) * 100);
