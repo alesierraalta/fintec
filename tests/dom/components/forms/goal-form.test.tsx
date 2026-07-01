@@ -18,6 +18,18 @@ jest.mock('framer-motion', () => ({
   },
 }));
 
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({
+    baseCurrency: 'USD',
+  }),
+}));
+
+jest.mock('@/hooks/use-currency-converter', () => ({
+  useCurrencyConverter: () => ({
+    getRate: () => 1,
+  }),
+}));
+
 import { GoalForm } from '@/components/forms/goal-form';
 import type { Account, AccountType, SavingsGoal } from '@/types';
 
@@ -49,7 +61,7 @@ describe('GoalForm', () => {
     );
 
     // Real account labels should be present in the select
-    const select = (await screen.findAllByRole('combobox'))[0];
+    const select = await screen.findByLabelText(/cuenta asociada/i);
     expect(select).toBeInTheDocument();
 
     // The select options must contain the real account UUIDs
@@ -78,7 +90,7 @@ describe('GoalForm', () => {
       />
     );
 
-    const select = (await screen.findAllByRole('combobox'))[0];
+    const select = await screen.findByLabelText(/cuenta asociada/i);
     const options = Array.from((select as HTMLSelectElement).options);
 
     // Only the empty-state option should be present
@@ -179,9 +191,9 @@ describe('GoalForm', () => {
       />
     );
 
-    const select = (
-      await screen.findAllByRole('combobox')
-    )[0] as HTMLSelectElement;
+    const select = (await screen.findByLabelText(
+      /cuenta asociada/i
+    )) as HTMLSelectElement;
     // Wait for the useEffect pre-select to apply
     await waitFor(() => {
       expect(select.value).toBe('acc_abc123');

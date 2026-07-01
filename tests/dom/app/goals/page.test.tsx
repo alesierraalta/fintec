@@ -14,6 +14,12 @@ jest.mock('@/hooks/use-auth', () => ({
   useAuth: jest.fn(),
 }));
 
+jest.mock('@/hooks/use-currency-converter', () => ({
+  useCurrencyConverter: jest.fn(() => ({
+    getRate: () => 1,
+  })),
+}));
+
 // State holder so individual tests can flip the modal state via the page's
 // openModal/closeModal callables without re-mocking the module.
 const modalState = { activeModal: null as string | null };
@@ -104,7 +110,10 @@ function buildRepository(overrides: Partial<{ createError: Error }> = {}) {
 describe('GoalsPage accounts wiring + error surfacing', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAuth as jest.Mock).mockReturnValue({ user: { id: 'user-1' } });
+    (useAuth as jest.Mock).mockReturnValue({
+      user: { id: 'user-1' },
+      baseCurrency: 'USD',
+    });
   });
 
   it('fetches goals, summary, and accounts in the same Promise.all', async () => {
