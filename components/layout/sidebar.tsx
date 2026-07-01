@@ -61,7 +61,7 @@ export function Sidebar() {
 
   return (
     <div
-      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} ios-sidebar transition-ios flex-col`}
+      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} ios-sidebar flex-col transition-all duration-300 ease-in-out`}
       suppressHydrationWarning
     >
       {/* Logo */}
@@ -154,30 +154,23 @@ export function Sidebar() {
       <PremiumStatusCard isMinimized={isMinimized} />
 
       {/* User Profile & Theme Toggle */}
-      <div className="mt-auto space-y-4 border-t border-border/10 p-4">
-        {!isMinimized && (
+      {!isMinimized && (
+        <div className="mt-auto space-y-4 border-t border-border/10 p-4">
           <div className="flex items-center justify-between px-2">
             <p className="text-ios-caption font-medium uppercase tracking-wider text-muted-foreground">
               Preferencias
             </p>
             <ThemeToggle isMinimized={true} />
           </div>
-        )}
 
-        <div
-          className={cn(
-            'ios-card flex items-center rounded-2xl p-3',
-            isMinimized ? 'justify-center' : 'space-x-3'
-          )}
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
-            {isPremium ? (
-              <Crown className="h-5 w-5 text-primary-foreground" />
-            ) : (
-              <DollarSign className="h-5 w-5 text-primary-foreground" />
-            )}
-          </div>
-          {!isMinimized && (
+          <div className="ios-card flex items-center space-x-3 rounded-2xl p-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
+              {isPremium ? (
+                <Crown className="h-5 w-5 text-primary-foreground" />
+              ) : (
+                <DollarSign className="h-5 w-5 text-primary-foreground" />
+              )}
+            </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-ios-body font-semibold text-foreground">
                 ¡FinTec! 💼
@@ -191,9 +184,9 @@ export function Sidebar() {
                     : 'Premium'}
               </p>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

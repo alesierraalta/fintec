@@ -75,7 +75,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
         {/* Desktop Sidebar - Only render on desktop */}
         {!isMobile && (
           <div
-            className={`flex flex-shrink-0 ${isOpen ? 'w-64' : 'w-16'} transition-ios overflow-hidden`}
+            className={`flex flex-shrink-0 ${isOpen ? 'w-64' : 'w-16'} overflow-hidden transition-all duration-300 ease-in-out`}
             data-tutorial="sidebar"
           >
             <Sidebar />
