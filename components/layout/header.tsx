@@ -345,6 +345,14 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
   return (
     <header className="ios-header sticky top-0 z-50 flex h-16 items-center justify-between px-6">
       <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/5 text-foreground transition-all hover:scale-95 active:scale-90"
+          aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
         <RateSelector />
 
         <div className="relative">

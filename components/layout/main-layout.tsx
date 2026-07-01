@@ -36,7 +36,7 @@ interface MainLayoutProps {
 function MainLayoutContent({ children }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isOpen, isMobile, closeSidebar } = useSidebar();
+  const { isOpen, isMobile, closeSidebar, toggleSidebar } = useSidebar();
   const { isOpen: isModalOpen, closeModal } = useModal();
   useViewportHeight();
 
@@ -84,10 +84,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <div className="no-horizontal-scroll flex min-w-0 flex-1 flex-col">
-          <Header
-            onMenuClick={() => {}} // This is traditionally handled by sidebar context or separate state
-            isMobileMenuOpen={isOpen}
-          />
+          <Header onMenuClick={toggleSidebar} isMobileMenuOpen={isOpen} />
 
           {/* Page Content */}
           <main
