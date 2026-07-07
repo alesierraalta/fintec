@@ -24,6 +24,7 @@ import {
   FileText,
   Tag,
   Plus,
+  Info,
 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
@@ -112,6 +113,7 @@ export function TransactionForm({
   });
 
   const [loading, setLoading] = useState(false);
+  const [showDebtInfo, setShowDebtInfo] = useState(false);
 
   // Load accounts and categories
   useEffect(() => {
@@ -363,8 +365,7 @@ export function TransactionForm({
     ? accounts.filter(
         (acc) =>
           acc.active &&
-          acc.currencyCode === selectedDebtAccount.currencyCode &&
-          acc.id !== selectedDebtAccount.id
+          acc.currencyCode === selectedDebtAccount.currencyCode
       )
     : [];
   const hasEligibleSourceAccounts = eligibleSourceAccounts.length > 0;
@@ -512,7 +513,11 @@ export function TransactionForm({
             label="Cuenta"
             value={formData.accountId}
             onChange={(e) =>
-              setFormData({ ...formData, accountId: e.target.value })
+              setFormData({
+                ...formData,
+                accountId: e.target.value,
+                sourceAccountId: e.target.value
+              })
             }
             options={accountOptions}
             placeholder="Seleccionar cuenta"
@@ -566,9 +571,10 @@ export function TransactionForm({
           formData.type === TransactionType.EXPENSE) && (
           <div className="space-y-3 rounded-2xl border border-border/20 bg-card/30 p-4">
             <div className="flex items-center justify-between">
+              <div className="flex flex-col gap-1">
               <label
                 htmlFor="transaction-is-debt"
-                className="text-ios-body font-medium text-foreground"
+                className="flex items-center text-ios-body font-medium text-foreground"
               >
                 Es deuda
                 {debtMode && (
@@ -576,6 +582,14 @@ export function TransactionForm({
                     (modo deuda)
                   </span>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setShowDebtInfo(!showDebtInfo)}
+                  className="ml-2 rounded-full p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                  aria-label="Ver información sobre deudas"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
               </label>
               <input
                 id="transaction-is-debt"
@@ -599,6 +613,31 @@ export function TransactionForm({
                 className="h-5 w-5 rounded border-border/30 bg-card/60"
               />
             </div>
+            </div>
+
+            {showDebtInfo && (
+              <div className="animate-fade-in-up mt-2 rounded-xl bg-blue-50 p-4 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                <p className="mb-2 font-semibold">¿Por qué elegir ambas opciones?</p>
+                <ul className="space-y-2">
+                  <li>
+                    <strong>Prestas efectivo:</strong> Gasto + Me deben <br />
+                    <em>(Dinero sale, te lo deben)</em>
+                  </li>
+                  <li>
+                    <strong>Compras a crédito:</strong> Gasto + Debo <br />
+                    <em>(Gastaste, pero debes el pago)</em>
+                  </li>
+                  <li>
+                    <strong>Pides prestado:</strong> Ingreso + Debo <br />
+                    <em>(Recibes dinero, lo debes)</em>
+                  </li>
+                  <li>
+                    <strong>Vendes a crédito:</strong> Ingreso + Me deben <br />
+                    <em>(Venta a favor, te deben el pago)</em>
+                  </li>
+                </ul>
+              </div>
+            )}
 
             {formData.isDebt && (
               <>
@@ -628,7 +667,9 @@ export function TransactionForm({
                     htmlFor="transaction-deduct-from-account"
                     className="text-ios-body font-medium text-foreground"
                   >
-                    Descontar de cuenta
+                    {formData.type === TransactionType.INCOME
+                      ? 'Añadir a cuenta'
+                      : 'Descontar de cuenta'}
                   </label>
                   <input
                     id="transaction-deduct-from-account"

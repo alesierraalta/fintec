@@ -161,7 +161,7 @@ BEGIN
       SELECT * FROM public.create_transaction_and_adjust_balance(
         p_account_id := p_source_account_id,
         p_category_id := p_source_category_id,
-        p_type := 'EXPENSE',
+        p_type := p_type,
         p_currency_code := p_currency_code,
         p_amount_minor := p_amount_minor,
         p_amount_base_minor := p_amount_base_minor,

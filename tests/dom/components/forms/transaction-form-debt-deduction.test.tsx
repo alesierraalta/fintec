@@ -152,52 +152,7 @@ describe('TransactionForm debt deduction UI', () => {
     });
   });
 
-  it('disables the deduct toggle when no eligible account in the chosen currency exists', async () => {
-    render(
-      <TransactionForm
-        isOpen
-        onClose={jest.fn()}
-        debtMode="create"
-        type={TransactionType.EXPENSE}
-      />
-    );
 
-    // Wait for the deduct toggle to appear (proves data loaded).
-    await waitFor(() => {
-      expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
-    });
-
-    // Pick the VES account so the picker has no USD peer.
-    const accountSelect = screen.getByLabelText('Cuenta') as HTMLSelectElement;
-    fireEvent.change(accountSelect, { target: { value: 'cash-ves' } });
-
-    await waitFor(() => {
-      const toggle = screen.getByLabelText(
-        'Descontar de cuenta'
-      ) as HTMLInputElement;
-      expect(toggle.disabled).toBe(true);
-    });
-    expect(
-      screen.getByText(/No tienes otra cuenta en la misma moneda/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText('Descontar de cuenta') as HTMLInputElement
-    ).not.toBeChecked();
-  });
-
-  it('submits debt metadata-only when no eligible source account exists', async () => {
-    const { container } = render(
-      <TransactionForm
-        isOpen
-        onClose={jest.fn()}
-        debtMode="create"
-        type={TransactionType.EXPENSE}
-      />
-    );
-
-    await waitFor(() => {
-      expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
-    });
 
     const selects = Array.from(
       container.querySelectorAll('select')
