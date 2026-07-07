@@ -60,7 +60,13 @@ describe('debt balance skip migration', () => {
       // transaction so the flag cannot be true while the RPC is still legacy.
       expect(migration).toMatch(/BEGIN\s*;/i);
       expect(migration).toMatch(
+        /INSERT INTO public\.app_flags \(name, enabled, updated_at\)\s+VALUES \('debt_balance_cutoff',\s*true,\s*transaction_timestamp\(\)\)/i
+      );
+      expect(migration).toMatch(
         /INSERT INTO public\.app_flags\s+\(name,\s*enabled\)\s+VALUES\s*\('debt_balance_skip_enabled',\s*true\)/i
+      );
+      expect(migration).toMatch(
+        /debt_balance_cutoff[\s\S]*debt_balance_skip_enabled[\s\S]*CREATE OR REPLACE FUNCTION public\.create_transaction_and_adjust_balance/i
       );
       expect(migration).toMatch(
         /CREATE OR REPLACE FUNCTION public\.create_transaction_and_adjust_balance/i
@@ -101,13 +107,14 @@ describe('debt balance skip migration', () => {
       );
     });
 
-    it('captures a clock_timestamp cutoff before computing deltas', () => {
+    it('reuses the stored pre-commit cutoff before computing deltas', () => {
       const migration = readMigration();
-      // DECLARE block declares the type explicitly: `v_cutoff timestamptz := clock_timestamp();`
       expect(migration).toMatch(
-        /v_cutoff\s+(?:timestamptz\s+)?:=\s*clock_timestamp\(\)/i
+        /SELECT updated_at\s+INTO v_cutoff\s+FROM public\.app_flags\s+WHERE name = 'debt_balance_cutoff'/i
       );
+      expect(migration).toMatch(/IF v_cutoff IS NULL THEN/i);
       expect(migration).toMatch(/created_at\s*<\s*v_cutoff/i);
+      expect(migration).not.toMatch(/created_at\s*<\s*clock_timestamp\(\)/i);
     });
 
     it('reverses only OPEN debts and uses the direction sign convention', () => {

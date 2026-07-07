@@ -37,8 +37,17 @@ CREATE POLICY flags_read
 -- ===========================================================================
 BEGIN;
 
--- Seed the flag first so the new RPC can read it from the start of its
--- first invocation in the same transaction.
+-- Capture the legacy-window cutoff BEFORE the skip guard becomes visible.
+-- `updated_at` stores the transaction timestamp of this pre-commit write,
+-- which the reversal block reuses exactly after COMMIT.
+INSERT INTO public.app_flags (name, enabled, updated_at)
+VALUES ('debt_balance_cutoff', true, transaction_timestamp())
+ON CONFLICT (name) DO UPDATE
+SET enabled = EXCLUDED.enabled,
+    updated_at = LEAST(public.app_flags.updated_at, EXCLUDED.updated_at);
+
+-- Seed the skip flag in the same transaction so the new RPC can read it from
+-- the start of its first invocation once the commit becomes visible.
 INSERT INTO public.app_flags (name, enabled)
 VALUES ('debt_balance_skip_enabled', true)
 ON CONFLICT (name) DO UPDATE SET enabled = EXCLUDED.enabled, updated_at = now();
@@ -159,7 +168,7 @@ COMMIT;
 -- ===========================================================================
 DO $$
 DECLARE
-  v_cutoff timestamptz := clock_timestamp();
+  v_cutoff timestamptz;
   v_reversed_accounts bigint;
 BEGIN
   -- Re-running this DO block after a successful first pass is a no-op
@@ -170,6 +179,16 @@ BEGIN
   ) THEN
     RAISE NOTICE 'debt_balance_skip: reversal already applied, skipping';
     RETURN;
+  END IF;
+
+  SELECT updated_at
+  INTO v_cutoff
+  FROM public.app_flags
+  WHERE name = 'debt_balance_cutoff';
+
+  IF v_cutoff IS NULL THEN
+    RAISE EXCEPTION
+      'debt_balance_skip: missing debt_balance_cutoff flag; refusing reversal to avoid racing post-cutoff debts';
   END IF;
 
   -- Aggregate per-account deltas BEFORE applying them, so we update each

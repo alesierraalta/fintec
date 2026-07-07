@@ -560,38 +560,41 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const updatedTransaction = mapSupabaseTransactionToDomain(data);
 
-    // Update account balance ONLY if the transaction is NOT a debt.
     // Debt rows are metadata: they never touch account balances (see
-    // 20260706120000_debt_balance_skip.sql and design W3).
-    const isDebtAfter =
-      updatedTransaction.isDebt === true || originalTransaction.isDebt === true;
-    if (!isDebtAfter) {
-      try {
-        const originalAdjustment = this.calculateBalanceAdjustment(
-          originalTransaction.type,
-          originalTransaction.amountMinor
-        );
-        const newAdjustment = this.calculateBalanceAdjustment(
-          updatedTransaction.type,
-          updatedTransaction.amountMinor
-        );
-        const balanceDifference = newAdjustment - originalAdjustment;
+    // 20260706120000_debt_balance_skip.sql and design W3). On updates we must
+    // therefore revert only the original non-debt effect and apply only the
+    // updated non-debt effect, so normal↔debt transitions stay correct.
+    try {
+      const originalAdjustment =
+        originalTransaction.isDebt === true
+          ? 0
+          : this.calculateBalanceAdjustment(
+              originalTransaction.type,
+              originalTransaction.amountMinor
+            );
+      const newAdjustment =
+        updatedTransaction.isDebt === true
+          ? 0
+          : this.calculateBalanceAdjustment(
+              updatedTransaction.type,
+              updatedTransaction.amountMinor
+            );
+      const balanceDifference = newAdjustment - originalAdjustment;
 
-        if (balanceDifference !== 0 && this.accountsRepository) {
-          await this.accountsRepository.adjustBalance(
-            updatedTransaction.accountId,
-            balanceDifference
-          );
-          console.log(
-            `✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`
-          );
-        }
-      } catch (balanceError) {
-        console.error(
-          '❌ Failed to update account balance on transaction update:',
-          balanceError
+      if (balanceDifference !== 0 && this.accountsRepository) {
+        await this.accountsRepository.adjustBalance(
+          updatedTransaction.accountId,
+          balanceDifference
+        );
+        console.log(
+          `✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`
         );
       }
+    } catch (balanceError) {
+      console.error(
+        '❌ Failed to update account balance on transaction update:',
+        balanceError
+      );
     }
 
     return updatedTransaction;
