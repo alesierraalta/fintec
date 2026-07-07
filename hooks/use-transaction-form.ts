@@ -347,6 +347,12 @@ export function useTransactionForm(): UseTransactionFormReturn {
         return;
       }
 
+      const shouldDeductDebtFromAccount =
+        canShowDebtFields &&
+        formData.isDebt &&
+        formData.deductFromAccount &&
+        Boolean(formData.sourceAccountId);
+
       const transactionData: CreateTransactionDTO = {
         type: (formData.type as TransactionType) || 'EXPENSE',
         accountId: formData.accountId,
@@ -382,20 +388,16 @@ export function useTransactionForm(): UseTransactionFormReturn {
           formData.debtStatus === DebtStatus.SETTLED
             ? formData.settledAt
             : undefined,
-        // * Debt-only: forward the deduct toggle and the picked source
-        // account so the repository can route to create_debt_with_deduction
-        // (Supabase) or its Dexie-transaction equivalent (local). When the
-        // toggle is off we deliberately omit `sourceAccountId` so the
-        // DTO does not carry a stale value.
+        // * Debt-only: only request the source-account deduction when the
+        // shared/mobile flow actually has a source account. Otherwise the
+        // debt is metadata-only; this prevents mobile debt creation from
+        // failing on the repository's sourceAccountId guard.
         deductFromAccount:
           canShowDebtFields && formData.isDebt
-            ? formData.deductFromAccount
+            ? shouldDeductDebtFromAccount
             : undefined,
         sourceAccountId:
-          canShowDebtFields &&
-          formData.isDebt &&
-          formData.deductFromAccount &&
-          formData.sourceAccountId
+          shouldDeductDebtFromAccount && formData.sourceAccountId
             ? formData.sourceAccountId
             : undefined,
       };

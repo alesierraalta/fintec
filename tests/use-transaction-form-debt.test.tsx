@@ -166,7 +166,7 @@ describe('useTransactionForm debt capture', () => {
     expect(createMock).not.toHaveBeenCalled();
   });
 
-  it('defaults deductFromAccount to true and forwards it to the DTO', async () => {
+  it('defaults debt creation to metadata-only when no source account is selected', async () => {
     const { result } = renderHook(() => useTransactionForm());
 
     await waitFor(() => {
@@ -183,7 +183,8 @@ describe('useTransactionForm debt capture', () => {
         description: 'Debt with default deduct',
         isDebt: true,
         debtDirection: DebtDirection.OWE,
-        // no explicit deductFromAccount — should default to true
+        // no explicit sourceAccountId — shared/mobile flow should submit
+        // metadata-only instead of triggering repository validation errors
       }));
     });
 
@@ -195,9 +196,11 @@ describe('useTransactionForm debt capture', () => {
       expect.objectContaining({
         isDebt: true,
         debtDirection: 'OWE',
-        deductFromAccount: true,
+        deductFromAccount: false,
       })
     );
+    const call = createMock.mock.calls[0][0];
+    expect(call.sourceAccountId).toBeUndefined();
   });
 
   it('forwards sourceAccountId when the user picks one', async () => {
