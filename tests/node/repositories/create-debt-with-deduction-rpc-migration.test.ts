@@ -58,4 +58,27 @@ describe('create_debt_with_deduction RPC migration', () => {
     expect(migration).toMatch(/debt_id/i);
     expect(migration).toMatch(/expense_id/i);
   });
+
+  it('validates source account currency matches the debt currency', () => {
+    const migration = readMigration();
+    expect(migration).toMatch(
+      /SELECT user_id, currency_code\s+INTO v_owner, v_source_currency_code/i
+    );
+    expect(migration).toMatch(
+      /v_source_currency_code\s+IS DISTINCT FROM\s+p_currency_code/i
+    );
+    expect(migration).toMatch(
+      /Source account currency must match debt currency/i
+    );
+  });
+
+  it('validates debt and source category ownership on the server', () => {
+    const migration = readMigration();
+    expect(migration).toMatch(/WHERE id = p_category_id/i);
+    expect(migration).toMatch(/Category not found or unauthorized/i);
+    expect(migration).toMatch(/WHERE id = p_source_category_id/i);
+    expect(migration).toMatch(/Source category not found or unauthorized/i);
+    expect(migration).toMatch(/is_default/i);
+    expect(migration).toMatch(/auth\.uid\(\)/i);
+  });
 });

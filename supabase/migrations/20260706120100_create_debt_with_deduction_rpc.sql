@@ -52,6 +52,9 @@ DECLARE
   v_debt_tags text[];
   v_debt_note text;
   v_owner uuid;
+  v_source_currency_code text;
+  v_category_owner uuid;
+  v_category_is_default boolean;
 BEGIN
   IF p_deduct THEN
     IF p_source_account_id IS NULL THEN
@@ -70,6 +73,21 @@ BEGIN
   SELECT user_id INTO v_owner FROM public.accounts WHERE id = p_account_id;
   IF v_owner IS NULL OR v_owner <> auth.uid() THEN
     RAISE EXCEPTION 'Account not found or unauthorized';
+  END IF;
+
+  IF p_category_id IS NOT NULL THEN
+    SELECT user_id, is_default
+      INTO v_category_owner, v_category_is_default
+    FROM public.categories
+    WHERE id = p_category_id;
+
+    IF v_category_owner IS NULL AND coalesce(v_category_is_default, false) = false THEN
+      RAISE EXCEPTION 'Category not found or unauthorized';
+    END IF;
+
+    IF coalesce(v_category_is_default, false) = false AND v_category_owner <> auth.uid() THEN
+      RAISE EXCEPTION 'Category not found or unauthorized';
+    END IF;
   END IF;
 
   -- Build a debt-only tags list and a debt-only note so the debt row stays
@@ -108,10 +126,30 @@ BEGIN
   v_expense_id := NULL;
 
   IF p_deduct THEN
-    -- Ownership check on the source account.
-    SELECT user_id INTO v_owner FROM public.accounts WHERE id = p_source_account_id;
+    -- Ownership + same-currency check on the source account.
+    SELECT user_id, currency_code
+      INTO v_owner, v_source_currency_code
+    FROM public.accounts
+    WHERE id = p_source_account_id;
     IF v_owner IS NULL OR v_owner <> auth.uid() THEN
       RAISE EXCEPTION 'Source account not found or unauthorized';
+    END IF;
+
+    IF v_source_currency_code IS DISTINCT FROM p_currency_code THEN
+      RAISE EXCEPTION 'Source account currency must match debt currency';
+    END IF;
+
+    SELECT user_id, is_default
+      INTO v_category_owner, v_category_is_default
+    FROM public.categories
+    WHERE id = p_source_category_id;
+
+    IF v_category_owner IS NULL AND coalesce(v_category_is_default, false) = false THEN
+      RAISE EXCEPTION 'Source category not found or unauthorized';
+    END IF;
+
+    IF coalesce(v_category_is_default, false) = false AND v_category_owner <> auth.uid() THEN
+      RAISE EXCEPTION 'Source category not found or unauthorized';
     END IF;
 
     -- 2) Linked EXPENSE: same amount, source account/category, debt-linked

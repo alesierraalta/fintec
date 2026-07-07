@@ -147,18 +147,8 @@ describe('TransactionForm debt deduction UI', () => {
       />
     );
 
-    // Debug: dump the DOM if the toggle is not found.
-    await waitFor(
-      () => {
-        expect(
-          screen.getByLabelText('Descontar de cuenta')
-        ).toBeInTheDocument();
-      },
-      { timeout: 2000 }
-    ).catch(() => {
-      // eslint-disable-next-line no-console
-      console.log('FORM DOM:\n', document.body.innerHTML);
-      throw new Error('toggle not found');
+    await waitFor(() => {
+      expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
     });
   });
 
@@ -190,6 +180,62 @@ describe('TransactionForm debt deduction UI', () => {
     expect(
       screen.getByText(/No tienes otra cuenta en la misma moneda/i)
     ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Descontar de cuenta') as HTMLInputElement
+    ).not.toBeChecked();
+  });
+
+  it('submits debt metadata-only when no eligible source account exists', async () => {
+    const { container } = render(
+      <TransactionForm
+        isOpen
+        onClose={jest.fn()}
+        debtMode="create"
+        type={TransactionType.EXPENSE}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
+    });
+
+    const selects = Array.from(
+      container.querySelectorAll('select')
+    ) as HTMLSelectElement[];
+    const categorySelect = selects.find((s) =>
+      Array.from(s.options).some(
+        (o) => o.textContent === 'Seleccionar categoría'
+      )
+    );
+    expect(categorySelect).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('Monto'), {
+      target: { value: '20' },
+    });
+    fireEvent.change(screen.getByLabelText('Cuenta'), {
+      target: { value: 'cash-ves' },
+    });
+    fireEvent.change(categorySelect!, { target: { value: 'cat-1' } });
+    fireEvent.change(screen.getByLabelText('Descripción'), {
+      target: { value: 'Debt without source account' },
+    });
+    fireEvent.change(screen.getByLabelText('Direccion'), {
+      target: { value: DebtDirection.OWE },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /Guardar/i }));
+
+    await waitFor(() => {
+      expect(createMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isDebt: true,
+        deductFromAccount: false,
+      })
+    );
+    expect(createMock.mock.calls[0][0].sourceAccountId).toBeUndefined();
   });
 
   it('hides the source picker when the user un-toggles deduct', async () => {
@@ -204,6 +250,10 @@ describe('TransactionForm debt deduction UI', () => {
 
     await waitFor(() => {
       expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
+    });
+
+    fireEvent.change(screen.getByLabelText('Cuenta'), {
+      target: { value: 'cash-usd' },
     });
 
     const toggle = screen.getByLabelText(

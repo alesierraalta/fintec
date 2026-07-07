@@ -293,12 +293,12 @@ export function TransactionForm({
         // `sourceAccountId` so the DTO does not carry a stale value.
         deductFromAccount:
           canShowDebtFields && formData.isDebt
-            ? formData.deductFromAccount
+            ? shouldDeductFromAccount
             : undefined,
         sourceAccountId:
           canShowDebtFields &&
           formData.isDebt &&
-          formData.deductFromAccount &&
+          shouldDeductFromAccount &&
           formData.sourceAccountId
             ? formData.sourceAccountId
             : undefined,
@@ -367,6 +367,9 @@ export function TransactionForm({
           acc.id !== selectedDebtAccount.id
       )
     : [];
+  const hasEligibleSourceAccounts = eligibleSourceAccounts.length > 0;
+  const shouldDeductFromAccount =
+    formData.deductFromAccount && hasEligibleSourceAccounts;
 
   // Transform data for Select components
   const accountOptions = accounts.map((account) => ({
@@ -630,8 +633,8 @@ export function TransactionForm({
                   <input
                     id="transaction-deduct-from-account"
                     type="checkbox"
-                    checked={formData.deductFromAccount}
-                    disabled={eligibleSourceAccounts.length === 0}
+                    checked={shouldDeductFromAccount}
+                    disabled={!hasEligibleSourceAccounts}
                     onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
@@ -646,12 +649,12 @@ export function TransactionForm({
                     className="h-5 w-5 rounded border-border/30 bg-card/60 disabled:opacity-50"
                   />
                 </div>
-                {eligibleSourceAccounts.length === 0 ? (
+                {!hasEligibleSourceAccounts ? (
                   <p className="text-ios-caption text-muted-foreground">
                     No tienes otra cuenta en la misma moneda para descontar.
                   </p>
                 ) : (
-                  formData.deductFromAccount && (
+                  shouldDeductFromAccount && (
                     <Select
                       label="Cuenta de origen"
                       value={formData.sourceAccountId}
