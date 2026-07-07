@@ -165,4 +165,115 @@ describe('useTransactionForm debt capture', () => {
     );
     expect(createMock).not.toHaveBeenCalled();
   });
+
+  it('defaults debt creation to metadata-only when no source account is selected', async () => {
+    const { result } = renderHook(() => useTransactionForm());
+
+    await waitFor(() => {
+      expect(result.current.accounts.length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      result.current.setFormData((prev) => ({
+        ...prev,
+        type: TransactionType.EXPENSE,
+        accountId: 'acc-1',
+        categoryId: 'cat-expense',
+        amount: '50',
+        description: 'Debt with default deduct',
+        isDebt: true,
+        debtDirection: DebtDirection.OWE,
+        // no explicit sourceAccountId — shared/mobile flow should submit
+        // metadata-only instead of triggering repository validation errors
+      }));
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isDebt: true,
+        debtDirection: 'OWE',
+        deductFromAccount: false,
+      })
+    );
+    const call = createMock.mock.calls[0][0];
+    expect(call.sourceAccountId).toBeUndefined();
+  });
+
+  it('forwards sourceAccountId when the user picks one', async () => {
+    const { result } = renderHook(() => useTransactionForm());
+
+    await waitFor(() => {
+      expect(result.current.accounts.length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      result.current.setFormData((prev) => ({
+        ...prev,
+        type: TransactionType.EXPENSE,
+        accountId: 'acc-1',
+        categoryId: 'cat-expense',
+        amount: '75.25',
+        description: 'Debt with explicit source',
+        isDebt: true,
+        debtDirection: DebtDirection.OWE,
+        deductFromAccount: true,
+        sourceAccountId: 'acc-1',
+      }));
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isDebt: true,
+        debtDirection: 'OWE',
+        deductFromAccount: true,
+        sourceAccountId: 'acc-1',
+        amountMinor: 7525,
+      })
+    );
+  });
+
+  it('forwards deductFromAccount=false when the user opts out', async () => {
+    const { result } = renderHook(() => useTransactionForm());
+
+    await waitFor(() => {
+      expect(result.current.accounts.length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      result.current.setFormData((prev) => ({
+        ...prev,
+        type: TransactionType.EXPENSE,
+        accountId: 'acc-1',
+        categoryId: 'cat-expense',
+        amount: '15',
+        description: 'Debt with no deduction',
+        isDebt: true,
+        debtDirection: DebtDirection.OWE,
+        deductFromAccount: false,
+      }));
+    });
+
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        isDebt: true,
+        deductFromAccount: false,
+      })
+    );
+    // The DTO must NOT carry an accidental sourceAccountId when the user
+    // opted out of deduction.
+    const call = createMock.mock.calls[0][0];
+    expect(call.sourceAccountId).toBeUndefined();
+  });
 });

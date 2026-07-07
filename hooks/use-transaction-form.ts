@@ -59,6 +59,11 @@ export interface TransactionFormData {
   debtStatus: DebtStatus;
   counterpartyName: string;
   settledAt: string;
+  // * Debt-only: when true (default), the repository will create a
+  // linked EXPENSE that debits `sourceAccountId` atomically with the
+  // debt row. When false, the debt is metadata only.
+  deductFromAccount: boolean;
+  sourceAccountId: string;
   isRecurring: boolean;
   frequency: 'weekly' | 'monthly' | 'yearly';
   endDate: string;
@@ -79,6 +84,8 @@ const INITIAL_FORM_DATA: TransactionFormData = {
   debtStatus: DebtStatus.OPEN,
   counterpartyName: '',
   settledAt: '',
+  deductFromAccount: true,
+  sourceAccountId: '',
   isRecurring: false,
   frequency: 'monthly',
   endDate: '',
@@ -340,6 +347,12 @@ export function useTransactionForm(): UseTransactionFormReturn {
         return;
       }
 
+      const shouldDeductDebtFromAccount =
+        canShowDebtFields &&
+        formData.isDebt &&
+        formData.deductFromAccount &&
+        Boolean(formData.sourceAccountId);
+
       const transactionData: CreateTransactionDTO = {
         type: (formData.type as TransactionType) || 'EXPENSE',
         accountId: formData.accountId,
@@ -374,6 +387,18 @@ export function useTransactionForm(): UseTransactionFormReturn {
           formData.isDebt &&
           formData.debtStatus === DebtStatus.SETTLED
             ? formData.settledAt
+            : undefined,
+        // * Debt-only: only request the source-account deduction when the
+        // shared/mobile flow actually has a source account. Otherwise the
+        // debt is metadata-only; this prevents mobile debt creation from
+        // failing on the repository's sourceAccountId guard.
+        deductFromAccount:
+          canShowDebtFields && formData.isDebt
+            ? shouldDeductDebtFromAccount
+            : undefined,
+        sourceAccountId:
+          shouldDeductDebtFromAccount && formData.sourceAccountId
+            ? formData.sourceAccountId
             : undefined,
       };
 

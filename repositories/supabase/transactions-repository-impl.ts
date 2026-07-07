@@ -317,6 +317,73 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('settledAt is required when debtStatus=SETTLED');
     }
 
+    // Debt with source-account deduction: route through the dedicated RPC
+    // that inserts the debt (skip) AND the linked EXPENSE in one transaction.
+    if (transactionData.isDebt === true && transactionData.deductFromAccount) {
+      if (!transactionData.sourceAccountId) {
+        throw new Error(
+          'sourceAccountId is required when deductFromAccount=true'
+        );
+      }
+      const { data, error } = await (this.client as any).rpc(
+        'create_debt_with_deduction',
+        {
+          p_account_id: transactionData.accountId,
+          p_category_id: transactionData.categoryId ?? null,
+          p_type: transactionData.type,
+          p_currency_code: transactionData.currencyCode,
+          p_amount_minor: transactionData.amountMinor,
+          p_amount_base_minor: this.computeAmountBaseMinor(
+            transactionData.amountMinor,
+            transactionData.currencyCode,
+            transactionData.exchangeRate
+          ),
+          p_exchange_rate:
+            transactionData.currencyCode === 'VES'
+              ? transactionData.exchangeRate || 1
+              : 1,
+          p_date: transactionData.date,
+          p_description: transactionData.description,
+          p_note: transactionData.note ?? null,
+          p_tags: transactionData.tags ?? null,
+          p_debt_direction: transactionData.debtDirection,
+          p_debt_status: transactionData.debtStatus ?? DebtStatus.OPEN,
+          p_counterparty_name: transactionData.counterpartyName ?? null,
+          p_settled_at: transactionData.settledAt ?? null,
+          p_deduct: true,
+          p_source_account_id: transactionData.sourceAccountId,
+          // Category for the linked EXPENSE: caller may supply a default
+          // expense category via `categoryId` when it differs from the debt
+          // category. When missing, the RPC falls back to no category.
+          p_source_category_id: transactionData.categoryId ?? null,
+        }
+      );
+
+      if (error) {
+        throw new Error(`Failed to create debt: ${error.message}`);
+      }
+
+      // The RPC returns a json object; we still want the caller to receive
+      // a Transaction domain object representing the debt (not the expense).
+      const debtId =
+        (data && (Array.isArray(data) ? data[0]?.debt_id : data.debt_id)) ??
+        null;
+
+      if (!debtId) {
+        throw new Error('Failed to create debt: missing debt_id in response');
+      }
+
+      const fetched = await this.findById(debtId);
+      if (fetched) {
+        return fetched;
+      }
+      // Fallback: if the lookup misses (cache/RLS edge), surface the
+      // missing-row error so the caller can react instead of receiving
+      // a half-initialized Transaction. (The create_debt_with_deduction
+      // RPC always returns a valid id, so a real miss here is exceptional.)
+      throw new Error(`Failed to load debt row after create (id=${debtId})`);
+    }
+
     const isVesCurrency = transactionData.currencyCode === 'VES';
     const exchangeRate = isVesCurrency ? transactionData.exchangeRate || 1 : 1;
     const amountBaseMinor = isVesCurrency
@@ -385,6 +452,16 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const createdTransaction = mapSupabaseTransactionToDomain(data);
     return createdTransaction;
+  }
+
+  private computeAmountBaseMinor(
+    amountMinor: number,
+    currencyCode: string,
+    exchangeRate?: number
+  ): number {
+    if (currencyCode !== 'VES') return amountMinor;
+    const rate = exchangeRate && exchangeRate > 0 ? exchangeRate : 1;
+    return Math.round(amountMinor / rate);
   }
 
   private calculateBalanceAdjustment(
@@ -483,16 +560,25 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     const updatedTransaction = mapSupabaseTransactionToDomain(data);
 
-    // Update account balance if amount or type changed
+    // Debt rows are metadata: they never touch account balances (see
+    // 20260706120000_debt_balance_skip.sql and design W3). On updates we must
+    // therefore revert only the original non-debt effect and apply only the
+    // updated non-debt effect, so normal↔debt transitions stay correct.
     try {
-      const originalAdjustment = this.calculateBalanceAdjustment(
-        originalTransaction.type,
-        originalTransaction.amountMinor
-      );
-      const newAdjustment = this.calculateBalanceAdjustment(
-        updatedTransaction.type,
-        updatedTransaction.amountMinor
-      );
+      const originalAdjustment =
+        originalTransaction.isDebt === true
+          ? 0
+          : this.calculateBalanceAdjustment(
+              originalTransaction.type,
+              originalTransaction.amountMinor
+            );
+      const newAdjustment =
+        updatedTransaction.isDebt === true
+          ? 0
+          : this.calculateBalanceAdjustment(
+              updatedTransaction.type,
+              updatedTransaction.amountMinor
+            );
       const balanceDifference = newAdjustment - originalAdjustment;
 
       if (balanceDifference !== 0 && this.accountsRepository) {
