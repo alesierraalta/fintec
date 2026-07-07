@@ -4,12 +4,14 @@ import { DebtStatus, TransactionType, type Transaction } from '@/types';
 
 const updateMock = jest.fn().mockResolvedValue({});
 const deleteMock = jest.fn().mockResolvedValue({});
+const settleDebtMock = jest.fn().mockResolvedValue({});
 const onSuccessMock = jest.fn();
 
 const mockRepository = {
   transactions: {
     update: updateMock,
     delete: deleteMock,
+    settleDebt: settleDebtMock,
   },
 };
 
@@ -46,13 +48,14 @@ describe('useDebtActions', () => {
   beforeEach(() => {
     updateMock.mockReset().mockResolvedValue({});
     deleteMock.mockReset().mockResolvedValue({});
+    settleDebtMock.mockReset().mockResolvedValue({});
     onSuccessMock.mockReset();
     toastSuccessMock.mockReset();
     toastErrorMock.mockReset();
   });
 
   describe('settleDebt', () => {
-    it('happy path: calls update with SETTLED status + settledAt, shows success toast, calls onSuccess', async () => {
+    it('happy path: calls settleDebt with input, shows success toast, calls onSuccess', async () => {
       const { result } = renderHook(() =>
         useDebtActions({
           repository: mockRepository as any,
@@ -61,20 +64,19 @@ describe('useDebtActions', () => {
       );
 
       await act(async () => {
-        await result.current.settleDebt(sampleDebt);
+        await result.current.settleDebt(sampleDebt, {
+          amountMinor: 5000,
+          settlementAccountId: 'acc-1',
+          date: '2026-07-07T00:00:00.000Z',
+        });
       });
 
-      expect(updateMock).toHaveBeenCalledWith(
-        'debt-1',
-        expect.objectContaining({
-          id: 'debt-1',
-          debtStatus: DebtStatus.SETTLED,
-        })
-      );
-
-      const updateCall = updateMock.mock.calls[0][1];
-      expect(updateCall.settledAt).toBeDefined();
-      expect(typeof updateCall.settledAt).toBe('string');
+      expect(settleDebtMock).toHaveBeenCalledWith({
+        debtTransactionId: 'debt-1',
+        settlementAccountId: 'acc-1',
+        amountMinor: 5000,
+        date: '2026-07-07T00:00:00.000Z',
+      });
 
       expect(toastSuccessMock).toHaveBeenCalledWith(
         'Deuda saldada exitosamente'
@@ -83,7 +85,7 @@ describe('useDebtActions', () => {
     });
 
     it('error: shows error toast on API failure, does NOT call onSuccess', async () => {
-      updateMock.mockRejectedValueOnce(new Error('Network error'));
+      settleDebtMock.mockRejectedValueOnce(new Error('Network error'));
 
       const { result } = renderHook(() =>
         useDebtActions({
@@ -93,7 +95,13 @@ describe('useDebtActions', () => {
       );
 
       await act(async () => {
-        await result.current.settleDebt(sampleDebt);
+        try {
+          await result.current.settleDebt(sampleDebt, {
+            amountMinor: 5000,
+            settlementAccountId: 'acc-1',
+            date: '2026-07-07T00:00:00.000Z',
+          });
+        } catch (e) {}
       });
 
       expect(toastErrorMock).toHaveBeenCalledWith('Error al saldar la deuda');

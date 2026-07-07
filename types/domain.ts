@@ -94,6 +94,10 @@ export interface Transaction {
   isDebt?: boolean;
   debtDirection?: DebtDirection;
   debtStatus?: DebtStatus;
+  paidAmountMinor?: number;
+  paidAmountBaseMinor?: number;
+  remainingAmountMinor?: number;
+  remainingAmountBaseMinor?: number;
   counterpartyName?: string;
   settledAt?: string;
   createdAt: string;
@@ -115,6 +119,20 @@ export enum DebtDirection {
 export enum DebtStatus {
   OPEN = 'OPEN',
   SETTLED = 'SETTLED',
+}
+
+export interface DebtSettlement {
+  id: string;
+  debtTransactionId: string;
+  settlementTransactionId: string;
+  userId?: string;
+  accountId: string;
+  amountMinor: number;
+  amountBaseMinor: number;
+  currencyCode: string;
+  debtDirection: DebtDirection;
+  settledAt: string;
+  createdAt: string;
 }
 
 export type DebtMode = 'ALL' | 'ONLY_DEBT' | 'EXCLUDE_DEBT';
@@ -201,6 +219,15 @@ export enum RecurrenceFrequency {
 }
 
 // DTOs for API operations
+export interface SettleDebtDTO {
+  debtTransactionId: string;
+  settlementAccountId: string;
+  categoryId?: string;
+  amountMinor: number;
+  date: string;
+  note?: string;
+}
+
 export interface CreateTransactionDTO {
   type: TransactionType;
   accountId: string;

@@ -23,7 +23,11 @@ export const TRANSACTION_LIST_PROJECTION = `
   transfer_id,
   is_debt,
   debt_direction,
-  debt_status
+  debt_status,
+  debt_paid_amount_minor,
+  debt_paid_amount_base_minor,
+  debt_remaining_amount_minor,
+  debt_remaining_amount_base_minor
 `;
 
 /** Detail projection: all fields for single transaction views */
@@ -44,6 +48,10 @@ export const TRANSACTION_DETAIL_PROJECTION = `
   is_debt,
   debt_direction,
   debt_status,
+  debt_paid_amount_minor,
+  debt_paid_amount_base_minor,
+  debt_remaining_amount_minor,
+  debt_remaining_amount_base_minor,
   counterparty_name,
   settled_at,
   created_at,

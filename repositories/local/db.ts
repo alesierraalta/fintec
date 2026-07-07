@@ -11,6 +11,7 @@ import {
   User,
   RecurringRule,
   CategoryKind,
+  DebtSettlement,
 } from '@/types';
 
 // Dexie database schema
@@ -26,6 +27,7 @@ export class FinanceDB extends Dexie {
   goalContributions!: Table<GoalContribution>;
   exchangeRates!: Table<ExchangeRate>;
   recurringRules!: Table<RecurringRule>;
+  debtSettlements!: Table<DebtSettlement>;
 
   constructor() {
     super('FinanceDB');
@@ -109,6 +111,29 @@ export class FinanceDB extends Dexie {
         'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency]',
       recurringRules:
         'id, name, frequency, nextRunDate, active, createdAt, [active+nextRunDate]',
+    });
+
+    this.version(4).stores({
+      users: 'id, email, baseCurrency, createdAt',
+      accounts:
+        'id, userId, name, type, currencyCode, balance, active, createdAt, [type+active], [currencyCode+active], [userId+active]',
+      transactions:
+        'id, type, accountId, categoryId, currencyCode, date, amountMinor, amountBaseMinor, transferId, isDebt, debtDirection, debtStatus, settledAt, createdAt, [accountId+date], [categoryId+date], [type+date], [date+type], [isDebt+debtStatus], [isDebt+debtDirection+date]',
+      transfers: 'id, fromTransactionId, toTransactionId, createdAt',
+      categories:
+        'id, name, kind, parentId, active, createdAt, [kind+active], [parentId+active]',
+      budgets:
+        'id, categoryId, monthYear, amountBaseMinor, active, createdAt, [categoryId+monthYear], [monthYear+active]',
+      goals:
+        'id, name, targetBaseMinor, currentBaseMinor, targetDate, accountId, active, createdAt, [active+targetDate]',
+      goalContributions:
+        'id, goalId, createdAt, source, relatedTransactionId, [goalId+createdAt]',
+      exchangeRates:
+        'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency]',
+      recurringRules:
+        'id, name, frequency, nextRunDate, active, createdAt, [active+nextRunDate]',
+      debtSettlements:
+        'id, debtTransactionId, settlementTransactionId, accountId, userId, settledAt, [debtTransactionId+settledAt]',
     });
   }
 
@@ -362,6 +387,7 @@ export class FinanceDB extends Dexie {
     goalContributions: GoalContribution[];
     exchangeRates: ExchangeRate[];
     recurringRules: RecurringRule[];
+    debtSettlements: DebtSettlement[];
   }> {
     return {
       users: await this.users.toArray(),
@@ -374,6 +400,7 @@ export class FinanceDB extends Dexie {
       goalContributions: await this.goalContributions.toArray(),
       exchangeRates: await this.exchangeRates.toArray(),
       recurringRules: await this.recurringRules.toArray(),
+      debtSettlements: await this.debtSettlements.toArray(),
     };
   }
 
@@ -389,6 +416,7 @@ export class FinanceDB extends Dexie {
     goalContributions?: GoalContribution[];
     exchangeRates?: ExchangeRate[];
     recurringRules?: RecurringRule[];
+    debtSettlements?: DebtSettlement[];
   }): Promise<void> {
     await this.transaction('rw', this.tables, async () => {
       if (data.users) await this.users.bulkPut(data.users);
@@ -404,6 +432,8 @@ export class FinanceDB extends Dexie {
         await this.exchangeRates.bulkPut(data.exchangeRates);
       if (data.recurringRules)
         await this.recurringRules.bulkPut(data.recurringRules);
+      if (data.debtSettlements)
+        await this.debtSettlements.bulkPut(data.debtSettlements);
     });
   }
 }

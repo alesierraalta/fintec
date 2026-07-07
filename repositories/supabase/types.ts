@@ -30,6 +30,10 @@ export interface SupabaseTransaction {
   tags?: string[];
   transfer_id?: string;
   is_debt?: boolean;
+  debt_paid_amount_minor?: number | null;
+  debt_paid_amount_base_minor?: number | null;
+  debt_remaining_amount_minor?: number | null;
+  debt_remaining_amount_base_minor?: number | null;
   debt_direction?: 'OWE' | 'OWED_TO_ME' | null;
   debt_status?: 'OPEN' | 'SETTLED' | null;
   counterparty_name?: string | null;

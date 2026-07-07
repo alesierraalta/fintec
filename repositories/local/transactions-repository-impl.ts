@@ -12,6 +12,8 @@ import {
   DebtDirection,
   DebtStatus,
   DebtSummary,
+  SettleDebtDTO,
+  DebtSettlement,
 } from '@/types';
 import { TransactionsRepository } from '@/repositories/contracts';
 import { db } from './db';
@@ -230,6 +232,110 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     }
 
     await db.transactions.delete(id);
+  }
+
+  async settleDebt(dto: SettleDebtDTO): Promise<Transaction> {
+    if (dto.amountMinor <= 0 || !Number.isInteger(dto.amountMinor))
+      throw new Error('Invalid amount');
+
+    return db.transaction(
+      'rw',
+      [db.transactions, db.accounts, db.categories, db.debtSettlements],
+      async () => {
+        const debt = await db.transactions.get(dto.debtTransactionId);
+        if (!debt || !debt.isDebt) throw new Error('Not a debt');
+        if (debt.debtStatus === DebtStatus.SETTLED)
+          throw new Error('Debt is already settled');
+
+        const currentRemaining = debt.remainingAmountMinor ?? debt.amountMinor;
+        if (dto.amountMinor > currentRemaining)
+          throw new Error('Settlement amount exceeds remaining debt');
+
+        const account = await db.accounts.get(dto.settlementAccountId);
+        if (!account) throw new Error('Settlement account not found');
+        if (!account.active)
+          throw new Error('Settlement account is not active');
+        if (account.currencyCode !== debt.currencyCode)
+          throw new Error(
+            'Settlement account currency must match debt currency'
+          );
+
+        if (dto.categoryId) {
+          const category = await db.categories.get(dto.categoryId);
+          if (!category) throw new Error('Category not found or unauthorized');
+        }
+
+        const amountBaseMinor = Math.round(dto.amountMinor / debt.exchangeRate);
+        const txType =
+          debt.debtDirection === DebtDirection.OWED_TO_ME
+            ? TransactionType.INCOME
+            : TransactionType.EXPENSE;
+        const settledAt = dto.date || new Date().toISOString();
+
+        const newTx: Transaction = {
+          id: generateId(),
+          type: txType,
+          accountId: account.id,
+          categoryId: dto.categoryId,
+          currencyCode: debt.currencyCode,
+          amountMinor: dto.amountMinor,
+          amountBaseMinor: amountBaseMinor,
+          exchangeRate: debt.exchangeRate,
+          date: settledAt,
+          description: 'Debt Settlement',
+          note: dto.note,
+          isDebt: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        await db.transactions.add(newTx);
+
+        const debtSettlement: DebtSettlement = {
+          id: generateId(),
+          debtTransactionId: debt.id,
+          settlementTransactionId: newTx.id,
+          accountId: account.id,
+          amountMinor: dto.amountMinor,
+          amountBaseMinor: amountBaseMinor,
+          currencyCode: debt.currencyCode,
+          debtDirection: debt.debtDirection as DebtDirection,
+          settledAt: settledAt,
+          createdAt: new Date().toISOString(),
+        };
+        await db.debtSettlements.add(debtSettlement);
+
+        if (txType === TransactionType.INCOME) {
+          await db.accounts.update(account.id, {
+            balance: account.balance + dto.amountMinor,
+          });
+        } else {
+          await db.accounts.update(account.id, {
+            balance: account.balance - dto.amountMinor,
+          });
+        }
+
+        debt.paidAmountMinor = (debt.paidAmountMinor || 0) + dto.amountMinor;
+        debt.paidAmountBaseMinor =
+          (debt.paidAmountBaseMinor || 0) + amountBaseMinor;
+        debt.remainingAmountMinor = Math.max(
+          0,
+          debt.amountMinor - debt.paidAmountMinor
+        );
+        debt.remainingAmountBaseMinor = Math.max(
+          0,
+          debt.amountBaseMinor - debt.paidAmountBaseMinor
+        );
+
+        if (debt.remainingAmountMinor === 0) {
+          debt.debtStatus = DebtStatus.SETTLED;
+          debt.settledAt = settledAt;
+        }
+
+        await db.transactions.put(debt);
+        return debt;
+      }
+    );
   }
 
   async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
@@ -481,11 +587,13 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     const totals = debts.data.reduce(
       (acc, transaction) => {
         if (transaction.debtDirection === DebtDirection.OWE) {
-          acc.totalOweBaseMinor += transaction.amountBaseMinor;
+          acc.totalOweBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
-          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
+          acc.totalOwedToMeBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         return acc;

@@ -18,6 +18,7 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { TransactionForm } from '@/components/forms/transaction-form';
+import { DebtSettlementForm } from '@/components/forms/debt-settlement-form';
 import { CheckCircle, Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
 
 const EMPTY_SUMMARY: DebtSummary = {
@@ -132,12 +133,8 @@ export default function DebtsPageClient() {
     [openSettleDialog]
   );
 
-  const handleSettleConfirm = useCallback(async () => {
-    if (!selectedDebt) return;
-    await debtActions.settleDebt(selectedDebt);
-    closeSettleDialog();
-    setSelectedDebt(null);
-  }, [selectedDebt, debtActions, closeSettleDialog]);
+  // We handle settle submission in the DebtSettlementForm component now
+  // handleSettleConfirm is removed from here
 
   const handleDeleteClick = useCallback(
     (debt: Transaction) => {
@@ -360,7 +357,9 @@ export default function DebtsPageClient() {
                   <span>
                     {debt.debtStatus === DebtStatus.SETTLED
                       ? 'Saldada'
-                      : 'Abierta'}
+                      : debt.paidAmountMinor && debt.paidAmountMinor > 0
+                        ? 'Parcialmente pagada'
+                        : 'Abierta'}
                   </span>
                   <span>•</span>
                   <span>{debt.date.split('T')[0]}</span>
@@ -377,6 +376,29 @@ export default function DebtsPageClient() {
                     </>
                   )}
                 </div>
+
+                {(debt.paidAmountMinor ?? 0) > 0 && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <div className="flex justify-between">
+                      <span>Pagado:</span>
+                      <span>
+                        {formatCurrency(
+                          debt.paidAmountMinor || 0,
+                          debt.currencyCode
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between font-medium text-foreground">
+                      <span>Restante:</span>
+                      <span>
+                        {formatCurrency(
+                          debt.remainingAmountMinor ?? debt.amountMinor,
+                          debt.currencyCode
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Action buttons */}
                 <div className="mt-3 flex items-center gap-2 border-t border-border pt-3">
@@ -427,50 +449,14 @@ export default function DebtsPageClient() {
       </div>
 
       {/* Settle Confirmation Dialog */}
-      <AlertDialog open={isSettleDialogOpen} onOpenChange={closeSettleDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar liquidacion</AlertDialogTitle>
-            <AlertDialogDescription>
-              {selectedDebt && (
-                <>
-                  Estas seguro que deseas saldar la deuda{' '}
-                  <strong>
-                    {selectedDebt.description || 'sin descripcion'}
-                  </strong>{' '}
-                  por{' '}
-                  <strong>
-                    {formatCurrency(
-                      selectedDebt.amountMinor || 0,
-                      selectedDebt.currencyCode
-                    )}
-                  </strong>
-                  {selectedDebt.counterpartyName && (
-                    <>
-                      {' '}
-                      con <strong>{selectedDebt.counterpartyName}</strong>
-                    </>
-                  )}
-                  ?
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSettleConfirm}>
-              {debtActions.settlingId === selectedDebt?.id ? (
-                <>
-                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                  Saldando...
-                </>
-              ) : (
-                'Confirmar'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DebtSettlementForm
+        open={isSettleDialogOpen}
+        onClose={closeSettleDialog}
+        onSuccess={loadDebts}
+        debt={selectedDebt}
+        onSettle={debtActions.settleDebt}
+        settlingId={debtActions.settlingId}
+      />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={closeDeleteDialog}>

@@ -11,6 +11,7 @@ import {
   CashFlowData,
   CreateTransactionDTO,
   UpdateTransactionDTO,
+  SettleDebtDTO,
 } from '@/types';
 import { BaseRepository } from './base-repository';
 
@@ -63,6 +64,7 @@ export interface TransactionsRepository
     },
     pagination?: PaginationParams
   ): Promise<PaginatedResult<Transaction>>;
+  settleDebt(dto: SettleDebtDTO): Promise<Transaction>;
   getDebtSummary(filters?: {
     dateFrom?: string;
     dateTo?: string;

@@ -108,6 +108,34 @@ export function mapDomainAccountToSupabase(
 export function mapSupabaseTransactionToDomain(
   supabaseTransaction: SupabaseTransaction
 ): Transaction {
+  const debtStatus =
+    (supabaseTransaction.debt_status as DebtStatus | null) ?? undefined;
+  let paidAmountMinor = supabaseTransaction.debt_paid_amount_minor ?? undefined;
+  let remainingAmountMinor =
+    supabaseTransaction.debt_remaining_amount_minor ?? undefined;
+  let paidAmountBaseMinor =
+    supabaseTransaction.debt_paid_amount_base_minor ?? undefined;
+  let remainingAmountBaseMinor =
+    supabaseTransaction.debt_remaining_amount_base_minor ?? undefined;
+
+  if (
+    supabaseTransaction.is_debt &&
+    paidAmountMinor === undefined &&
+    remainingAmountMinor === undefined
+  ) {
+    if (debtStatus === 'SETTLED') {
+      paidAmountMinor = supabaseTransaction.amount_minor;
+      remainingAmountMinor = 0;
+      paidAmountBaseMinor = supabaseTransaction.amount_base_minor;
+      remainingAmountBaseMinor = 0;
+    } else if (debtStatus === 'OPEN') {
+      paidAmountMinor = 0;
+      remainingAmountMinor = supabaseTransaction.amount_minor;
+      paidAmountBaseMinor = 0;
+      remainingAmountBaseMinor = supabaseTransaction.amount_base_minor;
+    }
+  }
+
   return {
     id: supabaseTransaction.id,
     type: supabaseTransaction.type as TransactionType,
@@ -125,8 +153,11 @@ export function mapSupabaseTransactionToDomain(
     isDebt: supabaseTransaction.is_debt ?? false,
     debtDirection:
       (supabaseTransaction.debt_direction as DebtDirection | null) ?? undefined,
-    debtStatus:
-      (supabaseTransaction.debt_status as DebtStatus | null) ?? undefined,
+    debtStatus,
+    paidAmountMinor,
+    paidAmountBaseMinor,
+    remainingAmountMinor,
+    remainingAmountBaseMinor,
     counterpartyName: supabaseTransaction.counterparty_name ?? undefined,
     settledAt: supabaseTransaction.settled_at ?? undefined,
     createdAt: supabaseTransaction.created_at,
@@ -156,6 +187,12 @@ export function mapDomainTransactionToSupabase(
     is_debt: transaction.isDebt,
     debt_direction: isDebt ? transaction.debtDirection : null,
     debt_status: isDebt ? transaction.debtStatus : null,
+    debt_paid_amount_minor: isDebt
+      ? (transaction.paidAmountMinor ?? null)
+      : null,
+    debt_paid_amount_base_minor: isDebt
+      ? (transaction.paidAmountBaseMinor ?? null)
+      : null,
     counterparty_name: isDebt ? (transaction.counterpartyName ?? null) : null,
     settled_at: isDebt ? (transaction.settledAt ?? null) : null,
     created_at: transaction.createdAt,

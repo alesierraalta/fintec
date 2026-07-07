@@ -12,6 +12,7 @@ import {
   DebtStatus,
   DebtSummary,
   DebtMode,
+  SettleDebtDTO,
 } from '@/types';
 import { supabase } from './client';
 import {
@@ -600,6 +601,25 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return updatedTransaction;
   }
 
+  async settleDebt(dto: SettleDebtDTO): Promise<Transaction> {
+    const { data, error } = await (this.client as any).rpc(
+      'settle_debt_partial',
+      {
+        p_debt_id: dto.debtTransactionId,
+        p_account_id: dto.settlementAccountId,
+        p_category_id: dto.categoryId || null,
+        p_amount_minor: dto.amountMinor,
+        p_date: dto.date,
+        p_note: dto.note || null,
+      }
+    );
+    if (error) throw new Error(error.message);
+    return this.findById(dto.debtTransactionId).then((t) => {
+      if (!t) throw new Error('Debt not found after settlement');
+      return t;
+    });
+  }
+
   async delete(id: string): Promise<void> {
     const userId = await this.getUserId();
     if (!userId) {
@@ -1155,11 +1175,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const totals = allDebts.reduce(
       (acc, transaction) => {
         if (transaction.debtDirection === DebtDirection.OWE) {
-          acc.totalOweBaseMinor += transaction.amountBaseMinor;
+          acc.totalOweBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
-          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
+          acc.totalOwedToMeBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         return acc;

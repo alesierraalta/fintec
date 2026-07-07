@@ -13,7 +13,16 @@ interface UseDebtActionsOptions {
 interface UseDebtActionsReturn {
   settlingId: string | null;
   deletingId: string | null;
-  settleDebt: (debt: Transaction) => Promise<void>;
+  settleDebt: (
+    debt: Transaction,
+    input: {
+      amountMinor: number;
+      settlementAccountId: string;
+      date?: string;
+      categoryId?: string;
+      note?: string;
+    }
+  ) => Promise<void>;
   deleteDebt: (debt: Transaction) => Promise<void>;
 }
 
@@ -29,30 +38,43 @@ export function useDebtActions({
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const settleDebt = useCallback(
-    async (debt: Transaction) => {
+    async (
+      debt: Transaction,
+      input: {
+        amountMinor: number;
+        settlementAccountId: string;
+        date?: string;
+        categoryId?: string;
+        note?: string;
+      }
+    ) => {
       if (!debt.id) return;
+      if (!input.settlementAccountId) throw new Error('Account required');
+      if (!Number.isInteger(input.amountMinor) || input.amountMinor <= 0) {
+        throw new Error('Invalid amount');
+      }
+      const maxAllowed = debt.remainingAmountMinor ?? debt.amountMinor;
+      if (input.amountMinor > maxAllowed) {
+        throw new Error('Cannot overpay debt');
+      }
 
-      // Optimistic: mark as settling
       setSettlingId(debt.id);
 
-      // Capture previous state for rollback
-      const previousDebtStatus = debt.debtStatus;
-      const previousSettledAt = debt.settledAt;
-
       try {
-        // Optimistically update local state via onSuccess (caller re-fetches)
-        await repository.transactions.update(debt.id, {
-          id: debt.id,
-          debtStatus: DebtStatus.SETTLED,
-          settledAt: new Date().toISOString(),
+        await repository.transactions.settleDebt({
+          debtTransactionId: debt.id,
+          settlementAccountId: input.settlementAccountId,
+          amountMinor: input.amountMinor,
+          date: input.date || new Date().toISOString(),
+          categoryId: input.categoryId,
+          note: input.note,
         });
 
         toast.success('Deuda saldada exitosamente');
         onSuccess();
       } catch (error) {
-        // Rollback: restore previous state
-        // The caller's loadDebts() will re-fetch, so we just show the error toast
         toast.error('Error al saldar la deuda');
+        throw error;
       } finally {
         setSettlingId(null);
       }
