@@ -217,6 +217,18 @@ export interface CreateTransactionDTO {
   debtStatus?: DebtStatus;
   counterpartyName?: string;
   settledAt?: string;
+  /**
+   * Debt-only: when true (default in the form), the repository will
+   * create a linked EXPENSE that debits `sourceAccountId` atomically
+   * with the debt row. When false, the debt is metadata only and no
+   * balance is touched.
+   */
+  deductFromAccount?: boolean;
+  /**
+   * Debt-only: the account that should be debited by the linked
+   * EXPENSE. Required when `deductFromAccount` is true.
+   */
+  sourceAccountId?: string;
 }
 
 export interface CreateTransferDTO {

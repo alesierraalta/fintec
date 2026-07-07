@@ -59,6 +59,11 @@ export interface TransactionFormData {
   debtStatus: DebtStatus;
   counterpartyName: string;
   settledAt: string;
+  // * Debt-only: when true (default), the repository will create a
+  // linked EXPENSE that debits `sourceAccountId` atomically with the
+  // debt row. When false, the debt is metadata only.
+  deductFromAccount: boolean;
+  sourceAccountId: string;
   isRecurring: boolean;
   frequency: 'weekly' | 'monthly' | 'yearly';
   endDate: string;
@@ -79,6 +84,8 @@ const INITIAL_FORM_DATA: TransactionFormData = {
   debtStatus: DebtStatus.OPEN,
   counterpartyName: '',
   settledAt: '',
+  deductFromAccount: true,
+  sourceAccountId: '',
   isRecurring: false,
   frequency: 'monthly',
   endDate: '',
@@ -374,6 +381,22 @@ export function useTransactionForm(): UseTransactionFormReturn {
           formData.isDebt &&
           formData.debtStatus === DebtStatus.SETTLED
             ? formData.settledAt
+            : undefined,
+        // * Debt-only: forward the deduct toggle and the picked source
+        // account so the repository can route to create_debt_with_deduction
+        // (Supabase) or its Dexie-transaction equivalent (local). When the
+        // toggle is off we deliberately omit `sourceAccountId` so the
+        // DTO does not carry a stale value.
+        deductFromAccount:
+          canShowDebtFields && formData.isDebt
+            ? formData.deductFromAccount
+            : undefined,
+        sourceAccountId:
+          canShowDebtFields &&
+          formData.isDebt &&
+          formData.deductFromAccount &&
+          formData.sourceAccountId
+            ? formData.sourceAccountId
             : undefined,
       };
 

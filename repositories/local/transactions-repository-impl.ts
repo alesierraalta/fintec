@@ -44,6 +44,78 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       ? Math.round(data.amountMinor / exchangeRate)
       : data.amountMinor;
 
+    // Debt + source-account deduction: build the debt and the linked EXPENSE
+    // in a single Dexie transaction so they cannot land in a partial state.
+    if (isDebt && data.deductFromAccount === true) {
+      if (!data.sourceAccountId) {
+        throw new Error(
+          'sourceAccountId is required when deductFromAccount=true'
+        );
+      }
+
+      const debt: Transaction = {
+        id: generateId('txn'),
+        type: data.type,
+        accountId: data.accountId,
+        categoryId: data.categoryId,
+        currencyCode: data.currencyCode,
+        amountMinor: data.amountMinor,
+        amountBaseMinor,
+        exchangeRate,
+        date: data.date,
+        description: data.description,
+        note: data.note,
+        tags: data.tags,
+        isDebt: true,
+        debtDirection: data.debtDirection,
+        debtStatus: data.debtStatus || DebtStatus.OPEN,
+        counterpartyName: data.counterpartyName,
+        settledAt: data.settledAt,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const expense: Transaction = {
+        id: generateId('txn'),
+        type: TransactionType.EXPENSE,
+        accountId: data.sourceAccountId,
+        categoryId: data.categoryId,
+        currencyCode: data.currencyCode,
+        amountMinor: data.amountMinor,
+        amountBaseMinor,
+        exchangeRate,
+        date: data.date,
+        description: data.description,
+        // Linked EXPENSE always carries the "Debt: <description>" note so
+        // the user can identify the source debt from the EXPENSE row. The
+        // Supabase RPC (`create_debt_with_deduction`) uses the same rule.
+        note: `Debt: ${data.description}`,
+        tags: [
+          'debt-linked',
+          `debt:${debt.id}`,
+          ...((data.tags as string[] | undefined) ?? []),
+        ],
+        isDebt: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await db.transaction('rw', [db.transactions, db.accounts], async () => {
+        await db.transactions.add(debt);
+        await db.transactions.add(expense);
+        // Debt is metadata: do NOT touch the debt's account balance.
+        // The linked EXPENSE debits the source account via the same
+        // non-debt path used for ordinary expenses.
+        await this.updateAccountBalance(
+          expense.accountId,
+          expense.amountMinor,
+          TransactionType.EXPENSE
+        );
+      });
+
+      return debt;
+    }
+
     const transaction: Transaction = {
       id: generateId('txn'),
       type: data.type,
@@ -68,12 +140,16 @@ export class LocalTransactionsRepository implements TransactionsRepository {
 
     await db.transactions.add(transaction);
 
-    // Update account balance
-    await this.updateAccountBalance(
-      data.accountId,
-      data.amountMinor,
-      data.type
-    );
+    // Update account balance ONLY if the transaction is not a debt.
+    // Debt is metadata and never touches the account balance (parity with
+    // the Supabase RPC skip-guard in 20260706120000_debt_balance_skip.sql).
+    if (!isDebt) {
+      await this.updateAccountBalance(
+        data.accountId,
+        data.amountMinor,
+        data.type
+      );
+    }
 
     return transaction;
   }
@@ -84,12 +160,16 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       throw new Error(`Transaction with id ${id} not found`);
     }
 
-    // Revert old balance change
-    await this.updateAccountBalance(
-      existing.accountId,
-      -existing.amountMinor,
-      existing.type
-    );
+    // Debt transactions never touched the account balance, so we must
+    // not "revert" a balance change that never happened. Same parity rule
+    // as the Supabase RPC skip-guard.
+    if (existing.isDebt !== true) {
+      await this.updateAccountBalance(
+        existing.accountId,
+        -existing.amountMinor,
+        existing.type
+      );
+    }
 
     const nextIsDebt = data.isDebt ?? existing.isDebt ?? false;
     const nextDebtDirection = data.debtDirection ?? existing.debtDirection;
@@ -120,12 +200,15 @@ export class LocalTransactionsRepository implements TransactionsRepository {
 
     await db.transactions.put(updated);
 
-    // Apply new balance change
-    await this.updateAccountBalance(
-      updated.accountId,
-      updated.amountMinor,
-      updated.type
-    );
+    // Apply new balance change ONLY if the row is not a debt (parity with
+    // the Supabase RPC skip-guard).
+    if (nextIsDebt !== true) {
+      await this.updateAccountBalance(
+        updated.accountId,
+        updated.amountMinor,
+        updated.type
+      );
+    }
 
     return updated;
   }
@@ -136,12 +219,15 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       throw new Error(`Transaction with id ${id} not found`);
     }
 
-    // Revert balance change
-    await this.updateAccountBalance(
-      transaction.accountId,
-      -transaction.amountMinor,
-      transaction.type
-    );
+    // Debt rows never touched the account balance, so there is no
+    // balance change to revert (parity with the Supabase RPC skip-guard).
+    if (transaction.isDebt !== true) {
+      await this.updateAccountBalance(
+        transaction.accountId,
+        -transaction.amountMinor,
+        transaction.type
+      );
+    }
 
     await db.transactions.delete(id);
   }

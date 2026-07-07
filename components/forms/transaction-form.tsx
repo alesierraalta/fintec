@@ -104,6 +104,11 @@ export function TransactionForm({
     settledAt: transaction?.settledAt
       ? transaction.settledAt.split('T')[0]
       : '',
+    // * Debt-only: when true (default), the repository will create a
+    // linked EXPENSE that debits `sourceAccountId` atomically with the
+    // debt row. When false, the debt is metadata only.
+    deductFromAccount: true,
+    sourceAccountId: '',
   });
 
   const [loading, setLoading] = useState(false);
@@ -152,6 +157,8 @@ export function TransactionForm({
         settledAt: transaction.settledAt
           ? transaction.settledAt.split('T')[0]
           : '',
+        deductFromAccount: true,
+        sourceAccountId: '',
       });
     } else if (debtMode === 'create') {
       // Pre-fill for debt creation mode
@@ -169,6 +176,8 @@ export function TransactionForm({
         debtStatus: DebtStatus.OPEN,
         counterpartyName: '',
         settledAt: '',
+        deductFromAccount: true,
+        sourceAccountId: '',
       });
     } else {
       setFormData({
@@ -185,6 +194,8 @@ export function TransactionForm({
         debtStatus: DebtStatus.OPEN,
         counterpartyName: '',
         settledAt: '',
+        deductFromAccount: true,
+        sourceAccountId: '',
       });
     }
   }, [transaction, type, debtMode]);
@@ -277,6 +288,20 @@ export function TransactionForm({
           formData.debtStatus === DebtStatus.SETTLED
             ? new Date(formData.settledAt).toISOString()
             : undefined,
+        // * Debt-only: forward the deduct toggle and the picked source
+        // account. When the toggle is off we deliberately omit
+        // `sourceAccountId` so the DTO does not carry a stale value.
+        deductFromAccount:
+          canShowDebtFields && formData.isDebt
+            ? formData.deductFromAccount
+            : undefined,
+        sourceAccountId:
+          canShowDebtFields &&
+          formData.isDebt &&
+          formData.deductFromAccount &&
+          formData.sourceAccountId
+            ? formData.sourceAccountId
+            : undefined,
       };
 
       if (transaction) {
@@ -316,6 +341,8 @@ export function TransactionForm({
         debtStatus: DebtStatus.OPEN,
         counterpartyName: '',
         settledAt: '',
+        deductFromAccount: true,
+        sourceAccountId: '',
       });
     } catch (error) {
       toast.error('Error al guardar la transaccion');
@@ -326,8 +353,28 @@ export function TransactionForm({
 
   const selectedType = transactionTypes.find((t) => t.value === formData.type);
 
+  // The "main" account drives the debt's transaction currency, which in
+  // turn filters the source-account picker. The picker only shows accounts
+  // in the SAME currency so the linked EXPENSE debits the right one.
+  const selectedDebtAccount = accounts.find(
+    (acc) => acc.id === formData.accountId
+  );
+  const eligibleSourceAccounts = selectedDebtAccount
+    ? accounts.filter(
+        (acc) =>
+          acc.active &&
+          acc.currencyCode === selectedDebtAccount.currencyCode &&
+          acc.id !== selectedDebtAccount.id
+      )
+    : [];
+
   // Transform data for Select components
   const accountOptions = accounts.map((account) => ({
+    value: account.id,
+    label: `${account.name} (${account.currencyCode})`,
+  }));
+
+  const sourceAccountOptions = eligibleSourceAccounts.map((account) => ({
     value: account.id,
     label: `${account.name} (${account.currencyCode})`,
   }));
@@ -568,6 +615,60 @@ export function TransactionForm({
                   ]}
                   required
                 />
+
+                {/* * Debt-only: "Deduct from account" toggle + currency-
+                    filtered source-account picker. The picker is disabled
+                    when no eligible account exists for the chosen main
+                    account's currency. */}
+                <div className="flex items-center justify-between">
+                  <label
+                    htmlFor="transaction-deduct-from-account"
+                    className="text-ios-body font-medium text-foreground"
+                  >
+                    Descontar de cuenta
+                  </label>
+                  <input
+                    id="transaction-deduct-from-account"
+                    type="checkbox"
+                    checked={formData.deductFromAccount}
+                    disabled={eligibleSourceAccounts.length === 0}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        deductFromAccount: e.target.checked,
+                        // Clear the source account when the user opts out so
+                        // the DTO does not carry a stale id.
+                        sourceAccountId: e.target.checked
+                          ? prev.sourceAccountId
+                          : '',
+                      }))
+                    }
+                    className="h-5 w-5 rounded border-border/30 bg-card/60 disabled:opacity-50"
+                  />
+                </div>
+                {eligibleSourceAccounts.length === 0 ? (
+                  <p className="text-ios-caption text-muted-foreground">
+                    No tienes otra cuenta en la misma moneda para descontar.
+                  </p>
+                ) : (
+                  formData.deductFromAccount && (
+                    <Select
+                      label="Cuenta de origen"
+                      value={formData.sourceAccountId}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          sourceAccountId: e.target.value,
+                        })
+                      }
+                      options={[
+                        { value: '', label: 'Seleccionar cuenta de origen' },
+                        ...sourceAccountOptions,
+                      ]}
+                      required
+                    />
+                  )
+                )}
 
                 <Select
                   label="Estado"
