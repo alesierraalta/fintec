@@ -441,15 +441,56 @@ export function TransactionForm({
       open={isOpen}
       onClose={onClose}
       title={
-        transaction
-          ? 'Editar Deuda'
-          : debtMode === 'create'
-            ? 'Nueva Deuda'
-            : 'Nueva Transacción'
+        <div className="flex items-center gap-2">
+          <span>
+            {transaction
+              ? 'Editar Deuda'
+              : debtMode === 'create'
+                ? 'Nueva Deuda'
+                : 'Nueva Transacción'}
+          </span>
+          {formData.isDebt && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowDebtInfo(!showDebtInfo);
+              }}
+              className="flex items-center justify-center rounded-full bg-blue-500/10 p-1.5 text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400"
+              title="¿Cómo funciona la deuda?"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       }
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {formData.isDebt && showDebtInfo && (
+          <div className="animate-fade-in-up rounded-xl bg-blue-50 p-4 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+            <p className="mb-2 font-semibold">¿Por qué combinar Ingreso/Gasto con Debo/Me deben?</p>
+            <ul className="space-y-2">
+              <li>
+                <strong>Prestas efectivo:</strong> Gasto + Me deben <br />
+                <em>(Tu saldo disminuye, pero te lo deben)</em>
+              </li>
+              <li>
+                <strong>Compras a crédito:</strong> Gasto + Debo <br />
+                <em>(Hiciste el gasto hoy, pero debes el pago)</em>
+              </li>
+              <li>
+                <strong>Pides prestado:</strong> Ingreso + Debo <br />
+                <em>(Entra dinero a tu cuenta, pero lo debes)</em>
+              </li>
+              <li>
+                <strong>Vendes a crédito:</strong> Ingreso + Me deben <br />
+                <em>(Venta a tu favor, pero te deben el pago)</em>
+              </li>
+            </ul>
+          </div>
+        )}
+
         {/* iOS-style Transaction Type */}
         <div>
           <label className="mb-3 block text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
@@ -570,77 +611,46 @@ export function TransactionForm({
         {(formData.type === TransactionType.INCOME ||
           formData.type === TransactionType.EXPENSE) && (
           <div className="space-y-3 rounded-2xl border border-border/20 bg-card/30 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-1">
-              <label
-                htmlFor="transaction-is-debt"
-                className="flex items-center text-ios-body font-medium text-foreground"
-              >
-                Es deuda
-                {debtMode && (
-                  <span className="ml-2 text-xs text-muted-foreground">
-                    (modo deuda)
-                  </span>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setShowDebtInfo(!showDebtInfo)}
-                  className="ml-2 rounded-full p-1 text-muted-foreground hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                  aria-label="Ver información sobre deudas"
+            {!debtMode && (
+              <div className="flex items-center justify-between mb-4">
+                <label
+                  htmlFor="transaction-is-debt"
+                  className="text-ios-body font-medium text-foreground"
                 >
-                  <Info className="h-4 w-4" />
-                </button>
-              </label>
-              <input
-                id="transaction-is-debt"
-                type="checkbox"
-                checked={debtMode ? true : formData.isDebt}
-                disabled={!!debtMode}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    isDebt: e.target.checked,
-                    debtDirection: e.target.checked ? prev.debtDirection : '',
-                    debtStatus: e.target.checked
-                      ? prev.debtStatus
-                      : DebtStatus.OPEN,
-                    counterpartyName: e.target.checked
-                      ? prev.counterpartyName
-                      : '',
-                    settledAt: e.target.checked ? prev.settledAt : '',
-                  }))
-                }
-                className="h-5 w-5 rounded border-border/30 bg-card/60"
-              />
-            </div>
-            </div>
-
-            {showDebtInfo && (
-              <div className="animate-fade-in-up mt-2 rounded-xl bg-blue-50 p-4 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-                <p className="mb-2 font-semibold">¿Por qué elegir ambas opciones?</p>
-                <ul className="space-y-2">
-                  <li>
-                    <strong>Prestas efectivo:</strong> Gasto + Me deben <br />
-                    <em>(Dinero sale, te lo deben)</em>
-                  </li>
-                  <li>
-                    <strong>Compras a crédito:</strong> Gasto + Debo <br />
-                    <em>(Gastaste, pero debes el pago)</em>
-                  </li>
-                  <li>
-                    <strong>Pides prestado:</strong> Ingreso + Debo <br />
-                    <em>(Recibes dinero, lo debes)</em>
-                  </li>
-                  <li>
-                    <strong>Vendes a crédito:</strong> Ingreso + Me deben <br />
-                    <em>(Venta a favor, te deben el pago)</em>
-                  </li>
-                </ul>
+                  Es deuda
+                </label>
+                <input
+                  id="transaction-is-debt"
+                  type="checkbox"
+                  checked={formData.isDebt}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      isDebt: e.target.checked,
+                      debtDirection: e.target.checked ? prev.debtDirection : '',
+                      debtStatus: e.target.checked
+                        ? prev.debtStatus
+                        : DebtStatus.OPEN,
+                      counterpartyName: e.target.checked
+                        ? prev.counterpartyName
+                        : '',
+                      settledAt: e.target.checked ? prev.settledAt : '',
+                    }))
+                  }
+                  className="h-5 w-5 rounded border-border/30 bg-card/60"
+                />
               </div>
             )}
 
             {formData.isDebt && (
               <>
+                <div className="mb-3 border-b border-border/10 pb-2">
+                  <span className="text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
+                    Detalles de la Deuda
+                  </span>
+                </div>
+
+
                 <Select
                   label="Direccion"
                   value={formData.debtDirection}
