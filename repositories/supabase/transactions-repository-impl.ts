@@ -12,7 +12,6 @@ import {
   DebtStatus,
   DebtSummary,
   DebtMode,
-  SettleDebtDTO,
 } from '@/types';
 import { supabase } from './client';
 import {
@@ -248,6 +247,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
     if (debtMode === 'ONLY_DEBT') {
       query = query.eq('is_debt', true);
+    } else {
+      // In ALL or EXCLUDE_DEBT modes, we always hide the linked deduction expense.
+      // The linked expense exists only to adjust the balance and should not pollute lists/totals.
+      query = query.or('tags.is.null,not.and(tags.cs.{debt-linked})');
     }
 
     if (debtMode === 'EXCLUDE_DEBT') {
@@ -599,25 +602,6 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     return updatedTransaction;
-  }
-
-  async settleDebt(dto: SettleDebtDTO): Promise<Transaction> {
-    const { data, error } = await (this.client as any).rpc(
-      'settle_debt_partial',
-      {
-        p_debt_id: dto.debtTransactionId,
-        p_account_id: dto.settlementAccountId,
-        p_category_id: dto.categoryId || null,
-        p_amount_minor: dto.amountMinor,
-        p_date: dto.date,
-        p_note: dto.note || null,
-      }
-    );
-    if (error) throw new Error(error.message);
-    return this.findById(dto.debtTransactionId).then((t) => {
-      if (!t) throw new Error('Debt not found after settlement');
-      return t;
-    });
   }
 
   async delete(id: string): Promise<void> {
@@ -1175,13 +1159,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const totals = allDebts.reduce(
       (acc, transaction) => {
         if (transaction.debtDirection === DebtDirection.OWE) {
-          acc.totalOweBaseMinor +=
-            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
+          acc.totalOweBaseMinor += transaction.amountBaseMinor;
         }
 
         if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
-          acc.totalOwedToMeBaseMinor +=
-            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
+          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
         }
 
         return acc;
