@@ -35,6 +35,12 @@ const mockRepositoryProvider = jest.fn(
   )
 );
 
+const mockSubscriptionProvider = jest.fn(
+  ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="subscription-provider">{children}</div>
+  )
+);
+
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
@@ -58,6 +64,11 @@ jest.mock('@/providers', () => ({
     mockRepositoryProvider(props),
 }));
 
+jest.mock('@/providers/subscription-provider', () => ({
+  SubscriptionProvider: (props: { children: React.ReactNode }) =>
+    mockSubscriptionProvider(props),
+}));
+
 describe('RouteAwareProviders', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -75,9 +86,13 @@ describe('RouteAwareProviders', () => {
     expect(screen.getByText('Landing content')).toBeInTheDocument();
     expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
     expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('subscription-provider')
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
     expect(mockAuthProvider).not.toHaveBeenCalled();
     expect(mockRepositoryProvider).not.toHaveBeenCalled();
+    expect(mockSubscriptionProvider).not.toHaveBeenCalled();
   });
 
   it('applies auth/app providers on auth routes', () => {
@@ -92,9 +107,11 @@ describe('RouteAwareProviders', () => {
     expect(screen.getByText('Auth content')).toBeInTheDocument();
     expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
     expect(mockAuthProvider).toHaveBeenCalledTimes(1);
     expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
+    expect(mockSubscriptionProvider).toHaveBeenCalledTimes(1);
   });
 
   it('bypasses providers for root path /', () => {
@@ -109,9 +126,13 @@ describe('RouteAwareProviders', () => {
     expect(screen.getByText('Root content')).toBeInTheDocument();
     expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
     expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('subscription-provider')
+    ).not.toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
     expect(mockAuthProvider).not.toHaveBeenCalled();
     expect(mockRepositoryProvider).not.toHaveBeenCalled();
+    expect(mockSubscriptionProvider).not.toHaveBeenCalled();
   });
 
   it('handles null pathname safely', () => {
@@ -126,6 +147,7 @@ describe('RouteAwareProviders', () => {
     expect(screen.getByText('Null pathname content')).toBeInTheDocument();
     expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
   });
 
@@ -140,10 +162,12 @@ describe('RouteAwareProviders', () => {
 
     expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
     expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
     expect(screen.getByText('App content')).toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
     expect(mockAuthProvider).toHaveBeenCalledTimes(1);
     expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
+    expect(mockSubscriptionProvider).toHaveBeenCalledTimes(1);
   });
 
   it('does NOT render MotionConfig globally anymore (perf-page-transitions requirement)', () => {

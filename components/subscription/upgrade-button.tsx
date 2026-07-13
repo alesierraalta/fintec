@@ -16,7 +16,7 @@ interface UpgradeButtonProps {
 export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
   const { isPremium, loading } = useSubscription();
 
-  // Only hide for premium users
+  // Hide for premium users and while the tier is still loading
   if (isPremium || loading) {
     return null;
   }
@@ -32,7 +32,7 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
             'transition-ios hover:scale-105 active:scale-95',
             'shadow-ios-md hover:shadow-ios-lg'
           )}
-          title="Upgrade to Premium"
+          title="Mejorar a Premium"
         >
           {/* Gradient background with animation */}
           <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-purple-600 via-primary to-purple-500 [background-size:200%_200%]" />
@@ -70,7 +70,7 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
         {/* Content */}
         <Sparkles className="relative z-10 h-4 w-4 text-white transition-transform duration-300 group-hover:rotate-12" />
         <span className="relative z-10 text-ios-body font-semibold text-white">
-          Upgrade to Premium
+          Mejorar a Premium
         </span>
         <Crown className="relative z-10 h-4 w-4 text-yellow-300 transition-transform duration-300 group-hover:scale-110" />
       </Link>

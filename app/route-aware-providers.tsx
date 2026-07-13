@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
+import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { NativeOAuthListener } from '@/components/providers/native-oauth-listener';
 
 interface RouteAwareProvidersProps {
@@ -41,7 +42,9 @@ export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         <NativeOAuthListener>
-          <RepositoryProvider>{children}</RepositoryProvider>
+          <RepositoryProvider>
+            <SubscriptionProvider>{children}</SubscriptionProvider>
+          </RepositoryProvider>
         </NativeOAuthListener>
       </AuthProvider>
     </ThemeProvider>

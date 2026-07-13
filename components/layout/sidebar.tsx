@@ -50,7 +50,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { closeSidebar, isMobile, isOpen } = useSidebar();
-  const { tier, isPremium, isBase } = useSubscription();
+  const { isPremium } = useSubscription();
   const handleLinkClick = () => {
     if (isMobile) {
       closeSidebar();
@@ -173,15 +173,7 @@ export function Sidebar() {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-ios-body font-semibold text-foreground">
-                ¡FinTec! 💼
-              </p>
-              <p className="min-w-0 truncate text-ios-caption text-muted-foreground">
-                Plan{' '}
-                {tier === 'free'
-                  ? 'Gratis'
-                  : tier === 'base'
-                    ? 'Base'
-                    : 'Premium'}
+                ¡FinTec!
               </p>
             </div>
           </div>
