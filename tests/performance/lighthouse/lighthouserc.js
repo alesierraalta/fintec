@@ -11,8 +11,10 @@ module.exports = {
     // ─── Collection ──────────────────────────────────────────
     collect: {
       url: [
+        // Note: the app has no `/dashboard` route — the home dashboard is `/`.
+        // Auditing a non-existent route yields a 404 (ERRORED_DOCUMENT_REQUEST)
+        // that fails the whole LHCI run.
         `http://localhost:${process.env.PORT || 3000}/`,
-        `http://localhost:${process.env.PORT || 3000}/dashboard`,
         `http://localhost:${process.env.PORT || 3000}/transactions`,
         `http://localhost:${process.env.PORT || 3000}/accounts`,
       ],
