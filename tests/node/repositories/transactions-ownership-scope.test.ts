@@ -72,6 +72,7 @@ describe('SupabaseTransactionsRepository ownership scoping', () => {
           }
           return query;
         }),
+        or: jest.fn(() => query),
         order: jest.fn(() => query),
         range: jest.fn(() => query),
         then: (resolve: (value: unknown) => void) => {
