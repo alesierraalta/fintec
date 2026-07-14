@@ -453,10 +453,12 @@ export function DesktopTransfer() {
         }),
       });
 
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Error al procesar la transferencia');
+      if (!response.ok || result?.error) {
+        throw new Error(
+          result?.error?.message ?? 'Error al procesar la transferencia'
+        );
       }
 
       toast.success(

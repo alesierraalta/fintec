@@ -4,10 +4,11 @@ import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { useRepository } from '@/providers';
 import { DebtStatus, Transaction } from '@/types';
+import { logger } from '@/lib/utils/logger';
 
 interface UseDebtActionsOptions {
   repository: ReturnType<typeof useRepository>;
-  onSuccess: () => void;
+  onSuccess: () => void | Promise<void>;
 }
 
 interface UseDebtActionsReturn {
@@ -69,12 +70,17 @@ export function useDebtActions({
           categoryId: input.categoryId,
           note: input.note,
         });
-
-        toast.success('Deuda saldada exitosamente');
-        onSuccess();
       } catch (error) {
         toast.error('Error al saldar la deuda');
+        setSettlingId(null);
         throw error;
+      }
+
+      try {
+        toast.success('Deuda saldada exitosamente');
+        await onSuccess();
+      } catch (error) {
+        logger.error('Debt settled but refresh failed:', error);
       } finally {
         setSettlingId(null);
       }

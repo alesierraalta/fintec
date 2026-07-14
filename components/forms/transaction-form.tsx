@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { CategoryForm } from '@/components/forms/category-form';
-import { DebtStatus, TransactionType } from '@/types';
+import { DebtDirection, DebtStatus, TransactionType } from '@/types';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
@@ -29,6 +29,7 @@ import {
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 import { useActiveUsdVesRate } from '@/lib/rates';
+import { toMinorUnits } from '@/lib/money';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -42,7 +43,7 @@ interface TransactionFormProps {
 
 const transactionTypes = [
   {
-    value: 'INCOME',
+    value: TransactionType.INCOME,
     label: 'Ingreso',
     icon: ArrowDownLeft,
     color: 'text-green-600',
@@ -50,7 +51,7 @@ const transactionTypes = [
     borderColor: 'border-green-500/20',
   },
   {
-    value: 'EXPENSE',
+    value: TransactionType.EXPENSE,
     label: 'Gasto',
     icon: ArrowUpRight,
     color: 'text-red-600',
@@ -58,7 +59,7 @@ const transactionTypes = [
     borderColor: 'border-red-500/20',
   },
   {
-    value: 'TRANSFER_OUT',
+    value: TransactionType.TRANSFER_OUT,
     label: 'Transferencia',
     icon: Repeat,
     color: 'text-blue-600',
@@ -66,6 +67,12 @@ const transactionTypes = [
     borderColor: 'border-blue-500/20',
   },
 ];
+
+const isTransactionType = (value: unknown): value is TransactionType =>
+  Object.values(TransactionType).some((type) => type === value);
+
+const isDebtDirection = (value: unknown): value is DebtDirection =>
+  Object.values(DebtDirection).some((direction) => direction === value);
 
 export function TransactionForm({
   isOpen,
@@ -129,7 +136,8 @@ export function TransactionForm({
 
         setAccounts(userAccounts.filter((acc) => acc.active));
         setCategories(allCategories.filter((cat) => cat.active));
-      } catch (error) {
+      } catch {
+        logger.error('Failed to load transaction form data');
       } finally {
         setLoadingData(false);
       }
@@ -218,6 +226,11 @@ export function TransactionForm({
       return;
     }
 
+    if (!isTransactionType(formData.type)) {
+      toast.error('Selecciona un tipo de transaccion valido');
+      return;
+    }
+
     const amount = parseFloat(formData.amount);
     if (isNaN(amount) || amount <= 0) {
       toast.error('Por favor ingresa un monto valido');
@@ -228,7 +241,11 @@ export function TransactionForm({
       formData.type === TransactionType.INCOME ||
       formData.type === TransactionType.EXPENSE;
 
-    if (formData.isDebt && canShowDebtFields && !formData.debtDirection) {
+    if (
+      formData.isDebt &&
+      canShowDebtFields &&
+      !isDebtDirection(formData.debtDirection)
+    ) {
       toast.error('Selecciona la direccion de la deuda');
       return;
     }
@@ -254,13 +271,16 @@ export function TransactionForm({
       // Calculate exchange rate for VES transactions
       const isVesCurrency = currencyCode === 'VES';
       const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+      const debtDirection = isDebtDirection(formData.debtDirection)
+        ? formData.debtDirection
+        : undefined;
 
       const transactionData = {
-        type: formData.type as TransactionType,
+        type: formData.type,
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
-        amountMinor: Math.round(amount * 100),
+        amountMinor: toMinorUnits(amount, currencyCode),
         exchangeRate,
         date: formData.date,
         description: formData.description.trim(),
@@ -273,9 +293,7 @@ export function TransactionForm({
           : undefined,
         isDebt: debtMode ? true : canShowDebtFields ? formData.isDebt : false,
         debtDirection:
-          canShowDebtFields && formData.isDebt
-            ? (formData.debtDirection as any)
-            : undefined,
+          canShowDebtFields && formData.isDebt ? debtDirection : undefined,
         debtStatus:
           canShowDebtFields && formData.isDebt
             ? formData.debtStatus || DebtStatus.OPEN
@@ -310,22 +328,27 @@ export function TransactionForm({
         // Update existing transaction
         const updateData = { ...transactionData, id: transaction.id };
         await repository.transactions.update(transaction.id, updateData);
-        toast.success(
-          debtMode
-            ? 'Deuda actualizada exitosamente'
-            : 'Transaccion actualizada exitosamente'
-        );
       } else {
         // Create new transaction
         await repository.transactions.create(transactionData);
-        toast.success(
-          debtMode
+      }
+    } catch (error) {
+      toast.error('Error al guardar la transaccion');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      toast.success(
+        transaction
+          ? debtMode
+            ? 'Deuda actualizada exitosamente'
+            : 'Transaccion actualizada exitosamente'
+          : debtMode
             ? 'Deuda creada exitosamente'
             : 'Transaccion creada exitosamente'
-        );
-      }
-
-      onSuccess?.();
+      );
+      await onSuccess?.();
       onClose();
 
       // Reset form
@@ -347,7 +370,7 @@ export function TransactionForm({
         sourceAccountId: '',
       });
     } catch (error) {
-      toast.error('Error al guardar la transaccion');
+      logger.error('Transaction saved but post-save UI update failed:', error);
     } finally {
       setLoading(false);
     }
@@ -364,8 +387,7 @@ export function TransactionForm({
   const eligibleSourceAccounts = selectedDebtAccount
     ? accounts.filter(
         (acc) =>
-          acc.active &&
-          acc.currencyCode === selectedDebtAccount.currencyCode
+          acc.active && acc.currencyCode === selectedDebtAccount.currencyCode
       )
     : [];
   const hasEligibleSourceAccounts = eligibleSourceAccounts.length > 0;
@@ -458,6 +480,7 @@ export function TransactionForm({
               }}
               className="flex items-center justify-center rounded-full bg-blue-500/10 p-1.5 text-blue-600 transition-colors hover:bg-blue-500/20 dark:text-blue-400"
               title="¿Cómo funciona la deuda?"
+              aria-label="¿Cómo funciona la deuda?"
             >
               <Info className="h-4 w-4" />
             </button>
@@ -469,7 +492,9 @@ export function TransactionForm({
       <form onSubmit={handleSubmit} className="space-y-6">
         {formData.isDebt && showDebtInfo && (
           <div className="animate-fade-in-up rounded-xl bg-blue-50 p-4 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-            <p className="mb-2 font-semibold">¿Por qué combinar Ingreso/Gasto con Debo/Me deben?</p>
+            <p className="mb-2 font-semibold">
+              ¿Por qué combinar Ingreso/Gasto con Debo/Me deben?
+            </p>
             <ul className="space-y-2">
               <li>
                 <strong>Prestas efectivo:</strong> Gasto + Me deben <br />
@@ -500,7 +525,9 @@ export function TransactionForm({
             className={`grid grid-cols-1 gap-3 ${debtMode ? 'sm:grid-cols-2' : 'sm:grid-cols-3'}`}
           >
             {transactionTypes
-              .filter((t) => !debtMode || t.value !== 'TRANSFER_OUT')
+              .filter(
+                (t) => !debtMode || t.value !== TransactionType.TRANSFER_OUT
+              )
               .map((typeOption) => {
                 const Icon = typeOption.icon;
                 const isSelected = formData.type === typeOption.value;
@@ -512,7 +539,7 @@ export function TransactionForm({
                     onClick={() =>
                       setFormData({
                         ...formData,
-                        type: typeOption.value as TransactionType,
+                        type: typeOption.value,
                       })
                     }
                     className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
@@ -557,7 +584,7 @@ export function TransactionForm({
               setFormData({
                 ...formData,
                 accountId: e.target.value,
-                sourceAccountId: e.target.value
+                sourceAccountId: e.target.value,
               })
             }
             options={accountOptions}
@@ -612,7 +639,7 @@ export function TransactionForm({
           formData.type === TransactionType.EXPENSE) && (
           <div className="space-y-3 rounded-2xl border border-border/20 bg-card/30 p-4">
             {!debtMode && (
-              <div className="flex items-center justify-between mb-4">
+              <div className="mb-4 flex items-center justify-between">
                 <label
                   htmlFor="transaction-is-debt"
                   className="text-ios-body font-medium text-foreground"
@@ -622,6 +649,7 @@ export function TransactionForm({
                 <input
                   id="transaction-is-debt"
                   type="checkbox"
+                  aria-label="Es deuda"
                   checked={formData.isDebt}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -650,16 +678,19 @@ export function TransactionForm({
                   </span>
                 </div>
 
-
                 <Select
                   label="Direccion"
                   value={formData.debtDirection}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      debtDirection: e.target.value as any,
-                    })
-                  }
+                  onChange={(e) => {
+                    const debtDirection = e.target.value;
+                    if (
+                      debtDirection !== '' &&
+                      !isDebtDirection(debtDirection)
+                    ) {
+                      return;
+                    }
+                    setFormData({ ...formData, debtDirection });
+                  }}
                   options={[
                     { value: '', label: 'Seleccionar direccion' },
                     { value: 'OWE', label: 'Debo' },
@@ -785,10 +816,14 @@ export function TransactionForm({
 
         {/* iOS-style Note */}
         <div>
-          <label className="mb-3 block text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
+          <label
+            htmlFor="transaction-note"
+            className="mb-3 block text-ios-caption font-medium uppercase tracking-wide text-muted-foreground"
+          >
             Nota (Opcional)
           </label>
           <textarea
+            id="transaction-note"
             placeholder="Información adicional..."
             value={formData.note}
             onChange={(e) => setFormData({ ...formData, note: e.target.value })}

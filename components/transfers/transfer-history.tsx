@@ -97,13 +97,15 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
       const response = await fetch(`/api/transfers?${params.toString()}`, {
         headers,
       });
-      const result = await response.json();
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Error al cargar las transferencias');
+      if (!response.ok || result?.error) {
+        throw new Error(
+          result?.error?.message ?? 'Error al cargar las transferencias'
+        );
       }
 
-      setTransfers(result.data || []);
+      setTransfers(result?.data?.transfers ?? []);
     } catch (err) {
       logger.error('Error loading transfers:', err);
       setError(err instanceof Error ? err.message : 'Error desconocido');

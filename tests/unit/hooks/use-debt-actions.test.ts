@@ -1,6 +1,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { useDebtActions } from '@/hooks/use-debt-actions';
 import { DebtStatus, TransactionType, type Transaction } from '@/types';
+import { logger } from '@/lib/utils/logger';
 
 const updateMock = jest.fn().mockResolvedValue({});
 const deleteMock = jest.fn().mockResolvedValue({});
@@ -27,6 +28,10 @@ jest.mock('sonner', () => ({
     success: (...args: any[]) => toastSuccessMock(...args),
     error: (...args: any[]) => toastErrorMock(...args),
   },
+}));
+
+jest.mock('@/lib/utils/logger', () => ({
+  logger: { error: jest.fn() },
 }));
 
 const sampleDebt: Transaction = {
@@ -106,6 +111,33 @@ describe('useDebtActions', () => {
 
       expect(toastErrorMock).toHaveBeenCalledWith('Error al saldar la deuda');
       expect(onSuccessMock).not.toHaveBeenCalled();
+    });
+
+    it('does not report settlement failure when the post-settlement refresh fails', async () => {
+      onSuccessMock.mockRejectedValueOnce(new Error('Refresh failed'));
+
+      const { result } = renderHook(() =>
+        useDebtActions({
+          repository: mockRepository as any,
+          onSuccess: onSuccessMock,
+        })
+      );
+
+      await act(async () => {
+        await result.current.settleDebt(sampleDebt, {
+          amountMinor: 5000,
+          settlementAccountId: 'acc-1',
+        });
+      });
+
+      expect(toastSuccessMock).toHaveBeenCalledWith(
+        'Deuda saldada exitosamente'
+      );
+      expect(toastErrorMock).not.toHaveBeenCalled();
+      expect(logger.error).toHaveBeenCalledWith(
+        'Debt settled but refresh failed:',
+        expect.any(Error)
+      );
     });
 
     it('does nothing if debt has no id', async () => {

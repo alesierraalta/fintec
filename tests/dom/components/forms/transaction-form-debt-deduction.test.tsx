@@ -150,6 +150,10 @@ describe('TransactionForm debt deduction UI', () => {
     await waitFor(() => {
       expect(screen.getByLabelText('Descontar de cuenta')).toBeInTheDocument();
     });
+    expect(
+      screen.getByRole('button', { name: '¿Cómo funciona la deuda?' })
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Nota (Opcional)')).toBeInTheDocument();
   });
 
   // TODO(debt-settlement WIP): this test lost its header in an interrupted
@@ -272,7 +276,7 @@ describe('TransactionForm debt deduction UI', () => {
 
     // Fill the required fields.
     fireEvent.change(screen.getByLabelText('Monto'), {
-      target: { value: '50' },
+      target: { value: '10.29' },
     });
     fireEvent.change(screen.getByLabelText('Cuenta'), {
       target: { value: 'cash-usd' },
@@ -298,10 +302,101 @@ describe('TransactionForm debt deduction UI', () => {
     expect(createMock).toHaveBeenCalledWith(
       expect.objectContaining({
         isDebt: true,
+        amountMinor: 1029,
         debtDirection: DebtDirection.OWE,
         deductFromAccount: true,
         sourceAccountId: 'savings-usd',
       })
+    );
+  });
+
+  it('rejects an invalid transaction type before creating a transaction', async () => {
+    const { container } = render(
+      <TransactionForm
+        isOpen
+        onClose={jest.fn()}
+        type={'INVALID' as TransactionType}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Monto')).toBeInTheDocument();
+    });
+
+    const categorySelect = Array.from(
+      container.querySelectorAll('select')
+    ).find((select) =>
+      Array.from(select.options).some(
+        (option) => option.textContent === 'Seleccionar categoría'
+      )
+    );
+    expect(categorySelect).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('Monto'), {
+      target: { value: '25' },
+    });
+    fireEvent.change(screen.getByLabelText('Cuenta'), {
+      target: { value: 'cash-usd' },
+    });
+    fireEvent.change(categorySelect!, { target: { value: 'cat-1' } });
+    fireEvent.submit(container.querySelector('form')!);
+
+    expect(createMock).not.toHaveBeenCalled();
+    expect(pushToast).toHaveBeenCalledWith(
+      'error',
+      'Selecciona un tipo de transaccion valido'
+    );
+  });
+
+  it('does not report save failure when the post-save callback fails', async () => {
+    const onSuccess = jest.fn().mockRejectedValue(new Error('Refresh failed'));
+    const { container } = render(
+      <TransactionForm
+        isOpen
+        onClose={jest.fn()}
+        onSuccess={onSuccess}
+        type={TransactionType.EXPENSE}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Monto')).toBeInTheDocument();
+    });
+
+    const categorySelect = Array.from(
+      container.querySelectorAll('select')
+    ).find((select) =>
+      Array.from(select.options).some(
+        (option) => option.textContent === 'Seleccionar categoría'
+      )
+    );
+    expect(categorySelect).toBeDefined();
+
+    fireEvent.change(screen.getByLabelText('Monto'), {
+      target: { value: '25' },
+    });
+    fireEvent.change(screen.getByLabelText('Cuenta'), {
+      target: { value: 'cash-usd' },
+    });
+    fireEvent.change(categorySelect!, { target: { value: 'cat-1' } });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Monto')).toHaveValue(25);
+      expect(screen.getByLabelText('Cuenta')).toHaveValue('cash-usd');
+      expect(categorySelect).toHaveValue('cat-1');
+    });
+    fireEvent.submit(container.querySelector('form')!);
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalled();
+    });
+
+    expect(pushToast).toHaveBeenCalledWith(
+      'success',
+      'Transaccion creada exitosamente'
+    );
+    expect(pushToast).not.toHaveBeenCalledWith(
+      'error',
+      'Error al guardar la transaccion'
     );
   });
 });
