@@ -14,10 +14,6 @@ jobs:
     name: Lighthouse CI Audit
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Informational on PRs: the strict SLO gates run against a cold localhost
-    # build here, so they are non-blocking. Enforced for real in perf-staging.yml
-    # against a warm, deployed environment with real backend secrets.
-    continue-on-error: true
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
@@ -39,6 +35,10 @@ jobs:
         run: npm run build
 
       - name: Run Lighthouse CI
+        # Informational on PRs: strict SLO gates run against a cold localhost build,
+        # so a failure here does not block the PR. Enforced for real in
+        # perf-staging.yml against a warm, deployed environment with real secrets.
+        continue-on-error: true
         run: |
           npm install -g @lhci/cli
           lhci autorun --config=tests/performance/lighthouse/lighthouserc.js
@@ -58,10 +58,6 @@ jobs:
     name: k6 Smoke Test
     runs-on: ubuntu-latest
     timeout-minutes: 8
-    # Informational on PRs: localhost rate endpoints live-scrape external sources
-    # (multi-second latency, no warm cache), so the SLO threshold is non-blocking
-    # here. Enforced in perf-staging.yml against the deployed environment.
-    continue-on-error: true
     env:
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
       NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
@@ -96,6 +92,10 @@ jobs:
           sudo apt-get update && sudo apt-get install -y k6
 
       - name: Run Smoke Tests
+        # Informational on PRs: localhost rate endpoints live-scrape external
+        # sources (multi-second latency, no warm cache), so the SLO threshold is
+        # non-blocking here. Enforced in perf-staging.yml against the deployed env.
+        continue-on-error: true
         run: |
           k6 run tests/performance/k6/scenarios/smoke.js \
             --summary-export=tests/performance/reports/k6-smoke-summary.json
