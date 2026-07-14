@@ -93,6 +93,10 @@ jobs:
             --summary-export=tests/performance/reports/k6-smoke-summary.json
         env:
           BASE_URL: http://localhost:3000
+          # No real Supabase in the PR pipeline: skip the auth bootstrap so the
+          # smoke test exercises only the public endpoints on localhost. Avoids a
+          # failed request to a non-existent Supabase host skewing p99 latency.
+          K6_SKIP_AUTH_SETUP: '1'
           SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
           TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
