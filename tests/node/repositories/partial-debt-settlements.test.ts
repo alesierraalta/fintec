@@ -122,6 +122,7 @@ describe('Partial Debt Settlements', () => {
         paidAmountBaseMinor: 0,
         currencyCode: 'USD',
         debtDirection: DebtDirection.OWED_TO_ME,
+        debtStatus: DebtStatus.OPEN,
         exchangeRate: 1,
       };
       const account = {
@@ -204,6 +205,8 @@ describe('Partial Debt Settlements', () => {
         paidAmountBaseMinor: 0,
         currencyCode: 'USD',
         debtDirection: DebtDirection.OWE,
+        debtStatus: DebtStatus.OPEN as DebtStatus,
+        settledAt: undefined as string | undefined,
         exchangeRate: 1,
       };
       const account = {
