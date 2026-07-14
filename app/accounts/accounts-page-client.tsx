@@ -5,7 +5,6 @@ import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MainLayout } from '@/components/layout/main-layout';
-import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
@@ -110,7 +109,6 @@ const cardHover = {
 };
 
 export default function AccountsPage() {
-  const { isOpen, openModal, closeModal } = useModal();
   const { user } = useAuth();
   const repository = useRepository();
   const bcvRates = useBCVRates();
@@ -134,6 +132,8 @@ export default function AccountsPage() {
     showBalances,
     error,
     loading,
+    isOpen,
+    closeModal,
     loadAccounts,
     handleEditAccount,
     handleNewAccount,
