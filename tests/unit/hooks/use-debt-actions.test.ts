@@ -119,7 +119,11 @@ describe('useDebtActions', () => {
       );
 
       await act(async () => {
-        await result.current.settleDebt(debtWithoutId);
+        await result.current.settleDebt(debtWithoutId, {
+          amountMinor: 5000,
+          settlementAccountId: 'acc-1',
+          date: '2026-07-07T00:00:00.000Z',
+        });
       });
 
       expect(updateMock).not.toHaveBeenCalled();

@@ -3,7 +3,6 @@ import userEvent from '@testing-library/user-event';
 import GoalsPage from '@/app/goals/page';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
-import { useUI } from '@/hooks';
 import { toast } from 'sonner';
 
 jest.mock('@/providers/repository-provider', () => ({
@@ -25,7 +24,6 @@ jest.mock('@/hooks/use-currency-converter', () => ({
 const modalState = { activeModal: null as string | null };
 
 jest.mock('@/hooks', () => ({
-  useUI: jest.fn(),
   useModal: jest.fn(() => ({
     isOpen: modalState.activeModal !== null,
     openModal: (id: string) => {
@@ -120,11 +118,6 @@ describe('GoalsPage accounts wiring + error surfacing', () => {
     modalState.activeModal = null;
     const repository = buildRepository();
     (useRepository as jest.Mock).mockReturnValue(repository);
-    (useUI as jest.Mock).mockReturnValue({
-      activeModal: null,
-      openModal: jest.fn(),
-      closeModal: jest.fn(),
-    });
 
     render(<GoalsPage />);
 
@@ -149,11 +142,6 @@ describe('GoalsPage accounts wiring + error surfacing', () => {
     modalState.activeModal = 'new-goal';
     const repository = buildRepository();
     (useRepository as jest.Mock).mockReturnValue(repository);
-    (useUI as jest.Mock).mockReturnValue({
-      activeModal: 'new-goal',
-      openModal: jest.fn(),
-      closeModal: jest.fn(),
-    });
 
     render(<GoalsPage />);
 
@@ -181,11 +169,6 @@ describe('GoalsPage accounts wiring + error surfacing', () => {
       createError: new Error('Failed to create goal: invalid_account_fk'),
     });
     (useRepository as jest.Mock).mockReturnValue(repository);
-    (useUI as jest.Mock).mockReturnValue({
-      activeModal: 'new-goal',
-      openModal: jest.fn(),
-      closeModal: jest.fn(),
-    });
 
     const user = userEvent.setup();
     render(<GoalsPage />);

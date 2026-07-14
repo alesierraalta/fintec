@@ -41,7 +41,12 @@ describe('useSubscription wrapper', () => {
       subscription: null,
       tier: 'premium' as const,
       usage: null,
-      usageStatus: null,
+      usageStatus: {
+        transactions: { current: 0, limit: 'unlimited', percentage: 0 },
+        backups: { current: 0, limit: 'unlimited', percentage: 0 },
+        exports: { current: 0, limit: 'unlimited', percentage: 0 },
+        aiRequests: { current: 0, limit: 'unlimited', percentage: 0 },
+      } as const,
       limits: {} as any,
     };
 
