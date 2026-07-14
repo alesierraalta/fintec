@@ -24,6 +24,7 @@ export interface AccountsPageState {
   error: string | null;
   loading: boolean;
   expandedAccount: string | null;
+  isOpen: boolean;
 }
 
 export interface AccountsPageActions {
@@ -42,6 +43,7 @@ export interface AccountsPageActions {
   setShowRatesHistory: (b: boolean) => void;
   setShowBalances: (b: boolean) => void;
   closeModal: () => void;
+  openModal: () => void;
   calculateDropdownPosition: (accountId: string) => void;
   closeDropdown: () => void;
   getCategoryName: (categoryId?: string) => string;
@@ -70,7 +72,6 @@ const DEFAULT_DROPDOWN_POSITION = { top: 0, left: 0 };
 export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
   const { user, repository, dropdownRefs } = opts;
   const { isOpen, openModal, closeModal } = useModal();
-  void isOpen;
   const { checkAlerts } = useBalanceAlerts();
 
   // State
@@ -315,6 +316,7 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
     error,
     loading,
     expandedAccount,
+    isOpen,
     // actions
     loadAllData,
     loadAccounts,
@@ -331,6 +333,7 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
     setShowRatesHistory,
     setShowBalances,
     closeModal,
+    openModal,
     calculateDropdownPosition,
     closeDropdown: () => setOpenDropdown(null),
     getCategoryName,
