@@ -44,6 +44,7 @@ const customJestConfig = {
         '<rootDir>/.stryker-tmp/',
         '<rootDir>/.agent/',
         '<rootDir>/.agents/',
+        '<rootDir>/.claude/',
       ],
       collectCoverageFrom: [
         'components/**/*.{js,jsx,ts,tsx}',
@@ -77,13 +78,18 @@ const customJestConfig = {
         '<rootDir>/.stryker-tmp/',
         '<rootDir>/.agent/',
         '<rootDir>/.agents/',
+        '<rootDir>/.claude/',
       ],
       collectCoverageFrom: ['lib/scrapers/**/*.{js,jsx,ts,tsx}', '!**/*.d.ts'],
       moduleDirectories: ['node_modules', '<rootDir>/'],
     },
   ],
   // Default for other tests
-  testPathIgnorePatterns: ['<rootDir>/tests/e2e/', '<rootDir>/.stryker-tmp/'], // Ignored globally
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/e2e/',
+    '<rootDir>/.stryker-tmp/',
+    '<rootDir>/.claude/',
+  ], // Ignored globally
   transformIgnorePatterns: [
     '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
   ],
