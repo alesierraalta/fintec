@@ -226,6 +226,136 @@ describe('Partial Debt Settlements', () => {
       expect(debt.debtStatus).toBe(DebtStatus.SETTLED);
       expect(debt.settledAt).toBeDefined();
     });
+
+    it('rejects a settlement account whose currency differs from the debt', async () => {
+      (db.transactions.get as jest.Mock).mockResolvedValue({
+        id: '1',
+        isDebt: true,
+        amountMinor: 100,
+        remainingAmountMinor: 100,
+        currencyCode: 'USD',
+        debtDirection: DebtDirection.OWE,
+        exchangeRate: 1,
+      });
+      (db.accounts.get as jest.Mock).mockResolvedValue({
+        id: '2',
+        active: true,
+        currencyCode: 'VES',
+        balance: 500,
+      });
+
+      await expect(
+        repo.settleDebt({
+          debtTransactionId: '1',
+          settlementAccountId: '2',
+          amountMinor: 10,
+          date: '2023-01-01',
+        })
+      ).rejects.toThrow('Settlement account currency must match debt currency');
+
+      expect(db.transactions.add).not.toHaveBeenCalled();
+      expect(db.accounts.update).not.toHaveBeenCalled();
+      expect(db.debtSettlements.add).not.toHaveBeenCalled();
+    });
+
+    it('rejects settling an already-settled debt', async () => {
+      (db.transactions.get as jest.Mock).mockResolvedValue({
+        id: '1',
+        isDebt: true,
+        amountMinor: 100,
+        remainingAmountMinor: 0,
+        debtStatus: DebtStatus.SETTLED,
+        currencyCode: 'USD',
+      });
+
+      await expect(
+        repo.settleDebt({
+          debtTransactionId: '1',
+          settlementAccountId: '2',
+          amountMinor: 10,
+          date: '2023-01-01',
+        })
+      ).rejects.toThrow('Debt is already settled');
+
+      expect(db.accounts.update).not.toHaveBeenCalled();
+    });
+
+    it('returns the updated debt row (parity with the Supabase RPC)', async () => {
+      const debt = {
+        id: '1',
+        isDebt: true,
+        amountMinor: 100,
+        amountBaseMinor: 100,
+        remainingAmountMinor: 100,
+        remainingAmountBaseMinor: 100,
+        currencyCode: 'USD',
+        debtDirection: DebtDirection.OWE,
+        exchangeRate: 1,
+      };
+      (db.transactions.get as jest.Mock).mockResolvedValue(debt);
+      (db.accounts.get as jest.Mock).mockResolvedValue({
+        id: '2',
+        active: true,
+        currencyCode: 'USD',
+        balance: 500,
+      });
+
+      const result = await repo.settleDebt({
+        debtTransactionId: '1',
+        settlementAccountId: '2',
+        amountMinor: 40,
+        date: '2023-01-01',
+      });
+
+      // The returned row is the debt (carries remaining progress), not the
+      // INCOME/EXPENSE settlement transaction.
+      expect(result.id).toBe('1');
+      expect(result.remainingAmountMinor).toBe(60);
+    });
+
+    it('keeps VES base-minor consistent across partial settlements (no rounding drift)', async () => {
+      // 100 minor at rate 3 => base 33. Two 50-minor payments would each round
+      // to 17 (34 total) if accumulated; deriving from the remaining minor
+      // keeps the final remaining base at exactly 0.
+      const debt = {
+        id: '1',
+        isDebt: true,
+        amountMinor: 100,
+        amountBaseMinor: 33,
+        remainingAmountMinor: 100,
+        remainingAmountBaseMinor: 33,
+        paidAmountMinor: 0,
+        paidAmountBaseMinor: 0,
+        currencyCode: 'VES',
+        debtDirection: DebtDirection.OWE,
+        debtStatus: DebtStatus.OPEN,
+        exchangeRate: 3,
+      };
+      (db.transactions.get as jest.Mock).mockResolvedValue(debt);
+      (db.accounts.get as jest.Mock).mockResolvedValue({
+        id: '2',
+        active: true,
+        currencyCode: 'VES',
+        balance: 500,
+      });
+
+      await repo.settleDebt({
+        debtTransactionId: '1',
+        settlementAccountId: '2',
+        amountMinor: 50,
+        date: '2023-01-01',
+      });
+      await repo.settleDebt({
+        debtTransactionId: '1',
+        settlementAccountId: '2',
+        amountMinor: 50,
+        date: '2023-01-02',
+      });
+
+      expect(debt.remainingAmountMinor).toBe(0);
+      expect(debt.remainingAmountBaseMinor).toBe(0);
+      expect(debt.debtStatus).toBe(DebtStatus.SETTLED);
+    });
   });
 
   describe('Supabase RPC Parameter Mapping', () => {

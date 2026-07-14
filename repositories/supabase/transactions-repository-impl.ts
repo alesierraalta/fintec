@@ -12,6 +12,7 @@ import {
   DebtStatus,
   DebtSummary,
   DebtMode,
+  SettleDebtDTO,
 } from '@/types';
 import { supabase } from './client';
 import {
@@ -1105,6 +1106,33 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       limit,
       totalPages: Math.ceil(transactions.length / limit),
     };
+  }
+
+  /**
+   * Settle a debt (fully or partially) via the atomic `settle_debt_partial`
+   * RPC, which inserts the settlement transaction, adjusts the account
+   * balance, advances the debt's paid/remaining progress and records the
+   * settlement row in a single database transaction. Mirrors the local
+   * LocalTransactionsRepository.settleDebt behavior.
+   */
+  async settleDebt(dto: SettleDebtDTO): Promise<Transaction> {
+    const { data, error } = await (this.client as any).rpc(
+      'settle_debt_partial',
+      {
+        p_debt_id: dto.debtTransactionId,
+        p_account_id: dto.settlementAccountId,
+        p_category_id: dto.categoryId ?? null,
+        p_amount_minor: dto.amountMinor,
+        p_date: dto.date,
+        p_note: dto.note ?? null,
+      }
+    );
+
+    if (error) {
+      throw new Error(`Failed to settle debt: ${error.message}`);
+    }
+
+    return mapSupabaseTransactionToDomain(data);
   }
 
   async findDebts(

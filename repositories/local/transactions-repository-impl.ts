@@ -12,6 +12,8 @@ import {
   DebtDirection,
   DebtStatus,
   DebtSummary,
+  SettleDebtDTO,
+  DebtSettlement,
 } from '@/types';
 import { TransactionsRepository } from '@/repositories/contracts';
 import { db } from './db';
@@ -230,6 +232,161 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     }
 
     await db.transactions.delete(id);
+  }
+
+  /**
+   * Settle a debt (fully or partially).
+   *
+   * Creates a settlement transaction against `settlementAccountId`
+   * (INCOME when the debt is OWED_TO_ME — money comes in; EXPENSE when we
+   * OWE — money goes out), adjusts that account's balance, advances the
+   * debt's paid/remaining progress, marks it SETTLED when fully paid, and
+   * records a DebtSettlement audit row.
+   *
+   * The debt and account rows are read INSIDE the Dexie `rw` transaction so
+   * the read/write pair is serialized — a concurrent settlement on the same
+   * debt or account cannot lose an update. Returns the updated debt row, in
+   * parity with the Supabase `settle_debt_partial` RPC.
+   */
+  async settleDebt(dto: SettleDebtDTO): Promise<Transaction> {
+    const {
+      debtTransactionId,
+      settlementAccountId,
+      categoryId,
+      amountMinor,
+      date,
+      note,
+    } = dto;
+
+    // Amount must be a positive integer in minor units. (Cheap, read-free
+    // guard — no need to open a transaction to reject it.)
+    if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+      throw new Error('Invalid amount');
+    }
+
+    let updatedDebt: Transaction | undefined;
+
+    await db.transaction(
+      'rw',
+      [db.transactions, db.accounts, db.debtSettlements],
+      async () => {
+        // Read the authoritative rows INSIDE the transaction so validation and
+        // mutation see a consistent, serialized snapshot (mirrors the RPC's
+        // `SELECT ... FOR UPDATE` and the local updateAccountBalance pattern).
+        const debt = await db.transactions.get(debtTransactionId);
+        if (!debt || debt.isDebt !== true) {
+          throw new Error('Debt transaction not found');
+        }
+        if (debt.debtStatus === DebtStatus.SETTLED) {
+          throw new Error('Debt is already settled');
+        }
+
+        const remainingBefore = debt.remainingAmountMinor ?? debt.amountMinor;
+        if (amountMinor > remainingBefore) {
+          throw new Error('Settlement amount exceeds remaining debt');
+        }
+
+        const account = await db.accounts.get(settlementAccountId);
+        if (!account || account.active !== true) {
+          throw new Error('Settlement account is not active');
+        }
+        // The balance is adjusted with the debt-currency `amountMinor` and no
+        // FX conversion, so the settlement account must be the same currency
+        // as the debt (parity with the RPC's currency guard).
+        if (account.currencyCode !== debt.currencyCode) {
+          throw new Error(
+            'Settlement account currency must match debt currency'
+          );
+        }
+
+        // OWED_TO_ME → we receive money (INCOME, balance up).
+        // OWE        → we pay money out (EXPENSE, balance down).
+        const isOwedToMe = debt.debtDirection === DebtDirection.OWED_TO_ME;
+        const settlementType = isOwedToMe
+          ? TransactionType.INCOME
+          : TransactionType.EXPENSE;
+
+        const currencyCode = debt.currencyCode;
+        const isVesCurrency = currencyCode === 'VES';
+        const exchangeRate = isVesCurrency ? debt.exchangeRate || 1 : 1;
+        const amountBaseMinor = isVesCurrency
+          ? Math.round(amountMinor / exchangeRate)
+          : amountMinor;
+
+        const now = new Date().toISOString();
+
+        const settlementTransaction: Transaction = {
+          id: generateId('txn'),
+          type: settlementType,
+          accountId: settlementAccountId,
+          categoryId,
+          currencyCode,
+          amountMinor,
+          amountBaseMinor,
+          exchangeRate,
+          date,
+          description: `Settlement: ${debt.description ?? debt.counterpartyName ?? 'debt'}`,
+          note,
+          // Tagged so the settlement row is linked to its debt and excluded
+          // from the default (non-debt) transaction views, same as
+          // debt-linked expenses.
+          tags: ['debt-linked', `settlement:${debt.id}`],
+          isDebt: false,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        // 1. Record the settlement transaction (INCOME/EXPENSE).
+        await db.transactions.add(settlementTransaction);
+
+        // 2. Adjust the settlement account balance directly. The settlement
+        //    row is added raw (not via create()), so we must not route through
+        //    updateAccountBalance or the change would be double-counted.
+        const newBalance =
+          account.balance + (isOwedToMe ? amountMinor : -amountMinor);
+        await db.accounts.update(settlementAccountId, { balance: newBalance });
+
+        // 3. Advance the debt's progress; mark SETTLED once fully paid. The
+        //    base-minor remaining is derived from the authoritative remaining
+        //    minor amount (not accumulated per-payment) so cumulative rounding
+        //    on VES debts cannot leave it non-zero when the debt is fully paid.
+        const remainingAfter = remainingBefore - amountMinor;
+        const remainingBaseAfter = isVesCurrency
+          ? Math.round(remainingAfter / exchangeRate)
+          : remainingAfter;
+        debt.paidAmountMinor = (debt.paidAmountMinor ?? 0) + amountMinor;
+        debt.remainingAmountMinor = remainingAfter;
+        debt.remainingAmountBaseMinor = remainingBaseAfter;
+        debt.paidAmountBaseMinor = debt.amountBaseMinor - remainingBaseAfter;
+        if (remainingAfter === 0) {
+          debt.debtStatus = DebtStatus.SETTLED;
+          debt.settledAt = date;
+        }
+        debt.updatedAt = now;
+        await db.transactions.put(debt);
+
+        // 4. Persist the settlement audit record.
+        const settlement: DebtSettlement = {
+          id: generateId('dstl'),
+          debtTransactionId: debt.id,
+          settlementTransactionId: settlementTransaction.id,
+          accountId: settlementAccountId,
+          amountMinor,
+          amountBaseMinor,
+          currencyCode,
+          debtDirection: debt.debtDirection as DebtDirection,
+          settledAt: date,
+          createdAt: now,
+        };
+        await db.debtSettlements.add(settlement);
+
+        updatedDebt = debt;
+      }
+    );
+
+    // `updatedDebt` is always assigned when the transaction resolves without
+    // throwing; the non-null assertion reflects that invariant.
+    return updatedDebt!;
   }
 
   async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
