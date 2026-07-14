@@ -332,7 +332,9 @@ describe('SupabaseGoalsRepository ledger and refresh semantics', () => {
         accountId: '  acc-3  ',
       },
     ]);
-    const bulkPayload = lastInsertPayload() as Array<Record<string, unknown>>;
+    const bulkPayload = lastInsertPayload() as unknown as Array<
+      Record<string, unknown>
+    >;
     expect(bulkPayload).toHaveLength(2);
     expect(bulkPayload[0]).toEqual(
       expect.objectContaining({ target_date: null, account_id: null })

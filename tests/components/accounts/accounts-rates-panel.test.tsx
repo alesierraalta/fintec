@@ -55,6 +55,7 @@ describe('AccountsRatesPanel', () => {
         bcv={mockBcv}
         binance={mockBinance}
         selectedSource="bcv_usd"
+        onOpenHistory={jest.fn()}
       />
     );
     expect(screen.getByTestId('accounts-rates-panel')).toBeInTheDocument();
@@ -66,6 +67,7 @@ describe('AccountsRatesPanel', () => {
         bcv={mockBcv}
         binance={mockBinance}
         selectedSource="bcv_usd"
+        onOpenHistory={jest.fn()}
       />
     );
     expect(screen.getByTestId('bcv-card')).toBeInTheDocument();
@@ -78,6 +80,7 @@ describe('AccountsRatesPanel', () => {
         bcv={mockBcv}
         binance={mockBinance}
         selectedSource="binance"
+        onOpenHistory={jest.fn()}
       />
     );
     const strip = screen.getByTestId('selected-rate-strip');
@@ -91,6 +94,7 @@ describe('AccountsRatesPanel', () => {
         bcv={mockBcv}
         binance={mockBinance}
         selectedSource="binance"
+        onOpenHistory={jest.fn()}
       />
     );
     expect(screen.getByTestId('selected-rate-strip')).toHaveTextContent(
@@ -102,6 +106,7 @@ describe('AccountsRatesPanel', () => {
         bcv={mockBcv}
         binance={mockBinance}
         selectedSource="bcv_usd"
+        onOpenHistory={jest.fn()}
       />
     );
     expect(screen.getByTestId('selected-rate-strip')).toHaveTextContent(

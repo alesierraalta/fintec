@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { GET, POST } from '@/app/api/cron/recurring-transactions/route';
 import { createServiceClient } from '@/lib/supabase/admin';
 import { createServerAppRepository } from '@/repositories/factory';
@@ -66,7 +67,7 @@ describe('Recurring Transactions Cron Route', () => {
   });
 
   it('returns 401 if CRON_SECRET header is missing or incorrect', async () => {
-    const request = new Request('http://localhost/api/cron/recurring-transactions', {
+    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
       headers: {
         Authorization: 'Bearer wrong-key',
       },
@@ -80,7 +81,7 @@ describe('Recurring Transactions Cron Route', () => {
   });
 
   it('runs successfully with empty due transactions list', async () => {
-    const request = new Request('http://localhost/api/cron/recurring-transactions', {
+    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
       headers: {
         Authorization: 'Bearer super-secret-cron-key',
       },
@@ -109,7 +110,7 @@ describe('Recurring Transactions Cron Route', () => {
     mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(mockDue);
     mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce('new-tx-1');
 
-    const request = new Request('http://localhost/api/cron/recurring-transactions', {
+    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
       headers: {
         Authorization: 'Bearer super-secret-cron-key',
       },
@@ -150,7 +151,7 @@ describe('Recurring Transactions Cron Route', () => {
     mockUserRepo.exchangeRates.getRateWithFallback.mockResolvedValueOnce({ rate: 40.0 });
     mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce('new-ves-tx');
 
-    const request = new Request('http://localhost/api/cron/recurring-transactions', {
+    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
       headers: {
         Authorization: 'Bearer super-secret-cron-key',
       },
@@ -196,7 +197,7 @@ describe('Recurring Transactions Cron Route', () => {
       .mockRejectedValueOnce(new Error('RPC failed'))
       .mockResolvedValueOnce('success-tx');
 
-    const request = new Request('http://localhost/api/cron/recurring-transactions', {
+    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
       headers: {
         Authorization: 'Bearer super-secret-cron-key',
       },

@@ -20,8 +20,8 @@ describe('BCV and Binance rate routes', () => {
     warn: jest.fn(),
     error: jest.fn(),
   };
-  const mockScrapeBCVRates = jest.fn();
-  const mockScrapeBinanceRates = jest.fn();
+  const mockScrapeBCVRates: any = jest.fn();
+  const mockScrapeBinanceRates: any = jest.fn();
 
   beforeEach(() => {
     jest.resetModules();
