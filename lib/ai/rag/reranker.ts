@@ -60,6 +60,14 @@ function hasStrongLexicalAnchor(
   );
 }
 
+/**
+ * Reorders `candidates` per the gateway's relevance scores, then APPENDS any
+ * candidate the gateway omitted from `response.results` (e.g. a partial
+ * response covering only a subset of the input) after the reranked ones, in
+ * their original relative order. This preserves every input candidate — the
+ * gateway's response is a hint for ordering, never a filter over the result
+ * set.
+ */
 function applyRerankOrder(
   candidates: RerankCandidate[],
   response: VoyageRerankResponse
@@ -72,13 +80,26 @@ function applyRerankOrder(
   const sorted = [...results].sort(
     (a, b) => b.relevance_score - a.relevance_score
   );
-  const reranked = sorted
-    .map((result) => candidates[result.index])
-    .filter(
-      (candidate): candidate is RerankCandidate => candidate !== undefined
-    );
 
-  return reranked.length > 0 ? reranked : candidates;
+  const rerankedIndices = new Set<number>();
+  const reranked: RerankCandidate[] = [];
+  for (const result of sorted) {
+    const candidate = candidates[result.index];
+    if (candidate !== undefined && !rerankedIndices.has(result.index)) {
+      reranked.push(candidate);
+      rerankedIndices.add(result.index);
+    }
+  }
+
+  if (reranked.length === 0) {
+    return candidates;
+  }
+
+  const remaining = candidates.filter(
+    (_candidate, index) => !rerankedIndices.has(index)
+  );
+
+  return [...reranked, ...remaining];
 }
 
 async function callGatewayRerank(

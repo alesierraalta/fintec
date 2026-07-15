@@ -16,7 +16,11 @@ export const DEFAULT_AUTONOMY_POLICY: AutonomyPolicy = {
         autoApprove: false, // Always require human approval
         riskLevel: 'HIGH'
     },
-    getTransactions: {
+    queryTransactions: {
+        autoApprove: true, // Read-only, safe
+        riskLevel: 'LOW'
+    },
+    searchTransactions: {
         autoApprove: true, // Read-only, safe
         riskLevel: 'LOW'
     },

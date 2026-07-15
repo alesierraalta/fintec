@@ -94,6 +94,29 @@ describe('lib/ai/rag/embeddings', () => {
 
       expect(magnitude(result)).toBeCloseTo(1, 6);
     });
+
+    it('returns a NaN-containing vector unchanged instead of propagating NaN through every component', () => {
+      const { renormalize } = require('@/lib/ai/rag/embeddings');
+      const raw = [1, 2, NaN, 4];
+
+      const result = renormalize(raw);
+
+      expect(result).toEqual(raw);
+      expect(Number.isNaN(result[2])).toBe(true);
+      // Only the original NaN component is NaN — division-by-NaN did not
+      // spread NaN into the other components.
+      expect(Number.isNaN(result[0])).toBe(false);
+    });
+
+    it('returns an Infinity-containing vector unchanged instead of dividing by an infinite norm', () => {
+      const { renormalize } = require('@/lib/ai/rag/embeddings');
+      const raw = [1, 2, Infinity, 4];
+
+      const result = renormalize(raw);
+
+      expect(result).toEqual(raw);
+      expect(result[2]).toBe(Infinity);
+    });
   });
 
   describe('embedText — taskType branching', () => {

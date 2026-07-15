@@ -177,5 +177,44 @@ describe('lib/ai/rag/reranker', () => {
       expect(result[1]).toEqual(candidates[0]);
       expect(result[2]).toEqual(candidates[3]);
     });
+
+    it('appends candidates missing from a partial gateway response after the reranked ones, preserving all 20 inputs', async () => {
+      // Real PR2 test-count accounting note: this test file has 12 base
+      // scenarios + this partial-results case = 13 reranker tests total.
+      const candidates = makeCandidates(20);
+      // Gateway only scored 3 of the 20 candidates (a partial response) —
+      // the other 17 MUST still be present in the result, appended after
+      // the reranked ones, in their original relative order.
+      const fetchMock = jest.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          results: [
+            { index: 5, relevance_score: 0.98 },
+            { index: 0, relevance_score: 0.91 },
+            { index: 3, relevance_score: 0.4 },
+          ],
+        }),
+      });
+      global.fetch = fetchMock as unknown as typeof fetch;
+
+      const { rerankCandidates } = require('@/lib/ai/rag/reranker');
+      const result = await rerankCandidates(
+        'find my netflix and spotify charges',
+        candidates
+      );
+
+      // Pinned length: no candidate may be silently dropped.
+      expect(result).toHaveLength(20);
+      // Reranked head, in gateway relevance order.
+      expect(result[0]).toEqual(candidates[5]);
+      expect(result[1]).toEqual(candidates[0]);
+      expect(result[2]).toEqual(candidates[3]);
+      // Appended tail: remaining candidates (excluding 5, 0, 3) in original order.
+      const expectedTail = candidates.filter(
+        (_c, i) => ![5, 0, 3].includes(i)
+      );
+      expect(result.slice(3)).toEqual(expectedTail);
+    });
   });
 });

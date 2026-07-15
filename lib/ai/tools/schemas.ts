@@ -16,19 +16,39 @@ export const createTransactionSchema = z.object({
 });
 
 /**
- * Schema for searching transactions.
- * 
+ * Schema for parameterized filter + aggregate transaction queries
+ * (`query_transactions` RPC). Use this for questions like "how much did I
+ * spend on food in June" or "break down my spending by category" —
+ * anything answerable with filters + an aggregate, not fuzzy text search.
+ *
  * @example
- * { query: "coffee", limit: 5 }
- * { startDate: "2024-01-01", endDate: "2024-01-31" }
+ * { category: "Food", dateFrom: "2026-06-01", dateTo: "2026-06-30", aggregate: "sum" }
+ * { aggregate: "groupBy", groupByField: "category" }
  */
-export const getTransactionsSchema = z.object({
-    query: z.string().optional().describe('Search query (e.g., "coffee", "Walmart") for semantic search'),
-    startDate: z.string().optional().describe('Start date (YYYY-MM-DD)'),
-    endDate: z.string().optional().describe('End date (YYYY-MM-DD)'),
+export const queryTransactionsSchema = z.object({
+    dateFrom: z.string().optional().describe('Start date (YYYY-MM-DD)'),
+    dateTo: z.string().optional().describe('End date (YYYY-MM-DD)'),
+    amountMin: z.number().optional().describe('Minimum amount in major currency units (e.g., 50.00 for $50)'),
+    amountMax: z.number().optional().describe('Maximum amount in major currency units'),
     category: z.string().optional().describe('Filter by category name'),
-    accountName: z.string().min(1).optional().describe('Filter by account name (e.g., "Binance", "Cartera"). Case-insensitive.'),
-    limit: z.number().optional().default(5).describe('Number of transactions to return'),
+    accountName: z.string().optional().describe('Filter by account name'),
+    aggregate: z.enum(['sum', 'count', 'avg', 'groupBy']).default('sum').describe('Aggregate mode to apply over the filtered transactions'),
+    groupByField: z.enum(['category', 'account']).optional().describe('Required when aggregate="groupBy": field to group results by'),
+});
+
+/**
+ * Schema for fuzzy/hybrid transaction search (`hybrid_search_transactions`
+ * RPC: vector + full-text + trigram fused via RRF). Use this for questions
+ * like "find my Netflix charges" or typo/accent-tolerant merchant lookups —
+ * anything that is NOT a clean filter/aggregate query.
+ *
+ * @example
+ * { query: "netflix" }
+ * { query: "cafe", limit: 10 }
+ */
+export const searchTransactionsSchema = z.object({
+    query: z.string().min(1).describe('Natural-language or merchant-name search text (typo-tolerant, accent-insensitive)'),
+    limit: z.number().optional().default(20).describe('Maximum number of results to return'),
 });
 
 /**

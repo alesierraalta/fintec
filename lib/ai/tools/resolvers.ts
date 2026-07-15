@@ -1,28 +1,39 @@
 import * as schemas from './schemas';
 import {
-  formatTransactionsList,
   formatAccountBalance,
   formatGoalCreated,
   formatTransactionCreated,
+  formatQueryResult,
+  formatSearchResults,
+  type QueryTransactionsRow,
+  type HybridSearchRow,
 } from './formatters';
 import type { AppRepository } from '@/repositories/contracts';
-import { TransactionType, type TransactionFilters } from '@/types/domain';
-import {
-  analyzeSpending,
-  formatInsights,
-  type TransactionWithAccount,
-} from '../insights';
+import { TransactionType } from '@/types/domain';
+import { embedText } from '../rag/embeddings';
+import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
 import type { z } from 'zod';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // Type inference from schemas
-type GetTransactionsArgs = z.infer<typeof schemas.getTransactionsSchema>;
 type CreateTransactionArgs = z.infer<typeof schemas.createTransactionSchema>;
 type GetAccountBalanceArgs = z.infer<typeof schemas.getAccountBalanceSchema>;
 type CreateGoalArgs = z.infer<typeof schemas.createGoalSchema>;
+type QueryTransactionsArgs = z.infer<typeof schemas.queryTransactionsSchema>;
+type SearchTransactionsArgs = z.infer<
+  typeof schemas.searchTransactionsSchema
+>;
 
 interface ToolContext {
   userId: string;
   repository: AppRepository;
+  /**
+   * Raw Supabase client, required by `queryTransactions` and
+   * `searchTransactions` to invoke the `query_transactions` and
+   * `hybrid_search_transactions` RPCs directly — these are read-only
+   * retrieval calls not modeled on the domain `AppRepository` interface.
+   */
+  supabase?: SupabaseClient;
 }
 
 /**
@@ -126,90 +137,130 @@ export async function createTransaction(
 }
 
 /**
- * Searches for past transactions.
+ * Executes the `query_transactions` RPC: closed, parameterized filters
+ * (date/amount/category/account) plus an aggregate mode (sum|count|avg|
+ * groupBy), enforced under RLS for the calling user.
  */
-export async function getTransactions(
-  args: GetTransactionsArgs,
+export async function queryTransactions(
+  args: QueryTransactionsArgs,
   ctx: ToolContext
 ): Promise<string> {
+  if (!ctx.supabase) {
+    throw new Error('Supabase client not available for queryTransactions');
+  }
+
   try {
-    const accountsRepo = ctx.repository.accounts;
-    const transactionsRepo = ctx.repository.transactions;
-
-    // Get user's accounts
-    const accounts = await accountsRepo.findByUserId(ctx.userId);
-    let accountIds = accounts.map((a) => a.id);
-
-    // Create account ID → name map for fast lookup
-    const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
-
-    if (accountIds.length === 0) {
-      return 'No accounts found for your user.';
-    }
-
-    // Filter by account name if specified
-    if (args.accountName) {
-      const normalizedInput = args.accountName.trim().toLowerCase();
-
-      const account = accounts.find(
-        (a) => a.name.trim().toLowerCase() === normalizedInput
+    let categoryId: string | null = null;
+    if (args.category) {
+      const categories = await ctx.repository.categories.findAll();
+      const normalized = args.category.trim().toLowerCase();
+      const match = categories.find(
+        (c) =>
+          (c as { userId?: string }).userId === ctx.userId &&
+          c.name.trim().toLowerCase() === normalized
       );
-
-      if (!account) {
-        // Truncate account list if too long
-        const accountNames = accounts.map((a) => a.name);
-        const accountList =
-          accountNames.length > 10
-            ? accountNames.slice(0, 10).join(', ') +
-              ` (y ${accountNames.length - 10} más)`
-            : accountNames.join(', ');
-
-        return `❌ Cuenta no encontrada: ${args.accountName}. Disponibles: ${accountList}`;
-      }
-
-      accountIds = [account.id]; // Restrict to single account
+      categoryId = match?.id ?? null;
     }
 
-    // Build filters
-    const filters: TransactionFilters = {
-      accountIds,
-      dateFrom: args.startDate,
-      dateTo: args.endDate,
-    };
+    let accountId: string | null = null;
+    if (args.accountName) {
+      const accounts = await ctx.repository.accounts.findByUserId(
+        ctx.userId
+      );
+      const normalized = args.accountName.trim().toLowerCase();
+      const match = accounts.find(
+        (a) => a.name.trim().toLowerCase() === normalized
+      );
+      accountId = match?.id ?? null;
+    }
 
-    // Execute search
-    const transactionResult = await transactionsRepo.findByFilters(filters, {
-      page: 1,
-      limit: args.limit || 10,
+    const { data, error } = await ctx.supabase.rpc('query_transactions', {
+      p_date_from: args.dateFrom ?? null,
+      p_date_to: args.dateTo ?? null,
+      p_amount_min:
+        args.amountMin !== undefined
+          ? Math.round(args.amountMin * 100)
+          : null,
+      p_amount_max:
+        args.amountMax !== undefined
+          ? Math.round(args.amountMax * 100)
+          : null,
+      p_category_id: categoryId,
+      p_account_id: accountId,
+      p_aggregate: args.aggregate,
+      p_group_by_field: args.groupByField ?? null,
     });
-    const transactions = transactionResult.data;
 
-    if (transactions.length === 0) {
-      return 'No transactions found matching your criteria.';
+    if (error) {
+      throw new Error(error.message);
     }
 
-    // Enrich transactions with account names (single pass, O(n))
-    const enrichedTransactions: TransactionWithAccount[] = transactions.map(
-      (tx) => ({
-        ...tx,
-        accountName: accountMap.get(tx.accountId) || 'Unknown',
-      })
+    return formatQueryResult(
+      (data ?? []) as QueryTransactionsRow[],
+      args.aggregate
     );
-
-    // Generate autonomous insights
-    const insights = analyzeSpending(enrichedTransactions);
-    const insightsText = formatInsights(insights);
-
-    // Format results using new formatter + insights
-    const transactionsList = formatTransactionsList(
-      enrichedTransactions,
-      args.limit || 10
-    );
-
-    return transactionsList + insightsText;
   } catch (error) {
     throw new Error(
-      `Failed to get transactions: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to query transactions: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Executes the `hybrid_search_transactions` RPC: embeds the query
+ * (RETRIEVAL_QUERY), fuses pgvector cosine similarity + Spanish FTS +
+ * pg_trgm via weighted RRF (rrf_k=50), then applies the optional fail-open
+ * reranker before formatting the results.
+ */
+export async function searchTransactions(
+  args: SearchTransactionsArgs,
+  ctx: ToolContext
+): Promise<string> {
+  if (!ctx.supabase) {
+    throw new Error('Supabase client not available for searchTransactions');
+  }
+
+  try {
+    const embedding = await embedText(args.query, 'RETRIEVAL_QUERY');
+
+    const { data, error } = await ctx.supabase.rpc(
+      'hybrid_search_transactions',
+      {
+        p_query_embedding: embedding,
+        p_query_text: args.query,
+        p_match_count: 50,
+        p_rrf_k: 50,
+        p_w_vec: 1.0,
+        p_w_fts: 1.0,
+        p_w_trgm: 0.5,
+      }
+    );
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const rows = (data ?? []) as HybridSearchRow[];
+    if (rows.length === 0) {
+      return formatSearchResults([], args.limit);
+    }
+
+    const candidates: RerankCandidate[] = rows.map((row) => ({
+      id: row.id,
+      text: row.description ?? '',
+      score: row.score,
+    }));
+
+    const reranked = await rerankCandidates(args.query, candidates);
+    const rowById = new Map(rows.map((row) => [row.id, row]));
+    const rankedRows = reranked
+      .map((candidate) => rowById.get(candidate.id))
+      .filter((row): row is HybridSearchRow => row !== undefined);
+
+    return formatSearchResults(rankedRows, args.limit);
+  } catch (error) {
+    throw new Error(
+      `Failed to search transactions: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -295,7 +346,8 @@ export async function createGoal(
  */
 export const toolsResolvers = {
   createTransaction,
-  getTransactions,
+  queryTransactions,
+  searchTransactions,
   getAccountBalance,
   createGoal,
 };
