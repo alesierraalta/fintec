@@ -32,6 +32,7 @@ import {
 } from './transaction-projections';
 import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { embedText } from '@/lib/ai/rag/embeddings';
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   private accountsRepository?: AccountsRepository;
@@ -85,6 +86,42 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
 
   setAccountsRepository(accountsRepository: AccountsRepository) {
     this.accountsRepository = accountsRepository;
+  }
+
+  /**
+   * Best-effort, fire-and-forget embedding generation for a transaction
+   * row's `description`/`note` text (design decision: "Write path" —
+   * best-effort synchronous embed in repository create/update, try/catch,
+   * NEVER throw; the `scripts/backfill-embeddings.ts` script reconciles any
+   * row left with a NULL embedding, e.g. after a transient provider error).
+   *
+   * Deliberately NOT awaited by callers: embedding is a non-critical
+   * enhancement to search recall, not a write-path dependency. A failure
+   * here must never surface to the caller of `create()`/`update()`.
+   */
+  private embedTransactionBestEffort(
+    id: string,
+    description: string,
+    note: string | null | undefined
+  ): void {
+    const text = [description, note].filter(Boolean).join(' ').trim();
+    if (!text) {
+      return;
+    }
+
+    embedText(text, 'RETRIEVAL_DOCUMENT')
+      .then((embedding) =>
+        this.client
+          .from('transactions')
+          .update({ embedding } as any)
+          .eq('id', id)
+      )
+      .catch((error) => {
+        console.error(
+          `[ai-rag] Failed to generate/persist embedding for transaction ${id}:`,
+          error instanceof Error ? error.message : error
+        );
+      });
   }
   async findAll(limit: number = 1000): Promise<Transaction[]> {
     let userId: string;
@@ -378,6 +415,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         throw new Error('Failed to create debt: missing debt_id in response');
       }
 
+      // Deliberate decision (PR3 of ai-rag-hybrid-search): the debt+deduction
+      // path is NOT hooked for best-effort embedding here — it inserts two
+      // rows (the debt skip + linked expense) atomically via a dedicated RPC
+      // whose response shape differs from the standard create() path, and
+      // debt/settlement rows are a much lower-value retrieval target than
+      // ordinary transactions. These rows rely on
+      // `scripts/backfill-embeddings.ts` to pick up their NULL embedding.
       const fetched = await this.findById(debtId);
       if (fetched) {
         return fetched;
@@ -456,6 +500,14 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     const createdTransaction = mapSupabaseTransactionToDomain(data);
+
+    // Best-effort embedding (never blocks/fails the write — see method doc).
+    this.embedTransactionBestEffort(
+      createdTransaction.id,
+      supabaseTransaction.description as string,
+      (supabaseTransaction.note as string | null | undefined) ?? null
+    );
+
     return createdTransaction;
   }
 
@@ -564,6 +616,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }
 
     const updatedTransaction = mapSupabaseTransactionToDomain(data);
+
+    // Best-effort embedding (never blocks/fails the write — see method doc).
+    this.embedTransactionBestEffort(
+      updatedTransaction.id,
+      updatedTransaction.description ?? '',
+      updatedTransaction.note ?? null
+    );
 
     // Debt rows are metadata: they never touch account balances (see
     // 20260706120000_debt_balance_skip.sql and design W3). On updates we must
@@ -1343,6 +1402,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return [];
   }
 
+  /**
+   * Decision (PR3 of ai-rag-hybrid-search, task C): `createTransfer`
+   * delegates to `create()` for both legs below, so it also inherits the
+   * best-effort embedding hook automatically for free.
+   */
   async createTransfer(
     fromTransaction: CreateTransactionDTO,
     toTransaction: CreateTransactionDTO
@@ -1424,6 +1488,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
+  /**
+   * Decision (PR3 of ai-rag-hybrid-search, task C): `createMany` delegates
+   * to `create()` per row below, so it inherits the best-effort embedding
+   * hook automatically for free — no separate hook is needed here.
+   */
   async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
     const results: Transaction[] = [];
 
