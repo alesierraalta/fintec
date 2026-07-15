@@ -15,8 +15,10 @@
 --    tsvector column driven by a named text search configuration is
 --    rejected at DDL time. An expression GIN index gets the same
 --    query-time behavior without that restriction.
--- 5) Adds a pg_trgm GIN index on description for typo-tolerant recall.
--- 6) Adds an HNSW vector_cosine_ops index on the new embedding column.
+-- 5) Adds a pg_trgm GIN index on description for typo-tolerant recall, and
+--    6) an HNSW vector_cosine_ops index on the new embedding column — both
+--    built CONCURRENTLY in a companion migration file (see note below),
+--    since CONCURRENTLY cannot run inside this file's transaction.
 -- 7) Creates query_transactions: closed, parameterized filters + aggregate
 --    modes (sum|count|avg|groupBy), RLS-scoped via join to accounts, no
 --    dynamic SQL.
@@ -80,20 +82,16 @@ create index if not exists idx_transactions_description_fts
 on public.transactions
 using gin (to_tsvector('es_unaccent', coalesce(description, '') || ' ' || coalesce(note, '')));
 
--- ---------------------------------------------------------------------------
--- 5) Trigram GIN index for typo-tolerant recall
--- ---------------------------------------------------------------------------
-create index if not exists idx_transactions_description_trgm_search
-on public.transactions
-using gin (description gin_trgm_ops);
-
--- ---------------------------------------------------------------------------
--- 6) HNSW vector index
--- ---------------------------------------------------------------------------
-create index if not exists idx_transactions_embedding_hnsw
-on public.transactions
-using hnsw (embedding vector_cosine_ops)
-with (m = 16, ef_construction = 64);
+-- NOTE: the trigram and HNSW indexes on public.transactions (a live
+-- financial table) are intentionally NOT created here. CREATE INDEX
+-- (without CONCURRENTLY) takes an ACCESS EXCLUSIVE lock; CREATE INDEX
+-- CONCURRENTLY avoids that but cannot run inside a transaction block, and
+-- this file's transaction is needed for the guarded drop/column-add above.
+-- Per repo convention (202604091125_backend_optimization_phase5_trgm_gin.sql,
+-- 202604081614_backend_resource_optimization_indexes.sql), they are built
+-- CONCURRENTLY in the companion migration
+-- 20260715120001_hybrid_search_indexes.sql, which must run immediately
+-- after this one. Both index statements are idempotent (IF NOT EXISTS).
 
 -- ---------------------------------------------------------------------------
 -- 7) query_transactions: closed parameterized filters + aggregates
@@ -118,12 +116,17 @@ security invoker
 set search_path = public
 as $$
 begin
-  if p_aggregate not in ('sum', 'count', 'avg', 'groupBy') then
+  -- NULL is NOT IN (...) evaluates to NULL (falsy), so a NULL/omitted
+  -- p_aggregate must be rejected explicitly or it would silently fall
+  -- through to the sum branch below instead of raising.
+  if p_aggregate is null or p_aggregate not in ('sum', 'count', 'avg', 'groupBy') then
     raise exception 'p_aggregate must be one of sum, count, avg, groupBy';
   end if;
 
   if p_aggregate = 'groupBy' then
-    if p_group_by_field not in ('category', 'account') then
+    -- Same NULL-swallowing hazard as above: a NULL p_group_by_field must
+    -- raise here, not silently reach the account-groupBy branch.
+    if p_group_by_field is null or p_group_by_field not in ('category', 'account') then
       raise exception 'p_group_by_field must be one of category, account when p_aggregate = groupBy';
     end if;
 
@@ -221,12 +224,12 @@ as $$
 begin
   return query
   with vector_matches as (
-    select t.id, row_number() over (order by t.embedding <=> p_query_embedding) as rnk
+    select t.id, row_number() over (order by t.embedding <=> p_query_embedding, t.id) as rnk
     from public.transactions t
     join public.accounts a on a.id = t.account_id
     where a.user_id = auth.uid()
       and t.embedding is not null
-    order by t.embedding <=> p_query_embedding
+    order by t.embedding <=> p_query_embedding, t.id
     limit 50
   ),
   fts_matches as (
@@ -236,7 +239,7 @@ begin
         order by ts_rank(
           to_tsvector('es_unaccent', coalesce(t.description, '') || ' ' || coalesce(t.note, '')),
           websearch_to_tsquery('es_unaccent', p_query_text)
-        ) desc
+        ) desc, t.id
       ) as rnk
     from public.transactions t
     join public.accounts a on a.id = t.account_id
@@ -246,16 +249,20 @@ begin
     order by ts_rank(
       to_tsvector('es_unaccent', coalesce(t.description, '') || ' ' || coalesce(t.note, '')),
       websearch_to_tsquery('es_unaccent', p_query_text)
-    ) desc
+    ) desc, t.id
     limit 50
   ),
   trgm_matches as (
-    select t.id, row_number() over (order by word_similarity(p_query_text, t.description) desc) as rnk
+    -- Filter and rank both use word_similarity (via the <% threshold
+    -- operator) instead of the default trigram % operator (which is
+    -- backed by similarity(), a different metric), so the recall set and
+    -- its ranking agree on the same similarity function.
+    select t.id, row_number() over (order by word_similarity(p_query_text, t.description) desc, t.id) as rnk
     from public.transactions t
     join public.accounts a on a.id = t.account_id
     where a.user_id = auth.uid()
-      and t.description % p_query_text
-    order by word_similarity(p_query_text, t.description) desc
+      and p_query_text <% t.description
+    order by word_similarity(p_query_text, t.description) desc, t.id
     limit 50
   ),
   fused as (
@@ -272,7 +279,7 @@ begin
   select t.id, t.description, t.amount_base_minor, t.date, f.rrf_score as score
   from fused f
   join public.transactions t on t.id = f.id
-  order by f.rrf_score desc
+  order by f.rrf_score desc, f.id
   limit p_match_count;
 end;
 $$;

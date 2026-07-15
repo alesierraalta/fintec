@@ -3,8 +3,12 @@
  * ai-rag-hybrid-search:
  *   - `supabase/migrations/20260715120000_hybrid_search.sql` (extensions,
  *     guarded drop of dead 1536-dim objects, new vector(768) column,
- *     es_unaccent FTS config, GIN/HNSW indexes, `query_transactions` and
+ *     es_unaccent FTS config, `query_transactions` and
  *     `hybrid_search_transactions` RPCs)
+ *   - `supabase/migrations/20260715120001_hybrid_search_indexes.sql`
+ *     (companion migration: trigram + HNSW indexes built CONCURRENTLY,
+ *     split out because CONCURRENTLY cannot run inside the main file's
+ *     transaction)
  *   - The RPC param/return shapes both tools in PR3 will call against.
  *
  * Per design's "RPC contract shape" testing layer: assert the migration text
@@ -31,6 +35,22 @@ function findHybridSearchMigrationPath(): string {
 
 function readMigration(): string {
   return readFileSync(findHybridSearchMigrationPath(), 'utf8');
+}
+
+function findHybridSearchIndexesMigrationPath(): string {
+  const files = readdirSync(MIGRATIONS_DIR).filter((f) =>
+    f.endsWith('_hybrid_search_indexes.sql')
+  );
+  if (files.length === 0) {
+    throw new Error(
+      'Expected a supabase/migrations/<timestamp>_hybrid_search_indexes.sql companion migration file, but none was found.'
+    );
+  }
+  return join(MIGRATIONS_DIR, files[0]);
+}
+
+function readIndexesMigration(): string {
+  return readFileSync(findHybridSearchIndexesMigrationPath(), 'utf8');
 }
 
 describe('hybrid_search migration (SQL contract)', () => {
@@ -90,16 +110,19 @@ describe('hybrid_search migration (SQL contract)', () => {
     expect(sql).toMatch(/using gin\s*\(\s*to_tsvector\(\s*'es_unaccent'/i);
   });
 
-  it('adds a trigram GIN index (gin_trgm_ops) on description', () => {
-    const sql = readMigration();
-    expect(sql).toMatch(/using gin\s*\([^)]*description[^)]*gin_trgm_ops\)/i);
-  });
-
-  it('adds an HNSW vector_cosine_ops index on the new embedding column (m=16, ef_construction=64)', () => {
-    const sql = readMigration();
-    expect(sql).toMatch(/using hnsw\s*\(\s*embedding\s+vector_cosine_ops\)/i);
+  it('builds the trigram and HNSW indexes CONCURRENTLY in a companion migration (no ACCESS EXCLUSIVE lock on a live table)', () => {
+    const sql = readIndexesMigration();
+    expect(sql).toMatch(
+      /create index concurrently if not exists[^;]*using gin\s*\([^)]*description[^)]*gin_trgm_ops\)/i
+    );
+    expect(sql).toMatch(
+      /create index concurrently if not exists[^;]*using hnsw\s*\(\s*embedding\s+vector_cosine_ops\)/i
+    );
     expect(sql).toMatch(/m\s*=\s*16/i);
     expect(sql).toMatch(/ef_construction\s*=\s*64/i);
+    // Main migration must not also build these (would be a plain,
+    // ACCESS-EXCLUSIVE-locking CREATE INDEX on a live table).
+    expect(readMigration()).not.toMatch(/using hnsw\s*\(/i);
   });
 
   it('creates query_transactions with closed parameterized filters, aggregate modes, and RLS scoping', () => {
@@ -115,6 +138,22 @@ describe('hybrid_search migration (SQL contract)', () => {
     expect(sql).not.toMatch(/execute\s+'/i);
   });
 
+  it('rejects a NULL/omitted p_aggregate instead of silently falling through to sum (NULL NOT IN is NULL, not true)', () => {
+    const sql = readMigration();
+    // `p_aggregate not in (...)` alone is NULL-swallowed: a NULL p_aggregate
+    // must be checked explicitly or the guard never raises for it.
+    expect(sql).toMatch(
+      /if\s+p_aggregate\s+is\s+null\s+or\s+p_aggregate\s+not\s+in\s*\(/i
+    );
+  });
+
+  it('rejects a NULL/omitted p_group_by_field when p_aggregate=groupBy instead of silently grouping by account', () => {
+    const sql = readMigration();
+    expect(sql).toMatch(
+      /if\s+p_group_by_field\s+is\s+null\s+or\s+p_group_by_field\s+not\s+in\s*\(/i
+    );
+  });
+
   it('creates hybrid_search_transactions fusing vector + FTS + trigram via weighted RRF (rrf_k=50)', () => {
     const sql = readMigration();
     expect(sql).toMatch(
@@ -127,6 +166,19 @@ describe('hybrid_search migration (SQL contract)', () => {
     expect(sql).toMatch(/<=>/); // pgvector cosine distance operator
     expect(sql).not.toMatch(/execute\s+format/i);
     expect(sql).not.toMatch(/execute\s+'/i);
+  });
+
+  it('breaks ties deterministically on id in every ranked leg and the final fused ordering', () => {
+    const sql = readMigration();
+    expect(sql).toMatch(/order by t\.embedding <=> p_query_embedding, t\.id/i);
+    expect(sql).toMatch(/\) desc, t\.id\s*\)\s*as rnk/i);
+    expect(sql).toMatch(/order by f\.rrf_score desc, f\.id/i);
+  });
+
+  it('uses the word-similarity threshold operator for the trigram leg filter, consistent with its word_similarity ranking', () => {
+    const sql = readMigration();
+    expect(sql).toMatch(/p_query_text\s+<%\s+t\.description/i);
+    expect(sql).not.toMatch(/t\.description\s+%\s+p_query_text/i);
   });
 
   it('grants execute on both RPCs to authenticated and reloads the PostgREST schema cache', () => {
