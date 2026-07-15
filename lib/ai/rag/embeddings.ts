@@ -67,10 +67,13 @@ function magnitude(vector: number[]): number {
 /**
  * Renormalizes an embedding vector to unit length (L2 norm = 1).
  * A zero vector is returned unchanged (renormalizing would divide by zero).
+ * A NaN or non-finite norm (e.g. a NaN/Infinity component in the raw vector)
+ * is treated the same way — returned unchanged rather than propagating
+ * NaN/Infinity into every component via division.
  */
 export function renormalize(vector: number[]): number[] {
   const norm = magnitude(vector);
-  if (norm === 0) {
+  if (norm === 0 || !Number.isFinite(norm)) {
     return vector;
   }
   return vector.map((value) => value / norm);
