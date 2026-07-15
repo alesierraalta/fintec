@@ -1,15 +1,20 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { MainLayout } from '@/components/layout/main-layout';
-import { CategoryCard } from '@/components/categories';
+import {
+  CategoryCard,
+  CategoryTransactionDrilldown,
+} from '@/components/categories';
+import type { CategoryCardCategory } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import { formatCurrency } from '@/lib/money';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
-import type { Category } from '@/types';
+import type { Category, Transaction } from '@/types';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -44,6 +49,21 @@ const CategoryForm = dynamic(
   { loading: () => <FormLoading />, ssr: false }
 );
 
+const TransactionForm = dynamic(
+  () =>
+    import('@/components/forms/transaction-form').then(
+      (mod) => mod.TransactionForm
+    ),
+  { loading: () => <FormLoading />, ssr: false }
+);
+
+type CategoryWithStats = Category & {
+  transactionCount: number;
+  totalVESMinor: number;
+  totalUSDMinor: number;
+  totalEquivUSDMinor: number;
+};
+
 export default function CategoriesPage() {
   const repository = useRepository();
   const { user } = useAuth();
@@ -58,26 +78,29 @@ export default function CategoriesPage() {
     loadAllData,
   } = optimized;
 
-  useEffect(() => {
-    // Ensure latest real data: clear cache and load everything in parallel
-    invalidateCache();
-    loadAllData(true);
-  }, [invalidateCache, loadAllData]);
-
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(
+    null
+  );
   const [parentCategoryId, setParentCategoryId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filter, setFilter] = useState<'all' | 'income' | 'expense'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   const [deletingCategory, setDeletingCategory] = useState(false);
+  const [drilldownCategory, setDrilldownCategory] = useState<Category | null>(
+    null
+  );
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(
+    null
+  );
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Currency converter (same logic as transactions/accounts)
   const { convertToUSD } = useCurrencyConverter();
 
   // Memoized categories with transaction statistics
-  const categories = useMemo(() => {
-    if (!rawCategories || !rawTransactions) return [] as any[];
+  const categories = useMemo<CategoryWithStats[]>(() => {
+    if (!rawCategories || !rawTransactions) return [];
 
     // Filter categories to show only user's categories or default categories
     const filteredCategories = rawCategories.filter((category) => {
@@ -135,7 +158,7 @@ export default function CategoriesPage() {
     openModal();
   };
 
-  const handleEditCategory = (category: any) => {
+  const handleEditCategory = (category: CategoryCardCategory) => {
     setSelectedCategory(category);
     setParentCategoryId(null);
     openModal();
@@ -185,7 +208,19 @@ export default function CategoriesPage() {
   };
 
   const handleViewCategory = (categoryId: string) => {
-    // Navigate to detailed view if needed
+    const found = rawCategories?.find((c) => c.id === categoryId) ?? null;
+    setDrilldownCategory(found);
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    setEditTransaction(transaction);
+  };
+
+  const handleTransactionEditSuccess = async () => {
+    invalidateCache('transactions');
+    await loadAllData(true);
+    setRefreshKey((k) => k + 1);
+    setEditTransaction(null);
   };
 
   const handleRefreshStats = () => {
@@ -211,17 +246,19 @@ export default function CategoriesPage() {
 
   // Calculate statistics broken down by currency, mirroring /transactions behavior
   const incomeTransactions = (rawTransactions || []).filter(
-    (t) => t.type === 'INCOME'
+    (t: Transaction) => t.type === 'INCOME'
   );
   const expenseTransactions = (rawTransactions || []).filter(
-    (t) => t.type === 'EXPENSE'
+    (t: Transaction) => t.type === 'EXPENSE'
   );
 
-  const sumMinor = (items: any[], selector: (t: any) => number) =>
-    items.reduce((sum, t) => sum + (selector(t) || 0), 0);
+  const sumMinor = (
+    items: Transaction[],
+    selector: (t: Transaction) => number
+  ) => items.reduce((sum, t) => sum + (selector(t) || 0), 0);
 
   // Convert a single transaction to USD minor using its exchange rate
-  const toUsdMinor = (t: any): number => {
+  const toUsdMinor = (t: Transaction): number => {
     if (!t) return 0;
     // Delegate to shared converter for consistency
     const usdMajor = convertToUSD(t.amountMinor || 0, t.currencyCode);
@@ -230,23 +267,23 @@ export default function CategoriesPage() {
 
   // Income totals
   const totalIncomeVESMinor = sumMinor(
-    incomeTransactions.filter((t) => t.currencyCode === 'VES'),
-    (t) => t.amountMinor
+    incomeTransactions.filter((t: Transaction) => t.currencyCode === 'VES'),
+    (t: Transaction) => t.amountMinor
   );
   const totalIncomeUSDMinor = sumMinor(
-    incomeTransactions.filter((t) => t.currencyCode === 'USD'),
-    (t) => t.amountMinor
+    incomeTransactions.filter((t: Transaction) => t.currencyCode === 'USD'),
+    (t: Transaction) => t.amountMinor
   );
   const totalIncomeEquivUSDMinor = sumMinor(incomeTransactions, toUsdMinor);
 
   // Expense totals
   const totalExpensesVESMinor = sumMinor(
-    expenseTransactions.filter((t) => t.currencyCode === 'VES'),
-    (t) => t.amountMinor
+    expenseTransactions.filter((t: Transaction) => t.currencyCode === 'VES'),
+    (t: Transaction) => t.amountMinor
   );
   const totalExpensesUSDMinor = sumMinor(
-    expenseTransactions.filter((t) => t.currencyCode === 'USD'),
-    (t) => t.amountMinor
+    expenseTransactions.filter((t: Transaction) => t.currencyCode === 'USD'),
+    (t: Transaction) => t.amountMinor
   );
   const totalExpensesEquivUSDMinor = sumMinor(expenseTransactions, toUsdMinor);
 
@@ -312,18 +349,11 @@ export default function CategoriesPage() {
               </p>
               <p className="text-sm text-muted-foreground">VES</p>
               <p className="text-lg font-medium text-foreground">
-                {(totalIncomeUSDMinor / 100).toLocaleString('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                })}
+                {formatCurrency(totalIncomeUSDMinor, 'USD')}
               </p>
               <p className="text-sm text-muted-foreground">USD</p>
               <p className="text-sm text-green-600">
-                Total equiv.:{' '}
-                {(totalIncomeEquivUSDMinor / 100).toLocaleString('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                })}
+                Total equiv.: {formatCurrency(totalIncomeEquivUSDMinor, 'USD')}
               </p>
             </div>
             <div className="mt-2 flex items-center space-x-2">
@@ -347,18 +377,12 @@ export default function CategoriesPage() {
               </p>
               <p className="text-sm text-muted-foreground">VES</p>
               <p className="text-lg font-medium text-foreground">
-                {(totalExpensesUSDMinor / 100).toLocaleString('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                })}
+                {formatCurrency(totalExpensesUSDMinor, 'USD')}
               </p>
               <p className="text-sm text-muted-foreground">USD</p>
               <p className="text-sm text-red-600">
                 Total equiv.:{' '}
-                {(totalExpensesEquivUSDMinor / 100).toLocaleString('en-US', {
-                  style: 'currency',
-                  currency: 'USD',
-                })}
+                {formatCurrency(totalExpensesEquivUSDMinor, 'USD')}
               </p>
             </div>
             <div className="mt-2 flex items-center space-x-2">
@@ -559,6 +583,26 @@ export default function CategoriesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {drilldownCategory && (
+        <CategoryTransactionDrilldown
+          category={drilldownCategory}
+          categories={rawCategories || []}
+          repository={repository}
+          refreshKey={refreshKey}
+          onClose={() => setDrilldownCategory(null)}
+          onEdit={handleEditTransaction}
+        />
+      )}
+
+      {editTransaction && (
+        <TransactionForm
+          isOpen={!!editTransaction}
+          onClose={() => setEditTransaction(null)}
+          transaction={editTransaction}
+          onSuccess={handleTransactionEditSuccess}
+        />
       )}
     </MainLayout>
   );
