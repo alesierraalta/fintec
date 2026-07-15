@@ -76,12 +76,17 @@ jobs:
 
   e2e-auth-required:
     name: E2E auth-required
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.STAGING_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.STAGING_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.STAGING_SUPABASE_SERVICE_KEY }}
+      FINTEC_TEST_USER_EMAIL: ${{ secrets.FINTEC_TEST_USER_EMAIL }}
+      FINTEC_TEST_USER_PASSWORD: ${{ secrets.FINTEC_TEST_USER_PASSWORD }}
+      FINTEC_TEST_USER_NAME: ${{ secrets.FINTEC_TEST_USER_NAME }}
+      FINTEC_TEST_USER_BASE_CURRENCY: ${{ secrets.FINTEC_TEST_USER_BASE_CURRENCY }}
 
     steps:
       - name: Checkout repository
@@ -98,6 +103,14 @@ jobs:
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
+
+      - name: Validate staging host
+        run: |
+          if [ "$NEXT_PUBLIC_SUPABASE_URL" != "https://bfxkcmoccqgvkrrkkdju.supabase.co" ]; then
+            echo "FAIL: staging URL does not match expected host"
+            exit 1
+          fi
+          echo "OK: staging URL verified"
 
       - name: Validate Playwright lane (auth-required)
         run: npm run e2e:validate-lane
