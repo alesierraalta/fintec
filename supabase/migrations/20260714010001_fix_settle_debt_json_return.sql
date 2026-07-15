@@ -1,21 +1,13 @@
--- Fix VES base-minor rounding drift in settle_debt_partial.
+-- Fix JSON return type serialization in settle_debt_partial.
 --
--- `debt_remaining_amount_base_minor` is a STORED generated column
--- (amount_base_minor - debt_paid_amount_base_minor). The original RPC advanced
--- the cumulative paid base by ROUND(p_amount_minor / exchange_rate) PER payment,
--- so for VES debts settled in multiple partial payments the per-payment rounding
--- accumulated: the remaining base could end up non-zero even when the debt was
--- fully paid (remaining minor = 0), or the accumulated paid base could exceed
--- amount_base_minor and violate check_debt_paid_max, aborting a legitimate final
--- settlement.
+-- The original RPC stored the result of row_to_json() into a RECORD variable
+-- (v_debt_row), then returned that RECORD as JSON. PostgreSQL's implicit cast
+-- from RECORD to JSON wraps the value in parentheses: "(json_value)" which is
+-- not valid JSON syntax, causing error 22P02 (Token "(" is invalid).
 --
--- Fix: derive the cumulative paid base from the authoritative remaining minor
--- amount (paid_base = amount_base_minor - ROUND(remaining_minor / exchange_rate)),
--- mirroring LocalTransactionsRepository.settleDebt. This guarantees
--- remaining_base == 0 exactly when remaining_minor == 0, and paid_base is always
--- within [0, amount_base_minor]. Only the debt-progress computation changes; the
--- per-settlement amount_base_minor (for the settlement transaction and ledger
--- row) still uses the payment's own rounded base value.
+-- Fix: declare a dedicated JSON variable for the result and return it directly.
+--
+-- This also fixes the VES base-minor rounding drift (see 20260714010000).
 
 CREATE OR REPLACE FUNCTION settle_debt_partial(
   p_debt_id UUID,
@@ -38,6 +30,7 @@ DECLARE
   v_settled_at TIMESTAMP WITH TIME ZONE;
   v_settlement_tx_id UUID;
   v_tx_type VARCHAR(20);
+  v_result JSON;
 BEGIN
   -- 1. Get authenticated user
   v_user_id := auth.uid();
@@ -196,12 +189,11 @@ BEGIN
     updated_at = NOW()
   WHERE id = p_debt_id;
 
-  -- Return the updated debt row
-  SELECT row_to_json(t) INTO v_debt_row
-  FROM (
-    SELECT * FROM transactions WHERE id = p_debt_id
-  ) t;
+  -- 9. Return updated debt row as JSON directly (not via RECORD to avoid
+  --    implicit cast that wraps the result in parentheses).
+  SELECT row_to_json(t) INTO v_result
+  FROM (SELECT * FROM transactions WHERE id = p_debt_id) t;
 
-  RETURN v_debt_row;
+  RETURN v_result;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
