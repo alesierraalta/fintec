@@ -297,6 +297,116 @@ export function formatTransactionCreated(transaction: {
 }
 
 /**
+ * Row shape returned by the `query_transactions` RPC.
+ */
+export interface QueryTransactionsRow {
+    group_key: string | null;
+    result_value: number;
+    row_count: number;
+}
+
+/**
+ * Formats the result of the `queryTransactions` tool (aggregate filters).
+ *
+ * @param rows - Rows returned by the `query_transactions` RPC
+ * @param aggregate - The aggregate mode that was requested (sum|count|avg|groupBy)
+ * @returns A human-readable summary of the aggregate result
+ */
+export function formatQueryResult(
+    rows: QueryTransactionsRow[],
+    aggregate: 'sum' | 'count' | 'avg' | 'groupBy'
+): string {
+    if (rows.length === 0) {
+        return '📭 No se encontraron transacciones para esos filtros.';
+    }
+
+    if (aggregate === 'groupBy') {
+        const nonEmptyRows = rows.filter((row) => row.row_count > 0);
+
+        if (nonEmptyRows.length === 0) {
+            return '📭 No se encontraron transacciones para esos filtros.';
+        }
+
+        const lines: string[] = ['📊 Resumen por grupo:', ''];
+        nonEmptyRows.forEach((row) => {
+            lines.push(
+                `• ${row.group_key ?? 'Sin categoría'}: ${formatCurrency(row.result_value)} (${row.row_count} transacción${row.row_count !== 1 ? 'es' : ''})`
+            );
+        });
+        return lines.join('\n');
+    }
+
+    const row = rows[0];
+
+    if (row.row_count === 0) {
+        return '📭 No se encontraron transacciones para esos filtros.';
+    }
+
+    const aggregateLabel: Record<'sum' | 'count' | 'avg', string> = {
+        sum: 'Total',
+        count: 'Cantidad',
+        avg: 'Promedio',
+    };
+
+    const label = aggregateLabel[aggregate as 'sum' | 'count' | 'avg'] || 'Resultado';
+    const valueText =
+        aggregate === 'count'
+            ? `${row.result_value}`
+            : formatCurrency(row.result_value);
+
+    return [
+        `📊 ${label}: ${valueText}`,
+        `📄 Transacciones consideradas: ${row.row_count}`,
+    ].join('\n');
+}
+
+/**
+ * Row shape returned by the `hybrid_search_transactions` RPC.
+ */
+export interface HybridSearchRow {
+    id: string;
+    description: string;
+    amount_base_minor: number;
+    date: string;
+    score: number;
+}
+
+/**
+ * Formats the result of the `searchTransactions` tool (hybrid/fuzzy search).
+ *
+ * @param rows - Ranked rows returned by the `hybrid_search_transactions` RPC
+ *   (optionally reordered by the reranker)
+ * @param limit - Maximum number of results to display
+ * @returns A human-readable list of matching transactions
+ */
+export function formatSearchResults(
+    rows: HybridSearchRow[],
+    limit: number = 20
+): string {
+    if (rows.length === 0) {
+        return '📭 No se encontraron transacciones que coincidan con tu búsqueda.';
+    }
+
+    const displayRows = rows.slice(0, limit);
+    const lines: string[] = [
+        `🔎 Encontré ${rows.length} transacción${rows.length !== 1 ? 'es' : ''} relacionada${rows.length !== 1 ? 's' : ''}`,
+        '',
+    ];
+
+    displayRows.forEach((row) => {
+        const date = formatDate(row.date);
+        const amount = formatCurrency(row.amount_base_minor);
+        lines.push(`• ${date} | ${row.description} | ${amount}`);
+    });
+
+    if (rows.length > limit) {
+        lines.push(`\n... y ${rows.length - limit} más`);
+    }
+
+    return lines.join('\n');
+}
+
+/**
  * Formatea la respuesta de creación de meta.
  * 
  * @param goal - Meta creada
