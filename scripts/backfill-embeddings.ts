@@ -12,10 +12,14 @@
  * "Migration / Rollout"):
  * - Chunked: processes rows in bounded batches (default 50) instead of
  *   loading the whole table into memory.
- * - Resumable: each iteration re-queries `WHERE embedding IS NULL`, so
- *   already-backfilled rows never reappear — re-running the script after an
- *   interruption (or a per-row failure) simply picks up where it left off,
- *   with no separate cursor/offset bookkeeping required.
+ * - Keyset pagination: `WHERE embedding IS NULL AND id > lastProcessedId
+ *   ORDER BY id LIMIT n`, advancing the cursor past every row SEEN —
+ *   succeeded, failed, or (in `--dry-run`) never written. A plain
+ *   `WHERE embedding IS NULL` re-query without a cursor is NOT resumable
+ *   WITHIN a single run: dry-run never writes (same batch repeats forever),
+ *   and a permanently-failing row is always re-selected first, starving
+ *   every higher-id row. Resumability ACROSS runs is unaffected: a failed
+ *   row is retried on the NEXT run, once the cursor resets.
  * - Renormalized: `embedText()` already renormalizes to unit length
  *   (RETRIEVAL_DOCUMENT task type) before returning, so the vector persisted
  *   here is unit-length, matching the write-path hook's behavior.
@@ -73,12 +77,16 @@ function buildEmbeddingText(row: BackfillRow): string {
 
 async function fetchNullEmbeddingBatch(
   client: SupabaseClient,
-  batchSize: number
+  batchSize: number,
+  afterId: string | undefined
 ): Promise<BackfillRow[]> {
-  const { data, error } = await (client as any)
+  let query = (client as any)
     .from('transactions')
     .select('id, description, note')
-    .is('embedding', null)
+    .is('embedding', null);
+  if (afterId !== undefined) query = query.gt('id', afterId);
+
+  const { data, error } = await query
     .order('id', { ascending: true })
     .limit(batchSize);
 
@@ -105,9 +113,11 @@ async function persistEmbedding(
 }
 
 /**
- * Runs the backfill: repeatedly fetches batches of NULL-embedding
- * transaction rows and embeds+persists each one, until an empty batch is
- * returned. Never throws on a per-row failure — logs and continues.
+ * Runs the backfill: repeatedly fetches keyset-paginated NULL-embedding
+ * batches (`id > lastProcessedId`) and embeds+persists each row, until an
+ * empty batch is returned. The cursor advances past every row SEEN, so a
+ * dry-run or a permanently-failing row can't stall the loop. Never throws
+ * on a per-row failure — logs and continues.
  */
 export async function runBackfill(
   options: RunBackfillOptions
@@ -115,16 +125,23 @@ export async function runBackfill(
   const { client, batchSize = 50, dryRun = false } = options;
 
   const summary: BackfillSummary = { processed: 0, succeeded: 0, failed: 0 };
+  let lastProcessedId: string | undefined;
 
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    const batch = await fetchNullEmbeddingBatch(client, batchSize);
+    const batch = await fetchNullEmbeddingBatch(
+      client,
+      batchSize,
+      lastProcessedId
+    );
     if (batch.length === 0) {
       break;
     }
 
     for (const row of batch) {
       summary.processed += 1;
+      // Advance regardless of outcome (see keyset pagination note above).
+      lastProcessedId = row.id;
 
       if (dryRun) {
         continue;
