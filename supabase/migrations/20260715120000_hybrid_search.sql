@@ -1,4 +1,18 @@
+-- migrate: no-transaction
 -- Migration: hybrid search infrastructure (PR1 of ai-rag-hybrid-search)
+--
+-- This file runs OUTSIDE a transaction (see the `no-transaction` marker
+-- above, matching 202602051210_index_concurrency_and_partial.sql and
+-- 202604091125_backend_optimization_phase5_trgm_gin.sql), because CREATE
+-- INDEX CONCURRENTLY cannot run inside a transaction block. Every statement
+-- below is independently idempotent (IF EXISTS / IF NOT EXISTS), and the
+-- migration runner executes statements sequentially, stopping at the first
+-- error. That means the count(embedding) precondition guard (step 2) still
+-- runs — and can still abort the whole migration — before any destructive
+-- statement executes; it just no longer shares a single all-or-nothing
+-- transaction with those statements. If the guard raises, nothing after it
+-- runs, and re-running this file after fixing the underlying data is safe
+-- because every later statement is idempotent.
 --
 -- 1) Enables extensions required for the new retrieval RPCs.
 -- 2) Guards a drop of DEAD 1536-dim objects (the original pgvector column,
@@ -15,10 +29,13 @@
 --    tsvector column driven by a named text search configuration is
 --    rejected at DDL time. An expression GIN index gets the same
 --    query-time behavior without that restriction.
--- 5) Adds a pg_trgm GIN index on description for typo-tolerant recall, and
---    6) an HNSW vector_cosine_ops index on the new embedding column — both
---    built CONCURRENTLY in a companion migration file (see note below),
---    since CONCURRENTLY cannot run inside this file's transaction.
+-- 5) Reuses the existing idx_transactions_description_trgm GIN trigram
+--    index (202604091125_backend_optimization_phase5_trgm_gin.sql) for the
+--    trigram leg — no new trigram index is created here.
+-- 6) Adds an HNSW vector_cosine_ops index on the new embedding column.
+--    Both this and the FTS expression index (4) are built with CREATE
+--    INDEX CONCURRENTLY IF NOT EXISTS to avoid an ACCESS EXCLUSIVE lock on
+--    the live transactions table.
 -- 7) Creates query_transactions: closed, parameterized filters + aggregate
 --    modes (sum|count|avg|groupBy), RLS-scoped via join to accounts, no
 --    dynamic SQL.
@@ -78,20 +95,27 @@ begin
   end if;
 end $$;
 
-create index if not exists idx_transactions_description_fts
+create index concurrently if not exists idx_transactions_description_fts
 on public.transactions
 using gin (to_tsvector('es_unaccent', coalesce(description, '') || ' ' || coalesce(note, '')));
 
--- NOTE: the trigram and HNSW indexes on public.transactions (a live
--- financial table) are intentionally NOT created here. CREATE INDEX
--- (without CONCURRENTLY) takes an ACCESS EXCLUSIVE lock; CREATE INDEX
--- CONCURRENTLY avoids that but cannot run inside a transaction block, and
--- this file's transaction is needed for the guarded drop/column-add above.
--- Per repo convention (202604091125_backend_optimization_phase5_trgm_gin.sql,
--- 202604081614_backend_resource_optimization_indexes.sql), they are built
--- CONCURRENTLY in the companion migration
--- 20260715120001_hybrid_search_indexes.sql, which must run immediately
--- after this one. Both index statements are idempotent (IF NOT EXISTS).
+-- ---------------------------------------------------------------------------
+-- 5) Trigram leg: reuse the existing index, do not duplicate it
+-- ---------------------------------------------------------------------------
+-- idx_transactions_description_trgm (created in
+-- 202604091125_backend_optimization_phase5_trgm_gin.sql) already covers
+-- `gin (description gin_trgm_ops)` on public.transactions and already
+-- supports the word-similarity operators (<%, %>) used by
+-- hybrid_search_transactions' trigram leg below, so no new trigram index
+-- is created here.
+
+-- ---------------------------------------------------------------------------
+-- 6) HNSW vector index (built CONCURRENTLY, see file header)
+-- ---------------------------------------------------------------------------
+create index concurrently if not exists idx_transactions_embedding_hnsw
+on public.transactions
+using hnsw (embedding vector_cosine_ops)
+with (m = 16, ef_construction = 64);
 
 -- ---------------------------------------------------------------------------
 -- 7) query_transactions: closed parameterized filters + aggregates

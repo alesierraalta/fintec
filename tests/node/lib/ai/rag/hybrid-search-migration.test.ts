@@ -3,12 +3,9 @@
  * ai-rag-hybrid-search:
  *   - `supabase/migrations/20260715120000_hybrid_search.sql` (extensions,
  *     guarded drop of dead 1536-dim objects, new vector(768) column,
- *     es_unaccent FTS config, `query_transactions` and
- *     `hybrid_search_transactions` RPCs)
- *   - `supabase/migrations/20260715120001_hybrid_search_indexes.sql`
- *     (companion migration: trigram + HNSW indexes built CONCURRENTLY,
- *     split out because CONCURRENTLY cannot run inside the main file's
- *     transaction)
+ *     es_unaccent FTS config, all indexes built CONCURRENTLY under the
+ *     repo's `-- migrate: no-transaction` convention, `query_transactions`
+ *     and `hybrid_search_transactions` RPCs)
  *   - The RPC param/return shapes both tools in PR3 will call against.
  *
  * Per design's "RPC contract shape" testing layer: assert the migration text
@@ -35,22 +32,6 @@ function findHybridSearchMigrationPath(): string {
 
 function readMigration(): string {
   return readFileSync(findHybridSearchMigrationPath(), 'utf8');
-}
-
-function findHybridSearchIndexesMigrationPath(): string {
-  const files = readdirSync(MIGRATIONS_DIR).filter((f) =>
-    f.endsWith('_hybrid_search_indexes.sql')
-  );
-  if (files.length === 0) {
-    throw new Error(
-      'Expected a supabase/migrations/<timestamp>_hybrid_search_indexes.sql companion migration file, but none was found.'
-    );
-  }
-  return join(MIGRATIONS_DIR, files[0]);
-}
-
-function readIndexesMigration(): string {
-  return readFileSync(findHybridSearchIndexesMigrationPath(), 'utf8');
 }
 
 describe('hybrid_search migration (SQL contract)', () => {
@@ -110,19 +91,25 @@ describe('hybrid_search migration (SQL contract)', () => {
     expect(sql).toMatch(/using gin\s*\(\s*to_tsvector\(\s*'es_unaccent'/i);
   });
 
-  it('builds the trigram and HNSW indexes CONCURRENTLY in a companion migration (no ACCESS EXCLUSIVE lock on a live table)', () => {
-    const sql = readIndexesMigration();
+  it('runs under the no-transaction convention and builds the FTS + HNSW indexes CONCURRENTLY (no ACCESS EXCLUSIVE lock on a live table)', () => {
+    const sql = readMigration();
+    expect(sql).toMatch(/^-- migrate: no-transaction/i);
     expect(sql).toMatch(
-      /create index concurrently if not exists[^;]*using gin\s*\([^)]*description[^)]*gin_trgm_ops\)/i
+      /create index concurrently if not exists[^;]*using gin\s*\(\s*to_tsvector\(\s*'es_unaccent'/i
     );
     expect(sql).toMatch(
       /create index concurrently if not exists[^;]*using hnsw\s*\(\s*embedding\s+vector_cosine_ops\)/i
     );
     expect(sql).toMatch(/m\s*=\s*16/i);
     expect(sql).toMatch(/ef_construction\s*=\s*64/i);
-    // Main migration must not also build these (would be a plain,
-    // ACCESS-EXCLUSIVE-locking CREATE INDEX on a live table).
-    expect(readMigration()).not.toMatch(/using hnsw\s*\(/i);
+    // No plain (non-concurrent) CREATE INDEX remains on the live table.
+    expect(sql).not.toMatch(/create index if not exists/i);
+  });
+
+  it('reuses the existing idx_transactions_description_trgm index (202604091125) instead of creating a duplicate trigram index', () => {
+    const sql = readMigration();
+    expect(sql).toMatch(/idx_transactions_description_trgm\b/i);
+    expect(sql).not.toMatch(/idx_transactions_description_trgm_search/i);
   });
 
   it('creates query_transactions with closed parameterized filters, aggregate modes, and RLS scoping', () => {
