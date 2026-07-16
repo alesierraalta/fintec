@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent } from 'react';
-import { Send, Loader2 } from 'lucide-react';
+import { ArrowUp, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -13,7 +13,8 @@ interface ChatInputProps {
 
 /**
  * Premium chat input component with FinTec styling.
- * Features auto-resize, enter-to-submit, and loading states.
+ * Pill-shaped composer with an inset send button, enter-to-submit,
+ * and loading states.
  */
 export function ChatInput({
   input,
@@ -31,44 +32,44 @@ export function ChatInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-end gap-3">
-      <div className="relative flex-1">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Escribe tu mensaje..."
-          disabled={isLoading}
-          rows={1}
-          className={cn(
-            'w-full resize-none rounded-xl border border-border bg-card px-4 py-3 pr-12 text-base md:text-sm',
-            'placeholder:text-muted-foreground',
-            'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
-            'disabled:cursor-not-allowed disabled:opacity-50',
-            'transition-ios'
-          )}
-          style={{
-            minHeight: '48px',
-            maxHeight: '120px',
-          }}
-        />
-      </div>
+    <form onSubmit={handleSubmit} className="relative">
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder="Pregunta sobre tus finanzas…"
+        disabled={isLoading}
+        rows={1}
+        aria-label="Mensaje para el asistente"
+        className={cn(
+          'w-full resize-none rounded-3xl border border-border/60 bg-card py-3.5 pl-5 pr-14',
+          'text-[16px] md:text-sm placeholder:text-muted-foreground',
+          'shadow-ios-sm',
+          'focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20',
+          'disabled:cursor-not-allowed disabled:opacity-60',
+          'transition-ios'
+        )}
+        style={{
+          minHeight: '52px',
+          maxHeight: '120px',
+        }}
+      />
 
       <button
         type="submit"
         disabled={isLoading || !input.trim()}
+        aria-label="Enviar mensaje"
         className={cn(
-          'flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl',
-          'bg-primary text-primary-foreground',
+          'absolute bottom-2.5 right-2.5 flex h-9 w-9 items-center justify-center rounded-full',
+          'bg-gradient-to-br from-primary to-blue-500 text-white shadow-ios-sm',
           'transition-ios hover:opacity-90 active:scale-95',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          'micro-bounce'
+          'disabled:cursor-not-allowed disabled:from-muted disabled:to-muted disabled:text-muted-foreground disabled:shadow-none'
         )}
       >
         {isLoading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-[18px] w-[18px] animate-spin" />
         ) : (
-          <Send className="h-5 w-5" />
+          <ArrowUp className="h-[18px] w-[18px]" strokeWidth={2.5} />
         )}
       </button>
     </form>
