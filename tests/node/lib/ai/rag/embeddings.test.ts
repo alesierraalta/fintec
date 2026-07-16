@@ -24,7 +24,7 @@ jest.mock('ai', () => ({
 
 jest.mock('@ai-sdk/google', () => ({
   google: {
-    textEmbeddingModel: (...args: unknown[]) => mockTextEmbeddingModel(...args),
+    textEmbeddingModel: (modelId: string) => mockTextEmbeddingModel(modelId),
   },
 }));
 

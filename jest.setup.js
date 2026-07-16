@@ -76,11 +76,23 @@ afterAll(() => {
 });
 
 const { TextEncoder, TextDecoder } = require('util');
-const { ReadableStream } = require('stream/web');
+const {
+  ReadableStream,
+  WritableStream,
+  TransformStream,
+  TextEncoderStream,
+  TextDecoderStream,
+} = require('stream/web');
 
 global.TextEncoder = TextEncoder;
 global.TextDecoder = TextDecoder;
 global.ReadableStream = ReadableStream;
+// jsdom does not expose Web Streams; the AI SDK (via eventsource-parser)
+// references TransformStream at module scope, so polyfill the full set.
+global.WritableStream = WritableStream;
+global.TransformStream = TransformStream;
+global.TextEncoderStream = TextEncoderStream;
+global.TextDecoderStream = TextDecoderStream;
 
 // Polyfill Request/Response/Headers for next/server in jsdom
 if (typeof globalThis.Request === 'undefined') {

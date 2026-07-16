@@ -1,6 +1,7 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import {
   Sparkles,
   Wallet,
@@ -24,8 +25,8 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
 
   const { messages, sendMessage, status, error } = useChat({
-    api: '/api/chat',
-  } as any);
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
+  });
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -75,14 +76,11 @@ export function ChatInterface() {
         <div className="mx-auto max-w-3xl px-4 py-6">
           {messages.length === 0 ? (
             // Empty State - Welcome Screen
-            <div className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center animate-fade-in-up">
+            <div className="flex h-full min-h-[60vh] animate-fade-in-up flex-col items-center justify-center text-center">
               <div className="relative mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
                 <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-500 shadow-ios">
-                  <Sparkles
-                    className="h-8 w-8 text-white"
-                    aria-hidden="true"
-                  />
+                  <Sparkles className="h-8 w-8 text-white" aria-hidden="true" />
                 </div>
               </div>
               <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
@@ -104,12 +102,12 @@ export function ChatInterface() {
                     }}
                     className={cn(
                       'group flex flex-col items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left',
-                      'shadow-ios-sm transition-ios hover:border-primary/40 hover:bg-primary/5',
+                      'transition-ios shadow-ios-sm hover:border-primary/40 hover:bg-primary/5',
                       'focus-ring min-h-[44px]',
                       'hover-lift micro-bounce'
                     )}
                   >
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 transition-ios group-hover:bg-primary/15">
+                    <span className="transition-ios flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15">
                       <action.icon
                         className="h-[18px] w-[18px] text-primary"
                         aria-hidden="true"
@@ -125,13 +123,13 @@ export function ChatInterface() {
           ) : (
             // Message List
             <div className="space-y-4">
-              {messages.map((message: any) => (
+              {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
 
               {/* Loading Indicator */}
               {isLoading && (
-                <div className="flex items-end gap-2.5 animate-fade-in-up">
+                <div className="flex animate-fade-in-up items-end gap-2.5">
                   <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-500 shadow-ios-sm">
                     <Sparkles
                       className="h-4 w-4 text-white"
@@ -175,7 +173,7 @@ export function ChatInterface() {
       )}
 
       {/* Input Container - Sticky Bottom */}
-      <div className="bg-gradient-to-t from-background via-background/95 to-transparent px-4 pb-4 pt-2 pb-safe-bottom">
+      <div className="bg-gradient-to-t from-background via-background/95 to-transparent px-4 pb-4 pb-safe-bottom pt-2">
         <div className="mx-auto max-w-3xl">
           <ChatInput
             input={input}

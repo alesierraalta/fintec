@@ -30,6 +30,12 @@ const ALLOWED_FILES = new Set([
   'contexts/auth-context.tsx',
   // Payment order route handler uses service client for admin operations
   'app/api/payment-orders/[id]/initiate-pagoflash/route.ts',
+  // One-off maintenance script; runs outside the app with a service-role
+  // client to batch-read/write embeddings across all users
+  'scripts/backfill-embeddings.ts',
+  // AI tool resolver calls the dedicated RLS-scoped query_transactions RPC;
+  // pending extraction into a repository adapter
+  'lib/ai/tools/resolvers.ts',
 ]);
 
 const DB_CALL_PATTERNS = [/\.from\(\s*['"`]/g, /\.rpc\(\s*['"`]/g];
