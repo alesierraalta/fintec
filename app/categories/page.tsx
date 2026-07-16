@@ -11,6 +11,7 @@ import type { CategoryCardCategory } from '@/components/categories';
 import { Button } from '@/components/ui';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import { formatCurrency } from '@/lib/money';
+import { getDescendantIds } from '@/lib/categories';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useModal } from '@/hooks';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
@@ -115,10 +116,19 @@ export default function CategoriesPage() {
     });
 
     return filteredCategories.map((category) => {
+      // Direct-only transactions still drive the per-currency totals below.
       const categoryTransactions = rawTransactions.filter(
         (t) => t.categoryId === category.id
       );
-      const transactionCount = categoryTransactions.length;
+      // The visible count spans the whole subtree (category + descendants) so
+      // it matches the list the drilldown opens with, whose default view
+      // includes subcategories. Same walk as the drilldown (lib/categories).
+      const subtreeIds = new Set(
+        getDescendantIds(category.id, filteredCategories)
+      );
+      const transactionCount = rawTransactions.filter((t) =>
+        t.categoryId ? subtreeIds.has(t.categoryId) : false
+      ).length;
 
       // Totals per currency in minor units
       const totalVESMinor = categoryTransactions
@@ -588,7 +598,9 @@ export default function CategoriesPage() {
       {drilldownCategory && (
         <CategoryTransactionDrilldown
           category={drilldownCategory}
-          categories={rawCategories || []}
+          // Same visibility-filtered universe the card counts walk, so the
+          // panel's descendant scope can never diverge from the card number.
+          categories={categories}
           repository={repository}
           refreshKey={refreshKey}
           onClose={() => setDrilldownCategory(null)}
