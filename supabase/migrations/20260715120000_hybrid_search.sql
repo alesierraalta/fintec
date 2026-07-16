@@ -23,19 +23,21 @@
 --    unexpectedly non-empty data.
 -- 3) Re-adds embedding as vector(768) (gemini-embedding-001 output dims).
 -- 4) Adds a Spanish, accent-insensitive full-text-search configuration
---    (es_unaccent) plus a GIN expression index — deliberately NOT a stored
---    computed tsvector column, because to_tsvector(regconfig, text) is
---    STABLE (not IMMUTABLE) in Postgres, so a computed-and-persisted
---    tsvector column driven by a named text search configuration is
---    rejected at DDL time. An expression GIN index gets the same
---    query-time behavior without that restriction.
+--    (es_unaccent). Its GIN expression index is built in the companion
+--    migration 20260715120001_hybrid_search_fts_index.sql (see body note) —
+--    deliberately NOT a stored computed tsvector column, because
+--    to_tsvector(regconfig, text) is STABLE (not IMMUTABLE) in Postgres, so
+--    a computed-and-persisted tsvector column driven by a named text search
+--    configuration is rejected at DDL time. An expression GIN index gets
+--    the same query-time behavior without that restriction.
 -- 5) Reuses the existing idx_transactions_description_trgm GIN trigram
 --    index (202604091125_backend_optimization_phase5_trgm_gin.sql) for the
 --    trigram leg — no new trigram index is created here.
--- 6) Adds an HNSW vector_cosine_ops index on the new embedding column.
---    Both this and the FTS expression index (4) are built with CREATE
---    INDEX CONCURRENTLY IF NOT EXISTS to avoid an ACCESS EXCLUSIVE lock on
---    the live transactions table.
+-- 6) The HNSW vector_cosine_ops index on the new embedding column is built
+--    in the companion migration 20260715120002_hybrid_search_hnsw_index.sql.
+--    Both companions use CREATE INDEX CONCURRENTLY IF NOT EXISTS (no ACCESS
+--    EXCLUSIVE lock) in single-statement files, because the Supabase CLI
+--    statement pipeline rejects CONCURRENTLY alongside other statements.
 -- 7) Creates query_transactions: closed, parameterized filters + aggregate
 --    modes (sum|count|avg|groupBy), RLS-scoped via join to accounts, no
 --    dynamic SQL.
@@ -52,7 +54,6 @@
 create extension if not exists vector;
 create extension if not exists pg_trgm;
 create extension if not exists unaccent;
-
 -- ---------------------------------------------------------------------------
 -- 2) Guarded drop of dead 1536-dim objects
 -- ---------------------------------------------------------------------------
@@ -71,17 +72,14 @@ begin
       v_embedded_count;
   end if;
 end $$;
-
 drop function if exists public.match_transactions(vector(1536), float, int, uuid);
 drop index if exists public.transactions_embedding_idx;
 alter table public.transactions drop column if exists embedding;
-
 -- ---------------------------------------------------------------------------
 -- 3) New vector(768) embedding column
 -- ---------------------------------------------------------------------------
 alter table public.transactions
 add column if not exists embedding vector(768);
-
 -- ---------------------------------------------------------------------------
 -- 4) Spanish, accent-insensitive FTS configuration + expression GIN index
 -- ---------------------------------------------------------------------------
@@ -94,10 +92,11 @@ begin
       with unaccent, spanish_stem;
   end if;
 end $$;
-
-create index concurrently if not exists idx_transactions_description_fts
-on public.transactions
-using gin (to_tsvector('es_unaccent', coalesce(description, '') || ' ' || coalesce(note, '')));
+-- The expression GIN index is built CONCURRENTLY in the companion migration
+-- 20260715120001_hybrid_search_fts_index.sql: the Supabase CLI executes each
+-- migration's statements in a pipeline, and CREATE INDEX CONCURRENTLY cannot
+-- run there alongside other statements (SQLSTATE 25001), so each concurrent
+-- index needs its own single-statement file.
 
 -- ---------------------------------------------------------------------------
 -- 5) Trigram leg: reuse the existing index, do not duplicate it
@@ -110,12 +109,10 @@ using gin (to_tsvector('es_unaccent', coalesce(description, '') || ' ' || coales
 -- is created here.
 
 -- ---------------------------------------------------------------------------
--- 6) HNSW vector index (built CONCURRENTLY, see file header)
+-- 6) HNSW vector index: built CONCURRENTLY in the companion migration
+--    20260715120002_hybrid_search_hnsw_index.sql (same CLI pipeline
+--    limitation as the FTS index above).
 -- ---------------------------------------------------------------------------
-create index concurrently if not exists idx_transactions_embedding_hnsw
-on public.transactions
-using hnsw (embedding vector_cosine_ops)
-with (m = 16, ef_construction = 64);
 
 -- ---------------------------------------------------------------------------
 -- 7) query_transactions: closed parameterized filters + aggregates
@@ -217,11 +214,9 @@ begin
     and (p_account_id is null or t.account_id = p_account_id);
 end;
 $$;
-
 grant execute on function public.query_transactions(
   date, date, bigint, bigint, uuid, uuid, text, text
 ) to authenticated;
-
 -- ---------------------------------------------------------------------------
 -- 8) hybrid_search_transactions: 3-way weighted RRF (rrf_k=50)
 -- ---------------------------------------------------------------------------
@@ -307,9 +302,7 @@ begin
   limit p_match_count;
 end;
 $$;
-
 grant execute on function public.hybrid_search_transactions(
   vector(768), text, int, int, float, float, float
 ) to authenticated;
-
 notify pgrst, 'reload schema';

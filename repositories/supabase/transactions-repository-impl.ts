@@ -32,7 +32,11 @@ import {
 } from './transaction-projections';
 import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { embedText } from '@/lib/ai/rag/embeddings';
+// NOTE: '@/lib/ai/rag/embeddings' is loaded lazily inside
+// embedTransactionBestEffort. A static import drags the whole AI SDK
+// (ai -> @ai-sdk/gateway -> eventsource-parser) into every consumer of the
+// repository factory at module-load time, which crashes in environments
+// without a TransformStream global (e.g. Jest's jsdom project).
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   private accountsRepository?: AccountsRepository;
@@ -109,7 +113,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       return;
     }
 
-    embedText(text, 'RETRIEVAL_DOCUMENT')
+    import('@/lib/ai/rag/embeddings')
+      .then(({ embedText }) => embedText(text, 'RETRIEVAL_DOCUMENT'))
       .then((embedding) =>
         this.client
           .from('transactions')
