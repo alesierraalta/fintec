@@ -10,19 +10,7 @@ import type {
   TransactionFilters,
   PaginationParams,
 } from '@/types';
-
-function getDescendantIds(
-  id: string,
-  cats: Category[],
-  visited = new Set<string>()
-): string[] {
-  if (visited.has(id)) return [];
-  visited.add(id);
-  const ids = [id];
-  for (const c of cats)
-    if (c.parentId === id) ids.push(...getDescendantIds(c.id, cats, visited));
-  return ids;
-}
+import { getDescendantIds } from '@/lib/categories';
 
 const PAGE_SIZE = 50;
 

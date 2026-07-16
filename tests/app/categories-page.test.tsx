@@ -279,4 +279,72 @@ describe('CategoriesPage Slice 2', () => {
     expect(formatCurrency).toHaveBeenCalledWith(1050, 'USD');
     expect(screen.getAllByText('$SENTINEL$').length).toBeGreaterThanOrEqual(1);
   });
+
+  // Card counts must match what the drilldown opens by default: the category
+  // PLUS its descendants. A parent with 3 direct and 4 subcategory
+  // transactions must show 7, not 3.
+  it('card transaction count includes descendant categories', () => {
+    setupMocks(
+      [
+        cat({ id: 'p1', name: 'Food' }),
+        cat({ id: 'c1', name: 'Delivery', parentId: 'p1' }),
+      ],
+      [
+        tx({ id: 'd1', categoryId: 'p1' }),
+        tx({ id: 'd2', categoryId: 'p1' }),
+        tx({ id: 'd3', categoryId: 'p1' }),
+        tx({ id: 's1', categoryId: 'c1' }),
+        tx({ id: 's2', categoryId: 'c1' }),
+        tx({ id: 's3', categoryId: 'c1' }),
+        tx({ id: 's4', categoryId: 'c1' }),
+      ]
+    );
+    render(<Page />);
+
+    // Parent card: subtree count (3 direct + 4 in Delivery).
+    expect(screen.getByText('7')).toBeInTheDocument();
+    // Child card keeps its own subtree count (4, no descendants).
+    expect(screen.getByText('4')).toBeInTheDocument();
+    // The direct-only parent count must be gone.
+    expect(screen.queryByText('3')).not.toBeInTheDocument();
+  });
+
+  // Card count and drilldown must walk the SAME visibility-filtered category
+  // universe: a foreign-user child (data-integrity edge the service does not
+  // prevent) is excluded from the count AND from the categories the drilldown
+  // receives, so the pair cannot diverge again.
+  it('count and drilldown share the visibility-filtered category universe', async () => {
+    setupMocks(
+      [
+        cat({ id: 'p1', name: 'Food' }),
+        cat({ id: 'cx', name: 'Foreign', parentId: 'p1', userId: 'u2' }),
+      ],
+      [
+        tx({ id: 'd1', categoryId: 'p1' }),
+        tx({ id: 'd2', categoryId: 'p1' }),
+        tx({ id: 'd3', categoryId: 'p1' }),
+        tx({ id: 'f1', categoryId: 'cx' }),
+        tx({ id: 'f2', categoryId: 'cx' }),
+        tx({ id: 'f3', categoryId: 'cx' }),
+        tx({ id: 'f4', categoryId: 'cx' }),
+      ]
+    );
+    render(<Page />);
+
+    // Foreign child is outside the user's visible universe: count stays 3.
+    expect(screen.getByText('3')).toBeInTheDocument();
+    expect(screen.queryByText('7')).not.toBeInTheDocument();
+
+    // Opening the drilldown hands it the same filtered universe.
+    await userEvent.click(
+      screen.getByRole('button', { name: /view category food/i })
+    );
+    const {
+      CategoryTransactionDrilldown,
+    } = require('@/components/categories/category-transaction-drilldown');
+    const lastProps = CategoryTransactionDrilldown.mock.calls.at(-1)?.[0] ?? {};
+    const ids = (lastProps.categories ?? []).map((c: Category) => c.id);
+    expect(ids).toContain('p1');
+    expect(ids).not.toContain('cx');
+  });
 });
