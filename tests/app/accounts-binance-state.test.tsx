@@ -84,10 +84,6 @@ jest.mock('@/components/accounts/balance-alert-indicator', () => ({
   BalanceAlertIndicator: () => <div data-testid="balance-alert-indicator" />,
 }));
 
-jest.mock('@/components/accounts/swipeable-account-card', () => ({
-  SwipeableAccountCard: () => <div data-testid="swipeable-account-card" />,
-}));
-
 jest.mock('@/components/skeletons/accounts-skeleton', () => ({
   AccountsSkeleton: () => <div data-testid="accounts-skeleton" />,
 }));

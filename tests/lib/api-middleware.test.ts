@@ -2,9 +2,6 @@ import { AppError } from '@/lib/errors/app-error';
 import { ValidationError } from '@/lib/errors/validation-error';
 import { NotFoundError } from '@/lib/errors/not-found-error';
 import { AuthError } from '@/lib/errors/auth-error';
-import { AuthorizationError } from '@/lib/errors/authorization-error';
-import { ConflictError } from '@/lib/errors/conflict-error';
-import { DatabaseError } from '@/lib/errors/database-error';
 
 // Mock next/server before importing the middleware
 jest.mock('next/server', () => {
@@ -85,10 +82,12 @@ describe('withErrorHandling', () => {
     expect(data.error.code).toBe('AUTH_ERROR');
   });
 
-  it('should catch DatabaseError and return 500 envelope', async () => {
+  it('should catch database-style AppError and return 500 envelope', async () => {
     const handler = jest
       .fn()
-      .mockRejectedValue(new DatabaseError('Connection failed'));
+      .mockRejectedValue(
+        new AppError('Connection failed', 'DATABASE_ERROR', 500)
+      );
 
     const wrapped = withErrorHandling(handler);
     const response = await wrapped(createMockRequest());
@@ -149,10 +148,12 @@ describe('withErrorHandling', () => {
     expect(handler).toHaveBeenCalledWith(request);
   });
 
-  it('should catch AuthorizationError and return 403 envelope', async () => {
+  it('should catch authorization-style AppError and return 403 envelope', async () => {
     const handler = jest
       .fn()
-      .mockRejectedValue(new AuthorizationError('Admin access required'));
+      .mockRejectedValue(
+        new AppError('Admin access required', 'FORBIDDEN', 403)
+      );
 
     const wrapped = withErrorHandling(handler);
     const response = await wrapped(createMockRequest());
@@ -163,11 +164,11 @@ describe('withErrorHandling', () => {
     expect(data.error.message).toBe('Admin access required');
   });
 
-  it('should catch ConflictError and return 409 envelope', async () => {
+  it('should catch conflict-style AppError and return 409 envelope', async () => {
     const handler = jest
       .fn()
       .mockRejectedValue(
-        new ConflictError('Order must be in pending_review state')
+        new AppError('Order must be in pending_review state', 'CONFLICT', 409)
       );
 
     const wrapped = withErrorHandling(handler);
@@ -199,7 +200,9 @@ describe('withErrorHandling — Ctx generic (dynamic route passthrough)', () => 
     const params = { params: Promise.resolve({ id: 'order-123' }) };
     const handler = jest
       .fn()
-      .mockRejectedValue(new AuthorizationError('Admin access required'));
+      .mockRejectedValue(
+        new AppError('Admin access required', 'FORBIDDEN', 403)
+      );
 
     const wrapped = withErrorHandling(handler);
     const response = await wrapped(createMockRequest(), params);
