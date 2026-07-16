@@ -42,8 +42,8 @@ export function ChatInput({
         rows={1}
         aria-label="Mensaje para el asistente"
         className={cn(
-          'w-full resize-none rounded-3xl border border-border/60 bg-card py-3.5 pl-5 pr-14',
-          'text-[16px] md:text-sm placeholder:text-muted-foreground',
+          'w-full resize-none rounded-3xl border border-border bg-secondary/60 py-3.5 pl-5 pr-14',
+          'text-[16px] placeholder:text-muted-foreground md:text-sm',
           'shadow-ios-sm',
           'focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-60',
