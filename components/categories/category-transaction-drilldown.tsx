@@ -188,6 +188,7 @@ export function CategoryTransactionDrilldown({
       open={!!category}
       onClose={onClose}
       title={category.name}
+      closeButtonClassName="min-h-[44px] min-w-[44px]"
       className="!mx-0 h-[100dvh] max-h-none w-full max-w-none rounded-none border-0 pb-safe-bottom pl-safe-left pr-safe-right pt-safe-top sm:!ml-auto sm:!mr-0 sm:h-[100dvh] sm:max-h-none sm:w-[min(42rem,100vw)] sm:max-w-none sm:rounded-none sm:rounded-l-3xl sm:border-l"
     >
       <Controls

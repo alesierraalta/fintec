@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { Category, Transaction } from '@/types';
+import type { Category, PaginatedResult, Transaction } from '@/types';
 
 jest.mock('framer-motion', () => ({
   AnimatePresence: (p: { children: React.ReactNode }) => <>{p.children}</>,
@@ -196,9 +196,9 @@ describe('Drilldown', () => {
     await waitFor(() => expect(ff).toHaveBeenCalledTimes(4));
   });
   it('stale-guard', async () => {
-    let resolveOld!: (v: any) => void;
+    let resolveOld!: (v: PaginatedResult<Transaction>) => void;
     ff.mockReturnValueOnce(
-      new Promise<any>((r) => {
+      new Promise<PaginatedResult<Transaction>>((r) => {
         resolveOld = r;
       })
     );
@@ -245,5 +245,94 @@ describe('Drilldown', () => {
     });
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
+  });
+  it('hierarchy grandchild', async () => {
+    const cats = [
+      cat({ id: 'p' }),
+      cat({ id: 'c', parentId: 'p' }),
+      cat({ id: 'gc', parentId: 'c' }),
+    ];
+    m();
+    render(
+      <C
+        category={cats[0]}
+        categories={cats}
+        repository={repo}
+        refreshKey={0}
+        onClose={onClose}
+        onEdit={onEdit}
+      />
+    );
+    await waitFor(() =>
+      expect(ff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoryIds: expect.arrayContaining(['p', 'c', 'gc']),
+        }),
+        expect.any(Object)
+      )
+    );
+  });
+  it('cycle safety', async () => {
+    const cats = [
+      cat({ id: 'a' }),
+      cat({ id: 'b', parentId: 'a' }),
+      cat({ id: 'a', parentId: 'b' }),
+    ];
+    m();
+    render(
+      <C
+        category={cats[0]}
+        categories={cats}
+        repository={repo}
+        refreshKey={0}
+        onClose={onClose}
+        onEdit={onEdit}
+      />
+    );
+    await waitFor(() => expect(ff).toHaveBeenCalled());
+    const ids = ff.mock.calls[0][0]?.categoryIds as string[];
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+  it('inclusive boundary dates', async () => {
+    m({
+      data: [
+        tx({ id: 't1', date: '2026-07-01', description: 'Start boundary' }),
+        tx({ id: 't2', date: '2026-07-15', description: 'End boundary' }),
+      ],
+      total: 2,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    });
+    r();
+    fireEvent.change(screen.getByLabelText(/from/i), {
+      target: { value: '2026-07-01' },
+    });
+    fireEvent.change(screen.getByLabelText(/to/i), {
+      target: { value: '2026-07-15' },
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Start boundary')).toBeInTheDocument();
+      expect(screen.getByText('End boundary')).toBeInTheDocument();
+    });
+    expect(ff).toHaveBeenLastCalledWith(
+      expect.objectContaining({ dateFrom: '2026-07-01', dateTo: '2026-07-15' }),
+      expect.any(Object)
+    );
+  });
+  it('filtered-empty', async () => {
+    m();
+    r();
+    await waitFor(() =>
+      expect(
+        screen.getByText(/no transactions for this category/i)
+      ).toBeInTheDocument()
+    );
+    fireEvent.change(screen.getByLabelText(/from/i), {
+      target: { value: '2026-07-01' },
+    });
+    await waitFor(() =>
+      expect(screen.getByText(/no matches/i)).toBeInTheDocument()
+    );
   });
 });

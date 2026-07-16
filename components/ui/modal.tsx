@@ -11,6 +11,7 @@ export interface ModalProps {
   size?: ModalSize;
   children: React.ReactNode;
   className?: string;
+  closeButtonClassName?: string;
 }
 
 export function Modal({
@@ -21,6 +22,7 @@ export function Modal({
   size = 'md',
   children,
   className,
+  closeButtonClassName,
 }: ModalProps) {
   const [mounted, setMounted] = React.useState(false);
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -145,7 +147,10 @@ export function Modal({
             {title && (
               <button
                 type="button"
-                className="focus-ring absolute right-4 top-4 rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-muted/20 hover:text-foreground"
+                className={cn(
+                  'focus-ring absolute right-4 top-4 rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-muted/20 hover:text-foreground',
+                  closeButtonClassName
+                )}
                 onClick={onClose}
                 aria-label="Cerrar modal"
               >
