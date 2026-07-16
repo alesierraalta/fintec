@@ -45,9 +45,17 @@ describe('HITL Integration Tests', () => {
       expect(result).toBe(false);
     });
 
-    it('should NOT require approval for read-only operations', () => {
-      const result = shouldRequestApproval('getTransactions', {
-        limit: 10,
+    it('should NOT require approval for read-only operations (queryTransactions)', () => {
+      const result = shouldRequestApproval('queryTransactions', {
+        aggregate: 'sum',
+      });
+
+      expect(result).toBe(false);
+    });
+
+    it('should NOT require approval for read-only operations (searchTransactions)', () => {
+      const result = shouldRequestApproval('searchTransactions', {
+        query: 'netflix',
       });
 
       expect(result).toBe(false);

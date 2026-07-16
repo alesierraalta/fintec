@@ -19,7 +19,8 @@ jest.mock('ai', () => ({
 jest.mock('@/lib/ai/tools/resolvers', () => ({
   toolsResolvers: {
     createTransaction: jest.fn(),
-    getTransactions: jest.fn(),
+    queryTransactions: jest.fn(),
+    searchTransactions: jest.fn(),
     getAccountBalance: jest.fn(),
     createGoal: jest.fn(),
   },
@@ -27,7 +28,8 @@ jest.mock('@/lib/ai/tools/resolvers', () => ({
 
 jest.mock('@/lib/ai/tools/schemas', () => ({
   createTransactionSchema: {},
-  getTransactionsSchema: {},
+  queryTransactionsSchema: {},
+  searchTransactionsSchema: {},
   getAccountBalanceSchema: {},
   createGoalSchema: {},
 }));

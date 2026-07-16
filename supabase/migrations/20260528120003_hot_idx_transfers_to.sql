@@ -1,0 +1,12 @@
+-- Hot query indexes (4/7): transfers.to_transaction_id — intentionally a
+-- no-op. The pre-existing idx_transfers_to_transaction_id (created in
+-- 202604081614_backend_resource_optimization_indexes.sql) already covers
+-- public.transfers(to_transaction_id), so creating another index here would
+-- only add write amplification.
+--
+-- NOTE: an earlier revision of this file briefly created a duplicate index
+-- named idx_transfers_to_transaction on environments that applied it before
+-- this correction (drop it there with:
+--   DROP INDEX CONCURRENTLY IF EXISTS public.idx_transfers_to_transaction;
+-- ). Fresh environments replaying migrations from this revision create
+-- nothing.

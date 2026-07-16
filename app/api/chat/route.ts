@@ -136,14 +136,26 @@ export async function POST(req: Request) {
           });
         },
       }),
-      getTransactions: tool({
+      queryTransactions: tool({
         description:
-          'Search for past transactions by date, category, or semantic query.',
-        inputSchema: schemas.getTransactionsSchema,
+          'Filter and aggregate transactions by date range, amount range, category, or account (sum, count, average, or group-by breakdown). Use this for questions like "how much did I spend on X" or "break down my spending by category" — NOT for fuzzy/typo-tolerant lookups.',
+        inputSchema: schemas.queryTransactionsSchema,
         execute: async (args) =>
-          toolsResolvers.getTransactions(args, {
+          toolsResolvers.queryTransactions(args, {
             userId: user.id,
             repository,
+            supabase,
+          }),
+      }),
+      searchTransactions: tool({
+        description:
+          'Fuzzy/semantic search over past transactions by merchant name or description (typo-tolerant, accent-insensitive). Use this for questions like "find my Netflix charges" — NOT for aggregates like totals or averages.',
+        inputSchema: schemas.searchTransactionsSchema,
+        execute: async (args) =>
+          toolsResolvers.searchTransactions(args, {
+            userId: user.id,
+            repository,
+            supabase,
           }),
       }),
       getAccountBalance: tool({
