@@ -5,6 +5,13 @@ const createJestConfig = nextJest({
   dir: './',
 });
 
+// Jest's <rootDir> interpolation breaks on Windows when the project path
+// contains a `\.` sequence (e.g. auxiliary worktrees under `.claude\worktrees`):
+// replacePathSepForGlob/Regex keep `\.` as an escape instead of a separator,
+// so testMatch globs and ignore regexes silently stop matching. Using the
+// absolute root with forward slashes avoids the faulty interpolation.
+const ROOT = __dirname.replace(/\\/g, '/');
+
 // Add any custom config to be passed to Jest
 const customJestConfig = {
   coverageThreshold: {
@@ -21,9 +28,9 @@ const customJestConfig = {
       testEnvironment: 'jsdom',
       setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
       testMatch: [
-        '<rootDir>/tests/**/*.test.{js,jsx,ts,tsx}',
-        '<rootDir>/**/*.test.{js,jsx,ts,tsx}',
-        '!<rootDir>/tests/node/**/*.test.{js,jsx,ts,tsx}', // Exclude node tests
+        `${ROOT}/tests/**/*.test.{js,jsx,ts,tsx}`,
+        `${ROOT}/**/*.test.{js,jsx,ts,tsx}`,
+        `!${ROOT}/tests/node/**/*.test.{js,jsx,ts,tsx}`, // Exclude node tests
       ],
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
@@ -37,14 +44,14 @@ const customJestConfig = {
         '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
       ],
       testPathIgnorePatterns: [
-        '<rootDir>/.next/',
-        '<rootDir>/node_modules/',
-        '<rootDir>/tests/node/',
-        '<rootDir>/tests/e2e/',
-        '<rootDir>/.stryker-tmp/',
-        '<rootDir>/.agent/',
-        '<rootDir>/.agents/',
-        '<rootDir>/.claude/',
+        `${ROOT}/.next/`,
+        `${ROOT}/node_modules/`,
+        `${ROOT}/tests/node/`,
+        `${ROOT}/tests/e2e/`,
+        `${ROOT}/.stryker-tmp/`,
+        `${ROOT}/.agent/`,
+        `${ROOT}/.agents/`,
+        `${ROOT}/.claude/`,
       ],
       collectCoverageFrom: [
         'components/**/*.{js,jsx,ts,tsx}',
@@ -59,7 +66,7 @@ const customJestConfig = {
       displayName: 'node',
       testEnvironment: 'node',
       setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-      testMatch: ['<rootDir>/tests/node/**/*.test.{js,jsx,ts,tsx}'], // Only include node tests
+      testMatch: [`${ROOT}/tests/node/**/*.test.{js,jsx,ts,tsx}`], // Only include node tests
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
         '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/index.js',
@@ -72,13 +79,13 @@ const customJestConfig = {
         '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
       ],
       testPathIgnorePatterns: [
-        '<rootDir>/.next/',
-        '<rootDir>/node_modules/',
-        '<rootDir>/tests/e2e/',
-        '<rootDir>/.stryker-tmp/',
-        '<rootDir>/.agent/',
-        '<rootDir>/.agents/',
-        '<rootDir>/.claude/',
+        `${ROOT}/.next/`,
+        `${ROOT}/node_modules/`,
+        `${ROOT}/tests/e2e/`,
+        `${ROOT}/.stryker-tmp/`,
+        `${ROOT}/.agent/`,
+        `${ROOT}/.agents/`,
+        `${ROOT}/.claude/`,
       ],
       collectCoverageFrom: ['lib/scrapers/**/*.{js,jsx,ts,tsx}', '!**/*.d.ts'],
       moduleDirectories: ['node_modules', '<rootDir>/'],
@@ -86,9 +93,9 @@ const customJestConfig = {
   ],
   // Default for other tests
   testPathIgnorePatterns: [
-    '<rootDir>/tests/e2e/',
-    '<rootDir>/.stryker-tmp/',
-    '<rootDir>/.claude/',
+    `${ROOT}/tests/e2e/`,
+    `${ROOT}/.stryker-tmp/`,
+    `${ROOT}/.claude/`,
   ], // Ignored globally
   transformIgnorePatterns: [
     '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',

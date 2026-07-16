@@ -1,6 +1,15 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
+import {
+  Sparkles,
+  Wallet,
+  BarChart3,
+  Target,
+  Receipt,
+  AlertTriangle,
+} from 'lucide-react';
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ApprovalListener } from './approval';
@@ -16,8 +25,8 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
 
   const { messages, sendMessage, status, error } = useChat({
-    api: '/api/chat',
-  } as any);
+    transport: new DefaultChatTransport({ api: '/api/chat' }),
+  });
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
@@ -37,14 +46,26 @@ export function ChatInterface() {
   };
 
   const quickActions = [
-    { emoji: '💰', label: '¿Cuál es mi saldo?', query: '¿Cuál es mi saldo?' },
     {
-      emoji: '📊',
+      icon: Wallet,
+      label: '¿Cuál es mi saldo?',
+      query: '¿Cuál es mi saldo?',
+    },
+    {
+      icon: BarChart3,
       label: 'Mis gastos recientes',
       query: 'Muéstrame mis transacciones recientes',
     },
-    { emoji: '🎯', label: 'Crear meta', query: 'Crear una meta de ahorro' },
-    { emoji: '💸', label: 'Registrar gasto', query: 'Gasté $50 en comida' },
+    {
+      icon: Target,
+      label: 'Crear meta de ahorro',
+      query: 'Crear una meta de ahorro',
+    },
+    {
+      icon: Receipt,
+      label: 'Registrar un gasto',
+      query: 'Gasté $50 en comida',
+    },
   ];
 
   return (
@@ -55,38 +76,44 @@ export function ChatInterface() {
         <div className="mx-auto max-w-3xl px-4 py-6">
           {messages.length === 0 ? (
             // Empty State - Welcome Screen
-            <div className="flex h-full min-h-[60vh] flex-col items-center justify-center text-center">
-              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-                <span className="text-4xl">🤖</span>
+            <div className="flex h-full min-h-[60vh] animate-fade-in-up flex-col items-center justify-center text-center">
+              <div className="relative mb-6">
+                <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-500 shadow-ios">
+                  <Sparkles className="h-8 w-8 text-white" aria-hidden="true" />
+                </div>
               </div>
-              <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Asistente Financiero IA
+              <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
+                ¿En qué te ayudo hoy?
               </h2>
-              <p className="mt-3 max-w-md text-muted-foreground">
-                Pregúntame sobre tus finanzas, registra transacciones o consulta
-                tu balance.
+              <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                Consulta tu balance, registra gastos o crea metas de ahorro
+                conversando.
               </p>
 
               {/* Quick Actions Grid */}
               <div className="mt-8 grid w-full max-w-sm grid-cols-2 gap-3 sm:max-w-md">
-                {quickActions.map((action, index) => (
+                {quickActions.map((action) => (
                   <button
                     type="button"
-                    key={index}
+                    key={action.label}
                     onClick={() => {
                       setInput(action.query);
                     }}
                     className={cn(
-                      'group flex flex-col items-center rounded-xl border border-border bg-card p-4',
-                      'transition-ios hover:border-primary/50 hover:bg-primary/5',
+                      'group flex flex-col items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left',
+                      'transition-ios shadow-ios-sm hover:border-primary/40 hover:bg-primary/5',
                       'focus-ring min-h-[44px]',
                       'hover-lift micro-bounce'
                     )}
                   >
-                    <span className="mb-2 text-2xl transition-transform group-hover:scale-110">
-                      {action.emoji}
+                    <span className="transition-ios flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15">
+                      <action.icon
+                        className="h-[18px] w-[18px] text-primary"
+                        aria-hidden="true"
+                      />
                     </span>
-                    <span className="text-xs text-muted-foreground group-hover:text-foreground">
+                    <span className="text-[13px] font-medium leading-snug text-foreground/80 group-hover:text-foreground">
                       {action.label}
                     </span>
                   </button>
@@ -96,31 +123,32 @@ export function ChatInterface() {
           ) : (
             // Message List
             <div className="space-y-4">
-              {messages.map((message: any) => (
+              {messages.map((message) => (
                 <ChatMessage key={message.id} message={message} />
               ))}
 
               {/* Loading Indicator */}
               {isLoading && (
-                <div className="flex justify-start px-2 sm:px-0">
-                  <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-border bg-card px-4 py-3 shadow-sm">
-                    <div className="flex space-x-1">
-                      <div
-                        className="h-2 w-2 animate-bounce rounded-full bg-primary"
-                        style={{ animationDelay: '0ms' }}
-                      />
-                      <div
-                        className="h-2 w-2 animate-bounce rounded-full bg-primary"
-                        style={{ animationDelay: '150ms' }}
-                      />
-                      <div
-                        className="h-2 w-2 animate-bounce rounded-full bg-primary"
-                        style={{ animationDelay: '300ms' }}
-                      />
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      Pensando...
-                    </span>
+                <div className="flex animate-fade-in-up items-end gap-2.5">
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-500 shadow-ios-sm">
+                    <Sparkles
+                      className="h-4 w-4 text-white"
+                      aria-hidden="true"
+                    />
+                  </div>
+                  <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border/60 bg-card px-4 py-3.5 shadow-ios-sm">
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
+                      style={{ animationDelay: '0ms' }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
+                      style={{ animationDelay: '150ms' }}
+                    />
+                    <div
+                      className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
+                      style={{ animationDelay: '300ms' }}
+                    />
                   </div>
                 </div>
               )}
@@ -133,15 +161,19 @@ export function ChatInterface() {
 
       {/* Error Display */}
       {error && (
-        <div className="border-t border-destructive/20 bg-destructive/10 px-4 py-3">
-          <p className="text-center text-sm text-destructive">
-            ⚠️ {error.message}
-          </p>
+        <div className="px-4 pb-2">
+          <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5">
+            <AlertTriangle
+              className="h-4 w-4 flex-shrink-0 text-destructive"
+              aria-hidden="true"
+            />
+            <p className="text-sm text-destructive">{error.message}</p>
+          </div>
         </div>
       )}
 
       {/* Input Container - Sticky Bottom */}
-      <div className="border-t border-border bg-background/80 px-4 py-4 pb-safe-bottom backdrop-blur-xl">
+      <div className="bg-gradient-to-t from-background via-background/95 to-transparent px-4 pb-4 pb-safe-bottom pt-2">
         <div className="mx-auto max-w-3xl">
           <ChatInput
             input={input}

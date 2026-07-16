@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
+import { Sparkles } from 'lucide-react';
 import type { Metadata } from 'next';
 import { ChatPageClient } from './chat-page-client';
 
@@ -27,16 +28,20 @@ export default async function ChatPage() {
         <MainLayout>
             <div className="flex h-full flex-col">
                 {/* Premium Header */}
-                <div className="black-theme-card border-b border-border/20 px-6 py-5">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-blue-500/20 flex items-center justify-center">
-                            <span className="text-2xl" aria-hidden="true">🤖</span>
+                <div className="border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur-xl sm:px-6">
+                    <div className="mx-auto flex max-w-3xl items-center gap-3">
+                        <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-blue-500 shadow-ios-sm">
+                            <Sparkles className="h-5 w-5 text-white" aria-hidden="true" />
+                            <span
+                                className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success"
+                                aria-hidden="true"
+                            />
                         </div>
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">
+                        <div className="min-w-0">
+                            <h1 className="truncate text-base font-semibold text-foreground">
                                 Asistente Financiero IA
                             </h1>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="truncate text-xs text-muted-foreground">
                                 Pregúntame sobre tus finanzas
                             </p>
                         </div>

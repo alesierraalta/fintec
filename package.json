@@ -57,12 +57,6 @@
   "overrides": {
     "@stryker-mutator/core": {
       "ajv": "8.18.0"
-    },
-    "eslint": {
-      "ajv": "8.18.0"
-    },
-    "@eslint/eslintrc": {
-      "ajv": "8.18.0"
     }
   },
   "dependencies": {
