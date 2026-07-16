@@ -1,5 +1,4 @@
 import {
-  MoreVertical,
   Edit,
   Trash2,
   Eye,
@@ -77,11 +76,11 @@ export function CategoryCard({
             <IconComponent className="h-5 w-5 text-white" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col">
-            <h3 className="truncate text-base font-semibold text-white">
+            <h3 className="truncate text-base font-semibold text-foreground">
               {category.name}
             </h3>
             {category.subcategories && category.subcategories.length > 0 && (
-              <span className="truncate text-xs text-gray-400">
+              <span className="truncate text-xs text-muted-foreground">
                 {category.subcategories.length} subcategorías
               </span>
             )}
@@ -93,7 +92,7 @@ export function CategoryCard({
             {onView && (
               <button
                 onClick={() => onView(category.id)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-blue-400/10 hover:text-blue-400"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-400/10 hover:text-blue-600 dark:hover:text-blue-400"
                 aria-label={`View category ${category.name}`}
               >
                 <Eye className="h-4 w-4" />
@@ -102,7 +101,7 @@ export function CategoryCard({
             {onEdit && (
               <button
                 onClick={() => onEdit(category)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-yellow-400/10 hover:text-yellow-400"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-yellow-400/10 hover:text-yellow-600 dark:hover:text-yellow-400"
                 aria-label={`Edit category ${category.name}`}
               >
                 <Edit className="h-4 w-4" />
@@ -111,7 +110,7 @@ export function CategoryCard({
             {onDelete && (
               <button
                 onClick={() => onDelete(category.id)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-400/10 hover:text-red-600 dark:hover:text-red-400"
                 aria-label={`Delete category ${category.name}`}
               >
                 <Trash2 className="h-4 w-4" />
@@ -120,7 +119,7 @@ export function CategoryCard({
             {!category.parentId && onAddSubcategory && (
               <button
                 onClick={() => onAddSubcategory(category.id)}
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-700/50 hover:text-white"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
                 aria-label={`Add subcategory to ${category.name}`}
               >
                 <Plus className="h-4 w-4" />
@@ -133,7 +132,7 @@ export function CategoryCard({
   }
 
   return (
-    <div className="group rounded-xl border border-gray-800 bg-gray-900 p-6 transition-all hover:bg-gray-800/50">
+    <div className="group rounded-xl border border-border bg-card p-6 transition-all hover:bg-muted/50">
       {' '}
       <div className="flex items-start justify-between">
         {/* Category Info */}
@@ -146,51 +145,55 @@ export function CategoryCard({
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="truncate text-lg font-semibold text-white">
+            <h3 className="truncate text-lg font-semibold text-foreground">
               {category.name}
             </h3>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
+            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <span
                 className={`rounded-full px-2 py-1 text-xs ${
                   category.kind === 'INCOME'
-                    ? 'bg-green-400/20 text-green-400'
-                    : 'bg-red-400/20 text-red-400'
+                    ? 'bg-green-400/20 text-green-700 dark:text-green-400'
+                    : 'bg-red-400/20 text-red-700 dark:text-red-400'
                 }`}
               >
                 {category.kind === 'INCOME' ? 'Ingreso' : 'Gasto'}
               </span>
               {category.parentId && (
-                <span className="text-xs text-gray-500">• Subcategoría</span>
+                <span className="text-xs text-muted-foreground/70">
+                  • Subcategoría
+                </span>
               )}
             </div>
 
             {/* Statistics */}
             <div className="mt-2 flex items-center space-x-4 text-sm">
-              <div className="text-gray-300">
+              <div className="text-foreground">
                 <span className="font-medium">
                   {category.transactionCount || 0}
                 </span>
-                <span className="ml-1 text-gray-500">transacciones</span>
+                <span className="ml-1 text-muted-foreground">
+                  transacciones
+                </span>
               </div>
             </div>
 
             {/* Subcategories */}
             {category.subcategories && category.subcategories.length > 0 && (
               <div className="mt-3">
-                <p className="mb-2 text-xs text-gray-500">
+                <p className="mb-2 text-xs text-muted-foreground">
                   {category.subcategories.length} subcategorías
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {category.subcategories.slice(0, 3).map((sub) => (
                     <span
                       key={sub.id}
-                      className="rounded-full bg-gray-700 px-2 py-1 text-xs text-gray-300"
+                      className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
                     >
                       {sub.name}
                     </span>
                   ))}
                   {category.subcategories.length > 3 && (
-                    <span className="rounded-full bg-gray-700 px-2 py-1 text-xs text-gray-400">
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
                       +{category.subcategories.length - 3} más
                     </span>
                   )}
@@ -203,7 +206,7 @@ export function CategoryCard({
               <div className="mt-3">
                 <button
                   onClick={() => onAddSubcategory(category.id)}
-                  className="flex min-h-[44px] min-w-[44px] items-center justify-center space-x-1 rounded-full bg-gray-700/50 px-2 py-1 text-xs text-gray-300 transition-colors hover:bg-gray-600/50 hover:text-white"
+                  className="flex min-h-[44px] min-w-[44px] items-center justify-center space-x-1 rounded-full bg-muted/50 px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   aria-label={`Add subcategory to ${category.name}`}
                 >
                   <Plus className="h-3 w-3" />
@@ -219,7 +222,7 @@ export function CategoryCard({
           {onView && (
             <button
               onClick={() => onView(category.id)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-blue-400/10 hover:text-blue-400"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-blue-400/10 hover:text-blue-600 dark:hover:text-blue-400"
               aria-label={`View category ${category.name}`}
             >
               <Eye className="h-4 w-4" />
@@ -228,7 +231,7 @@ export function CategoryCard({
           {onEdit && (
             <button
               onClick={() => onEdit(category)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-yellow-400/10 hover:text-yellow-400"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-yellow-400/10 hover:text-yellow-600 dark:hover:text-yellow-400"
               aria-label={`Edit category ${category.name}`}
             >
               <Edit className="h-4 w-4" />
@@ -237,7 +240,7 @@ export function CategoryCard({
           {onDelete && (
             <button
               onClick={() => onDelete(category.id)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-red-400/10 hover:text-red-400"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-400/10 hover:text-red-600 dark:hover:text-red-400"
               aria-label={`Delete category ${category.name}`}
             >
               <Trash2 className="h-4 w-4" />

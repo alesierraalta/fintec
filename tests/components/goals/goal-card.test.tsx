@@ -47,4 +47,21 @@ describe('GoalCard', () => {
       screen.getByRole('button', { name: /actualizando/i })
     ).toBeDisabled();
   });
+
+  it('uses semantic theme tokens instead of hardcoded grays', () => {
+    const { container } = render(<GoalCard goal={baseGoal} />);
+
+    const card = container.firstElementChild as HTMLElement;
+    expect(card.className).toContain('bg-card');
+    expect(card.className).toContain('border-border');
+
+    const grayClassed = Array.from(container.querySelectorAll<HTMLElement>('*'))
+      .map((el) => el.className)
+      .filter(
+        (cls): cls is string =>
+          typeof cls === 'string' &&
+          /(?:^|\s)(?:bg|border|text|hover:bg|hover:text)-gray-\d/.test(cls)
+      );
+    expect(grayClassed).toEqual([]);
+  });
 });

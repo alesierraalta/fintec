@@ -89,7 +89,7 @@ export function GoalCard({
     if (isCompleted) return 'bg-green-500/10 border-green-500/20';
     if (isOverdue) return 'bg-red-500/10 border-red-500/20';
     if (isNearDeadline) return 'bg-yellow-500/10 border-yellow-500/20';
-    return 'bg-gray-900 border-gray-800';
+    return 'bg-card border-border';
   };
 
   return (
@@ -99,18 +99,18 @@ export function GoalCard({
       <div className="mb-4 flex items-start justify-between">
         <div className="min-w-0 flex-1">
           <div className="mb-1 flex items-center space-x-2">
-            <Target className="h-5 w-5 text-blue-400" />
-            <h3 className="truncate text-lg font-semibold text-white">
+            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <h3 className="truncate text-lg font-semibold text-foreground">
               {goal.name}
             </h3>
             {isCompleted && <CheckCircle className="h-5 w-5 text-green-500" />}
           </div>
           {goal.description && (
-            <p className="mb-2 line-clamp-2 text-sm text-gray-400">
+            <p className="mb-2 line-clamp-2 text-sm text-muted-foreground">
               {goal.description}
             </p>
           )}
-          <div className="flex items-center space-x-4 text-sm text-gray-400">
+          <div className="flex items-center space-x-4 text-sm text-muted-foreground">
             {account && <span>{account.name}</span>}
             {goal.targetDate && (
               <div className="flex items-center space-x-1">
@@ -136,7 +136,7 @@ export function GoalCard({
             {onView && (
               <button
                 onClick={() => onView(goal.id)}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-blue-400/10 hover:text-blue-400"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-blue-400/10 hover:text-blue-600 dark:hover:text-blue-400"
                 title="Ver detalles"
               >
                 <Eye className="h-4 w-4" />
@@ -145,7 +145,7 @@ export function GoalCard({
             {onEdit && (
               <button
                 onClick={() => onEdit(goal)}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-yellow-400/10 hover:text-yellow-400"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-yellow-400/10 hover:text-yellow-600 dark:hover:text-yellow-400"
                 title="Editar meta"
               >
                 <Edit className="h-4 w-4" />
@@ -154,7 +154,7 @@ export function GoalCard({
             {onDelete && (
               <button
                 onClick={() => onDelete(goal.id)}
-                className="rounded p-1 text-gray-400 transition-colors hover:bg-red-400/10 hover:text-red-400"
+                className="rounded p-1 text-muted-foreground transition-colors hover:bg-red-400/10 hover:text-red-600 dark:hover:text-red-400"
                 title="Eliminar meta"
               >
                 <Trash2 className="h-4 w-4" />
@@ -166,22 +166,22 @@ export function GoalCard({
 
       <div className="mb-4">
         <div className="mb-2 flex justify-between text-sm">
-          <span className="text-gray-400">Progreso</span>
+          <span className="text-muted-foreground">Progreso</span>
           <span
             className={`font-medium ${
               isCompleted
-                ? 'text-green-400'
+                ? 'text-green-600 dark:text-green-400'
                 : isOverdue
-                  ? 'text-red-400'
+                  ? 'text-red-600 dark:text-red-400'
                   : isNearDeadline
-                    ? 'text-yellow-400'
-                    : 'text-blue-400'
+                    ? 'text-yellow-600 dark:text-yellow-400'
+                    : 'text-blue-600 dark:text-blue-400'
             }`}
           >
             {Math.round(percentage)}%
           </span>
         </div>
-        <div className="h-3 w-full rounded-full bg-gray-700">
+        <div className="h-3 w-full rounded-full bg-muted">
           <div
             className={`h-3 rounded-full transition-all duration-300 ${getProgressColor()}`}
             style={{ width: `${Math.min(percentage, 100)}%` }}
@@ -191,18 +191,20 @@ export function GoalCard({
 
       <div className="mb-4 grid grid-cols-2 gap-4">
         <div>
-          <p className="mb-1 text-sm text-gray-400">Ahorrado</p>
-          <p className="text-xl font-bold text-white">
+          <p className="mb-1 text-sm text-muted-foreground">Ahorrado</p>
+          <p className="text-xl font-bold text-foreground">
             {formatCurrency(currentAmount)}
           </p>
         </div>
         <div>
-          <p className="mb-1 text-sm text-gray-400">
+          <p className="mb-1 text-sm text-muted-foreground">
             {isCompleted ? 'Meta Alcanzada' : 'Falta'}
           </p>
           <p
             className={`text-xl font-bold ${
-              isCompleted ? 'text-green-400' : 'text-blue-400'
+              isCompleted
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-blue-600 dark:text-blue-400'
             }`}
           >
             {isCompleted ? '¡Completado!' : formatCurrency(remainingAmount)}
@@ -216,10 +218,10 @@ export function GoalCard({
             isCompleted
               ? 'border-green-500/20 bg-green-500/10'
               : isOverdue
-                ? 'border-red-500/20 bg-red-500/10 text-red-300'
+                ? 'border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300'
                 : isNearDeadline
-                  ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-300'
-                  : 'border-blue-500/20 bg-blue-500/10 text-blue-300'
+                  ? 'border-yellow-500/20 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300'
+                  : 'border-blue-500/20 bg-blue-500/10 text-blue-700 dark:text-blue-300'
           }`}
         >
           <div className="flex items-center space-x-2 text-sm">
@@ -236,7 +238,7 @@ export function GoalCard({
       )}
 
       {isLinkedAccountGoal && (
-        <div className="mb-4 flex items-start space-x-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-200">
+        <div className="mb-4 flex items-start space-x-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-800 dark:text-emerald-200">
           <Wallet className="mt-0.5 h-4 w-4 shrink-0" />
           <span>
             El progreso se sincroniza con el saldo de la cuenta vinculada. Los
@@ -268,7 +270,7 @@ export function GoalCard({
         </button>
       )}
 
-      <div className="mt-2 flex justify-between text-xs text-gray-500">
+      <div className="mt-2 flex justify-between text-xs text-muted-foreground/70">
         <span>{formatCurrency(0)}</span>
         <span>{formatCurrency(targetAmount)}</span>
       </div>
