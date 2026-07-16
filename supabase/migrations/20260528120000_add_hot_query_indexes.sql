@@ -1,35 +1,16 @@
--- Migration: Add indexes for hot query patterns
--- Purpose: Optimize dashboard queries that filter by user_id + created_at
--- These are the most common query patterns identified in Phase 1 analysis.
+-- Migration: Add indexes for hot query patterns (1/7: transactions)
+-- Purpose: Optimize dashboard queries filtering by ownership + created_at.
+--
+-- NOTE: this file originally indexed user_id on transactions/transfers, but
+-- neither table has that column (ownership is derived through accounts via
+-- RLS), so the migration could never apply. Rewritten against the real schema.
+--
+-- NOTE: the Supabase CLI executes a migration's statements in a pipeline and
+-- CREATE INDEX CONCURRENTLY cannot run there except as the first statement,
+-- so each concurrent index lives in its own migration file (suffixes 1-6).
 
--- Transactions: user_id + created_at (most queried table)
+-- Transactions: account_id + created_at (most queried table)
 -- Covers: dashboard transaction list, monthly reports, date range queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transactions_user_created
-  ON public.transactions(user_id, created_at DESC);
-
--- Accounts: user_id + created_at
--- Covers: account list sorted by creation, account activity queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_accounts_user_created
-  ON public.accounts(user_id, created_at DESC);
-
--- Transfers: user_id + created_at
--- Covers: transfer history queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transfers_user_created
-  ON public.transfers(user_id, created_at DESC);
-
--- Budgets: user_id + created_at
--- Covers: budget list queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_budgets_user_created
-  ON public.budgets(user_id, created_at DESC);
-
--- Goals: user_id + created_at
--- Covers: goal list queries
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_goals_user_created
-  ON public.goals(user_id, created_at DESC);
-
--- Analyze tables to update query planner statistics
-ANALYZE public.transactions;
-ANALYZE public.accounts;
-ANALYZE public.transfers;
-ANALYZE public.budgets;
-ANALYZE public.goals;
+-- (queries filter by the user's account ids, not by a user_id column)
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_transactions_account_created
+  ON public.transactions(account_id, created_at DESC);
