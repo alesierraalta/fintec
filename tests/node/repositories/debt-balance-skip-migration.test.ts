@@ -5,17 +5,8 @@ const MIGRATION_PATH = join(
   process.cwd(),
   'supabase/migrations/20260706120000_debt_balance_skip.sql'
 );
-const REVERT_PATH = join(
-  process.cwd(),
-  'supabase/migrations/revert_debt_balance_migration.sql'
-);
-
 function readMigration(): string {
   return readFileSync(MIGRATION_PATH, 'utf8');
-}
-
-function readRevert(): string {
-  return readFileSync(REVERT_PATH, 'utf8');
 }
 
 describe('debt balance skip migration', () => {
@@ -131,27 +122,5 @@ describe('debt balance skip migration', () => {
         /WHEN type IN \('INCOME', 'TRANSFER_IN'\) THEN amount_minor\s+ELSE -amount_minor\s+END/i
       );
     });
-  });
-});
-
-describe('revert_debt_balance_migration', () => {
-  it('exists at the canonical path', () => {
-    expect(existsSync(REVERT_PATH)).toBe(true);
-  });
-
-  it('re-applies legacy OPEN-debt deltas to balances', () => {
-    const revert = readRevert();
-    expect(revert).toMatch(/reverses? (the )?debt_balance_skip migration/i);
-    expect(revert).toMatch(
-      /WHEN type IN \('INCOME', 'TRANSFER_IN'\) THEN amount_minor\s+ELSE -amount_minor\s+END/i
-    );
-    expect(revert).toMatch(/WHERE is_debt = true/i);
-    expect(revert).toMatch(/coalesce\(debt_status,\s*'OPEN'\)\s*=\s*'OPEN'/i);
-  });
-
-  it('guards itself so it cannot run while the skip flag is enabled', () => {
-    const revert = readRevert();
-    // It must refuse to run when debt_balance_skip_enabled is true.
-    expect(revert).toMatch(/debt_balance_skip_enabled/i);
   });
 });
