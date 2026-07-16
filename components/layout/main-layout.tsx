@@ -55,6 +55,9 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       pathname === '/transactions') &&
     !pathname.includes('/add');
   const hideMobileChrome = pathname.startsWith('/transactions/add');
+  // Pages that manage their own scroll and pin content to the viewport
+  // bottom (e.g. the chat composer) opt out of the padded content wrapper
+  const isFullHeightPage = pathname === '/chat';
 
   return (
     <div
@@ -90,18 +93,23 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           <main
             className={cn(
               'app-shell-main no-horizontal-scroll flex-1 bg-background',
+              isFullHeightPage && 'flex min-h-0 flex-col overflow-hidden',
               isMobile && !hideMobileChrome ? 'pb-24' : ''
             )}
           >
-            <div
-              className={cn(
-                isMobile
-                  ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
-                  : 'no-horizontal-scroll mx-auto max-w-6xl px-6 py-8' // Desktop padding
-              )}
-            >
-              {children}
-            </div>
+            {isFullHeightPage ? (
+              children
+            ) : (
+              <div
+                className={cn(
+                  isMobile
+                    ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
+                    : 'no-horizontal-scroll mx-auto max-w-6xl px-6 py-8' // Desktop padding
+                )}
+              >
+                {children}
+              </div>
+            )}
           </main>
         </div>
       </div>

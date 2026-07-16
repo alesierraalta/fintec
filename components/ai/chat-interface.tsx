@@ -50,21 +50,25 @@ export function ChatInterface() {
       icon: Wallet,
       label: '¿Cuál es mi saldo?',
       query: '¿Cuál es mi saldo?',
+      iconClass: 'bg-primary/15 text-primary',
     },
     {
       icon: BarChart3,
       label: 'Mis gastos recientes',
       query: 'Muéstrame mis transacciones recientes',
+      iconClass: 'bg-success-500/15 text-success-400',
     },
     {
       icon: Target,
       label: 'Crear meta de ahorro',
       query: 'Crear una meta de ahorro',
+      iconClass: 'bg-warning-500/15 text-warning-400',
     },
     {
       icon: Receipt,
       label: 'Registrar un gasto',
       query: 'Gasté $50 en comida',
+      iconClass: 'bg-error-500/15 text-error-400',
     },
   ];
 
@@ -73,10 +77,10 @@ export function ChatInterface() {
       <ApprovalListener />
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto">
-        <div className="mx-auto max-w-3xl px-4 py-6">
+        <div className="mx-auto flex h-full max-w-3xl flex-col px-4 py-6">
           {messages.length === 0 ? (
             // Empty State - Welcome Screen
-            <div className="flex h-full min-h-[60vh] animate-fade-in-up flex-col items-center justify-center text-center">
+            <div className="flex flex-1 animate-fade-in-up flex-col items-center justify-center text-center">
               <div className="relative mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
                 <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-500 shadow-ios">
@@ -92,7 +96,7 @@ export function ChatInterface() {
               </p>
 
               {/* Quick Actions Grid */}
-              <div className="mt-8 grid w-full max-w-sm grid-cols-2 gap-3 sm:max-w-md">
+              <div className="mt-8 grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-2">
                 {quickActions.map((action) => (
                   <button
                     type="button"
@@ -101,19 +105,21 @@ export function ChatInterface() {
                       setInput(action.query);
                     }}
                     className={cn(
-                      'group flex flex-col items-start gap-2.5 rounded-2xl border border-border/60 bg-card p-4 text-left',
-                      'transition-ios shadow-ios-sm hover:border-primary/40 hover:bg-primary/5',
+                      'group flex items-center gap-3 rounded-2xl border border-border bg-secondary/60 p-4 text-left',
+                      'transition-ios hover:border-primary/50 hover:bg-secondary',
                       'focus-ring min-h-[44px]',
                       'hover-lift micro-bounce'
                     )}
                   >
-                    <span className="transition-ios flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/15">
-                      <action.icon
-                        className="h-[18px] w-[18px] text-primary"
-                        aria-hidden="true"
-                      />
+                    <span
+                      className={cn(
+                        'transition-ios flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+                        action.iconClass
+                      )}
+                    >
+                      <action.icon className="h-5 w-5" aria-hidden="true" />
                     </span>
-                    <span className="text-[13px] font-medium leading-snug text-foreground/80 group-hover:text-foreground">
+                    <span className="text-sm font-medium leading-snug text-foreground/90 group-hover:text-foreground">
                       {action.label}
                     </span>
                   </button>
@@ -136,7 +142,7 @@ export function ChatInterface() {
                       aria-hidden="true"
                     />
                   </div>
-                  <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border/60 bg-card px-4 py-3.5 shadow-ios-sm">
+                  <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-secondary/60 px-4 py-3.5 shadow-ios-sm">
                     <div
                       className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/70"
                       style={{ animationDelay: '0ms' }}
