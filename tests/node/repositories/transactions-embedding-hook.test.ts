@@ -165,26 +165,9 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
       single: jest.fn().mockResolvedValue({ data: row, error: null }),
     };
 
-    let updateCallCount = 0;
     const transactionsFrom = {
       select: jest.fn().mockImplementation(() => findByIdQuery),
-      update: jest.fn((payload: Record<string, unknown>) => {
-        updateCallCount += 1;
-        if (updateCallCount === 1) {
-          // First call: the domain update() itself, chained with
-          // .eq(id).select(...).single()
-          const domainUpdateQuery: any = {
-            eq: jest.fn().mockImplementation(() => domainUpdateQuery),
-            select: jest.fn().mockImplementation(() => domainUpdateQuery),
-            single: jest
-              .fn()
-              .mockResolvedValue({ data: { ...row, description: 'Updated' }, error: null }),
-          };
-          return domainUpdateQuery;
-        }
-        // Second call: the fire-and-forget embedding persist.
-        return updateBuilder;
-      }),
+      update: jest.fn(() => updateBuilder),
     };
 
     const accountsSelect = jest.fn().mockImplementation(() => {
@@ -210,7 +193,24 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const client = { auth, from } as any;
+    const rpc = jest.fn().mockResolvedValue({
+      data: {
+        id: 'tx-1',
+        account_id: 'acc-1',
+        amount_minor: 1200,
+        description: 'Updated',
+        type: 'EXPENSE',
+        currency_code: 'USD',
+        amount_base_minor: 1200,
+        exchange_rate: 1,
+        date: '2026-03-03',
+        created_at: '2026-03-03T00:00:00.000Z',
+        updated_at: '2026-03-03T00:00:00.000Z',
+      },
+      error: null,
+    });
+
+    const client = { auth, from, rpc } as any;
     const repository = new SupabaseTransactionsRepository(client);
 
     // findById() is also used internally; ensure the repository's own
