@@ -239,32 +239,43 @@ export class BCVHistoryService {
     }
   }
 
-  // Get rates for a specific date
+  // Get rates for a specific date (or the closest prior date if no exact match)
   async getRatesForDate(date: string): Promise<BCVHistoryRecord | null> {
     try {
-      // Try local IndexedDB first
-      let record = await this.db.bcvHistory.where('date').equals(date).first();
+      // 1. Try local IndexedDB exact match first
+      const record = await this.db.bcvHistory
+        .where('date')
+        .equals(date)
+        .first();
 
       if (record) return record;
 
-      // Fallback: try to load from Supabase
+      // 2. Fallback: query Supabase for the closest rate on or before the date
       try {
-        const supabaseRecords =
-          await this.ratesHistoryRepository.listBCVRatesSince(date);
-        if (supabaseRecords && supabaseRecords.length > 0) {
-          // Find the exact date match
-          const matchingRecord = supabaseRecords.find((r) => r.date === date);
-          if (matchingRecord) {
-            // Save to local DB for future use
+        const supabaseRecord =
+          await this.ratesHistoryRepository.getBCVRateOnOrBefore(date);
+        if (supabaseRecord) {
+          // Cache locally (only if it won't duplicate a different date we already have)
+          const existing = await this.db.bcvHistory
+            .where('date')
+            .equals(supabaseRecord.date)
+            .first();
+          if (!existing) {
             await this.db.bcvHistory.add({
-              date: matchingRecord.date,
-              usd: matchingRecord.usd,
-              eur: matchingRecord.eur,
-              timestamp: matchingRecord.timestamp,
-              source: matchingRecord.source,
+              date: supabaseRecord.date,
+              usd: supabaseRecord.usd,
+              eur: supabaseRecord.eur,
+              timestamp: supabaseRecord.timestamp,
+              source: supabaseRecord.source,
             });
-            return matchingRecord;
           }
+          return {
+            date: supabaseRecord.date,
+            usd: supabaseRecord.usd,
+            eur: supabaseRecord.eur,
+            timestamp: supabaseRecord.timestamp,
+            source: supabaseRecord.source,
+          };
         }
       } catch (supabaseError) {
         logger.warn(

@@ -397,4 +397,87 @@ export class SupabaseRatesHistoryRepository implements RatesHistoryRepository {
       }
     );
   }
+
+  async getBCVRateOnOrBefore(
+    date: string
+  ): Promise<BCVRateHistoryEntry | null> {
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'bcv',
+      'on_or_before',
+      date
+    );
+
+    return this.readThroughSharedCache(
+      'rates_history_getBCVRateOnOrBefore',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('bcv_rate_history')
+          .select(BCV_RATE_HISTORY_LIST_PROJECTION)
+          .lte('date', date)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          throw new Error(
+            `Failed to load BCV rate on or before ${date}: ${error.message}`
+          );
+        }
+
+        if (!data) return null;
+
+        const row = data as any;
+        return {
+          date: row.date,
+          usd: Number(row.usd),
+          eur: Number(row.eur),
+          source: row.source,
+          timestamp: row.timestamp,
+        };
+      }
+    );
+  }
+
+  async getBinanceRateOnOrBefore(
+    date: string
+  ): Promise<BinanceRateHistoryEntry | null> {
+    const cacheKey = this.readCache.makeKey(
+      'rates_history',
+      'binance',
+      'on_or_before',
+      date
+    );
+
+    return this.readThroughSharedCache(
+      'rates_history_getBinanceRateOnOrBefore',
+      cacheKey,
+      async () => {
+        const { data, error } = await this.client
+          .from('binance_rate_history')
+          .select(BINANCE_RATE_HISTORY_LIST_PROJECTION)
+          .lte('date', date)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (error) {
+          throw new Error(
+            `Failed to load Binance rate on or before ${date}: ${error.message}`
+          );
+        }
+
+        if (!data) return null;
+
+        const row = data as any;
+        return {
+          date: row.date,
+          usd: Number(row.usd),
+          source: row.source,
+          timestamp: row.timestamp,
+        };
+      }
+    );
+  }
 }

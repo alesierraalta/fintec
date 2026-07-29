@@ -44,6 +44,7 @@ export function TransactionDetailPanel({
 }: TransactionDetailPanelProps) {
   const [vesRates, setVesRates] = useState<{
     dateLabel: string;
+    isFallbackDate: boolean;
     bcvUsd: number | null;
     bcvEur: number | null;
     binanceUsd: number | null;
@@ -62,13 +63,12 @@ export function TransactionDetailPanel({
     async function loadRates() {
       // Extract date from transaction (YYYY-MM-DD or ISO string)
       const txDate = transaction.date.split('T')[0];
-      const dateParts = txDate.split('-');
-      const dateLabel =
-        dateParts.length === 3
-          ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
-          : txDate;
+      const toDateLabel = (d: string) => {
+        const parts = d.split('-');
+        return parts.length === 3 ? `${parts[2]}/${parts[1]}/${parts[0]}` : d;
+      };
 
-      // Query historical rates specifically for the transaction date
+      // Query historical rates (with automatic fallback to nearest prior date)
       const bcvRecord = await bcvHistoryService.getRatesForDate(txDate);
       const binanceRecord = await binanceHistoryService.getRatesForDate(txDate);
 
@@ -81,8 +81,14 @@ export function TransactionDetailPanel({
       const bcvEur = bcvRecord?.eur ?? null;
       const binanceUsd = binanceRecord?.usd ?? null;
 
+      // Determine the actual rate date (may differ from txDate if fallback was used)
+      const actualRateDate = bcvRecord?.date ?? binanceRecord?.date ?? txDate;
+      const isFallbackDate = actualRateDate !== txDate;
+      const dateLabel = toDateLabel(actualRateDate);
+
       setVesRates({
         dateLabel,
+        isFallbackDate,
         bcvUsd,
         bcvEur,
         binanceUsd,
@@ -300,8 +306,13 @@ export function TransactionDetailPanel({
               {vesRates && (
                 <div>
                   <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
-                    <TrendingUp className="mr-2 h-4 w-4" />
+                    <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
                     Tasas al {vesRates.dateLabel}
+                    {vesRates.isFallbackDate && (
+                      <span className="ml-1 text-xs font-normal text-amber-500">
+                        (última disponible)
+                      </span>
+                    )}
                   </h4>
                   <div className="space-y-2">
                     {/* BCV USD */}
@@ -545,8 +556,13 @@ export function TransactionDetailPanel({
               {vesRates && (
                 <div>
                   <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
-                    <TrendingUp className="mr-2 h-4 w-4" />
+                    <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
                     Tasas al {vesRates.dateLabel}
+                    {vesRates.isFallbackDate && (
+                      <span className="ml-1 text-xs font-normal text-amber-500">
+                        (última disponible)
+                      </span>
+                    )}
                   </h3>
                   <div className="space-y-2">
                     {/* BCV USD */}

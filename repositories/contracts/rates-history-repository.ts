@@ -32,4 +32,8 @@ export interface RatesHistoryRepository {
   getLatestBCVRate(): Promise<BCVRateHistoryEntry | null>;
   getLatestBinanceRate(): Promise<BinanceRateHistoryEntry | null>;
   listExchangeRateSnapshots(limit: number): Promise<ExchangeRateSnapshot[]>;
+  getBCVRateOnOrBefore(date: string): Promise<BCVRateHistoryEntry | null>;
+  getBinanceRateOnOrBefore(
+    date: string
+  ): Promise<BinanceRateHistoryEntry | null>;
 }

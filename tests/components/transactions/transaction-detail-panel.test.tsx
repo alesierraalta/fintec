@@ -65,8 +65,12 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
     );
 
     await waitFor(() => {
-      expect(bcvHistoryService.getRatesForDate).toHaveBeenCalledWith('2026-06-22');
-      expect(binanceHistoryService.getRatesForDate).toHaveBeenCalledWith('2026-06-22');
+      expect(bcvHistoryService.getRatesForDate).toHaveBeenCalledWith(
+        '2026-06-22'
+      );
+      expect(binanceHistoryService.getRatesForDate).toHaveBeenCalledWith(
+        '2026-06-22'
+      );
     });
 
     // Ensure getLatestRate was NOT called
@@ -84,7 +88,9 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
 
   it('displays missing historical rate notice when no rates exist for date and does not fallback to latest', async () => {
     (bcvHistoryService.getRatesForDate as jest.Mock).mockResolvedValue(null);
-    (binanceHistoryService.getRatesForDate as jest.Mock).mockResolvedValue(null);
+    (binanceHistoryService.getRatesForDate as jest.Mock).mockResolvedValue(
+      null
+    );
 
     render(
       <TransactionDetailPanel
@@ -101,8 +107,12 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
     );
 
     await waitFor(() => {
-      expect(bcvHistoryService.getRatesForDate).toHaveBeenCalledWith('2026-06-22');
-      expect(binanceHistoryService.getRatesForDate).toHaveBeenCalledWith('2026-06-22');
+      expect(bcvHistoryService.getRatesForDate).toHaveBeenCalledWith(
+        '2026-06-22'
+      );
+      expect(binanceHistoryService.getRatesForDate).toHaveBeenCalledWith(
+        '2026-06-22'
+      );
     });
 
     expect(bcvHistoryService.getLatestRate).not.toHaveBeenCalled();
@@ -115,5 +125,52 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
     expect(
       screen.getByText('No hay tasas históricas disponibles para el 22/06/2026')
     ).toBeInTheDocument();
+  });
+  it('displays fallback rate from nearest prior date when exact date is missing', async () => {
+    // Service returns a rate from 20/06/2026 (weekend) instead of 22/06/2026
+    (bcvHistoryService.getRatesForDate as jest.Mock).mockResolvedValue({
+      date: '2026-06-20',
+      usd: 740.0,
+      eur: 840.0,
+    });
+    (binanceHistoryService.getRatesForDate as jest.Mock).mockResolvedValue({
+      date: '2026-06-20',
+      usd: 839.5,
+    });
+
+    render(
+      <TransactionDetailPanel
+        transaction={mockTransaction}
+        isOpen={true}
+        onClose={jest.fn()}
+        onEdit={jest.fn()}
+        isMobile={false}
+        accountName="Mercantil"
+        categoryName="Sophi"
+        formatAmount={(minor) => (minor / 100).toLocaleString('es-VE')}
+        getCurrencySymbol={() => 'Bs.'}
+      />
+    );
+
+    await waitFor(() => {
+      expect(bcvHistoryService.getRatesForDate).toHaveBeenCalledWith(
+        '2026-06-22'
+      );
+    });
+
+    // Date label heading contains the fallback date
+    await waitFor(() => {
+      const heading = screen.getByRole('heading', {
+        name: /Tasas al 20\/06\/2026/,
+        hidden: true,
+      });
+      expect(heading).toBeInTheDocument();
+    });
+
+    // Fallback indicator is shown
+    expect(screen.getByText('(última disponible)')).toBeInTheDocument();
+
+    // Rate values are from the fallback record
+    expect(screen.getByText('1 USD = 740.00 Bs')).toBeInTheDocument();
   });
 });
