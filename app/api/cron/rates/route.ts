@@ -107,6 +107,13 @@ const handleRequest = async (request: NextRequest) => {
 
   const overallSuccess = results.bcv.success || results.binance.success;
 
+  if (!overallSuccess) {
+    logger.error(
+      `[CRITICAL_FAILURE] Both BCV and Binance scrapers failed for ${today}. Dead-man's switch alert needed. Results:`,
+      results
+    );
+  }
+
   return NextResponse.json(
     { success: overallSuccess, results },
     { status: overallSuccess ? 200 : 502 }
