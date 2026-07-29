@@ -1,97 +1,141 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { BinanceRatesComponent } from '@/components/currency/binance-rates';
 import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
+import {
+  BINANCE_P2P_MARKET_URL,
+  type BinanceP2POffer,
+  type BinanceP2POffersQuery,
+  type BinanceP2POffersResult,
+  type BinanceP2POffersStatus,
+} from '@/types/binance-p2p-offers';
 
-jest.mock('framer-motion', () => ({
-  motion: new Proxy(
-    {},
-    {
-      get:
-        (_, tag: string) =>
-        ({ children, whileHover, whileTap, whileInView, ...props }: any) =>
-          React.createElement(tag, props, children),
-    }
-  ),
-}));
+const snapshot = {} as BinanceRatesSnapshot;
 
-jest.mock('@/hooks/use-bcv-rates', () => ({
-  useBCVRates: jest.fn(() => ({ usd: 100, eur: 110 })),
-}));
-
-function createSnapshot(
-  overrides: Partial<BinanceRatesSnapshot> = {}
-): BinanceRatesSnapshot {
+function createOffer(): BinanceP2POffer {
   return {
-    rates: {
-      usd_ves: 105,
-      usdt_ves: 105,
-      busd_ves: 105,
-      sell_rate: { min: 104, avg: 105, max: 106 },
-      buy_rate: { min: 103, avg: 104, max: 105 },
-      spread: 1,
-      sell_prices_used: 3,
-      buy_prices_used: 2,
-      prices_used: 5,
-      price_range: {
-        sell_min: 104,
-        sell_max: 106,
-        buy_min: 103,
-        buy_max: 105,
-        min: 103,
-        max: 106,
-      },
-      lastUpdated: new Date().toISOString(),
+    id: 'fixture-offer-1',
+    advertiserSide: 'BUY',
+    priceMinor: 12_345,
+    availableQuantity: { value: '1234.5600', scale: 4 },
+    minFiatMinor: 50_000,
+    maxFiatMinor: 500_000_000,
+    paymentMethods: [{ identifier: 'Banesco', name: 'Banesco' }],
+    payTimeLimitMinutes: 15,
+    merchant: {
+      nickname: 'Comerciante de prueba',
+      monthOrderCount: 87,
+      monthCompletionRateBps: 9_875,
+      positiveRateBps: 9_900,
     },
-    status: 'live',
-    message: null,
-    error: null,
-    isFallback: false,
-    isStale: false,
-    lastUpdatedLabel: '04/04/2026, 12:00:00',
-    loading: false,
-    refetch: jest.fn().mockResolvedValue(undefined),
-    ...overrides,
   };
 }
 
-describe('BinanceRatesComponent dispatcher', () => {
-  it('defaults to simple mode and renders the simple card', () => {
-    render(<BinanceRatesComponent snapshot={createSnapshot()} />);
-    expect(screen.getByTestId('binance-rate-card')).toBeInTheDocument();
+function createResult(
+  status: BinanceP2POffersStatus,
+  query: BinanceP2POffersQuery,
+  offers: BinanceP2POffer[]
+): BinanceP2POffersResult {
+  return {
+    status,
+    query,
+    offers,
+    fetchedAt: status === 'unavailable' ? null : '2026-07-16T12:00:00.000Z',
+  };
+}
+
+function createResponse(body: unknown, status = 200, retryAfter?: string) {
+  return {
+    ok: status >= 200 && status < 300,
+    status,
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === 'retry-after' ? (retryAfter ?? null) : null,
+    },
+    json: jest.fn().mockResolvedValue(body),
+  } as unknown as Response;
+}
+
+describe('Binance P2P offers explorer', () => {
+  beforeEach(() => {
+    global.fetch = jest.fn();
+  });
+
+  it('submits exact filters only on demand and renders normalized offers', async () => {
+    const user = userEvent.setup();
+    let resolveRequest: (response: Response) => void = () => {};
+    const request = new Promise<Response>((resolve) => {
+      resolveRequest = resolve;
+    });
+    (global.fetch as jest.Mock).mockReturnValue(request);
+
+    render(<BinanceRatesComponent snapshot={snapshot} />);
+    expect(global.fetch).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId('binance-offers-side-sell'));
+    await user.clear(screen.getByTestId('binance-offers-amount'));
+    await user.type(screen.getByTestId('binance-offers-amount'), '1.234,56');
+    await user.selectOptions(
+      screen.getByTestId('binance-offers-payment'),
+      'Banesco'
+    );
+    await user.click(screen.getByTestId('binance-offers-search'));
+
     expect(
-      screen.queryByTestId('binance-rate-advanced')
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the advanced card when mode="full"', () => {
-    render(
-      <BinanceRatesComponent
-        snapshot={createSnapshot()}
-        mode="full"
-        onModeChange={jest.fn()}
-      />
+      screen.getByRole('status', { name: 'Buscando ofertas' })
+    ).toBeInTheDocument();
+    const submittedQuery: BinanceP2POffersQuery = {
+      side: 'SELL',
+      amountMinor: 123_456,
+      paymentMethod: 'Banesco',
+    };
+    resolveRequest(
+      createResponse(createResult('live', submittedQuery, [createOffer()]))
     );
-    expect(screen.getByTestId('binance-rate-advanced')).toBeInTheDocument();
-    expect(screen.queryByTestId('binance-rate-card')).not.toBeInTheDocument();
+
+    expect(
+      await screen.findByText('Comerciante de prueba')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Bs. 123,45')).toBeInTheDocument();
+    expect(screen.getByText('1.234,5600 USDT')).toBeInTheDocument();
+
+    const requestInit = (global.fetch as jest.Mock).mock
+      .calls[0][1] as RequestInit;
+    expect(JSON.parse(requestInit.body as string)).toEqual(submittedQuery);
+
+    const handoff = screen.getByRole('link', {
+      name: /Continuar en Binance/i,
+    });
+    expect(handoff).toHaveAttribute('href', BINANCE_P2P_MARKET_URL);
+    expect(handoff).toHaveAttribute('rel', 'noopener noreferrer');
   });
 
-  it('forwards onModeChange to the active variant', () => {
-    const onModeChange = jest.fn();
-    render(
-      <BinanceRatesComponent
-        snapshot={createSnapshot()}
-        mode="simple"
-        onModeChange={onModeChange}
-      />
-    );
-    screen.getByTestId('binance-rate-mode-toggle').click();
-    expect(onModeChange).toHaveBeenCalledWith('full');
-  });
+  it.each([
+    ['stale', [createOffer()], /resultados recientes almacenados/i, 200],
+    ['empty', [], /No se encontraron ofertas/i, 200],
+    ['unavailable', [], /Ofertas no disponibles/i, 503],
+  ] as const)(
+    'renders the %s state without simulated fallback offers',
+    async (status, offers, expectedCopy, responseStatus) => {
+      const user = userEvent.setup();
+      const query: BinanceP2POffersQuery = {
+        side: 'BUY',
+        amountMinor: 100_000,
+        paymentMethod: 'PagoMovil',
+      };
+      (global.fetch as jest.Mock).mockResolvedValue(
+        createResponse(createResult(status, query, [...offers]), responseStatus)
+      );
 
-  it('works without onModeChange (no-op fallback)', () => {
-    render(<BinanceRatesComponent snapshot={createSnapshot()} />);
-    // Clicking the toggle should not throw
-    screen.getByTestId('binance-rate-mode-toggle').click();
-  });
+      render(<BinanceRatesComponent snapshot={snapshot} />);
+      await user.click(screen.getByTestId('binance-offers-search'));
+
+      expect(await screen.findByText(expectedCopy)).toBeInTheDocument();
+      if (status !== 'stale') {
+        expect(
+          screen.queryByText('Comerciante de prueba')
+        ).not.toBeInTheDocument();
+      }
+    }
+  );
 });

@@ -358,7 +358,28 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(400);
       expect(body.error.code).toBe('VALIDATION_ERROR');
-      expect(body.error.message).toBe('amount must be an integer in minor units');
+      expect(body.error.message).toBe(
+        'amount must be a positive integer in minor units'
+      );
+    });
+
+    it('rejects zero and negative amounts before repository mutation', async () => {
+      for (const amount of [0, -1]) {
+        const response = await POST(
+          new Request('http://localhost/api/transactions', {
+            method: 'POST',
+            body: JSON.stringify({
+              accountId: 'acc-1',
+              amount,
+              type: 'EXPENSE',
+              categoryId: 'cat-1',
+            }),
+          }) as any
+        );
+
+        expect(response.status).toBe(400);
+      }
+      expect(transactions.create).not.toHaveBeenCalled();
     });
 
     it('rejects debt payload without debtDirection', async () => {
@@ -379,7 +400,9 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(400);
       expect(body.error.code).toBe('VALIDATION_ERROR');
-      expect(body.error.message).toBe('debtDirection is required when isDebt=true');
+      expect(body.error.message).toBe(
+        'debtDirection is required when isDebt=true'
+      );
       expect(transactions.create).not.toHaveBeenCalled();
     });
 
@@ -402,7 +425,9 @@ describe('transactions route handlers', () => {
 
       expect(response.status).toBe(400);
       expect(body.error.code).toBe('VALIDATION_ERROR');
-      expect(body.error.message).toBe('settledAt is required when debtStatus=SETTLED');
+      expect(body.error.message).toBe(
+        'settledAt is required when debtStatus=SETTLED'
+      );
     });
 
     it('returns 403 when subscription limit is reached', async () => {
@@ -471,6 +496,18 @@ describe('transactions route handlers', () => {
         id: 'tx-1',
         description: 'Updated',
       });
+    });
+
+    it('rejects non-positive update amounts before repository mutation', async () => {
+      const response = await PUT(
+        new Request('http://localhost/api/transactions', {
+          method: 'PUT',
+          body: JSON.stringify({ id: 'tx-1', amount: 0 }),
+        }) as any
+      );
+
+      expect(response.status).toBe(400);
+      expect(transactions.update).not.toHaveBeenCalled();
     });
 
     it('returns 401 when update is unauthenticated', async () => {

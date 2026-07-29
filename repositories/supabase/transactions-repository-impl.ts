@@ -30,7 +30,6 @@ import {
   TRANSACTION_LIST_PROJECTION,
   TRANSACTION_DETAIL_PROJECTION,
 } from './transaction-projections';
-import { AccountsRepository } from '../contracts/accounts-repository';
 import { SupabaseClient } from '@supabase/supabase-js';
 // NOTE: '@/lib/ai/rag/embeddings' is loaded lazily inside
 // embedTransactionBestEffort. A static import drags the whole AI SDK
@@ -39,7 +38,6 @@ import { SupabaseClient } from '@supabase/supabase-js';
 // without a TransformStream global (e.g. Jest's jsdom project).
 
 export class SupabaseTransactionsRepository implements TransactionsRepository {
-  private accountsRepository?: AccountsRepository;
   private client: SupabaseClient;
   private readonly requestContext?: RequestContext;
 
@@ -86,10 +84,6 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     if (error || !data) {
       throw new Error('Account not found');
     }
-  }
-
-  setAccountsRepository(accountsRepository: AccountsRepository) {
-    this.accountsRepository = accountsRepository;
   }
 
   /**
@@ -352,6 +346,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('Unauthorized');
     }
 
+    this.assertPositiveMinorAmount(transactionData.amountMinor);
+
     // Convert DTO and create atomically via RPC (insert + balance update)
     if (transactionData.isDebt === true && !transactionData.debtDirection) {
       throw new Error('debtDirection is required when isDebt=true');
@@ -526,19 +522,11 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     return Math.round(amountMinor / rate);
   }
 
-  private calculateBalanceAdjustment(
-    type: string,
-    amountMinor: number
-  ): number {
-    switch (type) {
-      case 'INCOME':
-      case 'TRANSFER_IN':
-        return amountMinor; // Add to balance
-      case 'EXPENSE':
-      case 'TRANSFER_OUT':
-        return -amountMinor; // Subtract from balance
-      default:
-        return 0;
+  private assertPositiveMinorAmount(amountMinor: number): void {
+    if (!Number.isInteger(amountMinor) || amountMinor <= 0) {
+      throw new Error(
+        'Transaction amount must be a positive integer in minor units'
+      );
     }
   }
 
@@ -551,8 +539,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('Unauthorized');
     }
 
-    if (updates.accountId) {
-      await this.ensureAccountOwned(updates.accountId, userId);
+    if (updates.amountMinor !== undefined) {
+      this.assertPositiveMinorAmount(updates.amountMinor);
     }
 
     if (updates.categoryId !== undefined && updates.categoryId !== null) {
@@ -577,7 +565,20 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Transaction with id ${id} not found`);
     }
 
-    const { id: updateId, ...updateData } = updates;
+    const updateData = updates;
+    const accountId = updateData.accountId ?? originalTransaction.accountId;
+    const currencyCode =
+      updateData.currencyCode ?? originalTransaction.currencyCode;
+    const amountMinor =
+      updateData.amountMinor ?? originalTransaction.amountMinor;
+    const exchangeRate =
+      currencyCode === 'VES'
+        ? (updateData.exchangeRate ?? originalTransaction.exchangeRate ?? 1)
+        : 1;
+    const amountBaseMinor =
+      currencyCode === 'VES'
+        ? Math.round(amountMinor / (exchangeRate > 0 ? exchangeRate : 1))
+        : amountMinor;
     const nextIsDebt =
       updateData.isDebt !== undefined
         ? updateData.isDebt
@@ -603,18 +604,38 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('settledAt is required when debtStatus=SETTLED');
     }
 
-    const supabaseUpdates = mapDomainTransactionToSupabase({
-      ...updateData,
-      isDebt: nextIsDebt,
-      debtStatus: nextIsDebt ? nextDebtStatus || DebtStatus.OPEN : undefined,
-      updatedAt: new Date().toISOString(),
-    });
-
-    const { data, error } = await (this.client.from('transactions') as any)
-      .update(supabaseUpdates as any)
-      .eq('id', id)
-      .select(TRANSACTION_DETAIL_PROJECTION)
-      .single();
+    const { data, error } = await (this.client as any).rpc(
+      'update_transaction_and_adjust_balance',
+      {
+        p_transaction_id: id,
+        p_account_id: accountId,
+        p_category_id:
+          updateData.categoryId !== undefined
+            ? updateData.categoryId
+            : (originalTransaction.categoryId ?? null),
+        p_type: updateData.type ?? originalTransaction.type,
+        p_currency_code: currencyCode,
+        p_amount_minor: amountMinor,
+        p_amount_base_minor: amountBaseMinor,
+        p_exchange_rate: exchangeRate,
+        p_date: updateData.date ?? originalTransaction.date,
+        p_description:
+          updateData.description ?? originalTransaction.description ?? null,
+        p_note: updateData.note ?? originalTransaction.note ?? null,
+        p_tags: updateData.tags ?? originalTransaction.tags ?? null,
+        p_is_debt: nextIsDebt,
+        p_debt_direction: nextIsDebt
+          ? (updateData.debtDirection ?? originalTransaction.debtDirection)
+          : null,
+        p_debt_status: nextIsDebt ? nextDebtStatus || DebtStatus.OPEN : null,
+        p_counterparty_name: nextIsDebt
+          ? (updateData.counterpartyName ??
+            originalTransaction.counterpartyName ??
+            null)
+          : null,
+        p_settled_at: nextIsDebt ? (nextSettledAt ?? null) : null,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to update transaction: ${error.message}`);
@@ -628,43 +649,6 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       updatedTransaction.description ?? '',
       updatedTransaction.note ?? null
     );
-
-    // Debt rows are metadata: they never touch account balances (see
-    // 20260706120000_debt_balance_skip.sql and design W3). On updates we must
-    // therefore revert only the original non-debt effect and apply only the
-    // updated non-debt effect, so normal↔debt transitions stay correct.
-    try {
-      const originalAdjustment =
-        originalTransaction.isDebt === true
-          ? 0
-          : this.calculateBalanceAdjustment(
-              originalTransaction.type,
-              originalTransaction.amountMinor
-            );
-      const newAdjustment =
-        updatedTransaction.isDebt === true
-          ? 0
-          : this.calculateBalanceAdjustment(
-              updatedTransaction.type,
-              updatedTransaction.amountMinor
-            );
-      const balanceDifference = newAdjustment - originalAdjustment;
-
-      if (balanceDifference !== 0 && this.accountsRepository) {
-        await this.accountsRepository.adjustBalance(
-          updatedTransaction.accountId,
-          balanceDifference
-        );
-        console.log(
-          `✅ Balance updated for account ${updatedTransaction.accountId}: ${balanceDifference > 0 ? '+' : ''}${balanceDifference / 100}`
-        );
-      }
-    } catch (balanceError) {
-      console.error(
-        '❌ Failed to update account balance on transaction update:',
-        balanceError
-      );
-    }
 
     return updatedTransaction;
   }
@@ -683,7 +667,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const { error } = await (this.client as any).rpc(
       'delete_transaction_and_adjust_balance',
       {
-        transaction_id_input: id,
+        transaction_id: id,
       }
     );
 
@@ -1216,7 +1200,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         dateTo: filters?.dateTo,
         debtMode: 'ONLY_DEBT',
         debtDirection: filters?.debtDirection,
-        debtStatus: filters?.debtStatus ?? DebtStatus.OPEN,
+        debtStatus: filters?.debtStatus,
       },
       pagination
     );
@@ -1251,11 +1235,13 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const totals = allDebts.reduce(
       (acc, transaction) => {
         if (transaction.debtDirection === DebtDirection.OWE) {
-          acc.totalOweBaseMinor += transaction.amountBaseMinor;
+          acc.totalOweBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
-          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
+          acc.totalOwedToMeBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         return acc;

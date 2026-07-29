@@ -62,17 +62,50 @@ describe('transactions repository debt parity', () => {
     );
   });
 
+  it('leaves debt status unset when the debt screen requests ALL statuses', async () => {
+    const supabaseRepo = new SupabaseTransactionsRepository({} as any);
+    const localRepo = new LocalTransactionsRepository();
+    jest.spyOn(supabaseRepo, 'findByFilters').mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0,
+    });
+    jest.spyOn(localRepo, 'findByFilters').mockResolvedValue({
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 10,
+      totalPages: 0,
+    });
+
+    await supabaseRepo.findDebts({});
+    await localRepo.findDebts({});
+
+    expect(supabaseRepo.findByFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ debtMode: 'ONLY_DEBT', debtStatus: undefined }),
+      undefined
+    );
+    expect(localRepo.findByFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ debtMode: 'ONLY_DEBT', debtStatus: undefined }),
+      undefined
+    );
+  });
+
   it('computes identical OPEN-only debt summary totals', async () => {
     const sampleOpenDebts = [
       {
         id: 'd-1',
         debtDirection: 'OWE',
         amountBaseMinor: 2500,
+        remainingAmountBaseMinor: 1500,
       },
       {
         id: 'd-2',
         debtDirection: 'OWED_TO_ME',
         amountBaseMinor: 4000,
+        remainingAmountBaseMinor: 2500,
       },
       {
         id: 'd-3',
@@ -123,9 +156,9 @@ describe('transactions repository debt parity', () => {
     });
 
     const expected = {
-      totalOweBaseMinor: 3500,
-      totalOwedToMeBaseMinor: 4000,
-      netDebtBaseMinor: 500,
+      totalOweBaseMinor: 2500,
+      totalOwedToMeBaseMinor: 2500,
+      netDebtBaseMinor: 0,
       openCount: 3,
     };
 
@@ -261,6 +294,24 @@ describe('debt with deduction (Supabase repo)', () => {
     expect(result.id).toBe('debt-1');
   });
 
+  it('rejects non-positive transaction amounts before any RPC call', async () => {
+    const client = buildSupabaseRpcMock();
+    const repo = new SupabaseTransactionsRepository(client as any);
+
+    await expect(
+      repo.create({
+        type: 'EXPENSE' as any,
+        accountId: 'acc-1',
+        categoryId: 'cat-1',
+        currencyCode: 'USD',
+        amountMinor: 0,
+        date: '2026-07-06',
+        description: 'Invalid amount',
+      })
+    ).rejects.toThrow('positive integer');
+    expect(client.rpc).not.toHaveBeenCalled();
+  });
+
   it('falls back to the legacy RPC when debt is false (no deduction path)', async () => {
     const client = buildSupabaseRpcMock();
     client.rpc.mockResolvedValue({
@@ -308,6 +359,45 @@ describe('debt with deduction (Supabase repo)', () => {
     expect(client.rpc).toHaveBeenCalledWith(
       'create_transaction_and_adjust_balance',
       expect.any(Object)
+    );
+  });
+
+  it('preserves zero base minor units for a positive tiny converted amount', async () => {
+    const client = buildSupabaseRpcMock();
+    client.rpc.mockResolvedValue({
+      data: {
+        id: 'tx-tiny-ves',
+        type: 'EXPENSE',
+        account_id: 'acc-1',
+        amount_minor: 1,
+        amount_base_minor: 0,
+        currency_code: 'VES',
+        exchange_rate: 100,
+        date: '2026-07-06',
+        is_debt: false,
+        created_at: '2026-07-06T00:00:00Z',
+        updated_at: '2026-07-06T00:00:00Z',
+      },
+      error: null,
+    });
+
+    const repo = new SupabaseTransactionsRepository(client as any);
+    await repo.create({
+      type: 'EXPENSE' as any,
+      accountId: 'acc-1',
+      currencyCode: 'VES',
+      amountMinor: 1,
+      exchangeRate: 100,
+      date: '2026-07-06',
+      description: 'Tiny converted amount',
+    });
+
+    expect(client.rpc).toHaveBeenCalledWith(
+      'create_transaction_and_adjust_balance',
+      expect.objectContaining({
+        p_amount_minor: 1,
+        p_amount_base_minor: 0,
+      })
     );
   });
 
@@ -386,39 +476,29 @@ describe('debt with deduction (Supabase repo)', () => {
     // would have happened for an existing debt.
     expect(client.rpc).toHaveBeenCalledWith(
       'delete_transaction_and_adjust_balance',
-      expect.objectContaining({ transaction_id_input: 'd-1' })
+      expect.objectContaining({ transaction_id: 'd-1' })
     );
   });
 
   it('reverts the original balance effect when updating a normal transaction into debt', async () => {
     const client = buildSupabaseRpcMock();
-    const updateChain: any = {
-      update: jest.fn(() => updateChain),
-      eq: jest.fn(() => updateChain),
-      select: jest.fn(() => updateChain),
-      single: jest.fn().mockResolvedValue({
-        data: {
-          id: 'tx-1',
-          type: 'EXPENSE',
-          account_id: 'acc-1',
-          amount_minor: 5000,
-          amount_base_minor: 5000,
-          currency_code: 'USD',
-          date: '2026-07-06',
-          is_debt: true,
-          debt_direction: DebtDirection.OWE,
-          debt_status: DebtStatus.OPEN,
-          created_at: '2026-07-06T00:00:00Z',
-          updated_at: '2026-07-06T00:00:00Z',
-        },
-        error: null,
-      }),
+    const updatedRow = {
+      id: 'tx-1',
+      type: 'EXPENSE',
+      account_id: 'acc-1',
+      amount_minor: 5000,
+      amount_base_minor: 5000,
+      currency_code: 'USD',
+      date: '2026-07-06',
+      is_debt: true,
+      debt_direction: DebtDirection.OWE,
+      debt_status: DebtStatus.OPEN,
+      created_at: '2026-07-06T00:00:00Z',
+      updated_at: '2026-07-06T00:00:00Z',
     };
-    client.from = jest.fn(() => updateChain) as any;
 
     const repo = new SupabaseTransactionsRepository(client as any);
-    const adjustBalance = jest.fn().mockResolvedValue(undefined);
-    repo.setAccountsRepository({ adjustBalance } as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
     jest.spyOn(repo, 'findById').mockResolvedValue({
       id: 'tx-1',
       type: 'EXPENSE' as any,
@@ -439,38 +519,42 @@ describe('debt with deduction (Supabase repo)', () => {
       debtDirection: DebtDirection.OWE,
     } as any);
 
-    expect(adjustBalance).toHaveBeenCalledWith('acc-1', 5000);
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_transaction_and_adjust_balance',
+      expect.objectContaining({
+        p_transaction_id: 'tx-1',
+        p_is_debt: true,
+        p_debt_direction: DebtDirection.OWE,
+        p_amount_minor: 5000,
+      })
+    );
+    expect(client.rpc.mock.calls.at(-1)?.[1]).not.toEqual(
+      expect.objectContaining({
+        p_debt_paid_amount_minor: expect.anything(),
+        p_debt_paid_amount_base_minor: expect.anything(),
+      })
+    );
   });
 
   it('applies the new balance effect when updating a debt transaction into normal', async () => {
     const client = buildSupabaseRpcMock();
-    const updateChain: any = {
-      update: jest.fn(() => updateChain),
-      eq: jest.fn(() => updateChain),
-      select: jest.fn(() => updateChain),
-      single: jest.fn().mockResolvedValue({
-        data: {
-          id: 'tx-2',
-          type: 'INCOME',
-          account_id: 'acc-1',
-          amount_minor: 7000,
-          amount_base_minor: 7000,
-          currency_code: 'USD',
-          date: '2026-07-06',
-          is_debt: false,
-          debt_direction: null,
-          debt_status: null,
-          created_at: '2026-07-06T00:00:00Z',
-          updated_at: '2026-07-06T00:00:00Z',
-        },
-        error: null,
-      }),
+    const updatedRow = {
+      id: 'tx-2',
+      type: 'INCOME',
+      account_id: 'acc-1',
+      amount_minor: 7000,
+      amount_base_minor: 7000,
+      currency_code: 'USD',
+      date: '2026-07-06',
+      is_debt: false,
+      debt_direction: null,
+      debt_status: null,
+      created_at: '2026-07-06T00:00:00Z',
+      updated_at: '2026-07-06T00:00:00Z',
     };
-    client.from = jest.fn(() => updateChain) as any;
 
     const repo = new SupabaseTransactionsRepository(client as any);
-    const adjustBalance = jest.fn().mockResolvedValue(undefined);
-    repo.setAccountsRepository({ adjustBalance } as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
     jest.spyOn(repo, 'findById').mockResolvedValue({
       id: 'tx-2',
       type: 'INCOME' as any,
@@ -493,6 +577,14 @@ describe('debt with deduction (Supabase repo)', () => {
       type: 'INCOME' as any,
     } as any);
 
-    expect(adjustBalance).toHaveBeenCalledWith('acc-1', 7000);
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_transaction_and_adjust_balance',
+      expect.objectContaining({
+        p_transaction_id: 'tx-2',
+        p_is_debt: false,
+        p_type: 'INCOME',
+        p_amount_minor: 7000,
+      })
+    );
   });
 });

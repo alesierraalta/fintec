@@ -142,6 +142,27 @@ describe('LocalTransactionsRepository debt parity', () => {
     expect(after).toBe(before);
   });
 
+  it('leaves the transaction and balance unchanged when a debt update lacks direction', async () => {
+    const created = await repo.create({
+      type: 'EXPENSE' as any,
+      accountId: 'cash',
+      currencyCode: 'USD',
+      amountMinor: 10000,
+      date: '2026-07-06',
+      description: 'Invalid debt conversion',
+      isDebt: false,
+    } as any);
+    const beforeTransaction = await db.transactions.get(created.id);
+    const beforeBalance = (await db.accounts.get('cash'))?.balance;
+
+    await expect(
+      repo.update(created.id, { isDebt: true } as any)
+    ).rejects.toThrow('debtDirection is required');
+
+    expect(await db.transactions.get(created.id)).toEqual(beforeTransaction);
+    expect((await db.accounts.get('cash'))?.balance).toBe(beforeBalance);
+  });
+
   it('skips balance adjustment on delete for a debt transaction', async () => {
     const created = await repo.create({
       type: 'EXPENSE' as any,

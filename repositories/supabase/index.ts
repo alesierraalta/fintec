@@ -133,8 +133,6 @@ export class SupabaseAppRepository implements AppRepository {
     this.orders = new SupabaseOrdersRepository(this.client, requestContext);
     this.scrapeAttempts = new SupabaseScrapeAttemptsRepository(this.client);
 
-    // Set up dependencies
-    this.transactions.setAccountsRepository(this.accounts);
   }
 
   async isHealthy(): Promise<boolean> {

@@ -29,6 +29,8 @@ function createGoalsClient(options?: {
   goal?: Partial<GoalRow>;
   contributions?: ContributionRow[];
   accountBalance?: number;
+  summaryGoals?: Partial<GoalRow>[];
+  refreshError?: string;
 }) {
   let goal: GoalRow = {
     id: 'goal-1',
@@ -44,6 +46,14 @@ function createGoalsClient(options?: {
     updated_at: '2026-01-01T00:00:00.000Z',
     ...options?.goal,
   };
+  const summaryGoals: GoalRow[] = [
+    goal,
+    ...(options?.summaryGoals ?? []).map((row, index) => ({
+      ...goal,
+      id: `goal-summary-${index}`,
+      ...row,
+    })),
+  ];
   const contributions: ContributionRow[] = [...(options?.contributions ?? [])];
   let contributionId = contributions.length;
   let accountBalance = options?.accountBalance ?? 4200;
@@ -63,7 +73,7 @@ function createGoalsClient(options?: {
               .fn()
               .mockResolvedValue({ data: goal, error: null }),
             then: (resolve: (value: unknown) => void) =>
-              resolve({ data: [goal], error: null }),
+              resolve({ data: summaryGoals, error: null }),
           };
           return query;
         }),
@@ -167,8 +177,51 @@ function createGoalsClient(options?: {
     throw new Error(`Unexpected table ${table}`);
   });
 
+  const rpc = jest.fn((name: string, payload: Record<string, unknown>) => {
+    if (name === 'add_goal_contribution_atomic') {
+      if (goal.account_id) {
+        return Promise.resolve({
+          data: null,
+          error: {
+            message:
+              'Linked-account goals derive progress from the linked account balance and do not accept manual contributions',
+          },
+        });
+      }
+      const delta = payload.p_delta_base_minor as number;
+      contributions.push({
+        id: `contribution-${++contributionId}`,
+        created_at: `2026-03-${String(contributionId).padStart(2, '0')}T00:00:00.000Z`,
+        goal_id: 'goal-1',
+        user_id: 'user-1',
+        delta_base_minor: delta,
+        note: (payload.p_note as string | null) ?? null,
+        source: 'manual',
+        related_transaction_id: null,
+      });
+      goal = {
+        ...goal,
+        current_base_minor: goal.current_base_minor + delta,
+      };
+      return Promise.resolve({ data: goal, error: null });
+    }
+
+    if (name === 'refresh_linked_goal_progress') {
+      if (options?.refreshError) {
+        return Promise.resolve({
+          data: null,
+          error: { message: options.refreshError },
+        });
+      }
+      goal = { ...goal, current_base_minor: Math.max(0, accountBalance) };
+      return Promise.resolve({ data: goal, error: null });
+    }
+
+    throw new Error(`Unexpected RPC ${name}`);
+  });
+
   return {
-    client: { auth, from },
+    client: { auth, from, rpc },
     getGoal: () => goal,
     setAccountBalance: (nextBalance: number) => {
       accountBalance = nextBalance;
@@ -259,6 +312,38 @@ describe('SupabaseGoalsRepository ledger and refresh semantics', () => {
     setAccountBalance(5400);
     await repository.updateGoalProgress('goal-1');
     expect(getGoal().current_base_minor).toBe(5400);
+  });
+
+  it('summarizes active goals only after soft deletion', async () => {
+    const { client } = createGoalsClient({
+      summaryGoals: [
+        {
+          active: false,
+          target_base_minor: 9000,
+          current_base_minor: 9000,
+        },
+      ],
+    });
+    const repository = new SupabaseGoalsRepository(client as any);
+
+    await expect(repository.getGoalsSummary()).resolves.toMatchObject({
+      totalGoals: 1,
+      activeGoals: 1,
+      totalTargetBaseMinor: 10000,
+      totalSavedBaseMinor: 0,
+    });
+  });
+
+  it('surfaces the database rejection for linked accounts outside base currency', async () => {
+    const { client } = createGoalsClient({
+      goal: { account_id: 'acc-1' },
+      refreshError: 'Linked account currency must match the user base currency',
+    });
+    const repository = new SupabaseGoalsRepository(client as any);
+
+    await expect(repository.updateGoalProgress('goal-1')).rejects.toThrow(
+      'Linked account currency must match the user base currency'
+    );
   });
 
   it('normalizes empty/whitespace optional strings to null and trims valid ones', async () => {

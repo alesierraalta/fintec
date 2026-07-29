@@ -159,23 +159,6 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     return projectedDate.toISOString();
   }
 
-  private async recomputeManualGoalTotal(goalId: string): Promise<SavingsGoal> {
-    const rows = await this.listGoalContributionRows(goalId);
-    const totalContributions = rows.reduce(
-      (sum, row) => sum + row.delta_base_minor,
-      0
-    );
-
-    if (totalContributions < 0) {
-      throw new Error('Goal contributions cannot result in a negative balance');
-    }
-
-    return this.update(goalId, {
-      id: goalId,
-      currentBaseMinor: totalContributions,
-    });
-  }
-
   private async getLinkedGoalsForRefresh(
     goalId?: string
   ): Promise<Array<{ id: string; account_id: string }>> {
@@ -384,6 +367,7 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     if (!userId) {
       throw new Error('Unauthorized');
     }
+    this.assertPositiveAmount(data.targetBaseMinor);
 
     const { data: insertedData, error } = await this.client
       .from('goals')
@@ -448,6 +432,9 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     const userId = await this.getUserId();
     if (!userId) {
       throw new Error('Unauthorized');
+    }
+    if (updates.targetBaseMinor !== undefined) {
+      this.assertPositiveAmount(updates.targetBaseMinor);
     }
 
     const supabaseUpdates: any = {
@@ -568,34 +555,20 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     note?: string
   ): Promise<SavingsGoal> {
     this.assertPositiveAmount(amountBaseMinor);
-
-    const goal = await this.findById(goalId);
-    if (!goal) throw new Error('Goal not found');
-    if (goal.accountId) {
-      throw new Error(
-        'Linked-account goals derive progress from the linked account balance and do not accept manual contributions'
-      );
-    }
-
-    const userId = await this.getUserId();
-    if (!userId) {
-      throw new Error('Unauthorized');
-    }
-
-    const { error } = await this.client.from('goal_contributions').insert({
-      goal_id: goalId,
-      user_id: userId,
-      delta_base_minor: amountBaseMinor,
-      note: note ?? null,
-      source: 'manual',
-      related_transaction_id: null,
-    });
+    const { data, error } = await (this.client as any).rpc(
+      'add_goal_contribution_atomic',
+      {
+        p_goal_id: goalId,
+        p_delta_base_minor: amountBaseMinor,
+        p_note: note ?? null,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to add goal contribution: ${error.message}`);
     }
 
-    return this.recomputeManualGoalTotal(goalId);
+    return mapSupabaseGoalToDomain(data as any);
   }
 
   async removeContribution(
@@ -604,37 +577,20 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     note?: string
   ): Promise<SavingsGoal> {
     this.assertPositiveAmount(amountBaseMinor);
-
-    const goal = await this.findById(goalId);
-    if (!goal) throw new Error('Goal not found');
-    if (goal.accountId) {
-      throw new Error(
-        'Linked-account goals derive progress from the linked account balance and do not accept manual contributions'
-      );
-    }
-    if (goal.currentBaseMinor < amountBaseMinor) {
-      throw new Error('Cannot remove more than the currently saved amount');
-    }
-
-    const userId = await this.getUserId();
-    if (!userId) {
-      throw new Error('Unauthorized');
-    }
-
-    const { error } = await this.client.from('goal_contributions').insert({
-      goal_id: goalId,
-      user_id: userId,
-      delta_base_minor: -amountBaseMinor,
-      note: note ?? null,
-      source: 'manual',
-      related_transaction_id: null,
-    });
+    const { data, error } = await (this.client as any).rpc(
+      'add_goal_contribution_atomic',
+      {
+        p_goal_id: goalId,
+        p_delta_base_minor: -amountBaseMinor,
+        p_note: note ?? null,
+      }
+    );
 
     if (error) {
       throw new Error(`Failed to remove goal contribution: ${error.message}`);
     }
 
-    return this.recomputeManualGoalTotal(goalId);
+    return mapSupabaseGoalToDomain(data as any);
   }
 
   // Analytics
@@ -683,47 +639,11 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     if (!userId) return;
 
     const goals = await this.getLinkedGoalsForRefresh(goalId);
-    if (goals.length === 0) {
-      return;
-    }
-
-    const accountIds = Array.from(
-      new Set(goals.map((goal) => goal.account_id))
-    );
-    const { data: accounts, error: accountsError } = await this.client
-      .from('accounts')
-      .select('id, balance')
-      .in('id', accountIds)
-      .eq('user_id', userId);
-
-    if (accountsError) {
-      throw new Error(
-        `Failed to fetch linked account balances: ${accountsError.message}`
-      );
-    }
-
-    const balancesByAccountId = new Map(
-      (accounts || []).map((account) => [
-        account.id,
-        Math.max(0, account.balance ?? 0),
-      ])
-    );
-
     for (const goal of goals) {
-      const balance = balancesByAccountId.get(goal.account_id);
-      if (balance === undefined) {
-        continue;
-      }
-
-      const { error } = await this.client
-        .from('goals')
-        .update({
-          current_base_minor: balance,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', goal.id)
-        .eq('user_id', userId);
-
+      const { error } = await (this.client as any).rpc(
+        'refresh_linked_goal_progress',
+        { p_goal_id: goal.id }
+      );
       if (error) {
         throw new Error(
           `Failed to update linked goal progress: ${error.message}`
@@ -805,28 +725,27 @@ export class SupabaseGoalsRepository implements GoalsRepository {
     let totalSaved = 0;
     let progressSum = 0;
 
-    data.forEach((row: any) => {
-      if (row.active) {
-        activeGoals++;
-        totalTarget += row.target_base_minor;
-        totalSaved += row.current_base_minor;
-        const progress =
-          row.target_base_minor > 0
-            ? Math.min(
-                (row.current_base_minor / row.target_base_minor) * 100,
-                100
-              )
-            : 0;
-        progressSum += progress;
+    const activeRows = data.filter((row: any) => row.active);
+    activeRows.forEach((row: any) => {
+      activeGoals++;
+      totalTarget += row.target_base_minor;
+      totalSaved += row.current_base_minor;
+      const progress =
+        row.target_base_minor > 0
+          ? Math.min(
+              (row.current_base_minor / row.target_base_minor) * 100,
+              100
+            )
+          : 0;
+      progressSum += progress;
 
-        if (row.current_base_minor >= row.target_base_minor) {
-          completedGoals++;
-        }
+      if (row.current_base_minor >= row.target_base_minor) {
+        completedGoals++;
       }
     });
 
     return {
-      totalGoals: data.length,
+      totalGoals: activeRows.length,
       activeGoals,
       completedGoals,
       totalTargetBaseMinor: totalTarget,

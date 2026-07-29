@@ -4,11 +4,14 @@ description: >
   Creates new AI agent skills following the Agent Skills spec.
   Trigger: When user asks to create a new skill, add agent instructions, or document patterns for AI.
 metadata:
-  version: '1.0'
+  author: a.sierra
+  version: "1.0"
   scope: [root]
-  auto_invoke: 'Creating new skills'
+  auto_invoke: "Creating new skills"
 allowed-tools: Read, Edit, Write, Glob, Grep, Bash, WebFetch, WebSearch, Task
 ---
+
+# Skill creator
 
 ## When to Create a Skill
 
@@ -29,7 +32,7 @@ Create a skill when:
 
 ## Skill Structure
 
-```
+```text
 .agent/skills/{skill-name}/
 ├── SKILL.md              # Required - main skill file
 ├── assets/               # Optional - templates, schemas, examples
@@ -37,7 +40,7 @@ Create a skill when:
 │   └── schema.json
 └── references/           # Optional - links to local docs
     └── docs.md           # Points to documentation/*.md
-```
+`	ext
 
 ---
 
@@ -50,9 +53,9 @@ description: >
   {One-line description of what this skill does}.
   Trigger: {When the AI should load this skill}.
 metadata:
-  version: '1.0'
+  version: "1.0"
   scope: [api] # Options: root, api, common, infra
-  auto_invoke: '{Action that requires this skill}'
+  auto_invoke: "{Action that requires this skill}"
 ---
 
 ## When to Use
@@ -71,15 +74,13 @@ metadata:
 
 ```bash
 {Common commands}
-```
+`	ext
 ````
 
 ## Resources
 
 - **Templates**: See [assets/](assets/) for {description}
 - **Documentation**: See [references/](references/) for local docs
-
-```
 
 ---
 
@@ -96,7 +97,7 @@ metadata:
 
 ## Decision: assets/ vs references/
 
-```
+```text
 
 Need code templates? → assets/
 Need JSON schemas? → assets/
@@ -104,7 +105,7 @@ Need example configs? → assets/
 Link to existing docs? → references/
 Link to external guides? → references/ (with local path)
 
-```
+`	ext
 
 **Key Rule**: `references/` should point to LOCAL files (`documentation/*.md`), not web URLs.
 
@@ -112,13 +113,13 @@ Link to external guides? → references/ (with local path)
 
 ## Decision: Project-Specific vs Generic
 
-```
+```text
 
 Patterns apply to ANY project? → Generic skill (e.g., nest, typeorm)
 Patterns are Project-specific? → {project}-{name} skill
 Generic skill needs Project info? → Add references/ pointing to documentation
 
-````
+`	ext
 
 ---
 
@@ -157,7 +158,7 @@ After creating the skill, add it to `AGENTS.md`:
 
 ```markdown
 | `{skill-name}` | {Description} | [SKILL.md](.agent/skills/{skill-name}/SKILL.md) |
-````
+`	ext
 
 ---
 

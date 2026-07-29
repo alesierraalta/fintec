@@ -162,17 +162,6 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       throw new Error(`Transaction with id ${id} not found`);
     }
 
-    // Debt transactions never touched the account balance, so we must
-    // not "revert" a balance change that never happened. Same parity rule
-    // as the Supabase RPC skip-guard.
-    if (existing.isDebt !== true) {
-      await this.updateAccountBalance(
-        existing.accountId,
-        -existing.amountMinor,
-        existing.type
-      );
-    }
-
     const nextIsDebt = data.isDebt ?? existing.isDebt ?? false;
     const nextDebtDirection = data.debtDirection ?? existing.debtDirection;
     const nextDebtStatus = data.debtStatus ?? existing.debtStatus;
@@ -200,17 +189,26 @@ export class LocalTransactionsRepository implements TransactionsRepository {
       updatedAt: new Date().toISOString(),
     };
 
-    await db.transactions.put(updated);
+    await db.transaction('rw', db.transactions, db.accounts, async () => {
+      // Debt transactions never touch balances, matching the Supabase RPC.
+      if (existing.isDebt !== true) {
+        await this.updateAccountBalance(
+          existing.accountId,
+          -existing.amountMinor,
+          existing.type
+        );
+      }
 
-    // Apply new balance change ONLY if the row is not a debt (parity with
-    // the Supabase RPC skip-guard).
-    if (nextIsDebt !== true) {
-      await this.updateAccountBalance(
-        updated.accountId,
-        updated.amountMinor,
-        updated.type
-      );
-    }
+      await db.transactions.put(updated);
+
+      if (nextIsDebt !== true) {
+        await this.updateAccountBalance(
+          updated.accountId,
+          updated.amountMinor,
+          updated.type
+        );
+      }
+    });
 
     return updated;
   }
@@ -619,7 +617,7 @@ export class LocalTransactionsRepository implements TransactionsRepository {
         dateTo: filters?.dateTo,
         debtMode: 'ONLY_DEBT',
         debtDirection: filters?.debtDirection,
-        debtStatus: filters?.debtStatus ?? DebtStatus.OPEN,
+        debtStatus: filters?.debtStatus,
       },
       pagination
     );
@@ -640,11 +638,13 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     const totals = debts.data.reduce(
       (acc, transaction) => {
         if (transaction.debtDirection === DebtDirection.OWE) {
-          acc.totalOweBaseMinor += transaction.amountBaseMinor;
+          acc.totalOweBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         if (transaction.debtDirection === DebtDirection.OWED_TO_ME) {
-          acc.totalOwedToMeBaseMinor += transaction.amountBaseMinor;
+          acc.totalOwedToMeBaseMinor +=
+            transaction.remainingAmountBaseMinor ?? transaction.amountBaseMinor;
         }
 
         return acc;

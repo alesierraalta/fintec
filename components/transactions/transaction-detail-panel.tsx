@@ -43,6 +43,7 @@ export function TransactionDetailPanel({
   getCurrencySymbol,
 }: TransactionDetailPanelProps) {
   const [vesRates, setVesRates] = useState<{
+    dateLabel: string;
     bcvUsd: number | null;
     bcvEur: number | null;
     binanceUsd: number | null;
@@ -61,18 +62,15 @@ export function TransactionDetailPanel({
     async function loadRates() {
       // Extract date from transaction (YYYY-MM-DD or ISO string)
       const txDate = transaction.date.split('T')[0];
+      const dateParts = txDate.split('-');
+      const dateLabel =
+        dateParts.length === 3
+          ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`
+          : txDate;
 
-      // Try historical rates first, fallback to latest available
-      let bcvRecord = await bcvHistoryService.getRatesForDate(txDate);
-      let binanceRecord = await binanceHistoryService.getRatesForDate(txDate);
-
-      // Fallback to latest if no historical data
-      if (!bcvRecord) {
-        bcvRecord = await bcvHistoryService.getLatestRate();
-      }
-      if (!binanceRecord) {
-        binanceRecord = await binanceHistoryService.getLatestRate();
-      }
+      // Query historical rates specifically for the transaction date
+      const bcvRecord = await bcvHistoryService.getRatesForDate(txDate);
+      const binanceRecord = await binanceHistoryService.getRatesForDate(txDate);
 
       const amountInBs =
         transaction.amountMinor && !isNaN(transaction.amountMinor)
@@ -84,6 +82,7 @@ export function TransactionDetailPanel({
       const binanceUsd = binanceRecord?.usd ?? null;
 
       setVesRates({
+        dateLabel,
         bcvUsd,
         bcvEur,
         binanceUsd,
@@ -302,7 +301,7 @@ export function TransactionDetailPanel({
                 <div>
                   <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
                     <TrendingUp className="mr-2 h-4 w-4" />
-                    Tasas del día
+                    Tasas al {vesRates.dateLabel}
                   </h4>
                   <div className="space-y-2">
                     {/* BCV USD */}
@@ -383,7 +382,8 @@ export function TransactionDetailPanel({
                       !vesRates.binanceUsd && (
                         <div className="rounded-lg bg-muted/30 p-3">
                           <p className="text-sm text-muted-foreground">
-                            No hay tasas históricas disponibles para esta fecha
+                            No hay tasas históricas disponibles para el{' '}
+                            {vesRates.dateLabel}
                           </p>
                         </div>
                       )}
@@ -546,7 +546,7 @@ export function TransactionDetailPanel({
                 <div>
                   <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
                     <TrendingUp className="mr-2 h-4 w-4" />
-                    Tasas del día
+                    Tasas al {vesRates.dateLabel}
                   </h3>
                   <div className="space-y-2">
                     {/* BCV USD */}
@@ -627,7 +627,8 @@ export function TransactionDetailPanel({
                       !vesRates.binanceUsd && (
                         <div className="rounded-xl bg-card/40 p-4">
                           <p className="text-sm text-muted-foreground">
-                            No hay tasas históricas disponibles para esta fecha
+                            No hay tasas históricas disponibles para el{' '}
+                            {vesRates.dateLabel}
                           </p>
                         </div>
                       )}

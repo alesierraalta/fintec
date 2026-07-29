@@ -37,9 +37,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     throw new ValidationError('limit must be a positive integer');
   }
 
-  const pagination = parsedLimit
-    ? { page: 1, limit: parsedLimit }
-    : undefined;
+  const pagination = parsedLimit ? { page: 1, limit: parsedLimit } : undefined;
 
   let transactions;
   let totalCount: number;
@@ -97,14 +95,22 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const body = await request.json();
 
   // Validate required fields
-  if (!body.accountId || !body.amount || !body.type || !body.categoryId) {
+  if (
+    !body.accountId ||
+    body.amount === undefined ||
+    body.amount === null ||
+    !body.type ||
+    !body.categoryId
+  ) {
     throw new ValidationError(
       'Missing required fields: accountId, amount, type, categoryId'
     );
   }
 
-  if (!Number.isInteger(body.amount)) {
-    throw new ValidationError('amount must be an integer in minor units');
+  if (!Number.isInteger(body.amount) || body.amount <= 0) {
+    throw new ValidationError(
+      'amount must be a positive integer in minor units'
+    );
   }
 
   if (body.isDebt === true && !body.debtDirection) {
@@ -146,10 +152,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
   const transaction = await repository.transactions.create(transactionData);
 
-  return NextResponse.json(
-    successResponse(transaction),
-    { status: 201 }
-  );
+  return NextResponse.json(successResponse(transaction), { status: 201 });
 });
 
 // PUT /api/transactions - Update transaction (requires id in body)
@@ -170,6 +173,15 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
 
   if (!body.id) {
     throw new ValidationError('Transaction ID is required');
+  }
+
+  if (
+    body.amount !== undefined &&
+    (!Number.isInteger(body.amount) || body.amount <= 0)
+  ) {
+    throw new ValidationError(
+      'amount must be a positive integer in minor units'
+    );
   }
 
   const transaction = await repository.transactions.update(body.id, body);
@@ -200,5 +212,7 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
 
   await repository.transactions.delete(id);
 
-  return NextResponse.json(successResponse({ message: 'Transaction deleted successfully' }));
+  return NextResponse.json(
+    successResponse({ message: 'Transaction deleted successfully' })
+  );
 });
