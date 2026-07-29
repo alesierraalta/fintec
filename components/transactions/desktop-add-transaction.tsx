@@ -5,59 +5,35 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   DollarSign,
-  Calendar,
   FileText,
   Tag,
   Plus,
   Minus,
   Check,
   X,
-  CreditCard,
   Wallet,
-  Building2,
-  Utensils,
-  Car,
-  ShoppingBag,
-  Music,
-  Stethoscope,
-  Home,
-  Book,
-  Dumbbell,
-  Plane,
-  Smartphone,
-  Banknote,
-  Heart,
-  Zap,
-  Receipt,
-  Briefcase,
-  Coffee,
-  TrendingUp,
-  Gift,
-  Star,
   Repeat,
-  PiggyBank,
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
-import { CreateTransactionDTO, DebtStatus, TransactionType } from '@/types';
 import {
-  TransactionFormSchema,
-  TransactionFormType,
-} from '@/lib/validations/schemas';
-import { dateUtils } from '@/lib/dates/dayjs';
+  CreateTransactionDTO,
+  DebtDirection,
+  DebtStatus,
+  TransactionType,
+} from '@/types';
+import type { RecurringFrequency } from '@/types/recurring-transactions';
 import { calculate_next_execution_date } from '@/lib/dates/recurring';
-import { motion } from 'framer-motion';
-import { cardVariants, buttonVariants, fieldVariants } from '@/lib/animations';
-import { useFormShortcuts } from '@/lib/hotkeys';
 import { useNotifications } from '@/lib/store';
 import { CategoryForm } from '@/components/forms/category-form';
-import type { Category, Account } from '@/types/domain';
+import type { Category, Account, CategoryKind } from '@/types/domain';
 import { logger } from '@/lib/utils/logger';
-import { CURRENCIES } from '@/lib/money';
+import { CURRENCIES, toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
+import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -140,16 +116,16 @@ export function DesktopAddTransaction() {
       }
 
       try {
-        // Load categories
+        // Load categories and user accounts in parallel
         setLoadingCategories(true);
-        const allCategories = await repository.categories.findAll();
-        setCategories(allCategories.filter((cat) => cat.active));
-        setLoadingCategories(false);
-
-        // Load user accounts
         setLoadingAccounts(true);
-        const userAccounts = await repository.accounts.findByUserId(user.id);
+        const [allCategories, userAccounts] = await Promise.all([
+          repository.categories.findAll(),
+          repository.accounts.findByUserId(user.id),
+        ]);
+        setCategories(allCategories.filter((cat) => cat.active));
         setAccounts(userAccounts.filter((acc) => acc.active));
+        setLoadingCategories(false);
         setLoadingAccounts(false);
       } catch (err) {
         setError('Error al cargar los datos');
@@ -373,7 +349,7 @@ export function DesktopAddTransaction() {
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
-        amountMinor: Math.round(amount * 100),
+        amountMinor: toMinorUnits(amount, currencyCode),
         exchangeRate,
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description.trim(),
@@ -387,7 +363,7 @@ export function DesktopAddTransaction() {
         isDebt: canShowDebtFields ? formData.isDebt : false,
         debtDirection:
           canShowDebtFields && formData.isDebt
-            ? (formData.debtDirection as any)
+            ? (formData.debtDirection as DebtDirection)
             : undefined,
         debtStatus:
           canShowDebtFields && formData.isDebt
@@ -405,8 +381,7 @@ export function DesktopAddTransaction() {
             : undefined,
       };
 
-      const createdTransaction =
-        await repository.transactions.create(transactionData);
+      await repository.transactions.create(transactionData);
 
       // If recurring is enabled, create recurring transaction
       if (formData.isRecurring) {
@@ -417,7 +392,7 @@ export function DesktopAddTransaction() {
             accountId: formData.accountId,
             categoryId: formData.categoryId,
             currencyCode: currencyCode,
-            amountMinor: Math.round(amount * 100),
+            amountMinor: toMinorUnits(amount, currencyCode),
             description: formData.description.trim(),
             note: formData.note?.trim() || undefined,
             tags: formData.tags
@@ -426,7 +401,7 @@ export function DesktopAddTransaction() {
                   .map((tag) => tag.trim())
                   .filter(Boolean)
               : undefined,
-            frequency: formData.frequency as any,
+            frequency: formData.frequency as RecurringFrequency,
             intervalCount: 1,
             startDate: calculate_next_execution_date(
               formData.date,
@@ -462,24 +437,6 @@ export function DesktopAddTransaction() {
         title: '¡Transacción creada!',
         message: `Transacción de ${currencyCode === 'VES' ? 'Bs.' : '$'}${amount.toLocaleString()} guardada exitosamente${formData.isRecurring ? ' con recurrencia configurada' : ''}`,
       });
-
-      if (formData.isRecurring) {
-        // TODO: Implement recurring transactions functionality
-        logger.info('Recurring transaction feature not implemented yet');
-
-        addNotification({
-          read: false,
-          type: 'info',
-          title: 'Transacción recurrente',
-          message: `Se repetirá cada ${
-            formData.frequency === 'weekly'
-              ? 'semana'
-              : formData.frequency === 'monthly'
-                ? 'mes'
-                : 'año'
-          }${formData.endDate ? ` hasta ${formData.endDate}` : ' indefinidamente'}`,
-        });
-      }
 
       setAnimateSuccess(true);
       setTimeout(() => {
@@ -520,12 +477,12 @@ export function DesktopAddTransaction() {
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-fade-in text-center">
           <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-success">
-            <Check className="h-10 w-10 text-foreground" />
+            <Check className="h-10 w-10 text-foreground" aria-hidden="true" />
           </div>
           <h2 className="mb-2 text-2xl font-bold text-foreground">
             ¡Transacción Creada!
           </h2>
-          <p className="text-muted-foreground">Redirigiendo...</p>
+          <p className="text-muted-foreground">Redirigiendo…</p>
         </div>
       </div>
     );
@@ -541,7 +498,7 @@ export function DesktopAddTransaction() {
             onClick={() => router.back()}
             className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground backdrop-blur-md transition-all duration-300 hover:bg-card/60"
           >
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             <span>Volver</span>
           </button>
 
@@ -552,6 +509,12 @@ export function DesktopAddTransaction() {
           <div className="w-20"></div>
         </div>
 
+        {error && (
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 backdrop-blur-md">
+            {error}
+          </div>
+        )}
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 gap-6 pb-32 lg:grid-cols-3">
           {/* Left Column - Transaction Type & Account */}
@@ -559,7 +522,10 @@ export function DesktopAddTransaction() {
             {/* Transaction Type */}
             <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
-                <Repeat className="mr-2 h-5 w-5 text-blue-400" />
+                <Repeat
+                  className="mr-2 h-5 w-5 text-blue-400"
+                  aria-hidden="true"
+                />
                 Tipo de Transacción
               </h3>
               <div className="space-y-3">
@@ -572,10 +538,10 @@ export function DesktopAddTransaction() {
                       key={type.value}
                       type="button"
                       onClick={() =>
-                        setFormData({
-                          ...formData,
+                        setFormData((prev) => ({
+                          ...prev,
                           type: type.value as TransactionType,
-                        })
+                        }))
                       }
                       className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                         isSelected
@@ -591,6 +557,7 @@ export function DesktopAddTransaction() {
                         >
                           <Icon
                             className={`h-5 w-5 ${isSelected ? 'text-foreground' : 'text-muted-foreground'}`}
+                            aria-hidden="true"
                           />
                         </div>
                         <div className="text-left">
@@ -611,13 +578,16 @@ export function DesktopAddTransaction() {
             {formData.type && (
               <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
                 <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
-                  <Wallet className="mr-2 h-5 w-5 text-green-400" />
+                  <Wallet
+                    className="mr-2 h-5 w-5 text-green-400"
+                    aria-hidden="true"
+                  />
                   Cuenta
                 </h3>
                 <div className="space-y-3">
                   {loadingAccounts ? (
                     <div className="col-span-full text-center text-muted-foreground/80">
-                      Cargando cuentas...
+                      Cargando cuentas…
                     </div>
                   ) : accounts.length === 0 ? (
                     <div className="col-span-full text-center text-muted-foreground/80">
@@ -635,7 +605,10 @@ export function DesktopAddTransaction() {
                           key={account.id}
                           type="button"
                           onClick={() =>
-                            setFormData({ ...formData, accountId: account.id })
+                            setFormData((prev) => ({
+                              ...prev,
+                              accountId: account.id,
+                            }))
                           }
                           className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                             isSelected
@@ -649,16 +622,8 @@ export function DesktopAddTransaction() {
                                 isSelected ? 'bg-muted/30' : 'bg-muted/20'
                               }`}
                             >
-                              <span className="text-xl">
-                                {account.type === 'BANK'
-                                  ? '🏦'
-                                  : account.type === 'CARD'
-                                    ? '💳'
-                                    : account.type === 'CASH'
-                                      ? '💵'
-                                      : account.type === 'INVESTMENT'
-                                        ? '📈'
-                                        : '💰'}
+                              <span className="text-xl" aria-hidden="true">
+                                {getAccountEmoji(account.type)}
                               </span>
                             </div>
                             <div className="flex-1 text-left">
@@ -671,8 +636,8 @@ export function DesktopAddTransaction() {
                                 className={`amount-strong text-sm ${isSelected ? 'text-white/80' : 'text-muted-foreground/80'}`}
                               >
                                 {account.currencyCode === 'VES'
-                                  ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
-                                  : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`}
+                                  ? `Bs. ${Math.abs(fromMinorUnits(account.balance, account.currencyCode)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
+                                  : `$${Math.abs(fromMinorUnits(account.balance, account.currencyCode)).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`}
                               </p>
                             </div>
                           </div>
@@ -692,7 +657,10 @@ export function DesktopAddTransaction() {
               <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="flex items-center text-xl font-semibold text-foreground">
-                    <Tag className="mr-2 h-5 w-5 text-pink-400" />
+                    <Tag
+                      className="mr-2 h-5 w-5 text-pink-400"
+                      aria-hidden="true"
+                    />
                     Categoría
                   </h3>
                   <button
@@ -700,14 +668,17 @@ export function DesktopAddTransaction() {
                     onClick={openCategoryModal}
                     className="flex items-center space-x-1 rounded-lg border border-primary bg-primary/10 px-3 py-2 text-xs text-primary transition-colors hover:border-blue-400 hover:bg-primary/20 hover:text-blue-300"
                   >
-                    <Plus className="h-3 w-3 flex-shrink-0" />
+                    <Plus
+                      className="h-3 w-3 flex-shrink-0"
+                      aria-hidden="true"
+                    />
                     <span className="whitespace-nowrap">Nueva Categoría</span>
                   </button>
                 </div>
                 <div className="grid max-h-96 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
                   {loadingCategories ? (
                     <div className="col-span-full text-center text-muted-foreground/80">
-                      Cargando categorías...
+                      Cargando categorías…
                     </div>
                   ) : (
                     getCategoriesByType(formData.type as TransactionType)?.map(
@@ -747,67 +718,7 @@ export function DesktopAddTransaction() {
                                 }`}
                               >
                                 <span className="text-lg">
-                                  {category.icon === 'Utensils'
-                                    ? '🍽️'
-                                    : category.icon === 'Car'
-                                      ? '🚗'
-                                      : category.icon === 'ShoppingBag'
-                                        ? '🛍️'
-                                        : category.icon === 'Music'
-                                          ? '🎵'
-                                          : category.icon === 'Stethoscope'
-                                            ? '🩺'
-                                            : category.icon === 'Home'
-                                              ? '🏠'
-                                              : category.icon === 'Book'
-                                                ? '📚'
-                                                : category.icon === 'Dumbbell'
-                                                  ? '🏋️'
-                                                  : category.icon === 'Plane'
-                                                    ? '✈️'
-                                                    : category.icon ===
-                                                        'Smartphone'
-                                                      ? '📱'
-                                                      : category.icon ===
-                                                          'Calendar'
-                                                        ? '📅'
-                                                        : category.icon ===
-                                                            'Banknote'
-                                                          ? '💵'
-                                                          : category.icon ===
-                                                              'Heart'
-                                                            ? '❤️'
-                                                            : category.icon ===
-                                                                'Zap'
-                                                              ? '⚡'
-                                                              : category.icon ===
-                                                                  'Building2'
-                                                                ? '🏢'
-                                                                : category.icon ===
-                                                                    'Receipt'
-                                                                  ? '🧾'
-                                                                  : category.icon ===
-                                                                      'Briefcase'
-                                                                    ? '💼'
-                                                                    : category.icon ===
-                                                                        'Coffee'
-                                                                      ? '☕'
-                                                                      : category.icon ===
-                                                                          'TrendingUp'
-                                                                        ? '📈'
-                                                                        : category.icon ===
-                                                                            'Gift'
-                                                                          ? '🎁'
-                                                                          : category.icon ===
-                                                                              'Star'
-                                                                            ? '⭐'
-                                                                            : category.icon ===
-                                                                                'Repeat'
-                                                                              ? '🔄'
-                                                                              : category.icon ===
-                                                                                  'PiggyBank'
-                                                                                ? '🐷'
-                                                                                : '💰'}
+                                  {getCategoryEmoji(category.icon)}
                                 </span>
                               </div>
                               <span
@@ -832,7 +743,10 @@ export function DesktopAddTransaction() {
             {/* Visual Calculator */}
             <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
-                <DollarSign className="mr-2 h-5 w-5 text-yellow-400" />
+                <DollarSign
+                  className="mr-2 h-5 w-5 text-yellow-400"
+                  aria-hidden="true"
+                />
                 Monto
               </h3>
 
@@ -909,6 +823,26 @@ export function DesktopAddTransaction() {
                 ].map((btn) => (
                   <button
                     key={btn}
+                    type="button"
+                    aria-label={
+                      btn === 'C'
+                        ? 'Limpiar'
+                        : btn === '⌫'
+                          ? 'Borrar'
+                          : btn === '/'
+                            ? 'Dividir'
+                            : btn === '*'
+                              ? 'Multiplicar'
+                              : btn === '-'
+                                ? 'Restar'
+                                : btn === '+'
+                                  ? 'Sumar'
+                                  : btn === '='
+                                    ? 'Calcular resultado'
+                                    : btn === '.'
+                                      ? 'Punto decimal'
+                                      : `Número ${btn}`
+                    }
                     onClick={() => handleCalculatorClick(btn)}
                     className={`h-12 rounded-lg font-semibold transition-all duration-200 ${
                       ['C', '⌫'].includes(btn)
@@ -929,16 +863,23 @@ export function DesktopAddTransaction() {
           <div className="space-y-6">
             <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
-                <FileText className="mr-2 h-5 w-5 text-cyan-400" />
+                <FileText
+                  className="mr-2 h-5 w-5 text-cyan-400"
+                  aria-hidden="true"
+                />
                 Detalles
               </h3>
 
               <div className="space-y-4">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  <label
+                    htmlFor="desktop-description"
+                    className="mb-2 block text-sm font-medium text-muted-foreground"
+                  >
                     Descripción (Opcional)
                   </label>
                   <input
+                    id="desktop-description"
                     type="text"
                     placeholder={
                       formData.type === 'INCOME'
@@ -956,10 +897,14 @@ export function DesktopAddTransaction() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  <label
+                    htmlFor="desktop-date"
+                    className="mb-2 block text-sm font-medium text-muted-foreground"
+                  >
                     Fecha
                   </label>
                   <input
+                    id="desktop-date"
                     type="date"
                     value={formData.date}
                     onChange={(e) =>
@@ -970,11 +915,15 @@ export function DesktopAddTransaction() {
                 </div>
 
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  <label
+                    htmlFor="desktop-note"
+                    className="mb-2 block text-sm font-medium text-muted-foreground"
+                  >
                     Nota (Opcional)
                   </label>
                   <textarea
-                    placeholder="Información adicional..."
+                    id="desktop-note"
+                    placeholder="Información adicional…"
                     value={formData.note}
                     onChange={(e) =>
                       setFormData({ ...formData, note: e.target.value })
@@ -984,10 +933,14 @@ export function DesktopAddTransaction() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                  <label
+                    htmlFor="desktop-tags"
+                    className="mb-2 block text-sm font-medium text-muted-foreground"
+                  >
                     Etiquetas (Opcional)
                   </label>
                   <input
+                    id="desktop-tags"
                     type="text"
                     placeholder="urgente, recurrente, etc."
                     value={formData.tags}
@@ -1035,104 +988,131 @@ export function DesktopAddTransaction() {
                     </div>
 
                     {formData.isDebt && (
-                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                            Direccion de deuda
-                          </label>
-                          <select
-                            value={formData.debtDirection}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                debtDirection: e.target.value as any,
-                              })
-                            }
-                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
-                          >
-                            <option value="" className="bg-background">
-                              Selecciona una opcion
-                            </option>
-                            <option value="OWE" className="bg-background">
-                              Debo
-                            </option>
-                            <option
-                              value="OWED_TO_ME"
-                              className="bg-background"
-                            >
-                              Me deben
-                            </option>
-                          </select>
+                      <div className="space-y-3">
+                        <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-300">
+                          <span className="font-semibold text-blue-200">
+                            Sin impacto en saldo:
+                          </span>{' '}
+                          Esta deuda registrará el compromiso sin sumar ni
+                          restar dinero a tu saldo de cuenta hasta que la
+                          saldes.
                         </div>
-
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                            Estado
-                          </label>
-                          <select
-                            value={formData.debtStatus}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                debtStatus: e.target.value as DebtStatus,
-                                settledAt:
-                                  e.target.value === DebtStatus.SETTLED
-                                    ? formData.settledAt
-                                    : '',
-                              })
-                            }
-                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
-                          >
-                            <option
-                              value={DebtStatus.OPEN}
-                              className="bg-background"
-                            >
-                              Abierta
-                            </option>
-                            <option
-                              value={DebtStatus.SETTLED}
-                              className="bg-background"
-                            >
-                              Saldada
-                            </option>
-                          </select>
-                        </div>
-
-                        {formData.debtStatus === DebtStatus.SETTLED && (
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div>
-                            <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                              Fecha de liquidacion
+                            <label
+                              htmlFor="desktop-debt-direction"
+                              className="mb-2 block text-sm font-medium text-muted-foreground"
+                            >
+                              Direccion de deuda
                             </label>
-                            <input
-                              type="date"
-                              value={formData.settledAt}
+                            <select
+                              id="desktop-debt-direction"
+                              value={formData.debtDirection}
                               onChange={(e) =>
                                 setFormData({
                                   ...formData,
-                                  settledAt: e.target.value,
+                                  debtDirection: e.target
+                                    .value as DebtDirection,
                                 })
                               }
                               className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            >
+                              <option value="" className="bg-background">
+                                Selecciona una opcion
+                              </option>
+                              <option value="OWE" className="bg-background">
+                                Debo
+                              </option>
+                              <option
+                                value="OWED_TO_ME"
+                                className="bg-background"
+                              >
+                                Me deben
+                              </option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label
+                              htmlFor="desktop-debt-status"
+                              className="mb-2 block text-sm font-medium text-muted-foreground"
+                            >
+                              Estado
+                            </label>
+                            <select
+                              id="desktop-debt-status"
+                              value={formData.debtStatus}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  debtStatus: e.target.value as DebtStatus,
+                                  settledAt:
+                                    e.target.value === DebtStatus.SETTLED
+                                      ? formData.settledAt
+                                      : '',
+                                })
+                              }
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            >
+                              <option
+                                value={DebtStatus.OPEN}
+                                className="bg-background"
+                              >
+                                Abierta
+                              </option>
+                              <option
+                                value={DebtStatus.SETTLED}
+                                className="bg-background"
+                              >
+                                Saldada
+                              </option>
+                            </select>
+                          </div>
+
+                          {formData.debtStatus === DebtStatus.SETTLED && (
+                            <div>
+                              <label
+                                htmlFor="desktop-debt-settled-at"
+                                className="mb-2 block text-sm font-medium text-muted-foreground"
+                              >
+                                Fecha de liquidacion
+                              </label>
+                              <input
+                                id="desktop-debt-settled-at"
+                                type="date"
+                                value={formData.settledAt}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    settledAt: e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              />
+                            </div>
+                          )}
+
+                          <div>
+                            <label
+                              htmlFor="desktop-debt-counterparty"
+                              className="mb-2 block text-sm font-medium text-muted-foreground"
+                            >
+                              Contraparte (opcional)
+                            </label>
+                            <input
+                              id="desktop-debt-counterparty"
+                              type="text"
+                              placeholder="Nombre de la persona o empresa"
+                              value={formData.counterpartyName}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  counterpartyName: e.target.value,
+                                })
+                              }
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             />
                           </div>
-                        )}
-
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-muted-foreground">
-                            Contraparte (opcional)
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Nombre de la persona o empresa"
-                            value={formData.counterpartyName}
-                            onChange={(e) =>
-                              setFormData({
-                                ...formData,
-                                counterpartyName: e.target.value,
-                              })
-                            }
-                            className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
-                          />
                         </div>
                       </div>
                     )}
@@ -1165,10 +1145,14 @@ export function DesktopAddTransaction() {
                   {formData.isRecurring && (
                     <div className="space-y-4 pl-8">
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                        <label
+                          htmlFor="desktop-recurring-frequency"
+                          className="mb-2 block text-sm font-medium text-muted-foreground"
+                        >
                           Frecuencia
                         </label>
                         <select
+                          id="desktop-recurring-frequency"
                           value={formData.frequency}
                           onChange={(e) =>
                             setFormData({
@@ -1194,10 +1178,14 @@ export function DesktopAddTransaction() {
                       </div>
 
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-muted-foreground">
+                        <label
+                          htmlFor="desktop-recurring-end-date"
+                          className="mb-2 block text-sm font-medium text-muted-foreground"
+                        >
                           Finalizar el (Opcional)
                         </label>
                         <input
+                          id="desktop-recurring-end-date"
                           type="date"
                           value={formData.endDate}
                           onChange={(e) =>
@@ -1245,7 +1233,7 @@ export function DesktopAddTransaction() {
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
             ) : (
               <>
-                <Check className="h-6 w-6" />
+                <Check className="h-6 w-6" aria-hidden="true" />
                 <span className="text-lg font-bold">Finalizar</span>
               </>
             )}
@@ -1260,7 +1248,7 @@ export function DesktopAddTransaction() {
             className="focus-ring flex min-h-[44px] transform items-center justify-center space-x-3 rounded-xl border-2 border-destructive/60 bg-destructive px-6 py-4 text-destructive-foreground shadow-2xl transition-all duration-300 hover:scale-105 hover:bg-destructive/90"
             title="Cancelar"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
             <span className="font-bold">Cancelar</span>
           </button>
         </div>
@@ -1336,7 +1324,7 @@ export function DesktopAddTransaction() {
           onSave={handleCategorySaved}
           category={null}
           parentCategoryId={null}
-          defaultKind={getCategoryKindForTransaction() as any}
+          defaultKind={getCategoryKindForTransaction() as CategoryKind}
         />
       </div>
     </div>

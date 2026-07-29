@@ -29,7 +29,7 @@ import {
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 import { useActiveUsdVesRate } from '@/lib/rates';
-import { toMinorUnits } from '@/lib/money';
+import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -100,7 +100,12 @@ export function TransactionForm({
     type: transaction?.type || type,
     accountId: transaction?.accountId || '',
     categoryId: transaction?.categoryId || '',
-    amount: transaction ? (transaction.amountMinor / 100).toString() : '',
+    amount: transaction
+      ? fromMinorUnits(
+          transaction.amountMinor,
+          transaction.currencyCode
+        ).toString()
+      : '',
     description: transaction?.description || '',
     date: transaction?.date || new Date().toISOString().split('T')[0],
     note: transaction?.note || '',
@@ -155,7 +160,10 @@ export function TransactionForm({
         type: transaction.type,
         accountId: transaction.accountId,
         categoryId: transaction.categoryId || '',
-        amount: (transaction.amountMinor / 100).toString(),
+        amount: fromMinorUnits(
+          transaction.amountMinor,
+          transaction.currencyCode
+        ).toString(),
         description: transaction.description || '',
         date: transaction.date,
         note: transaction.note || '',
@@ -209,6 +217,49 @@ export function TransactionForm({
       });
     }
   }, [transaction, type, debtMode]);
+
+  const selectedType = transactionTypes.find((t) => t.value === formData.type);
+
+  // The "main" account drives the debt's transaction currency, which in
+  // turn filters the source-account picker. The picker only shows accounts
+  // in the SAME currency so the linked EXPENSE debits the right one.
+  const selectedDebtAccount = accounts.find(
+    (acc) => acc.id === formData.accountId
+  );
+  const eligibleSourceAccounts = selectedDebtAccount
+    ? accounts.filter(
+        (acc) =>
+          acc.active && acc.currencyCode === selectedDebtAccount.currencyCode
+      )
+    : [];
+  const hasEligibleSourceAccounts = eligibleSourceAccounts.length > 0;
+  const shouldDeductFromAccount =
+    formData.deductFromAccount && hasEligibleSourceAccounts;
+
+  // Transform data for Select components
+  const accountOptions = accounts.map((account) => ({
+    value: account.id,
+    label: `${account.name} (${account.currencyCode})`,
+  }));
+
+  const sourceAccountOptions = eligibleSourceAccounts.map((account) => ({
+    value: account.id,
+    label: `${account.name} (${account.currencyCode})`,
+  }));
+
+  const categoryOptions = categories
+    .filter((cat) => {
+      if (!formData.type) return true;
+      // Map TransactionType to CategoryKind
+      if (formData.type === 'INCOME') return cat.kind === 'INCOME';
+      if (formData.type === 'EXPENSE') return cat.kind === 'EXPENSE';
+      // TRANSFER types can use either category kind
+      return true;
+    })
+    .map((category) => ({
+      value: category.id,
+      label: category.name,
+    }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -308,9 +359,6 @@ export function TransactionForm({
           formData.debtStatus === DebtStatus.SETTLED
             ? new Date(formData.settledAt).toISOString()
             : undefined,
-        // * Debt-only: forward the deduct toggle and the picked source
-        // account. When the toggle is off we deliberately omit
-        // `sourceAccountId` so the DTO does not carry a stale value.
         deductFromAccount:
           canShowDebtFields && formData.isDebt
             ? shouldDeductFromAccount
@@ -332,13 +380,7 @@ export function TransactionForm({
         // Create new transaction
         await repository.transactions.create(transactionData);
       }
-    } catch (error) {
-      toast.error('Error al guardar la transaccion');
-      setLoading(false);
-      return;
-    }
 
-    try {
       toast.success(
         transaction
           ? debtMode
@@ -348,10 +390,6 @@ export function TransactionForm({
             ? 'Deuda creada exitosamente'
             : 'Transaccion creada exitosamente'
       );
-      await onSuccess?.();
-      onClose();
-
-      // Reset form
       setFormData({
         type: type,
         accountId: '',
@@ -369,55 +407,21 @@ export function TransactionForm({
         deductFromAccount: true,
         sourceAccountId: '',
       });
+
+      onClose();
+
+      try {
+        await onSuccess?.();
+      } catch (callbackError) {
+        logger.error('Error in onSuccess callback:', callbackError);
+      }
     } catch (error) {
-      logger.error('Transaction saved but post-save UI update failed:', error);
+      toast.error('Error al guardar la transaccion');
+      logger.error('Error saving transaction:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  const selectedType = transactionTypes.find((t) => t.value === formData.type);
-
-  // The "main" account drives the debt's transaction currency, which in
-  // turn filters the source-account picker. The picker only shows accounts
-  // in the SAME currency so the linked EXPENSE debits the right one.
-  const selectedDebtAccount = accounts.find(
-    (acc) => acc.id === formData.accountId
-  );
-  const eligibleSourceAccounts = selectedDebtAccount
-    ? accounts.filter(
-        (acc) =>
-          acc.active && acc.currencyCode === selectedDebtAccount.currencyCode
-      )
-    : [];
-  const hasEligibleSourceAccounts = eligibleSourceAccounts.length > 0;
-  const shouldDeductFromAccount =
-    formData.deductFromAccount && hasEligibleSourceAccounts;
-
-  // Transform data for Select components
-  const accountOptions = accounts.map((account) => ({
-    value: account.id,
-    label: `${account.name} (${account.currencyCode})`,
-  }));
-
-  const sourceAccountOptions = eligibleSourceAccounts.map((account) => ({
-    value: account.id,
-    label: `${account.name} (${account.currencyCode})`,
-  }));
-
-  const categoryOptions = categories
-    .filter((cat) => {
-      if (!formData.type) return true;
-      // Map TransactionType to CategoryKind
-      if (formData.type === 'INCOME') return cat.kind === 'INCOME';
-      if (formData.type === 'EXPENSE') return cat.kind === 'EXPENSE';
-      // TRANSFER types can use either category kind
-      return true;
-    })
-    .map((category) => ({
-      value: category.id,
-      label: category.name,
-    }));
 
   const handleCategorySaved = async (createdCategory?: Category) => {
     // Reload categories after creating a new one
@@ -445,14 +449,15 @@ export function TransactionForm({
 
   if (loadingData) {
     return (
-      <Modal open={isOpen} onClose={onClose} title="Cargando..." size="md">
+      <Modal open={isOpen} onClose={onClose} title="Cargando…" size="md">
         <div className="rounded-2xl border border-border/20 bg-card/30 p-8 text-center backdrop-blur-sm">
           <div className="mx-auto mb-3 w-fit rounded-xl bg-muted/50 p-3 backdrop-blur-sm">
-            <DollarSign className="mx-auto h-8 w-8 animate-pulse text-muted-foreground" />
+            <DollarSign
+              className="mx-auto h-8 w-8 animate-pulse text-muted-foreground"
+              aria-hidden="true"
+            />
           </div>
-          <p className="text-ios-body text-muted-foreground">
-            Cargando datos...
-          </p>
+          <p className="text-ios-body text-muted-foreground">Cargando datos…</p>
         </div>
       </Modal>
     );
@@ -482,7 +487,7 @@ export function TransactionForm({
               title="¿Cómo funciona la deuda?"
               aria-label="¿Cómo funciona la deuda?"
             >
-              <Info className="h-4 w-4" />
+              <Info className="h-4 w-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -537,10 +542,10 @@ export function TransactionForm({
                     key={typeOption.value}
                     type="button"
                     onClick={() =>
-                      setFormData({
-                        ...formData,
+                      setFormData((prev) => ({
+                        ...prev,
                         type: typeOption.value,
-                      })
+                      }))
                     }
                     className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
                       isSelected
@@ -548,7 +553,7 @@ export function TransactionForm({
                         : 'border-border/20 bg-card/30 text-muted-foreground hover:border-border/30 hover:bg-card/50'
                     }`}
                   >
-                    <Icon className="mx-auto mb-2 h-6 w-6" />
+                    <Icon className="mx-auto mb-2 h-6 w-6" aria-hidden="true" />
                     <span className="text-ios-caption font-medium">
                       {typeOption.label}
                     </span>
@@ -568,9 +573,9 @@ export function TransactionForm({
             placeholder="0.00"
             value={formData.amount}
             onChange={(e) =>
-              setFormData({ ...formData, amount: e.target.value })
+              setFormData((prev) => ({ ...prev, amount: e.target.value }))
             }
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<DollarSign className="h-4 w-4" aria-hidden="true" />}
             required
           />
         </div>
@@ -581,11 +586,11 @@ export function TransactionForm({
             label="Cuenta"
             value={formData.accountId}
             onChange={(e) =>
-              setFormData({
-                ...formData,
+              setFormData((prev) => ({
+                ...prev,
                 accountId: e.target.value,
                 sourceAccountId: e.target.value,
-              })
+              }))
             }
             options={accountOptions}
             placeholder="Seleccionar cuenta"
@@ -649,7 +654,6 @@ export function TransactionForm({
                 <input
                   id="transaction-is-debt"
                   type="checkbox"
-                  aria-label="Es deuda"
                   checked={formData.isDebt}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -676,6 +680,15 @@ export function TransactionForm({
                   <span className="text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
                     Detalles de la Deuda
                   </span>
+                </div>
+
+                <div className="mb-3 rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-300">
+                  <span className="font-semibold text-blue-200">
+                    Sin impacto en saldo:
+                  </span>{' '}
+                  {!shouldDeductFromAccount
+                    ? 'Esta deuda registrará el compromiso sin sumar ni restar dinero a tu saldo hasta que sea saldada.'
+                    : 'Afectará la cuenta de origen seleccionada mediante un movimiento vinculado.'}
                 </div>
 
                 <Select
@@ -808,8 +821,10 @@ export function TransactionForm({
             label="Fecha"
             type="date"
             value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            icon={<Calendar className="h-4 w-4" />}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, date: e.target.value }))
+            }
+            icon={<Calendar className="h-4 w-4" aria-hidden="true" />}
             required
           />
         </div>
@@ -824,9 +839,11 @@ export function TransactionForm({
           </label>
           <textarea
             id="transaction-note"
-            placeholder="Información adicional..."
+            placeholder="Información adicional…"
             value={formData.note}
-            onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, note: e.target.value }))
+            }
             rows={3}
             className="transition-ios w-full resize-none rounded-2xl border border-border/20 bg-card/60 px-4 py-3 text-foreground placeholder-muted-foreground backdrop-blur-sm focus:border-blue-500/30 focus:ring-2 focus:ring-blue-500/20"
           />
@@ -838,8 +855,10 @@ export function TransactionForm({
             label="Etiquetas (Opcional)"
             placeholder="Ej: urgente, recurrente"
             value={formData.tags}
-            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-            icon={<Tag className="h-4 w-4" />}
+            onChange={(e) =>
+              setFormData((prev) => ({ ...prev, tags: e.target.value }))
+            }
+            icon={<Tag className="h-4 w-4" aria-hidden="true" />}
           />
           <p className="mt-2 text-ios-caption text-muted-foreground">
             Separa las etiquetas con comas
@@ -861,11 +880,13 @@ export function TransactionForm({
             type="submit"
             loading={loading}
             icon={
-              selectedType?.icon && <selectedType.icon className="h-4 w-4" />
+              selectedType?.icon && (
+                <selectedType.icon className="h-4 w-4" aria-hidden="true" />
+              )
             }
             className="transition-ios rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 shadow-ios-sm hover:from-blue-700 hover:to-blue-800 hover:shadow-ios-md"
           >
-            {loading ? 'Guardando...' : 'Guardar Transacción'}
+            {loading ? 'Guardando…' : 'Guardar Transacción'}
           </Button>
         </div>
       </form>

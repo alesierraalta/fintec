@@ -21,6 +21,7 @@ import { logger } from '@/lib/utils/logger';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
+import { toMinorUnits } from '@/lib/money';
 
 // * Transaction type options (shared constant)
 export const TRANSACTION_TYPES = [
@@ -358,7 +359,7 @@ export function useTransactionForm(): UseTransactionFormReturn {
         accountId: formData.accountId,
         categoryId: formData.categoryId,
         currencyCode: currencyCode,
-        amountMinor: Math.round(amount * 100),
+        amountMinor: toMinorUnits(amount, currencyCode),
         exchangeRate,
         date: formData.date || new Date().toISOString().split('T')[0],
         description: formData.description,
@@ -416,8 +417,8 @@ export function useTransactionForm(): UseTransactionFormReturn {
             type: (formData.type as TransactionType) || 'EXPENSE',
             accountId: formData.accountId || 'acc1',
             categoryId: formData.categoryId || 'food',
-            currencyCode: 'USD',
-            amountMinor: Math.round(amount * 100),
+            currencyCode: currencyCode,
+            amountMinor: toMinorUnits(amount, currencyCode),
             description: formData.description,
             note: formData.note || undefined,
             tags: formData.tags

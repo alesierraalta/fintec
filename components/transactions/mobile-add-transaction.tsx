@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   DollarSign,
-  Calendar,
   FileText,
   Tag,
   Plus,
@@ -20,9 +19,10 @@ import {
   useTransactionForm,
   TRANSACTION_TYPES,
 } from '@/hooks/use-transaction-form';
-import { DebtStatus, TransactionType } from '@/types';
+import { DebtDirection, DebtStatus, TransactionType } from '@/types';
+import type { CategoryKind } from '@/types/domain';
 import { CategoryForm } from '@/components/forms/category-form';
-import { CURRENCIES } from '@/lib/money';
+import { CURRENCIES, fromMinorUnits } from '@/lib/money';
 
 // * Icon mapping for transaction types
 const TYPE_ICONS = {
@@ -31,46 +31,7 @@ const TYPE_ICONS = {
   TRANSFER_OUT: Repeat,
 };
 
-// * Icon mapping helper for categories
-const getCategoryEmoji = (icon: string): string => {
-  const emojiMap: Record<string, string> = {
-    Utensils: '🍽️',
-    Car: '🚗',
-    ShoppingBag: '🛍️',
-    Music: '🎵',
-    Stethoscope: '🩺',
-    Home: '🏠',
-    Book: '📚',
-    Dumbbell: '🏋️',
-    Plane: '✈️',
-    Smartphone: '📱',
-    Calendar: '📅',
-    Banknote: '💵',
-    Heart: '❤️',
-    Zap: '⚡',
-    Building2: '🏢',
-    Receipt: '🧾',
-    Briefcase: '💼',
-    Coffee: '☕',
-    TrendingUp: '📈',
-    Gift: '🎁',
-    Star: '⭐',
-    Repeat: '🔄',
-    PiggyBank: '🐷',
-  };
-  return emojiMap[icon] || '💰';
-};
-
-// * Account type emoji helper
-const getAccountEmoji = (type: string): string => {
-  const emojiMap: Record<string, string> = {
-    BANK: '🏦',
-    CARD: '💳',
-    CASH: '💵',
-    INVESTMENT: '📈',
-  };
-  return emojiMap[type] || '💰';
-};
+import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
 
 export function MobileAddTransaction() {
   const router = useRouter();
@@ -118,7 +79,7 @@ export function MobileAddTransaction() {
         {/* Transaction Type */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
           <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
-            <Repeat className="mr-2 h-5 w-5 text-blue-400" />
+            <Repeat className="mr-2 h-5 w-5 text-blue-400" aria-hidden="true" />
             Tipo de Transacción
           </h3>
           <div className="space-y-3">
@@ -131,10 +92,10 @@ export function MobileAddTransaction() {
                   key={type.value}
                   type="button"
                   onClick={() =>
-                    setFormData({
-                      ...formData,
+                    setFormData((prev) => ({
+                      ...prev,
                       type: type.value as TransactionType,
-                    })
+                    }))
                   }
                   className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                     isSelected
@@ -150,6 +111,7 @@ export function MobileAddTransaction() {
                     >
                       <Icon
                         className={`h-5 w-5 ${isSelected ? 'text-white' : 'text-gray-300'}`}
+                        aria-hidden="true"
                       />
                     </div>
                     <div className="text-left">
@@ -170,13 +132,16 @@ export function MobileAddTransaction() {
         {formData.type && (
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
             <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
-              <Wallet className="mr-2 h-5 w-5 text-green-400" />
+              <Wallet
+                className="mr-2 h-5 w-5 text-green-400"
+                aria-hidden="true"
+              />
               Cuenta
             </h3>
             <div className="space-y-3">
               {loadingAccounts ? (
                 <div className="text-center text-gray-400">
-                  Cargando cuentas...
+                  Cargando cuentas…
                 </div>
               ) : accounts.length === 0 ? (
                 <div className="text-center text-gray-400">
@@ -218,8 +183,8 @@ export function MobileAddTransaction() {
                           </p>
                           <p className="amount-emphasis-white text-sm text-white">
                             {account.currencyCode === 'VES'
-                              ? `Bs. ${Math.abs(account.balance / 100).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
-                              : `$${Math.abs(account.balance / 100).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`}
+                              ? `Bs. ${Math.abs(fromMinorUnits(account.balance, account.currencyCode)).toLocaleString('es-VE', { minimumFractionDigits: 2 })}`
+                              : `$${Math.abs(fromMinorUnits(account.balance, account.currencyCode)).toLocaleString('en-US', { minimumFractionDigits: 2 })} ${account.currencyCode}`}
                           </p>
                         </div>
                       </div>
@@ -236,7 +201,10 @@ export function MobileAddTransaction() {
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center text-xl font-semibold text-white">
-                <Tag className="mr-2 h-5 w-5 text-pink-400" />
+                <Tag
+                  className="mr-2 h-5 w-5 text-pink-400"
+                  aria-hidden="true"
+                />
                 Categoría
               </h3>
               <button
@@ -244,14 +212,14 @@ export function MobileAddTransaction() {
                 onClick={openCategoryModal}
                 className="flex items-center space-x-1 rounded-lg border border-primary bg-primary/10 px-2 py-1 text-xs text-primary transition-colors hover:border-blue-400 hover:bg-primary/20 hover:text-blue-300"
               >
-                <Plus className="h-3 w-3 flex-shrink-0" />
+                <Plus className="h-3 w-3 flex-shrink-0" aria-hidden="true" />
                 <span className="whitespace-nowrap">Nueva</span>
               </button>
             </div>
             <div className="grid max-h-96 grid-cols-2 gap-3 overflow-y-auto">
               {loadingCategories ? (
                 <div className="col-span-full text-center text-gray-400">
-                  Cargando categorías...
+                  Cargando categorías…
                 </div>
               ) : (
                 getCategoriesByType(formData.type as TransactionType)?.map(
@@ -312,7 +280,10 @@ export function MobileAddTransaction() {
         {/* Visual Calculator */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
           <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
-            <DollarSign className="mr-2 h-5 w-5 text-yellow-400" />
+            <DollarSign
+              className="mr-2 h-5 w-5 text-yellow-400"
+              aria-hidden="true"
+            />
             Monto
           </h3>
 
@@ -390,6 +361,26 @@ export function MobileAddTransaction() {
             ].map((btn) => (
               <button
                 key={btn}
+                type="button"
+                aria-label={
+                  btn === 'C'
+                    ? 'Limpiar'
+                    : btn === '⌫'
+                      ? 'Borrar'
+                      : btn === '/'
+                        ? 'Dividir'
+                        : btn === '*'
+                          ? 'Multiplicar'
+                          : btn === '-'
+                            ? 'Restar'
+                            : btn === '+'
+                              ? 'Sumar'
+                              : btn === '='
+                                ? 'Calcular resultado'
+                                : btn === '.'
+                                  ? 'Punto decimal'
+                                  : `Número ${btn}`
+                }
                 onClick={() => handleCalculatorClick(btn)}
                 className={`h-12 rounded-lg font-semibold transition-all duration-200 ${
                   ['C', '⌫'].includes(btn)
@@ -408,16 +399,23 @@ export function MobileAddTransaction() {
         {/* Details */}
         <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
           <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
-            <FileText className="mr-2 h-5 w-5 text-cyan-400" />
+            <FileText
+              className="mr-2 h-5 w-5 text-cyan-400"
+              aria-hidden="true"
+            />
             Detalles
           </h3>
 
           <div className="space-y-4">
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label
+                htmlFor="mobile-description"
+                className="mb-2 block text-sm font-medium text-gray-300"
+              >
                 Descripción (Opcional)
               </label>
               <input
+                id="mobile-description"
                 type="text"
                 placeholder={
                   formData.type === 'INCOME'
@@ -435,10 +433,14 @@ export function MobileAddTransaction() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label
+                htmlFor="mobile-date"
+                className="mb-2 block text-sm font-medium text-gray-300"
+              >
                 Fecha
               </label>
               <input
+                id="mobile-date"
                 type="date"
                 value={formData.date}
                 onChange={(e) =>
@@ -449,11 +451,15 @@ export function MobileAddTransaction() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label
+                htmlFor="mobile-note"
+                className="mb-2 block text-sm font-medium text-gray-300"
+              >
                 Nota (Opcional)
               </label>
               <textarea
-                placeholder="Información adicional..."
+                id="mobile-note"
+                placeholder="Información adicional…"
                 value={formData.note}
                 onChange={(e) =>
                   setFormData({ ...formData, note: e.target.value })
@@ -464,10 +470,14 @@ export function MobileAddTransaction() {
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-300">
+              <label
+                htmlFor="mobile-tags"
+                className="mb-2 block text-sm font-medium text-gray-300"
+              >
                 Etiquetas (Opcional)
               </label>
               <input
+                id="mobile-tags"
                 type="text"
                 placeholder="urgente, recurrente, etc."
                 value={formData.tags}
@@ -513,16 +523,27 @@ export function MobileAddTransaction() {
 
                 {formData.isDebt && (
                   <div className="space-y-3">
+                    <div className="rounded-xl border border-blue-500/30 bg-blue-500/10 p-3 text-xs text-blue-300">
+                      <span className="font-semibold text-blue-200">
+                        Sin impacto en saldo:
+                      </span>{' '}
+                      Esta deuda registrará el compromiso sin sumar ni restar
+                      dinero a tu saldo de cuenta hasta que la saldes.
+                    </div>
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-300">
+                      <label
+                        htmlFor="mobile-debt-direction"
+                        className="mb-2 block text-sm font-medium text-gray-300"
+                      >
                         Direccion de deuda
                       </label>
                       <select
+                        id="mobile-debt-direction"
                         value={formData.debtDirection}
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            debtDirection: e.target.value as any,
+                            debtDirection: e.target.value as DebtDirection,
                           })
                         }
                         className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
@@ -540,10 +561,14 @@ export function MobileAddTransaction() {
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-300">
+                      <label
+                        htmlFor="mobile-debt-status"
+                        className="mb-2 block text-sm font-medium text-gray-300"
+                      >
                         Estado
                       </label>
                       <select
+                        id="mobile-debt-status"
                         value={formData.debtStatus}
                         onChange={(e) =>
                           setFormData({
@@ -571,10 +596,14 @@ export function MobileAddTransaction() {
 
                     {formData.debtStatus === DebtStatus.SETTLED && (
                       <div>
-                        <label className="mb-2 block text-sm font-medium text-gray-300">
+                        <label
+                          htmlFor="mobile-debt-settled-at"
+                          className="mb-2 block text-sm font-medium text-gray-300"
+                        >
                           Fecha de liquidacion
                         </label>
                         <input
+                          id="mobile-debt-settled-at"
                           type="date"
                           value={formData.settledAt}
                           onChange={(e) =>
@@ -589,10 +618,14 @@ export function MobileAddTransaction() {
                     )}
 
                     <div>
-                      <label className="mb-2 block text-sm font-medium text-gray-300">
+                      <label
+                        htmlFor="mobile-debt-counterparty"
+                        className="mb-2 block text-sm font-medium text-gray-300"
+                      >
                         Contraparte (opcional)
                       </label>
                       <input
+                        id="mobile-debt-counterparty"
                         type="text"
                         placeholder="Nombre de la persona o empresa"
                         value={formData.counterpartyName}
@@ -630,10 +663,14 @@ export function MobileAddTransaction() {
               {formData.isRecurring && (
                 <div className="space-y-4 pl-8">
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                    <label
+                      htmlFor="mobile-recurring-frequency"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
                       Frecuencia
                     </label>
                     <select
+                      id="mobile-recurring-frequency"
                       value={formData.frequency}
                       onChange={(e) =>
                         setFormData({
@@ -659,10 +696,14 @@ export function MobileAddTransaction() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-medium text-gray-300">
+                    <label
+                      htmlFor="mobile-recurring-end-date"
+                      className="mb-2 block text-sm font-medium text-gray-300"
+                    >
                       Finalizar el (Opcional)
                     </label>
                     <input
+                      id="mobile-recurring-end-date"
                       type="date"
                       value={formData.endDate}
                       onChange={(e) =>
@@ -704,7 +745,7 @@ export function MobileAddTransaction() {
           onClick={() => router.back()}
           className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground backdrop-blur-md transition-all duration-300 hover:bg-card/60"
         >
-          <ArrowLeft className="h-5 w-5" />
+          <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           <span>Volver</span>
         </button>
 
@@ -719,17 +760,14 @@ export function MobileAddTransaction() {
       <div className="space-y-6 pb-32">{renderContent()}</div>
 
       {/* Fixed Bottom Actions */}
-      <div
-        className="fixed bottom-0 left-0 right-0 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl"
-        style={{ zIndex: 9999 }}
-      >
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
         <div className="flex space-x-3">
           <button
             type="button"
             onClick={() => router.back()}
             className="focus-ring flex min-h-[44px] flex-1 items-center justify-center space-x-2 rounded-xl border border-border/60 bg-muted/30 px-6 py-3 font-medium text-foreground backdrop-blur-md transition-colors hover:bg-muted/50"
           >
-            <X className="h-5 w-5" />
+            <X className="h-5 w-5" aria-hidden="true" />
             <span>Cancelar</span>
           </button>
           <button
@@ -742,7 +780,7 @@ export function MobileAddTransaction() {
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
               <>
-                <Check className="h-5 w-5" />
+                <Check className="h-5 w-5" aria-hidden="true" />
                 <span>Finalizar</span>
               </>
             )}
@@ -757,7 +795,7 @@ export function MobileAddTransaction() {
         onSave={handleCategorySaved}
         category={null}
         parentCategoryId={null}
-        defaultKind={getCategoryKindForTransaction() as any}
+        defaultKind={getCategoryKindForTransaction() as CategoryKind}
       />
     </div>
   );
