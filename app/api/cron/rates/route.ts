@@ -20,11 +20,24 @@ const handleRequest = async (request: NextRequest) => {
     );
   }
 
+  // Guard: fail fast with 503 if service client cannot be created
+  let serviceClient: ReturnType<typeof createServiceClient>;
+  try {
+    serviceClient = createServiceClient();
+  } catch (err: any) {
+    logger.error('[cron/rates] Failed to create service client:', err);
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Service client unavailable',
+        detail: err?.message,
+      },
+      { status: 503 }
+    );
+  }
+
   const today = formatCaracasDayKey(new Date());
   const now = new Date().toISOString();
-
-  // Use service-role client to bypass RLS for daily persistence
-  const serviceClient = createServiceClient();
   const ratesRepo = new SupabaseRatesHistoryRepository(serviceClient);
 
   const results = {
@@ -63,10 +76,8 @@ const handleRequest = async (request: NextRequest) => {
   try {
     const binanceResult = await scrapeBinanceRates();
     if (binanceResult.success && binanceResult.data) {
-      const usdRate =
-        (binanceResult.data as any).usdt_ves ??
-        (binanceResult.data as any).usd ??
-        0;
+      // sell_avg is the canonical P2P USDT/VES rate from the BinanceData interface
+      const usdRate = binanceResult.data.sell_avg ?? 0;
       if (usdRate > 0) {
         await ratesRepo.upsertBinanceRate({
           date: today,
