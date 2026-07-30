@@ -41,6 +41,7 @@ const navigation = [
   { name: 'Metas', href: '/goals', icon: Target },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
   { name: 'Deudas', href: '/debts', icon: HandCoins },
+  { name: 'Ofertas P2P', href: '/p2p-offers', icon: DollarSign },
   { name: 'Respaldos', href: '/backups', icon: Shield },
   { name: 'Chats', href: '/chat', icon: MessageSquare, premium: true },
   { name: 'Ajustes', href: '/settings', icon: Settings },

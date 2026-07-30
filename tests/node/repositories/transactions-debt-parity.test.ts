@@ -483,6 +483,7 @@ describe('debt with deduction (Supabase repo)', () => {
   it('reverts the original balance effect when updating a normal transaction into debt', async () => {
     const client = buildSupabaseRpcMock();
     const updatedRow = {
+      debt_id: 'tx-1',
       id: 'tx-1',
       type: 'EXPENSE',
       account_id: 'acc-1',
@@ -520,10 +521,9 @@ describe('debt with deduction (Supabase repo)', () => {
     } as any);
 
     expect(client.rpc).toHaveBeenCalledWith(
-      'update_transaction_and_adjust_balance',
+      'update_debt_with_deduction',
       expect.objectContaining({
         p_transaction_id: 'tx-1',
-        p_is_debt: true,
         p_debt_direction: DebtDirection.OWE,
         p_amount_minor: 5000,
       })
@@ -535,6 +535,88 @@ describe('debt with deduction (Supabase repo)', () => {
       })
     );
   });
+
+  it('routes updating a debt with deduction toggled ON to deduction path', async () => {
+    const client = buildSupabaseRpcMock();
+    const updatedRow = { debt_id: 'tx-1' };
+    const repo = new SupabaseTransactionsRepository(client as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
+    jest.spyOn(repo, 'findById').mockResolvedValue({
+      id: 'tx-1', type: 'EXPENSE', accountId: 'acc-1', amountMinor: 5000, isDebt: true, debtDirection: DebtDirection.OWE,
+    } as any);
+
+    await repo.update('tx-1', {
+      isDebt: true, deductFromAccount: true, sourceAccountId: 'acc-2'
+    } as any);
+
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_debt_with_deduction',
+      expect.objectContaining({ p_transaction_id: 'tx-1', p_deduct: true, p_source_account_id: 'acc-2' })
+    );
+  });
+
+  it('routes updating a debt with deduction toggled OFF to deduction path', async () => {
+    const client = buildSupabaseRpcMock();
+    const updatedRow = { debt_id: 'tx-1' };
+    const repo = new SupabaseTransactionsRepository(client as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
+    jest.spyOn(repo, 'findById').mockResolvedValue({
+      id: 'tx-1', type: 'EXPENSE', accountId: 'acc-1', amountMinor: 5000, isDebt: true, debtDirection: DebtDirection.OWE,
+    } as any);
+
+    await repo.update('tx-1', {
+      isDebt: true, deductFromAccount: false
+    } as any);
+
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_debt_with_deduction',
+      expect.objectContaining({ p_transaction_id: 'tx-1', p_deduct: false })
+    );
+  });
+
+  it('routes updating a debt amount with deduction ON to deduction path', async () => {
+    const client = buildSupabaseRpcMock();
+    const updatedRow = { debt_id: 'tx-1' };
+    const repo = new SupabaseTransactionsRepository(client as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
+    jest.spyOn(repo, 'findById').mockResolvedValue({
+      id: 'tx-1', type: 'EXPENSE', accountId: 'acc-1', amountMinor: 5000, isDebt: true, debtDirection: DebtDirection.OWE,
+    } as any);
+
+    await repo.update('tx-1', {
+      isDebt: true, amountMinor: 6000, deductFromAccount: true, sourceAccountId: 'acc-2'
+    } as any);
+
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_debt_with_deduction',
+      expect.objectContaining({ p_transaction_id: 'tx-1', p_amount_minor: 6000, p_deduct: true })
+    );
+  });
+
+  it('routes updating a debt category to deduction path', async () => {
+    const client = buildSupabaseRpcMock();
+    const updatedRow = { debt_id: 'tx-1' };
+    const repo = new SupabaseTransactionsRepository(client as any);
+    client.rpc = jest.fn().mockResolvedValue({ data: updatedRow, error: null });
+    client.from = jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockResolvedValue({ data: { is_default: true }, error: null }),
+    });
+    jest.spyOn(repo, 'findById').mockResolvedValue({
+      id: 'tx-1', type: 'EXPENSE', accountId: 'acc-1', categoryId: 'cat-1', amountMinor: 5000, isDebt: true, debtDirection: DebtDirection.OWE
+    } as any);
+
+    await repo.update('tx-1', {
+      isDebt: true, categoryId: 'cat-2', deductFromAccount: true, sourceAccountId: 'acc-2'
+    } as any);
+
+    expect(client.rpc).toHaveBeenCalledWith(
+      'update_debt_with_deduction',
+      expect.objectContaining({ p_transaction_id: 'tx-1', p_source_category_id: 'cat-2', p_deduct: true })
+    );
+  });
+
 
   it('applies the new balance effect when updating a debt transaction into normal', async () => {
     const client = buildSupabaseRpcMock();

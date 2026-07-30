@@ -604,44 +604,96 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error('settledAt is required when debtStatus=SETTLED');
     }
 
-    const { data, error } = await (this.client as any).rpc(
-      'update_transaction_and_adjust_balance',
-      {
-        p_transaction_id: id,
-        p_account_id: accountId,
-        p_category_id:
-          updateData.categoryId !== undefined
-            ? updateData.categoryId
-            : (originalTransaction.categoryId ?? null),
-        p_type: updateData.type ?? originalTransaction.type,
-        p_currency_code: currencyCode,
-        p_amount_minor: amountMinor,
-        p_amount_base_minor: amountBaseMinor,
-        p_exchange_rate: exchangeRate,
-        p_date: updateData.date ?? originalTransaction.date,
-        p_description:
-          updateData.description ?? originalTransaction.description ?? null,
-        p_note: updateData.note ?? originalTransaction.note ?? null,
-        p_tags: updateData.tags ?? originalTransaction.tags ?? null,
-        p_is_debt: nextIsDebt,
-        p_debt_direction: nextIsDebt
-          ? (updateData.debtDirection ?? originalTransaction.debtDirection)
-          : null,
-        p_debt_status: nextIsDebt ? nextDebtStatus || DebtStatus.OPEN : null,
-        p_counterparty_name: nextIsDebt
-          ? (updateData.counterpartyName ??
+    let updatedTransaction: Transaction;
+
+    if (nextIsDebt === true) {
+      const { data, error } = await (this.client as any).rpc(
+        'update_debt_with_deduction',
+        {
+          p_transaction_id: id,
+          p_account_id: accountId,
+          p_category_id:
+            updateData.categoryId !== undefined
+              ? updateData.categoryId
+              : (originalTransaction.categoryId ?? null),
+          p_type: updateData.type ?? originalTransaction.type,
+          p_currency_code: currencyCode,
+          p_amount_minor: amountMinor,
+          p_amount_base_minor: amountBaseMinor,
+          p_exchange_rate: exchangeRate,
+          p_date: updateData.date ?? originalTransaction.date,
+          p_description:
+            updateData.description ?? originalTransaction.description ?? null,
+          p_note: updateData.note ?? originalTransaction.note ?? null,
+          p_tags: updateData.tags ?? originalTransaction.tags ?? null,
+          p_debt_direction:
+            updateData.debtDirection ?? originalTransaction.debtDirection,
+          p_debt_status: nextDebtStatus || DebtStatus.OPEN,
+          p_counterparty_name:
+            updateData.counterpartyName ??
             originalTransaction.counterpartyName ??
-            null)
-          : null,
-        p_settled_at: nextIsDebt ? (nextSettledAt ?? null) : null,
+            null,
+          p_settled_at: nextSettledAt ?? null,
+          p_deduct: updateData.deductFromAccount ?? null,
+          p_source_account_id: updateData.sourceAccountId ?? null,
+          p_source_category_id:
+            updateData.categoryId !== undefined
+              ? updateData.categoryId
+              : (originalTransaction.categoryId ?? null),
+        }
+      );
+
+      if (error) {
+        throw new Error(`Failed to update debt: ${error.message}`);
       }
-    );
 
-    if (error) {
-      throw new Error(`Failed to update transaction: ${error.message}`);
+      const debtId =
+        (data && (Array.isArray(data) ? data[0]?.debt_id : data.debt_id)) ??
+        null;
+
+      if (!debtId) {
+        throw new Error('Failed to update debt: missing debt_id in response');
+      }
+
+      const fetched = await this.findById(debtId);
+      if (!fetched) {
+        throw new Error(`Failed to load debt row after update (id=${debtId})`);
+      }
+      updatedTransaction = fetched;
+    } else {
+      const { data, error } = await (this.client as any).rpc(
+        'update_transaction_and_adjust_balance',
+        {
+          p_transaction_id: id,
+          p_account_id: accountId,
+          p_category_id:
+            updateData.categoryId !== undefined
+              ? updateData.categoryId
+              : (originalTransaction.categoryId ?? null),
+          p_type: updateData.type ?? originalTransaction.type,
+          p_currency_code: currencyCode,
+          p_amount_minor: amountMinor,
+          p_amount_base_minor: amountBaseMinor,
+          p_exchange_rate: exchangeRate,
+          p_date: updateData.date ?? originalTransaction.date,
+          p_description:
+            updateData.description ?? originalTransaction.description ?? null,
+          p_note: updateData.note ?? originalTransaction.note ?? null,
+          p_tags: updateData.tags ?? originalTransaction.tags ?? null,
+          p_is_debt: nextIsDebt,
+          p_debt_direction: null,
+          p_debt_status: null,
+          p_counterparty_name: null,
+          p_settled_at: null,
+        }
+      );
+
+      if (error) {
+        throw new Error(`Failed to update transaction: ${error.message}`);
+      }
+
+      updatedTransaction = mapSupabaseTransactionToDomain(data);
     }
-
-    const updatedTransaction = mapSupabaseTransactionToDomain(data);
 
     // Best-effort embedding (never blocks/fails the write — see method doc).
     this.embedTransactionBestEffort(
