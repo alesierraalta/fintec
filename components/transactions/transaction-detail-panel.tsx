@@ -16,7 +16,217 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
-import { useHistoricalRates } from '@/lib/hooks/use-historical-rates';
+import {
+  useHistoricalRates,
+  type VesRates,
+} from '@/lib/hooks/use-historical-rates';
+
+function ExchangeRatesSection({
+  vesRates,
+  isMobile,
+}: {
+  vesRates: VesRates;
+  isMobile: boolean;
+}) {
+  const containerClass = isMobile
+    ? 'rounded-lg bg-muted/30 p-3'
+    : 'rounded-xl bg-card/40 p-4';
+  const todayContainerClass = isMobile
+    ? 'rounded-lg bg-blue-500/10 p-3'
+    : 'rounded-xl bg-blue-500/10 p-4';
+
+  return (
+    <div className="space-y-6">
+      {/* Tasas a la fecha de transacción */}
+      <div>
+        <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+          <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
+          Tasas al {vesRates.dateLabel}
+          {vesRates.isFallbackDate && (
+            <span className="ml-1 text-xs font-normal text-amber-500">
+              (última disponible)
+            </span>
+          )}
+        </h4>
+        <div className="space-y-2">
+          {/* BCV USD */}
+          {vesRates.bcvUsd && vesRates.equivalentUsdBcv && (
+            <div className={containerClass}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    BCV USD
+                    {vesRates.bcvDateLabel && (
+                      <span className="text-[10px] text-amber-500/80">
+                        ({vesRates.bcvDateLabel})
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    1 USD = {vesRates.bcvUsd.toFixed(2)} Bs
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Equivale a</p>
+                  <p className="text-sm font-semibold text-green-500">
+                    ${vesRates.equivalentUsdBcv}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BCV EUR */}
+          {vesRates.bcvEur && vesRates.equivalentEurBcv && (
+            <div className={containerClass}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    BCV EUR
+                    {vesRates.bcvDateLabel && (
+                      <span className="text-[10px] text-amber-500/80">
+                        ({vesRates.bcvDateLabel})
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    1 EUR = {vesRates.bcvEur.toFixed(2)} Bs
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Equivale a</p>
+                  <p className="text-sm font-semibold text-blue-500">
+                    €{vesRates.equivalentEurBcv}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Binance USD */}
+          {vesRates.binanceUsd && vesRates.equivalentUsdBinance && (
+            <div className={containerClass}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                    Binance USDT
+                    {vesRates.binanceDateLabel && (
+                      <span className="text-[10px] text-amber-500/80">
+                        ({vesRates.binanceDateLabel})
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    1 USDT = {vesRates.binanceUsd.toFixed(2)} Bs
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-muted-foreground">Equivale a</p>
+                  <p className="text-sm font-semibold text-yellow-500">
+                    ${vesRates.equivalentUsdBinance}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* No rates available */}
+          {!vesRates.bcvUsd && !vesRates.bcvEur && !vesRates.binanceUsd && (
+            <div className={containerClass}>
+              <p className="text-sm text-muted-foreground">
+                No hay tasas históricas disponibles para el {vesRates.dateLabel}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tasas de Hoy (Comparación) */}
+      {vesRates.todayLabel &&
+        (vesRates.todayBcvUsd || vesRates.todayBinanceUsd) && (
+          <div>
+            <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
+              <TrendingUp
+                className="mr-2 h-4 w-4 text-blue-500"
+                aria-hidden="true"
+              />
+              Tasas de hoy ({vesRates.todayLabel})
+            </h4>
+            <div className="space-y-2 opacity-90">
+              {/* BCV USD Today */}
+              {vesRates.todayBcvUsd && vesRates.todayEquivalentUsdBcv && (
+                <div className={todayContainerClass}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">BCV USD</p>
+                      <p className="text-sm font-medium text-foreground">
+                        1 USD = {vesRates.todayBcvUsd.toFixed(2)} Bs
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">
+                        Equivale hoy a
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        ${vesRates.todayEquivalentUsdBcv}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BCV EUR Today */}
+              {vesRates.todayBcvEur && vesRates.todayEquivalentEurBcv && (
+                <div className={todayContainerClass}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">BCV EUR</p>
+                      <p className="text-sm font-medium text-foreground">
+                        1 EUR = {vesRates.todayBcvEur.toFixed(2)} Bs
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">
+                        Equivale hoy a
+                      </p>
+                      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        €{vesRates.todayEquivalentEurBcv}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Binance USD Today */}
+              {vesRates.todayBinanceUsd &&
+                vesRates.todayEquivalentUsdBinance && (
+                  <div className={todayContainerClass}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          Binance USDT
+                        </p>
+                        <p className="text-sm font-medium text-foreground">
+                          1 USDT = {vesRates.todayBinanceUsd.toFixed(2)} Bs
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          Equivale hoy a
+                        </p>
+                        <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          ${vesRates.todayEquivalentUsdBinance}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+    </div>
+  );
+}
 
 interface TransactionDetailPanelProps {
   transaction: Transaction;
@@ -239,213 +449,7 @@ export function TransactionDetailPanel({
 
               {/* VES Exchange Rates */}
               {vesRates && (
-                <div className="space-y-6">
-                  {/* Tasas a la fecha de transacción */}
-                  <div>
-                    <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
-                      <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
-                      Tasas al {vesRates.dateLabel}
-                      {vesRates.isFallbackDate && (
-                        <span className="ml-1 text-xs font-normal text-amber-500">
-                          (última disponible)
-                        </span>
-                      )}
-                    </h4>
-                    <div className="space-y-2">
-                      {/* BCV USD */}
-                      {vesRates.bcvUsd && vesRates.equivalentUsdBcv && (
-                        <div className="rounded-lg bg-muted/30 p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                                BCV USD
-                                {vesRates.bcvDateLabel && (
-                                  <span className="text-[10px] text-amber-500/80">
-                                    ({vesRates.bcvDateLabel})
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                1 USD = {vesRates.bcvUsd.toFixed(2)} Bs
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Equivale a
-                              </p>
-                              <p className="text-sm font-semibold text-green-500">
-                                ${vesRates.equivalentUsdBcv}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* BCV EUR */}
-                      {vesRates.bcvEur && vesRates.equivalentEurBcv && (
-                        <div className="rounded-lg bg-muted/30 p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                                BCV EUR
-                                {vesRates.bcvDateLabel && (
-                                  <span className="text-[10px] text-amber-500/80">
-                                    ({vesRates.bcvDateLabel})
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                1 EUR = {vesRates.bcvEur.toFixed(2)} Bs
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Equivale a
-                              </p>
-                              <p className="text-sm font-semibold text-blue-500">
-                                €{vesRates.equivalentEurBcv}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Binance USD */}
-                      {vesRates.binanceUsd && vesRates.equivalentUsdBinance && (
-                        <div className="rounded-lg bg-muted/30 p-3">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-                                Binance USDT
-                                {vesRates.binanceDateLabel && (
-                                  <span className="text-[10px] text-amber-500/80">
-                                    ({vesRates.binanceDateLabel})
-                                  </span>
-                                )}
-                              </p>
-                              <p className="text-sm font-medium text-foreground">
-                                1 USDT = {vesRates.binanceUsd.toFixed(2)} Bs
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-muted-foreground">
-                                Equivale a
-                              </p>
-                              <p className="text-sm font-semibold text-yellow-500">
-                                ${vesRates.equivalentUsdBinance}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* No rates available */}
-                      {!vesRates.bcvUsd &&
-                        !vesRates.bcvEur &&
-                        !vesRates.binanceUsd && (
-                          <div className="rounded-lg bg-muted/30 p-3">
-                            <p className="text-sm text-muted-foreground">
-                              No hay tasas históricas disponibles para el{' '}
-                              {vesRates.dateLabel}
-                            </p>
-                          </div>
-                        )}
-                    </div>
-                  </div>
-
-                  {/* Tasas de Hoy (Comparación) */}
-                  {vesRates.todayLabel &&
-                    (vesRates.todayBcvUsd || vesRates.todayBinanceUsd) && (
-                      <div>
-                        <h4 className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
-                          <TrendingUp
-                            className="mr-2 h-4 w-4 text-blue-500"
-                            aria-hidden="true"
-                          />
-                          Tasas de hoy ({vesRates.todayLabel})
-                        </h4>
-                        <div className="space-y-2 opacity-90">
-                          {/* BCV USD Today */}
-                          {vesRates.todayBcvUsd &&
-                            vesRates.todayEquivalentUsdBcv && (
-                              <div className="rounded-lg bg-blue-500/10 p-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">
-                                      BCV USD
-                                    </p>
-                                    <p className="text-sm font-medium text-foreground">
-                                      1 USD = {vesRates.todayBcvUsd.toFixed(2)}{' '}
-                                      Bs
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs text-muted-foreground">
-                                      Equivale hoy a
-                                    </p>
-                                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                      ${vesRates.todayEquivalentUsdBcv}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                          {/* BCV EUR Today */}
-                          {vesRates.todayBcvEur &&
-                            vesRates.todayEquivalentEurBcv && (
-                              <div className="rounded-lg bg-blue-500/10 p-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">
-                                      BCV EUR
-                                    </p>
-                                    <p className="text-sm font-medium text-foreground">
-                                      1 EUR = {vesRates.todayBcvEur.toFixed(2)}{' '}
-                                      Bs
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs text-muted-foreground">
-                                      Equivale hoy a
-                                    </p>
-                                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                      €{vesRates.todayEquivalentEurBcv}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                          {/* Binance USD Today */}
-                          {vesRates.todayBinanceUsd &&
-                            vesRates.todayEquivalentUsdBinance && (
-                              <div className="rounded-lg bg-blue-500/10 p-3">
-                                <div className="flex items-center justify-between">
-                                  <div>
-                                    <p className="text-xs text-muted-foreground">
-                                      Binance USDT
-                                    </p>
-                                    <p className="text-sm font-medium text-foreground">
-                                      1 USDT ={' '}
-                                      {vesRates.todayBinanceUsd.toFixed(2)} Bs
-                                    </p>
-                                  </div>
-                                  <div className="text-right">
-                                    <p className="text-xs text-muted-foreground">
-                                      Equivale hoy a
-                                    </p>
-                                    <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
-                                      ${vesRates.todayEquivalentUsdBinance}
-                                    </p>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                        </div>
-                      </div>
-                    )}
-                </div>
+                <ExchangeRatesSection vesRates={vesRates} isMobile={true} />
               )}
 
               {/* Tags */}
@@ -600,102 +604,7 @@ export function TransactionDetailPanel({
 
               {/* VES Exchange Rates */}
               {vesRates && (
-                <div>
-                  <h3 className="mb-3 flex items-center text-sm font-medium text-muted-foreground">
-                    <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" />
-                    Tasas al {vesRates.dateLabel}
-                    {vesRates.isFallbackDate && (
-                      <span className="ml-1 text-xs font-normal text-amber-500">
-                        (última disponible)
-                      </span>
-                    )}
-                  </h3>
-                  <div className="space-y-2">
-                    {/* BCV USD */}
-                    {vesRates.bcvUsd && vesRates.equivalentUsdBcv && (
-                      <div className="rounded-xl bg-card/40 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              BCV USD
-                            </p>
-                            <p className="text-sm font-medium text-foreground">
-                              1 USD = {vesRates.bcvUsd.toFixed(2)} Bs
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Equivale a
-                            </p>
-                            <p className="text-sm font-semibold text-green-500">
-                              ${vesRates.equivalentUsdBcv}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* BCV EUR */}
-                    {vesRates.bcvEur && vesRates.equivalentEurBcv && (
-                      <div className="rounded-xl bg-card/40 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              BCV EUR
-                            </p>
-                            <p className="text-sm font-medium text-foreground">
-                              1 EUR = {vesRates.bcvEur.toFixed(2)} Bs
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Equivale a
-                            </p>
-                            <p className="text-sm font-semibold text-blue-500">
-                              €{vesRates.equivalentEurBcv}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Binance USD */}
-                    {vesRates.binanceUsd && vesRates.equivalentUsdBinance && (
-                      <div className="rounded-xl bg-card/40 p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs text-muted-foreground">
-                              Binance USDT
-                            </p>
-                            <p className="text-sm font-medium text-foreground">
-                              1 USDT = {vesRates.binanceUsd.toFixed(2)} Bs
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-muted-foreground">
-                              Equivale a
-                            </p>
-                            <p className="text-sm font-semibold text-yellow-500">
-                              ${vesRates.equivalentUsdBinance}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* No rates available */}
-                    {!vesRates.bcvUsd &&
-                      !vesRates.bcvEur &&
-                      !vesRates.binanceUsd && (
-                        <div className="rounded-xl bg-card/40 p-4">
-                          <p className="text-sm text-muted-foreground">
-                            No hay tasas históricas disponibles para el{' '}
-                            {vesRates.dateLabel}
-                          </p>
-                        </div>
-                      )}
-                  </div>
-                </div>
+                <ExchangeRatesSection vesRates={vesRates} isMobile={false} />
               )}
 
               {/* Tags */}

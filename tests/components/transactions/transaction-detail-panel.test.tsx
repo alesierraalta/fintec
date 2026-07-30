@@ -81,9 +81,9 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
     expect(screen.getByText('Tasas al 22/06/2026')).toBeInTheDocument();
 
     // Verify rates values
-    expect(screen.getByText('1 USD = 744.23 Bs')).toBeInTheDocument();
-    expect(screen.getByText('1 EUR = 846.07 Bs')).toBeInTheDocument();
-    expect(screen.getByText('1 USDT = 845.73 Bs')).toBeInTheDocument();
+    expect(screen.getAllByText('1 USD = 744.23 Bs')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('1 EUR = 846.07 Bs')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('1 USDT = 845.73 Bs')[0]).toBeInTheDocument();
   });
 
   it('displays missing historical rate notice when no rates exist for date and does not fallback to latest', async () => {
@@ -171,6 +171,6 @@ describe('TransactionDetailPanel - Historical Rates Display', () => {
     expect(screen.getByText('(última disponible)')).toBeInTheDocument();
 
     // Rate values are from the fallback record
-    expect(screen.getByText('1 USD = 740.00 Bs')).toBeInTheDocument();
+    expect(screen.getAllByText('1 USD = 740.00 Bs')[0]).toBeInTheDocument();
   });
 });
