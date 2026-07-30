@@ -56,12 +56,21 @@ export function getExchangeRate(
   }
 }
 
+export function getDisplayCurrency(source: RateSource): {
+  code: string;
+  symbol: string;
+} {
+  if (source === 'bcv_eur') {
+    return { code: 'EUR', symbol: '€' };
+  }
+  return { code: 'USD', symbol: '$' };
+}
+
 /**
- * Convert a minor-unit balance to its USD major-unit value using the chosen
- * rate source. Crypto balances are stored with 8 decimal places (×1e8) and use
- * a different conversion path (rate ratio when BCV is selected).
+ * Convert a minor-unit balance to its display major-unit value using the chosen
+ * rate source. Crypto balances are stored with 8 decimal places (×1e8).
  */
-export function convertBalanceToUSD(
+export function convertBalanceToDisplay(
   amountMinor: number,
   currency: string,
   accountType: string | undefined,
@@ -69,19 +78,28 @@ export function convertBalanceToUSD(
   bcv: BcvLike,
   binance: BinanceLike
 ): number {
+  const isDisplayEur = useRate === 'bcv_eur';
+
   if (currency === 'USD') {
-    return amountMinor / 100;
+    const usdValue = amountMinor / 100;
+    return isDisplayEur ? usdValue / EUR_USD_RATIO : usdValue;
+  }
+
+  if (currency === 'EUR') {
+    const eurValue = amountMinor / 100;
+    return isDisplayEur ? eurValue : eurValue * EUR_USD_RATIO;
   }
 
   if (isCryptoCurrency(currency, accountType)) {
-    return convertCryptoToUSD(amountMinor, useRate, bcv, binance);
+    return convertCryptoToDisplay(amountMinor, useRate, bcv, binance);
   }
 
   if (currency === 'VES') {
-    return convertVesToUSD(amountMinor, useRate, bcv, binance);
+    return convertVesToDisplay(amountMinor, useRate, bcv, binance);
   }
 
-  return amountMinor / 100;
+  const fallbackUsdValue = amountMinor / 100;
+  return isDisplayEur ? fallbackUsdValue / EUR_USD_RATIO : fallbackUsdValue;
 }
 
 function isCryptoCurrency(
@@ -97,21 +115,28 @@ function safeDivide(numerator: number, denominator: number): number {
   return Number.isFinite(result) ? result : 0;
 }
 
-function convertCryptoToUSD(
+function convertCryptoToDisplay(
   amountMinor: number,
   useRate: RateSource,
   bcv: BcvLike,
   binance: BinanceLike
 ): number {
   const balanceMajor = amountMinor / 100000000;
-  if (useRate === 'bcv_usd' || useRate === 'bcv_eur') {
-    const bcvRate = useRate === 'bcv_eur' ? bcv.eur : bcv.usd;
-    return balanceMajor * safeDivide(binance.usd_ves, bcvRate);
+
+  if (useRate === 'binance') {
+    return balanceMajor;
   }
-  return balanceMajor;
+
+  const vesEquivalent = balanceMajor * (binance.usd_ves || 1);
+
+  if (useRate === 'bcv_eur') {
+    return safeDivide(vesEquivalent, bcv.eur);
+  }
+
+  return safeDivide(vesEquivalent, bcv.usd);
 }
 
-function convertVesToUSD(
+function convertVesToDisplay(
   amountMinor: number,
   useRate: RateSource,
   bcv: BcvLike,
@@ -124,7 +149,7 @@ function convertVesToUSD(
     case 'bcv_usd':
       return safeDivide(balanceMajor, bcv.usd);
     case 'bcv_eur':
-      return safeDivide(balanceMajor, bcv.eur) * EUR_USD_RATIO;
+      return safeDivide(balanceMajor, bcv.eur);
     default:
       return safeDivide(balanceMajor, bcv.usd);
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,7 +30,11 @@ import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
 import { AccountListRow } from '@/components/accounts/account-list-row';
 import { useAppStore } from '@/lib/store';
-import { getExchangeRate, convertBalanceToUSD } from '@/lib/rate-display';
+import {
+  getExchangeRate,
+  convertBalanceToDisplay,
+  getDisplayCurrency,
+} from '@/lib/rate-display';
 import { AccountsRatesPanel } from '@/components/accounts/accounts-rates-panel';
 import { RateBadge } from '@/components/accounts/rate-badge';
 import { useAccountsPage } from '@/hooks/use-accounts-page';
@@ -44,53 +48,27 @@ const AccountForm = dynamic(
   { loading: () => <FormLoading />, ssr: false }
 );
 
-// Componente NumberTicker simulado (efecto psicológico de progreso)
-const NumberTicker = ({
-  value,
-  prefix = '',
-  suffix = '',
-  isVisible = true,
-}: {
-  value: number;
-  prefix?: string;
-  suffix?: string;
-  isVisible?: boolean;
-}) => {
-  const [displayValue, setDisplayValue] = useState(0);
+import { NumberTicker } from '@/components/ui/number-ticker';
 
-  useEffect(() => {
-    if (!isVisible) return;
-
-    const duration = 1000;
-    const steps = 50;
-    const stepValue = value / steps;
-    let current = 0;
-
-    const timer = setInterval(() => {
-      current += stepValue;
-      if (current >= value) {
-        setDisplayValue(value);
-        clearInterval(timer);
-      } else {
-        setDisplayValue(current);
-      }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
-  }, [value, isVisible]);
-
-  return (
-    <span>
-      {prefix}
-      {isVisible
-        ? displayValue.toLocaleString('en-US', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-          })
-        : '••••••'}
-      {suffix}
-    </span>
-  );
+export const getCurrencySymbol = (currencyCode: string) => {
+  const symbols: Record<string, string> = {
+    USD: '$',
+    VES: 'Bs.',
+    EUR: '€',
+    GBP: '£',
+    JPY: '¥',
+    CAD: 'C$',
+    AUD: 'A$',
+    BRL: 'R$',
+    PEN: 'S/',
+    MXN: 'MX$',
+    ARS: 'AR$',
+    COP: 'CO$',
+    CLP: 'CL$',
+    BTC: '₿',
+    ETH: 'Ξ',
+  };
+  return symbols[currencyCode] || currencyCode;
 };
 
 // accountIcons movido a components/accounts/account-list-row.tsx.
@@ -164,30 +142,14 @@ export default function AccountsPage() {
   // (Handlers, click-outside + scroll/resize useEffects, and category helpers
   // moved to hooks/use-accounts-page.ts.)
 
-  const getCurrencySymbol = useCallback((currencyCode: string) => {
-    const symbols: Record<string, string> = {
-      USD: '$',
-      VES: 'Bs.',
-      EUR: '€',
-      GBP: '£',
-      JPY: '¥',
-      CAD: 'C$',
-      AUD: 'A$',
-      BRL: 'R$',
-      PEN: 'S/',
-      MXN: 'MX$',
-      ARS: 'AR$',
-      COP: 'CO$',
-      CLP: 'CL$',
-      BTC: '₿',
-      ETH: 'Ξ',
-    };
-    return symbols[currencyCode] || currencyCode;
-  }, []);
-
-  // Helpers moved to @/lib/rate-display (getRateName, getExchangeRate, convertBalanceToUSD).
+  // Helpers moved to @/lib/rate-display (getRateName, getExchangeRate, convertBalanceToDisplay).
   // They are pure functions that take the bcv/binance snapshots as parameters.
   // The page passes them down directly. See SPEC: simplify-accounts-rates-section.
+
+  const displayCurrency = useMemo(
+    () => getDisplayCurrency(usdEquivalentType),
+    [usdEquivalentType]
+  );
 
   // Cálculo optimizado con tasas seleccionadas
   const totalBalance = useMemo(() => {
@@ -195,9 +157,9 @@ export default function AccountsPage() {
       const balanceMinor = Number(acc.balance) || 0;
       const balanceMajor = fromMinorUnits(balanceMinor, acc.currencyCode);
 
-      // * Include cryptocurrencies in total balance using USD conversion
+      // * Include cryptocurrencies in total balance using converted value
       if (acc.type === 'CRYPTO') {
-        const usdValue = convertBalanceToUSD(
+        const displayValue = convertBalanceToDisplay(
           balanceMinor,
           acc.currencyCode,
           acc.type,
@@ -205,7 +167,7 @@ export default function AccountsPage() {
           bcvRates,
           binanceRates
         );
-        return sum + usdValue;
+        return sum + displayValue;
       }
 
       if (acc.currencyCode === 'VES') {
@@ -229,37 +191,18 @@ export default function AccountsPage() {
       if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         // * Include cryptocurrency transactions with proper conversion
         const account = accounts.find((a) => a.id === t.accountId);
-        const isCrypto =
-          account?.type === 'CRYPTO' ||
-          t.currencyCode === 'BTC' ||
-          t.currencyCode === 'ETH';
 
-        let amountUSD = 0;
-        if (isCrypto) {
-          amountUSD = convertBalanceToUSD(
-            t.amountMinor || 0,
-            t.currencyCode,
-            account?.type,
-            usdEquivalentType,
-            bcvRates,
-            binanceRates
-          );
-        } else {
-          const amountMajor = (t.amountMinor || 0) / 100;
-          amountUSD = amountMajor;
+        const universalDisplayValue = convertBalanceToDisplay(
+          t.amountMinor || 0,
+          t.currencyCode,
+          account?.type,
+          usdEquivalentType,
+          bcvRates,
+          binanceRates
+        );
 
-          if (t.currencyCode === 'VES') {
-            const rate = getExchangeRate(
-              usdEquivalentType,
-              bcvRates,
-              binanceRates
-            );
-            amountUSD = amountMajor / rate;
-          }
-        }
-
-        if (t.type === 'INCOME') return acc + amountUSD;
-        if (t.type === 'EXPENSE') return acc - amountUSD;
+        if (t.type === 'INCOME') return acc + universalDisplayValue;
+        if (t.type === 'EXPENSE') return acc - universalDisplayValue;
       }
       return acc;
     }, 0);
@@ -276,6 +219,88 @@ export default function AccountsPage() {
     bcvRates,
     binanceRates,
   ]);
+
+  const activeAccountsCount = useMemo(
+    () => accounts.filter((acc) => acc.active).length,
+    [accounts]
+  );
+  const cryptoAccountsCount = useMemo(
+    () => accounts.filter((acc) => acc.type === 'CRYPTO').length,
+    [accounts]
+  );
+  const uniqueCurrenciesCount = useMemo(
+    () => new Set(accounts.map((acc) => acc.currencyCode)).size,
+    [accounts]
+  );
+
+  const renderCategoryStats = useCallback(
+    (accountId: string, currencyCode: string) => {
+      const stats = getAccountCategoryStats(accountId);
+      return (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-medium text-foreground">
+              <span aria-hidden="true">📊</span> Estadísticas por Categoría
+            </h4>
+            <span className="text-xs text-muted-foreground">
+              {stats.length} categorías
+            </span>
+          </div>
+          {stats.length === 0 ? (
+            <div className="py-4 text-center">
+              <p className="text-xs text-muted-foreground">
+                No hay transacciones en esta cuenta
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {stats.map((stat, statIndex) => (
+                <motion.div
+                  key={stat.categoryName}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: statIndex * 0.1 }}
+                  className="flex items-center justify-between rounded-lg bg-muted/10 p-2"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-xs font-medium text-foreground">
+                      {stat.categoryName}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {stat.count} transacción
+                      {stat.count !== 1 ? 'es' : ''}
+                    </p>
+                  </div>
+                  <div className="ml-2 text-right">
+                    {stat.income > 0 && (
+                      <p className="text-xs font-medium text-green-600">
+                        +{getCurrencySymbol(currencyCode)}
+                        {stat.income.toFixed(2)}
+                      </p>
+                    )}
+                    {stat.expenses > 0 && (
+                      <p className="text-xs font-medium text-error">
+                        -{getCurrencySymbol(currencyCode)}
+                        {stat.expenses.toFixed(2)}
+                      </p>
+                    )}
+                    <p
+                      className={`text-xs font-semibold ${stat.net >= 0 ? 'text-green-600' : 'text-error'}`}
+                    >
+                      {stat.net >= 0 ? '+' : ''}
+                      {getCurrencySymbol(currencyCode)}
+                      {stat.net.toFixed(2)}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    },
+    [getAccountCategoryStats]
+  );
 
   // Función para mostrar tasas actuales — eliminada en simplify-accounts-rates-section
   // (era un no-op que solo loggeaba; el RateBadge ahora muestra la tasa activa).
@@ -300,13 +325,19 @@ export default function AccountsPage() {
             transition={{ duration: 0.6, ease: 'easeOut' }}
           >
             <div className="relative">
-              <div className="h-3 w-3 animate-pulse rounded-full bg-gradient-to-r from-primary to-blue-500 shadow-lg shadow-primary/30"></div>
-              <div className="absolute inset-0 h-3 w-3 animate-ping rounded-full bg-gradient-to-r from-primary to-blue-500 opacity-20"></div>
+              <div
+                aria-hidden="true"
+                className="h-3 w-3 animate-pulse rounded-full bg-gradient-to-r from-primary to-blue-500 shadow-lg shadow-primary/30"
+              ></div>
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 h-3 w-3 animate-ping rounded-full bg-gradient-to-r from-primary to-blue-500 opacity-20"
+              ></div>
             </div>
             <span className="text-ios-caption font-semibold uppercase tracking-wide">
               Centro Financiero
             </span>
-            <div className="flex space-x-1">
+            <div aria-hidden="true" className="flex space-x-1">
               <div
                 className="h-1 w-1 animate-bounce rounded-full bg-primary/60"
                 style={{ animationDelay: '0ms' }}
@@ -343,12 +374,14 @@ export default function AccountsPage() {
             {/* Decorative Elements */}
             <div className="mb-4 flex items-center justify-center space-x-4">
               <motion.div
+                aria-hidden="true"
                 className="h-0.5 w-12 bg-gradient-to-r from-transparent via-primary to-transparent"
                 initial={{ width: 0 }}
                 animate={{ width: 48 }}
                 transition={{ duration: 1, delay: 0.8 }}
               ></motion.div>
               <motion.div
+                aria-hidden="true"
                 className="rounded-full border border-primary/30 bg-gradient-to-r from-primary/20 to-blue-500/20 p-2 backdrop-blur-sm"
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
@@ -357,6 +390,7 @@ export default function AccountsPage() {
                 <Wallet className="h-4 w-4 text-primary" />
               </motion.div>
               <motion.div
+                aria-hidden="true"
                 className="h-0.5 w-12 bg-gradient-to-r from-transparent via-primary to-transparent"
                 initial={{ width: 0 }}
                 animate={{ width: 48 }}
@@ -500,7 +534,7 @@ export default function AccountsPage() {
               {showBalances ? (
                 <NumberTicker
                   value={totalBalance}
-                  prefix="$"
+                  prefix={displayCurrency.symbol}
                   isVisible={showBalances}
                 />
               ) : (
@@ -555,10 +589,7 @@ export default function AccountsPage() {
             </div>
             <div className="mb-3 flex items-baseline space-x-2">
               <p className="text-2xl font-light text-foreground sm:text-3xl">
-                <NumberTicker
-                  value={accounts.filter((acc) => acc.active).length}
-                  isVisible={true}
-                />
+                <NumberTicker value={activeAccountsCount} isVisible={true} />
               </p>
               <p className="text-ios-body text-muted-foreground">
                 de {accounts.length}
@@ -569,7 +600,7 @@ export default function AccountsPage() {
                 className="h-2 rounded-full bg-gradient-to-r from-success-500 to-success-600"
                 initial={{ width: 0 }}
                 animate={{
-                  width: `${accounts.length > 0 ? (accounts.filter((acc) => acc.active).length / accounts.length) * 100 : 0}%`,
+                  width: `${accounts.length > 0 ? (activeAccountsCount / accounts.length) * 100 : 0}%`,
                 }}
                 transition={{ delay: 0.5, duration: 1 }}
               ></motion.div>
@@ -595,15 +626,12 @@ export default function AccountsPage() {
               </h3>
             </div>
             <p className="mb-2 text-2xl font-light text-foreground sm:text-3xl">
-              <NumberTicker
-                value={accounts.filter((acc) => acc.type === 'CRYPTO').length}
-                isVisible={true}
-              />
+              <NumberTicker value={cryptoAccountsCount} isVisible={true} />
             </p>
             <p className="mb-2 text-ios-footnote text-muted-foreground">
               wallets activos
             </p>
-            {accounts.filter((acc) => acc.type === 'CRYPTO').length > 0 && (
+            {cryptoAccountsCount > 0 && (
               <motion.div
                 className="flex items-center space-x-2"
                 initial={{ opacity: 0 }}
@@ -631,19 +659,12 @@ export default function AccountsPage() {
               </h3>
             </div>
             <p className="mb-2 text-2xl font-light text-foreground sm:text-3xl">
-              <NumberTicker
-                value={
-                  Array.from(new Set(accounts.map((acc) => acc.currencyCode)))
-                    .length
-                }
-                isVisible={true}
-              />
+              <NumberTicker value={uniqueCurrenciesCount} isVisible={true} />
             </p>
             <p className="mb-2 text-ios-footnote text-muted-foreground">
               divisas diferentes
             </p>
-            {Array.from(new Set(accounts.map((acc) => acc.currencyCode)))
-              .length >= 3 && (
+            {uniqueCurrenciesCount >= 3 && (
               <motion.div
                 className="flex items-center space-x-2"
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -677,13 +698,17 @@ export default function AccountsPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
+                <div
+                  role="status"
+                  aria-label="Cargando..."
+                  className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"
+                ></div>
                 <motion.p
                   className="text-sm text-muted-foreground sm:text-ios-body"
                   animate={{ opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1.5, repeat: Infinity }}
                 >
-                  ✨ Cargando tus cuentas...
+                  <span aria-hidden="true">✨</span> Cargando tus cuentas...
                 </motion.p>
               </motion.div>
             ) : error ? (
@@ -724,7 +749,8 @@ export default function AccountsPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}
                 >
-                  🎯 ¡Tu Viaje Financiero Comienza Aquí!
+                  <span aria-hidden="true">🎯</span> ¡Tu Viaje Financiero
+                  Comienza Aquí!
                 </motion.h3>
                 <motion.p
                   className="mx-auto mb-6 max-w-sm px-4 text-sm leading-relaxed text-muted-foreground sm:mb-8 sm:text-ios-body"
@@ -733,7 +759,8 @@ export default function AccountsPage() {
                   transition={{ delay: 0.8 }}
                 >
                   Crea tu primera cuenta para empezar a organizar tus finanzas
-                  de manera inteligente y alcanzar tus metas 🚀
+                  de manera inteligente y alcanzar tus metas{' '}
+                  <span aria-hidden="true">🚀</span>
                 </motion.p>
                 <motion.button
                   onClick={handleNewAccount}
@@ -774,77 +801,7 @@ export default function AccountsPage() {
                     onRegisterTrigger={(accountId, el) => {
                       dropdownRefs.current[accountId] = el;
                     }}
-                    renderCategoryStats={() => (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="text-sm font-medium text-foreground">
-                            📊 Estadísticas por Categoría
-                          </h4>
-                          <span className="text-xs text-muted-foreground">
-                            {getAccountCategoryStats(account.id).length}{' '}
-                            categorías
-                          </span>
-                        </div>
-                        {getAccountCategoryStats(account.id).length === 0 ? (
-                          <div className="py-4 text-center">
-                            <p className="text-xs text-muted-foreground">
-                              No hay transacciones en esta cuenta
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {getAccountCategoryStats(account.id).map(
-                              (stat, statIndex) => (
-                                <motion.div
-                                  key={stat.categoryName}
-                                  initial={{ opacity: 0, x: -10 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: statIndex * 0.1 }}
-                                  className="flex items-center justify-between rounded-lg bg-muted/10 p-2"
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-xs font-medium text-foreground">
-                                      {stat.categoryName}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {stat.count} transacción
-                                      {stat.count !== 1 ? 'es' : ''}
-                                    </p>
-                                  </div>
-                                  <div className="ml-2 text-right">
-                                    {stat.income > 0 && (
-                                      <p className="text-xs font-medium text-green-600">
-                                        +
-                                        {getCurrencySymbol(
-                                          account.currencyCode
-                                        )}
-                                        {stat.income.toFixed(2)}
-                                      </p>
-                                    )}
-                                    {stat.expenses > 0 && (
-                                      <p className="text-xs font-medium text-error">
-                                        -
-                                        {getCurrencySymbol(
-                                          account.currencyCode
-                                        )}
-                                        {stat.expenses.toFixed(2)}
-                                      </p>
-                                    )}
-                                    <p
-                                      className={`text-xs font-semibold ${stat.net >= 0 ? 'text-green-600' : 'text-error'}`}
-                                    >
-                                      {stat.net >= 0 ? '+' : ''}
-                                      {getCurrencySymbol(account.currencyCode)}
-                                      {stat.net.toFixed(2)}
-                                    </p>
-                                  </div>
-                                </motion.div>
-                              )
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                    renderCategoryStats={renderCategoryStats}
                   />
                 ))}
               </AnimatePresence>

@@ -1,7 +1,7 @@
 import {
   getRateName,
   getExchangeRate,
-  convertBalanceToUSD,
+  convertBalanceToDisplay,
   type RateSource,
 } from '@/lib/rate-display';
 
@@ -46,16 +46,23 @@ describe('getExchangeRate', () => {
   });
 });
 
-describe('convertBalanceToUSD', () => {
+describe('convertBalanceToDisplay', () => {
   it('USD is a passthrough', () => {
     expect(
-      convertBalanceToUSD(50000, 'USD', 'BANK', S_BCV_USD, mockBcv, mockBinance)
+      convertBalanceToDisplay(
+        50000,
+        'USD',
+        'BANK',
+        S_BCV_USD,
+        mockBcv,
+        mockBinance
+      )
     ).toBe(500);
   });
 
   it('VES at bcv_usd divides by bcv.usd', () => {
     // 12345.67 VES / 36.5 = 338.237...
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       1234567,
       'VES',
       'BANK',
@@ -66,9 +73,9 @@ describe('convertBalanceToUSD', () => {
     expect(result).toBeCloseTo(338.237, 2);
   });
 
-  it('VES at bcv_eur divides by bcv.eur then × 1.1', () => {
-    // 12345.67 / 40.0 * 1.1 = 339.506
-    const result = convertBalanceToUSD(
+  it('VES at bcv_eur divides by bcv.eur', () => {
+    // 12345.67 / 40.0 = 308.64175
+    const result = convertBalanceToDisplay(
       1234567,
       'VES',
       'BANK',
@@ -76,12 +83,12 @@ describe('convertBalanceToUSD', () => {
       mockBcv,
       mockBinance
     );
-    expect(result).toBeCloseTo(339.506, 2);
+    expect(result).toBeCloseTo(308.642, 2);
   });
 
   it('VES at binance divides by binance.usd_ves', () => {
     // 12345.67 / 37.0 = 333.666...
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       1234567,
       'VES',
       'BANK',
@@ -94,7 +101,7 @@ describe('convertBalanceToUSD', () => {
 
   it('BTC at binance returns base value (BTC / 1e8)', () => {
     // 100000000 / 1e8 = 1.0
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       100000000,
       'BTC',
       'CRYPTO',
@@ -107,7 +114,7 @@ describe('convertBalanceToUSD', () => {
 
   it('BTC at bcv_usd uses rate ratio (binance/bcv)', () => {
     // 1.0 * (37.0/36.5) = 1.01369...
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       100000000,
       'BTC',
       'CRYPTO',
@@ -120,7 +127,7 @@ describe('convertBalanceToUSD', () => {
 
   it('BTC at bcv_eur uses rate ratio', () => {
     // 1.0 * (37.0/40.0) = 0.925
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       100000000,
       'BTC',
       'CRYPTO',
@@ -133,7 +140,7 @@ describe('convertBalanceToUSD', () => {
 
   it('zero balance returns zero', () => {
     expect(
-      convertBalanceToUSD(0, 'VES', 'BANK', S_BCV_USD, mockBcv, mockBinance)
+      convertBalanceToDisplay(0, 'VES', 'BANK', S_BCV_USD, mockBcv, mockBinance)
     ).toBe(0);
   });
 
@@ -141,7 +148,7 @@ describe('convertBalanceToUSD', () => {
     const zeroBcv = { usd: 0, eur: 0 };
     const zeroBinance = { usd_ves: 0 };
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         1234567,
         'VES',
         'BANK',
@@ -151,7 +158,7 @@ describe('convertBalanceToUSD', () => {
       )
     ).toBe(0);
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         1234567,
         'VES',
         'BANK',
@@ -161,7 +168,7 @@ describe('convertBalanceToUSD', () => {
       )
     ).toBe(0);
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         1234567,
         'VES',
         'BANK',
@@ -178,7 +185,7 @@ describe('convertBalanceToUSD', () => {
     const zeroBcv = { usd: 0, eur: 0 };
     const zeroBinance = { usd_ves: 0 };
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         100000000,
         'BTC',
         'CRYPTO',
@@ -193,7 +200,7 @@ describe('convertBalanceToUSD', () => {
     // 0/0 = NaN previously. We guard so result is 0.
     const zeroBcv = { usd: 0, eur: 0 };
     const zeroBinance = { usd_ves: 0 };
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       100000000,
       'BTC',
       'CRYPTO',
@@ -207,7 +214,7 @@ describe('convertBalanceToUSD', () => {
 
   it('negative amountMinor returns negative USD (no Math.abs side effect)', () => {
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         -1234567,
         'VES',
         'BANK',
@@ -220,7 +227,7 @@ describe('convertBalanceToUSD', () => {
 
   it('USDT falls through to the default branch (passthrough)', () => {
     expect(
-      convertBalanceToUSD(
+      convertBalanceToDisplay(
         50000,
         'USDT',
         'BANK',
@@ -233,7 +240,7 @@ describe('convertBalanceToUSD', () => {
 
   it('ETH at binance returns base value (ETH / 1e8)', () => {
     // 250000000 / 1e8 = 2.5
-    const result = convertBalanceToUSD(
+    const result = convertBalanceToDisplay(
       250000000,
       'ETH',
       'CRYPTO',

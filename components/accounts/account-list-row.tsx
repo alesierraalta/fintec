@@ -12,7 +12,10 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { Account } from '@/types';
-import { convertBalanceToUSD } from '@/lib/rate-display';
+import {
+  convertBalanceToDisplay,
+  getDisplayCurrency,
+} from '@/lib/rate-display';
 import { BalanceAlertIndicator } from '@/components/accounts/balance-alert-indicator';
 import { formatCurrencyWithBCV } from '@/lib/currency-ves';
 import type { RateSource } from '@/lib/rate-display';
@@ -30,7 +33,10 @@ export interface AccountListRowProps {
   onAlertSettings: (account: Account) => void;
   onToggleDropdown: (accountId: string) => void;
   onRegisterTrigger: (accountId: string, el: HTMLButtonElement | null) => void;
-  renderCategoryStats: () => React.ReactNode;
+  renderCategoryStats: (
+    accountId: string,
+    currencyCode: string
+  ) => React.ReactNode;
 }
 
 const accountIcons: Record<string, typeof Wallet> = {
@@ -73,7 +79,9 @@ function AccountListRowImpl({
   const Icon = accountIcons[account.type] || Wallet;
   const typeLabel = TYPE_LABELS[account.type] || 'Cuenta';
 
-  const usdValue = convertBalanceToUSD(
+  const displayCurrency = getDisplayCurrency(usdEquivalentType);
+
+  const displayValue = convertBalanceToDisplay(
     Math.abs(account.balance),
     account.currencyCode,
     account.type,
@@ -82,7 +90,7 @@ function AccountListRowImpl({
     { usd_ves: binanceUsdVes }
   );
 
-  const usdText = usdValue.toLocaleString('en-US', {
+  const displayValueText = displayValue.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -136,15 +144,16 @@ function AccountListRowImpl({
             <p className="amount-emphasis-main truncate text-sm font-semibold sm:text-ios-title">
               {showBalances
                 ? account.type === 'CRYPTO'
-                  ? `$${usdText}`
+                  ? `${displayCurrency.symbol}${displayValueText}`
                   : `${account.balance < 0 ? '-' : ''}${formatBalance(Math.abs(account.balance), account.currencyCode)}`
                 : '••••••'}
             </p>
-            {account.currencyCode !== 'USD' &&
+            {account.currencyCode !== displayCurrency.code &&
               account.type !== 'CRYPTO' &&
               showBalances && (
                 <p className="mt-0.5 text-xs text-muted-foreground">
-                  ≈ ${usdText} USD
+                  ≈ {displayCurrency.symbol}
+                  {displayValueText} {displayCurrency.code}
                 </p>
               )}
             {(account.currencyCode === 'USD' ||
@@ -198,7 +207,7 @@ function AccountListRowImpl({
           transition={{ duration: 0.3 }}
           className="mt-4 border-t border-border/20 pt-4"
         >
-          {renderCategoryStats()}
+          {renderCategoryStats(account.id, account.currencyCode)}
         </motion.div>
       )}
     </motion.div>
