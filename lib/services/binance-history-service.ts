@@ -211,53 +211,60 @@ class BinanceHistoryService {
   }
 
   async getRatesForDate(date: string): Promise<BinanceHistoryRecord | null> {
+    // 1. Try local IndexedDB exact match first
+    let record: BinanceHistoryRecord | undefined;
     try {
-      // 1. Try local IndexedDB exact match first
-      const record = await this.db.binanceRates
-        .where('date')
-        .equals(date)
-        .first();
-
-      if (record) return record;
-
-      // 2. Fallback: query Supabase for the closest rate on or before the date
-      try {
-        const supabaseRecord =
-          await this.ratesHistoryRepository.getBinanceRateOnOrBefore(date);
-        if (supabaseRecord) {
-          // Cache locally (only if this date isn't already stored)
-          const existing = await this.db.binanceRates
-            .where('date')
-            .equals(supabaseRecord.date)
-            .first();
-          if (!existing) {
-            const localRecord: BinanceHistoryRecord = {
-              date: supabaseRecord.date,
-              usd: supabaseRecord.usd,
-              timestamp: supabaseRecord.timestamp,
-              source: 'Binance',
-            };
-            await this.db.binanceRates.add(localRecord);
-          }
-          return {
-            date: supabaseRecord.date,
-            usd: supabaseRecord.usd,
-            timestamp: supabaseRecord.timestamp,
-            source: 'Binance',
-          };
-        }
-      } catch (supabaseError) {
-        logger.warn(
-          '[BinanceHistoryService] Supabase fallback failed:',
-          supabaseError
-        );
-      }
-
-      return null;
-    } catch (error) {
-      logger.error('Error getting Binance rates for date:', error);
-      return null;
+      record = await this.db.binanceRates.where('date').equals(date).first();
+    } catch (localError) {
+      logger.warn('[BinanceHistoryService] IndexedDB read failed:', localError);
     }
+
+    if (record) return record;
+
+    // 2. Fallback: query Supabase for the closest rate on or before the date
+    try {
+      const supabaseRecord =
+        await this.ratesHistoryRepository.getBinanceRateOnOrBefore(date);
+      if (supabaseRecord) {
+        // Cache locally (atomically, only if this date isn't already stored)
+        try {
+          await this.db.transaction('rw', this.db.binanceRates, async () => {
+            const existing = await this.db.binanceRates
+              .where('date')
+              .equals(supabaseRecord.date)
+              .first();
+            if (!existing) {
+              const localRecord: BinanceHistoryRecord = {
+                date: supabaseRecord.date,
+                usd: supabaseRecord.usd,
+                timestamp: supabaseRecord.timestamp,
+                source: 'Binance',
+              };
+              await this.db.binanceRates.add(localRecord);
+            }
+          });
+        } catch (cacheError) {
+          logger.warn(
+            '[BinanceHistoryService] Failed to cache Supabase record:',
+            cacheError
+          );
+        }
+
+        return {
+          date: supabaseRecord.date,
+          usd: supabaseRecord.usd,
+          timestamp: supabaseRecord.timestamp,
+          source: 'Binance',
+        };
+      }
+    } catch (supabaseError) {
+      logger.warn(
+        '[BinanceHistoryService] Supabase fallback failed:',
+        supabaseError
+      );
+    }
+
+    return null;
   }
 
   async getHistoricalRates(days: number = 30): Promise<BinanceHistoryRecord[]> {

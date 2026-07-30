@@ -241,53 +241,61 @@ export class BCVHistoryService {
 
   // Get rates for a specific date (or the closest prior date if no exact match)
   async getRatesForDate(date: string): Promise<BCVHistoryRecord | null> {
+    // 1. Try local IndexedDB exact match first
+    let record: BCVHistoryRecord | undefined;
     try {
-      // 1. Try local IndexedDB exact match first
-      const record = await this.db.bcvHistory
-        .where('date')
-        .equals(date)
-        .first();
-
-      if (record) return record;
-
-      // 2. Fallback: query Supabase for the closest rate on or before the date
-      try {
-        const supabaseRecord =
-          await this.ratesHistoryRepository.getBCVRateOnOrBefore(date);
-        if (supabaseRecord) {
-          // Cache locally (only if it won't duplicate a different date we already have)
-          const existing = await this.db.bcvHistory
-            .where('date')
-            .equals(supabaseRecord.date)
-            .first();
-          if (!existing) {
-            await this.db.bcvHistory.add({
-              date: supabaseRecord.date,
-              usd: supabaseRecord.usd,
-              eur: supabaseRecord.eur,
-              timestamp: supabaseRecord.timestamp,
-              source: supabaseRecord.source,
-            });
-          }
-          return {
-            date: supabaseRecord.date,
-            usd: supabaseRecord.usd,
-            eur: supabaseRecord.eur,
-            timestamp: supabaseRecord.timestamp,
-            source: supabaseRecord.source,
-          };
-        }
-      } catch (supabaseError) {
-        logger.warn(
-          '[BCVHistoryService] Supabase fallback failed:',
-          supabaseError
-        );
-      }
-
-      return null;
-    } catch (error) {
-      return null;
+      record = await this.db.bcvHistory.where('date').equals(date).first();
+    } catch (localError) {
+      logger.warn('[BCVHistoryService] IndexedDB read failed:', localError);
     }
+
+    if (record) return record;
+
+    // 2. Fallback: query Supabase for the closest rate on or before the date
+    try {
+      const supabaseRecord =
+        await this.ratesHistoryRepository.getBCVRateOnOrBefore(date);
+      if (supabaseRecord) {
+        // Cache locally (atomically, only if it won't duplicate)
+        try {
+          await this.db.transaction('rw', this.db.bcvHistory, async () => {
+            const existing = await this.db.bcvHistory
+              .where('date')
+              .equals(supabaseRecord.date)
+              .first();
+            if (!existing) {
+              await this.db.bcvHistory.add({
+                date: supabaseRecord.date,
+                usd: supabaseRecord.usd,
+                eur: supabaseRecord.eur,
+                timestamp: supabaseRecord.timestamp,
+                source: supabaseRecord.source,
+              });
+            }
+          });
+        } catch (cacheError) {
+          logger.warn(
+            '[BCVHistoryService] Failed to cache Supabase record:',
+            cacheError
+          );
+        }
+
+        return {
+          date: supabaseRecord.date,
+          usd: supabaseRecord.usd,
+          eur: supabaseRecord.eur,
+          timestamp: supabaseRecord.timestamp,
+          source: supabaseRecord.source,
+        };
+      }
+    } catch (supabaseError) {
+      logger.warn(
+        '[BCVHistoryService] Supabase fallback failed:',
+        supabaseError
+      );
+    }
+
+    return null;
   }
 
   // Get today's rates

@@ -45,6 +45,8 @@ export function TransactionDetailPanel({
   const [vesRates, setVesRates] = useState<{
     dateLabel: string;
     isFallbackDate: boolean;
+    bcvDateLabel?: string;
+    binanceDateLabel?: string;
     bcvUsd: number | null;
     bcvEur: number | null;
     binanceUsd: number | null;
@@ -55,6 +57,8 @@ export function TransactionDetailPanel({
 
   // Fetch historical rates for VES transactions
   useEffect(() => {
+    let isMounted = true;
+
     if (!isOpen || transaction.currencyCode !== 'VES') {
       setVesRates(null);
       return;
@@ -72,6 +76,8 @@ export function TransactionDetailPanel({
       const bcvRecord = await bcvHistoryService.getRatesForDate(txDate);
       const binanceRecord = await binanceHistoryService.getRatesForDate(txDate);
 
+      if (!isMounted) return;
+
       const amountInBs =
         transaction.amountMinor && !isNaN(transaction.amountMinor)
           ? Math.abs(transaction.amountMinor) / 100 // Convert from minor units (céntimos)
@@ -81,14 +87,26 @@ export function TransactionDetailPanel({
       const bcvEur = bcvRecord?.eur ?? null;
       const binanceUsd = binanceRecord?.usd ?? null;
 
-      // Determine the actual rate date (may differ from txDate if fallback was used)
+      // Determine the overall actual rate date for the header
       const actualRateDate = bcvRecord?.date ?? binanceRecord?.date ?? txDate;
       const isFallbackDate = actualRateDate !== txDate;
       const dateLabel = toDateLabel(actualRateDate);
 
+      // Determine specific fallback labels if they differ from the txDate
+      const bcvDateLabel =
+        bcvRecord?.date && bcvRecord.date !== txDate
+          ? toDateLabel(bcvRecord.date)
+          : undefined;
+      const binanceDateLabel =
+        binanceRecord?.date && binanceRecord.date !== txDate
+          ? toDateLabel(binanceRecord.date)
+          : undefined;
+
       setVesRates({
         dateLabel,
         isFallbackDate,
+        bcvDateLabel,
+        binanceDateLabel,
         bcvUsd,
         bcvEur,
         binanceUsd,
@@ -104,6 +122,10 @@ export function TransactionDetailPanel({
     }
 
     loadRates();
+
+    return () => {
+      isMounted = false;
+    };
   }, [
     isOpen,
     transaction.currencyCode,
@@ -320,8 +342,13 @@ export function TransactionDetailPanel({
                       <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
                               BCV USD
+                              {vesRates.bcvDateLabel && (
+                                <span className="text-[10px] text-amber-500/80">
+                                  ({vesRates.bcvDateLabel})
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm font-medium text-foreground">
                               1 USD = {vesRates.bcvUsd.toFixed(2)} Bs
@@ -344,8 +371,13 @@ export function TransactionDetailPanel({
                       <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
                               BCV EUR
+                              {vesRates.bcvDateLabel && (
+                                <span className="text-[10px] text-amber-500/80">
+                                  ({vesRates.bcvDateLabel})
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm font-medium text-foreground">
                               1 EUR = {vesRates.bcvEur.toFixed(2)} Bs
@@ -368,8 +400,13 @@ export function TransactionDetailPanel({
                       <div className="rounded-lg bg-muted/30 p-3">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="flex items-center gap-1 text-xs text-muted-foreground">
                               Binance USDT
+                              {vesRates.binanceDateLabel && (
+                                <span className="text-[10px] text-amber-500/80">
+                                  ({vesRates.binanceDateLabel})
+                                </span>
+                              )}
                             </p>
                             <p className="text-sm font-medium text-foreground">
                               1 USDT = {vesRates.binanceUsd.toFixed(2)} Bs
