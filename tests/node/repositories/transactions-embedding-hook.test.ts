@@ -16,6 +16,7 @@ jest.mock('@/lib/ai/rag/embeddings', () => ({
 }));
 
 import { SupabaseTransactionsRepository } from '@/repositories/supabase/transactions-repository-impl';
+import { logger } from '@/lib/utils/logger';
 
 function makeCreatedRow() {
   return {
@@ -47,15 +48,15 @@ function flushMicrotasks() {
 }
 
 describe('SupabaseTransactionsRepository — best-effort embedding hook', () => {
-  const originalConsoleError = console.error;
+  let warnSpy: jest.SpyInstance;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    console.error = jest.fn();
+    warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    console.error = originalConsoleError;
+    warnSpy.mockRestore();
   });
 
   function makeClient(row: ReturnType<typeof makeCreatedRow>) {
@@ -101,7 +102,11 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
     const { client, transactionsUpdate, updateEq } = makeClient(row);
     mockEmbedText.mockResolvedValue(new Array(768).fill(0.01));
 
-    const repository = new SupabaseTransactionsRepository(client);
+    const repository = new SupabaseTransactionsRepository(
+      client as any,
+      undefined,
+      { embedText: mockEmbedText } as any
+    );
 
     await repository.create({
       accountId: 'acc-1',
@@ -129,7 +134,11 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
     const { client, transactionsUpdate } = makeClient(row);
     mockEmbedText.mockRejectedValue(new Error('embedding provider down'));
 
-    const repository = new SupabaseTransactionsRepository(client);
+    const repository = new SupabaseTransactionsRepository(
+      client as any,
+      undefined,
+      { embedText: mockEmbedText } as any
+    );
 
     const result = await repository.create({
       accountId: 'acc-1',
@@ -148,7 +157,7 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
     // The failed embedding must never reach the update() call, and must be
     // logged, not swallowed silently or rethrown.
     expect(transactionsUpdate).not.toHaveBeenCalled();
-    expect(console.error).toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalled();
   });
 
   it('generates and persists an embedding after a successful update()', async () => {
@@ -211,7 +220,11 @@ describe('SupabaseTransactionsRepository — best-effort embedding hook', () => 
     });
 
     const client = { auth, from, rpc } as any;
-    const repository = new SupabaseTransactionsRepository(client);
+    const repository = new SupabaseTransactionsRepository(
+      client as any,
+      undefined,
+      { embedText: mockEmbedText } as any
+    );
 
     // findById() is also used internally; ensure the repository's own
     // findById -> select(...).eq(id).in(...).single() resolves to `row`.

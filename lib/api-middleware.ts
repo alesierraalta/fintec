@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_rethrow } from 'next/navigation';
 import { AppError } from './errors/app-error';
 import { errorResponse } from './api-response';
+import { logger } from './utils/logger';
 
 type ApiHandler<Ctx extends unknown[] = []> = (
   request: NextRequest,
@@ -36,7 +37,7 @@ export function withErrorHandling<Ctx extends unknown[] = []>(
       }
 
       // Unknown error — log for observability then return generic 500
-      console.error('[withErrorHandling] unhandled error:', error);
+      logger.error('[withErrorHandling] unhandled error:', error);
       const envelope = errorResponse(
         new AppError('An unexpected error occurred', 'INTERNAL_ERROR', 500)
       );

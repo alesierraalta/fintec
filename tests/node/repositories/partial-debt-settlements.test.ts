@@ -365,7 +365,11 @@ describe('Partial Debt Settlements', () => {
     it('calls RPC with correct p_ parameter names', async () => {
       const mockRpc = jest.fn().mockResolvedValue({ data: null, error: null });
       const client = { rpc: mockRpc };
-      const repo = new SupabaseTransactionsRepository(client as any);
+      const repo = new SupabaseTransactionsRepository(
+        client as any,
+        undefined,
+        { embedText: jest.fn().mockResolvedValue([]) } as any
+      );
 
       await repo
         .settleDebt({

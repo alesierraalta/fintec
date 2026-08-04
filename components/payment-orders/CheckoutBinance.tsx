@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { CheckCircle2, Copy, Loader2, QrCode, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui';
 import { Input } from '@/components/ui';
@@ -189,7 +190,7 @@ export function CheckoutBinance({
       <div className="space-y-2 text-center">
         <h2 className="text-2xl font-semibold">Checkout Binance Pay</h2>
         <p className="text-sm text-muted-foreground">
-          Enviá exactamente{' '}
+          Envía exactamente{' '}
           <span className="font-semibold text-foreground">{amount}</span> para{' '}
           {serviceName}.
         </p>
@@ -197,10 +198,13 @@ export function CheckoutBinance({
 
       <div className="grid gap-4 md:grid-cols-[220px_1fr] md:items-center">
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed p-4">
-          <img
+          <Image
             src={qrCodeSrc}
             alt="QR de Binance Pay"
+            width={176}
+            height={176}
             className="h-44 w-44 rounded-xl object-contain"
+            unoptimized={qrCodeSrc !== '/binance-pay-qr.svg'}
           />
           <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <QrCode className="h-4 w-4" />
@@ -229,7 +233,7 @@ export function CheckoutBinance({
           <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-sm">
             <p className="font-medium">Importante</p>
             <p className="mt-1 text-muted-foreground">
-              Pagá el monto exacto mostrado y cargá la referencia real del
+              Paga el monto exacto mostrado y carga la referencia real del
               remitente para que podamos verificar tu pago.
             </p>
           </div>

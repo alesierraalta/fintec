@@ -1,0 +1,9 @@
+{
+  "subject_hash": "sha256:c03a0bf2032b4b7b1ecb85afe8777f42b8f2d7986652804612d33d888763f23b",
+  "inspection": {
+    "status": "completed",
+    "paths": ["openspec/changes/p2p_offers_filter/verify-report.md"]
+  },
+  "evidence": ["reviewed the verify-report.md file."],
+  "findings": []
+}

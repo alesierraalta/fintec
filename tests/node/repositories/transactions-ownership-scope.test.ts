@@ -115,10 +115,14 @@ describe('SupabaseTransactionsRepository ownership scoping', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const repository = new SupabaseTransactionsRepository({
-      auth,
-      from,
-    } as any);
+    const repository = new SupabaseTransactionsRepository(
+      {
+        auth,
+        from,
+      } as any,
+      undefined,
+      { embedText: jest.fn().mockResolvedValue([]) } as any
+    );
 
     const result = await repository.findByFilters(
       { accountIds: ['acc-owned-1', 'acc-other'] },
@@ -164,10 +168,14 @@ describe('SupabaseTransactionsRepository ownership scoping', () => {
       throw new Error(`Unexpected table ${table}`);
     });
 
-    const repository = new SupabaseTransactionsRepository({
-      auth,
-      from,
-    } as any);
+    const repository = new SupabaseTransactionsRepository(
+      {
+        auth,
+        from,
+      } as any,
+      undefined,
+      { embedText: jest.fn().mockResolvedValue([]) } as any
+    );
 
     const result = await repository.findByFilters({}, { page: 1, limit: 25 });
 

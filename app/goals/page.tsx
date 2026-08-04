@@ -9,7 +9,6 @@ import {
   Plus,
   Target,
   TrendingUp,
-  Calendar,
   AlertTriangle,
   CheckCircle,
   DollarSign,
@@ -22,10 +21,12 @@ import { useAuth } from '@/hooks/use-auth';
 import type { GoalWithProgress } from '@/repositories/contracts';
 import { FloatingActionButton } from '@/components/ui/floating-action-button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { ProgressRing } from '@/components/ui/progress-ring';
 import { FormLoading } from '@/components/ui/suspense-loading';
+import { Modal, Button, Input } from '@/components/ui';
 import type { Account, SavingsGoal } from '@/types';
 import { toast } from 'sonner';
+import { logger } from '@/lib/utils/logger';
+import { toMinorUnits, formatCurrency } from '@/lib/money';
 
 const GoalForm = dynamic(
   () => import('@/components/forms/goal-form').then((mod) => mod.GoalForm),
@@ -46,6 +47,16 @@ export default function GoalsPage() {
     'all' | 'active' | 'completed' | 'overdue'
   >('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteGoalId, setDeleteGoalId] = useState<string | null>(null);
+  const [deletingGoal, setDeletingGoal] = useState(false);
+  const [contributionGoalId, setContributionGoalId] = useState<string | null>(
+    null
+  );
+  const [contributionAmount, setContributionAmount] = useState('');
+  const [contributionError, setContributionError] = useState<string | null>(
+    null
+  );
+  const [addingContribution, setAddingContribution] = useState(false);
 
   const reloadGoalsData = async () => {
     const [goalsData, stats, accountsData] = await Promise.all([
@@ -65,7 +76,7 @@ export default function GoalsPage() {
         setLoading(true);
         await reloadGoalsData();
       } catch (error) {
-        console.error('Failed to load goals:', error);
+        logger.error('Failed to load goals:', error);
         toast.error('No se pudieron cargar las metas');
       } finally {
         setLoading(false);
@@ -158,7 +169,7 @@ export default function GoalsPage() {
       await reloadGoalsData();
       closeModal();
     } catch (error) {
-      console.error('Failed to save goal:', error);
+      logger.error('Failed to save goal:', error);
       // Surface the real repository error in the toast and rethrow so the
       // awaited form stays open with its loading state cleared.
       toast.error(
@@ -170,35 +181,60 @@ export default function GoalsPage() {
     }
   };
 
-  const handleDeleteGoal = async (goalId: string) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar esta meta?'))
-      return;
+  const handleDeleteGoal = (goalId: string) => {
+    setDeleteGoalId(goalId);
+  };
 
+  const confirmDeleteGoal = async () => {
+    if (!deleteGoalId) return;
     try {
-      setLoading(true);
-      await repository.goals.delete(goalId);
+      setDeletingGoal(true);
+      await repository.goals.delete(deleteGoalId);
       await reloadGoalsData();
       toast.success('Meta eliminada correctamente');
+      setDeleteGoalId(null);
     } catch (error) {
-      console.error('Failed to delete goal:', error);
+      logger.error('Failed to delete goal:', error);
       toast.error('No se pudo eliminar la meta');
     } finally {
-      setLoading(false);
+      setDeletingGoal(false);
     }
   };
 
-  const handleAddMoney = async (goalId: string) => {
-    const amount = window.prompt('¿Cuánto deseas aportar en USD? (Ej: 100.00)');
-    if (!amount) return;
+  const handleAddMoney = (goalId: string) => {
+    setContributionGoalId(goalId);
+    setContributionAmount('');
+    setContributionError(null);
+  };
 
-    const amountMinor = Math.round(Number.parseFloat(amount) * 100);
-    if (Number.isNaN(amountMinor) || amountMinor <= 0) {
-      window.alert('Por favor ingresa un monto válido');
+  const confirmAddContribution = async () => {
+    const goalId = contributionGoalId;
+    if (!goalId) return;
+
+    const parsedAmount = Number.parseFloat(contributionAmount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setContributionError('Por favor ingresa un monto válido');
+      return;
+    }
+
+    let amountMinor: number;
+    try {
+      // toMinorUnits may escape on overflow or unsafe floats — keep
+      // it inside catchable validation so the error surfaces as a
+      // toast rather than an unhandled promise rejection.
+      amountMinor = toMinorUnits(parsedAmount, 'USD');
+    } catch {
+      setContributionError('El monto ingresado no es válido');
+      return;
+    }
+
+    if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0) {
+      setContributionError('El monto ingresado no es válido');
       return;
     }
 
     try {
-      setLoading(true);
+      setAddingContribution(true);
       await repository.goals.addContribution(
         goalId,
         amountMinor,
@@ -206,15 +242,16 @@ export default function GoalsPage() {
       );
       await reloadGoalsData();
       toast.success('Aporte registrado correctamente');
+      setContributionGoalId(null);
     } catch (error) {
-      console.error('Failed to add contribution:', error);
+      logger.error('Failed to add contribution:', error);
       toast.error(
         error instanceof Error
           ? error.message
           : 'No se pudo registrar el aporte'
       );
     } finally {
-      setLoading(false);
+      setAddingContribution(false);
     }
   };
 
@@ -225,7 +262,7 @@ export default function GoalsPage() {
       await reloadGoalsData();
       toast.success('Progreso refrescado correctamente');
     } catch (error) {
-      console.error('Failed to refresh goal progress:', error);
+      logger.error('Failed to refresh goal progress:', error);
       toast.error(
         error instanceof Error
           ? error.message
@@ -236,12 +273,9 @@ export default function GoalsPage() {
     }
   };
 
-  const formatCurrency = (amountMinor: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amountMinor / 100);
-  };
+  // Uses shared formatCurrency from lib/money (cached Intl.NumberFormat, supports all currencies)
+  const formatGoalCurrency = (amountMinor: number) =>
+    formatCurrency(amountMinor, 'USD', { locale: 'es-ES' });
 
   return (
     <MainLayout>
@@ -254,7 +288,7 @@ export default function GoalsPage() {
           </div>
 
           <h1 className="mb-6 bg-gradient-to-r from-primary via-green-600 to-emerald-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
-            🎯 Metas de Ahorro
+            Metas de Ahorro
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
             Define y sigue el progreso de tus objetivos financieros
@@ -381,7 +415,7 @@ export default function GoalsPage() {
                 TOTAL AHORRADO
               </p>
               <p className="text-2xl font-light text-foreground">
-                {formatCurrency(totalSaved)}
+                {formatGoalCurrency(totalSaved)}
               </p>
               <div className="mt-2 flex items-center justify-center space-x-1">
                 <DollarSign className="h-4 w-4 text-green-600" />
@@ -395,7 +429,7 @@ export default function GoalsPage() {
                 META TOTAL
               </p>
               <p className="text-2xl font-light text-foreground">
-                {formatCurrency(totalTarget)}
+                {formatGoalCurrency(totalTarget)}
               </p>
               <div className="mt-2 flex items-center justify-center space-x-1">
                 <Target className="h-4 w-4 text-blue-600" />
@@ -508,6 +542,90 @@ export default function GoalsPage() {
           onSave={handleSaveGoal}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        open={deleteGoalId !== null}
+        onClose={() => {
+          if (!deletingGoal) setDeleteGoalId(null);
+        }}
+        title="Eliminar meta"
+        description="Esta acción no se puede deshacer"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+            <p className="text-sm text-muted-foreground">
+              ¿Estás seguro de que deseas eliminar esta meta?
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setDeleteGoalId(null)}
+              disabled={deletingGoal}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={confirmDeleteGoal}
+              disabled={deletingGoal}
+              loading={deletingGoal}
+            >
+              Eliminar
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Add Contribution Modal */}
+      <Modal
+        open={contributionGoalId !== null}
+        onClose={() => {
+          if (!addingContribution) setContributionGoalId(null);
+        }}
+        title="Aportar a la meta"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <Input
+            type="number"
+            label="Monto en USD"
+            placeholder="Ej: 100.00"
+            value={contributionAmount}
+            onChange={(e) => {
+              setContributionAmount(e.target.value);
+              setContributionError(null);
+            }}
+            error={contributionError || undefined}
+            step="0.01"
+            min="0.01"
+          />
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setContributionGoalId(null)}
+              disabled={addingContribution}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={confirmAddContribution}
+              disabled={!contributionAmount || addingContribution}
+              loading={addingContribution}
+            >
+              Aportar
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Floating Action Button for Mobile */}
       <FloatingActionButton

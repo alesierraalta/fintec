@@ -9,6 +9,12 @@ import {
   filterTransactionsByDebtMode,
   OPERATIONAL_DEBT_MODE,
 } from '@/lib/reports/transaction-reporting-boundaries';
+import {
+  getPeriodRange,
+  parseLocalDate,
+  formatPeriodKey,
+  generatePeriodTrendKeys,
+} from '@/lib/reports/period-boundaries';
 import { DebtDirection, DebtStatus } from '@/types';
 import {
   PieChart,
@@ -77,42 +83,16 @@ export function DesktopReports() {
     { id: 'custom', label: 'Personalizado' },
   ];
 
-  const getPeriodStartDate = (period: string): Date => {
-    const now = new Date();
-    switch (period) {
-      case 'week':
-        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      case 'month':
-        return new Date(now.getFullYear(), now.getMonth(), 1);
-      case 'quarter':
-        return new Date(
-          now.getFullYear(),
-          Math.floor(now.getMonth() / 3) * 3,
-          1
-        );
-      case 'year':
-        return new Date(now.getFullYear(), 0, 1);
-      default:
-        return new Date(now.getFullYear(), now.getMonth(), 1);
-    }
-  };
+  const { start: periodStart, end: periodEnd } = getPeriodRange(
+    selectedPeriod,
+    new Date(),
+    customRange
+  );
 
   const filteredTransactions = (() => {
-    let start = new Date();
-    let end = new Date();
-
-    if (selectedPeriod === 'custom') {
-      start = new Date(customRange.start);
-      end = new Date(customRange.end);
-      end.setHours(23, 59, 59, 999);
-    } else {
-      start = getPeriodStartDate(selectedPeriod);
-      end = new Date(8640000000000000); // Max date
-    }
-
     let filtered = transactions.filter((t) => {
-      const d = new Date(t.date);
-      return d >= start && d <= end;
+      const d = parseLocalDate(t.date);
+      return d >= periodStart && d <= periodEnd;
     });
 
     if (selectedCurrency !== 'ALL') {
@@ -261,8 +241,8 @@ export function DesktopReports() {
 
   let isLongPeriod = ['year', 'quarter'].includes(selectedPeriod);
   if (selectedPeriod === 'custom') {
-    const start = new Date(customRange.start);
-    const end = new Date(customRange.end);
+    const start = parseLocalDate(customRange.start);
+    const end = parseLocalDate(customRange.end);
     const diffTime = Math.abs(end.getTime() - start.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     isLongPeriod = diffDays > 45;
@@ -278,17 +258,8 @@ export function DesktopReports() {
       selectedCurrency === 'ALL' ? t.amountBaseMinor || 0 : t.amountMinor || 0;
 
     if (t.type === 'EXPENSE') {
-      const date = new Date(t.date);
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const d = String(date.getDate()).padStart(2, '0');
-
-      let key = '';
-      if (isLongPeriod) {
-        key = `${y}-${m}`;
-      } else {
-        key = `${y}-${m}-${d}`;
-      }
+      const date = parseLocalDate(t.date);
+      const key = formatPeriodKey(date, isLongPeriod);
       groupedData[key] = (groupedData[key] || 0) + amount;
 
       const dayIndex = date.getDay();
@@ -300,66 +271,12 @@ export function DesktopReports() {
     }
   });
 
-  const generateAllKeys = () => {
-    const keys = [];
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    if (selectedPeriod === 'week') {
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        keys.push(`${y}-${m}-${day}`);
-      }
-    } else if (selectedPeriod === 'custom') {
-      const start = new Date(customRange.start);
-      const end = new Date(customRange.end);
-
-      if (isLongPeriod) {
-        const current = new Date(start.getFullYear(), start.getMonth(), 1);
-        while (current <= end) {
-          keys.push(
-            `${current.getFullYear()}-${String(current.getMonth() + 1).padStart(2, '0')}`
-          );
-          current.setMonth(current.getMonth() + 1);
-        }
-      } else {
-        const current = new Date(start);
-        let safety = 0;
-        while (current <= end && safety < 100) {
-          const y = current.getFullYear();
-          const m = String(current.getMonth() + 1).padStart(2, '0');
-          const d = String(current.getDate()).padStart(2, '0');
-          keys.push(`${y}-${m}-${d}`);
-          current.setDate(current.getDate() + 1);
-          safety++;
-        }
-      }
-    } else if (selectedPeriod === 'month') {
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      for (let i = 1; i <= daysInMonth; i++) {
-        keys.push(
-          `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`
-        );
-      }
-    } else if (selectedPeriod === 'quarter') {
-      const q = Math.floor(currentMonth / 3);
-      for (let i = 0; i < 3; i++) {
-        keys.push(`${currentYear}-${String(q * 3 + i + 1).padStart(2, '0')}`);
-      }
-    } else if (selectedPeriod === 'year') {
-      for (let i = 0; i < 12; i++) {
-        keys.push(`${currentYear}-${String(i + 1).padStart(2, '0')}`);
-      }
-    }
-    return keys;
-  };
-
-  const allKeys = generateAllKeys();
+  const allKeys = generatePeriodTrendKeys(
+    selectedPeriod,
+    isLongPeriod,
+    new Date(),
+    customRange
+  );
 
   const chartData = allKeys.map((key) => {
     const parts = key.split('-').map(Number);

@@ -1,5 +1,6 @@
 import type { RequestContext } from '@/lib/cache/request-context';
 import { TransactionsRepository } from '@/repositories/contracts';
+import { logger } from '@/lib/utils/logger';
 import {
   Transaction,
   TransactionType,
@@ -13,6 +14,8 @@ import {
   DebtSummary,
   DebtMode,
   SettleDebtDTO,
+  MonthlyReport,
+  CashFlowData,
 } from '@/types';
 import { supabase } from './client';
 import {
@@ -31,6 +34,10 @@ import {
   TRANSACTION_DETAIL_PROJECTION,
 } from './transaction-projections';
 import { SupabaseClient } from '@supabase/supabase-js';
+import {
+  EmbeddingService,
+  ProductionEmbeddingService,
+} from '@/services/embedding-service';
 // NOTE: '@/lib/ai/rag/embeddings' is loaded lazily inside
 // embedTransactionBestEffort. A static import drags the whole AI SDK
 // (ai -> @ai-sdk/gateway -> eventsource-parser) into every consumer of the
@@ -40,10 +47,17 @@ import { SupabaseClient } from '@supabase/supabase-js';
 export class SupabaseTransactionsRepository implements TransactionsRepository {
   private client: SupabaseClient;
   private readonly requestContext?: RequestContext;
+  private readonly embeddingService: EmbeddingService;
 
-  constructor(client?: SupabaseClient, requestContext?: RequestContext) {
+  constructor(
+    client?: SupabaseClient,
+    requestContext?: RequestContext,
+    embeddingService?: EmbeddingService
+  ) {
     this.client = client || supabase;
     this.requestContext = requestContext;
+    this.embeddingService =
+      embeddingService || new ProductionEmbeddingService();
   }
 
   private async getUserId(): Promise<string | null> {
@@ -107,8 +121,8 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       return;
     }
 
-    import('@/lib/ai/rag/embeddings')
-      .then(({ embedText }) => embedText(text, 'RETRIEVAL_DOCUMENT'))
+    this.embeddingService
+      .embedText(text, 'RETRIEVAL_DOCUMENT')
       .then((embedding) =>
         this.client
           .from('transactions')
@@ -116,9 +130,10 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
           .eq('id', id)
       )
       .catch((error) => {
-        console.error(
-          `[ai-rag] Failed to generate/persist embedding for transaction ${id}:`,
-          error instanceof Error ? error.message : error
+        logger.warn(
+          `[ai-rag] Failed to generate/persist embedding for transaction ${id}: ${
+            error instanceof Error ? error.message : error
+          }`
         );
       });
   }
@@ -500,7 +515,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to create transaction: ${error.message}`);
     }
 
-    const createdTransaction = mapSupabaseTransactionToDomain(data);
+    const createdTransaction = mapSupabaseTransactionToDomain(data as any);
 
     // Best-effort embedding (never blocks/fails the write — see method doc).
     this.embedTransactionBestEffort(
@@ -692,7 +707,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
         throw new Error(`Failed to update transaction: ${error.message}`);
       }
 
-      updatedTransaction = mapSupabaseTransactionToDomain(data);
+      updatedTransaction = mapSupabaseTransactionToDomain(data as any);
     }
 
     // Best-effort embedding (never blocks/fails the write — see method doc).
@@ -1077,7 +1092,36 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    // * Phase 2 Optimization: Use list projection for date range queries
+    if (pagination) {
+      const { page = 1, limit = 10 } = pagination;
+      const offset = (page - 1) * limit;
+
+      const { data, error, count } = await this.client
+        .from('transactions')
+        .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
+        .in('account_id', scope.accountIds)
+        .gte('date', startDate)
+        .lte('date', endDate)
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        throw new Error(
+          `Failed to fetch transactions by date range: ${error.message}`
+        );
+      }
+
+      const total = count || 0;
+      return {
+        data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
     const { data, error } = await this.client
       .from('transactions')
       .select(TRANSACTION_LIST_PROJECTION)
@@ -1096,27 +1140,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const transactions = mapSupabaseTransactionArrayToDomain(
       (data || ([] as any)) as any
     );
-
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
-
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-
     return {
-      data: paginatedItems,
+      data: transactions,
       total: transactions.length,
-      page,
-      limit,
-      totalPages: Math.ceil(transactions.length / limit),
+      page: 1,
+      limit: transactions.length,
+      totalPages: 1,
     };
   }
 
@@ -1169,7 +1198,32 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       };
     }
 
-    // * Phase 2 Optimization: Use list projection for search queries
+    if (pagination) {
+      const { page = 1, limit = 10 } = pagination;
+      const offset = (page - 1) * limit;
+
+      const { data, error, count } = await this.client
+        .from('transactions')
+        .select(TRANSACTION_LIST_PROJECTION, { count: 'exact' })
+        .in('account_id', scope.accountIds)
+        .or(`description.ilike.%${query}%,note.ilike.%${query}%`)
+        .order('date', { ascending: false })
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        throw new Error(`Failed to search transactions: ${error.message}`);
+      }
+
+      const total = count || 0;
+      return {
+        data: mapSupabaseTransactionArrayToDomain((data || ([] as any)) as any),
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      };
+    }
+
     const { data, error } = await this.client
       .from('transactions')
       .select(TRANSACTION_LIST_PROJECTION)
@@ -1184,27 +1238,12 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     const transactions = mapSupabaseTransactionArrayToDomain(
       (data || ([] as any)) as any
     );
-
-    if (!pagination) {
-      return {
-        data: transactions,
-        total: transactions.length,
-        page: 1,
-        limit: transactions.length,
-        totalPages: 1,
-      };
-    }
-
-    const { page = 1, limit = 10 } = pagination;
-    const offset = (page - 1) * limit;
-    const paginatedItems = transactions.slice(offset, offset + limit);
-
     return {
-      data: paginatedItems,
+      data: transactions,
       total: transactions.length,
-      page,
-      limit,
-      totalPages: Math.ceil(transactions.length / limit),
+      page: 1,
+      limit: transactions.length,
+      totalPages: 1,
     };
   }
 
@@ -1232,7 +1271,7 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Failed to settle debt: ${error.message}`);
     }
 
-    return mapSupabaseTransactionToDomain(data);
+    return mapSupabaseTransactionToDomain(data as any);
   }
 
   async findDebts(
@@ -1397,78 +1436,181 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     }, 0);
   }
 
-  // Stub implementations for remaining complex methods
-  async getMonthlyReport(year: number, month: number): Promise<any> {
-    // TODO: Implement proper monthly report
-    return {
-      year,
-      month,
-      income: 0,
-      expense: 0,
-      balance: 0,
-      transactions: [],
-    };
+  // Analytical methods — not yet implemented for Supabase.
+  // Throw explicit errors so callers never receive silently-wrong data.
+
+  async getMonthlyReport(
+    _year: number,
+    _month: number
+  ): Promise<MonthlyReport> {
+    throw new Error(
+      'getMonthlyReport: not implemented for Supabase repository'
+    );
   }
 
   async getMonthlyReports(
-    startMonth: string,
-    endMonth: string
-  ): Promise<any[]> {
-    // TODO: Implement proper monthly reports
-    return [];
+    _startMonth: string,
+    _endMonth: string
+  ): Promise<MonthlyReport[]> {
+    throw new Error(
+      'getMonthlyReports: not implemented for Supabase repository'
+    );
   }
 
   async getCashFlowData(
-    startDate: string,
-    endDate: string,
-    groupBy: 'day' | 'week' | 'month'
-  ): Promise<any[]> {
-    // TODO: Implement proper cash flow data
-    return [];
+    _startDate: string,
+    _endDate: string,
+    _groupBy: 'day' | 'week' | 'month'
+  ): Promise<CashFlowData[]> {
+    throw new Error('getCashFlowData: not implemented for Supabase repository');
   }
 
   async getCategoryBreakdown(
-    startDate: string,
-    endDate: string,
-    type?: TransactionType
-  ): Promise<any[]> {
-    // TODO: Implement proper category breakdown
-    return [];
+    _startDate: string,
+    _endDate: string,
+    _type?: TransactionType
+  ): Promise<
+    {
+      categoryId: string;
+      categoryName: string;
+      totalBaseMinor: number;
+      transactionCount: number;
+      percentage: number;
+    }[]
+  > {
+    throw new Error(
+      'getCategoryBreakdown: not implemented for Supabase repository'
+    );
   }
 
   async getAccountBreakdown(
-    startDate: string,
-    endDate: string,
-    type?: TransactionType
-  ): Promise<any[]> {
-    // TODO: Implement proper account breakdown
-    return [];
+    _startDate: string,
+    _endDate: string,
+    _type?: TransactionType
+  ): Promise<
+    {
+      accountId: string;
+      accountName: string;
+      totalBaseMinor: number;
+      transactionCount: number;
+    }[]
+  > {
+    throw new Error(
+      'getAccountBreakdown: not implemented for Supabase repository'
+    );
   }
 
-  /**
-   * Decision (PR3 of ai-rag-hybrid-search, task C): `createTransfer`
-   * delegates to `create()` for both legs below, so it also inherits the
-   * best-effort embedding hook automatically for free.
-   */
   async createTransfer(
     fromTransaction: CreateTransactionDTO,
     toTransaction: CreateTransactionDTO
-  ): Promise<any> {
-    // TODO: Implement proper transfer creation
-    const transferId = crypto.randomUUID();
-    const from = await this.create({ ...fromTransaction, transferId } as any);
-    const to = await this.create({ ...toTransaction, transferId } as any);
+  ): Promise<{
+    fromTransaction: Transaction;
+    toTransaction: Transaction;
+    transferId: string;
+  }> {
+    const userId = await this.getUserId();
+    if (!userId) {
+      throw new Error('Unauthorized');
+    }
+
+    // R3-001: reject non-positive / non-integer source amount and
+    // non-positive / non-finite exchange rates before the RPC.
+    this.assertPositiveMinorAmount(fromTransaction.amountMinor);
+    this.assertPositiveMinorAmount(toTransaction.amountMinor);
+
+    const exchangeRate = fromTransaction.exchangeRate ?? 1;
+    if (!Number.isFinite(exchangeRate) || exchangeRate <= 0) {
+      throw new Error('exchangeRate must be a positive finite number');
+    }
+
+    // Fetch both accounts' currencies to derive decimal places for
+    // the R3-002 destination-amount validation.
+    const { data: accounts, error: accountsErr } = await this.client
+      .from('accounts')
+      .select('id, currency_code')
+      .in('id', [fromTransaction.accountId, toTransaction.accountId])
+      .eq('user_id', userId);
+
+    if (accountsErr || !accounts || accounts.length !== 2) {
+      throw new Error('One or both accounts not found');
+    }
+
+    const accountBy = new Map(accounts.map((a) => [a.id, a.currency_code]));
+
+    const srcCurrency = accountBy.get(fromTransaction.accountId)!;
+    const destCurrency = accountBy.get(toTransaction.accountId)!;
+
+    const zeroDecimalSet = new Set(['JPY', 'CLP', 'COP']);
+    const srcDecimals = zeroDecimalSet.has(srcCurrency) ? 0 : 2;
+    const destDecimals = zeroDecimalSet.has(destCurrency) ? 0 : 2;
+
+    const amountMajor = fromTransaction.amountMinor / Math.pow(10, srcDecimals);
+
+    // R3-002: validate that the destination DTO amount matches what
+    // the create_transfer RPC will deterministically compute.
+    // The RPC does:
+    //   v_to_amount_minor := (amount_major * exchange_rate * 10^dest_decimals)::BIGINT
+    // We tolerate a <1 minor-unit floating-point difference between JS and PG.
+    const expectedDestMinor =
+      amountMajor * exchangeRate * Math.pow(10, destDecimals);
+
+    if (
+      Math.abs(Math.round(expectedDestMinor) - toTransaction.amountMinor) >= 1
+    ) {
+      throw new Error(
+        `Destination amount mismatch: DTO specifies ${toTransaction.amountMinor} minor units but ` +
+          `the RPC would derive ~${Math.round(expectedDestMinor)} minor units ` +
+          `(source ${fromTransaction.amountMinor} minor ` +
+          `${srcCurrency} × ${exchangeRate} → ${destCurrency})`
+      );
+    }
+
+    // The canonical create_transfer RPC (migration 20260528010000) is an
+    // atomic, SECURITY DEFINER function that validates both accounts, locks
+    // them FOR UPDATE, inserts both TRANSFER_OUT + TRANSFER_IN rows with
+    // transfer_id set, and adjusts both balances in a single DB transaction.
+    const { data: rpcResult, error: rpcErr } = await (this.client as any).rpc(
+      'create_transfer',
+      {
+        p_user_id: userId,
+        p_from_account_id: fromTransaction.accountId,
+        p_to_account_id: toTransaction.accountId,
+        p_amount_major: amountMajor,
+        p_description:
+          fromTransaction.description ??
+          toTransaction.description ??
+          'Transferencia',
+        p_date: fromTransaction.date,
+        p_exchange_rate: exchangeRate,
+        p_rate_source: null,
+        p_note: fromTransaction.note ?? toTransaction.note ?? null,
+      }
+    );
+
+    if (rpcErr) {
+      throw new Error(`Transfer failed: ${rpcErr.message}`);
+    }
+
+    const [from, to] = await Promise.all([
+      this.findById(rpcResult.fromTransactionId),
+      this.findById(rpcResult.toTransactionId),
+    ]);
+
+    if (!from || !to) {
+      throw new Error(
+        'Transfer succeeded but transaction rows could not be fetched'
+      );
+    }
 
     return {
       fromTransaction: from,
       toTransaction: to,
-      transferId,
+      transferId: rpcResult.transferId,
     };
   }
 
-  async exportToCSV(filters?: TransactionFilters): Promise<string> {
-    // TODO: Implement proper CSV export
-    return 'CSV export not implemented';
+  async exportToCSV(_filters?: TransactionFilters): Promise<string> {
+    throw new Error('exportToCSV: not implemented for Supabase repository');
   }
 
   // Missing BaseRepository methods
@@ -1531,19 +1673,17 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
     };
   }
 
-  /**
-   * Decision (PR3 of ai-rag-hybrid-search, task C): `createMany` delegates
-   * to `create()` per row below, so it inherits the best-effort embedding
-   * hook automatically for free — no separate hook is needed here.
-   */
   async createMany(data: CreateTransactionDTO[]): Promise<Transaction[]> {
+    // N sequential RPC calls — no atomic batch RPC exists for transactions in
+    // the current schema. Each call to create() is individually atomic (the
+    // create_transaction_and_adjust_balance RPC wraps insert+balance-update
+    // in a single DB statement). This matches the pattern used by every other
+    // Supabase repository (accounts, budgets, categories, goals, exchange-rates).
     const results: Transaction[] = [];
-
     for (const transactionData of data) {
       const result = await this.create(transactionData);
       results.push(result);
     }
-
     return results;
   }
 

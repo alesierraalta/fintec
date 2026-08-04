@@ -79,7 +79,7 @@ export default function PricingPageClient({
                   Checkout manual disponible
                 </p>
                 <h2 className="text-2xl font-bold">
-                  Pagá {selectedTierInfo.name} con Binance Pay
+                  Paga {selectedTierInfo.name} con Binance Pay
                 </h2>
                 <p className="max-w-2xl text-sm text-muted-foreground">
                   Este flujo manual preserva el monto exacto solicitado para tu

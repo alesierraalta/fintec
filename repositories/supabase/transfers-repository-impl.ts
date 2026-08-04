@@ -124,18 +124,31 @@ export class SupabaseTransfersRepository implements TransfersRepository {
     userId: string,
     input: CreateTransferInput
   ): Promise<CreateTransferResult> {
-    const exchangeRate =
-      input.exchangeRate != null &&
-      typeof input.exchangeRate === 'number' &&
-      input.exchangeRate > 0
-        ? input.exchangeRate
-        : 1;
+    const amountMajor = input.amountMajor;
+    if (
+      typeof amountMajor !== 'number' ||
+      !Number.isFinite(amountMajor) ||
+      amountMajor <= 0
+    ) {
+      throw new Error('amountMajor must be a positive finite number');
+    }
+
+    // Default to 1 only when truly absent (null / undefined).
+    // Reject any supplied value that is non-number, non-finite, or ≤ 0.
+    const exchangeRate = input.exchangeRate ?? 1;
+    if (
+      typeof exchangeRate !== 'number' ||
+      !Number.isFinite(exchangeRate) ||
+      exchangeRate <= 0
+    ) {
+      throw new Error('exchangeRate must be a positive finite number');
+    }
 
     const { data, error } = await (this.client as any).rpc('create_transfer', {
       p_user_id: userId,
       p_from_account_id: input.fromAccountId,
       p_to_account_id: input.toAccountId,
-      p_amount_major: input.amountMajor,
+      p_amount_major: amountMajor,
       p_description: input.description || 'Transferencia',
       p_date: input.date || new Date().toISOString().split('T')[0],
       p_exchange_rate: exchangeRate,

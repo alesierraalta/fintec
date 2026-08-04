@@ -61,6 +61,15 @@ jest.mock('sonner', () => ({
   },
 }));
 
+jest.mock('@/lib/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
 const mockAccounts = [
   {
     id: 'acc_abc123',

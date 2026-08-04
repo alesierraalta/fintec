@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { useAccountsPage } from '@/hooks/use-accounts-page';
 import type { Account } from '@/types';
 
@@ -58,7 +58,7 @@ describe('useAccountsPage', () => {
   });
 
   describe('modal state', () => {
-    it('should have isOpen false initially', () => {
+    it('should have isOpen false initially', async () => {
       const { result } = renderHook(() =>
         useAccountsPage({
           user: { id: 'u1' },
@@ -67,11 +67,13 @@ describe('useAccountsPage', () => {
           dropdownRefs: { current: {} },
         })
       );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
       expect(result.current.isOpen).toBe(false);
     });
 
-    it('should open modal when handleNewAccount is called', () => {
+    it('should open modal when handleNewAccount is called', async () => {
       const { result } = renderHook(() =>
         useAccountsPage({
           user: { id: 'u1' },
@@ -80,6 +82,8 @@ describe('useAccountsPage', () => {
           dropdownRefs: { current: {} },
         })
       );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
       act(() => {
         result.current.handleNewAccount();
@@ -89,7 +93,7 @@ describe('useAccountsPage', () => {
       expect(result.current.selectedAccount).toBeNull();
     });
 
-    it('should open modal and set selectedAccount when handleEditAccount is called', () => {
+    it('should open modal and set selectedAccount when handleEditAccount is called', async () => {
       const { result } = renderHook(() =>
         useAccountsPage({
           user: { id: 'u1' },
@@ -98,6 +102,8 @@ describe('useAccountsPage', () => {
           dropdownRefs: { current: {} },
         })
       );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
       act(() => {
         result.current.handleEditAccount(mockAccount);
@@ -107,7 +113,7 @@ describe('useAccountsPage', () => {
       expect(result.current.selectedAccount).toBe(mockAccount);
     });
 
-    it('should close modal when closeModal is called', () => {
+    it('should close modal when closeModal is called', async () => {
       const { result } = renderHook(() =>
         useAccountsPage({
           user: { id: 'u1' },
@@ -116,6 +122,8 @@ describe('useAccountsPage', () => {
           dropdownRefs: { current: {} },
         })
       );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
       act(() => {
         result.current.handleNewAccount();
@@ -130,7 +138,7 @@ describe('useAccountsPage', () => {
       expect(result.current.isOpen).toBe(false);
     });
 
-    it('should close modal when handleAccountSaved is called', () => {
+    it('should close modal when handleAccountSaved is called', async () => {
       const { result } = renderHook(() =>
         useAccountsPage({
           user: { id: 'u1' },
@@ -139,6 +147,8 @@ describe('useAccountsPage', () => {
           dropdownRefs: { current: {} },
         })
       );
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
 
       act(() => {
         result.current.handleNewAccount();
@@ -154,6 +164,8 @@ describe('useAccountsPage', () => {
       });
 
       expect(result.current.isOpen).toBe(false);
+
+      await waitFor(() => expect(result.current.loading).toBe(false));
     });
   });
 });

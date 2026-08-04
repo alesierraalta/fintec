@@ -162,7 +162,9 @@ describe('SupabaseTransactionsRepository - Query Projections', () => {
         }
       }),
     };
-    repo = new SupabaseTransactionsRepository(mockClient);
+    repo = new SupabaseTransactionsRepository(mockClient as any, undefined, {
+      embedText: jest.fn().mockResolvedValue([]),
+    } as any);
   });
 
   /**

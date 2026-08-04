@@ -82,8 +82,26 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     );
   }
 
+  const amountMajor = body.amount;
+  if (
+    typeof amountMajor !== 'number' ||
+    !Number.isFinite(amountMajor) ||
+    amountMajor <= 0
+  ) {
+    throw new ValidationError('amount must be a positive number');
+  }
+
   if (body.fromAccountId === body.toAccountId) {
     throw new ValidationError('Cannot transfer to the same account');
+  }
+
+  if (body.exchangeRate != null) {
+    const rate = body.exchangeRate;
+    if (typeof rate !== 'number' || !Number.isFinite(rate) || rate <= 0) {
+      throw new ValidationError(
+        'exchangeRate must be a positive finite number'
+      );
+    }
   }
 
   const requestContext = new RequestContext(userId);
@@ -94,17 +112,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   const created = await repository.create(userId, {
     fromAccountId: body.fromAccountId,
     toAccountId: body.toAccountId,
-    amountMajor: body.amount,
+    amountMajor,
     description: body.description,
     date: body.date,
     exchangeRate: body.exchangeRate,
     rateSource: body.rateSource || null,
   });
 
-  return NextResponse.json(
-    successResponse(created),
-    { status: 201 }
-  );
+  return NextResponse.json(successResponse(created), { status: 201 });
 });
 
 export const DELETE = withErrorHandling(async (request: NextRequest) => {

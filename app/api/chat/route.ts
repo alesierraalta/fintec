@@ -18,6 +18,7 @@ import {
   getGoogleModelFallbackChain,
   isQuotaExceededError,
 } from '@/lib/ai/config';
+import { logger } from '@/lib/utils/logger';
 import { google } from '@ai-sdk/google';
 import { createServerAppRepository } from '@/repositories/factory';
 
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.error('[AI Chat Auth Error]', authError);
+      logger.error('[AI Chat Auth Error]', authError);
       return Response.json(
         { error: 'Unauthorized', details: authError?.message },
         { status: 401 }
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
     // Load Checkpoint (Resume State)
     const checkpoint = await checkpointer.load(threadId, user.id);
     if (checkpoint) {
-      console.log('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
+      logger.info('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
       // In a real agent loop, we would restore context from checkpoint.
       // For this implementation, we just log it and proceed with provided messages
       // as the frontend sends full history.
@@ -243,7 +244,7 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse({
       onError: (error) => {
-        console.error('[AI Chat] Stream Error:', error);
+        logger.error('[AI Chat] Stream Error:', error);
         if (NoSuchToolError.isInstance(error)) {
           return 'The AI tried to use an unknown tool. Please try rephrasing your request.';
         } else if (InvalidToolInputError.isInstance(error)) {
@@ -254,7 +255,7 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
-    console.error('[AI Chat] Error:', error);
+    logger.error('[AI Chat] Error:', error);
     return Response.json(
       {
         error: 'Internal server error',
@@ -297,7 +298,7 @@ async function streamWithFallback(params: {
     const modelName = modelsToTry[i];
 
     try {
-      if (i > 0) console.log(`[AI Chat] Fallback to: ${modelName}`);
+      if (i > 0) logger.info(`[AI Chat] Fallback to: ${modelName}`);
 
       const result = streamText({
         model: i === 0 ? params.model : google(modelName),
@@ -313,7 +314,7 @@ async function streamWithFallback(params: {
     } catch (error) {
       lastError = error as Error;
       if (isQuotaExceededError(error)) {
-        console.warn(`[AI Chat] Quota exceeded for ${modelName}`);
+        logger.warn(`[AI Chat] Quota exceeded for ${modelName}`);
         if (i === modelsToTry.length - 1)
           throw new Error('All AI models exhausted.');
         continue;

@@ -1,0 +1,13 @@
+project: fintec
+mode: openspec
+testing:
+  runner: jest
+  unit: true
+  integration: true
+  e2e: true
+  performance: true
+  mutation: true
+  typecheck: true
+  lint: true
+  formatter: prettier
+strict_tdd: true
