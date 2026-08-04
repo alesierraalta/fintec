@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { ExternalLink, Terminal } from 'lucide-react';
+import { BinanceMarketLink } from '@/components/p2p-offers/binance-market-link';
 import P2POffersFilter from '@/components/p2p-offers-filter';
 import { PageHeader } from '@/components/ui/page-header';
 import { MainLayout } from '@/components/layout/main-layout';
@@ -29,7 +30,7 @@ export default async function P2POffersPage() {
             </span>
           }
           actions={
-            <a
+            <BinanceMarketLink
               href={BINANCE_P2P_MARKET_URL}
               target="_blank"
               rel="noopener noreferrer"
@@ -37,7 +38,7 @@ export default async function P2POffersPage() {
             >
               Ir a Binance
               <ExternalLink className="h-4 w-4" aria-hidden="true" />
-            </a>
+            </BinanceMarketLink>
           }
         />
         <div className="flex-1 overflow-y-auto p-4 lg:p-8">

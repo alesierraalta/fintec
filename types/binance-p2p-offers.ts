@@ -2,6 +2,10 @@ export const BINANCE_P2P_SIDES = ['BUY', 'SELL'] as const;
 
 export type BinanceP2PSide = (typeof BINANCE_P2P_SIDES)[number];
 
+export const BINANCE_P2P_AMOUNT_UNITS = ['VES', 'USDT'] as const;
+
+export type BinanceP2PAmountUnit = (typeof BINANCE_P2P_AMOUNT_UNITS)[number];
+
 export const BINANCE_P2P_PAYMENT_IDENTIFIERS = [
   'ALL',
   'PagoMovil',
@@ -48,7 +52,10 @@ export const BINANCE_P2P_MARKET_URL =
 export interface BinanceP2POffersQuery {
   side: BinanceP2PSide;
   amountMinor: number;
+  amountUnit?: BinanceP2PAmountUnit;
   paymentMethod: BinanceP2PPaymentIdentifier;
+  minCompletionRateBps?: number;
+  minOrderCount?: number;
 }
 
 export interface BinanceP2PExactQuantity {
