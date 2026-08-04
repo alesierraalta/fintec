@@ -81,12 +81,21 @@ describe('P2POffersFilter', () => {
       screen.getByRole('group', { name: 'Operación' })
     ).toBeInTheDocument();
     expect(
+      screen.getByRole('group', { name: 'Unidad de cantidad' })
+    ).toBeInTheDocument();
+    expect(
       screen.getByRole('button', { name: /Comprar USDT/i })
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Vender USDT/i })
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Ej. 1000…')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Completados mínimo en porcentaje')
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Órdenes mínimas del vendedor')
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /Buscar ofertas/i })
     ).toBeInTheDocument();
@@ -122,8 +131,52 @@ describe('P2POffersFilter', () => {
     expect(mockSearch).toHaveBeenCalledWith({
       side: 'BUY',
       amountMinor: 50000,
+      amountUnit: 'VES',
       paymentMethod: 'ALL',
+      minCompletionRateBps: 0,
+      minOrderCount: 0,
     });
+  });
+
+  it('searches in USDT when the quantity unit changes', () => {
+    const mockSearch = jest.fn();
+    renderWithState({ search: mockSearch });
+
+    fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
+    fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
+      target: { value: '10' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
+
+    expect(mockSearch).toHaveBeenCalledWith({
+      side: 'BUY',
+      amountMinor: 1000,
+      amountUnit: 'USDT',
+      paymentMethod: 'ALL',
+      minCompletionRateBps: 0,
+      minOrderCount: 0,
+    });
+  });
+
+  it('sends minimum seller quality filters', () => {
+    const mockSearch = jest.fn();
+    renderWithState({ search: mockSearch });
+
+    fireEvent.change(
+      screen.getByLabelText('Completados mínimo en porcentaje'),
+      { target: { value: '95.5' } }
+    );
+    fireEvent.change(screen.getByLabelText('Órdenes mínimas del vendedor'), {
+      target: { value: '100' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
+
+    expect(mockSearch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        minCompletionRateBps: 9550,
+        minOrderCount: 100,
+      })
+    );
   });
 
   it('renders loading state', () => {
