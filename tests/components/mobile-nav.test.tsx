@@ -57,7 +57,11 @@ describe('Mobile navigation layout contract', () => {
       paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
       paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
     });
-    expect(links).toHaveLength(6);
+    expect(links).toHaveLength(7);
+    expect(screen.getByRole('link', { name: 'P2P' })).toHaveAttribute(
+      'href',
+      '/p2p-offers'
+    );
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
     for (const link of links) {

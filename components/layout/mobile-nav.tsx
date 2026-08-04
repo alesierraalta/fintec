@@ -12,6 +12,7 @@ import {
   ArrowRightLeft,
   Target,
   HandCoins,
+  DollarSign,
 } from 'lucide-react';
 import { useSidebar } from '@/contexts/sidebar-context';
 
@@ -21,6 +22,7 @@ const mobileNavigation = [
   { name: 'Gastos', href: '/transactions', icon: ArrowUpDown },
   { name: 'Transferir', href: '/transfers', icon: ArrowRightLeft },
   { name: 'Deudas', href: '/debts', icon: HandCoins },
+  { name: 'P2P', href: '/p2p-offers', icon: DollarSign },
   { name: 'Metas', href: '/goals', icon: Target },
 ];
 

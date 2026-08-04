@@ -176,6 +176,19 @@ export default function P2POffersFilter() {
           </Card>
         )}
 
+        {!loading && status === 'idle' && (
+          <Card className="border-dashed p-6 text-center">
+            <Info className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+            <h3 className="font-medium text-foreground">
+              Configura tus filtros para buscar ofertas P2P
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Selecciona la operación, el monto y el método de pago, luego pulsa
+              “Buscar Ofertas”.
+            </p>
+          </Card>
+        )}
+
         {!loading && status === 'empty' && (
           <EmptyState
             icon={<Search />}
