@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug-only overrides.
+
+  Plaintext HTTP is required so the debug build can load a local development server
+  (for example http://10.0.2.2:3000 from the Android emulator). It is declared here
+  rather than in the main manifest so release builds inherit the platform default and
+  never permit cleartext traffic.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application
+        android:usesCleartextTraffic="true"
+        tools:replace="android:usesCleartextTraffic" />
+
+</manifest>

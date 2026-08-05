@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "cross-env NODE_NO_WARNINGS=1 BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true next build",
     "build:mobile": "npm run build && npx cap sync",
+    "android:dev": "npx cap run android --live-reload --external",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android",
     "start": "next start",

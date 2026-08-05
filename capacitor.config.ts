@@ -1,15 +1,19 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+import { resolveCapacitorServerTarget } from './lib/mobile/server-target';
+
+// The native shell bundles no web assets, so this origin is the whole app on device.
+// It is resolved from the environment (CAP_SERVER_URL for local development, otherwise
+// NEXT_PUBLIC_APP_URL for the deployed origin) so a released APK follows every web
+// deploy without being rebuilt. `cleartext` is derived from the protocol, never set by
+// hand. See lib/mobile/server-target.ts.
+const server = resolveCapacitorServerTarget(process.env);
+
 const config: CapacitorConfig = {
   appId: 'com.fintec.app',
   appName: 'FinTec',
   webDir: 'public', // Using public as placeholder - actual content loaded from server URL
-  server: {
-    // Point to your deployed web app URL
-    // For Android Emulator, use http://10.0.2.2:3000 instead of localhost
-    url: 'http://10.0.2.2:3000',
-    cleartext: true, // Allow HTTP for local dev
-  },
+  server,
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,
