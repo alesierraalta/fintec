@@ -66,9 +66,11 @@
 
 - [x] 7.1 `npm run type-check` — clean.
 - [x] 7.2 `npm run lint` — 0 errors (354 pre-existing warnings, unchanged).
-- [x] 7.3 `npm test` — 1483 passed, 1 failed. The failure is
+- [x] 7.3 `npm test` — initially 1483 passed / 1 failed. The failure was
       `tests/node/api/binance-p2p-offers-route.test.ts`, proven pre-existing by stashing
-      this change and re-running it at the base commit, where it fails identically. Its
+      this change and re-running it at the base commit, where it failed identically. Its
       expectation was not updated when `amountUnit`, `minCompletionRateBps`, and
-      `minOrderCount` were added in `9c94ef4`. Untouched by this change.
+      `minOrderCount` were added in `9c94ef4`. Fixed separately in `f7af976` (out of this
+      change's scope, tracked here only because it gated the suite). Suite is now
+      1486 passed / 0 failed.
 - [x] 7.4 Self PR review of the full diff before hand-off.
