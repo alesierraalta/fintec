@@ -4,7 +4,7 @@
  * Now includes circuit breaker, retry handler, and health monitoring
  */
 
-import { BaseScraper } from './base-scraper';
+import { BaseScraper, ScrapeOptions } from './base-scraper';
 import { ScraperResult, ScraperError, ScraperErrorCategory } from './types';
 import { BINANCE_CONFIG } from './config';
 import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
@@ -488,12 +488,12 @@ export function resetScraperInstance(): void {
 /**
  * Main scraping function - maintains backward compatibility
  */
-export async function scrapeBinanceRates(): Promise<
-  ScraperResult<BinanceData>
-> {
+export async function scrapeBinanceRates(
+  options?: ScrapeOptions
+): Promise<ScraperResult<BinanceData>> {
   if (!scraperInstance) {
     scraperInstance = new BinanceScraper();
   }
 
-  return scraperInstance.scrape();
+  return scraperInstance.scrape(options);
 }

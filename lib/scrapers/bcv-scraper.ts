@@ -5,7 +5,7 @@
  */
 
 import * as cheerio from 'cheerio';
-import { BaseScraper } from './base-scraper';
+import { BaseScraper, ScrapeOptions } from './base-scraper';
 import { ScraperResult, ScraperError } from './types';
 import { BCV_CONFIG, BCV_URL, USER_AGENT, BCV_SELECTORS } from './config';
 import { parseLocaleNumber } from './parsers/number';
@@ -542,10 +542,12 @@ let scraperInstance: BCVScraper | null = null;
 /**
  * Main scraping function - maintains backward compatibility
  */
-export async function scrapeBCVRates(): Promise<ScraperResult<BCVData>> {
+export async function scrapeBCVRates(
+  options?: ScrapeOptions
+): Promise<ScraperResult<BCVData>> {
   if (!scraperInstance) {
     scraperInstance = new BCVScraper();
   }
 
-  return scraperInstance.scrape();
+  return scraperInstance.scrape(options);
 }
