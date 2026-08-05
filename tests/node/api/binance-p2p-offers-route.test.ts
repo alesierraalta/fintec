@@ -66,24 +66,69 @@ describe('POST /api/binance-p2p-offers', () => {
     expect(mockSearch).not.toHaveBeenCalled();
   });
 
-  it('forwards a valid strict query and exposes unavailable semantics as 503', async () => {
-    const query = {
+  it('normalizes optional filters to their defaults before forwarding', async () => {
+    const request = {
+      side: 'SELL',
+      amountMinor: 100_000,
+      paymentMethod: 'Mercantil',
+    } as const;
+    mockSearch.mockResolvedValue({
+      status: 'live',
+      query: request,
+      offers: [],
+      fetchedAt: null,
+    });
+
+    await POST(createRequest(request));
+
+    // The service always receives a complete query: the route owns defaulting so
+    // downstream code never has to re-derive it.
+    expect(mockSearch).toHaveBeenCalledWith({
+      ...request,
+      amountUnit: 'VES',
+      minCompletionRateBps: 0,
+      minOrderCount: 0,
+    });
+  });
+
+  it('preserves explicitly supplied filters instead of overwriting them with defaults', async () => {
+    const request = {
+      side: 'BUY',
+      amountMinor: 250,
+      amountUnit: 'USDT',
+      paymentMethod: 'PagoMovil',
+      minCompletionRateBps: 9_500,
+      minOrderCount: 100,
+    } as const;
+    mockSearch.mockResolvedValue({
+      status: 'live',
+      query: request,
+      offers: [],
+      fetchedAt: null,
+    });
+
+    await POST(createRequest(request));
+
+    expect(mockSearch).toHaveBeenCalledWith(request);
+  });
+
+  it('exposes unavailable semantics as 503', async () => {
+    const request = {
       side: 'SELL',
       amountMinor: 100_000,
       paymentMethod: 'Mercantil',
     } as const;
     mockSearch.mockResolvedValue({
       status: 'unavailable',
-      query,
+      query: request,
       offers: [],
       fetchedAt: null,
     });
 
-    const response = await POST(createRequest(query));
+    const response = await POST(createRequest(request));
     const body = await response.json();
 
     expect(response.status).toBe(503);
     expect(body.status).toBe('unavailable');
-    expect(mockSearch).toHaveBeenCalledWith(query);
   });
 });
