@@ -5,6 +5,7 @@ import { checkBinanceP2POffersRateLimit } from '@/lib/server/binance-p2p-offers-
 import {
   BINANCE_P2P_MAX_AMOUNT_MINOR,
   BINANCE_P2P_MIN_AMOUNT_MINOR,
+  BINANCE_P2P_AMOUNT_UNITS,
   BINANCE_P2P_PAYMENT_IDENTIFIERS,
   BINANCE_P2P_SIDES,
 } from '@/types/binance-p2p-offers';
@@ -12,14 +13,30 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const searchSchema = z.strictObject({
-  side: z.enum(BINANCE_P2P_SIDES),
-  amountMinor: z
-    .int()
-    .min(BINANCE_P2P_MIN_AMOUNT_MINOR)
-    .max(BINANCE_P2P_MAX_AMOUNT_MINOR),
-  paymentMethod: z.enum(BINANCE_P2P_PAYMENT_IDENTIFIERS),
-});
+const searchSchema = z
+  .strictObject({
+    side: z.enum(BINANCE_P2P_SIDES),
+    amountMinor: z.int().min(1).max(BINANCE_P2P_MAX_AMOUNT_MINOR),
+    amountUnit: z.enum(BINANCE_P2P_AMOUNT_UNITS).default('VES'),
+    paymentMethod: z.enum(BINANCE_P2P_PAYMENT_IDENTIFIERS),
+    minCompletionRateBps: z.number().int().min(0).max(10_000).default(0),
+    minOrderCount: z.number().int().min(0).max(1_000_000_000).default(0),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.amountUnit === 'VES' &&
+      value.amountMinor < BINANCE_P2P_MIN_AMOUNT_MINOR
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.too_small,
+        minimum: BINANCE_P2P_MIN_AMOUNT_MINOR,
+        origin: 'number',
+        inclusive: true,
+        path: ['amountMinor'],
+        message: 'VES amount is below the Binance minimum',
+      });
+    }
+  });
 
 export async function POST(request: Request) {
   const forwardedFor = request.headers.get('x-forwarded-for');

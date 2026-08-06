@@ -5,6 +5,7 @@ import {
   BINANCE_P2P_PAYMENT_LABELS,
   BINANCE_P2P_SIDES,
   type BinanceP2PExactQuantity,
+  type BinanceP2PAmountUnit,
   type BinanceP2POffer,
   type BinanceP2POffersQuery,
   type BinanceP2POffersResult,
@@ -122,6 +123,35 @@ function parseExactQuantity(
   return { value: decimal, scale };
 }
 
+function getAmountUnit(query: BinanceP2POffersQuery): BinanceP2PAmountUnit {
+  return query.amountUnit ?? 'VES';
+}
+
+function hasRequestedQuantity(
+  available: BinanceP2PExactQuantity,
+  requestedMinor: number
+): boolean {
+  const [whole, fraction = ''] = available.value.split('.');
+  const scale = Math.max(available.scale, 2);
+  const availableMinor = BigInt(`${whole}${fraction.padEnd(scale, '0')}`);
+  const requestedAtScale =
+    BigInt(requestedMinor) * BigInt(10) ** BigInt(scale - 2);
+  return availableMinor >= requestedAtScale;
+}
+
+function getRequestedFiatMinor(
+  query: BinanceP2POffersQuery,
+  priceMinor: number
+): number | null {
+  if (getAmountUnit(query) === 'VES') return query.amountMinor;
+
+  const fiatMinor =
+    (BigInt(query.amountMinor) * BigInt(priceMinor) + BigInt(50)) / BigInt(100);
+  return fiatMinor <= BigInt(Number.MAX_SAFE_INTEGER)
+    ? Number(fiatMinor)
+    : null;
+}
+
 function isKnownPaymentIdentifier(
   value: string
 ): value is BinanceP2PPaymentIdentifier {
@@ -194,6 +224,8 @@ function mapOffer(
   const availableQuantity =
     parseExactQuantity(adv.tradableQuantity, adv.assetScale) ??
     parseExactQuantity(adv.surplusAmount, adv.assetScale);
+  const requestedFiatMinor =
+    priceMinor === null ? null : getRequestedFiatMinor(query, priceMinor);
 
   if (
     id === null ||
@@ -203,8 +235,11 @@ function mapOffer(
     maxFiatMinor === null ||
     maxFiatMinor < minFiatMinor ||
     availableQuantity === null ||
-    query.amountMinor < minFiatMinor ||
-    query.amountMinor > maxFiatMinor
+    requestedFiatMinor === null ||
+    requestedFiatMinor < minFiatMinor ||
+    requestedFiatMinor > maxFiatMinor ||
+    (getAmountUnit(query) === 'USDT' &&
+      !hasRequestedQuantity(availableQuantity, query.amountMinor))
   ) {
     return null;
   }
@@ -238,6 +273,20 @@ function mapOffer(
   );
   if (nickname === null || monthOrderCount === null) return null;
 
+  const merchant = {
+    nickname,
+    monthOrderCount,
+    monthCompletionRateBps: parseRateBasisPoints(advertiser.monthFinishRate),
+    positiveRateBps: parseRateBasisPoints(advertiser.positiveRate),
+  };
+  if (
+    (merchant.monthCompletionRateBps ?? 0) <
+      (query.minCompletionRateBps ?? 0) ||
+    merchant.monthOrderCount < (query.minOrderCount ?? 0)
+  ) {
+    return null;
+  }
+
   const payTimeLimit = parseNonNegativeInteger(adv.payTimeLimit, 1_440);
 
   return {
@@ -250,12 +299,7 @@ function mapOffer(
     paymentMethods,
     payTimeLimitMinutes:
       payTimeLimit !== null && payTimeLimit > 0 ? payTimeLimit : null,
-    merchant: {
-      nickname,
-      monthOrderCount,
-      monthCompletionRateBps: parseRateBasisPoints(advertiser.monthFinishRate),
-      positiveRateBps: parseRateBasisPoints(advertiser.positiveRate),
-    },
+    merchant,
   };
 }
 
@@ -270,10 +314,12 @@ export function formatBinanceP2PTransAmount(amountMinor: number): string {
 }
 
 function assertValidQuery(query: BinanceP2POffersQuery): void {
+  const amountUnit = getAmountUnit(query);
   if (
     !sideSet.has(query.side) ||
     !Number.isSafeInteger(query.amountMinor) ||
-    query.amountMinor < BINANCE_P2P_MIN_AMOUNT_MINOR ||
+    query.amountMinor <
+      (amountUnit === 'VES' ? BINANCE_P2P_MIN_AMOUNT_MINOR : 1) ||
     query.amountMinor > BINANCE_P2P_MAX_AMOUNT_MINOR ||
     !paymentIdentifierSet.has(query.paymentMethod)
   ) {
@@ -282,7 +328,14 @@ function assertValidQuery(query: BinanceP2POffersQuery): void {
 }
 
 function getQueryKey(query: BinanceP2POffersQuery): string {
-  return `${query.side}:${query.amountMinor}:${query.paymentMethod}`;
+  return [
+    query.side,
+    getAmountUnit(query),
+    query.amountMinor,
+    query.paymentMethod,
+    query.minCompletionRateBps ?? 0,
+    query.minOrderCount ?? 0,
+  ].join(':');
 }
 
 export class BinanceP2POffersService {
@@ -401,7 +454,10 @@ export class BinanceP2POffersService {
             asset: 'USDT',
             fiat: 'VES',
             tradeType: query.side,
-            transAmount: formatBinanceP2PTransAmount(query.amountMinor),
+            transAmount:
+              getAmountUnit(query) === 'USDT'
+                ? ''
+                : formatBinanceP2PTransAmount(query.amountMinor),
             proMerchantAds: false,
           }),
         });

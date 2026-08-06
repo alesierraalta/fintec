@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui';
+import { InstallAppSetting } from '@/components/pwa';
 import { useAutoBackup } from '@/hooks/use-auto-backup';
 import { useSubscription } from '@/hooks/use-subscription';
 import {
@@ -342,15 +343,10 @@ export default function SettingsPage() {
             </div>
 
             <div className="space-y-4">
-              <div className="py-8 text-center">
-                <Smartphone className="mx-auto mb-3 h-12 w-12 text-muted-foreground/20" />
-                <p className="mb-2 text-sm text-muted-foreground">
-                  Configuraciones de la aplicación
-                </p>
-                <p className="text-xs text-muted-foreground/70">
-                  Próximamente disponible
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">
+                Ajustes relacionados con la app en este dispositivo
+              </p>
+              <InstallAppSetting />
             </div>
           </div>
 

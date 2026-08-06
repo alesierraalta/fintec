@@ -57,6 +57,7 @@ function createResponse(data: unknown[], status = 200): Response {
 const baseQuery: BinanceP2POffersQuery = {
   side: 'BUY',
   amountMinor: 100_000_000,
+  amountUnit: 'VES',
   paymentMethod: 'PagoMovil',
 };
 
@@ -154,6 +155,64 @@ describe('BinanceP2POffersService', () => {
     expect(duplicate).toBe(first);
     expect(cachedFirst.offers[0].priceMinor).toBe(12_537);
     expect(second.offers[0].priceMinor).toBe(12_600);
+  });
+
+  it('filters USDT quantity against availability and fiat limits', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      createResponse([
+        createRawOffer({
+          adv: {
+            minSingleTransAmount: '500.00',
+            maxSingleTransAmount: '1500000.00',
+            dynamicMaxSingleTransAmount: '1200000.00',
+          },
+        }),
+        createRawOffer({
+          adv: {
+            advNo: 'fixture-too-small',
+            tradableQuantity: '900.00',
+          },
+        }),
+      ])
+    );
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    const result = await service.search({
+      side: 'BUY',
+      amountMinor: 100_000,
+      amountUnit: 'USDT',
+      paymentMethod: 'PagoMovil',
+    });
+
+    expect(result.status).toBe('live');
+    expect(result.offers.map((offer) => offer.id)).toEqual(['fixture-offer-a']);
+    const [, init] = fetcher.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toMatchObject({ transAmount: '' });
+  });
+
+  it('filters offers by minimum completion rate and order count', async () => {
+    const fetcher = jest.fn().mockResolvedValue(
+      createResponse([
+        createRawOffer({
+          advertiser: {
+            monthOrderCount: 120,
+            monthFinishRate: '0.995',
+          },
+        }),
+        createRawOffer({
+          adv: { advNo: 'fixture-low-quality' },
+        }),
+      ])
+    );
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    const result = await service.search({
+      ...baseQuery,
+      minCompletionRateBps: 9_900,
+      minOrderCount: 100,
+    });
+
+    expect(result.offers.map((offer) => offer.id)).toEqual(['fixture-offer-a']);
   });
 
   it('serves only same-query stale data and never fabricates an unavailable result', async () => {
