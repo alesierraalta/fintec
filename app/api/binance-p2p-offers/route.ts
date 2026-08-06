@@ -17,14 +17,14 @@ const searchSchema = z
   .strictObject({
     side: z.enum(BINANCE_P2P_SIDES),
     amountMinor: z.int().min(1).max(BINANCE_P2P_MAX_AMOUNT_MINOR),
-    amountUnit: z.enum(BINANCE_P2P_AMOUNT_UNITS).default('VES'),
+    amountUnit: z.enum(BINANCE_P2P_AMOUNT_UNITS).optional(),
     paymentMethod: z.enum(BINANCE_P2P_PAYMENT_IDENTIFIERS),
-    minCompletionRateBps: z.number().int().min(0).max(10_000).default(0),
-    minOrderCount: z.number().int().min(0).max(1_000_000_000).default(0),
+    minCompletionRateBps: z.number().int().min(0).max(10_000).optional(),
+    minOrderCount: z.number().int().min(0).max(1_000_000_000).optional(),
   })
   .superRefine((value, ctx) => {
     if (
-      value.amountUnit === 'VES' &&
+      (value.amountUnit ?? 'VES') === 'VES' &&
       value.amountMinor < BINANCE_P2P_MIN_AMOUNT_MINOR
     ) {
       ctx.addIssue({

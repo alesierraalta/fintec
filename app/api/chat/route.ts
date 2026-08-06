@@ -1,25 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
-import {
-  streamText,
-  tool,
-  convertToModelMessages,
-  NoSuchToolError,
-  InvalidToolInputError,
-  stepCountIs,
-} from 'ai';
-import { z } from 'zod';
-import { toolsResolvers } from '@/lib/ai/tools/resolvers';
-import * as schemas from '@/lib/ai/tools/schemas';
+import { convertToModelMessages, NoSuchToolError, InvalidToolInputError } from 'ai';
+import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
+import { streamWithFallback } from '@/lib/ai/stream-with-fallback';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
-import {
-  AI_CONFIG,
-  buildSystemPrompt,
-  getAIModel,
-  getGoogleModelFallbackChain,
-  isQuotaExceededError,
-} from '@/lib/ai/config';
+import { AI_CONFIG, buildSystemPrompt, getAIModel } from '@/lib/ai/config';
 import { logger } from '@/lib/utils/logger';
-import { google } from '@ai-sdk/google';
 import { createServerAppRepository } from '@/repositories/factory';
 
 // Priority 1 Components
@@ -27,11 +12,6 @@ import { CircuitBreaker } from '@/lib/ai/recovery/circuit-breaker';
 import { retryWithBackoff } from '@/lib/ai/recovery/retry';
 import { verify } from '@/lib/ai/verification';
 import { SupabaseCheckpointer } from '@/lib/ai/state/checkpointer';
-import {
-  shouldRequestApproval,
-  requestApproval,
-  waitForApproval,
-} from '@/lib/ai/hitl';
 
 // Initialize core components
 const circuitBreaker = new CircuitBreaker(`${AI_CONFIG.provider}_api`);
@@ -106,92 +86,52 @@ export async function POST(req: Request) {
       })),
     };
 
-    // 5. Define tools with HITL wrappers
-    const tools = {
-      createTransaction: tool({
-        description: 'Create a new financial transaction (expense or income).',
-        inputSchema: schemas.createTransactionSchema,
-        execute: async (args) => {
-          // HITL Check
-          if (shouldRequestApproval('createTransaction', args)) {
-            const requestId = await requestApproval({
-              userId: user.id,
-              threadId,
-              actionType: 'createTransaction',
-              actionData: args,
-              riskLevel: 'MEDIUM',
-              message: `Approve transaction: ${args.type} of ${args.amount} for ${args.category}?`,
-            });
+    // Base currency (profile `base_currency`, defaults to 'USD' — mirrors
+    // contexts/auth-context.tsx:93,117-122's client-side equivalent fetch).
+    // A lookup failure must not fail the whole chat request, but it must never
+    // pass unnoticed either: base currency drives minor-unit conversion for
+    // query filter bounds and goal targets, so a wrong fallback silently
+    // misconverts amounts for any user whose base currency is not USD.
+    // `supabase-js` resolves with `{ data, error }` instead of throwing, so the
+    // error is inspected explicitly rather than relying on the catch block.
+    const DEFAULT_BASE_CURRENCY = 'USD';
+    let baseCurrencyCode = DEFAULT_BASE_CURRENCY;
+    try {
+      const { data: profileRow, error: profileError } = await supabase
+        .from('users')
+        .select('base_currency')
+        .eq('id', user.id)
+        .single();
 
-            // Wait for approval (blocking for now, ideal: return special status)
-            // Note: If timeout, it throws. AI will report error to user.
-            const { approved, response } = await waitForApproval(
-              requestId,
-              45000
-            ); // 45s timeout to fit in maxDuration
-            if (!approved) throw new Error('Transaction rejected by user.');
-          }
-          return toolsResolvers.createTransaction(args, {
-            userId: user.id,
-            repository,
-          });
-        },
-      }),
-      queryTransactions: tool({
-        description:
-          'Filter and aggregate transactions by date range, amount range, category, or account (sum, count, average, or group-by breakdown). Use this for questions like "how much did I spend on X" or "break down my spending by category" — NOT for fuzzy/typo-tolerant lookups.',
-        inputSchema: schemas.queryTransactionsSchema,
-        execute: async (args) =>
-          toolsResolvers.queryTransactions(args, {
-            userId: user.id,
-            repository,
-            supabase,
-          }),
-      }),
-      searchTransactions: tool({
-        description:
-          'Fuzzy/semantic search over past transactions by merchant name or description (typo-tolerant, accent-insensitive). Use this for questions like "find my Netflix charges" — NOT for aggregates like totals or averages.',
-        inputSchema: schemas.searchTransactionsSchema,
-        execute: async (args) =>
-          toolsResolvers.searchTransactions(args, {
-            userId: user.id,
-            repository,
-            supabase,
-          }),
-      }),
-      getAccountBalance: tool({
-        description: 'Check the balance of specific or all accounts.',
-        inputSchema: schemas.getAccountBalanceSchema,
-        execute: async (args) =>
-          toolsResolvers.getAccountBalance(args, {
-            userId: user.id,
-            repository,
-          }),
-      }),
-      createGoal: tool({
-        description: 'Create a new financial goal.',
-        inputSchema: schemas.createGoalSchema,
-        execute: async (args) => {
-          // Critical Action: Always require approval defined in policy
-          if (shouldRequestApproval('createGoal', args)) {
-            const requestId = await requestApproval({
-              userId: user.id,
-              threadId,
-              actionType: 'createGoal',
-              actionData: args,
-              riskLevel: 'HIGH',
-              message: `Approve new goal: ${args.name} for amount ${args.targetAmount}?`,
-            });
-            const { approved } = await waitForApproval(requestId, 45000);
-            if (!approved) throw new Error('Goal creation rejected by user.');
-          }
-          return toolsResolvers.createGoal(args, {
-            userId: user.id,
-            repository,
-          });
-        },
-      }),
-    };
+      if (profileError) {
+        logger.warn(
+          '[AI Chat] base_currency lookup failed; falling back to USD',
+          profileError
+        );
+      } else if (!profileRow?.base_currency) {
+        logger.warn(
+          '[AI Chat] base_currency missing on profile; falling back to USD',
+          { userId: user.id }
+        );
+      } else {
+        baseCurrencyCode = profileRow.base_currency;
+      }
+    } catch (thrownError) {
+      logger.warn(
+        '[AI Chat] base_currency lookup threw; falling back to USD',
+        thrownError
+      );
+    }
+
+    // 5. Define tools with HITL wrappers (production default: real
+    // approval.ts functions, since `approvals` is omitted here).
+    const tools = buildChatTools({
+      userId: user.id,
+      threadId,
+      repository,
+      supabase,
+      baseCurrencyCode,
+    });
 
     // 6. Execute with Recovery & State
     const result = await circuitBreaker.execute(() =>
@@ -264,63 +204,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
-
-async function streamWithFallback(params: {
-  model: any;
-  messages: any[];
-  system: string;
-  tools: any;
-  temperature: number;
-  userId: string;
-  onFinish?: (completion: any) => Promise<void>;
-}) {
-  const provider = AI_CONFIG.provider;
-
-  // Only apply provider fallback for Google
-  if (provider !== 'google') {
-    return streamText({
-      model: params.model,
-      system: params.system,
-      messages: params.messages,
-      tools: params.tools,
-      temperature: params.temperature,
-      onFinish: params.onFinish,
-      stopWhen: stepCountIs(5), // Prevent infinite tool loops
-    });
-  }
-
-  const fallbackChain = getGoogleModelFallbackChain();
-  const modelsToTry = [fallbackChain.primary, ...fallbackChain.fallbacks];
-  let lastError: Error | null = null;
-
-  for (let i = 0; i < modelsToTry.length; i++) {
-    const modelName = modelsToTry[i];
-
-    try {
-      if (i > 0) logger.info(`[AI Chat] Fallback to: ${modelName}`);
-
-      const result = streamText({
-        model: i === 0 ? params.model : google(modelName),
-        system: params.system,
-        messages: params.messages,
-        tools: params.tools,
-        temperature: params.temperature,
-        onFinish: params.onFinish,
-        stopWhen: stepCountIs(5), // Prevent infinite tool loops
-      });
-
-      return result;
-    } catch (error) {
-      lastError = error as Error;
-      if (isQuotaExceededError(error)) {
-        logger.warn(`[AI Chat] Quota exceeded for ${modelName}`);
-        if (i === modelsToTry.length - 1)
-          throw new Error('All AI models exhausted.');
-        continue;
-      }
-      throw error;
-    }
-  }
-  throw lastError || new Error('Fallback failed');
 }

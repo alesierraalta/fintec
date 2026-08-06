@@ -22,7 +22,6 @@ function mapApprovalRow(row: any): ApprovalRequestRow {
     responseData: row.response_data,
     respondedAt: row.responded_at,
     createdAt: row.created_at,
-    updatedAt: row.updated_at,
   };
 }
 

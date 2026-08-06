@@ -1,5 +1,5 @@
-import { embed } from 'ai';
 import { google } from '@ai-sdk/google';
+import { getRagTransport } from './transport';
 
 /**
  * gemini-embedding-001 embedding module.
@@ -109,7 +109,7 @@ export async function embedText(
     }
   }
 
-  const { embedding } = await embed({
+  const { embedding } = await getRagTransport().embed({
     model: google.textEmbeddingModel(EMBEDDING_MODEL_ID),
     value: text,
     providerOptions: {

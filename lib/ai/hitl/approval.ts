@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { createServerApprovalRequestsRepository } from '@/repositories/factory';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ApprovalRequest {
   userId: string;
@@ -10,10 +11,24 @@ export interface ApprovalRequest {
   message: string;
 }
 
+/**
+ * Optional injected Supabase client. `createClient()` (@/lib/supabase/server)
+ * depends on Next.js request scope (`cookies()`/`headers()`) and cannot run
+ * outside a request — e.g. inside the eval harness or a Jest test. Passing
+ * `supabase` here reuses this SAME function body (no second polling loop,
+ * no duplicate HITL mechanism) with an already-authenticated client instead.
+ * Omitted by every existing production call site, so behavior there is
+ * unchanged.
+ */
+export interface ApprovalDeps {
+  supabase?: SupabaseClient;
+}
+
 export async function requestApproval(
-  request: ApprovalRequest
+  request: ApprovalRequest,
+  deps: ApprovalDeps = {}
 ): Promise<string> {
-  const supabase = await createClient();
+  const supabase = deps.supabase ?? (await createClient());
   const repository = createServerApprovalRequestsRepository({ supabase });
 
   return repository.create({
@@ -28,9 +43,10 @@ export async function requestApproval(
 
 export async function waitForApproval(
   requestId: string,
-  timeoutMs: number = 300000 // 5 min default
+  timeoutMs: number = 300000, // 5 min default
+  deps: ApprovalDeps = {}
 ): Promise<{ approved: boolean; response: any }> {
-  const supabase = await createClient();
+  const supabase = deps.supabase ?? (await createClient());
   const repository = createServerApprovalRequestsRepository({ supabase });
   const startTime = Date.now();
 

@@ -39,6 +39,45 @@ jobs:
       - name: Build
         run: npm run build
 
+  eval-gate:
+    name: Eval harness gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Real local Postgres/Auth/PostgREST stack (supabase/config.toml),
+      # applying the committed schema — see local-supabase-validation req.
+      # 1. The eval harness's RPC-backed retrieval/aggregate/HITL cases
+      # need a real database; a mocked `.rpc()`/`.from()` would be exactly
+      # the false-green class of bug this harness exists to catch.
+      - name: Start local Supabase stack
+        run: npx supabase start
+
+      # Read-only comparison against the COMMITTED evals/baseline/
+      # baseline.json — this step never re-baselines and contains no
+      # numeric threshold literal. Thresholds/tolerances/blocking flags
+      # live only in baseline.json (ai-eval-harness req. 10). Fails the
+      # build ONLY when a metric with `blocking: true` regresses past its
+      # committed `value - tolerance`.
+      - name: Run eval harness gate
+        run: npm run eval:gate
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
+
   e2e-no-auth:
     name: E2E no-auth
     runs-on: ubuntu-latest

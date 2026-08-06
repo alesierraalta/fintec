@@ -12,6 +12,7 @@ import type { AppRepository } from '@/repositories/contracts';
 import { TransactionType } from '@/types/domain';
 import { embedText } from '../rag/embeddings';
 import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
+import { toMinorUnits, toBaseMinor } from '@/lib/money';
 import type { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
@@ -34,6 +35,14 @@ interface ToolContext {
    * retrieval calls not modeled on the domain `AppRepository` interface.
    */
   supabase?: SupabaseClient;
+  /**
+   * The user's base currency (profile `base_currency`, default 'USD' — see
+   * contexts/auth-context.tsx:93,117-122). Used for base-currency-relative
+   * amounts: `queryTransactions`'s filter bounds (compared against
+   * `amount_base_minor`) and `createGoal`'s target amount. NOT used for
+   * `createTransaction`, which converts against the account's own currency.
+   */
+  baseCurrencyCode?: string;
 }
 
 /**
@@ -106,14 +115,15 @@ export async function createTransaction(
     const account = accounts.find((a) => a.id === accountId);
     const category = userCategories.find((c) => c.id === categoryId);
 
+    const currencyCode = account?.currencyCode || 'USD';
     const newTransaction = {
-      amountMinor: Math.round(args.amount * 100), // Convert to minor units
+      amountMinor: toMinorUnits(args.amount, currencyCode),
       description: args.description,
       categoryId,
       accountId,
       date: args.date || new Date().toISOString().split('T')[0],
       type: args.type as TransactionType,
-      currencyCode: account?.currencyCode || 'USD',
+      currencyCode,
     };
 
     const transaction = await transactionsRepo.create(newTransaction);
@@ -174,16 +184,17 @@ export async function queryTransactions(
       accountId = match?.id ?? null;
     }
 
+    const baseCurrencyCode = ctx.baseCurrencyCode ?? 'USD';
     const { data, error } = await ctx.supabase.rpc('query_transactions', {
       p_date_from: args.dateFrom ?? null,
       p_date_to: args.dateTo ?? null,
       p_amount_min:
         args.amountMin !== undefined
-          ? Math.round(args.amountMin * 100)
+          ? toBaseMinor(args.amountMin, { baseCurrencyCode })
           : null,
       p_amount_max:
         args.amountMax !== undefined
-          ? Math.round(args.amountMax * 100)
+          ? toBaseMinor(args.amountMax, { baseCurrencyCode })
           : null,
       p_category_id: categoryId,
       p_account_id: accountId,
@@ -320,18 +331,21 @@ export async function createGoal(
       throw new Error('Deadline must be in the future.');
     }
 
+    const baseCurrencyCode = ctx.baseCurrencyCode ?? 'USD';
+    const targetBaseMinor = toBaseMinor(args.targetAmount, { baseCurrencyCode });
+
     const goal = await goalsRepo.create({
       name: args.name,
-      targetBaseMinor: Math.round(args.targetAmount * 100),
+      targetBaseMinor,
       currentBaseMinor: 0,
       targetDate: args.deadline,
-      currencyCode: 'USD', // Default, could be made dynamic
+      currencyCode: baseCurrencyCode,
       active: true,
     } as any); // Using any to bypass strict typing for now
 
     return formatGoalCreated({
       name: args.name,
-      targetBaseMinor: Math.round(args.targetAmount * 100),
+      targetBaseMinor,
       targetDate: args.deadline,
     });
   } catch (error) {
