@@ -1,12 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
+    <!--
+      usesCleartextTraffic is pinned to false here, with tools:replace, because the
+      generated :capacitor-cordova-android-plugins library manifest declares it as true.
+      Without an explicit override the library value wins the merge and every build —
+      including release — permits plaintext HTTP to any host.
+      The debug source set overrides this back to true for local http:// dev servers.
+    -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="false"
+        tools:replace="android:usesCleartextTraffic"
         android:theme="@style/AppTheme">
 
         <activity

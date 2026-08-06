@@ -56,11 +56,23 @@
 - [x] 6.3 Neither variable set → `cap copy` aborts with
       `[error] Parsing capacitor.config.ts failed.` followed by the resolver's message
       naming both variables. Fail-loud behavior confirmed end to end.
-- [ ] 6.4 **NOT VERIFIED.** Merged-manifest inspection requires Gradle, which requires a
-      JDK and the Android SDK; neither is present in this environment (`java: command not
-      found`, no `android/local.properties`). The debug/release split is therefore
-      unverified by execution and rests on documented Gradle manifest-merger semantics.
-      Must be checked on a machine with the Android toolchain before a release build.
+- [x] 6.4 **VERIFIED — and it caught a real defect.** Installed OpenJDK 21 and the Android
+      SDK (platform 36, build-tools 36.0.0, cmdline-tools), then ran
+      `./gradlew :app:processDebugManifest :app:processReleaseManifest`.
+
+      First run: debug `true`, release **`true`** — the change did not work. The blame
+      report named the cause: `:capacitor-cordova-android-plugins` declares
+      `usesCleartextTraffic="true"` in its generated library manifest, and with the app
+      declaring nothing the library value won the merge.
+
+      Fixed by pinning `android:usesCleartextTraffic="false"` with
+      `tools:replace="android:usesCleartextTraffic"` in the main manifest, keeping the
+      debug source set's `true` override.
+
+      Second run: debug `true`, release `false`. Blame report confirms `ADDED from
+      app/src/main/AndroidManifest.xml`, `REJECTED from
+      [:capacitor-cordova-android-plugins]`. Deep-link scheme `fintec` still present in
+      the merged release manifest.
 
 ## 7. Gates
 

@@ -47,10 +47,15 @@ resolved origin is the entire application surface, so this contract is load-bear
 
 ### REQ-6 — Per-variant cleartext permission
 
-- The main Android manifest MUST NOT declare `android:usesCleartextTraffic="true"`.
-- A debug-variant manifest SHALL declare `android:usesCleartextTraffic="true"` so local
-  HTTP development targets remain reachable.
-- The merged release manifest MUST NOT permit cleartext traffic.
+- The main Android manifest SHALL declare `android:usesCleartextTraffic="false"` with
+  `tools:replace="android:usesCleartextTraffic"`. An explicit override is required because
+  the generated `:capacitor-cordova-android-plugins` library manifest declares the
+  attribute as `true`; omitting it lets the library value win the merge.
+- A debug-variant manifest SHALL override `android:usesCleartextTraffic` to `true` so
+  local HTTP development targets remain reachable.
+- The merged release manifest MUST resolve `android:usesCleartextTraffic` to `false`.
+- This MUST be verified by running the Gradle manifest merger for both variants and
+  reading the merged output, not by reasoning about merge precedence.
 
 ### REQ-7 — Developer workflows
 
