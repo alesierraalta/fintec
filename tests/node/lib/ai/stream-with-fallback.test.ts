@@ -1,34 +1,25 @@
 /**
- * Unit tests for `streamWithFallback`, moved verbatim (no logic changes)
- * from app/api/chat/route.ts:269-326 to lib/ai/stream-with-fallback.ts.
+ * Unit tests for `streamWithFallback` (lib/ai/stream-with-fallback.ts).
  *
  * Covers:
- *   - Non-google providers call `streamText` once with the given model and
- *     `params.onFinish` passed through unchanged.
- *   - Google provider walks `getGoogleModelFallbackChain()`'s chain on a
- *     quota-exceeded error, falling back to the next model.
- *   - A non-quota error is NOT retried and propagates immediately.
+ *   - Providers with an empty fallback list call `streamText` once with the
+ *     given model and `params.onFinish` passed through unchanged.
+ *   - Adapter provider options are forwarded to `streamText`.
+ *   - A provider with fallback models walks the chain on a transient
+ *     (quota) error, building fallback models through the adapter factory.
+ *   - A non-transient error is NOT retried and propagates immediately.
  */
 
 const mockStreamText = jest.fn();
-const mockGoogle = jest.fn((modelName: string) => ({ modelName }));
-const mockGetGoogleModelFallbackChain = jest.fn();
-const mockIsQuotaExceededError = jest.fn();
+const mockGetProviderAdapter = jest.fn();
 
 jest.mock('ai', () => ({
   streamText: (...args: unknown[]) => mockStreamText(...args),
   stepCountIs: (n: number) => ({ stepCountIs: n }),
 }));
 
-jest.mock('@ai-sdk/google', () => ({
-  google: (...args: unknown[]) => mockGoogle(...(args as [string])),
-}));
-
-jest.mock('@/lib/ai/config', () => ({
-  AI_CONFIG: { provider: 'openai' },
-  getGoogleModelFallbackChain: () => mockGetGoogleModelFallbackChain(),
-  isQuotaExceededError: (...args: unknown[]) =>
-    mockIsQuotaExceededError(...args),
+jest.mock('@/lib/ai/providers', () => ({
+  getProviderAdapter: (...args: unknown[]) => mockGetProviderAdapter(...args),
 }));
 
 jest.mock('@/lib/utils/logger', () => ({
@@ -36,26 +27,35 @@ jest.mock('@/lib/utils/logger', () => ({
 }));
 
 import { streamWithFallback } from '@/lib/ai/stream-with-fallback';
-import { AI_CONFIG } from '@/lib/ai/config';
 
-describe('streamWithFallback — non-google provider', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (AI_CONFIG as any).provider = 'openai';
-  });
+const baseParams = {
+  messages: [],
+  system: 'sys',
+  tools: {},
+  temperature: 0.7,
+  userId: 'user-1',
+};
 
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('streamWithFallback — provider without fallback models', () => {
   it('calls streamText once with the given model, passing onFinish through unchanged', async () => {
+    mockGetProviderAdapter.mockReturnValue({
+      id: 'openai',
+      modelId: 'gpt-5',
+      createModel: jest.fn(),
+      fallbackModels: [],
+      isTransient: jest.fn(() => false),
+    });
     const onFinish = jest.fn();
     const model = { name: 'gpt-5' };
     mockStreamText.mockReturnValue({ result: 'ok' });
 
     const result = await streamWithFallback({
+      ...baseParams,
       model,
-      messages: [],
-      system: 'sys',
-      tools: {},
-      temperature: 0.7,
-      userId: 'user-1',
       onFinish,
     });
 
@@ -63,22 +63,56 @@ describe('streamWithFallback — non-google provider', () => {
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({ model, system: 'sys', onFinish })
     );
+    expect(mockStreamText).not.toHaveBeenCalledWith(
+      expect.objectContaining({ providerOptions: expect.anything() })
+    );
     expect(result).toEqual({ result: 'ok' });
+  });
+
+  it('forwards adapter provider options to streamText', async () => {
+    const providerOptions = {
+      nvidia: {
+        nvidia: {
+          chat_template_kwargs: {
+            thinking: true,
+            reasoning_effort: 'high',
+          },
+        },
+      },
+    };
+    mockGetProviderAdapter.mockReturnValue({
+      id: 'nvidia',
+      modelId: 'deepseek-ai/deepseek-v4-flash',
+      createModel: jest.fn(),
+      fallbackModels: [],
+      isTransient: jest.fn(() => false),
+      providerOptions,
+    });
+    mockStreamText.mockReturnValue({ result: 'ok' });
+
+    await streamWithFallback({
+      ...baseParams,
+      model: { name: 'deepseek-ai/deepseek-v4-flash' },
+    });
+
+    expect(mockStreamText).toHaveBeenCalledWith(
+      expect.objectContaining({ providerOptions })
+    );
   });
 });
 
 describe('streamWithFallback — google provider fallback chain', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (AI_CONFIG as any).provider = 'google';
-    mockGetGoogleModelFallbackChain.mockReturnValue({
-      primary: 'gemini-3-flash',
-      fallbacks: ['gemini-2.5-flash'],
+  it('falls back to the next model in the chain on a transient (quota) error', async () => {
+    const mockCreateModel = jest.fn((modelId: string) => ({
+      fallback: modelId,
+    }));
+    mockGetProviderAdapter.mockReturnValue({
+      id: 'google',
+      modelId: 'gemini-3-flash',
+      createModel: mockCreateModel,
+      fallbackModels: ['gemini-2.5-flash'],
+      isTransient: jest.fn(() => true),
     });
-  });
-
-  it('falls back to the next model in the chain on a quota-exceeded error', async () => {
-    mockIsQuotaExceededError.mockReturnValue(true);
     mockStreamText
       .mockImplementationOnce(() => {
         throw new Error('quota exceeded');
@@ -86,36 +120,57 @@ describe('streamWithFallback — google provider fallback chain', () => {
       .mockImplementationOnce(() => ({ result: 'fallback-ok' }));
 
     const result = await streamWithFallback({
-      model: { name: 'primary-model' },
-      messages: [],
-      system: 'sys',
-      tools: {},
-      temperature: 0.7,
-      userId: 'user-1',
+      ...baseParams,
+      model: { name: 'gemini-3-flash' },
     });
 
     expect(mockStreamText).toHaveBeenCalledTimes(2);
-    expect(mockGoogle).toHaveBeenCalledWith('gemini-2.5-flash');
+    expect(mockCreateModel).toHaveBeenCalledWith('gemini-2.5-flash');
+    expect(mockStreamText).toHaveBeenLastCalledWith(
+      expect.objectContaining({ model: { fallback: 'gemini-2.5-flash' } })
+    );
     expect(result).toEqual({ result: 'fallback-ok' });
   });
 
-  it('propagates a non-quota error immediately without retrying', async () => {
-    mockIsQuotaExceededError.mockReturnValue(false);
+  it('propagates a non-transient error immediately without retrying', async () => {
+    mockGetProviderAdapter.mockReturnValue({
+      id: 'google',
+      modelId: 'gemini-3-flash',
+      createModel: jest.fn(),
+      fallbackModels: ['gemini-2.5-flash'],
+      isTransient: jest.fn(() => false),
+    });
     mockStreamText.mockImplementationOnce(() => {
       throw new Error('some other failure');
     });
 
     await expect(
       streamWithFallback({
-        model: { name: 'primary-model' },
-        messages: [],
-        system: 'sys',
-        tools: {},
-        temperature: 0.7,
-        userId: 'user-1',
+        ...baseParams,
+        model: { name: 'gemini-3-flash' },
       })
     ).rejects.toThrow('some other failure');
 
     expect(mockStreamText).toHaveBeenCalledTimes(1);
+  });
+
+  it('throws a generic error when every model in the chain hits a transient error', async () => {
+    mockGetProviderAdapter.mockReturnValue({
+      id: 'google',
+      modelId: 'gemini-3-flash',
+      createModel: jest.fn((modelId: string) => ({ fallback: modelId })),
+      fallbackModels: ['gemini-2.5-flash'],
+      isTransient: jest.fn(() => true),
+    });
+    mockStreamText.mockImplementation(() => {
+      throw new Error('quota exceeded');
+    });
+
+    await expect(
+      streamWithFallback({
+        ...baseParams,
+        model: { name: 'gemini-3-flash' },
+      })
+    ).rejects.toThrow('All AI models exhausted.');
   });
 });

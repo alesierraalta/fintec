@@ -4,6 +4,7 @@ import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { createServerAppRepository } from '@/repositories/factory';
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import { logger } from '@/lib/utils/logger';
+import { getAIModel, AIConfigurationError } from '@/lib/ai/config';
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
@@ -40,15 +41,34 @@ jest.mock('@/lib/ai/rate-limiter', () => ({
   checkRateLimit: jest.fn(),
 }));
 
-jest.mock('@/lib/ai/config', () => ({
-  AI_CONFIG: { provider: 'openai', temperature: 0.2 },
-  buildSystemPrompt: jest.fn(() => 'system'),
-  getAIModel: jest.fn(() => 'model'),
-  getGoogleModelFallbackChain: jest.fn(() => ({
-    primary: 'g1',
-    fallbacks: [],
+jest.mock('@/lib/ai/config', () => {
+  class AIConfigurationError extends Error {
+    constructor(message: string) {
+      super(message);
+      this.name = 'AIConfigurationError';
+    }
+  }
+  return {
+    AI_CONFIG: { provider: 'openai', temperature: 0.2 },
+    buildSystemPrompt: jest.fn(() => 'system'),
+    getAIModel: jest.fn(() => 'model'),
+    AIConfigurationError,
+    getGoogleModelFallbackChain: jest.fn(() => ({
+      primary: 'g1',
+      fallbacks: [],
+    })),
+    isQuotaExceededError: jest.fn(() => false),
+  };
+});
+
+jest.mock('@/lib/ai/providers', () => ({
+  getProviderAdapter: jest.fn(() => ({
+    id: 'openai',
+    modelId: 'gpt-4o',
+    createModel: jest.fn(),
+    fallbackModels: [],
+    isTransient: jest.fn(() => false),
   })),
-  isQuotaExceededError: jest.fn(() => false),
 }));
 
 jest.mock('@ai-sdk/google', () => ({
@@ -147,6 +167,7 @@ describe('chat route', () => {
   const mockBuildChatTools = buildChatTools as jest.MockedFunction<
     typeof buildChatTools
   >;
+  const mockGetAIModel = getAIModel as jest.MockedFunction<typeof getAIModel>;
   const mockLogger = logger as jest.Mocked<typeof logger>;
 
   beforeEach(() => {
@@ -164,6 +185,7 @@ describe('chat route', () => {
       limit: 20,
       remaining: 19,
     } as any);
+    mockGetAIModel.mockReturnValue('model');
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -205,7 +227,7 @@ describe('chat route', () => {
     expect(response.status).toBe(429);
   });
 
-  it('returns 500 when request parsing fails after auth and rate-limit checks', async () => {
+  it('returns 500 with a safe generic response when request parsing fails', async () => {
     const { POST } = await import('@/app/api/chat/route');
     const response = await POST({
       json: jest.fn().mockRejectedValue(new Error('invalid json')),
@@ -213,7 +235,46 @@ describe('chat route', () => {
     const body = await response.json();
 
     expect(response.status).toBe(500);
-    expect(body.details).toBe('invalid json');
+    expect(body.error).toBe('Internal server error. Please try again later.');
+    expect(JSON.stringify(body)).not.toContain('invalid json');
+  });
+
+  it('returns 503 without leaking the raw message on provider configuration errors', async () => {
+    mockGetAIModel.mockImplementation(() => {
+      throw new AIConfigurationError(
+        'OPENAI_API_KEY is not configured. Raw value: sk-secret-123'
+      );
+    });
+    mockStreamText.mockReturnValue({
+      toUIMessageStreamResponse: jest.fn(() =>
+        Response.json({ ok: true }, { status: 200 })
+      ),
+    } as any);
+
+    const { POST } = await import('@/app/api/chat/route');
+    const response = await POST(
+      new Request('http://localhost/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'Hi' }],
+          threadId: 'thread-1',
+        }),
+      })
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(503);
+    expect(body.error).toBe(
+      'AI provider is not configured correctly. Please try again later.'
+    );
+    expect(JSON.stringify(body)).not.toContain('OPENAI_API_KEY');
+    expect(JSON.stringify(body)).not.toContain('sk-secret-123');
+    expect(JSON.stringify(body)).not.toContain('Raw value:');
+    // The raw error is still logged server-side for debugging.
+    expect(mockLogger.error).toHaveBeenCalledWith(
+      expect.stringContaining('[AI Chat] Error:'),
+      expect.anything()
+    );
   });
 
   it('streams a successful authenticated chat response with account context', async () => {

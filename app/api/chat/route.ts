@@ -7,7 +7,12 @@ import {
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import { streamWithFallback } from '@/lib/ai/stream-with-fallback';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
-import { AI_CONFIG, buildSystemPrompt, getAIModel } from '@/lib/ai/config';
+import {
+  AI_CONFIG,
+  AIConfigurationError,
+  buildSystemPrompt,
+  getAIModel,
+} from '@/lib/ai/config';
 import { logger } from '@/lib/utils/logger';
 import { createServerAppRepository } from '@/repositories/factory';
 
@@ -199,12 +204,20 @@ export async function POST(req: Request) {
       },
     });
   } catch (error) {
+    // Never leak internal error messages to the client. The actual error is
+    // logged server-side; provider configuration failures map to a safe 503.
     logger.error('[AI Chat] Error:', error);
+    if (error instanceof AIConfigurationError) {
+      return Response.json(
+        {
+          error:
+            'AI provider is not configured correctly. Please try again later.',
+        },
+        { status: 503 }
+      );
+    }
     return Response.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      },
+      { error: 'Internal server error. Please try again later.' },
       { status: 500 }
     );
   }
