@@ -31,6 +31,7 @@ const customJestConfig = {
         `${ROOT}/tests/**/*.test.{js,jsx,ts,tsx}`,
         `${ROOT}/**/*.test.{js,jsx,ts,tsx}`,
         `!${ROOT}/tests/node/**/*.test.{js,jsx,ts,tsx}`, // Exclude node tests
+        `!${ROOT}/tests/db/**/*.test.{js,jsx,ts,tsx}`, // Exclude db tests
       ],
       moduleNameMapper: {
         '^@/(.*)$': '<rootDir>/$1',
@@ -47,6 +48,7 @@ const customJestConfig = {
         `${ROOT}/.next/`,
         `${ROOT}/node_modules/`,
         `${ROOT}/tests/node/`,
+        `${ROOT}/tests/db/`,
         `${ROOT}/tests/e2e/`,
         `${ROOT}/.stryker-tmp/`,
         `${ROOT}/.agent/`,
@@ -81,6 +83,7 @@ const customJestConfig = {
       testPathIgnorePatterns: [
         `${ROOT}/.next/`,
         `${ROOT}/node_modules/`,
+        `${ROOT}/tests/db/`,
         `${ROOT}/tests/e2e/`,
         `${ROOT}/.stryker-tmp/`,
         `${ROOT}/.agent/`,
@@ -88,6 +91,33 @@ const customJestConfig = {
         `${ROOT}/.claude/`,
       ],
       collectCoverageFrom: ['lib/scrapers/**/*.{js,jsx,ts,tsx}', '!**/*.d.ts'],
+      moduleDirectories: ['node_modules', '<rootDir>/'],
+    },
+    {
+      displayName: 'db',
+      testEnvironment: 'node',
+      setupFilesAfterEnv: ['<rootDir>/jest.setup.db.js'],
+      testMatch: [`${ROOT}/tests/db/**/*.test.{js,jsx,ts,tsx}`], // Only include db tests (real local Supabase)
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/$1',
+        '^cheerio$': '<rootDir>/node_modules/cheerio/dist/commonjs/index.js',
+      },
+      transform: {
+        '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.json' }],
+        '^.+\\.(js|jsx)$': 'babel-jest',
+      },
+      transformIgnorePatterns: [
+        '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
+      ],
+      testPathIgnorePatterns: [
+        `${ROOT}/.next/`,
+        `${ROOT}/node_modules/`,
+        `${ROOT}/tests/e2e/`,
+        `${ROOT}/.stryker-tmp/`,
+        `${ROOT}/.agent/`,
+        `${ROOT}/.agents/`,
+        `${ROOT}/.claude/`,
+      ],
       moduleDirectories: ['node_modules', '<rootDir>/'],
     },
   ],

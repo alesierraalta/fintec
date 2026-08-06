@@ -14,6 +14,8 @@
  *   already present among the candidates for the query text.
  */
 
+import { getRagTransport } from './transport';
+
 export interface RerankCandidate {
   id: string;
   text: string;
@@ -29,17 +31,10 @@ interface VoyageRerankResponse {
   results?: VoyageRerankResult[];
 }
 
-const RERANK_TIMEOUT_MS = 500;
 const MIN_CANDIDATES_FOR_RERANK = 15;
-const RERANK_MODEL = 'voyage/rerank-2.5-lite';
-const DEFAULT_GATEWAY_RERANK_URL = 'https://ai-gateway.vercel.sh/v1/rerank';
 
 function isRerankerEnabled(): boolean {
   return process.env.RERANKER_ENABLED === 'true';
-}
-
-function getGatewayRerankUrl(): string {
-  return process.env.AI_GATEWAY_RERANK_URL || DEFAULT_GATEWAY_RERANK_URL;
 }
 
 /**
@@ -102,40 +97,6 @@ function applyRerankOrder(
   return [...reranked, ...remaining];
 }
 
-async function callGatewayRerank(
-  query: string,
-  candidates: RerankCandidate[]
-): Promise<VoyageRerankResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), RERANK_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(getGatewayRerankUrl(), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.AI_GATEWAY_API_KEY ?? ''}`,
-      },
-      body: JSON.stringify({
-        model: RERANK_MODEL,
-        query,
-        documents: candidates.map((candidate) => candidate.text),
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      throw new Error(
-        `Reranker gateway request failed with status ${response.status}`
-      );
-    }
-
-    return (await response.json()) as VoyageRerankResponse;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
 /**
  * Reranks `candidates` for `query` via Voyage rerank-2.5-lite through the
  * Vercel AI Gateway. Always fails open to the original (RRF-ordered) input
@@ -156,7 +117,7 @@ export async function rerankCandidates(
   }
 
   try {
-    const response = await callGatewayRerank(query, candidates);
+    const response = await getRagTransport().rerank(query, candidates);
     return applyRerankOrder(candidates, response);
   } catch (error) {
     console.warn(

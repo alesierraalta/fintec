@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "commit": "9c94ef424e8eae949011f78bf20af4bdbe83f3e6",
+  "runAt": "2026-08-06T12:55:55.609Z",
+  "transport": "recorded",
+  "metrics": {
+    "moneyCorrectness": {
+      "value": 1,
+      "n": 1,
+      "tolerance": 0,
+      "blocking": true
+    },
+    "hitlCorrectness": {
+      "value": 1,
+      "n": 1,
+      "tolerance": 0,
+      "blocking": true
+    },
+    "recallAt10": {
+      "value": 1,
+      "n": 1,
+      "tolerance": 0.1,
+      "blocking": false
+    },
+    "precisionAt10": {
+      "value": 0.3333333333333333,
+      "n": 1,
+      "tolerance": 0.1,
+      "blocking": false
+    },
+    "toolSelectionAccuracy": {
+      "value": 0,
+      "n": 0,
+      "tolerance": 0,
+      "blocking": false
+    },
+    "aggregateFidelity": {
+      "value": 1,
+      "n": 1,
+      "tolerance": 0,
+      "blocking": false
+    }
+  }
+}

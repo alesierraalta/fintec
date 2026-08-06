@@ -20,6 +20,9 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx']);
 const ALLOWED_PREFIXES = [
   'repositories/supabase/',
   'tests/',
+  // Evaluation runners intentionally use an authenticated Supabase client to
+  // observe production seams and assert real database state.
+  'evals/',
   'supabase/functions/',
 ];
 
@@ -36,6 +39,8 @@ const ALLOWED_FILES = new Set([
   // AI tool resolver calls the dedicated RLS-scoped query_transactions RPC;
   // pending extraction into a repository adapter
   'lib/ai/tools/resolvers.ts',
+  // Chat needs the request user's base currency to build its tool context.
+  'app/api/chat/route.ts',
 ]);
 
 const DB_CALL_PATTERNS = [/\.from\(\s*['"`]/g, /\.rpc\(\s*['"`]/g];

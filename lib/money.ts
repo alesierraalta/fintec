@@ -334,6 +334,20 @@ export function toMinorUnits(amount: number, currencyCode: string): number {
   return Money.fromMajor(amount, currencyCode).getMinorAmount();
 }
 
+/**
+ * Converts a major-unit amount to minor units using the caller's BASE
+ * currency (e.g. the user's profile `base_currency`), as opposed to an
+ * account's own currency. This is a thin named wrapper over `toMinorUnits`
+ * so call sites read intent (base-currency conversion vs. account-currency
+ * conversion) — it does NOT introduce a second arithmetic path.
+ */
+export function toBaseMinor(
+  amount: number,
+  ctx: { baseCurrencyCode: string }
+): number {
+  return toMinorUnits(amount, ctx.baseCurrencyCode);
+}
+
 export function fromMinorUnits(
   amountMinor: number,
   currencyCode: string

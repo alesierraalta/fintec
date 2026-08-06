@@ -48,7 +48,9 @@ function readCompanionIndexMigrations(): string {
       `Expected the two hybrid-search companion index migrations, found: ${files.join(', ') || 'none'}`
     );
   }
-  return files.map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf8')).join('\n');
+  return files
+    .map((f) => readFileSync(join(MIGRATIONS_DIR, f), 'utf8'))
+    .join('\n');
 }
 
 describe('hybrid_search migration (SQL contract)', () => {
@@ -149,12 +151,14 @@ describe('hybrid_search migration (SQL contract)', () => {
     //   supabase/migrations/20260715120002_hybrid_search_hnsw_index.sql
     //   supabase/migrations/20260714010001_fix_settle_debt_json_return.sql
     //   supabase/migrations/20260715120000_hybrid_search.sql
+    //   supabase/migrations/20260806120000_fix_hybrid_search_ambiguous_id.sql
     const files = readdirSync(MIGRATIONS_DIR);
     for (const name of [
       '20260715120001_hybrid_search_fts_index.sql',
       '20260715120002_hybrid_search_hnsw_index.sql',
       '20260714010001_fix_settle_debt_json_return.sql',
       '20260716090000_drop_duplicate_transfers_to_index.sql',
+      '20260806120000_fix_hybrid_search_ambiguous_id.sql',
     ]) {
       expect(files).toContain(name);
     }
@@ -167,7 +171,9 @@ describe('hybrid_search migration (SQL contract)', () => {
       join(MIGRATIONS_DIR, '20260714010001_fix_settle_debt_json_return.sql'),
       'utf8'
     );
-    expect(recovered).toMatch(/create or replace function settle_debt_partial/i);
+    expect(recovered).toMatch(
+      /create or replace function settle_debt_partial/i
+    );
     // The transfers(to_transaction_id) file must stay a no-op: the index is
     // already provided by idx_transfers_to_transaction_id (202604081614).
     const transfersTo = readFileSync(

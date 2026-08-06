@@ -13,7 +13,6 @@ export interface ApprovalRequestRow {
   responseData?: unknown;
   respondedAt?: string;
   createdAt: string;
-  updatedAt: string;
 }
 
 export interface CreateApprovalRequestInput {

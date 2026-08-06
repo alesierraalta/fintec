@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { streamText } from 'ai';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { createServerAppRepository } from '@/repositories/factory';
+import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
+import { logger } from '@/lib/utils/logger';
 
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
@@ -88,6 +90,48 @@ jest.mock('@/lib/ai/hitl', () => ({
   waitForApproval: jest.fn(),
 }));
 
+jest.mock('@/lib/ai/tools/build-chat-tools', () => ({
+  buildChatTools: jest.fn(() => ({})),
+}));
+
+jest.mock('@/lib/utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+/**
+ * Builds a Supabase client mock whose `from('users').select().eq().single()`
+ * chain resolves to the supplied PostgrestSingleResponse-shaped value.
+ *
+ * `supabase-js` does NOT throw on query failure: it resolves with
+ * `{ data: null, error }`. Tests rely on that contract here so the route's
+ * error handling is exercised the way production actually behaves.
+ */
+function buildSupabaseClientMock(profileResult: {
+  data: { base_currency?: string | null } | null;
+  error: { message: string } | null;
+}) {
+  return {
+    auth: {
+      getUser: jest.fn().mockResolvedValue({
+        data: { user: { id: 'user-1' } },
+        error: null,
+      }),
+    },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          single: jest.fn().mockResolvedValue(profileResult),
+        })),
+      })),
+    })),
+  };
+}
+
 describe('chat route', () => {
   const mockCreateClient = createClient as jest.MockedFunction<
     typeof createClient
@@ -100,6 +144,10 @@ describe('chat route', () => {
     createServerAppRepository as jest.MockedFunction<
       typeof createServerAppRepository
     >;
+  const mockBuildChatTools = buildChatTools as jest.MockedFunction<
+    typeof buildChatTools
+  >;
+  const mockLogger = logger as jest.Mocked<typeof logger>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -204,5 +252,63 @@ describe('chat route', () => {
         messages: [{ role: 'user', content: 'How much do I have?' }],
       })
     );
+  });
+
+  describe('base currency resolution', () => {
+    const okStreamResponse = () =>
+      ({
+        toUIMessageStreamResponse: jest.fn(() =>
+          Response.json({ ok: true }, { status: 200 })
+        ),
+      }) as any;
+
+    const postChat = async () => {
+      const { POST } = await import('@/app/api/chat/route');
+      return POST(
+        new Request('http://localhost/api/chat', {
+          method: 'POST',
+          body: JSON.stringify({ messages: [], threadId: 'thread-1' }),
+        })
+      );
+    };
+
+    it("passes the user's profile base currency to the chat tools", async () => {
+      mockCreateClient.mockResolvedValue(
+        buildSupabaseClientMock({
+          data: { base_currency: 'COP' },
+          error: null,
+        }) as any
+      );
+      mockStreamText.mockReturnValue(okStreamResponse());
+
+      await postChat();
+
+      expect(mockBuildChatTools).toHaveBeenCalledWith(
+        expect.objectContaining({ baseCurrencyCode: 'COP' })
+      );
+    });
+
+    it('warns and falls back to USD when the profile lookup returns an error', async () => {
+      mockCreateClient.mockResolvedValue(
+        buildSupabaseClientMock({
+          data: null,
+          error: { message: 'permission denied' },
+        }) as any
+      );
+      mockStreamText.mockReturnValue(okStreamResponse());
+
+      await postChat();
+
+      // supabase-js resolves (never throws) on a failed query, so the route
+      // must inspect `error` explicitly. Falling back silently would convert
+      // a non-USD user's amounts against the wrong currency.
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('base_currency'),
+        expect.anything()
+      );
+      expect(mockBuildChatTools).toHaveBeenCalledWith(
+        expect.objectContaining({ baseCurrencyCode: 'USD' })
+      );
+    });
   });
 });
