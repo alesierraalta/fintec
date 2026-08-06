@@ -11,8 +11,8 @@
 
 import { Browser } from '@capacitor/browser';
 import { App } from '@capacitor/app';
-import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/repositories/supabase/client';
+import { isNativeShell } from '@/lib/platform/native-shell';
 
 // ---------------------------------------------------------------------------
 // T2.1 — signInWithGoogleNative
@@ -30,7 +30,7 @@ import { supabase } from '@/repositories/supabase/client';
 export async function signInWithGoogleNative(
   _next?: string
 ): Promise<{ error: unknown | null }> {
-  if (!Capacitor.isNativePlatform()) {
+  if (!isNativeShell()) {
     return { error: null };
   }
 
@@ -74,9 +74,7 @@ export function parseDeepLinkCode(url: string): string | null {
   const withoutScheme = url.slice('fintec://'.length); // "auth/callback?code=..."
   const questionMark = withoutScheme.indexOf('?');
   const path =
-    questionMark === -1
-      ? withoutScheme
-      : withoutScheme.slice(0, questionMark);
+    questionMark === -1 ? withoutScheme : withoutScheme.slice(0, questionMark);
 
   if (path !== 'auth/callback') return null;
   if (questionMark === -1) return null;
