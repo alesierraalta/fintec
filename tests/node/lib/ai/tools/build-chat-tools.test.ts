@@ -37,6 +37,7 @@ jest.mock('@/lib/ai/tools/resolvers', () => ({
 
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import { toolsResolvers } from '@/lib/ai/tools/resolvers';
+import { getAccountBalanceSchema } from '@/lib/ai/tools/schemas';
 
 function makeDeps(overrides: Partial<any> = {}) {
   return {
@@ -152,5 +153,80 @@ describe('buildChatTools — approvals port', () => {
 
     expect(mockRequestApproval).toHaveBeenCalledTimes(1);
     expect(mockWaitForApproval).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('getAccountBalance structured contract (installed ai@6.0.9 runtime)', () => {
+  const A = [
+    { name: 'Wallet USD', currencyCode: 'USD', balance: 1050 },
+    { name: 'Bolsillo VES', currencyCode: 'VES', balance: 250000 },
+  ] as any;
+  const SUCCESS = {
+    status: 'success',
+    accounts: [
+      { name: 'Wallet USD', balanceMinor: 1050, currencyCode: 'USD' },
+      { name: 'Bolsillo VES', balanceMinor: 250000, currencyCode: 'VES' },
+    ],
+    usdSubtotalMinor: 1050,
+  };
+  const tool = (deps: any = {}) =>
+    buildChatTools(makeDeps({ accounts: A, ...deps })).getAccountBalance as any;
+
+  it('preserves name/input schema and declares outputSchema + toModelOutput', () => {
+    const t = tool();
+    expect(t.inputSchema).toBe(getAccountBalanceSchema);
+    expect(t.outputSchema).toBeDefined();
+    expect(typeof t.toModelOutput).toBe('function');
+  });
+
+  it('rejects floats and unknown statuses at the schema level', () => {
+    const { accountBalanceResultSchema: S } = require('@/lib/ai/tools/schemas');
+    expect(
+      S.safeParse({
+        status: 'success',
+        accounts: [{ name: 'Wallet', balanceMinor: 10.5, currencyCode: 'USD' }],
+      }).success
+    ).toBe(false);
+    expect(S.safeParse({ status: 'maybe', message: 'x' }).success).toBe(false);
+  });
+
+  it('injects the already-loaded accounts and projects output via the REAL toModelOutput', async () => {
+    (toolsResolvers.getAccountBalance as jest.Mock).mockResolvedValue(SUCCESS);
+    const t = tool();
+    const output = await t.execute({});
+    expect(toolsResolvers.getAccountBalance).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ accounts: A })
+    );
+    const modelOutput = t.toModelOutput({
+      toolCallId: 'c1',
+      input: {},
+      output,
+    });
+    expect(modelOutput).toEqual({ type: 'text', value: expect.any(String) });
+    expect(modelOutput.value).toContain('Wallet USD');
+    expect(modelOutput.value).toContain('Total USD');
+    expect(modelOutput.value).not.toContain('Bs. 2,500.00 + €12.34');
+  });
+
+  it('projects empty and error states to their safe messages', async () => {
+    for (const resolved of [
+      { status: 'empty', message: 'No accounts found for your user.' },
+      {
+        status: 'error',
+        message:
+          'Unable to check account balances right now. Please try again.',
+      },
+    ]) {
+      (toolsResolvers.getAccountBalance as jest.Mock).mockResolvedValue(
+        resolved
+      );
+      const t = tool();
+      const output = await t.execute({});
+      expect(t.toModelOutput({ toolCallId: 'c1', input: {}, output })).toEqual({
+        type: 'text',
+        value: resolved.message,
+      });
+    }
   });
 });

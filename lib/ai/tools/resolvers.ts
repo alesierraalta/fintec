@@ -1,6 +1,5 @@
 import * as schemas from './schemas';
 import {
-  formatAccountBalance,
   formatGoalCreated,
   formatTransactionCreated,
   formatQueryResult,
@@ -10,11 +9,13 @@ import {
 } from './formatters';
 import type { AppRepository } from '@/repositories/contracts';
 import { TransactionType } from '@/types/domain';
+import type { Account } from '@/types/domain';
 import { embedText } from '../rag/embeddings';
 import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
 import { toMinorUnits, toBaseMinor } from '@/lib/money';
 import type { z } from 'zod';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { AccountBalanceResult } from './schemas';
 
 // Type inference from schemas
 type CreateTransactionArgs = z.infer<typeof schemas.createTransactionSchema>;
@@ -26,6 +27,8 @@ type SearchTransactionsArgs = z.infer<typeof schemas.searchTransactionsSchema>;
 interface ToolContext {
   userId: string;
   repository: AppRepository;
+  /** Accounts preloaded by the caller; `getAccountBalance` MUST NOT re-query when present. */
+  accounts?: Account[];
   /**
    * Raw Supabase client, required by `queryTransactions` and
    * `searchTransactions` to invoke the `query_transactions` and
@@ -273,19 +276,18 @@ export async function searchTransactions(
 }
 
 /**
- * Checks account balance(s).
+ * Checks account balance(s); uses injected accounts or the repository fallback.
  */
 export async function getAccountBalance(
   args: GetAccountBalanceArgs,
   ctx: ToolContext
-): Promise<string> {
+): Promise<AccountBalanceResult> {
   try {
-    const accountsRepo = ctx.repository.accounts;
-
-    const accounts = await accountsRepo.findByUserId(ctx.userId);
+    const accounts =
+      ctx.accounts ?? (await ctx.repository.accounts.findByUserId(ctx.userId));
 
     if (accounts.length === 0) {
-      return 'No accounts found for your user.';
+      return { status: 'empty', message: 'No accounts found for your user.' };
     }
 
     // Filter by account name if provided
@@ -297,17 +299,34 @@ export async function getAccountBalance(
       );
 
       if (!account) {
-        return `❌ Cuenta "${args.accountName}" no encontrada.`;
+        return {
+          status: 'empty',
+          message: `❌ Cuenta "${args.accountName}" no encontrada.`,
+        };
       }
 
       accountsToShow = [account];
     }
 
-    return formatAccountBalance(accountsToShow);
+    // USD-only subtotal; omitted when no USD account matches (no invented zero).
+    const usdAccounts = accountsToShow.filter((a) => a.currencyCode === 'USD');
+    const usdSubtotalMinor = usdAccounts.reduce((s, a) => s + a.balance, 0);
+
+    return {
+      status: 'success',
+      accounts: accountsToShow.map((account) => ({
+        name: account.name,
+        balanceMinor: account.balance,
+        currencyCode: account.currencyCode,
+      })),
+      ...(usdAccounts.length > 0 ? { usdSubtotalMinor } : {}),
+    };
   } catch (error) {
-    throw new Error(
-      `Failed to get account balance: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    // Safe failure state: never leak internal exception details to the model.
+    return {
+      status: 'error',
+      message: 'Unable to check account balances right now. Please try again.',
+    };
   }
 }
 

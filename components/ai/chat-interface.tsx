@@ -17,11 +17,18 @@ import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 /**
+ * Follow streamed content only while the scroll owner is within this band
+ * (in px) of the bottom; beyond it the user is reading history.
+ */
+const NEAR_BOTTOM_THRESHOLD = 120;
+
+/**
  * Main chat interface component with premium FinTec styling.
  * Responsive design for mobile and desktop.
  */
 export function ChatInterface() {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
   const [input, setInput] = useState('');
 
   const { messages, sendMessage, status, error } = useChat({
@@ -30,10 +37,31 @@ export function ChatInterface() {
 
   const isLoading = status === 'submitted' || status === 'streaming';
 
-  // Auto-scroll to bottom when new messages arrive
+  // Track proximity to the bottom of the scroll owner (the only scroll
+  // listener; passive so it never blocks the scroll itself).
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const el = scrollRef.current;
+    if (!el) return;
+    const update = () => {
+      const near =
+        el.scrollHeight - el.scrollTop - el.clientHeight <
+        NEAR_BOTTOM_THRESHOLD;
+      setIsNearBottom((prev) => (prev === near ? prev : near));
+    };
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    return () => el.removeEventListener('scroll', update);
+  }, []);
+
+  // Follow the stream only while near the bottom; a scrolled-away user keeps
+  // their reading position. Plain scrollTop assignment avoids smooth-scroll
+  // work on every chunk and is naturally reduced-motion friendly.
+  useEffect(() => {
+    if (!isNearBottom) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, isNearBottom]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,7 +104,11 @@ export function ChatInterface() {
     <div className="flex h-full flex-col bg-background">
       <ApprovalListener />
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto">
+      <div
+        ref={scrollRef}
+        data-testid="chat-scroll-container"
+        className="flex-1 overflow-y-auto"
+      >
         <div className="mx-auto flex h-full max-w-3xl flex-col px-4 py-6">
           {messages.length === 0 ? (
             // Empty State - Welcome Screen
@@ -158,8 +190,6 @@ export function ChatInterface() {
                   </div>
                 </div>
               )}
-
-              <div ref={messagesEndRef} />
             </div>
           )}
         </div>

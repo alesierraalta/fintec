@@ -1,8 +1,10 @@
 import { tool } from 'ai';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { AppRepository } from '@/repositories/contracts';
+import type { Account } from '@/types/domain';
 import { toolsResolvers } from './resolvers';
 import * as schemas from './schemas';
+import { formatAccountBalance } from './formatters';
 import {
   shouldRequestApproval,
   requestApproval as productionRequestApproval,
@@ -28,6 +30,8 @@ export interface BuildChatToolsDeps {
   repository: AppRepository;
   supabase: SupabaseClient;
   baseCurrencyCode: string;
+  /** Accounts preloaded by the chat route; injected to avoid a duplicate query. */
+  accounts?: Account[];
   /**
    * Optional HITL port. Defaults to the real `lib/ai/hitl/approval.ts`
    * functions when omitted — production behavior is unchanged.
@@ -42,7 +46,8 @@ export interface BuildChatToolsDeps {
  * app/api/chat/route.ts:110-194.
  */
 export function buildChatTools(deps: BuildChatToolsDeps) {
-  const { userId, threadId, repository, supabase, baseCurrencyCode } = deps;
+  const { userId, threadId, repository, supabase, baseCurrencyCode, accounts } =
+    deps;
   const approvals = deps.approvals ?? {
     requestApproval: productionRequestApproval,
     waitForApproval: productionWaitForApproval,
@@ -104,11 +109,26 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
     getAccountBalance: tool({
       description: 'Check the balance of specific or all accounts.',
       inputSchema: schemas.getAccountBalanceSchema,
+      outputSchema: schemas.accountBalanceResultSchema,
       execute: async (args: any) =>
         toolsResolvers.getAccountBalance(args, {
           userId,
           repository,
+          accounts,
         }),
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value:
+          output.status === 'success'
+            ? formatAccountBalance(
+                output.accounts.map(({ name, balanceMinor, currencyCode }) => ({
+                  name,
+                  balance: balanceMinor,
+                  currencyCode,
+                }))
+              )
+            : output.message,
+      }),
     }),
     createGoal: tool({
       description: 'Create a new financial goal.',

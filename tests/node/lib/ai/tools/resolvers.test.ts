@@ -26,6 +26,7 @@ import {
   queryTransactions,
   searchTransactions,
   createGoal,
+  getAccountBalance,
 } from '@/lib/ai/tools/resolvers';
 
 function makeRepository(overrides: Partial<any> = {}) {
@@ -465,5 +466,81 @@ describe('lib/ai/tools/resolvers — searchTransactions', () => {
         supabase: { rpc } as any,
       })
     ).rejects.toThrow(/search failed/);
+  });
+});
+
+describe('getAccountBalance structured result', () => {
+  const A = [
+    { name: 'Wallet USD', currencyCode: 'USD', balance: 1050 },
+    { name: 'Bolsillo VES', currencyCode: 'VES', balance: 250000 },
+    { name: 'EUR Savings', currencyCode: 'EUR', balance: 1234 },
+  ] as any;
+  const ctx = (accounts: any[]) => ({
+    userId: 'user-1',
+    repository: { accounts: { findByUserId: jest.fn() } } as any,
+    accounts,
+  });
+
+  it('returns typed success with integer minor units and a USD-only subtotal', async () => {
+    const r = await getAccountBalance({}, ctx(A));
+    expect(r).toEqual({
+      status: 'success',
+      accounts: [
+        { name: 'Wallet USD', balanceMinor: 1050, currencyCode: 'USD' },
+        { name: 'Bolsillo VES', balanceMinor: 250000, currencyCode: 'VES' },
+        { name: 'EUR Savings', balanceMinor: 1234, currencyCode: 'EUR' },
+      ],
+      usdSubtotalMinor: 1050, // VES/EUR never added
+    });
+  });
+
+  it('omits the USD subtotal when no USD account matches (no invented zero)', async () => {
+    const r = await getAccountBalance({}, ctx(A.slice(1)));
+    expect(r.status).toBe('success');
+    expect('usdSubtotalMinor' in (r as any)).toBe(false);
+  });
+
+  it('filters to the single matching account by case-insensitive name', async () => {
+    const r = await getAccountBalance({ accountName: 'wallet' }, ctx(A));
+    expect(r).toEqual({
+      status: 'success',
+      accounts: [
+        { name: 'Wallet USD', balanceMinor: 1050, currencyCode: 'USD' },
+      ],
+      usdSubtotalMinor: 1050,
+    });
+  });
+
+  it.each([
+    [{}, [], 'No accounts found for your user.'],
+    [{ accountName: 'X' }, A, '❌ Cuenta "X" no encontrada.'],
+  ])('returns an explicit empty state (%j)', async (args, accounts, msg) => {
+    const r = await getAccountBalance(args, ctx(accounts));
+    expect(r).toEqual({ status: 'empty', message: msg });
+  });
+
+  it('returns a safe error state without leaking internal details', async () => {
+    const repository = {
+      accounts: {
+        findByUserId: jest
+          .fn()
+          .mockRejectedValue(new Error('SECRET_DB_DSN exploded')),
+      },
+    } as any;
+    const r = await getAccountBalance({}, { userId: 'user-1', repository });
+    expect(r.status).toBe('error');
+    expect(JSON.stringify(r)).not.toContain('SECRET_DB_DSN');
+  });
+
+  it('uses injected accounts without re-querying; falls back to the repository when not injected', async () => {
+    const findByUserId = jest.fn().mockResolvedValue([A[0]]);
+    const repository = { accounts: { findByUserId } } as any;
+    await getAccountBalance(
+      {},
+      { userId: 'user-1', repository, accounts: [A[0]] }
+    );
+    expect(findByUserId).not.toHaveBeenCalled();
+    await getAccountBalance({}, { userId: 'user-1', repository });
+    expect(findByUserId).toHaveBeenCalledWith('user-1');
   });
 });

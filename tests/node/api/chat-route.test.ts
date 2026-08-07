@@ -306,7 +306,11 @@ describe('chat route', () => {
 
     expect(response.status).toBe(200);
     expect(body).toEqual({ ok: true });
-    expect(mockFindByUserId).toHaveBeenCalledWith('user-1');
+    // Loaded once and handed to the tools: exactly one account query.
+    expect(mockFindByUserId).toHaveBeenCalledTimes(1);
+    expect(mockBuildChatTools).toHaveBeenCalledWith(
+      expect.objectContaining({ accounts: expect.any(Array) })
+    );
     expect(mockStreamText).toHaveBeenCalledWith(
       expect.objectContaining({
         system: 'system',

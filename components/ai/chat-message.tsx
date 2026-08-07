@@ -2,7 +2,10 @@
 
 import { UIMessage } from 'ai';
 import { Sparkles, Wrench, Check } from 'lucide-react';
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { BalanceCard } from './balance-card';
+import { accountBalanceResultSchema } from '@/lib/ai/tools/schemas';
 
 interface ChatMessageProps {
   message: UIMessage;
@@ -15,11 +18,16 @@ interface ChatMessageProps {
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  // Retire the entrance animation after the first play so streaming updates
+  // never replay it on the same message node.
+  const [entranceDone, setEntranceDone] = useState(false);
 
   return (
     <div
+      onAnimationEnd={() => setEntranceDone(true)}
       className={cn(
-        'flex w-full animate-fade-in-up items-end gap-2.5',
+        'flex w-full items-end gap-2.5',
+        !entranceDone && 'animate-fade-in-up',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
@@ -52,6 +60,35 @@ export function ChatMessage({ message }: ChatMessageProps) {
                   part.state === 'output-available' &&
                   part.output
                 ) {
+                  // Known balance tool: dispatch only validated structured output.
+                  if (part.type === 'tool-getAccountBalance') {
+                    const parsed = accountBalanceResultSchema.safeParse(
+                      part.output
+                    );
+                    if (parsed.success) {
+                      if (parsed.data.status === 'success') {
+                        return (
+                          <BalanceCard
+                            key={index}
+                            accounts={parsed.data.accounts}
+                            usdSubtotalMinor={parsed.data.usdSubtotalMinor}
+                          />
+                        );
+                      }
+                      // Empty/error state: safe message text, no fabricated values.
+                      return (
+                        <div
+                          key={index}
+                          className="mt-2 rounded-xl border border-border/50 bg-muted/40 p-3"
+                        >
+                          <p className="text-sm text-muted-foreground">
+                            {parsed.data.message}
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+                  // Unknown tool or malformed output: safe generic fallback.
                   return (
                     <div
                       key={index}
@@ -68,7 +105,11 @@ export function ChatMessage({ message }: ChatMessageProps) {
                           {part.type.replace('tool-', '')}
                         </span>
                       </div>
-                      <div className="text-sm">{part.output}</div>
+                      <div className="text-sm">
+                        {typeof part.output === 'string'
+                          ? part.output
+                          : JSON.stringify(part.output)}
+                      </div>
                     </div>
                   );
                 }

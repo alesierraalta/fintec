@@ -140,6 +140,7 @@ export async function POST(req: Request) {
       repository,
       supabase,
       baseCurrencyCode,
+      accounts,
     });
 
     // 6. Execute with Recovery & State
