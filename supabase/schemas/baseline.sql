@@ -157,6 +157,13 @@ DECLARE
   v_account_id_to_use UUID;
   v_transaction_id UUID;
 BEGIN
+  -- Only the service role may approve payment orders. auth.uid() is NULL when the
+  -- RPC runs under the service_role key; the grants below already block direct
+  -- authenticated/anon calls, this guard is defense in depth against re-granting.
+  IF auth.uid() IS NOT NULL THEN
+    RAISE EXCEPTION 'Unauthorized: only the service role can approve payment orders';
+  END IF;
+
   -- Get order details
   SELECT * INTO v_order
   FROM payment_orders
@@ -571,7 +578,17 @@ CREATE OR REPLACE FUNCTION "public"."create_transaction_and_adjust_balance"("p_a
 declare
   v_tx public.transactions;
   v_adjustment integer := 0;
+  v_caller uuid := auth.uid();
 begin
+  -- Ownership guard: an authenticated caller may only touch their own accounts.
+  -- auth.uid() IS NULL for service_role (admin/cron) calls, which bypasses this.
+  if v_caller is not null and not exists (
+    select 1 from public.accounts
+    where id = p_account_id and user_id = v_caller
+  ) then
+    raise exception 'Account not found or does not belong to user';
+  end if;
+
   if p_type in ('INCOME', 'TRANSFER_IN') then
     v_adjustment := p_amount_minor;
   elsif p_type in ('EXPENSE', 'TRANSFER_OUT') then
@@ -610,6 +627,15 @@ DECLARE
   balance_delta bigint;
   v_skip_enabled boolean;
 BEGIN
+  -- Ownership guard: an authenticated caller may only touch their own accounts.
+  -- auth.uid() IS NULL for service_role (admin/cron) calls, which bypasses this.
+  IF auth.uid() IS NOT NULL AND NOT EXISTS (
+    SELECT 1 FROM public.accounts
+    WHERE id = p_account_id AND user_id = auth.uid()
+  ) THEN
+    RAISE EXCEPTION 'Account not found or does not belong to user';
+  END IF;
+
   IF p_is_debt = true AND p_debt_direction IS NULL THEN
     RAISE EXCEPTION 'debt_direction is required when is_debt=true';
   END IF;
@@ -734,6 +760,12 @@ DECLARE
   v_to_decimals INTEGER;
   v_combined_note TEXT;
 BEGIN
+  -- Ownership guard: an authenticated caller may only transfer as themselves.
+  -- auth.uid() IS NULL for service_role (admin/cron) calls, which bypasses this.
+  IF auth.uid() IS NOT NULL AND p_user_id <> auth.uid() THEN
+    RAISE EXCEPTION 'Unauthorized: cannot transfer funds for another user';
+  END IF;
+
   SELECT * INTO v_from_account FROM public.accounts 
   WHERE id = p_from_account_id AND user_id = p_user_id FOR UPDATE;
   
@@ -958,6 +990,13 @@ BEGIN
 
   IF NOT v_rec.is_active THEN
     RAISE EXCEPTION 'Recurring transaction % is not active', p_recurring_transaction_id;
+  END IF;
+
+  -- Ownership guard: an authenticated caller may only execute their own
+  -- recurring transactions. auth.uid() IS NULL for service_role (cron) calls,
+  -- which bypasses this.
+  IF auth.uid() IS NOT NULL AND v_rec.user_id <> auth.uid() THEN
+    RAISE EXCEPTION 'Unauthorized: cannot execute another user''s recurring transaction';
   END IF;
 
   -- 2. Insert standard transaction
@@ -4058,17 +4097,11 @@ ALTER TABLE "public"."orders" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."payment_orders" ENABLE ROW LEVEL SECURITY;
 
 
-CREATE POLICY "payment_orders_select_policy" ON "public"."payment_orders" FOR SELECT TO "authenticated" USING (((( SELECT "auth"."uid"() AS "uid") = "user_id") OR (EXISTS ( SELECT 1
-   FROM "public"."users"
-  WHERE (("users"."id" = ( SELECT "auth"."uid"() AS "uid")) AND ("users"."tier" = 'premium'::"text"))))));
+CREATE POLICY "payment_orders_select_policy" ON "public"."payment_orders" FOR SELECT TO "authenticated" USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
-CREATE POLICY "payment_orders_update_policy" ON "public"."payment_orders" FOR UPDATE TO "authenticated" USING ((((( SELECT "auth"."uid"() AS "uid") = "user_id") AND ("status" = 'pending'::"text")) OR (EXISTS ( SELECT 1
-   FROM "public"."users"
-  WHERE (("users"."id" = ( SELECT "auth"."uid"() AS "uid")) AND ("users"."tier" = 'premium'::"text")))))) WITH CHECK (((( SELECT "auth"."uid"() AS "uid") = "user_id") OR (EXISTS ( SELECT 1
-   FROM "public"."users"
-  WHERE (("users"."id" = ( SELECT "auth"."uid"() AS "uid")) AND ("users"."tier" = 'premium'::"text"))))));
+CREATE POLICY "payment_orders_update_policy" ON "public"."payment_orders" FOR UPDATE TO "authenticated" USING (((( SELECT "auth"."uid"() AS "uid") = "user_id") AND ("status" = 'pending'::"text"))) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -4131,8 +4164,9 @@ GRANT ALL ON TABLE "public"."payment_orders" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") TO "authenticated";
+REVOKE ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") FROM "anon";
+REVOKE ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") FROM "authenticated";
 GRANT ALL ON FUNCTION "public"."approve_payment_order"("p_order_id" "uuid", "p_admin_id" "uuid", "p_account_id" "uuid") TO "service_role";
 
 
@@ -4179,13 +4213,15 @@ GRANT ALL ON TABLE "public"."transactions" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" integer, "p_amount_base_minor" integer, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[]) TO "anon";
+REVOKE ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" integer, "p_amount_base_minor" integer, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" integer, "p_amount_base_minor" integer, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[]) FROM "anon";
 GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" integer, "p_amount_base_minor" integer, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[]) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" integer, "p_amount_base_minor" integer, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[]) TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text", "p_settled_at" timestamp with time zone) TO "anon";
+REVOKE ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text", "p_settled_at" timestamp with time zone) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text", "p_settled_at" timestamp with time zone) FROM "anon";
 GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text", "p_settled_at" timestamp with time zone) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_transaction_and_adjust_balance"("p_account_id" "uuid", "p_category_id" "uuid", "p_type" "text", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text", "p_settled_at" timestamp with time zone) TO "service_role";
 
@@ -4197,7 +4233,8 @@ GRANT ALL ON FUNCTION "public"."create_transaction_v2"("p_type" "text", "p_accou
 
 
 
-GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") TO "anon";
+REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") FROM "anon";
 GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") TO "service_role";
 
@@ -4221,7 +4258,8 @@ GRANT ALL ON FUNCTION "public"."delete_transactions_v2"("p_ids" "uuid"[]) TO "se
 
 
 
-GRANT ALL ON FUNCTION "public"."execute_due_recurring_transaction"("p_recurring_transaction_id" "uuid", "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_execution_date" "date", "p_next_execution_date" "date") TO "anon";
+REVOKE ALL ON FUNCTION "public"."execute_due_recurring_transaction"("p_recurring_transaction_id" "uuid", "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_execution_date" "date", "p_next_execution_date" "date") FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."execute_due_recurring_transaction"("p_recurring_transaction_id" "uuid", "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_execution_date" "date", "p_next_execution_date" "date") FROM "anon";
 GRANT ALL ON FUNCTION "public"."execute_due_recurring_transaction"("p_recurring_transaction_id" "uuid", "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_execution_date" "date", "p_next_execution_date" "date") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."execute_due_recurring_transaction"("p_recurring_transaction_id" "uuid", "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_execution_date" "date", "p_next_execution_date" "date") TO "service_role";
 
