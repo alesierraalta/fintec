@@ -3150,6 +3150,10 @@ CREATE INDEX "idx_debt_settlements_user_id" ON "public"."debt_settlements" USING
 
 
 
+CREATE INDEX "idx_exchange_rates_created_at" ON "public"."exchange_rates" USING "btree" ("created_at" DESC);
+
+
+
 CREATE INDEX "idx_exchange_rates_source" ON "public"."exchange_rates" USING "btree" ("source");
 
 

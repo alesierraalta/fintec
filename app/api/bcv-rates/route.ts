@@ -8,24 +8,62 @@ import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
 import { logger } from '@/lib/utils/logger';
 import { ScrapeAndPersistRates } from '@/lib/rates/scrape-pipeline';
 import { InMemoryLock } from '@/lib/rates/simple-lock';
-import { createServiceClient } from '@/lib/supabase/admin';
-import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
+import { scheduleBackgroundRateRefresh } from '@/lib/rates/rate-refresh';
 import { SupabaseScrapeAttemptsRepository } from '@/repositories/supabase/scrape-attempts-repository-impl';
 import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 import { ExchangeRateDatabaseBCVWriter } from '@/lib/rates/bcv-rate-db-writer';
+import { createServiceClient } from '@/lib/supabase/admin';
+import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 /**
- * How old (in seconds) can cached data be before we attempt a live scrape.
- * 2 hours = 7200s — BCV updates once daily, but stale data >2h is risky.
+ * How old (in seconds) can cached data be before we consider it stale.
+ * 2 hours = 7200s — BCV updates once daily, but data >2h is risky.
  */
 const STALE_THRESHOLD_SECONDS = 2 * 60 * 60;
+
+const REFRESH_KEY = 'bcv';
+
+/**
+ * Background refresh: scrape + persist fresh data through the server-only
+ * service client. exchange_rates INSERT is scoped to service_role after the
+ * RLS hardening (#47/#48); the GET path must never reintroduce anon writes.
+ */
+async function refreshBCVRatesInBackground(): Promise<void> {
+  const liveResult = await scrapeBCVRates();
+
+  if (!liveResult.success || isFallbackSource(liveResult.data.source)) {
+    logger.warn(
+      'BCV API: background refresh skipped (scrape failed or fallback source)'
+    );
+    return;
+  }
+
+  const serviceClient = createServiceClient();
+  const ratesRepo = new SupabaseRatesHistoryRepository(serviceClient);
+  const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
+  const persisted = await writer.write({
+    usd: liveResult.data.usd,
+    eur: liveResult.data.eur,
+    source: liveResult.data.source,
+    lastUpdated: liveResult.data.lastUpdated,
+  });
+
+  if (!persisted) {
+    logger.warn(
+      'BCV API: background refresh could not persist fresh scrape data'
+    );
+  }
+}
 
 /**
  * GET /api/bcv-rates
  * Returns the latest BCV exchange rates.
- * If database data is stale (>2h), attempts a live scrape before returning.
+ * Serves the stored value immediately (stale-while-revalidate): a stale
+ * (>2h) or missing snapshot triggers a coalesced background refresh instead
+ * of blocking the request on a synchronous external scrape.
  */
 export async function GET() {
   try {
@@ -53,47 +91,12 @@ export async function GET() {
         });
       }
 
-      // Data is stale — attempt live scrape
+      // Data is stale — serve it immediately; refresh in the background.
       logger.warn(
-        `BCV API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), attempting live scrape`
+        `BCV API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
       );
-      const liveResult = await scrapeBCVRates();
+      scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBCVRatesInBackground);
 
-      if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
-        // Persist fresh data so subsequent requests don't hit stale path
-        try {
-          const ratesRepo = new SupabaseRatesHistoryRepository();
-          const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
-          await writer.write({
-            usd: liveResult.data.usd,
-            eur: liveResult.data.eur,
-            source: liveResult.data.source,
-            lastUpdated: liveResult.data.lastUpdated,
-          });
-        } catch (persistError) {
-          logger.error(
-            'BCV API: Failed to persist fresh scrape data:',
-            persistError
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            usd: liveResult.data.usd,
-            eur: liveResult.data.eur,
-            timestamp: liveResult.data.lastUpdated,
-            source: liveResult.data.source,
-          },
-          cached: false,
-          fromLiveScrape: true,
-          fallback: false,
-          executionTime: liveResult.executionTime,
-        });
-      }
-
-      // Live scrape failed — return stale data with warning
-      logger.warn('BCV API: Live scrape failed, returning stale database data');
       return NextResponse.json({
         success: true,
         data: {
@@ -104,58 +107,24 @@ export async function GET() {
         cached: true,
         cacheAge: cacheAgeSeconds,
         stale: true,
-        staleReason: `Data is ${cacheAgeSeconds}s old, live scrape failed`,
+        staleReason: `Data is ${cacheAgeSeconds}s old, background refresh scheduled`,
         fallback: false,
       });
     }
 
-    // No data at all — attempt live scrape
-    logger.warn('BCV API: No data found in database, attempting live scrape');
-    const liveResult = await scrapeBCVRates();
-
-    if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
-      // Persist fresh data so subsequent requests don't hit empty path
-      try {
-        const ratesRepo = new SupabaseRatesHistoryRepository();
-        const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
-        await writer.write({
-          usd: liveResult.data.usd,
-          eur: liveResult.data.eur,
-          source: liveResult.data.source,
-          lastUpdated: liveResult.data.lastUpdated,
-        });
-      } catch (persistError) {
-        logger.error(
-          'BCV API: Failed to persist fresh scrape data:',
-          persistError
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          usd: liveResult.data.usd,
-          eur: liveResult.data.eur,
-          timestamp: liveResult.data.lastUpdated,
-          source: liveResult.data.source,
-        },
-        cached: false,
-        fromLiveScrape: true,
-        fallback: false,
-        executionTime: liveResult.executionTime,
-      });
-    }
-
+    // No data at all — serve the fallback immediately; refresh in background.
     logger.warn(
-      'BCV API: Live scrape failed, refusing successful static fallback'
+      'BCV API: No data found in database, scheduling background refresh'
     );
+    scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBCVRatesInBackground);
+
     return NextResponse.json(
       {
         success: false,
-        error: liveResult.error || 'No BCV exchange rate data available',
-        data: buildBCVFallbackData('live-scrape-failed'),
+        error: 'No BCV exchange rate data available',
+        data: buildBCVFallbackData('refresh-scheduled'),
         fallback: true,
-        fallbackReason: 'No database data and live BCV scrape failed',
+        fallbackReason: 'No database data; background refresh scheduled',
       },
       { status: 503 }
     );
