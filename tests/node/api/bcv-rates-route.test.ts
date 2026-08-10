@@ -3,6 +3,9 @@ const mockScrapeBCVRates = jest.fn();
 const mockPipelineExecute = jest.fn();
 const mockGetAuthenticatedUser = jest.fn();
 const mockCreateServiceClient = jest.fn();
+const mockScheduleRefresh = jest.fn();
+const mockWriterWrite = jest.fn();
+const mockRatesRepoArgs = jest.fn();
 
 jest.mock('@/lib/services/exchange-rate-db', () =>
   jest.fn().mockImplementation(() => ({
@@ -12,6 +15,11 @@ jest.mock('@/lib/services/exchange-rate-db', () =>
 
 jest.mock('@/lib/scrapers/bcv-scraper', () => ({
   scrapeBCVRates: mockScrapeBCVRates,
+}));
+
+jest.mock('@/lib/rates/rate-refresh', () => ({
+  scheduleBackgroundRateRefresh: (...args: unknown[]) =>
+    mockScheduleRefresh(...args),
 }));
 
 jest.mock('@/lib/utils/logger', () => ({
@@ -47,11 +55,18 @@ jest.mock('@/repositories/supabase/scrape-attempts-repository-impl', () => ({
 }));
 
 jest.mock('@/repositories/supabase/rates-history-repository-impl', () => ({
-  SupabaseRatesHistoryRepository: jest.fn().mockImplementation(() => ({})),
+  SupabaseRatesHistoryRepository: jest
+    .fn()
+    .mockImplementation((...args: unknown[]) => {
+      mockRatesRepoArgs(...args);
+      return {};
+    }),
 }));
 
 jest.mock('@/lib/rates/bcv-rate-db-writer', () => ({
-  ExchangeRateDatabaseBCVWriter: jest.fn().mockImplementation(() => ({})),
+  ExchangeRateDatabaseBCVWriter: jest.fn().mockImplementation(() => ({
+    write: mockWriterWrite,
+  })),
 }));
 
 describe('/api/bcv-rates', () => {
@@ -62,23 +77,34 @@ describe('/api/bcv-rates', () => {
     mockPipelineExecute.mockReset();
     mockGetAuthenticatedUser.mockReset();
     mockCreateServiceClient.mockReset();
+    mockScheduleRefresh.mockReset();
+    mockWriterWrite.mockReset();
+    mockRatesRepoArgs.mockReset();
     mockCreateServiceClient.mockReturnValue({ from: jest.fn() });
     delete process.env.CRON_SECRET;
   });
 
   describe('GET', () => {
+    const recentTimestamp = () =>
+      new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const staleTimestamp = () =>
+      new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const staleSnapshot = {
+      usd_ves: 151.52,
+      usdt_ves: 160,
+      sell_rate: 160,
+      buy_rate: 158,
+      lastUpdated: staleTimestamp(),
+      source: 'BCV',
+    };
+    const capturedTask = (): (() => Promise<void>) =>
+      mockScheduleRefresh.mock.calls[0]?.[1] as () => Promise<void>;
+
     it('returns cached database rates when available and fresh', async () => {
-      // Use a recent timestamp (within 2 hours) so staleness check passes
-      const recentTimestamp = new Date(
-        Date.now() - 30 * 60 * 1000
-      ).toISOString();
+      const freshTimestamp = recentTimestamp();
       mockGetLatestExchangeRate.mockResolvedValue({
-        usd_ves: 151.52,
-        usdt_ves: 160,
-        sell_rate: 160,
-        buy_rate: 158,
-        lastUpdated: recentTimestamp,
-        source: 'BCV',
+        ...staleSnapshot,
+        lastUpdated: freshTimestamp,
       });
 
       const { GET } = await import('@/app/api/bcv-rates/route');
@@ -92,26 +118,55 @@ describe('/api/bcv-rates', () => {
         fallback: false,
         data: {
           usd: 151.52,
-          timestamp: recentTimestamp,
+          timestamp: freshTimestamp,
           source: 'BCV',
         },
       });
       expect(mockScrapeBCVRates).not.toHaveBeenCalled();
+      expect(mockScheduleRefresh).not.toHaveBeenCalled();
     });
 
-    it('attempts live scrape when database data is stale', async () => {
-      // Use a stale timestamp (more than 2 hours old)
-      const staleTimestamp = new Date(
-        Date.now() - 3 * 60 * 60 * 1000
-      ).toISOString();
-      mockGetLatestExchangeRate.mockResolvedValue({
-        usd_ves: 151.52,
-        usdt_ves: 160,
-        sell_rate: 160,
-        buy_rate: 158,
-        lastUpdated: staleTimestamp,
-        source: 'BCV',
+    it('serves stale data immediately and schedules a background refresh instead of blocking on scrape', async () => {
+      mockGetLatestExchangeRate.mockResolvedValue(staleSnapshot);
+
+      const { GET } = await import('@/app/api/bcv-rates/route');
+      const response = await GET();
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body).toMatchObject({
+        success: true,
+        cached: true,
+        stale: true,
+        fallback: false,
+        data: {
+          usd: 151.52,
+          source: 'BCV',
+        },
       });
+      expect(mockScrapeBCVRates).not.toHaveBeenCalled();
+      expect(mockScheduleRefresh).toHaveBeenCalledWith(
+        'bcv',
+        expect.any(Function)
+      );
+    });
+
+    it('schedules one coalesced refresh key for concurrent stale requests', async () => {
+      mockGetLatestExchangeRate.mockResolvedValue(staleSnapshot);
+
+      const { GET } = await import('@/app/api/bcv-rates/route');
+      await GET();
+      await GET();
+
+      expect(mockScheduleRefresh).toHaveBeenCalledTimes(2);
+      expect(mockScheduleRefresh).toHaveBeenCalledWith(
+        'bcv',
+        expect.any(Function)
+      );
+    });
+
+    it('persists a successful background refresh through the service client', async () => {
+      mockGetLatestExchangeRate.mockResolvedValue(staleSnapshot);
       mockScrapeBCVRates.mockResolvedValue({
         success: true,
         data: {
@@ -122,65 +177,54 @@ describe('/api/bcv-rates', () => {
         },
         executionTime: 42,
       });
+      mockWriterWrite.mockResolvedValue(true);
+      const serviceClient = { from: jest.fn() };
+      mockCreateServiceClient.mockReturnValue(serviceClient);
 
       const { GET } = await import('@/app/api/bcv-rates/route');
-      const response = await GET();
-      const body = await response.json();
+      await GET();
 
-      expect(response.status).toBe(200);
-      expect(body).toMatchObject({
-        success: true,
-        cached: false,
-        fromLiveScrape: true,
-        fallback: false,
-      });
-      expect(mockScrapeBCVRates).toHaveBeenCalled();
+      const task = capturedTask();
+      expect(task).toBeDefined();
+      await task();
+
+      expect(mockScrapeBCVRates).toHaveBeenCalledTimes(1);
+      expect(mockCreateServiceClient).toHaveBeenCalledTimes(1);
+      expect(mockRatesRepoArgs).toHaveBeenCalledWith(serviceClient);
+      expect(mockWriterWrite).toHaveBeenCalledWith(
+        expect.objectContaining({
+          usd: 544.58,
+          eur: 633.48,
+          source: 'BCV',
+        })
+      );
     });
 
-    it('scrapes live BCV rates when the database is empty', async () => {
-      mockGetLatestExchangeRate.mockResolvedValue(null);
-      mockScrapeBCVRates.mockResolvedValue({
-        success: true,
-        data: {
-          usd: 151.52,
-          eur: 172.42,
-          lastUpdated: '2026-05-17T10:05:00.000Z',
-          source: 'BCV',
-        },
-        executionTime: 42,
-      });
-
-      const { GET } = await import('@/app/api/bcv-rates/route');
-      const response = await GET();
-      const body = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(body).toMatchObject({
-        success: true,
-        cached: false,
-        fromLiveScrape: true,
-        fallback: false,
-        data: {
-          usd: 151.52,
-          eur: 172.42,
-          timestamp: '2026-05-17T10:05:00.000Z',
-          source: 'BCV',
-        },
-      });
-    });
-
-    it('returns 503 instead of successful static fallback when DB and live scrape fail', async () => {
-      mockGetLatestExchangeRate.mockResolvedValue(null);
+    it('keeps the stale response when the background refresh fails', async () => {
+      mockGetLatestExchangeRate.mockResolvedValue(staleSnapshot);
       mockScrapeBCVRates.mockResolvedValue({
         success: false,
         error: 'Failed to extract USD and EUR rates',
-        data: {
-          usd: 60.15,
-          eur: 64.2,
-          lastUpdated: '2026-05-17T10:06:00.000Z',
-          source: 'BCV (fallback - error)',
-        },
+        data: null,
       });
+
+      const { GET } = await import('@/app/api/bcv-rates/route');
+      const response = await GET();
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.stale).toBe(true);
+      expect(body.data.usd).toBe(151.52);
+
+      const task = capturedTask();
+      await task();
+
+      expect(mockWriterWrite).not.toHaveBeenCalled();
+      expect(mockCreateServiceClient).not.toHaveBeenCalled();
+    });
+
+    it('returns fallback immediately when the database is empty and schedules a refresh', async () => {
+      mockGetLatestExchangeRate.mockResolvedValue(null);
 
       const { GET } = await import('@/app/api/bcv-rates/route');
       const response = await GET();
@@ -190,9 +234,14 @@ describe('/api/bcv-rates', () => {
       expect(body).toMatchObject({
         success: false,
         fallback: true,
-        fallbackReason: 'No database data and live BCV scrape failed',
+        fallbackReason: 'No database data; background refresh scheduled',
       });
       expect(body.data.source).toContain('fallback');
+      expect(mockScrapeBCVRates).not.toHaveBeenCalled();
+      expect(mockScheduleRefresh).toHaveBeenCalledWith(
+        'bcv',
+        expect.any(Function)
+      );
     });
   });
 

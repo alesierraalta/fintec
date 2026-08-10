@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import ExchangeRateDatabase from '@/lib/services/exchange-rate-db';
 import { logger } from '@/lib/utils/logger';
 import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
+import { scheduleBackgroundRateRefresh } from '@/lib/rates/rate-refresh';
+import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
+import { createServiceClient } from '@/lib/supabase/admin';
 import {
   buildBinanceFallbackData,
   isFallbackSource,
@@ -12,10 +15,48 @@ export const dynamic = 'force-dynamic';
 
 const STALE_THRESHOLD_SECONDS = 2 * 60 * 60;
 
+const REFRESH_KEY = 'binance';
+
+/**
+ * Background refresh: scrape + persist fresh data through the server-only
+ * service client. exchange_rates INSERT is scoped to service_role after the
+ * RLS hardening (#47/#48); the GET path must never reintroduce anon writes.
+ */
+async function refreshBinanceRatesInBackground(): Promise<void> {
+  const liveResult = await scrapeBinanceRates();
+
+  if (!liveResult.success || isFallbackSource(liveResult.data.source)) {
+    logger.warn(
+      'Binance API: background refresh skipped (scrape failed or fallback source)'
+    );
+    return;
+  }
+
+  const serviceClient = createServiceClient();
+  const ratesRepo = new SupabaseRatesHistoryRepository(serviceClient);
+  const db = new ExchangeRateDatabase(ratesRepo);
+  const persisted = await db.storeExchangeRate({
+    usd_ves: liveResult.data.usd_ves,
+    usdt_ves: liveResult.data.usdt_ves,
+    sell_rate: liveResult.data.sell_rate,
+    buy_rate: liveResult.data.buy_rate,
+    lastUpdated: liveResult.data.lastUpdated,
+    source: liveResult.data.source,
+  });
+
+  if (!persisted) {
+    logger.warn(
+      'Binance API: background refresh could not persist fresh scrape data'
+    );
+  }
+}
+
 /**
  * GET /api/binance-rates
  * Returns the latest Binance P2P exchange rates from the database.
- * If cached database rate is stale (>2h) or missing, triggers a live scrape.
+ * Serves the stored value immediately (stale-while-revalidate): a stale
+ * (>2h) or missing snapshot triggers a coalesced background refresh instead
+ * of blocking the request on a synchronous external scrape.
  */
 export async function GET() {
   try {
@@ -55,58 +96,15 @@ export async function GET() {
         });
       }
 
-      // Cache is stale - attempt live scrape
+      // Cache is stale - serve it immediately; refresh in the background.
       logger.warn(
-        `Binance API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), attempting live scrape`
+        `Binance API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
       );
-      const liveResult = await scrapeBinanceRates();
-
-      if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
-        // Persist fresh data
-        try {
-          await db.storeExchangeRate({
-            usd_ves: liveResult.data.usd_ves,
-            usdt_ves: liveResult.data.usdt_ves,
-            sell_rate: liveResult.data.sell_rate,
-            buy_rate: liveResult.data.buy_rate,
-            lastUpdated: liveResult.data.lastUpdated,
-            source: liveResult.data.source,
-          });
-        } catch (persistError) {
-          logger.error(
-            'Binance API: Failed to persist fresh scrape data:',
-            persistError
-          );
-        }
-
-        return NextResponse.json({
-          success: true,
-          data: {
-            usd_ves: liveResult.data.usd_ves,
-            usdt_ves: liveResult.data.usdt_ves,
-            busd_ves: liveResult.data.busd_ves,
-            sell_rate: liveResult.data.sell_rate,
-            buy_rate: liveResult.data.buy_rate,
-            sell_min: liveResult.data.sell_min,
-            sell_avg: liveResult.data.sell_avg,
-            sell_max: liveResult.data.sell_max,
-            buy_min: liveResult.data.buy_min,
-            buy_avg: liveResult.data.buy_avg,
-            buy_max: liveResult.data.buy_max,
-            prices_used: liveResult.data.prices_used,
-            lastUpdated: liveResult.data.lastUpdated,
-            source: liveResult.data.source,
-          },
-          cached: false,
-          fromLiveScrape: true,
-          fallback: false,
-        });
-      }
-
-      // Live scrape failed — return stale data with warning
-      logger.warn(
-        'Binance API: Live scrape failed, returning stale database data'
+      scheduleBackgroundRateRefresh(
+        REFRESH_KEY,
+        refreshBinanceRatesInBackground
       );
+
       return NextResponse.json({
         success: true,
         data: {
@@ -128,63 +126,22 @@ export async function GET() {
         cached: true,
         cacheAge: cacheAgeSeconds,
         stale: true,
-        staleReason: `Cached data is stale (${cacheAgeSeconds}s old), live scrape failed`,
+        staleReason: `Cached data is stale (${cacheAgeSeconds}s old), background refresh scheduled`,
         fallback: isFallback,
       });
     }
 
-    // No database snapshot exists - attempt live scrape
+    // No database snapshot exists - serve fallback immediately; refresh in background.
     logger.warn(
-      'Binance API: No data found in database, attempting live scrape'
+      'Binance API: No data found in database, scheduling background refresh'
     );
-    const liveResult = await scrapeBinanceRates();
+    scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBinanceRatesInBackground);
 
-    if (liveResult.success && !isFallbackSource(liveResult.data.source)) {
-      try {
-        await db.storeExchangeRate({
-          usd_ves: liveResult.data.usd_ves,
-          usdt_ves: liveResult.data.usdt_ves,
-          sell_rate: liveResult.data.sell_rate,
-          buy_rate: liveResult.data.buy_rate,
-          lastUpdated: liveResult.data.lastUpdated,
-          source: liveResult.data.source,
-        });
-      } catch (persistError) {
-        logger.error(
-          'Binance API: Failed to persist fresh scrape data:',
-          persistError
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          usd_ves: liveResult.data.usd_ves,
-          usdt_ves: liveResult.data.usdt_ves,
-          busd_ves: liveResult.data.busd_ves,
-          sell_rate: liveResult.data.sell_rate,
-          buy_rate: liveResult.data.buy_rate,
-          sell_min: liveResult.data.sell_min,
-          sell_avg: liveResult.data.sell_avg,
-          sell_max: liveResult.data.sell_max,
-          buy_min: liveResult.data.buy_min,
-          buy_avg: liveResult.data.buy_avg,
-          buy_max: liveResult.data.buy_max,
-          prices_used: liveResult.data.prices_used,
-          lastUpdated: liveResult.data.lastUpdated,
-          source: liveResult.data.source,
-        },
-        cached: false,
-        fromLiveScrape: true,
-        fallback: false,
-      });
-    }
-
-    const fallbackData = buildBinanceFallbackData('live-scrape-failed');
+    const fallbackData = buildBinanceFallbackData('refresh-scheduled');
     return NextResponse.json(
       {
         success: false,
-        error: liveResult.error || 'No Binance exchange rate data available',
+        error: 'No Binance exchange rate data available',
         data: {
           usd_ves: fallbackData.usd_ves,
           usdt_ves: fallbackData.usdt_ves,
@@ -202,7 +159,7 @@ export async function GET() {
           source: fallbackData.source,
         },
         fallback: true,
-        fallbackReason: 'No database data and live Binance scrape failed',
+        fallbackReason: 'No database data; background refresh scheduled',
       },
       { status: 503 }
     );
