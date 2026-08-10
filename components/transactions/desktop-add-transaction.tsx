@@ -64,6 +64,15 @@ const transactionTypes = [
 
 // Categories are now loaded from database
 
+// Applies a calculator key press to a previous value. Pure and closure-free
+// so batched digit presses accumulate instead of overwriting one another.
+function applyCalculatorKey(current: string, key: string): string {
+  if (key === '⌫') {
+    return current.length > 1 ? current.slice(0, -1) : '0';
+  }
+  return current === '0' ? key : current + key;
+}
+
 export function DesktopAddTransaction() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -203,19 +212,13 @@ export function DesktopAddTransaction() {
         setCalculatorValue('Error');
         setFormData((prev) => ({ ...prev, amount: '' }));
       }
-    } else if (value === '⌫') {
-      const newValue =
-        calculatorValue.length > 1 ? calculatorValue.slice(0, -1) : '0';
-      setCalculatorValue(newValue);
-      setFormData((prev) => ({
-        ...prev,
-        amount: newValue === '0' ? '' : newValue,
-      }));
     } else {
-      const newValue =
-        calculatorValue === '0' ? value : calculatorValue + value;
-      setCalculatorValue(newValue);
-      setFormData((prev) => ({ ...prev, amount: newValue }));
+      setCalculatorValue((prev) => applyCalculatorKey(prev, value));
+      setFormData((prev) => {
+        const current = prev.amount === '' ? '0' : prev.amount;
+        const next = applyCalculatorKey(current, value);
+        return { ...prev, amount: next === '0' ? '' : next };
+      });
     }
   };
 

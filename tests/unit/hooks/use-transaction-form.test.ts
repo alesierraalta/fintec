@@ -21,7 +21,7 @@ const mockRepository = {
   accounts: {
     findByUserId: jest
       .fn()
-      .mockResolvedValue([{ id: 'a1', active: true, currencyCode: 'USD' }]),
+      .mockResolvedValue([{ id: 'a1', active: true, currencyCode: 'VES' }]),
   },
   transactions: { create: jest.fn().mockResolvedValue({ id: 't1' }) },
 };
@@ -69,22 +69,42 @@ describe('useTransactionForm', () => {
   });
 
   describe('Calculator', () => {
-    it('handles numeric input', async () => {
+    it('accumulates batched digit presses and persists VES minor units', async () => {
       const { result } = renderHook(() => useTransactionForm());
       await waitFor(() => {
         expect(result.current.loadingCategories).toBe(false);
         expect(result.current.loadingAccounts).toBe(false);
       });
 
+      // All digits in a single batched act — the stale render-closure
+      // implementation collapsed these and dropped the trailing zero.
       act(() => {
+        result.current.handleCalculatorClick('3');
+        result.current.handleCalculatorClick('9');
         result.current.handleCalculatorClick('5');
-      });
-      act(() => {
         result.current.handleCalculatorClick('0');
+        result.current.setFormData((prev) => ({
+          ...prev,
+          accountId: 'a1',
+          categoryId: 'c1',
+          type: TransactionType.EXPENSE,
+        }));
       });
 
-      expect(result.current.calculatorValue).toBe('50');
-      expect(result.current.formData.amount).toBe('50');
+      expect(result.current.calculatorValue).toBe('3950');
+      expect(result.current.formData.amount).toBe('3950');
+
+      await act(async () => {
+        await result.current.handleSubmit();
+      });
+
+      expect(mockRepository.transactions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amountMinor: 395000,
+          accountId: 'a1',
+          currencyCode: 'VES',
+        })
+      );
     });
 
     it('handles C (clear)', async () => {
