@@ -1,3 +1,5 @@
+import { logger } from '@/lib/utils/logger';
+
 export interface OptimizedDataCache {
   transactions: any[];
   accounts: any[];
@@ -11,6 +13,62 @@ export interface OptimizedDataCache {
 
 const CACHE_STORAGE_PREFIX = 'fintec_data_cache_v1';
 const LEGACY_CACHE_STORAGE_KEY = 'fintec_data_cache_v1';
+
+/** Maximum number of transaction rows kept in the persisted cache. */
+export const MAX_CACHED_TRANSACTIONS = 150;
+
+/**
+ * Fields preserved when projecting transactions for persistence. Matches what
+ * current `useOptimizedData` consumers read from the cached list (list rows,
+ * detail panel, reports, edit form); heavy/unread fields (e.g. `updatedAt`)
+ * and any future additions are deliberately dropped to keep the localStorage
+ * payload bounded.
+ */
+const TRANSACTION_CACHE_FIELDS = [
+  'id',
+  'type',
+  'accountId',
+  'categoryId',
+  'currencyCode',
+  'amountMinor',
+  'amountBaseMinor',
+  'exchangeRate',
+  'date',
+  'description',
+  'note',
+  'tags',
+  'pending',
+  'transferId',
+  'createdAt',
+  'isDebt',
+  'debtDirection',
+  'debtStatus',
+  'paidAmountMinor',
+  'paidAmountBaseMinor',
+  'remainingAmountMinor',
+  'remainingAmountBaseMinor',
+  'counterpartyName',
+  'settledAt',
+] as const;
+
+function projectCacheForPersistence(
+  cache: OptimizedDataCache
+): OptimizedDataCache {
+  return {
+    ...cache,
+    transactions: cache.transactions
+      .slice(0, MAX_CACHED_TRANSACTIONS)
+      .map((t) => {
+        const projected: Record<string, unknown> = {};
+        for (const field of TRANSACTION_CACHE_FIELDS) {
+          if (field in t) {
+            projected[field] = t[field];
+          }
+        }
+        return projected;
+      }),
+  };
+}
 
 export function createEmptyOptimizedDataCache(): OptimizedDataCache {
   return {
@@ -57,11 +115,15 @@ export function loadOptimizedDataCache(
 
     const parsed = JSON.parse(raw);
     if (!isValidCacheShape(parsed)) {
+      logger.warn('[optimized-data-cache] invalid cache payload for user');
       return null;
     }
 
     return parsed;
-  } catch {
+  } catch (error) {
+    logger.warn('[optimized-data-cache] failed to read cache', {
+      error: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
 }
@@ -77,10 +139,12 @@ export function persistOptimizedDataCache(
   try {
     localStorage.setItem(
       getOptimizedDataCacheKey(userId),
-      JSON.stringify(cache)
+      JSON.stringify(projectCacheForPersistence(cache))
     );
-  } catch {
-    // Ignore persistence failures to avoid blocking UX.
+  } catch (error) {
+    logger.warn('[optimized-data-cache] failed to persist cache', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
@@ -101,7 +165,9 @@ export function clearAllOptimizedDataCaches(): void {
 
     keysToRemove.forEach((key) => localStorage.removeItem(key));
     localStorage.removeItem(LEGACY_CACHE_STORAGE_KEY);
-  } catch {
-    // Ignore cleanup failures to avoid blocking sign-out.
+  } catch (error) {
+    logger.warn('[optimized-data-cache] failed to clear caches', {
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }

@@ -26,8 +26,12 @@ export class LocalTransactionsRepository implements TransactionsRepository {
     return (await db.transactions.get(id)) || null;
   }
 
-  async findAll(): Promise<Transaction[]> {
-    return db.transactions.orderBy('date').reverse().toArray();
+  async findAll(limit?: number): Promise<Transaction[]> {
+    const query = db.transactions.orderBy('date').reverse();
+    if (typeof limit === 'number' && limit > 0) {
+      return query.limit(limit).toArray();
+    }
+    return query.toArray();
   }
 
   async create(data: CreateTransactionDTO): Promise<Transaction> {

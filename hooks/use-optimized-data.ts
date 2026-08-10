@@ -8,6 +8,7 @@ import {
   createEmptyOptimizedDataCache,
   loadOptimizedDataCache,
   persistOptimizedDataCache,
+  MAX_CACHED_TRANSACTIONS,
   type OptimizedDataCache,
 } from '@/lib/cache/optimized-data-cache';
 
@@ -109,9 +110,11 @@ export function useOptimizedData() {
 
       try {
         setLoading(true);
-        // * Optimization: Load only recent 150 transactions initially to save bandwidth
+        // * Optimization: Load only recent transactions initially to save bandwidth
         // Pagination/Infinite scroll handles older history when needed
-        const transactions = await repository.transactions.findAll(150);
+        const transactions = await repository.transactions.findAll(
+          MAX_CACHED_TRANSACTIONS
+        );
         globalCache.transactions = transactions;
         globalCache.lastUpdated.transactions = Date.now();
         persistActiveCache();
