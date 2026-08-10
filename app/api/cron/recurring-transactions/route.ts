@@ -18,15 +18,36 @@ const handleRequest = withErrorHandling(async (request: NextRequest) => {
   }
 
   const supabaseAdmin = createServiceClient();
-  const adminRepository = createServerAppRepository({ supabase: supabaseAdmin });
+  const adminRepository = createServerAppRepository({
+    supabase: supabaseAdmin,
+  });
 
   // Find all active recurring transactions that are due
-  const dueTransactions = await adminRepository.recurringTransactions.findDueForExecution();
-  logger.info(`Found ${dueTransactions.length} due recurring transactions to execute.`);
+  const dueTransactions =
+    await adminRepository.recurringTransactions.findDueForExecution();
+  logger.info(
+    `Found ${dueTransactions.length} due recurring transactions to execute.`
+  );
+
+  // The USD/VES rate is a single global value shared by every user, so fetch it
+  // once per run and only when at least one due transaction needs the conversion.
+  let vesExchangeRate = 1.0;
+  if (dueTransactions.some((tx) => tx.currencyCode === 'VES')) {
+    const rateInfo = await adminRepository.exchangeRates.getRateWithFallback(
+      'USD',
+      'VES'
+    );
+    vesExchangeRate = rateInfo.rate;
+  }
 
   let successCount = 0;
   let failCount = 0;
-  const results: Array<{ id: string; status: 'success' | 'failed'; error?: string; txId?: string }> = [];
+  const results: Array<{
+    id: string;
+    status: 'success' | 'failed';
+    error?: string;
+    txId?: string;
+  }> = [];
 
   for (const tx of dueTransactions) {
     try {
@@ -40,10 +61,9 @@ const handleRequest = withErrorHandling(async (request: NextRequest) => {
       let exchangeRate = 1.0;
       let amountBaseMinor = tx.amountMinor;
 
-      // Fetch exchange rate if currency is VES
+      // Convert VES amounts to USD using the single rate looked up for this run
       if (tx.currencyCode === 'VES') {
-        const rateInfo = await userRepo.exchangeRates.getRateWithFallback('USD', 'VES');
-        exchangeRate = rateInfo.rate;
+        exchangeRate = vesExchangeRate;
         amountBaseMinor = Math.round(tx.amountMinor / exchangeRate);
       }
 
@@ -62,12 +82,17 @@ const handleRequest = withErrorHandling(async (request: NextRequest) => {
         tx.userId
       );
 
-      logger.info(`Successfully executed recurring transaction ${tx.id} for user ${tx.userId}. Created transaction: ${newTxId}`);
+      logger.info(
+        `Successfully executed recurring transaction ${tx.id} for user ${tx.userId}. Created transaction: ${newTxId}`
+      );
       successCount++;
       results.push({ id: tx.id, status: 'success', txId: newTxId });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Unknown error';
-      logger.error(`Error executing recurring transaction ${tx.id} for user ${tx.userId}: ${errMsg}`, err);
+      logger.error(
+        `Error executing recurring transaction ${tx.id} for user ${tx.userId}: ${errMsg}`,
+        err
+      );
       failCount++;
       results.push({ id: tx.id, status: 'failed', error: errMsg });
     }

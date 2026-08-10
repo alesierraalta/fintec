@@ -42,14 +42,14 @@ describe('Recurring Transactions Cron Route', () => {
       recurringTransactions: {
         findDueForExecution: jest.fn().mockResolvedValue([]),
       },
+      exchangeRates: {
+        getRateWithFallback: jest.fn(),
+      },
     };
 
     mockUserRepo = {
       recurringTransactions: {
         executeDue: jest.fn(),
-      },
-      exchangeRates: {
-        getRateWithFallback: jest.fn(),
       },
     };
 
@@ -67,11 +67,14 @@ describe('Recurring Transactions Cron Route', () => {
   });
 
   it('returns 401 if CRON_SECRET header is missing or incorrect', async () => {
-    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
-      headers: {
-        Authorization: 'Bearer wrong-key',
-      },
-    });
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer wrong-key',
+        },
+      }
+    );
 
     const response = await GET(request);
     expect(response.status).toBe(401);
@@ -81,11 +84,14 @@ describe('Recurring Transactions Cron Route', () => {
   });
 
   it('runs successfully with empty due transactions list', async () => {
-    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
-      headers: {
-        Authorization: 'Bearer super-secret-cron-key',
-      },
-    });
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
 
     const response = await GET(request);
     expect(response.status).toBe(200);
@@ -107,14 +113,21 @@ describe('Recurring Transactions Cron Route', () => {
         frequency: 'monthly',
       },
     ];
-    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(mockDue);
-    mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce('new-tx-1');
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      mockDue
+    );
+    mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce(
+      'new-tx-1'
+    );
 
-    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
-      headers: {
-        Authorization: 'Bearer super-secret-cron-key',
-      },
-    });
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
 
     const response = await GET(request);
     expect(response.status).toBe(200);
@@ -134,10 +147,96 @@ describe('Recurring Transactions Cron Route', () => {
         requestContext: expect.any(Object),
       })
     );
+
+    // No VES transactions in the batch, so no rate lookup is performed
+    expect(
+      mockAdminRepo.exchangeRates.getRateWithFallback
+    ).not.toHaveBeenCalled();
   });
 
-  it('handles exchange rate loading for VES transactions', async () => {
+  it('performs a single rate lookup for a batch of VES transactions', async () => {
     const mockDue = [
+      {
+        id: 'rec-ves-1',
+        userId: 'user-ves',
+        currencyCode: 'VES',
+        amountMinor: 40000, // 400.00 VES
+        nextExecutionDate: '2026-06-08',
+        frequency: 'weekly',
+      },
+      {
+        id: 'rec-ves-2',
+        userId: 'user-ves-2',
+        currencyCode: 'VES',
+        amountMinor: 80000, // 800.00 VES
+        nextExecutionDate: '2026-06-08',
+        frequency: 'weekly',
+      },
+    ];
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      mockDue
+    );
+    mockAdminRepo.exchangeRates.getRateWithFallback.mockResolvedValue({
+      rate: 40.0,
+    });
+    mockUserRepo.recurringTransactions.executeDue
+      .mockResolvedValueOnce('new-ves-tx-1')
+      .mockResolvedValueOnce('new-ves-tx-2');
+
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
+
+    const response = await GET(request);
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body.processed).toBe(2);
+    expect(
+      mockAdminRepo.exchangeRates.getRateWithFallback
+    ).toHaveBeenCalledTimes(1);
+    expect(
+      mockAdminRepo.exchangeRates.getRateWithFallback
+    ).toHaveBeenCalledWith('USD', 'VES');
+    expect(
+      mockUserRepo.recurringTransactions.executeDue
+    ).toHaveBeenNthCalledWith(
+      1,
+      'rec-ves-1',
+      1000, // 40000 / 40
+      40.0,
+      '2026-06-08',
+      expect.any(String), // nextExecutionDate should be calculated
+      'user-ves'
+    );
+    expect(
+      mockUserRepo.recurringTransactions.executeDue
+    ).toHaveBeenNthCalledWith(
+      2,
+      'rec-ves-2',
+      2000, // 80000 / 40
+      40.0,
+      '2026-06-08',
+      expect.any(String),
+      'user-ves-2'
+    );
+  });
+
+  it('reuses a single rate lookup across a mixed VES and USD batch', async () => {
+    const mockDue = [
+      {
+        id: 'rec-usd',
+        userId: 'user-usd',
+        currencyCode: 'USD',
+        amountMinor: 5000, // 50.00 USD
+        nextExecutionDate: '2026-06-08',
+        frequency: 'daily',
+      },
       {
         id: 'rec-ves',
         userId: 'user-ves',
@@ -147,28 +246,55 @@ describe('Recurring Transactions Cron Route', () => {
         frequency: 'weekly',
       },
     ];
-    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(mockDue);
-    mockUserRepo.exchangeRates.getRateWithFallback.mockResolvedValueOnce({ rate: 40.0 });
-    mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce('new-ves-tx');
-
-    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
-      headers: {
-        Authorization: 'Bearer super-secret-cron-key',
-      },
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      mockDue
+    );
+    mockAdminRepo.exchangeRates.getRateWithFallback.mockResolvedValue({
+      rate: 40.0,
     });
+    mockUserRepo.recurringTransactions.executeDue
+      .mockResolvedValueOnce('new-usd-tx')
+      .mockResolvedValueOnce('new-ves-tx');
+
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
 
     const response = await GET(request);
     expect(response.status).toBe(200);
 
     const body = await response.json();
-    expect(body.processed).toBe(1);
-    expect(mockUserRepo.exchangeRates.getRateWithFallback).toHaveBeenCalledWith('USD', 'VES');
-    expect(mockUserRepo.recurringTransactions.executeDue).toHaveBeenCalledWith(
+    expect(body.processed).toBe(2);
+    expect(
+      mockAdminRepo.exchangeRates.getRateWithFallback
+    ).toHaveBeenCalledTimes(1);
+    // USD transaction is not converted
+    expect(
+      mockUserRepo.recurringTransactions.executeDue
+    ).toHaveBeenNthCalledWith(
+      1,
+      'rec-usd',
+      5000,
+      1.0,
+      '2026-06-08',
+      expect.any(String),
+      'user-usd'
+    );
+    // VES transaction reuses the single rate looked up for this run
+    expect(
+      mockUserRepo.recurringTransactions.executeDue
+    ).toHaveBeenNthCalledWith(
+      2,
       'rec-ves',
       1000, // 40000 / 40
       40.0,
       '2026-06-08',
-      expect.any(String), // nextExecutionDate should be calculated
+      expect.any(String),
       'user-ves'
     );
   });
@@ -192,16 +318,21 @@ describe('Recurring Transactions Cron Route', () => {
         frequency: 'daily',
       },
     ];
-    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(mockDue);
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      mockDue
+    );
     mockUserRepo.recurringTransactions.executeDue
       .mockRejectedValueOnce(new Error('RPC failed'))
       .mockResolvedValueOnce('success-tx');
 
-    const request = new NextRequest('http://localhost/api/cron/recurring-transactions', {
-      headers: {
-        Authorization: 'Bearer super-secret-cron-key',
-      },
-    });
+    const request = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
 
     const response = await GET(request);
     expect(response.status).toBe(200);
@@ -211,7 +342,11 @@ describe('Recurring Transactions Cron Route', () => {
     expect(body.failed).toBe(1);
     expect(body.results).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ id: 'rec-fail', status: 'failed', error: 'RPC failed' }),
+        expect.objectContaining({
+          id: 'rec-fail',
+          status: 'failed',
+          error: 'RPC failed',
+        }),
         expect.objectContaining({ id: 'rec-success', status: 'success' }),
       ])
     );
