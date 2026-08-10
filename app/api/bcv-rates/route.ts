@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import ExchangeRateDatabase from '@/lib/services/exchange-rate-db';
 import {
   buildBCVFallbackData,
@@ -8,6 +8,8 @@ import { scrapeBCVRates } from '@/lib/scrapers/bcv-scraper';
 import { logger } from '@/lib/utils/logger';
 import { ScrapeAndPersistRates } from '@/lib/rates/scrape-pipeline';
 import { InMemoryLock } from '@/lib/rates/simple-lock';
+import { createServiceClient } from '@/lib/supabase/admin';
+import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import { SupabaseScrapeAttemptsRepository } from '@/repositories/supabase/scrape-attempts-repository-impl';
 import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 import { ExchangeRateDatabaseBCVWriter } from '@/lib/rates/bcv-rate-db-writer';
@@ -172,11 +174,49 @@ export async function GET() {
   }
 }
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
+    // Authorization: a verified authenticated session OR the same CRON_SECRET
+    // bearer convention used by app/api/cron/rates/route.ts. Never authorize
+    // from an unverified session alone (auth.uid() must resolve for the user
+    // path, which only a verified token provides).
+    const authHeader = request.headers.get('Authorization');
+    const cronSecret = process.env.CRON_SECRET;
+    const isCronCaller = !!cronSecret && authHeader === `Bearer ${cronSecret}`;
+
+    if (!isCronCaller) {
+      try {
+        await getAuthenticatedUser(request);
+      } catch {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
+    // The scrape pipeline persists to rate-history and scrape-attempt tables
+    // whose INSERT policies are scoped to service_role after the RLS hardening
+    // migration. Use the server-only service client so legitimate server-side
+    // writes survive RLS; never expose service credentials client-side.
+    let serviceClient: ReturnType<typeof createServiceClient>;
+    try {
+      serviceClient = createServiceClient();
+    } catch (err: any) {
+      logger.error('BCV API POST: Failed to create service client:', err);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Service client unavailable',
+          detail: err?.message,
+        },
+        { status: 503 }
+      );
+    }
+
     const lock = new InMemoryLock();
-    const attemptsRepo = new SupabaseScrapeAttemptsRepository();
-    const ratesRepo = new SupabaseRatesHistoryRepository();
+    const attemptsRepo = new SupabaseScrapeAttemptsRepository(serviceClient);
+    const ratesRepo = new SupabaseRatesHistoryRepository(serviceClient);
     const writer = new ExchangeRateDatabaseBCVWriter(ratesRepo);
     const pipeline = new ScrapeAndPersistRates(lock, attemptsRepo, writer);
 

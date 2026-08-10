@@ -3637,14 +3637,6 @@ ALTER TABLE ONLY "public"."verification_results"
 
 
 
-CREATE POLICY "Allow all insert" ON "public"."scrape_attempts" FOR INSERT WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow all select" ON "public"."scrape_attempts" FOR SELECT USING (true);
-
-
-
 CREATE POLICY "Allow anonymous insert" ON "public"."waitlist" FOR INSERT TO "anon" WITH CHECK (true);
 
 
@@ -3657,27 +3649,15 @@ CREATE POLICY "Allow anonymous select on binance_rate_history" ON "public"."bina
 
 
 
-CREATE POLICY "Allow anonymous update on bcv_rate_history" ON "public"."bcv_rate_history" FOR UPDATE USING (true);
-
-
-
-CREATE POLICY "Allow anonymous update on binance_rate_history" ON "public"."binance_rate_history" FOR UPDATE USING (true);
-
-
-
-CREATE POLICY "Allow anonymous upsert on bcv_rate_history" ON "public"."bcv_rate_history" FOR INSERT WITH CHECK (true);
-
-
-
-CREATE POLICY "Allow anonymous upsert on binance_rate_history" ON "public"."binance_rate_history" FOR INSERT WITH CHECK (true);
-
-
-
 CREATE POLICY "Allow public read access for exchange_rates" ON "public"."exchange_rates" FOR SELECT USING (true);
 
 
 
 CREATE POLICY "Allow service role to insert exchange rates" ON "public"."exchange_rates" FOR INSERT TO "service_role" WITH CHECK (true);
+
+
+
+CREATE POLICY "Authenticated select on scrape_attempts" ON "public"."scrape_attempts" FOR SELECT TO "authenticated" USING (true);
 
 
 
@@ -3697,11 +3677,15 @@ CREATE POLICY "Service role full access" ON "public"."waitlist" TO "service_role
 
 
 
-CREATE POLICY "Service role insert for bcv_rate_history" ON "public"."bcv_rate_history" FOR INSERT WITH CHECK (true);
+CREATE POLICY "Service role insert for bcv_rate_history" ON "public"."bcv_rate_history" FOR INSERT TO "service_role" WITH CHECK (true);
 
 
 
-CREATE POLICY "Service role insert for binance_rate_history" ON "public"."binance_rate_history" FOR INSERT WITH CHECK (true);
+CREATE POLICY "Service role insert for binance_rate_history" ON "public"."binance_rate_history" FOR INSERT TO "service_role" WITH CHECK (true);
+
+
+
+CREATE POLICY "Service role insert for scrape_attempts" ON "public"."scrape_attempts" FOR INSERT TO "service_role" WITH CHECK (true);
 
 
 
@@ -4475,14 +4459,14 @@ GRANT ALL ON TABLE "public"."approval_requests" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."bcv_rate_history" TO "anon";
-GRANT ALL ON TABLE "public"."bcv_rate_history" TO "authenticated";
+GRANT SELECT ON TABLE "public"."bcv_rate_history" TO "anon";
+GRANT SELECT ON TABLE "public"."bcv_rate_history" TO "authenticated";
 GRANT ALL ON TABLE "public"."bcv_rate_history" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."binance_rate_history" TO "anon";
-GRANT ALL ON TABLE "public"."binance_rate_history" TO "authenticated";
+GRANT SELECT ON TABLE "public"."binance_rate_history" TO "anon";
+GRANT SELECT ON TABLE "public"."binance_rate_history" TO "authenticated";
 GRANT ALL ON TABLE "public"."binance_rate_history" TO "service_role";
 
 
@@ -4553,8 +4537,7 @@ GRANT ALL ON TABLE "public"."recurring_transactions" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."scrape_attempts" TO "anon";
-GRANT ALL ON TABLE "public"."scrape_attempts" TO "authenticated";
+GRANT SELECT ON TABLE "public"."scrape_attempts" TO "authenticated";
 GRANT ALL ON TABLE "public"."scrape_attempts" TO "service_role";
 
 
