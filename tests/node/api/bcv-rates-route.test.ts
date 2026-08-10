@@ -1,6 +1,8 @@
 const mockGetLatestExchangeRate = jest.fn();
 const mockScrapeBCVRates = jest.fn();
 const mockPipelineExecute = jest.fn();
+const mockGetAuthenticatedUser = jest.fn();
+const mockCreateServiceClient = jest.fn();
 
 jest.mock('@/lib/services/exchange-rate-db', () =>
   jest.fn().mockImplementation(() => ({
@@ -18,6 +20,15 @@ jest.mock('@/lib/utils/logger', () => ({
     info: jest.fn(),
     warn: jest.fn(),
   },
+}));
+
+jest.mock('@/lib/auth/get-authenticated-user', () => ({
+  getAuthenticatedUser: (...args: unknown[]) =>
+    mockGetAuthenticatedUser(...args),
+}));
+
+jest.mock('@/lib/supabase/admin', () => ({
+  createServiceClient: (...args: unknown[]) => mockCreateServiceClient(...args),
 }));
 
 // Mock the pipeline dependencies for the POST handler
@@ -49,6 +60,10 @@ describe('/api/bcv-rates', () => {
     mockGetLatestExchangeRate.mockReset();
     mockScrapeBCVRates.mockReset();
     mockPipelineExecute.mockReset();
+    mockGetAuthenticatedUser.mockReset();
+    mockCreateServiceClient.mockReset();
+    mockCreateServiceClient.mockReturnValue({ from: jest.fn() });
+    delete process.env.CRON_SECRET;
   });
 
   describe('GET', () => {
@@ -182,7 +197,41 @@ describe('/api/bcv-rates', () => {
   });
 
   describe('POST', () => {
-    it('returns success when pipeline executes without error', async () => {
+    const cronRequest = (token = 'test-cron-secret') =>
+      new Request('http://localhost/api/bcv-rates', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+    const authenticatedRequest = () =>
+      new Request('http://localhost/api/bcv-rates', { method: 'POST' });
+
+    it('denies unauthenticated callers with 401', async () => {
+      const { POST } = await import('@/app/api/bcv-rates/route');
+      mockGetAuthenticatedUser.mockRejectedValue(
+        new Error('Authentication failed')
+      );
+
+      const response = await POST(authenticatedRequest());
+
+      expect(response.status).toBe(401);
+      expect(mockPipelineExecute).not.toHaveBeenCalled();
+    });
+
+    it('denies callers with a wrong cron secret and no verified user with 401', async () => {
+      const { POST } = await import('@/app/api/bcv-rates/route');
+      process.env.CRON_SECRET = 'expected-secret';
+      mockGetAuthenticatedUser.mockRejectedValue(
+        new Error('Authentication failed')
+      );
+
+      const response = await POST(cronRequest('wrong-secret'));
+
+      expect(response.status).toBe(401);
+      expect(mockPipelineExecute).not.toHaveBeenCalled();
+    });
+
+    it('returns success when a verified authenticated user triggers the pipeline', async () => {
       mockPipelineExecute.mockResolvedValue({
         success: true,
         status: 'success',
@@ -194,12 +243,14 @@ describe('/api/bcv-rates', () => {
           lastUpdated: '2026-05-27T12:00:00.000Z',
         },
       });
+      mockGetAuthenticatedUser.mockResolvedValue('user-1');
 
       const { POST } = await import('@/app/api/bcv-rates/route');
-      const response = await POST();
+      const response = await POST(authenticatedRequest());
       const body = await response.json();
 
       expect(response.status).toBe(200);
+      expect(mockPipelineExecute).toHaveBeenCalled();
       expect(body).toMatchObject({
         success: true,
         fallback: false,
@@ -213,6 +264,34 @@ describe('/api/bcv-rates', () => {
       });
     });
 
+    it('returns success when the cron bearer token triggers the pipeline', async () => {
+      mockPipelineExecute.mockResolvedValue({
+        success: true,
+        status: 'success',
+        attemptId: 'test-attempt-cron',
+        result: {
+          usd: 151.52,
+          eur: 172.42,
+          source: 'BCV',
+          lastUpdated: '2026-05-27T12:00:00.000Z',
+        },
+      });
+      process.env.CRON_SECRET = 'test-cron-secret';
+
+      const { POST } = await import('@/app/api/bcv-rates/route');
+      const response = await POST(cronRequest());
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(mockPipelineExecute).toHaveBeenCalled();
+      expect(mockGetAuthenticatedUser).not.toHaveBeenCalled();
+      expect(body).toMatchObject({
+        success: true,
+        fallback: false,
+        attemptId: 'test-attempt-cron',
+      });
+    });
+
     it('returns 503 with fallback when pipeline fails with lock contention', async () => {
       mockPipelineExecute.mockResolvedValue({
         success: false,
@@ -220,9 +299,10 @@ describe('/api/bcv-rates', () => {
         attemptId: 'test-attempt-456',
         failureReason: 'Lock held by another process',
       });
+      process.env.CRON_SECRET = 'test-cron-secret';
 
       const { POST } = await import('@/app/api/bcv-rates/route');
-      const response = await POST();
+      const response = await POST(cronRequest());
       const body = await response.json();
 
       expect(response.status).toBe(503);
@@ -242,9 +322,10 @@ describe('/api/bcv-rates', () => {
         failureStage: 'fetch',
         failureReason: 'Network timeout',
       });
+      process.env.CRON_SECRET = 'test-cron-secret';
 
       const { POST } = await import('@/app/api/bcv-rates/route');
-      const response = await POST();
+      const response = await POST(cronRequest());
       const body = await response.json();
 
       expect(response.status).toBe(503);
@@ -253,6 +334,36 @@ describe('/api/bcv-rates', () => {
         fallback: true,
         fallbackReason: 'Network timeout',
       });
+    });
+
+    it('routes the pipeline writes through the server-only service client', async () => {
+      mockPipelineExecute.mockResolvedValue({
+        success: true,
+        status: 'success',
+        attemptId: 'test-attempt-client',
+        result: {
+          usd: 151.52,
+          eur: 172.42,
+          source: 'BCV',
+          lastUpdated: '2026-05-27T12:00:00.000Z',
+        },
+      });
+      mockGetAuthenticatedUser.mockResolvedValue('user-1');
+
+      const { POST } = await import('@/app/api/bcv-rates/route');
+      const { SupabaseRatesHistoryRepository } = await import(
+        '@/repositories/supabase/rates-history-repository-impl'
+      );
+      const { SupabaseScrapeAttemptsRepository } = await import(
+        '@/repositories/supabase/scrape-attempts-repository-impl'
+      );
+
+      await POST(authenticatedRequest());
+
+      const mockClient = mockCreateServiceClient();
+      expect(mockCreateServiceClient).toHaveBeenCalled();
+      expect(SupabaseRatesHistoryRepository).toHaveBeenCalledWith(mockClient);
+      expect(SupabaseScrapeAttemptsRepository).toHaveBeenCalledWith(mockClient);
     });
   });
 });
