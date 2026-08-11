@@ -60,7 +60,8 @@ const BCV_RATES: BCVRatesData = {
 
 function createBinanceSnapshot(
   avg: number,
-  isFallback: boolean
+  isFallback: boolean,
+  pricesUsed = 1
 ): BinanceRatesSnapshot {
   return {
     rates: {
@@ -70,9 +71,9 @@ function createBinanceSnapshot(
       sell_rate: { min: avg, avg, max: avg },
       buy_rate: { min: avg, avg, max: avg },
       spread: 0,
-      sell_prices_used: 1,
-      buy_prices_used: 1,
-      prices_used: 1,
+      sell_prices_used: pricesUsed,
+      buy_prices_used: pricesUsed,
+      prices_used: pricesUsed,
       price_range: {
         sell_min: avg,
         sell_max: avg,
@@ -133,6 +134,18 @@ describe('BCVRates mini vs Binance chip', () => {
       'aria-label',
       expect.stringContaining('menor')
     );
+  });
+
+  it('renders a signed percentage for production-shaped live data with zero offer counts', async () => {
+    mockUseBinanceRates.mockReturnValue(createBinanceSnapshot(800, false, 0));
+    mockFetchBCVRates.mockResolvedValue({ ...BCV_RATES, usd: 1000 });
+
+    render(<BCVRates />);
+
+    const chip = await screen.findByTestId('bcv-usd-vs-binance');
+    expect(chip.textContent).toContain('vs Binance');
+    expect(chip.textContent).toContain('+25.0%');
+    expect(chip.textContent).not.toContain('no disponible');
   });
 
   it('shows a compact unavailable state instead of a fake percentage when Binance is fallback', async () => {

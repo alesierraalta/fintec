@@ -147,4 +147,70 @@ describe('useBinanceRates', () => {
     expect(result.current.rates.usd_ves).toBe(770.0);
     expect(result.current.rates.usdt_ves).toBe(770.0);
   });
+
+  it('keeps production-shaped live data available when offer counts are zero', () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(
+      createLiveRates({
+        source: 'Binance P2P',
+        fallback: false,
+        sell_prices_used: 0,
+        buy_prices_used: 0,
+        prices_used: 0,
+      })
+    );
+
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.status).toBe('live');
+    expect(result.current.isFallback).toBe(false);
+    expect(result.current.rates.prices_used).toBe(0);
+  });
+
+  it('marks an explicit fallback snapshot as fallback regardless of rate values', () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(
+      createLiveRates({ fallback: true })
+    );
+
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.isFallback).toBe(true);
+  });
+
+  it('marks non-positive rates as fallback', () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(
+      createLiveRates({ sell_rate: { min: 0, avg: 0, max: 0 } })
+    );
+
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.status).toBe('fallback');
+    expect(result.current.isFallback).toBe(true);
+  });
+
+  it('keeps stale live data distinct from fallback', () => {
+    const threeHoursAgo = new Date(
+      Date.now() - 3 * 60 * 60 * 1000
+    ).toISOString();
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(
+      createLiveRates({ lastUpdated: threeHoursAgo })
+    );
+
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.status).toBe('stale');
+    expect(result.current.isFallback).toBe(false);
+    expect(result.current.isStale).toBe(true);
+  });
+
+  it('honors the API stale flag even when the timestamp looks fresh', () => {
+    (currencyService.getBinanceRates as jest.Mock).mockReturnValue(
+      createLiveRates({ stale: true, staleReason: 'cached data is stale' })
+    );
+
+    const { result } = renderHook(() => useBinanceRates({ enabled: false }));
+
+    expect(result.current.status).toBe('stale');
+    expect(result.current.isFallback).toBe(false);
+  });
 });

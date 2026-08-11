@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import type { BinanceRates } from '@/types/rates';
 import { currencyService } from '@/lib/services/currency-service';
-import { STATIC_BINANCE_FALLBACK_RATES } from '@/lib/services/rates-fallback';
+import {
+  STATIC_BINANCE_FALLBACK_RATES,
+  isFallbackSource,
+} from '@/lib/services/rates-fallback';
 import { logger } from '@/lib/utils/logger';
 
 const THROTTLE_MS = 10000;
@@ -36,6 +39,9 @@ const DEFAULT_BINANCE_RATES: BinanceRates = {
     max: STATIC_BINANCE_FALLBACK_RATES.sell_rate + 1.0,
   },
   lastUpdated: new Date().toISOString(),
+  source: 'Binance P2P (fallback - default)',
+  fallback: true,
+  fallbackReason: 'default',
 };
 
 interface UseBinanceRatesOptions {
@@ -57,15 +63,24 @@ export interface BinanceRatesSnapshot {
 }
 
 function getSnapshotStatus(rates: BinanceRates, forceFallback = false) {
+  const hasValidRates =
+    Number.isFinite(rates.usd_ves) &&
+    rates.usd_ves > 0 &&
+    Number.isFinite(rates.sell_rate?.avg) &&
+    rates.sell_rate.avg > 0 &&
+    Number.isFinite(rates.buy_rate?.avg) &&
+    rates.buy_rate.avg > 0;
+
   const isFallback =
     forceFallback ||
     rates.fallback === true ||
-    rates.prices_used === 0 ||
-    (rates.sell_prices_used === 0 && rates.buy_prices_used === 0);
+    isFallbackSource(rates.source) ||
+    !hasValidRates;
 
   const lastUpdatedAt = new Date(rates.lastUpdated).getTime();
   const isStale =
-    Number.isFinite(lastUpdatedAt) && Date.now() - lastUpdatedAt > STALE_MS;
+    rates.stale === true ||
+    (Number.isFinite(lastUpdatedAt) && Date.now() - lastUpdatedAt > STALE_MS);
 
   const status: BinanceRatesStatus = isFallback
     ? 'fallback'
