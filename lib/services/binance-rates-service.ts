@@ -7,6 +7,7 @@
 import type { BinanceRates } from '@/types/rates';
 import { binanceHistoryService, BinanceTrend } from './binance-history-service';
 import { logger } from '@/lib/utils/logger';
+import { isFallbackSource } from './rates-fallback';
 
 class BinanceRatesService {
   private static instance: BinanceRatesService;
@@ -78,6 +79,12 @@ class BinanceRatesService {
 
       if (result.success && result.data) {
         // * Handle the actual API response structure from Python scraper
+        const source =
+          typeof result.data.source === 'string'
+            ? result.data.source
+            : undefined;
+        const apiFallback =
+          result.fallback === true || isFallbackSource(source);
         const rates: BinanceRates = {
           usd_ves: result.data.usd_ves,
           usdt_ves: result.data.usdt_ves,
@@ -98,6 +105,21 @@ class BinanceRatesService {
           prices_used: result.data.prices_used,
           price_range: result.data.price_range,
           lastUpdated: result.data.lastUpdated || new Date().toISOString(),
+          source,
+          cached: result.cached === true ? true : undefined,
+          cacheAge: Number.isFinite(result.cacheAge)
+            ? result.cacheAge
+            : undefined,
+          fallback: apiFallback ? true : undefined,
+          fallbackReason:
+            typeof result.fallbackReason === 'string'
+              ? result.fallbackReason
+              : undefined,
+          stale: result.stale === true ? true : undefined,
+          staleReason:
+            typeof result.staleReason === 'string'
+              ? result.staleReason
+              : undefined,
         };
 
         this.cachedRates = rates;
@@ -147,6 +169,24 @@ class BinanceRatesService {
               max: 228.5,
             },
             lastUpdated: result.data.lastUpdated || new Date().toISOString(),
+            source:
+              typeof result.data.source === 'string'
+                ? result.data.source
+                : 'Binance P2P (fallback - api)',
+            cached: result.cached === true ? true : undefined,
+            cacheAge: Number.isFinite(result.cacheAge)
+              ? result.cacheAge
+              : undefined,
+            fallback: true,
+            fallbackReason:
+              typeof result.fallbackReason === 'string'
+                ? result.fallbackReason
+                : 'api-fallback',
+            stale: result.stale === true ? true : undefined,
+            staleReason:
+              typeof result.staleReason === 'string'
+                ? result.staleReason
+                : undefined,
           };
 
           this.cachedRates = fallbackRates;
@@ -194,6 +234,9 @@ class BinanceRatesService {
           max: 228.5,
         },
         lastUpdated: new Date().toISOString(),
+        source: 'Binance P2P (fallback - static)',
+        fallback: true,
+        fallbackReason: 'static',
       };
 
       this.cachedRates = fallbackRates;
