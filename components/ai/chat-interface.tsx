@@ -3,7 +3,7 @@
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import {
-  Sparkles,
+  Bot,
   Wallet,
   BarChart3,
   Target,
@@ -115,8 +115,8 @@ export function ChatInterface() {
             <div className="flex flex-1 animate-fade-in-up flex-col items-center justify-center text-center">
               <div className="relative mb-6">
                 <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-blue-500 shadow-ios">
-                  <Sparkles className="h-8 w-8 text-white" aria-hidden="true" />
+                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/60 shadow-ios">
+                  <Bot className="h-8 w-8 text-white" aria-hidden="true" />
                 </div>
               </div>
               <h2 className="text-xl font-bold tracking-tight sm:text-2xl">
@@ -168,11 +168,8 @@ export function ChatInterface() {
               {/* Loading Indicator */}
               {isLoading && (
                 <div className="flex animate-fade-in-up items-end gap-2.5">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-blue-500 shadow-ios-sm">
-                    <Sparkles
-                      className="h-4 w-4 text-white"
-                      aria-hidden="true"
-                    />
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
+                    <Bot className="h-4 w-4 text-white" aria-hidden="true" />
                   </div>
                   <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-secondary/60 px-4 py-3.5 shadow-ios-sm">
                     <div

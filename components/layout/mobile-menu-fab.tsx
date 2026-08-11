@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
+import { useSubscription } from '@/hooks/use-subscription';
 import {
   Tags,
   BarChart3,
@@ -13,7 +14,7 @@ import {
   Target,
   Repeat,
   Settings,
-  Sparkles,
+  ArrowUpRight,
   X,
 } from 'lucide-react';
 
@@ -34,7 +35,7 @@ const menuItems: MenuItem[] = [
   {
     name: 'Actualizar Plan',
     href: '/pricing',
-    icon: Sparkles,
+    icon: ArrowUpRight,
     description: 'Mejora tu suscripción',
   },
   {
@@ -79,10 +80,19 @@ export function MobileMenuFAB() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { isMobile } = useSidebar();
+  const { isFree, isOwnerAdmin, loading, error } = useSubscription();
   const overlayHost = useMemo(() => {
     if (typeof document === 'undefined') return null;
     return document.getElementById('modal-root') ?? document.body;
   }, []);
+
+  // Owners/admins and paid (base/premium) users have nothing to upgrade to.
+  // While eligibility is loading or unresolved (error), hide the upgrade item
+  // so the CTA never flashes for an unresolved identity.
+  const canUpgrade = isFree && !isOwnerAdmin && !loading && !error;
+  const items = canUpgrade
+    ? menuItems
+    : menuItems.filter((item) => item.href !== '/pricing');
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
@@ -112,7 +122,7 @@ export function MobileMenuFAB() {
         aria-hidden={!isOpen}
         inert={!isOpen ? true : undefined}
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 transition-all duration-300 ease-out lg:hidden',
+          'fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden',
           isOpen ? 'translate-y-0' : 'translate-y-full'
         )}
       >
@@ -142,14 +152,14 @@ export function MobileMenuFAB() {
               className="transition-ios focus-ring rounded-xl p-2 text-text-muted hover:bg-background-tertiary hover:text-text-primary"
               aria-label="Cerrar"
             >
-              <X className="h-5 w-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
 
           {/* Menu Items */}
           <div className="max-h-[60vh] overflow-y-auto px-4 pb-6">
             <div className="space-y-2">
-              {menuItems.map((item) => (
+              {items.map((item) => (
                 <button
                   type="button"
                   key={item.name}
@@ -157,7 +167,7 @@ export function MobileMenuFAB() {
                   className={cn(
                     'transition-ios focus-ring flex w-full items-center space-x-4 rounded-2xl p-4 active:scale-95',
                     item.href === '/pricing'
-                      ? 'border border-purple-400/30 bg-purple-500/90 text-white hover:border-purple-500/50 hover:bg-purple-600'
+                      ? 'border border-primary/30 bg-primary text-white hover:border-primary/50 hover:bg-primary/90'
                       : 'border border-border-primary/20 bg-background-secondary/50 hover:border-border-primary/40 hover:bg-background-secondary'
                   )}
                 >
@@ -165,11 +175,17 @@ export function MobileMenuFAB() {
                     className={cn(
                       'rounded-xl p-3',
                       item.href === '/pricing'
-                        ? 'border border-purple-400/40 bg-purple-400/20'
+                        ? 'border border-primary/40 bg-primary/20'
                         : 'border border-primary/20 bg-primary/10'
                     )}
                   >
-                    <item.icon className="h-5 w-5 text-primary" />
+                    <item.icon
+                      className={cn(
+                        'h-5 w-5',
+                        item.href === '/pricing' ? 'text-white' : 'text-primary'
+                      )}
+                      aria-hidden="true"
+                    />
                   </div>
                   <div className="min-w-0 flex-1 text-left">
                     <h4 className="text-sm font-semibold text-text-primary">
@@ -206,7 +222,7 @@ export function MobileMenuFAB() {
           aria-expanded={isOpen}
         >
           {isOpen ? (
-            <X className="h-6 w-6 text-white" />
+            <X className="h-6 w-6 text-white" aria-hidden="true" />
           ) : (
             <span className="relative h-8 w-8" aria-hidden="true">
               <Image

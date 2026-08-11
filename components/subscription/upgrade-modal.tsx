@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, Crown, Zap } from 'lucide-react';
+import { X, BadgeCheck, Zap } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useUpgrade } from '@/hooks/use-subscription';
@@ -45,8 +45,8 @@ export function UpgradeModal({
     premium: {
       name: 'Premium',
       price: '$9.99',
-      icon: Crown,
-      color: 'text-purple-500',
+      icon: BadgeCheck,
+      color: 'text-primary',
       features: [
         'Todo lo de Base',
         'IA: Categorización automática',
@@ -78,7 +78,7 @@ export function UpgradeModal({
               <button
                 key={key}
                 onClick={() => setSelectedTier(key as 'base' | 'premium')}
-                className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                className={`focus-ring relative rounded-lg border-2 p-4 text-left transition-colors ${
                   isSelected
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50'
@@ -87,14 +87,17 @@ export function UpgradeModal({
                 {isSelected && (
                   <div className="absolute right-2 top-2">
                     <div className="rounded-full bg-primary p-1 text-primary-foreground">
-                      <Zap className="h-3 w-3" />
+                      <Zap className="h-3 w-3" aria-hidden="true" />
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
-                    <Icon className={`h-5 w-5 ${tier.color}`} />
+                    <Icon
+                      className={`h-5 w-5 ${tier.color}`}
+                      aria-hidden="true"
+                    />
                     <div>
                       <h3 className="font-semibold">{tier.name}</h3>
                       <p className="text-sm text-muted-foreground">
