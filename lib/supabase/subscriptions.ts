@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { createServerSubscriptionsRepository } from '@/repositories/factory';
 import {
   SubscriptionTier,
@@ -227,6 +228,7 @@ export async function getSubscriptionStatusPayload(
   return {
     subscription,
     tier,
+    isOwnerAdmin: isAdmin(userId),
     usage,
     usageStatus,
     limits,

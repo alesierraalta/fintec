@@ -28,7 +28,8 @@ import { toast } from 'sonner';
 export default function BackupsPage() {
   const { user } = useAuth();
   const repository = useRepository();
-  const { usageStatus, isAtLimit, tier, hasFeature } = useSubscription();
+  const { usageStatus, isAtLimit, tier, hasFeature, isOwnerAdmin } =
+    useSubscription();
   const [backupService] = useState(() => new BackupService(repository));
 
   const [loading, setLoading] = useState(false);
@@ -60,8 +61,9 @@ export default function BackupsPage() {
   const handleExportBackup = async () => {
     if (!user) return;
 
-    // Check backup limit for free tier
-    if (tier === 'free' && isAtLimit('backups')) {
+    // Check backup limit for free tier. Owners/admins are never upsold,
+    // regardless of their free-tier status.
+    if (tier === 'free' && !isOwnerAdmin && isAtLimit('backups')) {
       setShowUpgradeModal(true);
       return;
     }

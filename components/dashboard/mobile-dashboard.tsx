@@ -11,7 +11,6 @@ import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import {
-  Sparkles,
   TrendingUp,
   TrendingDown,
   Heart,
@@ -222,7 +221,7 @@ export function MobileDashboard() {
 
         <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
           <span className="mr-2">💰</span>
-          <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </span>
         </h1>
@@ -236,13 +235,9 @@ export function MobileDashboard() {
             type="button"
             onClick={scrollToQuickActions}
             aria-label="Ir a acciones rápidas"
-            className="focus-ring group relative min-h-[44px] overflow-hidden rounded-xl bg-gradient-to-r from-primary to-blue-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-primary"
+            className="focus-ring transition-ios group relative min-h-[44px] rounded-xl bg-primary px-6 py-3 text-ios-body font-medium text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-[0.98]"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
-            <div className="relative flex items-center space-x-2">
-              <Sparkles className="h-5 w-5" />
-              <span>Resumen Rápido</span>
-            </div>
+            <span>Resumen Rápido</span>
           </button>
         </div>
       </div>
@@ -260,7 +255,7 @@ export function MobileDashboard() {
             type="button"
             onClick={() => setShowBalances(!showBalances)}
             aria-pressed={showBalances}
-            className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+            className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {showBalances ? (
               <EyeOff className="h-4 w-4" />

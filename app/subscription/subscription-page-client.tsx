@@ -10,7 +10,7 @@ import {
   useManageSubscription,
 } from '@/hooks/use-subscription';
 import { Loading } from '@/components/ui/loading';
-import { Crown, Zap, ArrowRight, Settings } from 'lucide-react';
+import { BadgeCheck, Zap, ArrowRight, Settings } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TIER_FEATURES } from '@/types/subscription';
 import type { SubscriptionStatusPayload } from '@/types/subscription';
@@ -32,6 +32,7 @@ export default function SubscriptionPageClient({
     isPremium,
     isBase,
     isFree,
+    isOwnerAdmin,
   } = useSubscription(initialSubscription);
   const { openPortal, loading: portalLoading } = useManageSubscription();
 
@@ -44,7 +45,7 @@ export default function SubscriptionPageClient({
   }
 
   const tierInfo = TIER_FEATURES[tier];
-  const TierIcon = isPremium ? Crown : isBase ? Zap : null;
+  const TierIcon = isPremium ? BadgeCheck : isBase ? Zap : null;
 
   return (
     <MainLayout>
@@ -65,10 +66,11 @@ export default function SubscriptionPageClient({
                 <div className="flex items-center gap-3">
                   {TierIcon && (
                     <div
-                      className={`rounded-lg p-3 ${isPremium ? 'bg-purple-500/10' : 'bg-blue-500/10'}`}
+                      className={`rounded-lg p-3 ${isPremium ? 'bg-primary/10' : 'bg-blue-500/10'}`}
                     >
                       <TierIcon
-                        className={`h-6 w-6 ${isPremium ? 'text-purple-500' : 'text-blue-500'}`}
+                        className={`h-6 w-6 ${isPremium ? 'text-primary' : 'text-blue-500'}`}
+                        aria-hidden="true"
                       />
                     </div>
                   )}
@@ -183,7 +185,7 @@ export default function SubscriptionPageClient({
           )}
 
           {/* Upgrade CTA for Free Users */}
-          {isFree && (
+          {isFree && !isOwnerAdmin && (
             <Card className="border-2 border-primary/50 bg-primary/5">
               <div className="p-6">
                 <h3 className="mb-2 text-xl font-bold">¿Listo para más?</h3>

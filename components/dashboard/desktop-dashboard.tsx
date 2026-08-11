@@ -16,7 +16,6 @@ import { useBinanceRates } from '@/hooks/use-binance-rates';
 import type { GoalWithProgress } from '@/repositories/contracts';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
 import {
-  Sparkles,
   TrendingUp,
   TrendingDown,
   Heart,
@@ -374,7 +373,7 @@ export function DesktopDashboard() {
 
         <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
           <span className="mr-2">💳</span>
-          <span className="bg-gradient-to-r from-primary via-blue-600 to-green-500 bg-clip-text text-transparent">
+          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard Financiero
           </span>
         </h1>
@@ -388,13 +387,9 @@ export function DesktopDashboard() {
             type="button"
             onClick={scrollToQuickActions}
             aria-label="Ir a acciones rápidas"
-            className="focus-ring group relative min-h-[44px] overflow-hidden rounded-xl bg-gradient-to-r from-primary to-blue-600 px-6 py-3 text-ios-body font-medium text-white shadow-lg transition-all duration-300 hover:from-blue-600 hover:to-primary"
+            className="focus-ring transition-ios group relative min-h-[44px] rounded-xl bg-primary px-6 py-3 text-ios-body font-medium text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-[0.98]"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
-            <div className="relative flex items-center space-x-2">
-              <Sparkles className="h-5 w-5" />
-              <span>Resumen Rápido</span>
-            </div>
+            <span>Resumen Rápido</span>
           </button>
         </div>
       </div>
@@ -413,7 +408,7 @@ export function DesktopDashboard() {
               type="button"
               onClick={() => setShowBalances(!showBalances)}
               aria-pressed={showBalances}
-              className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
+              className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {showBalances ? (
                 <EyeOff className="h-4 w-4" />
@@ -623,9 +618,8 @@ export function DesktopDashboard() {
             <p className="text-ios-body leading-relaxed text-foreground/80">
               {savingsRate > 50 ? (
                 <>
-                  🌟 ¡Excelente! Estás ahorrando {savingsRate.toFixed(0)}% de
-                  tus ingresos este mes. Sigue así y alcanzarás todas tus metas.
-                  🚀
+                  ¡Excelente! Estás ahorrando {savingsRate.toFixed(0)}% de tus
+                  ingresos este mes. Sigue así y alcanzarás todas tus metas.
                 </>
               ) : savingsRate > 20 ? (
                 <>
@@ -651,8 +645,7 @@ export function DesktopDashboard() {
                 </>
               )}
             </p>
-            <div className="mt-4 flex items-center space-x-2 text-ios-caption text-green-600">
-              <Sparkles className="h-4 w-4" />
+            <div className="mt-4 flex items-center space-x-2 text-ios-caption text-success">
               <span className="font-medium">
                 {savingsRate > 20 ? '¡Sigue así!' : 'Tú puedes mejorar'}
               </span>
@@ -746,7 +739,7 @@ export function DesktopDashboard() {
               return (
                 <div
                   key={goal.id}
-                  className="rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl"
+                  className="rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-shadow duration-300 hover:shadow-xl"
                 >
                   <div className="flex items-center space-x-3">
                     <div className={`p-2 ${iconBgColor} rounded-xl border`}>
@@ -763,7 +756,7 @@ export function DesktopDashboard() {
                       <div className="mt-2 flex items-center space-x-2">
                         <div className="h-2 flex-1 rounded-full bg-muted/30">
                           <div
-                            className={`${barColor} h-2 rounded-full transition-all duration-500`}
+                            className={`${barColor} h-2 rounded-full transition-colors duration-500`}
                             style={{
                               width: `${Math.min(goal.progressPercentage, 100)}%`,
                             }}
@@ -781,13 +774,13 @@ export function DesktopDashboard() {
               );
             })}
 
-            <div className="group rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-all duration-300 hover:bg-card/90 hover:shadow-xl">
+            <div className="group rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-colors duration-300 hover:bg-card/90 hover:shadow-xl">
               <div className="text-center">
-                <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 transition-all duration-300 group-hover:bg-green-500/10">
+                <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 transition-colors duration-300 group-hover:bg-green-500/10">
                   {goals.length > 2 ? (
-                    <Smile className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:text-green-600" />
+                    <Smile className="h-4 w-4 text-muted-foreground transition-colors duration-300 group-hover:text-green-600" />
                   ) : (
-                    <Plus className="h-4 w-4 text-muted-foreground transition-all duration-300 group-hover:text-green-600" />
+                    <Plus className="h-4 w-4 text-muted-foreground transition-colors duration-300 group-hover:text-green-600" />
                   )}
                 </div>
                 <h3 className="text-ios-body font-medium text-foreground">

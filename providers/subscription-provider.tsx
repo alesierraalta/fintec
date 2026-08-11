@@ -120,6 +120,7 @@ function mapSubscriptionPayloadToData(
   return {
     subscription: payload.subscription,
     tier: payload.tier || 'free',
+    isOwnerAdmin: payload.isOwnerAdmin ?? false,
     usage: payload.usage as UsageTracking | null,
     usageStatus: payload.usageStatus,
   };
@@ -128,6 +129,7 @@ function mapSubscriptionPayloadToData(
 interface SubscriptionData {
   subscription: Subscription | null;
   tier: SubscriptionTier;
+  isOwnerAdmin: boolean;
   usage: UsageTracking | null;
   usageStatus: UsageStatus | null;
   loading: boolean;
@@ -178,6 +180,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const [data, setData] = useState<SubscriptionData>({
     subscription: null,
     tier: 'free',
+    isOwnerAdmin: false,
     usage: null,
     usageStatus: null,
     loading: true,
@@ -190,6 +193,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
         setData({
           subscription: null,
           tier: 'free',
+          isOwnerAdmin: false,
           usage: null,
           usageStatus: null,
           loading: false,
@@ -241,6 +245,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
           setData({
             subscription: null,
             tier: 'free',
+            isOwnerAdmin: false,
             usage: null,
             usageStatus: null,
             loading: false,
@@ -329,7 +334,9 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     [data.usageStatus]
   );
 
-  const canUpgrade = data.tier !== 'premium';
+  // Owner/admin users own the product — they are never offered an upgrade,
+  // regardless of their subscription tier.
+  const canUpgrade = data.tier !== 'premium' && !data.isOwnerAdmin;
   const isPremium = data.tier === 'premium';
   const isBase = data.tier === 'base';
   const isFree = data.tier === 'free';

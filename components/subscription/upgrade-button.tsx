@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Crown, Sparkles } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useSubscription } from '@/hooks/use-subscription';
 import { cn } from '@/lib/utils';
 
@@ -10,14 +10,19 @@ interface UpgradeButtonProps {
 }
 
 /**
- * Upgrade button component that displays for free-tier users only.
- * Links to the pricing page and adapts to sidebar state (expanded/minimized).
+ * Upgrade CTA shown only for verified free-tier, non-owner users.
+ * Hidden for owner/admin users (canonical `isOwnerAdmin` from the server
+ * payload), paid (base/premium) users, while the tier is still loading, and
+ * while eligibility is unresolved (error). The free-tier default is never
+ * enough to render it, so it can never flash for an unconfirmed identity.
  */
 export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
-  const { isPremium, loading } = useSubscription();
+  const { isFree, isOwnerAdmin, loading, error } = useSubscription();
 
-  // Hide for premium users and while the tier is still loading
-  if (isPremium || loading) {
+  // Show only for verified free-tier users: hide for owner/admin, paid
+  // (base/premium) users, while loading, and on unresolved (error)
+  // eligibility — the free-tier default is never enough to show it.
+  if (!isFree || isOwnerAdmin || loading || error) {
     return null;
   }
 
@@ -26,22 +31,16 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
       <div className="p-2">
         <Link
           href="/pricing"
-          className={cn(
-            'group relative h-12 w-full overflow-hidden rounded-xl',
-            'flex items-center justify-center',
-            'transition-ios hover:scale-105 active:scale-95',
-            'shadow-ios-md hover:shadow-ios-lg'
-          )}
+          aria-label="Mejorar a Premium"
           title="Mejorar a Premium"
+          className={cn(
+            'flex min-h-[44px] w-full items-center justify-center rounded-xl',
+            'bg-primary text-primary-foreground shadow-ios-sm',
+            'transition-ios hover:bg-primary/90 active:scale-[0.98]',
+            'focus-ring'
+          )}
         >
-          {/* Gradient background with animation */}
-          <div className="absolute inset-0 animate-gradient bg-gradient-to-br from-purple-600 via-primary to-purple-500 [background-size:200%_200%]" />
-
-          {/* Glow effect on hover */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-400/0 via-foreground/5 to-purple-400/0 opacity-0 transition-opacity duration-300 group-hover:opacity-20" />
-
-          {/* Icon */}
-          <Crown className="relative z-10 h-5 w-5 text-white" />
+          <ArrowUpRight className="h-5 w-5" aria-hidden="true" />
         </Link>
       </div>
     );
@@ -52,27 +51,14 @@ export function UpgradeButton({ isMinimized = false }: UpgradeButtonProps) {
       <Link
         href="/pricing"
         className={cn(
-          'group relative flex items-center justify-center space-x-2',
-          'w-full overflow-hidden rounded-2xl px-4 py-3',
-          'transition-ios hover:scale-105 active:scale-95',
-          'shadow-ios-md backdrop-blur-sm hover:shadow-ios-lg'
+          'flex min-h-[44px] w-full items-center justify-center gap-2 rounded-2xl px-4 py-3',
+          'bg-primary text-ios-body font-semibold text-primary-foreground shadow-ios-sm',
+          'transition-ios hover:bg-primary/90 active:scale-[0.98]',
+          'focus-ring'
         )}
       >
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 animate-gradient bg-gradient-to-r from-purple-600 via-primary to-purple-500 [background-size:200%_200%]" />
-
-        {/* Shimmer effect */}
-        <div className="absolute inset-0 translate-x-[-200%] bg-gradient-to-r from-transparent via-foreground/10 to-transparent transition-transform duration-1000 group-hover:translate-x-[200%]" />
-
-        {/* Glow border effect on hover */}
-        <div className="absolute inset-0 rounded-2xl border-2 border-white/20 transition-colors group-hover:border-white/40" />
-
-        {/* Content */}
-        <Sparkles className="relative z-10 h-4 w-4 text-white transition-transform duration-300 group-hover:rotate-12" />
-        <span className="relative z-10 text-ios-body font-semibold text-white">
-          Mejorar a Premium
-        </span>
-        <Crown className="relative z-10 h-4 w-4 text-yellow-300 transition-transform duration-300 group-hover:scale-110" />
+        <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+        <span>Mejorar a Premium</span>
       </Link>
     </div>
   );
