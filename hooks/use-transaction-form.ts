@@ -45,6 +45,10 @@ export const TRANSACTION_TYPES = [
   },
 ] as const;
 
+// * Canonical origin→destination transfer flow. Generic creation callers
+// redirect here instead of persisting a lone TRANSFER_OUT row.
+export const TRANSFER_FLOW_PATH = '/transfers';
+
 // * Form data interface
 export interface TransactionFormData {
   type: TransactionType | '';
@@ -300,6 +304,12 @@ export function useTransactionForm(): UseTransactionFormReturn {
 
   // * Handle form submission
   const handleSubmit = useCallback(async () => {
+    // #56: never persist a lone TRANSFER_OUT from the generic creation hook.
+    if (formData.type === TransactionType.TRANSFER_OUT) {
+      router.replace(TRANSFER_FLOW_PATH);
+      return;
+    }
+
     // Validate required fields
     if (!formData.amount || formData.amount.trim() === '') {
       alert('Por favor ingresa un monto');

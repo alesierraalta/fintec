@@ -27,7 +27,6 @@ export const TRANSFER_TRANSACTION_LIST_PROJECTION = [
   'date', // Transaction date
   'description', // Transaction description
   'transfer_id', // Link to transfer record
-  'pending', // Whether transaction is pending
   'is_debt', // Debt flag
   'counterparty_name', // Counterparty name for transfers
   'created_at', // Transaction creation timestamp
