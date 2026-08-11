@@ -5,6 +5,7 @@ import { scrapeBinanceRates } from '@/lib/scrapers/binance-scraper';
 import { scheduleBackgroundRateRefresh } from '@/lib/rates/rate-refresh';
 import { SupabaseRatesHistoryRepository } from '@/repositories/supabase/rates-history-repository-impl';
 import { createServiceClient } from '@/lib/supabase/admin';
+import { formatCaracasDayKey } from '@/lib/utils/date-key';
 import {
   buildBinanceFallbackData,
   isFallbackSource,
@@ -19,8 +20,10 @@ const REFRESH_KEY = 'binance';
 
 /**
  * Background refresh: scrape + persist fresh data through the server-only
- * service client. exchange_rates INSERT is scoped to service_role after the
- * RLS hardening (#47/#48); the GET path must never reintroduce anon writes.
+ * service client. The Binance-specific read model (binance_rate_history) is the
+ * only row type the GET path reads; its upsert is scoped to service_role after
+ * the RLS hardening (#47/#48), so the GET path must never reintroduce anon
+ * writes.
  */
 async function refreshBinanceRatesInBackground(): Promise<void> {
   const liveResult = await scrapeBinanceRates();
@@ -34,41 +37,46 @@ async function refreshBinanceRatesInBackground(): Promise<void> {
 
   const serviceClient = createServiceClient();
   const ratesRepo = new SupabaseRatesHistoryRepository(serviceClient);
-  const db = new ExchangeRateDatabase(ratesRepo);
-  const persisted = await db.storeExchangeRate({
-    usd_ves: liveResult.data.usd_ves,
-    usdt_ves: liveResult.data.usdt_ves,
-    sell_rate: liveResult.data.sell_rate,
-    buy_rate: liveResult.data.buy_rate,
-    lastUpdated: liveResult.data.lastUpdated,
-    source: liveResult.data.source,
-  });
 
-  if (!persisted) {
+  try {
+    await ratesRepo.upsertBinanceRate({
+      date: formatCaracasDayKey(new Date()),
+      usd: liveResult.data.usdt_ves,
+      source: liveResult.data.source,
+      timestamp: liveResult.data.lastUpdated,
+    });
+  } catch (historyError) {
     logger.warn(
-      'Binance API: background refresh could not persist fresh scrape data'
+      'Binance API: background refresh could not persist Binance-specific history:',
+      historyError
     );
+    return;
   }
 }
 
 /**
  * GET /api/binance-rates
- * Returns the latest Binance P2P exchange rates from the database.
+ * Returns the latest Binance P2P exchange rates.
+ *
+ * Reads ONLY the Binance-specific read model (binance_rate_history). It never
+ * reads the unified exchange_rates snapshot: that table holds whichever source
+ * refreshed last (including BCV background refreshes), so serving it here would
+ * let a BCV rate masquerade as the Binance P2P rate.
+ *
  * Serves the stored value immediately (stale-while-revalidate): a stale
- * (>2h) or missing snapshot triggers a coalesced background refresh instead
+ * (>2h) or missing record triggers a coalesced background refresh instead
  * of blocking the request on a synchronous external scrape.
  */
 export async function GET() {
   try {
     const db = new ExchangeRateDatabase();
-    const latest = await db.getLatestExchangeRate();
+    const latest = await db.getLatestBinanceRate();
 
-    if (latest) {
+    if (latest && !isFallbackSource(latest.source)) {
       const now = Date.now();
       const lastUpdatedTime = new Date(latest.lastUpdated).getTime();
       const cacheAgeSeconds = Math.round((now - lastUpdatedTime) / 1000);
       const isStale = cacheAgeSeconds > STALE_THRESHOLD_SECONDS;
-      const isFallback = latest.source.includes('Reconstructed');
 
       if (!isStale) {
         return NextResponse.json({
@@ -91,14 +99,14 @@ export async function GET() {
           },
           cached: true,
           cacheAge: cacheAgeSeconds,
-          fromBackground: !isFallback,
-          fallback: isFallback,
+          fromBackground: true,
+          fallback: false,
         });
       }
 
-      // Cache is stale - serve it immediately; refresh in the background.
+      // Record is stale - serve it immediately; refresh in the background.
       logger.warn(
-        `Binance API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
+        `Binance API: Binance data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
       );
       scheduleBackgroundRateRefresh(
         REFRESH_KEY,
@@ -127,13 +135,14 @@ export async function GET() {
         cacheAge: cacheAgeSeconds,
         stale: true,
         staleReason: `Cached data is stale (${cacheAgeSeconds}s old), background refresh scheduled`,
-        fallback: isFallback,
+        fallback: false,
       });
     }
 
-    // No database snapshot exists - serve fallback immediately; refresh in background.
+    // No valid Binance-specific record exists - true fallback (never a
+    // BCV/unified snapshot); refresh in the background.
     logger.warn(
-      'Binance API: No data found in database, scheduling background refresh'
+      'Binance API: No valid Binance record found, scheduling background refresh'
     );
     scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBinanceRatesInBackground);
 
@@ -159,7 +168,8 @@ export async function GET() {
           source: fallbackData.source,
         },
         fallback: true,
-        fallbackReason: 'No database data; background refresh scheduled',
+        fallbackReason:
+          'No Binance-specific data; background refresh scheduled',
       },
       { status: 503 }
     );

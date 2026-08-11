@@ -92,6 +92,34 @@ class ExchangeRateDatabase {
   }
 
   /**
+   * Reads the latest Binance-specific record from the Binance read model
+   * (binance_rate_history). This is the ONLY source of truth for
+   * /api/binance-rates: the unified exchange_rates snapshot holds whichever
+   * source refreshed last (including BCV), so serving it here would let a BCV
+   * rate masquerade as the Binance P2P rate. binance_rate_history stores a
+   * single P2P USDT/VES rate per day, so sell/buy are mapped from that one rate
+   * without fabricating offer counts.
+   */
+  async getLatestBinanceRate(): Promise<ExchangeRateData | null> {
+    try {
+      const data = await this.ratesHistoryRepository.getLatestBinanceRate();
+      if (!data) return null;
+
+      return {
+        usd_ves: data.usd,
+        usdt_ves: data.usd,
+        sell_rate: data.usd,
+        buy_rate: data.usd,
+        lastUpdated: data.timestamp,
+        source: data.source,
+      };
+    } catch (error) {
+      logger.error('Database error:', error);
+      return null;
+    }
+  }
+
+  /**
    * Reconstructs the latest rate from individual history tables.
    * Useful when the unified snapshot is missing or stale.
    */
