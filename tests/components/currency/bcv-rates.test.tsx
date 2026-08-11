@@ -161,4 +161,17 @@ describe('BCVRates mini vs Binance chip', () => {
       expect.stringContaining('no disponible')
     );
   });
+
+  it('renders a non-zero percentage from distinct BCV and Binance rates (proof fixture)', async () => {
+    mockUseBinanceRates.mockReturnValue(createBinanceSnapshot(800, false));
+    mockFetchBCVRates.mockResolvedValue({ ...BCV_RATES, usd: 757.54 });
+
+    render(<BCVRates />);
+
+    const chip = await screen.findByTestId('bcv-usd-vs-binance');
+    expect(chip.textContent).toContain('vs Binance');
+    expect(chip.textContent).not.toContain('-0.0%');
+    expect(chip.textContent).not.toContain('+0.0%');
+    expect(chip.textContent).toMatch(/[+-]\d+\.\d%/);
+  });
 });

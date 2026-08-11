@@ -11,9 +11,11 @@ import { NextResponse } from 'next/server';
 describe('BCV and Binance rate routes', () => {
   const getLatestExchangeRate: any = jest.fn();
   const getLatestBCVRate: any = jest.fn();
+  const getLatestBinanceRate: any = jest.fn();
   const mockDbInstance = {
     getLatestExchangeRate,
     getLatestBCVRate,
+    getLatestBinanceRate,
     storeExchangeRate: jest.fn(),
     getExchangeRateHistory: jest.fn(),
   };
@@ -103,14 +105,14 @@ describe('BCV and Binance rate routes', () => {
     expect(body.data.source).toBe('static');
   });
 
-  it('returns Binance success payloads from database', async () => {
+  it('returns Binance success payloads from the Binance-specific read model', async () => {
     const now = 1000000;
     jest.spyOn(Date, 'now').mockImplementation(() => now);
-    getLatestExchangeRate.mockResolvedValue({
+    getLatestBinanceRate.mockResolvedValue({
       usd_ves: 36,
-      usdt_ves: 38,
-      sell_rate: 38.5,
-      buy_rate: 37.5,
+      usdt_ves: 36,
+      sell_rate: 36,
+      buy_rate: 36,
       lastUpdated: new Date(now - 5000).toISOString(),
       source: 'Binance',
     });
@@ -120,13 +122,23 @@ describe('BCV and Binance rate routes', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.data.usdt_ves).toBe(38);
+    expect(body.data.usdt_ves).toBe(36);
     expect(body.data.source).toBe('Binance');
     expect(body.cached).toBe(true);
+    expect(getLatestBinanceRate).toHaveBeenCalled();
+    expect(getLatestExchangeRate).not.toHaveBeenCalled();
   });
 
-  it('returns 503 on Binance when database is empty', async () => {
-    getLatestExchangeRate.mockResolvedValue(null);
+  it('returns 503 on Binance when the Binance read model is empty even if a unified snapshot exists', async () => {
+    getLatestBinanceRate.mockResolvedValue(null);
+    getLatestExchangeRate.mockResolvedValue({
+      usd_ves: 151.52,
+      usdt_ves: 151.52,
+      sell_rate: 151.52,
+      buy_rate: 151.52,
+      lastUpdated: new Date().toISOString(),
+      source: 'BCV',
+    });
     mockScrapeBinanceRates.mockResolvedValue({
       success: false,
       error: 'Scrape failed',
@@ -137,5 +149,6 @@ describe('BCV and Binance rate routes', () => {
     const response = await route.GET();
 
     expect(response.status).toBe(503);
+    expect(getLatestExchangeRate).not.toHaveBeenCalled();
   });
 });
