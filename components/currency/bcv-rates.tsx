@@ -365,6 +365,36 @@ export function BCVRates() {
           <p className="text-sm text-muted-foreground sm:text-base">
             1 USD = Bolívares
           </p>
+          <div className="mt-2">
+            {usdRateComparison ? (
+              <span
+                data-testid="bcv-usd-vs-binance"
+                aria-label={`Tasa oficial del BCV ${usdRateComparison.isBCVHigher ? 'mayor' : 'menor'} que la referencia de Binance en ${usdRateComparison.percentageDifference.toFixed(1)} por ciento`}
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-semibold ${getPercentageColorClass(usdRateComparison.isBCVHigher)}`}
+              >
+                {usdRateComparison.isBCVHigher ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span>
+                  vs Binance{' '}
+                  {formatPercentageDifference(
+                    usdRateComparison.percentageDifference,
+                    usdRateComparison.isBCVHigher
+                  )}
+                </span>
+              </span>
+            ) : (
+              <span
+                data-testid="bcv-usd-vs-binance"
+                aria-label="Referencia de Binance no disponible para comparación"
+                className="inline-flex items-center rounded-md border border-border/30 bg-muted/40 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground"
+              >
+                vs Binance no disponible
+              </span>
+            )}
+          </div>
         </motion.div>
 
         {/* EUR Rate */}

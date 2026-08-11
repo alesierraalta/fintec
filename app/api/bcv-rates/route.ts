@@ -61,60 +61,62 @@ async function refreshBCVRatesInBackground(): Promise<void> {
 /**
  * GET /api/bcv-rates
  * Returns the latest BCV exchange rates.
+ *
+ * Reads ONLY the BCV-specific read model (bcv_rate_history). It never reads the
+ * unified exchange_rates snapshot: that table holds the newest snapshot of any
+ * source (including Binance P2P background refreshes), so serving it here would
+ * let a Binance rate masquerade as the official BCV rate.
+ *
  * Serves the stored value immediately (stale-while-revalidate): a stale
- * (>2h) or missing snapshot triggers a coalesced background refresh instead
+ * (>2h) or missing record triggers a coalesced background refresh instead
  * of blocking the request on a synchronous external scrape.
  */
 export async function GET() {
   try {
     const db = new ExchangeRateDatabase();
-    const latest = await db.getLatestExchangeRate();
+    const latest = await db.getLatestBCVRate();
 
-    if (latest) {
+    if (latest && !isFallbackSource(latest.source)) {
       const cacheAgeSeconds = Math.round(
         (Date.now() - new Date(latest.lastUpdated).getTime()) / 1000
       );
       const isStale = cacheAgeSeconds > STALE_THRESHOLD_SECONDS;
 
-      if (!isStale) {
-        // Data is fresh — return it directly
-        return NextResponse.json({
-          success: true,
-          data: {
-            usd: latest.usd_ves,
-            timestamp: latest.lastUpdated,
-            source: latest.source,
-          },
-          cached: true,
-          cacheAge: cacheAgeSeconds,
-          fallback: false,
-        });
-      }
-
-      // Data is stale — serve it immediately; refresh in the background.
-      logger.warn(
-        `BCV API: Database data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
-      );
-      scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBCVRatesInBackground);
-
-      return NextResponse.json({
+      const payload = {
         success: true,
         data: {
-          usd: latest.usd_ves,
-          timestamp: latest.lastUpdated,
+          usd: latest.usd,
+          eur: latest.eur,
+          lastUpdated: latest.lastUpdated,
           source: latest.source,
         },
         cached: true,
         cacheAge: cacheAgeSeconds,
+        fallback: false,
+      };
+
+      if (!isStale) {
+        // Data is fresh — return it directly
+        return NextResponse.json(payload);
+      }
+
+      // Data is stale — serve it immediately; refresh in the background.
+      logger.warn(
+        `BCV API: BCV data is ${cacheAgeSeconds}s old (>${STALE_THRESHOLD_SECONDS}s threshold), scheduling background refresh`
+      );
+      scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBCVRatesInBackground);
+
+      return NextResponse.json({
+        ...payload,
         stale: true,
         staleReason: `Data is ${cacheAgeSeconds}s old, background refresh scheduled`,
-        fallback: false,
       });
     }
 
-    // No data at all — serve the fallback immediately; refresh in background.
+    // No valid BCV record exists — true fallback (never a Binance/unified
+    // snapshot); refresh in the background.
     logger.warn(
-      'BCV API: No data found in database, scheduling background refresh'
+      'BCV API: No valid BCV record found, scheduling background refresh'
     );
     scheduleBackgroundRateRefresh(REFRESH_KEY, refreshBCVRatesInBackground);
 
@@ -124,7 +126,7 @@ export async function GET() {
         error: 'No BCV exchange rate data available',
         data: buildBCVFallbackData('refresh-scheduled'),
         fallback: true,
-        fallbackReason: 'No database data; background refresh scheduled',
+        fallbackReason: 'No BCV-specific data; background refresh scheduled',
       },
       { status: 503 }
     );
@@ -199,6 +201,7 @@ export async function POST(request: NextRequest) {
           eur: result.result?.eur,
           source: result.result?.source,
           timestamp: result.result?.lastUpdated,
+          lastUpdated: result.result?.lastUpdated,
         },
         attemptId: result.attemptId,
         fallback: false,
