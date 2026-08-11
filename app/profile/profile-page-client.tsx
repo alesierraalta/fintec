@@ -90,7 +90,7 @@ function ProfileContent() {
 
             <h1 className="mb-4 text-ios-large-title font-bold tracking-tight">
               <span className="mr-2">👤</span>
-              <span className="bg-gradient-to-r from-primary via-indigo-600 to-purple-500 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mi Perfil
               </span>
             </h1>
@@ -125,7 +125,7 @@ function ProfileContent() {
                     setDraftFormData(userFormData);
                     setIsEditing(true);
                   }}
-                  className="flex items-center space-x-2 rounded-xl bg-primary/10 px-4 py-2 text-ios-caption font-medium text-primary transition-all duration-200 hover:bg-primary/20"
+                  className="flex items-center space-x-2 rounded-xl bg-primary/10 px-4 py-2 text-ios-caption font-medium text-primary transition-colors duration-200 hover:bg-primary/20"
                 >
                   <span>Editar</span>
                 </button>

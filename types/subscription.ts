@@ -219,6 +219,13 @@ export interface UsageStatus {
 export interface SubscriptionStatusPayload {
   subscription: Subscription | null;
   tier: SubscriptionTier;
+  /**
+   * Canonical owner/admin flag, derived server-side from the verified
+   * identity (`supabase.auth.getUser()`) plus the `ADMIN_USER_IDS`
+   * configuration via `isAdmin()`. Owner/admin users must never be shown
+   * an upgrade CTA, regardless of their (possibly absent) subscription row.
+   */
+  isOwnerAdmin: boolean;
   usage: {
     transactionCount: number;
     backupCount: number;

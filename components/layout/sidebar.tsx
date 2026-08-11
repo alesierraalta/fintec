@@ -7,7 +7,6 @@ import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
-import { FeatureBadge } from '@/components/subscription/feature-badge';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
 import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
 import {
@@ -23,9 +22,8 @@ import {
   Wallet,
   Plus,
   DollarSign,
-  BarChart3,
   Shield,
-  Crown,
+  BadgeCheck,
   Repeat,
   MessageSquare,
 } from 'lucide-react';
@@ -62,7 +60,7 @@ export function Sidebar() {
 
   return (
     <div
-      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} ios-sidebar flex-col transition-all duration-300 ease-in-out`}
+      className={`flex h-full ${isMinimized ? 'w-16' : 'w-64'} ios-sidebar flex-col transition-[width] duration-300 ease-in-out`}
       suppressHydrationWarning
     >
       {/* Logo */}
@@ -71,7 +69,7 @@ export function Sidebar() {
           <div className="relative">
             <FinTecLogo
               containerClassName={cn(
-                'transition-all duration-300',
+                'transition-[width] duration-300',
                 isMinimized ? 'h-10 w-10' : 'h-10 w-32'
               )}
               priority
@@ -167,7 +165,7 @@ export function Sidebar() {
           <div className="ios-card flex items-center space-x-3 rounded-2xl p-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
               {isPremium ? (
-                <Crown className="h-5 w-5 text-primary-foreground" />
+                <BadgeCheck className="h-5 w-5 text-primary-foreground" />
               ) : (
                 <DollarSign className="h-5 w-5 text-primary-foreground" />
               )}

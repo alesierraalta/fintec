@@ -11,13 +11,20 @@ interface PricingCardsProps {
   loading?: boolean;
 }
 
-export function PricingCards({ currentTier = 'free', onSelectTier, loading }: PricingCardsProps) {
+export function PricingCards({
+  currentTier = 'free',
+  onSelectTier,
+  loading,
+}: PricingCardsProps) {
   // Use static data directly since we removed Paddle integration
   const getTierData = (tier: SubscriptionTier) => {
     return TIER_FEATURES[tier];
   };
 
-  const tiers: Array<{ key: SubscriptionTier; data: ReturnType<typeof getTierData> }> = [
+  const tiers: Array<{
+    key: SubscriptionTier;
+    data: ReturnType<typeof getTierData>;
+  }> = [
     { key: 'free', data: getTierData('free') },
     { key: 'base', data: getTierData('base') },
     { key: 'premium', data: getTierData('premium') },
@@ -27,24 +34,24 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
     <div className="grid gap-6 md:grid-cols-3">
       {tiers.map(({ key, data }) => {
         const isCurrent = currentTier === key;
-        const isUpgrade = (
+        const isUpgrade =
           (currentTier === 'free' && (key === 'base' || key === 'premium')) ||
-          (currentTier === 'base' && key === 'premium')
-        );
+          (currentTier === 'base' && key === 'premium');
 
         return (
           <Card
             key={key}
-            className={`relative overflow-hidden transition-all ${isCurrent && key !== 'free'
-                ? 'border-amber-400 shadow-amber-500/20 shadow-lg ring-2 ring-amber-400/30'
+            className={`relative overflow-hidden transition-shadow ${
+              isCurrent && key !== 'free'
+                ? 'border-amber-400 shadow-lg shadow-amber-500/20 ring-2 ring-amber-400/30'
                 : data.highlighted
-                  ? 'border-primary shadow-lg scale-105'
+                  ? 'scale-105 border-primary shadow-lg'
                   : 'border-border'
-              }`}
+            }`}
           >
             {/* * Current Plan Badge */}
             {isCurrent && key !== 'free' && (
-              <div className="absolute top-0 right-0 bg-amber-500 text-white text-xs font-semibold px-3 py-1 rounded-bl-lg flex items-center gap-1">
+              <div className="absolute right-0 top-0 flex items-center gap-1 rounded-bl-lg bg-amber-500 px-3 py-1 text-xs font-semibold text-white">
                 <Check className="h-3 w-3" />
                 Plan Actual
               </div>
@@ -52,7 +59,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
 
             {/* * Popular Badge */}
             {data.highlighted && !isCurrent && (
-              <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-semibold px-3 py-1 rounded-bl-lg">
+              <div className="absolute right-0 top-0 rounded-bl-lg bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
                 Más Popular
               </div>
             )}
@@ -60,20 +67,22 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
             <div className="p-6">
               {/* Header */}
               <div className="mb-6">
-                <h3 className="text-2xl font-bold mb-2">{data.name}</h3>
+                <h3 className="mb-2 text-2xl font-bold">{data.name}</h3>
                 <div className="flex items-baseline gap-1">
                   <span className="text-4xl font-bold">
                     ${(data.price / 100).toFixed(2)}
                   </span>
-                  <span className="text-muted-foreground">/{data.interval === 'month' ? 'mes' : 'año'}</span>
+                  <span className="text-muted-foreground">
+                    /{data.interval === 'month' ? 'mes' : 'año'}
+                  </span>
                 </div>
               </div>
 
               {/* Features */}
-              <ul className="space-y-3 mb-6">
+              <ul className="mb-6 space-y-3">
                 {data.features.map((feature, index) => (
                   <li key={index} className="flex items-start gap-2">
-                    <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                    <Check className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary" />
                     <span className="text-sm">{feature}</span>
                   </li>
                 ))}
@@ -101,7 +110,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
                     'Plan Actual'
                   ) : isUpgrade ? (
                     <>
-                      <Zap className="h-4 w-4 mr-2" />
+                      <Zap className="mr-2 h-4 w-4" />
                       Actualizar
                     </>
                   ) : (
@@ -111,7 +120,7 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
               )}
 
               {isCurrent && key !== 'free' && (
-                <p className="text-xs text-center text-muted-foreground mt-2">
+                <p className="mt-2 text-center text-xs text-muted-foreground">
                   Administra tu suscripción desde ajustes
                 </p>
               )}
@@ -122,4 +131,3 @@ export function PricingCards({ currentTier = 'free', onSelectTier, loading }: Pr
     </div>
   );
 }
-

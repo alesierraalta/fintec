@@ -89,7 +89,7 @@ export function TransactionForm({
     openModal: openCategoryModal,
     closeModal: closeCategoryModal,
   } = useModal();
-  const { usageStatus, isAtLimit, tier } = useSubscription();
+  const { usageStatus, isAtLimit, tier, isOwnerAdmin } = useSubscription();
   const activeUsdVes = useActiveUsdVesRate();
 
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -265,8 +265,14 @@ export function TransactionForm({
     e.preventDefault();
     if (!user) return;
 
-    // Check if user is at transaction limit (only for new transactions)
-    if (!transaction && tier === 'free' && isAtLimit('transactions')) {
+    // Check if user is at transaction limit (only for new transactions).
+    // Owners/admins are never upsold, regardless of their free-tier status.
+    if (
+      !transaction &&
+      tier === 'free' &&
+      !isOwnerAdmin &&
+      isAtLimit('transactions')
+    ) {
       setShowUpgradeModal(true);
       return;
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui';
 import { useAutoBackup } from '@/hooks/use-auto-backup';
@@ -16,14 +16,15 @@ import {
   Sun,
   Globe,
   Database,
-  Crown,
+  BadgeCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { settings, updateSettings, performAutoBackup, isBackupDue } =
     useAutoBackup();
-  const { tier, isPremium } = useSubscription();
+  const { tier, isPremium, isOwnerAdmin } = useSubscription();
   const [loading, setLoading] = useState(false);
 
   const handleFrequencyChange = (frequency: 'daily' | 'weekly' | 'monthly') => {
@@ -60,7 +61,7 @@ export default function SettingsPage() {
             <span className="text-ios-caption font-medium">Sistema</span>
           </div>
 
-          <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-indigo-500 bg-clip-text text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-6xl">
+          <h1 className="mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
             ⚙️ Configuración
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
@@ -86,9 +87,12 @@ export default function SettingsPage() {
               </h2>
             </div>
             {isPremium && (
-              <div className="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-amber-500/10 px-3 py-1">
-                <Crown className="h-3.5 w-3.5 text-amber-400" />
-                <span className="text-xs font-semibold text-amber-400">
+              <div className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1">
+                <BadgeCheck
+                  className="h-3.5 w-3.5 text-primary"
+                  aria-hidden="true"
+                />
+                <span className="text-xs font-semibold text-primary">
                   Activo
                 </span>
               </div>
@@ -98,13 +102,14 @@ export default function SettingsPage() {
           <div className="mb-6 flex items-center space-x-4">
             <div
               className={`rounded-2xl p-3 ${
-                isPremium ? 'bg-amber-500/10' : 'bg-blue-500/10'
+                isPremium ? 'bg-primary/10' : 'bg-blue-500/10'
               }`}
             >
-              <Crown
+              <BadgeCheck
                 className={`h-6 w-6 ${
-                  isPremium ? 'text-amber-400' : 'text-blue-600'
+                  isPremium ? 'text-primary' : 'text-blue-600'
                 }`}
+                aria-hidden="true"
               />
             </div>
             <div className="flex-1">
@@ -117,7 +122,12 @@ export default function SettingsPage() {
                       ? 'Base'
                       : 'Premium'}
                 </p>
-                {isPremium && <Crown className="h-4 w-4 text-amber-400" />}
+                {isPremium && (
+                  <BadgeCheck
+                    className="h-4 w-4 text-primary"
+                    aria-hidden="true"
+                  />
+                )}
               </div>
               <p className="mt-1 text-ios-caption text-muted-foreground">
                 {isPremium
@@ -137,19 +147,20 @@ export default function SettingsPage() {
                   {isPremium ? 'Suscripción activa' : 'Sin suscripción'}
                 </p>
               </div>
-              <Link href="/pricing">
+              {!isOwnerAdmin && (
                 <Button
                   variant={isPremium ? 'outline' : 'primary'}
                   size="sm"
+                  onClick={() => router.push('/pricing')}
                   className={
                     isPremium
-                      ? 'border-amber-400/30 text-amber-400 hover:bg-amber-500/10'
+                      ? 'border-primary/30 text-primary hover:bg-primary/10'
                       : ''
                   }
                 >
                   Ver Planes
                 </Button>
-              </Link>
+              )}
             </div>
           </div>
         </div>
@@ -189,7 +200,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     onClick={handleToggleAutoBackup}
-                    className={`relative inline-flex h-7 w-12 items-center rounded-full shadow-inner transition-all duration-300 ${
+                    className={`relative inline-flex h-7 w-12 items-center rounded-full shadow-inner transition-colors duration-300 ${
                       settings.enabled
                         ? 'bg-primary shadow-primary/30'
                         : 'bg-muted'

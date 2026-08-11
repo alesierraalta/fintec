@@ -9,8 +9,6 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ArrowRightLeft,
-  Repeat,
-  Sparkles,
 } from 'lucide-react';
 import { TransactionType } from '@/types';
 import { useModal } from '@/hooks';

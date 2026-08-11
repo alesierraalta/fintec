@@ -32,7 +32,6 @@ import {
   Repeat,
   Download,
   Trash2,
-  Sparkles,
   Filter,
   Edit,
   ArrowRight,
@@ -509,13 +508,10 @@ export default function TransactionsPage() {
                 <Button
                   type="button"
                   onClick={handleNewTransaction}
-                  className="ios-button-primary group relative overflow-hidden"
+                  className="ios-button-primary"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-hover:animate-pulse group-hover:opacity-20"></div>
-                  <div className="relative flex items-center space-x-2">
-                    <Sparkles className="h-5 w-5" />
-                    <span>Nueva Transacción</span>
-                  </div>
+                  <Plus className="h-5 w-5" aria-hidden="true" />
+                  <span>Nueva Transacción</span>
                 </Button>
               </div>
             }
@@ -523,7 +519,7 @@ export default function TransactionsPage() {
 
           {/* iOS-style Summary Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
               <div className="mb-4 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -582,7 +578,7 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
               <div className="mb-4 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -641,7 +637,7 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
               <div className="mb-4 flex items-center space-x-2">
                 <div
                   className={`h-2 w-2 ${totalesEnUSD.net >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
@@ -714,7 +710,7 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
               <div className="mb-4 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -796,7 +792,7 @@ export default function TransactionsPage() {
                 <div className="rounded-3xl border border-border/40 bg-card/90 p-8 text-center shadow-sm">
                   <div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
                   <p className="text-ios-body text-muted-foreground">
-                    ✨ Cargando transacciones...
+                    Cargando transacciones...
                   </p>
                 </div>
               ) : filteredTransactionsMemo.length === 0 ? (
@@ -833,7 +829,7 @@ export default function TransactionsPage() {
                         actions={swipeActions}
                         onClick={() => handleTransactionClick(transaction)}
                         showSwipeHint={false}
-                        className="overflow-hidden rounded-2xl border border-border/40 shadow-sm transition-all duration-200 hover:border-border/80 hover:shadow-md"
+                        className="overflow-hidden rounded-2xl border border-border/40 shadow-sm transition-shadow duration-200 hover:border-border/80 hover:shadow-md"
                         contentClassName="cursor-pointer bg-card p-4 sm:p-5"
                       >
                         <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
