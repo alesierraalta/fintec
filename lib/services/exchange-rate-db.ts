@@ -10,6 +10,13 @@ interface ExchangeRateData {
   source: string;
 }
 
+interface BCVExchangeRateData {
+  usd: number;
+  eur: number;
+  lastUpdated: string;
+  source: string;
+}
+
 class ExchangeRateDatabase {
   private ratesHistoryRepository: SupabaseRatesHistoryRepository;
 
@@ -53,6 +60,29 @@ class ExchangeRateDatabase {
         sell_rate: data.sellRate,
         buy_rate: data.buyRate,
         lastUpdated: data.lastUpdated,
+        source: data.source,
+      };
+    } catch (error) {
+      logger.error('Database error:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Reads the latest BCV-specific record from the BCV read model
+   * (bcv_rate_history). This is the ONLY source of truth for /api/bcv-rates:
+   * the unified exchange_rates snapshot is shared with Binance and must never
+   * masquerade as BCV.
+   */
+  async getLatestBCVRate(): Promise<BCVExchangeRateData | null> {
+    try {
+      const data = await this.ratesHistoryRepository.getLatestBCVRate();
+      if (!data) return null;
+
+      return {
+        usd: data.usd,
+        eur: data.eur,
+        lastUpdated: data.timestamp,
         source: data.source,
       };
     } catch (error) {

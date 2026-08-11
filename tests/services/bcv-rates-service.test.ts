@@ -175,6 +175,93 @@ describe('BCVRatesService', () => {
     });
   });
 
+  describe('metadata mapping', () => {
+    it('preserves API metadata (source, lastUpdated, cacheAge, cached) instead of discarding it', async () => {
+      const lastUpdated = new Date().toISOString();
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            usd: 850.5,
+            eur: 920.25,
+            lastUpdated,
+            source: 'BCV',
+          },
+          cached: true,
+          cacheAge: 305,
+          fallback: false,
+        }),
+      });
+
+      const rates = await bcvRatesService.fetchRates();
+
+      expect(rates.usd).toBe(850.5);
+      expect(rates.eur).toBe(920.25);
+      expect(rates.source).toBe('BCV');
+      expect(rates.lastUpdated).toBe(lastUpdated);
+      expect(rates.cached).toBe(true);
+      expect(rates.cacheAge).toBe(305);
+      expect(rates.fallback).toBeUndefined();
+    });
+
+    it('keeps the API-supplied EUR (never silently replaces it with the static default)', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            usd: 850.5,
+            eur: 920.25,
+            lastUpdated: new Date().toISOString(),
+            source: 'BCV',
+          },
+          cached: false,
+          cacheAge: 12,
+          fallback: false,
+        }),
+      });
+
+      const rates = await bcvRatesService.fetchRates();
+
+      expect(rates.eur).toBe(920.25);
+      expect(rates.eur).not.toBe(STATIC_BCV_FALLBACK_RATES.eur);
+      expect(rates.fallback).toBeUndefined();
+      expect(bcvHistoryService.saveRates).toHaveBeenCalledWith(
+        850.5,
+        920.25,
+        'BCV'
+      );
+    });
+
+    it('falls back explicitly instead of silently defaulting EUR when the API omits it', async () => {
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          success: true,
+          data: {
+            usd: 850.5,
+            source: 'BCV',
+            lastUpdated: new Date().toISOString(),
+          },
+          cached: true,
+          cacheAge: 10,
+          fallback: false,
+        }),
+      });
+      (bcvHistoryService.getLatestRate as jest.Mock).mockResolvedValueOnce(
+        null
+      );
+      (global as any).indexedDB = {};
+
+      const rates = await bcvRatesService.fetchRates();
+
+      expect(rates.fallback).toBe(true);
+      expect(rates.source).toContain('static');
+      expect(rates.eur).toBe(STATIC_BCV_FALLBACK_RATES.eur);
+    });
+  });
+
   describe('getTrends', () => {
     it('should delegate to bcvHistoryService', async () => {
       const mockTrends = {

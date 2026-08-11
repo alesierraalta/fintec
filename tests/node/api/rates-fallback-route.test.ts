@@ -10,8 +10,10 @@ import { NextResponse } from 'next/server';
 
 describe('BCV and Binance rate routes', () => {
   const getLatestExchangeRate: any = jest.fn();
+  const getLatestBCVRate: any = jest.fn();
   const mockDbInstance = {
     getLatestExchangeRate,
+    getLatestBCVRate,
     storeExchangeRate: jest.fn(),
     getExchangeRateHistory: jest.fn(),
   };
@@ -28,6 +30,8 @@ describe('BCV and Binance rate routes', () => {
     jest.clearAllMocks();
     mockScrapeBCVRates.mockReset();
     mockScrapeBinanceRates.mockReset();
+    getLatestExchangeRate.mockReset();
+    getLatestBCVRate.mockReset();
 
     jest.doMock('@/lib/services/exchange-rate-db', () => {
       return jest.fn().mockImplementation(() => mockDbInstance);
@@ -56,14 +60,12 @@ describe('BCV and Binance rate routes', () => {
     jest.restoreAllMocks();
   });
 
-  it('serves BCV data from database', async () => {
+  it('serves BCV data from the BCV-specific read model', async () => {
     const now = 1000000;
     jest.spyOn(Date, 'now').mockImplementation(() => now);
-    getLatestExchangeRate.mockResolvedValue({
-      usd_ves: 36,
-      usdt_ves: 37,
-      sell_rate: 36,
-      buy_rate: 36,
+    getLatestBCVRate.mockResolvedValue({
+      usd: 36,
+      eur: 40,
       lastUpdated: new Date(now - 10000).toISOString(),
       source: 'BCV',
     });
@@ -74,12 +76,14 @@ describe('BCV and Binance rate routes', () => {
 
     expect(first.status).toBe(200);
     expect(body.data.usd).toBe(36);
+    expect(body.data.eur).toBe(40);
     expect(body.data.source).toBe('BCV');
-    expect(getLatestExchangeRate).toHaveBeenCalled();
+    expect(getLatestBCVRate).toHaveBeenCalled();
+    expect(getLatestExchangeRate).not.toHaveBeenCalled();
   });
 
-  it('falls back to static BCV data when database is empty', async () => {
-    getLatestExchangeRate.mockResolvedValue(null);
+  it('falls back to static BCV data when the BCV read model is empty', async () => {
+    getLatestBCVRate.mockResolvedValue(null);
     mockScrapeBCVRates.mockResolvedValue({
       success: false,
       error: 'Scrape failed',
