@@ -13,11 +13,65 @@ import {
   User,
   Session,
   AuthError,
+  AuthWeakPasswordError,
   PostgrestError,
+  WeakPasswordReasons,
 } from '@supabase/supabase-js';
 import { supabase } from '@/repositories/supabase/client';
 import { clearAllOptimizedDataCaches } from '@/lib/cache/optimized-data-cache';
 import { getOAuthRedirectTo } from '@/lib/auth/oauth-providers';
+
+// The app only guarantees what its form enforces (minimum 6 characters, per
+// supabase/config.toml `minimum_password_length = 6`). Any stronger server
+// requirement is unknown to the client, so weak-password errors surface the
+// server-provided reasons instead of claiming a policy that may not exist.
+const WEAK_PASSWORD_REASON_LABELS: Partial<
+  Record<WeakPasswordReasons, string>
+> = {
+  length: 'debe tener más caracteres',
+  characters: 'debe incluir los tipos de caracteres requeridos',
+  pwned: 'no debe ser una contraseña comprometida en filtraciones conocidas',
+};
+
+function describeWeakPasswordReasons(
+  reasons: WeakPasswordReasons[] | undefined
+): string {
+  if (!Array.isArray(reasons) || reasons.length === 0) {
+    return 'La contraseña no cumple los requisitos de seguridad del servidor';
+  }
+  const labels = reasons
+    .map((reason) => WEAK_PASSWORD_REASON_LABELS[reason])
+    .filter((label): label is string => Boolean(label));
+  if (labels.length === 0) {
+    return 'La contraseña no cumple los requisitos de seguridad del servidor';
+  }
+  return `La contraseña no cumple los requisitos de seguridad: ${labels.join(', ')}`;
+}
+
+function translateSignUpError(error: AuthError): string {
+  switch (error.code) {
+    case 'email_exists':
+    case 'user_already_exists':
+    case 'identity_already_exists':
+      return 'Este correo ya está registrado. ¿Olvidaste tu contraseña?';
+    case 'over_email_send_rate_limit':
+    case 'over_request_rate_limit':
+      return 'Demasiados intentos. Por favor espera un momento e intenta de nuevo.';
+    case 'email_address_invalid':
+      return 'El formato del correo electrónico no es válido';
+    case 'email_address_not_authorized':
+      return 'Este correo electrónico no puede ser usado para registro.';
+    case 'weak_password':
+      return describeWeakPasswordReasons(
+        (error as AuthWeakPasswordError).reasons
+      );
+    default:
+      // Unknown server errors are not assumed to be password problems. Show a
+      // safe, actionable message instead of leaking raw English or blaming the
+      // password without evidence.
+      return 'No pudimos crear tu cuenta. Por favor intenta de nuevo.';
+  }
+}
 
 async function upsertUserProfileOnServer(payload: {
   name?: string;
@@ -131,8 +185,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getUser().then(async ({ data: { user: verifiedUser } }) => {
       if (verifiedUser) {
         // Only fetch session (for access_token) when we KNOW the user is valid.
-        const { data: { session: currentSession } } =
-          await supabase.auth.getSession();
+        const {
+          data: { session: currentSession },
+        } = await supabase.auth.getSession();
         setSession(currentSession);
         setUser(verifiedUser);
       } else {
@@ -207,40 +262,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // If there's an error during signup, set it in context
         if (error) {
-          let errorMessage = error.message;
-
-          // Translate common errors to user-friendly Spanish messages
-          if (
-            errorMessage.includes('already registered') ||
-            errorMessage.includes('User already registered')
-          ) {
-            errorMessage =
-              'Este correo ya está registrado. ¿Olvidaste tu contraseña?';
-          } else if (
-            errorMessage.includes('weak password') ||
-            errorMessage.includes('Password')
-          ) {
-            errorMessage =
-              'La contraseña debe tener al menos 8 caracteres, incluyendo mayúsculas, minúsculas y números';
-          } else if (
-            errorMessage.includes('Email address') &&
-            errorMessage.includes('is invalid')
-          ) {
-            // Supabase is blocking this specific email address
-            errorMessage =
-              'Este correo electrónico no puede ser usado para registro. Por favor usa un email corporativo o educativo válido.';
-          } else if (errorMessage.includes('Invalid email')) {
-            errorMessage = 'El formato del correo electrónico no es válido';
-          } else if (errorMessage.includes('Email rate limit exceeded')) {
-            errorMessage =
-              'Demasiados intentos. Por favor espera un momento e intenta de nuevo.';
-          } else if (
-            errorMessage.includes('Signup requires a valid password')
-          ) {
-            errorMessage = 'La contraseña es requerida y debe ser válida';
-          }
-
-          setAuthError(errorMessage);
+          setAuthError(translateSignUpError(error));
           return { error };
         }
 

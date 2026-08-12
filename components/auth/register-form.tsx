@@ -340,6 +340,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
                   type={showPassword ? 'text' : 'password'}
                   label="Contraseña"
                   placeholder="••••••"
+                  hint="Mínimo 6 caracteres"
                   value={formData.password}
                   onChange={handleChange}
                   disabled={loading}
