@@ -287,6 +287,9 @@ describe('SupabaseTransfersRepository - Query Projections', () => {
       expect(selectCall.fields).not.toContain('settled_at');
       expect(selectCall.fields).not.toContain('debt_direction');
       expect(selectCall.fields).not.toContain('debt_status');
+      // Stale column guard: pending does not exist in the transactions schema
+      // (PostgREST rejects it -> GET /api/transfers 500).
+      expect(selectCall.fields.split(', ')).not.toContain('pending');
     });
   });
 });

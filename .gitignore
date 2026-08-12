@@ -216,3 +216,6 @@ gemini_launch_prompt.txt
 jest_final_check.txt
 test_output.txt
 reports-verification.png
+
+# local real-run harnesses and exploratory test scripts
+/testLocales/

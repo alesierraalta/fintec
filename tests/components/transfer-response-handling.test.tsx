@@ -1,5 +1,11 @@
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { DesktopTransfer } from '@/components/transfers/desktop-transfer';
 import { MobileTransfer } from '@/components/transfers/mobile-transfer';
 import { TransferHistory } from '@/components/transfers/transfer-history';
@@ -9,7 +15,6 @@ import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { useAppStore } from '@/lib/store';
 import { toast } from 'sonner';
-
 jest.mock('@/providers', () => ({ useRepository: jest.fn() }));
 jest.mock('@/hooks/use-auth', () => ({ useAuth: jest.fn() }));
 jest.mock('@/hooks/use-bcv-rates', () => ({ useBCVRates: jest.fn() }));
@@ -27,7 +32,6 @@ jest.mock('@/repositories/supabase/client', () => ({
     },
   },
 }));
-
 const accounts = [
   {
     id: 'usd',
@@ -44,6 +48,17 @@ const accounts = [
     active: true,
   },
 ];
+
+async function fillTransferForm(container: HTMLElement) {
+  fireEvent.click(screen.getAllByRole('button', { name: /Cuenta USD/i })[0]);
+  fireEvent.click(screen.getAllByRole('button', { name: /Cuenta VES/i })[1]);
+  fireEvent.change(screen.getAllByRole('spinbutton')[0], {
+    target: { value: '10' },
+  });
+  fireEvent.change(container.querySelector('input[type="date"]')!, {
+    target: { value: '2026-07-14' },
+  });
+}
 
 describe('transfer API response handling', () => {
   beforeEach(() => {
@@ -64,14 +79,14 @@ describe('transfer API response handling', () => {
       selector({ selectedRateSource: 'bcv_usd' })
     );
   });
-
   it.each([
-    ['desktop', DesktopTransfer],
-    ['mobile', MobileTransfer],
+    ['desktop', DesktopTransfer, false],
+    ['mobile', MobileTransfer, false],
+    ['desktop double activation', DesktopTransfer, true],
   ])(
     'treats a successful standard envelope as success in %s transfer',
-    async (_, Component) => {
-      global.fetch = jest.fn().mockResolvedValue({
+    async (_, Component, doubleClick) => {
+      const fetchMock = jest.fn().mockResolvedValue({
         ok: true,
         status: 201,
         json: jest.fn().mockResolvedValue({
@@ -79,39 +94,34 @@ describe('transfer API response handling', () => {
           error: null,
           meta: {},
         }),
-      }) as jest.Mock;
-
+      });
+      global.fetch = fetchMock as jest.Mock;
       const { container } = render(<Component />);
       await waitFor(() => {
         expect(
           screen.queryByText('Cargando cuentas...')
         ).not.toBeInTheDocument();
       });
-
-      fireEvent.click(
-        screen.getAllByRole('button', { name: /Cuenta USD/i })[0]
-      );
-      fireEvent.click(
-        screen.getAllByRole('button', { name: /Cuenta VES/i })[1]
-      );
-      fireEvent.change(screen.getAllByRole('spinbutton')[0], {
-        target: { value: '10' },
-      });
-      fireEvent.change(container.querySelector('input[type="date"]')!, {
-        target: { value: '2026-07-14' },
-      });
+      await fillTransferForm(container);
+      let confirm: HTMLElement;
       if (Component === MobileTransfer) {
         await screen.findByText('Confirmar Transferencia');
-        fireEvent.click(
-          await screen.findByRole('button', { name: 'Transferir' })
-        );
+        confirm = await screen.findByRole('button', { name: 'Transferir' });
       } else {
-        fireEvent.click(
-          await screen.findByRole('button', { name: /Realizar Transferencia/i })
-        );
+        confirm = await screen.findByRole('button', {
+          name: /Realizar Transferencia/i,
+        });
       }
-
-      await waitFor(() => expect(toast.success).toHaveBeenCalled());
+      if (doubleClick) {
+        act(() => {
+          fireEvent.click(confirm);
+          fireEvent.click(confirm);
+        });
+      } else {
+        fireEvent.click(confirm);
+      }
+      await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1));
+      expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(toast.error).not.toHaveBeenCalled();
     }
   );
@@ -144,9 +154,7 @@ describe('transfer API response handling', () => {
         meta: {},
       }),
     }) as jest.Mock;
-
     render(<TransferHistory />);
-
     expect(await screen.findByText('Envelope transfer')).toBeInTheDocument();
     expect(
       screen.queryByText('Error al cargar transferencias')
