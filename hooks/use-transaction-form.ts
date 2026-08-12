@@ -45,8 +45,7 @@ export const TRANSACTION_TYPES = [
   },
 ] as const;
 
-// * Canonical origin→destination transfer flow. Generic creation callers
-// redirect here instead of persisting a lone TRANSFER_OUT row.
+// * Canonical origin→destination flow for generic creation callers.
 export const TRANSFER_FLOW_PATH = '/transfers';
 
 // * Form data interface

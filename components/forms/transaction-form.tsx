@@ -73,6 +73,9 @@ const transactionTypes = [
 const isTransactionType = (value: unknown): value is TransactionType =>
   Object.values(TransactionType).some((type) => type === value);
 
+const isTransferLegType = (t: TransactionType | undefined) =>
+  t === TransactionType.TRANSFER_OUT || t === TransactionType.TRANSFER_IN;
+
 const isDebtDirection = (value: unknown): value is DebtDirection =>
   Object.values(DebtDirection).some((direction) => direction === value);
 
@@ -273,8 +276,11 @@ export function TransactionForm({
     e.preventDefault();
     if (!user) return;
 
-    // #56: never persist a lone TRANSFER_OUT from the generic form.
-    if (formData.type === TransactionType.TRANSFER_OUT) {
+    // #56: transfer legs route to the canonical flow — no single-leg edit.
+    if (
+      isTransferLegType(transaction?.type) ||
+      isTransferLegType(formData.type)
+    ) {
       openCanonicalTransferFlow();
       return;
     }

@@ -4,13 +4,16 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { TransactionForm } from '@/components/forms/transaction-form';
 import { TransactionType } from '@/types';
-import type { Account, Category } from '@/types/domain';
+import type { Account, Category, Transaction } from '@/types/domain';
 // Mocks must return STABLE references or the form's useEffect re-runs per render.
 jest.mock('@/providers', () => {
   const repo = {
     accounts: { findByUserId: jest.fn().mockResolvedValue([]) },
     categories: { findAll: jest.fn().mockResolvedValue([]) },
-    transactions: { create: jest.fn().mockResolvedValue({ id: 'tx-1' }) },
+    transactions: {
+      create: jest.fn().mockResolvedValue({ id: 'tx-1' }),
+      update: jest.fn(),
+    },
   };
   return { useRepository: () => repo, __repo: repo };
 });
@@ -39,8 +42,8 @@ jest.mock('@/lib/utils/logger', () => ({ logger: { error: jest.fn() } }));
 const mockToast = jest.fn();
 jest.mock('sonner', () => ({
   toast: {
-    success: (...a: unknown[]) => mockToast('success', ...a),
-    error: (...a: unknown[]) => mockToast('error', ...a),
+    success: (...a: unknown[]) => mockToast(...a),
+    error: (...a: unknown[]) => mockToast(...a),
   },
 }));
 const mockReplace = jest.fn();
@@ -60,19 +63,31 @@ const category = {
   kind: 'EXPENSE' as any,
   active: true,
 } as Category;
-// `require` re-uses the jest.mock factory's repo instance.
 const repositoryMock = require('@/providers').__repo;
 repositoryMock.accounts.findByUserId.mockResolvedValue([account]);
 repositoryMock.categories.findAll.mockResolvedValue([category]);
 const createMock = repositoryMock.transactions.create;
+const updateMock = repositoryMock.transactions.update;
 
 describe('TransactionForm canonical transfer escape hatch', () => {
   beforeEach(() => {
     createMock.mockReset();
     createMock.mockResolvedValue({ id: 'tx-1' });
+    updateMock.mockReset();
     mockReplace.mockReset();
     mockToast.mockReset();
   });
+
+  const LEG_BASE = {
+    id: 'leg-1',
+    accountId: 'cash-usd',
+    categoryId: 'cat-1',
+    amountMinor: 2500,
+    currencyCode: 'USD',
+    date: '2026-08-11',
+    description: 'Transfer leg',
+  } as Transaction;
+  const leg = (type: TransactionType) => ({ ...LEG_BASE, type });
 
   it('redirects to /transfers when Transfer is selected and persists nothing', async () => {
     render(
@@ -130,4 +145,25 @@ describe('TransactionForm canonical transfer escape hatch', () => {
     expect(createMock).not.toHaveBeenCalled();
     expect(mockToast).not.toHaveBeenCalled();
   });
+
+  it.each([TransactionType.TRANSFER_OUT, TransactionType.TRANSFER_IN])(
+    'routes edit of a %s leg to /transfers without single-leg update',
+    async (legType) => {
+      render(
+        <TransactionForm
+          isOpen
+          onClose={jest.fn()}
+          transaction={leg(legType)}
+        />
+      );
+      await waitFor(() =>
+        expect(screen.getByLabelText('Monto')).toBeInTheDocument()
+      );
+      fireEvent.click(screen.getByRole('button', { name: /Guardar/i }));
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith('/transfers')
+      );
+      expect(updateMock).not.toHaveBeenCalled();
+    }
+  );
 });

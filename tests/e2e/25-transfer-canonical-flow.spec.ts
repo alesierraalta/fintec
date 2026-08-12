@@ -9,17 +9,12 @@ test.describe('Canonical Transfer Flow @auth-required', () => {
   test('generic Transfer selection opens /transfers and persists nothing', async ({
     page,
   }, testInfo) => {
-    test.skip(
-      testInfo.project.name !== 'chromium',
-      'Run this E2E flow on the primary desktop project'
-    );
+    test.skip(testInfo.project.name !== 'chromium', 'desktop project only');
     const countBefore = await transactionCount(page);
-    // Modal caller (TransactionForm): dashboard quick action opens the modal.
     await page.goto('/');
     await page.getByRole('button', { name: 'Registrar Gasto' }).click();
     await page.getByRole('button', { name: 'Transferencia' }).click();
     await expect(page).toHaveURL(/\/transfers/);
-    // Desktop caller (DesktopAddTransaction): selection alone opens the flow.
     await page.goto('/transactions/add');
     await page.getByRole('button', { name: 'Transferencia' }).click();
     await expect(page).toHaveURL(/\/transfers/);
