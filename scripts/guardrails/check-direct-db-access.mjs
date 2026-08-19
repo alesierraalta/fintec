@@ -41,6 +41,9 @@ const ALLOWED_FILES = new Set([
   'lib/ai/tools/resolvers.ts',
   // Chat needs the request user's base currency to build its tool context.
   'app/api/chat/route.ts',
+  // Legal acceptance routes
+  'app/api/legal/acceptance/route.ts',
+  'lib/legal/user-data.ts',
 ]);
 
 const DB_CALL_PATTERNS = [/\.from\(\s*['"`]/g, /\.rpc\(\s*['"`]/g];
