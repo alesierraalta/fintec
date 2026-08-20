@@ -7,6 +7,11 @@ import { RecentTransactions } from './recent-transactions';
 import { AccountsOverview } from './accounts-overview';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
+import {
+  deriveFreshness,
+  formatDisplayMoney,
+  liveMoney,
+} from '@/lib/currency-display-policy';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
@@ -73,6 +78,24 @@ export function MobileDashboard() {
     },
     [bcvRates, binanceRates]
   );
+
+  // Live projection disclosure: the converted total is a CURRENT-rate estimate,
+  // never equivalent to the historical totals. Classify it via the display
+  // policy so source + freshness are visible to the beginner.
+  const rateObservedAt = shouldFetchBcvRates
+    ? bcvRates?.lastUpdated
+    : binanceRates?.lastUpdated;
+  const liveProjection = (amountMajor: number, rate: number) =>
+    formatDisplayMoney(
+      liveMoney({
+        amountMinor: Math.round(amountMajor * 100),
+        currencyCode: 'USD',
+        rate,
+        source: getRateName(usdEquivalentType),
+        observedAt: rateObservedAt ?? new Date().toISOString(),
+        freshness: deriveFreshness(rateObservedAt, Date.now()),
+      })
+    );
 
   // Load data on component mount
   useEffect(() => {
@@ -288,8 +311,13 @@ export function MobileDashboard() {
                 </p>
               )}
               <p className="amount-emphasis-white text-sm text-white">
-                Total: ${totalBalance.toFixed(2)} (
-                {getRateName(usdEquivalentType)})
+                Total:{' '}
+                {liveProjection(totalBalance, getExchangeRate(usdEquivalentType))
+                  .text}{' '}
+                (
+                {liveProjection(totalBalance, getExchangeRate(usdEquivalentType))
+                  .provenance}
+                )
               </p>
             </div>
           ) : (
@@ -325,8 +353,13 @@ export function MobileDashboard() {
               </p>
             )}
             <p className="text-sm text-muted-foreground">
-              Total: ${monthlyIncome.toFixed(2)} (
-              {getRateName(usdEquivalentType)})
+              Total:{' '}
+              {liveProjection(monthlyIncome, getExchangeRate(usdEquivalentType))
+                .text}{' '}
+              (
+              {liveProjection(monthlyIncome, getExchangeRate(usdEquivalentType))
+                .provenance}
+              )
             </p>
           </div>
           <div className="mt-2 flex items-center space-x-2">
@@ -360,8 +393,13 @@ export function MobileDashboard() {
               </p>
             )}
             <p className="text-sm text-muted-foreground">
-              Total: ${monthlyExpenses.toFixed(2)} (
-              {getRateName(usdEquivalentType)})
+              Total:{' '}
+              {liveProjection(monthlyExpenses, getExchangeRate(usdEquivalentType))
+                .text}{' '}
+              (
+              {liveProjection(monthlyExpenses, getExchangeRate(usdEquivalentType))
+                .provenance}
+              )
             </p>
           </div>
           <div className="mt-2 flex items-center space-x-2">
@@ -406,8 +444,17 @@ export function MobileDashboard() {
             <p
               className={`text-sm ${monthlyIncome - monthlyExpenses >= 0 ? 'amount-positive' : 'amount-negative'}`}
             >
-              Total: ${Math.abs(monthlyIncome - monthlyExpenses).toFixed(2)} (
-              {getRateName(usdEquivalentType)})
+              Total:{' '}
+              {liveProjection(
+                monthlyIncome - monthlyExpenses,
+                getExchangeRate(usdEquivalentType)
+              ).text}{' '}
+              (
+              {liveProjection(
+                monthlyIncome - monthlyExpenses,
+                getExchangeRate(usdEquivalentType)
+              ).provenance}
+              )
             </p>
           </div>
           <div className="mt-2 flex items-center space-x-2">

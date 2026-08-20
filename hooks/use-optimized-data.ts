@@ -272,9 +272,12 @@ export function useOptimizedData() {
   };
 
   // Determine if we should show loading state
+  // In no-auth/bypass mode there is no user to load for; do not block
+  // rendering on a spinner — let consumers render their honest empty state
+  // (e.g. "Sin datos") instead of an indefinite "Cargando…".
   const needsData =
     globalCache.transactions.length === 0 || globalCache.accounts.length === 0;
-  const shouldShowLoading = isInitialLoad && needsData;
+  const shouldShowLoading = Boolean(user) && isInitialLoad && needsData;
 
   // Mutation functions with auto-invalidation
   const createTransaction = useCallback(

@@ -223,3 +223,29 @@ This acceptance-only slice changed **0 production lines**. Only OpenSpec docs (`
 | Evidence | Required value | Result |
 |---|---|---|
 | Focused test command and exact result | Smallest command proving this unit; command, exit/result, and relevant counts | `npm test -- tests/unit/lib/currency-display-policy.test.ts tests/components/reports-display-policy.test.tsx --runInBand` → **PASS** — 2 suites passed, 13 tests passed, 0 failed, 1.3s, exit 0 (strict). |
+| Runtime harness command/scenario and exact result | Real integration/runtime path; explicit `N/A` only when no runtime boundary exists, with reason | `npx tsx testLocales/58-display-policy-real.ts` → **PASS** — `DISPLAY POLICY REAL 4/4 PASS` (`historical: $12,50` stable, `live: $12,50 | BCV 36.5 · actualizado`, `missing: Sin datos` never `0,00`) + `CLEANUP PASS: no fixture transactions remain` (verified via service-role `finally`; fixtures: 1 transaction, 1 account, 1 user removed, exit 0). |
+| E2E isolated harness and exact result | Real runtime boundary with PID/cwd/port verified; `N/A` only when no runtime boundary exists | `REUSE_EXISTING_SERVER=true PORT=3115 PLAYWRIGHT_GLOBAL_TIMEOUT_MS=180000 npm run e2e:no-auth -- tests/e2e/24-report-currency-policy.spec.ts --project=chromium` → **PASS** — 1 passed in 3.4s. Server from worktree `FRONTEND_AUTH_BYPASS=1 npm run dev -- -p 3115` PIDs 1316405 (npm) → 1316438 (sh) → 1316439 (node) → 1316532 (next-server) all `cwd=/home/alesierraalta/documents/projects/fintec-worktrees/beginner-ux-10` (`/proc/<pid>/cwd`), `ss -ltnp` exclusive `*:3115` owned by 1316532 only, killed after run, `ss` shows 3115 FREE. Spec guards `project.name !== 'chromium'` skip and waits for `Cargando reportes` hidden before asserting `Sin datos` ≥2 cards and `notContainText('0,00')`. |
+| Rollback boundary | Exact files/behavior that can be reverted without removing unrelated work | Revert `lib/currency-display-policy.ts`, `hooks/use-optimized-data.ts` (3-line bypass fix), `components/reports/{mobile-reports,desktop-reports}.tsx`, `components/dashboard/mobile-dashboard.tsx`, `components/transfers/transfer-history.tsx`; remove `tests/unit/lib/currency-display-policy.test.ts`, `tests/components/reports-display-policy.test.tsx`, `tests/e2e/24-report-currency-policy.spec.ts` (ignored driver `testLocales/58-display-policy-real.ts` needs no track). No schema/RPC/migration change; independent of WU56/WU57. |
+| Type/lint | No new errors in changed production files | `npm run type-check` → exit 0 when filtered to `testLocales` (pre-existing 9 errors in `56-*` only); `npm run lint` → 0 errors, 353 warnings (pre-existing). |
+
+### Preflight
+
+- Proposal/specs/design/tasks.md/apply-progress.md read; CodeGraph explored `lib/money.ts`/`currency-ves.ts` and report consumers before edits (architecture-patterns: narrow DTO beside Money, not a God service; money-handling: integer minor units; nextjs-patterns: client components + `useOptimizedData`; testing-strategy: strict TDD `dom` project for component, `unit` for DTO).
+- Branch chain: `feature-branch-chain` — this worktree's HEAD is `fix/canonical-transfer-flow` (WU56) with WU57+WU58 unstaged; WU58's logical base is WU57 (not `main`), so child diff excludes WU56's canonical-transfer changes after chain rebase. Current `git diff HEAD` shows WU57 (18 files, 1102 insertions) + WU58 (4 modified + 4 new) combined; WU58-only authored delta is **≈ 494 lines** (122+132+81+35+124 tracked) — above 400 but below the explicit 800-line token for this slice (`sha256:9d81…`), and consistent with the High-risk forecast (520–680 across three slices). Recommend splitting WU57 and WU58 into separate chained PRs before review so each PR stays ≤400 (WU57 alone is 1102, needs further split as flagged in prior progress).
+
+### Issues and deviations
+
+- **Bypass loading trap** (discovered): `useOptimizedData` showed infinite `Cargando reportes…` in no-auth lane because `shouldShowLoading = isInitialLoad && needsData` remained true when `user` is null (bypass has no client session). Fix: `shouldShowLoading = Boolean(user) && isInitialLoad && needsData` — allows honest `Sin datos` rendering; components remain unchanged otherwise. Small, isolated, and required for E2E honesty.
+- **Driver duplicate key**: `testLocales/58-display-policy-real.ts` used `insert({id,email})` which collides with the auto-insert trigger on `auth.users`; fixed to `upsert` and added required `type`/`active`. Also removed spurious `user_id` from `transactions` insert (table has no such column) and omitted `category_id` zero-UUID.
+- **E2E flake**: heading not visible during loading spinner; fixed spec to wait for `Cargando reportes` hidden and increase timeout to 15s, plus `--project=chromium` to avoid uninstalled browsers.
+- **Beginner comparison**: independent blind beginner delegation is **BLOCKED** by platform (`Subagent depth limit reached (1)` — same as prior slices' documented `experimental.subagent_depth` issue). The E2E itself is the beginner-visible acceptance: it asserts the KPI cards never show fabricated `0,00` and always disclose `Sin datos`. A full blind subagent run for reports comparison can be performed by the parent orchestrator if required; not inferred here.
+
+### Changed-line count
+
+This slice authored **122 (DTO) + 132 + 81 + 35 (tests/E2E) + 124 (4 consumers) + 3 (hook fix) = ~497 lines** tracked (ignored driver 183 lines not counted). The worktree cumulative vs `365a8e9` remains >800 (WU57 + WU58 combined); no WU58 or verification/archive work beyond this slice was performed.
+
+---
+
+## WU58 — post-harness cleanup (2026-08-20)
+
+Isolated server on port 3115 was stopped via `pkill -f "next dev -p 3115"`; `ss -ltnp` confirmed 3115 FREE and no `next dev -p 3115` processes remain. `testLocales/58-display-policy-real.ts` cleanup verified 0 fixture transactions. No commit in this batch.
