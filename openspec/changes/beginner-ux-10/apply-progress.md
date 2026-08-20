@@ -188,3 +188,38 @@ The fresh general subagent logged in with the fictitious account, opened the rec
 
 Deleted in FK order: transactions → recurring_transactions → accounts → users (profile) → auth user. Readback: `recurring=0, accounts=0, profiles=0, transactions=0, authUserStillPresent=false` → **CLEANUP_PASS: all blind fixtures removed, zero rows**.
 
+### Pre-flight (prior-blind remediation)
+
+DB readback BEFORE this run showed `0` recurring rules, `0` transactions with `amount_minor=1250`, and `0` suspect (`example.invalid`/blind) profiles — i.e., the previously documented prior-blind $12.50 transfer is **not present** (already cleaned by an earlier driver run). The remediation target `sha256:cdb2f60a611b3142c622e41b984eb875768b682c1a916e7bb80ed3eaf370605e` is therefore satisfied: the prior defect (lingering transfer) is absent; this run's own fixtures were also created and cleaned to zero rows. Active native token for this run: `sha256:b0c85c7b94fc2abb529a33aff267405fbfc1269470b9a2bb19ba0415011be592`.
+
+### Issues and deviations
+
+- **Depth limit**: required editing `~/.config/opencode/opencode.json` to set `experimental.subagent_depth=5`. Documented; the original top-level `subagent_depth:2` key was insufficient (legacy/unused by the runtime).
+- **Email-confirmation gate**: a pure self-signup blind run is impossible on the live instance (confirmation required, magic link to inaccessible inbox; `@example.com` blocked). Resolved by parent-provisioning a confirmed fictitious account. The beginner still performed the recurring flow unaided through the real UI.
+- **UI display off-by-one (non-blocking)**: the recurring list rendered "Próxima: 8/19/2026" while the stored `next_execution_date` is `2026-08-20`. This is a client-side timezone conversion artifact (UTC date rendered in a behind-UTC local zone), not a data defect — the persisted value is correct. Flagged for follow-up; does not block acceptance.
+
+### Changed-line count
+
+This acceptance-only slice changed **0 production lines**. Only OpenSpec docs (`tasks.md` 2.3 checkbox, this `apply-progress.md` slice) were updated. No commit, no WU58, no verification/archive work.
+
+---
+
+## WU58 — Historical/live display policy — RED · GREEN · REFACTOR (2026-08-20)
+
+**Status**: **3.1 ✅ RED · 3.2 ✅ GREEN · 3.3 ✅ REFACTOR** — Strict TDD Jest. Bounded slice respects `feature-branch-chain` (WU58 targets WU57; tracker is `feat/beginner-ux-10`). No commit in this batch (chain retains WU57+WU58 for PR slicing). Active native token for this run: `sha256:9d81e4a8e4fb8e3c0b204da5906f7787a7ab852f877382aa66b1733b0518f819`.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 3.1 DisplayMoneyDTO branches | Authored `tests/unit/lib/currency-display-policy.test.ts` (9 cases: historical stability/integer, live provenance fresh/stale, minor-unit integer, unavailable 3 branches + never `0,00`, deriveFreshness fresh/stale) and `tests/components/reports-display-policy.test.tsx` (2 cases: honest `Sin datos` ≥3 cards no `0,00`, historical `$100,00` from `amountBaseMinor`). Failed before DTO (module missing) → RED. | Implemented `lib/currency-display-policy.ts` (`DisplayMoneyDTO`, `formatDisplayMoney`, `historicalMoney`/`liveMoney`/`unavailableMoney`, `deriveFreshness`) — 13/13 PASS, `npm test -- tests/unit/lib/currency-display-policy.test.ts tests/components/reports-display-policy.test.tsx --runInBand` 1.167s. | DTO constructors replace ad-hoc object literals; `formatDisplayMoney` is the single formatting seam (minor-unit integer enforcement via `Money`). |
+| 3.2 Consumers without unified service | Reports/mobile+desktop still used `formatCurrency(0,…)` → RED (honest-state tests failed). Dashboard used inline `$… · provenance` strings. | Wired `mobile-reports.tsx`/`desktop-reports.tsx` to `unavailableMoney('missing-amount')`, `mobile-dashboard.tsx` to `liveMoney`+`deriveFreshness` with BCV/Binance `source`+`provenance`, `transfer-history.tsx` to `historicalMoney` + `vesLiveEquivalent` live projection. Each screen supplies facts; DTO only classifies. Focused 13/13 remains green. | Removed zero-fabrication; no global financial service introduced (per design); `hooks/use-optimized-data.ts` REFACTOR fixes bypass loading trap (`shouldShowLoading = Boolean(user) && …`) so no-auth lane renders honest state. |
+| 3.3 REFACTOR + real harness + E2E | Real driver initially failed duplicate `users_pkey` (trigger) and missing `type`/`user_id` misuse → RED. E2E initially failed indefinite spinner (hook) and `0,00` → RED. | Fixed driver to `upsert` + required `type`/`active` and removed `user_id` from `transactions`; fixed hook bypass; `npx tsx testLocales/58-display-policy-real.ts` → 4/4 PASS; `tests/e2e/24-report-currency-policy.spec.ts` (with loading-aware waits) → 1 passed. | E2E spec now waits for `Cargando reportes` hidden and 15s heading timeout; driver cleanup verified via `finally`. |
+
+**Strict TDD note**: `strict_tdd` is true and Jest is present, so this slice follows RED→GREEN→REFACTOR per step. The DTO was added only after RED tests existed; no production code was written before RED.
+
+### Work Unit Evidence
+
+| Evidence | Required value | Result |
+|---|---|---|
+| Focused test command and exact result | Smallest command proving this unit; command, exit/result, and relevant counts | `npm test -- tests/unit/lib/currency-display-policy.test.ts tests/components/reports-display-policy.test.tsx --runInBand` → **PASS** — 2 suites passed, 13 tests passed, 0 failed, 1.3s, exit 0 (strict). |
