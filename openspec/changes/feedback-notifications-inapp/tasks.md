@@ -56,13 +56,13 @@ Rationale: schema precedes repo; repo precedes API; `QueryClientProvider` (T4.1)
 
 ## T2 — Domain + Repository (+ RED test)  [slice 2 · PR2]
 
-- [ ] 2.0 RED: Create `tests/node/repositories/feedbacks-rls.test.ts` — real Supabase: insert as user A; assert user B's select returns nothing; duplicate `(user,target)` → 23505; create returns row. Expect FAIL (impl absent). — est ~80 ln — deps: T1 — done: proves REQ-DB-02 (scoping) + REQ-FB-02 (duplicate idempotent) — no-excess: single committed behavioral test of the real path.
-- [ ] 2.1 Create `types/feedback.ts` (`Sentiment`/`Feedback`/`CreateFeedbackDTO`). — est ~20 ln — deps: none — done: REQ-FB-03 types — no-excess: domain only.
-- [ ] 2.2 Create `repositories/contracts/feedback-repository.ts` (`FeedbacksRepository`: `findByUserAndTarget` + `create`). — est ~20 ln — deps: 2.1 — done: port for REQ-FB-04/REQ-FB-02 — no-excess: interface.
-- [ ] 2.3 Create `repositories/supabase/feedback-repository-impl.ts` mirroring notifications impl (`requireUserId`/`assertUserScope`/`PGRST116`), `.from('feedbacks')` typed (no `as any`), `create` + `findByUserAndTarget`. — est ~120 ln — deps: 2.2,1.3 — done: RED test goes GREEN (RLS scoping + 23505 + create) — no-excess: mirrors pattern, no extra.
-- [ ] 2.4 Create `repositories/local/feedback-repository-impl.ts` in-memory double (`create` + `findByUserAndTarget`). — est ~50 ln — deps: 2.2 — done: parity for local mode — no-excess: test double only.
-- [ ] 2.5 Register: `contracts/index.ts` (export + `AppRepository.feedbacks`); `supabase/index.ts` (export + `SupabaseAppRepository.feedbacks`); `local/index.ts` (export + `LocalAppRepository.feedbacks`); `factory.ts` `createServerFeedbacksRepository` (mirror waitlist). — est ~45 ln — deps: 2.3,2.4 — done: repo wired into `AppRepository` + factory — no-excess: registration.
-- [ ] 2.6 GREEN verify: run `tests/node/repositories/feedbacks-rls.test.ts` → pass. — est 0 ln — deps: 2.3,2.5 — done: behavioral test green — no-excess: n/a.
+- [x] 2.0 RED: Create `tests/node/repositories/feedbacks-rls.test.ts` — real Supabase: insert as user A; assert user B's select returns nothing; duplicate `(user,target)` → 23505; create returns row. Expect FAIL (impl absent). — est ~80 ln — deps: T1 — done: proves REQ-DB-02 (scoping) + REQ-FB-02 (duplicate idempotent) — no-excess: single committed behavioral test of the real path.
+- [x] 2.1 Create `types/feedback.ts` (`Sentiment`/`Feedback`/`CreateFeedbackDTO`). — est ~20 ln — deps: none — done: REQ-FB-03 types — no-excess: domain only.
+- [x] 2.2 Create `repositories/contracts/feedback-repository.ts` (`FeedbacksRepository`: `findByUserAndTarget` + `create`). — est ~20 ln — deps: 2.1 — done: port for REQ-FB-04/REQ-FB-02 — no-excess: interface.
+- [x] 2.3 Create `repositories/supabase/feedback-repository-impl.ts` mirroring notifications impl (`requireUserId`/`assertUserScope`/`PGRST116`), `.from('feedbacks')` typed (no `as any`), `create` + `findByUserAndTarget`. — est ~120 ln — deps: 2.2,1.3 — done: RED test goes GREEN (RLS scoping + 23505 + create) — no-excess: mirrors pattern, no extra.
+- [x] 2.4 Create `repositories/local/feedback-repository-impl.ts` in-memory double (`create` + `findByUserAndTarget`). — est ~50 ln — deps: 2.2 — done: parity for local mode — no-excess: test double only.
+- [x] 2.5 Register: `contracts/index.ts` (export + `AppRepository.feedbacks`); `supabase/index.ts` (export + `SupabaseAppRepository.feedbacks`); `local/index.ts` (export + `LocalAppRepository.feedbacks`); `factory.ts` `createServerFeedbacksRepository` (mirror waitlist). — est ~45 ln — deps: 2.3,2.4 — done: repo wired into `AppRepository` + factory — no-excess: registration.
+- [x] 2.6 GREEN verify: run `tests/node/repositories/feedbacks-rls.test.ts` → pass. — est 0 ln — deps: 2.3,2.5 — done: behavioral test green — no-excess: n/a.
 
 ## T3 — API Route  [slice 3 · PR3]
 

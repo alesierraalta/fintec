@@ -6,6 +6,7 @@ export { LocalBudgetsRepository } from './budgets-repository-impl';
 export { LocalGoalsRepository } from './goals-repository-impl';
 export { LocalExchangeRatesRepository } from './exchange-rates-repository-impl';
 export { LocalNotificationsRepository } from './notifications-repository-impl';
+export { LocalFeedbacksRepository } from './feedback-repository-impl';
 export { LocalRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 export { db, FinanceDB } from './db';
 
@@ -18,6 +19,7 @@ import { LocalBudgetsRepository } from './budgets-repository-impl';
 import { LocalGoalsRepository } from './goals-repository-impl';
 import { LocalExchangeRatesRepository } from './exchange-rates-repository-impl';
 import { LocalNotificationsRepository } from './notifications-repository-impl';
+import { LocalFeedbacksRepository } from './feedback-repository-impl';
 import { LocalRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 import { db } from './db';
 
@@ -29,6 +31,7 @@ export class LocalAppRepository implements AppRepository {
   public readonly goals: LocalGoalsRepository;
   public readonly exchangeRates: LocalExchangeRatesRepository;
   public readonly notifications: LocalNotificationsRepository;
+  public readonly feedbacks: LocalFeedbacksRepository;
   public readonly recurringTransactions: LocalRecurringTransactionsRepository;
   public readonly paymentOrders: any;
   public readonly ratesHistory: any;
@@ -49,6 +52,7 @@ export class LocalAppRepository implements AppRepository {
     this.goals = new LocalGoalsRepository();
     this.exchangeRates = new LocalExchangeRatesRepository();
     this.notifications = new LocalNotificationsRepository();
+    this.feedbacks = new LocalFeedbacksRepository();
     this.recurringTransactions = new LocalRecurringTransactionsRepository();
 
     const notImplemented = (name: string) => ({
