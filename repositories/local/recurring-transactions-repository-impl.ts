@@ -106,8 +106,8 @@ export class LocalRecurringTransactionsRepository
     nextExecutionDate: string,
     userId: string
   ): Promise<string> {
-    return 'mock-transaction-id';
+    // Honest unsupported response: local persistence cannot atomically execute
+    // a due recurring transaction. It must never fabricate a success id.
+    throw new Error('Recurring transactions not supported in local repository');
   }
 }
-
-

@@ -48,3 +48,38 @@
 `npm test -- tests/node/api/recurring-transactions-route.test.ts tests/node/repositories/recurring-transactions-repository-impl.test.ts tests/node/api/recurring-transactions-cron.test.ts tests/components/recurring-page-client.test.tsx tests/unit/hooks/use-recurring-creation.test.ts --runInBand` → **5 suites passed, 51 tests passed, 0 failed**. Safety net (before edits): 38 passed in the 4 target suites; full affected set now 64 passed.
 
 **Work Unit Evidence (2.1–2.2 partial):**
+
+| Evidence | Result |
+|---|---|
+| Focused tests | PASS — 5 suites / 51 tests, 0 failed (command above). |
+| RED→GREEN | New RED tests in route (rule-first order, both choices, next-date semantics, Spanish failure, partial-failure retention), repository (local honesty create+executeDue, explicit next date, atomic no-duplicate), cron (no re-execution on retry), and hook (rule-created, partial-failure, Spanish throw) all went RED then GREEN. |
+| Type-check | No errors in changed production files. (17 pre-existing errors ONLY in gitignored `testLocales/` local drivers from WU56 — unchanged by this slice.) |
+| Lint | oxlint 0 errors, 0 warnings in new code (cleaned unused imports). |
+| Runtime harness | **PENDING / NOT run** — real Supabase recurring fixtures + HTTP route drive require the 2.3 `testLocales/57-recurring-real.ts` work, which is out of the bounded slice. |
+| Rollback boundary | Revert the 9 WU57 source files (`route.ts`, `lib/dates/recurring.ts`, `hooks/use-recurring-creation.ts` [+index], both repo impls, `types/recurring-transactions.ts`) and the 4 test files (`recurring-transactions-route`, `recurring-transactions-repository-impl`, `recurring-transactions-cron`, `use-recurring-creation`). No schema/RPC/migration change. Independent of WU56's transfer files. |
+
+**Deliberately PENDING (unresolved, not silently dropped):**
+1. **`recurring-page-client.tsx` call-site wiring** — task 2.1 wants component RED tests and task 2.2 wants the component wired for the explicit first-operation choice. Current code creates recurring rules from `/transactions/add?recurring=true` via `use-transaction-form.ts` (whose recurring block is still a non-persisting TODO), NOT from the recurring page. Fully wiring either call-site with the explicit choice is a substantial UI change that requires a maintainer decision on where the "register first operation now?" choice lives (transaction form vs. recurring page). NOT done in this bounded slice.
+2. **`use-transaction-form.ts` TODO recurring block** still logs data without persisting (line ~442). Fixing it end-to-end is the same wiring decision as (1). Flagged.
+3. **Task 2.3** — REFACTOR seams, guarded auth E2E, `testLocales/57-recurring-real.ts` real Supabase driver (create/failure/retry), and the beginner observed task. All PENDING (real-infra + full wiring work, out of this bounded slice).
+4. **Contract repo** (`repositories/contracts/recurring-transactions-repository.ts`) needed no edit — `CreateRecurringTransactionDTO` carries the new `nextExecutionDate` through the existing `create` signature.
+
+**Chain strategy note**: tasks.md says `feature-branch-chain`; this batch's prompt specified `stacked-to-main` for auto-chain. Since no commit was made, no branch was created; the discrepancy is recorded for planning. Slice authorship ≈ 511 changed lines (485+26) including new hook/test files (~196 lines) — above a single 400-line PR, consistent with the High-risk forecast; recommend splitting into work-unit commits (route+hook / repo / cron+schedule / tests) before PR creation.
+
+## WU57 Corrective Apply Slice — component RED and page wiring (2026-08-20)
+
+**Status**: COMPLETE for tasks 2.1–2.2. Task 2.3 remains pending and WU58 remains unchecked. The corrective slice added the missing component-level RED coverage and completed the recurring-page call site without changing the existing rule-first API contract.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 2.1 component contract | Added component coverage for dialog entry, explicit first-operation choice, rule-only creation, partial-failure Spanish correction, persistence failure, and refresh. | Focused component suite passed 10/10. | Assertions use observable toast behavior and async waits; no snapshots. |
+| 2.2 page/client wiring | RED failures reproduced because buttons still redirected and the dialog/handler were absent. | `RecurringPage` opens `RecurringCreateDialog`, passes the explicit boolean to `useRecurringCreation`, closes after a persisted rule outcome, refreshes data, and surfaces Spanish errors. | Reused the existing Hook → Component seam. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused tests | `npm test -- tests/node/api/recurring-transactions-route.test.ts tests/node/repositories/recurring-transactions-repository-impl.test.ts tests/node/api/recurring-transactions-cron.test.ts tests/components/recurring-page-client.test.tsx tests/unit/hooks/use-recurring-creation.test.ts --runInBand` → PASS, 5 suites / 55 tests, 0 failed, 2.63s. |
+| Runtime harness | N/A for this corrective slice: authenticated page runtime and real Supabase driver are task 2.3 and remain pending. |

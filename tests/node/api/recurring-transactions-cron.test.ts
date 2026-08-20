@@ -353,4 +353,61 @@ describe('Recurring Transactions Cron Route', () => {
 
     expect(logger.error).toHaveBeenCalled();
   });
+
+  it('does not re-execute an already-executed rule on a subsequent cron run', async () => {
+    const singleDue = [
+      {
+        id: 'rec-once',
+        userId: 'user-once',
+        currencyCode: 'USD',
+        amountMinor: 5000,
+        nextExecutionDate: '2026-06-08',
+        frequency: 'daily',
+      },
+    ];
+    // First run: the rule is due and executes once.
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      singleDue
+    );
+    mockUserRepo.recurringTransactions.executeDue.mockResolvedValueOnce(
+      'new-tx'
+    );
+
+    const firstRequest = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
+    const firstResponse = await GET(firstRequest);
+    const firstBody = await firstResponse.json();
+    expect(firstBody.processed).toBe(1);
+
+    // Second run: the rule's next date advanced past due, so it is not fetched
+    // again and executeDue is not invoked — the atomic execution prevents a
+    // duplicate operation.
+    mockAdminRepo.recurringTransactions.findDueForExecution.mockResolvedValueOnce(
+      []
+    );
+
+    const secondRequest = new NextRequest(
+      'http://localhost/api/cron/recurring-transactions',
+      {
+        headers: {
+          Authorization: 'Bearer super-secret-cron-key',
+        },
+      }
+    );
+    const secondResponse = await GET(secondRequest);
+    const secondBody = await secondResponse.json();
+
+    expect(secondResponse.status).toBe(200);
+    expect(secondBody.processed).toBe(0);
+    expect(secondBody.failed).toBe(0);
+    expect(mockUserRepo.recurringTransactions.executeDue).toHaveBeenCalledTimes(
+      1
+    );
+  });
 });
