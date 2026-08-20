@@ -71,10 +71,10 @@ Rationale: schema precedes repo; repo precedes API; `QueryClientProvider` (T4.1)
 
 ## T4 — Notifications Delivery Wiring  [slice 4 · PR4]
 
-- [ ] 4.1 Add `QueryClientProvider` + module `queryClient` (`staleTime:30s`, `refetchOnWindowFocus`) at top of `app/route-aware-providers.tsx`, wrapping both provider branches. — est ~20 ln — deps: none — done: D4 React Query present app-wide — no-excess: thin provider add.
-- [ ] 4.2 Create `hooks/use-unread-polling.ts` generic hook (`queryKey`/`queryFn`/`intervalMs` default 45s/`onNew`); track prev ids ref; fire `onNew` only when `prevIds.size>0 && fresh.length>0`. — est ~50 ln — deps: 4.1 — done: REQ-NT-04 (toast on new, none on first/nothing) — no-excess: single generic hook (D5).
-- [ ] 4.3 Create `components/notifications/notification-bell.tsx` (`'use client'`): fixed bell + badge via `useUnreadPolling(countUnreadByUserId,45s)`; panel via `findUnreadByUserId` newest-first; `markAsRead`/`markAllAsRead` → `invalidateQueries`; `onNew` → sonner toast; `getUser` for userId. — est ~180 ln — deps: 4.2 — done: REQ-NT-01/02/03/04 — no-excess: one consumer.
-- [ ] 4.4 Mount `<NotificationBell/>` inside `<RouteAwareProviders>` in `app/layout.tsx` (within providers, alongside `{children}`). — est ~5 ln — deps: 4.1,4.3 — done: bell renders app-wide — no-excess: mount only.
+- [x] 4.1 Add `QueryClientProvider` + module `queryClient` (`staleTime:30s`, `refetchOnWindowFocus`) at top of `app/route-aware-providers.tsx`, wrapping both provider branches. — est ~20 ln — deps: none — done: D4 React Query present app-wide — no-excess: thin provider add.
+- [x] 4.2 Create `hooks/use-unread-polling.ts` generic hook (`queryKey`/`queryFn`/`intervalMs` default 45s/`onNew`); track prev ids ref; fire `onNew` only when `prevIds.size>0 && fresh.length>0`. — est ~50 ln — deps: 4.1 — done: REQ-NT-04 (toast on new, none on first/nothing) — no-excess: single generic hook (D5).
+- [x] 4.3 Create `components/notifications/notification-bell.tsx` (`'use client'`): fixed bell + badge via `useUnreadPolling(countUnreadByUserId,45s)`; panel via `findUnreadByUserId` newest-first; `markAsRead`/`markAllAsRead` → `invalidateQueries`; `onNew` → sonner toast; `getUser` for userId. — est ~180 ln — deps: 4.2 — done: REQ-NT-01/02/03/04 — no-excess: one consumer.
+- [x] 4.4 Mount `<NotificationBell/>` inside `<RouteAwareProviders>` in `app/layout.tsx` (within providers, alongside `{children}`). — est ~5 ln — deps: 4.1,4.3 — done: bell renders app-wide — no-excess: mount only.
 
 ## T5 — Feedback UI  [slice 5 · PR5]
 
