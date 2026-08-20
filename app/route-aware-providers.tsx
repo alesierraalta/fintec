@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -9,14 +10,7 @@ import { RepositoryProvider } from '@/providers';
 import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { NativeOAuthListener } from '@/components/providers/native-oauth-listener';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// QueryClient per instance to avoid SSR cache sharing between requests (pr-review C1)
 
 interface RouteAwareProvidersProps {
   children: ReactNode;
@@ -38,6 +32,17 @@ function shouldBypassAppProviders(pathname: string | null): boolean {
 }
 
 export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
   const pathname = usePathname();
 
   if (shouldBypassAppProviders(pathname)) {

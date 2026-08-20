@@ -82,9 +82,9 @@ Rationale: schema precedes repo; repo precedes API; `QueryClientProvider` (T4.1)
 
 ## T6 — Testing & Real-Run  [slice 6 · PR6]
 
-- [ ] 6.1 Add `testLocales/` to `.gitignore`. — est ~2 ln — deps: none — done: net on for local tests — no-excess: gate.
-- [ ] 6.2 Create `testLocales/feedback-notifications.e2e.ts` (Playwright, gitignored): seed notification in background → bell badge + sonner toast on poll; submit feedback via `FeedbackPrompt` → 2xx receipt; reload → prompt hidden. Real dev Supabase. — est ~120 ln (gitignored, excluded from review budget) — deps: T4,T5 — done: REQ-NT-01/04 + REQ-FB-02 reload + REQ-FB-04 receipt real-run — no-excess: routed to testLocales (local-only bombardeo).
-- [ ] 6.3 Real-run evidence: execute e2e + `tests/node/repositories/feedbacks-rls.test.ts` against real Supabase; capture receipt JSON, badge counts, pass output; store as artifacts. — est 0 ln — deps: 6.2,2.6 — done: Gentle AI + RDD real-run gate — no-excess: evidence only.
+- [x] 6.1 Add `testLocales/` to `.gitignore`. — est ~2 ln — deps: none — done: net on for local tests — no-excess: gate.
+- [x] 6.2 Create `testLocales/feedback-notifications.e2e.ts` (Playwright, gitignored): seed notification in background → bell badge + sonner toast on poll; submit feedback via `FeedbackPrompt` → 2xx receipt; reload → prompt hidden. Real dev Supabase. — est ~120 ln (gitignored, excluded from review budget) — deps: T4,T5 — done: REQ-NT-01/04 + REQ-FB-02 reload + REQ-FB-04 receipt real-run — no-excess: routed to testLocales (local-only bombardeo).
+- [x] 6.3 Real-run evidence: execute e2e + `tests/node/repositories/feedbacks-rls.test.ts` against real Supabase; capture receipt JSON, badge counts, pass output; store as artifacts. — est 0 ln — deps: 6.2,2.6 — done: Gentle AI + RDD real-run gate — no-excess: evidence only.
 
 ## No-Excess-Tests Strategy (global)
 
