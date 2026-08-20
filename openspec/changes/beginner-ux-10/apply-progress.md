@@ -83,3 +83,38 @@
 |---|---|
 | Focused tests | `npm test -- tests/node/api/recurring-transactions-route.test.ts tests/node/repositories/recurring-transactions-repository-impl.test.ts tests/node/api/recurring-transactions-cron.test.ts tests/components/recurring-page-client.test.tsx tests/unit/hooks/use-recurring-creation.test.ts --runInBand` → PASS, 5 suites / 55 tests, 0 failed, 2.63s. |
 | Runtime harness | N/A for this corrective slice: authenticated page runtime and real Supabase driver are task 2.3 and remain pending. |
+| Type/lint | `npm run lint` → exit 0, 0 errors (354 existing warnings). `npm run type-check` → exit 2 due only to unchanged ignored `testLocales/56-transfer-real*.ts` errors; no corrective-file errors. |
+| Rollback boundary | Revert `app/recurring/recurring-page-client.tsx`, `components/recurring/recurring-create-dialog.tsx`, and `tests/components/recurring-page-client.test.tsx`; retain the proven API/hook/repository changes. |
+
+### Corrective discoveries
+
+- Prior component test edits could not execute because the page still redirected and rendered no create dialog; they are now executable behavior tests.
+- `TransactionType` is an enum, so the dialog uses the domain enum rather than a string union.
+- No unresolved product choice remains for this slice: the explicit choice lives in the recurring-page dialog. The existing transactions/add TODO remains out of scope.
+
+### Changed-line count
+
+Corrective authored delta: 84 lines added/changed across the page, dialog typing, and component test, under the 400-line cap. The cumulative WU57 worktree remains above 400 lines from the earlier bounded batch; no WU58 or verification/archive work was performed.
+
+## WU57 task 2.3 — real harness and authenticated E2E evidence (2026-08-20)
+
+**Status**: PARTIAL/BLOCKED — real Supabase and authenticated UI evidence passed; required independent beginner acceptance did not run because the platform rejected the fresh blind delegation at depth limit. Task 2.3 remains unchecked. WU58 and final verification/archive remain untouched.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | TRIANGULATE | REFACTOR |
+|---|---|---|---|---|
+| 2.3 real runtime acceptance | No new production behavior was required in this evidence-only bounded path; existing WU57 RED coverage remained the safety net. | Existing focused WU57 suite passed 5 suites / 55 tests. | Real Supabase covered immediate operation, invalid persistence, and duplicate-free retry branches. | No production refactor was made; existing Repository → Hook → Component seams were exercised without scope expansion. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused tests | `npm test -- tests/node/api/recurring-transactions-route.test.ts tests/node/repositories/recurring-transactions-repository-impl.test.ts tests/node/api/recurring-transactions-cron.test.ts tests/components/recurring-page-client.test.tsx tests/unit/hooks/use-recurring-creation.test.ts --runInBand` → exit 0; 5 suites / 55 tests passed, 0 failed, 3.766s. |
+| Runtime harness | `npx tsx testLocales/57-recurring-real.ts` → exit 0. Real Supabase: explicit first-operation rule persisted before one transaction with a later next date; invalid account rejected with no rule; atomic retry advanced due rule and left no due candidate; cleanup removed rules, transactions, account, profile, and auth user. |
+| Auth E2E | `REUSE_EXISTING_SERVER=true PORT=3112 PLAYWRIGHT_GLOBAL_TIMEOUT_MS=180000 npm run e2e:auth-required -- tests/e2e/23-recurring-persistence.spec.ts` → exit 0; auth setup + recurring UI flow, 2 passed in 13.9s. Server process chain and cwd were verified; port 3112 was exclusive during run and free after termination. Backend readback found one `E2E recurring ...` rule; temporary service-role cleanup removed it and confirmed no matching rows remained. |
+| Beginner acceptance | BLOCKED — exact required delegation prompt was sent, but the platform returned `Subagent depth limit reached (1)`. No beginner success or backend effect was inferred. |
+| Rollback boundary | Remove only ignored `testLocales/57-recurring-real.ts` and guarded `tests/e2e/23-recurring-persistence.spec.ts` for this evidence slice; no production or schema changes were made. |
+
+### Issues and deviations
+

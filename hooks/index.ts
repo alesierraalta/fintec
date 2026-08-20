@@ -31,6 +31,8 @@ export type {
   TransactionFormData,
   UseTransactionFormReturn,
 } from './use-transaction-form';
+export { useRecurringCreation } from './use-recurring-creation';
+export type { RecurringCreationResult } from './use-recurring-creation';
 
 // UI & UX
 export { useModal } from './use-modal';
