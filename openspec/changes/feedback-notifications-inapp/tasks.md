@@ -66,8 +66,8 @@ Rationale: schema precedes repo; repo precedes API; `QueryClientProvider` (T4.1)
 
 ## T3 — API Route  [slice 3 · PR3]
 
-- [ ] 3.1 Add `FeedbackSchema` (Zod: `target_type.min(1)`, `target_id.min(1)`, `sentiment` enum, `comment` max2000 nullable optional — NO `user_id`) + `FeedbackFormType` to `lib/validations/schemas.ts`. — est ~15 ln — deps: none — done: REQ-FB-04 validation — no-excess: 1 schema.
-- [ ] 3.2 Create `app/api/feedback/route.ts` POST: `withErrorHandling`; `createClient`; `getUser` → `AuthError('Unauthorized')` (401) if none; `FeedbackSchema.safeParse` → `AppError('Validation failed','VALIDATION_ERROR',400,{issues})`; `repo.create(user.id, dto)` → 201 `{id,created_at}`; catch `23505` → `findByUserAndTarget` → 200; RDD receipt. — est ~55 ln — deps: 2.5,3.1 — done: REQ-FB-04 (auth receipt, spoofed user_id overwritten because schema omits it, 401, 400) — no-excess: single route, reuse envelope.
+- [x] 3.1 Add `FeedbackSchema` (Zod: `target_type.min(1)`, `target_id.min(1)`, `sentiment` enum, `comment` max2000 nullable optional — NO `user_id`) + `FeedbackFormType` to `lib/validations/schemas.ts`. — est ~15 ln — deps: none — done: REQ-FB-04 validation — no-excess: 1 schema.
+- [x] 3.2 Create `app/api/feedback/route.ts` POST: `withErrorHandling`; `createClient`; `getUser` → `AuthError('Unauthorized')` (401) if none; `FeedbackSchema.safeParse` → `AppError('Validation failed','VALIDATION_ERROR',400,{issues})`; `repo.create(user.id, dto)` → 201 `{id,created_at}`; catch `23505` → `findByUserAndTarget` → 200; RDD receipt. — est ~55 ln — deps: 2.5,3.1 — done: REQ-FB-04 (auth receipt, spoofed user_id overwritten because schema omits it, 401, 400) — no-excess: single route, reuse envelope.
 
 ## T4 — Notifications Delivery Wiring  [slice 4 · PR4]
 
