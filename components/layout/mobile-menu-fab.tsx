@@ -15,6 +15,7 @@ import {
   Repeat,
   Settings,
   ArrowUpRight,
+  Calculator,
   X,
 } from 'lucide-react';
 
@@ -49,6 +50,12 @@ const menuItems: MenuItem[] = [
     href: '/reports',
     icon: BarChart3,
     description: 'Visualiza tus reportes financieros',
+  },
+  {
+    name: 'Calculadora',
+    href: '/calculator',
+    icon: Calculator,
+    description: 'Convierte VES con BCV y Binance',
   },
   {
     name: 'Presupuestos',

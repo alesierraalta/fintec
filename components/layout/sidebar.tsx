@@ -26,6 +26,7 @@ import {
   BadgeCheck,
   Repeat,
   MessageSquare,
+  Calculator,
 } from 'lucide-react';
 
 const navigation = [
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Presupuestos', href: '/budgets', icon: CreditCard },
   { name: 'Metas', href: '/goals', icon: Target },
   { name: 'Reportes', href: '/reports', icon: TrendingUp },
+  { name: 'Calculadora', href: '/calculator', icon: Calculator },
   { name: 'Deudas', href: '/debts', icon: HandCoins },
   { name: 'Ofertas P2P', href: '/p2p-offers', icon: DollarSign },
   { name: 'Respaldos', href: '/backups', icon: Shield },
