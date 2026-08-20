@@ -118,3 +118,38 @@ Corrective authored delta: 84 lines added/changed across the page, dialog typing
 
 ### Issues and deviations
 
+- The ignored driver already existed and was recovered/run; no duplicate driver was created.
+- The temporary cleanup script was outside the repository and deleted after use.
+- Engram is updated separately with the same cumulative evidence; native status remains repo-local OpenSpec, so no unsupported native Engram artifact is fabricated.
+
+## WU57 Task 2.3 Evidence Slice — real runtime and guarded E2E (2026-08-20)
+
+**Status**: Runtime evidence is complete for the real Supabase path and guarded authenticated UI path. Task 2.3 remains **PENDING** because this specialized executor cannot provide an independent beginner observation; no PASS is inferred. WU56 evidence above is preserved and WU58 remains untouched.
+
+### TDD Cycle Evidence
+
+| Task | RED | GREEN | REFACTOR |
+|---|---|---|---|
+| 2.3 real recurring evidence | Existing WU57 route/repository/cron/component tests were the behavioral RED coverage for rule-first ordering, explicit choice, failures, and retry semantics. | Focused suite remained green; the new ignored real driver and guarded E2E both passed against real infrastructure. | Added only the bounded ignored driver and one guarded E2E spec; no production seam changes or speculative abstractions. |
+
+### Work Unit Evidence
+
+| Evidence | Result |
+|---|---|
+| Focused tests | `npm test -- tests/node/api/recurring-transactions-route.test.ts tests/node/repositories/recurring-transactions-repository-impl.test.ts tests/node/api/recurring-transactions-cron.test.ts tests/components/recurring-page-client.test.tsx tests/unit/hooks/use-recurring-creation.test.ts --runInBand` → PASS, 5 suites / 55 tests / 0 failed / 2.904s. |
+| Runtime harness | `npx tsx testLocales/57-recurring-real.ts` → PASS. Real fixtures proved explicit first operation (rule persisted, exactly one transaction, later next date), invalid-account persistence failure (no rule), atomic advance plus duplicate-free retry (two rules/two operations, advanced rules not due again), and `finally` cleanup. |
+| Auth E2E | `REUSE_EXISTING_SERVER=true PORT=3111 PLAYWRIGHT_GLOBAL_TIMEOUT_MS=180000 npm run e2e:auth-required -- tests/e2e/23-recurring-persistence.spec.ts` → PASS, setup + recurring persistence = 2 passed in 26.0s. Actual UI opened Nueva Recurrente, exposed the explicit checkbox, submitted a real rule, and displayed the persisted rule and success toast. |
+| Server/process evidence | Isolated server started from this worktree on port 3111. Process cwd checks showed launcher/dev/next processes rooted at `/home/alesierraalta/documents/projects/fintec-worktrees/beginner-ux-10`; `ss` showed port 3111 owned by the worktree's `next-server` PID 725329 only. Server process tree was terminated after E2E; `ss` then showed port 3111 free. |
+| Cleanup evidence | Driver: `CLEANUP PASS` removed recurring rules, transactions, account, profile, and auth user. E2E: temporary service-role checker → `E2E CLEANUP PASS: 0 matching rules remain`. |
+| Type/lint | `npm run lint` → exit 0, 354 existing warnings, 0 errors. `npm run type-check` → exit 2 only from pre-existing ignored `testLocales/56-transfer-real.ts` and `56-transfer-real-ui.ts`; no errors remain in the new 57 driver or production files. |
+| Beginner observation | **BLOCKED / NOT RUN**. This specialized subagent cannot spawn an independent beginner observer and must not infer PASS from its own expert execution. |
+| Rollback boundary | Remove ignored `testLocales/57-recurring-real.ts` and `tests/e2e/23-recurring-persistence.spec.ts`; no production or schema changes were made in this evidence slice. Existing WU57 2.1–2.2 changes remain outside this rollback. |
+
+### Exact runtime observations
+
+- First-operation choice: one rule and one transaction were observed; `next_execution_date` was tomorrow, not the operation date.
+- Failure behavior: invalid account FK rejected rule insertion and the named rule query returned zero rows.
+- Retry behavior: atomic RPC advanced the due rule to tomorrow; a second due query returned zero candidates and the account had exactly two fixture operations total.
+- UI behavior: guarded auth lane passed the real page flow and rendered the newly persisted rule after refresh.
+
+### Changed-line count
