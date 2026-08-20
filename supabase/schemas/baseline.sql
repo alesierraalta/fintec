@@ -2647,6 +2647,21 @@ CREATE TABLE IF NOT EXISTS "public"."notifications" (
 ALTER TABLE "public"."notifications" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."feedbacks" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "user_id" "uuid" NOT NULL,
+    "target_type" "text" NOT NULL,
+    "target_id" "text" NOT NULL,
+    "sentiment" "text" NOT NULL,
+    "comment" "text",
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    CONSTRAINT "feedbacks_sentiment_check" CHECK (("sentiment" = ANY (ARRAY['up'::"text", 'down'::"text", 'neutral'::"text"])))
+);
+
+
+ALTER TABLE "public"."feedbacks" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."orders" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "user_id" "uuid" NOT NULL,
@@ -2955,6 +2970,16 @@ ALTER TABLE ONLY "public"."notifications"
 
 
 
+ALTER TABLE ONLY "public"."feedbacks"
+    ADD CONSTRAINT "feedbacks_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."feedbacks"
+    ADD CONSTRAINT "feedbacks_user_target_unique" UNIQUE ("user_id", "target_type", "target_id");
+
+
+
 ALTER TABLE ONLY "public"."orders"
     ADD CONSTRAINT "orders_pkey" PRIMARY KEY ("id");
 
@@ -3235,6 +3260,10 @@ COMMENT ON INDEX "public"."idx_notifications_user_read" IS 'Optimizes notificati
 
 
 CREATE INDEX "idx_notifications_user_unread" ON "public"."notifications" USING "btree" ("user_id", "is_read") WHERE ("is_read" = false);
+
+
+
+CREATE INDEX "idx_feedbacks_user_created" ON "public"."feedbacks" USING "btree" ("user_id", "created_at" DESC);
 
 
 
@@ -3561,6 +3590,11 @@ ALTER TABLE ONLY "public"."notifications"
 
 
 
+ALTER TABLE ONLY "public"."feedbacks"
+    ADD CONSTRAINT "feedbacks_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."orders"
     ADD CONSTRAINT "orders_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
@@ -3725,6 +3759,10 @@ CREATE POLICY "Users can delete own notifications" ON "public"."notifications" F
 
 
 
+CREATE POLICY "Users can delete own feedbacks" ON "public"."feedbacks" FOR DELETE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+
+
+
 CREATE POLICY "Users can delete own profile" ON "public"."ai_user_profile" FOR DELETE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
@@ -3787,6 +3825,10 @@ CREATE POLICY "Users can insert own goals" ON "public"."goals" FOR INSERT WITH C
 
 
 CREATE POLICY "Users can insert own notifications" ON "public"."notifications" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+
+
+
+CREATE POLICY "Users can insert own feedbacks" ON "public"."feedbacks" FOR INSERT WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -3867,6 +3909,10 @@ CREATE POLICY "Users can update own notifications" ON "public"."notifications" F
 
 
 
+CREATE POLICY "Users can update own feedbacks" ON "public"."feedbacks" FOR UPDATE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id")) WITH CHECK ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+
+
+
 CREATE POLICY "Users can update own profile" ON "public"."ai_user_profile" FOR UPDATE USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
@@ -3930,6 +3976,10 @@ CREATE POLICY "Users can view own goals" ON "public"."goals" FOR SELECT USING ((
 
 
 CREATE POLICY "Users can view own notifications" ON "public"."notifications" FOR SELECT USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
+
+
+
+CREATE POLICY "Users can view own feedbacks" ON "public"."feedbacks" FOR SELECT USING ((( SELECT "auth"."uid"() AS "uid") = "user_id"));
 
 
 
@@ -4077,6 +4127,9 @@ ALTER TABLE "public"."goals" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."feedbacks" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."orders" ENABLE ROW LEVEL SECURITY;
@@ -4520,6 +4573,12 @@ GRANT ALL ON TABLE "public"."goal_contributions" TO "service_role";
 GRANT ALL ON TABLE "public"."notifications" TO "anon";
 GRANT ALL ON TABLE "public"."notifications" TO "authenticated";
 GRANT ALL ON TABLE "public"."notifications" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."feedbacks" TO "anon";
+GRANT ALL ON TABLE "public"."feedbacks" TO "authenticated";
+GRANT ALL ON TABLE "public"."feedbacks" TO "service_role";
 
 
 
