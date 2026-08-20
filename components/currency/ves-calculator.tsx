@@ -8,9 +8,15 @@ import {
   Clock,
   DollarSign,
   Euro,
+  Calendar,
+  Search,
 } from 'lucide-react';
 import type { BCVHistoryRecord } from '@/lib/services/bcv-history-service';
+import { bcvHistoryService } from '@/lib/services/bcv-history-service';
 import type { BinanceHistoryRecord } from '@/lib/services/binance-history-service';
+import { binanceHistoryService } from '@/lib/services/binance-history-service';
+import { formatCaracasDayKey } from '@/lib/utils/date-key';
+import { logger } from '@/lib/utils/logger';
 
 export type VesCalculatorCurrency = 'VES' | 'USD' | 'EUR' | 'BUSD';
 export type VesCalculatorSource = 'BCV' | 'Binance';
@@ -24,6 +30,9 @@ export interface VesCalculatorProps {
   onSourceChange?: (source: VesCalculatorSource) => void;
   onSelectBCVRate?: (rate: BCVHistoryRecord) => void;
   onSelectBinanceRate?: (rate: BinanceHistoryRecord) => void;
+  onPickDate?: (dateStr: string, source: VesCalculatorSource) => Promise<void>;
+  minDate?: string;
+  maxDate?: string;
 }
 
 const fadeInUp = {
@@ -55,11 +64,24 @@ export function VesCalculator({
   onSourceChange,
   onSelectBCVRate,
   onSelectBinanceRate,
+  onPickDate,
+  minDate,
+  maxDate,
 }: VesCalculatorProps) {
   const [amount, setAmount] = useState('1');
   const [fromCurrency, setFromCurrency] = useState<VesCalculatorCurrency>('USD');
   const [toCurrency, setToCurrency] = useState<VesCalculatorCurrency>('VES');
   const [result, setResult] = useState(0);
+  const [vesDate, setVesDate] = useState('');
+  const [vesMinDate, setVesMinDate] = useState('2023-01-01');
+  const [vesMaxDate, setVesMaxDate] = useState(() => formatCaracasDayKey(new Date()));
+  const [vesMessage, setVesMessage] = useState<string | null>(null);
+  const [vesError, setVesError] = useState<string | null>(null);
+  const [vesSearching, setVesSearching] = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const effectiveMinDate = minDate ?? vesMinDate;
+  const effectiveMaxDate = maxDate ?? vesMaxDate;
 
   const calculateResult = useCallback(
     (
@@ -131,6 +153,27 @@ export function VesCalculator({
     calculateResult,
   ]);
 
+  useEffect(() => {
+    if (minDate && maxDate) return;
+    let cancelled = false;
+    const compute = async () => {
+      try {
+        const todayStr = formatCaracasDayKey(new Date());
+        if (!cancelled && !maxDate) setVesMaxDate(todayStr);
+        const bcvAll = await (bcvHistoryService.getAllHistoricalRates?.() ?? bcvHistoryService.getHistoricalRates(3650));
+        const binanceAll = await ((binanceHistoryService as unknown as { getAllHistoricalRates?: () => Promise<BinanceHistoryRecord[]> }).getAllHistoricalRates?.() ?? binanceHistoryService.getHistoricalRates(3650));
+        const dates = [...bcvAll.map((r) => r.date), ...binanceAll.map((r) => r.date)].filter(Boolean).sort();
+        if (!cancelled && dates.length > 0 && !minDate) {
+          setVesMinDate(dates[0]);
+        }
+      } catch {}
+    };
+    void compute();
+    return () => {
+      cancelled = true;
+    };
+  }, [minDate, maxDate]);
+
   const handleAmountChange = (value: string) => {
     // Preserve trailing zero: type="text" inputMode="decimal"
     let sanitized = value.replace(/[^0-9.,]/g, '');
@@ -159,6 +202,85 @@ export function VesCalculator({
     onSourceChange?.(source);
     // result will recalc via effect
   };
+
+  const handleVesSearch = useCallback(async () => {
+    const dateStr = vesDate.trim();
+    setVesMessage(null);
+    setVesError(null);
+    if (!dateStr) {
+      setVesError('Selecciona una fecha');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      setVesError('Formato inválido, usa YYYY-MM-DD');
+      return;
+    }
+    if (dateStr < effectiveMinDate || dateStr > effectiveMaxDate) {
+      setVesError(`Fecha fuera de rango (${effectiveMinDate} - ${effectiveMaxDate})`);
+      return;
+    }
+    setVesSearching(true);
+    try {
+      if (onPickDate) {
+        await onPickDate(dateStr, activeSource);
+        // After delegated pick, infer fallback message by checking if selected rate matches
+        // We don't have direct feedback, so we rely on parent to show message; show generic fallback if needed
+        // Try to fetch again locally to decide message if parent didn't surface it
+        if (activeSource === 'BCV') {
+          const svc: unknown = bcvHistoryService;
+          const getter = (svc as { getBCVRateOnOrBefore?: (d: string) => Promise<BCVHistoryRecord | null> }).getBCVRateOnOrBefore?.bind(svc as object) ?? (svc as { getRatesForDate: (d: string) => Promise<BCVHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+          const rate = await getter(dateStr);
+          if (rate && rate.date !== dateStr) {
+            setVesMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+          }
+        } else {
+          const svc: unknown = binanceHistoryService;
+          const getter =
+            (svc as { getBinanceRateOnOrBefore?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateOnOrBefore?.bind(svc as object) ??
+            (svc as { getBinanceRateForDate?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateForDate?.bind(svc as object) ??
+            (svc as { getRatesForDate: (d: string) => Promise<BinanceHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+          const rate = await getter(dateStr);
+          if (rate && rate.date !== dateStr) {
+            setVesMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+          }
+        }
+        return;
+      }
+      if (activeSource === 'BCV') {
+        const svc: unknown = bcvHistoryService;
+        const getter = (svc as { getBCVRateOnOrBefore?: (d: string) => Promise<BCVHistoryRecord | null> }).getBCVRateOnOrBefore?.bind(svc as object) ?? (svc as { getRatesForDate: (d: string) => Promise<BCVHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+        const rate = await getter(dateStr);
+        if (!rate) {
+          setVesError('No hay tasa disponible para esa fecha');
+          return;
+        }
+        if (rate.date !== dateStr) {
+          setVesMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+        }
+        onSelectBCVRate?.(rate);
+      } else {
+        const svc: unknown = binanceHistoryService;
+        const getter =
+          (svc as { getBinanceRateOnOrBefore?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateOnOrBefore?.bind(svc as object) ??
+          (svc as { getBinanceRateForDate?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateForDate?.bind(svc as object) ??
+          (svc as { getRatesForDate: (d: string) => Promise<BinanceHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+        const rate = await getter(dateStr);
+        if (!rate) {
+          setVesError('No hay tasa disponible para esa fecha');
+          return;
+        }
+        if (rate.date !== dateStr) {
+          setVesMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+        }
+        onSelectBinanceRate?.(rate);
+      }
+    } catch (error) {
+      logger.error('[VesCalculator] Error buscando tasa por fecha', error);
+      setVesError('Error al buscar la tasa');
+    } finally {
+      setVesSearching(false);
+    }
+  }, [vesDate, effectiveMinDate, effectiveMaxDate, onPickDate, activeSource, onSelectBCVRate, onSelectBinanceRate]);
 
   const selectedRate = activeSource === 'BCV' ? selectedBCVRate : selectedBinanceRate;
 
@@ -356,9 +478,21 @@ export function VesCalculator({
       </div>
 
       {/* Recent rates quick picker */}
-      {recentRates.length > 0 && (onSelectBCVRate || onSelectBinanceRate) && (
-        <div className="rounded-2xl border border-border/10 bg-muted/5 p-4">
-          <h4 className="mb-3 text-sm font-medium text-foreground">Tasas recientes</h4>
+      <div className="rounded-2xl border border-border/10 bg-muted/5 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h4 className="text-sm font-medium text-foreground">Tasas recientes</h4>
+          <button
+            type="button"
+            onClick={() => setShowPicker((v) => !v)}
+            aria-expanded={showPicker}
+            aria-controls="ves-date-picker-section"
+            className="inline-flex items-center gap-1 rounded-lg border border-border/20 bg-background px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
+          >
+            <Calendar className="h-3 w-3" />
+            {showPicker ? 'Ocultar' : 'Elegir otro día'}
+          </button>
+        </div>
+        {recentRates.length > 0 && (onSelectBCVRate || onSelectBinanceRate) ? (
           <div className="flex gap-2 overflow-x-auto pb-2">
             {activeSource === 'BCV'
               ? (bcvRates.slice(0, 5) as BCVHistoryRecord[]).map((rate) => (
@@ -394,8 +528,65 @@ export function VesCalculator({
                   </button>
                 ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <p className="mb-2 text-xs text-muted-foreground">No hay tasas recientes, elige un día del historial completo.</p>
+        )}
+
+        {(showPicker || recentRates.length === 0) && (
+          <div
+            id="ves-date-picker-section"
+            className="mt-3 rounded-xl border border-border/20 bg-card/60 p-3"
+          >
+            <label
+              htmlFor="ves-history-date-picker"
+              className="mb-2 flex items-center gap-2 text-xs font-medium text-foreground"
+            >
+              <Calendar className="h-3 w-3" />
+              Elegir día del historial completo
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="ves-history-date-picker"
+                data-testid="ves-history-date-picker"
+                type="date"
+                aria-label="Elegir día del historial completo"
+                value={vesDate}
+                onChange={(e) => setVesDate(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    void handleVesSearch();
+                  }
+                }}
+                min={effectiveMinDate}
+                max={effectiveMaxDate}
+                className="flex-1 rounded-xl border border-border/20 bg-card/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                type="button"
+                data-testid="ves-history-date-search"
+                aria-label="Buscar tasa por fecha"
+                onClick={() => void handleVesSearch()}
+                disabled={vesSearching}
+                className="inline-flex items-center gap-1 rounded-xl bg-blue-500 px-3 py-2 text-xs font-medium text-white hover:bg-blue-600 disabled:opacity-50"
+              >
+                {vesSearching ? <Clock className="h-3 w-3 animate-spin" /> : <Search className="h-3 w-3" />}
+                <span>Buscar</span>
+              </button>
+            </div>
+            {vesMessage && (
+              <p role="status" aria-live="polite" className="mt-2 text-xs text-amber-600">
+                {vesMessage}
+              </p>
+            )}
+            {vesError && (
+              <p role="alert" className="mt-2 text-xs text-destructive">
+                {vesError}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
       {!selectedRate && (
         <p className="text-center text-xs text-muted-foreground">

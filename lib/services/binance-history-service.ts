@@ -409,6 +409,69 @@ class BinanceHistoryService {
       return 0;
     }
   }
+
+  /**
+   * Returns Binance rate on or before given date, via Supabase fallback plus local fallback.
+   * Aliases provided for compatibility with spec: getBinanceRateOnOrBefore / getBinanceRateForDate.
+   */
+  async getBinanceRateOnOrBefore(
+    date: string
+  ): Promise<BinanceHistoryRecord | null> {
+    const viaMain = await this.getRatesForDate(date);
+    if (viaMain) return viaMain;
+    try {
+      const priorCandidates = await this.db.binanceRates
+        .where('date')
+        .belowOrEqual(date)
+        .toArray();
+      if (priorCandidates.length > 0) {
+        priorCandidates.sort((a, b) => b.date.localeCompare(a.date));
+        return priorCandidates[0];
+      }
+    } catch {}
+    return null;
+  }
+
+  async getBinanceRateForDate(
+    date: string
+  ): Promise<BinanceHistoryRecord | null> {
+    return this.getBinanceRateOnOrBefore(date);
+  }
+
+  async getAllHistoricalRatesFull(): Promise<BinanceHistoryRecord[]> {
+    try {
+      await this.loadFromSupabase(3650);
+    } catch {}
+    try {
+      const all = await this.db.binanceRates.toArray();
+      return all.sort((a, b) => a.date.localeCompare(b.date));
+    } catch {
+      return [];
+    }
+  }
+
+  async getAllHistoricalRatesExtended(): Promise<BinanceHistoryRecord[]> {
+    return this.getAllHistoricalRatesFull();
+  }
+
+  // Compatibility wrapper expected by calculator-client: getAllHistoricalRates()
+  async getAllHistoricalRatesCompat(): Promise<BinanceHistoryRecord[]> {
+    return this.getAllHistoricalRatesFull();
+  }
+
+  async getAllHistoricalRates(): Promise<BinanceHistoryRecord[]> {
+    return this.getAllHistoricalRatesFull();
+  }
+
+  async getEarliestDate(): Promise<string | null> {
+    try {
+      const all = await this.getAllHistoricalRatesFull();
+      if (all.length === 0) return null;
+      return all[0].date;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export const binanceHistoryService = BinanceHistoryService.getInstance();

@@ -461,6 +461,55 @@ export class BCVHistoryService {
       await this.db.bcvHistory.where('date').below(cutoffDateStr).delete();
     } catch (error) {}
   }
+
+  /**
+   * Public helper required by calculator date picker.
+   * Returns rate on or before given YYYY-MM-DD (Caracas).
+   * Delegates to getRatesForDate which already implements Supabase on-or-before fallback,
+   * plus local fallback for offline scenarios.
+   */
+  async getBCVRateOnOrBefore(date: string): Promise<BCVHistoryRecord | null> {
+    const viaMain = await this.getRatesForDate(date);
+    if (viaMain) return viaMain;
+    try {
+      const priorCandidates = await this.db.bcvHistory
+        .where('date')
+        .belowOrEqual(date)
+        .toArray();
+      if (priorCandidates.length > 0) {
+        priorCandidates.sort((a, b) => b.date.localeCompare(a.date));
+        return priorCandidates[0];
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
+   * Returns all locally-cached BCV rates sorted ascending.
+   * Attempts to warm cache from Supabase with large window first.
+   * Does not mutate getHistoricalRates(30) behavior; additive for full-history range.
+   */
+  async getAllHistoricalRates(): Promise<BCVHistoryRecord[]> {
+    try {
+      await this.loadFromSupabase(3650);
+    } catch {}
+    try {
+      const all = await this.db.bcvHistory.toArray();
+      return all.sort((a, b) => a.date.localeCompare(b.date));
+    } catch {
+      return [];
+    }
+  }
+
+  async getEarliestDate(): Promise<string | null> {
+    try {
+      const all = await this.getAllHistoricalRates();
+      if (all.length === 0) return null;
+      return all[0].date;
+    } catch {
+      return null;
+    }
+  }
 }
 
 export const bcvHistoryService = BCVHistoryService.getInstance();
