@@ -78,7 +78,7 @@ Rationale: schema precedes repo; repo precedes API; `QueryClientProvider` (T4.1)
 
 ## T5 — Feedback UI  [slice 5 · PR5]
 
-- [ ] 5.1 Create `components/feedback/feedback-prompt.tsx` (`'use client'`): props `target_type`/`target_id`; discriminated-union state `prompt|commenting|reacted`; thumbs → `commenting` (textarea) → `fetch('/api/feedback',{POST})`; on 2xx → `reacted` + `localStorage` key `fb:{userId}:{target_type}:{target_id}`; on mount read key → `reacted` (hides prompt, REQ-FB-02); userId via `supabase.auth.getUser()`; sonner toast on error. — est ~140 ln — deps: 3.2,4.1 — done: REQ-FB-01/02/03 all scenarios — no-excess: reusable single component.
+- [x] 5.1 Create `components/feedback/feedback-prompt.tsx` (`'use client'`): props `target_type`/`target_id`; discriminated-union state `prompt|commenting|reacted`; thumbs → `commenting` (textarea) → `fetch('/api/feedback',{POST})`; on 2xx → `reacted` + `localStorage` key `fb:{userId}:{target_type}:{target_id}`; on mount read key → `reacted` (hides prompt, REQ-FB-02); userId via `supabase.auth.getUser()`; sonner toast on error. — est ~140 ln — deps: 3.2,4.1 — done: REQ-FB-01/02/03 all scenarios — no-excess: reusable single component.
 
 ## T6 — Testing & Real-Run  [slice 6 · PR6]
 
