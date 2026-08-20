@@ -10,7 +10,9 @@ import { SupabaseNotificationsRepository } from '@/repositories/supabase/notific
 import { useUnreadPolling } from '@/hooks/use-unread-polling';
 import type { Notification } from '@/types/notifications';
 
-export function NotificationBell() {
+export function NotificationBell({
+  variant = 'fixed',
+}: { variant?: 'fixed' | 'header' } = {}) {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const queryClient = useQueryClient();

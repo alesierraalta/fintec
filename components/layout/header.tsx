@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
 import { createPortal } from 'react-dom';
 import RateSelector from '@/components/currency/rate-selector';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -430,6 +431,9 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
+        <div className="hidden md:flex">
+          <NotificationBell variant="header" />
+        </div>
         <div className="relative">
           <button
             type="button"

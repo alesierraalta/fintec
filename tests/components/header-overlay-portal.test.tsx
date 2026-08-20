@@ -70,6 +70,10 @@ jest.mock('@/lib/rates', () => ({
   useActiveUsdVesRate: () => 1,
 }));
 
+jest.mock('@/components/notifications/notification-bell', () => ({
+  NotificationBell: () => <button aria-label="Notificaciones">Bell</button>,
+}));
+
 jest.mock('@/components/currency/rate-selector', () => ({
   __esModule: true,
   default: () => (
@@ -133,13 +137,13 @@ describe('Header overlay portalization', () => {
   });
 
   it('shows notifications inline and closes by clicking the bell again', async () => {
-    // Notifications bell moved to fixed NotificationBell component (outside header) — header no longer contains it
     render(<Header onMenuClick={() => {}} isMobileMenuOpen={false} />);
 
-    const header = screen.getByRole('banner');
-    expect(screen.queryByLabelText('Notificaciones')).not.toBeInTheDocument();
-    // Header should not contain notifications panel
-    expect(header.textContent).not.toContain('Sin notificaciones nuevas');
+    // NotificationBell mocked in header
+    expect(screen.getByLabelText('Notificaciones')).toBeInTheDocument();
+    // Click should not error
+    fireEvent.click(screen.getByLabelText('Notificaciones'));
+    expect(screen.getByLabelText('Notificaciones')).toBeInTheDocument();
   });
 
   it('keeps a higher-priority surface interactive over header overlays', async () => {
