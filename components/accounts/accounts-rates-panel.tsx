@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { memo } from 'react';
 import { DollarSign, History } from 'lucide-react';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
@@ -16,14 +17,13 @@ export interface AccountsRatesPanelProps {
   bcv: { usd: number; eur: number };
   binance: BinanceRatesSnapshot;
   selectedSource: RateSource;
-  onOpenHistory: () => void;
+  onOpenHistory?: () => void;
 }
 
 function AccountsRatesPanelImpl({
   bcv,
   binance,
   selectedSource,
-  onOpenHistory,
 }: AccountsRatesPanelProps) {
   const usdVes = binance?.rates?.usd_ves ?? 0;
   const selectedValue = getExchangeRate(selectedSource, bcv, {
@@ -57,15 +57,14 @@ function AccountsRatesPanelImpl({
           </div>
 
           <div className="flex justify-center">
-            <button
-              type="button"
-              onClick={onOpenHistory}
+            <Link
+              href="/calculator"
               data-testid="rates-history-button"
               className="flex min-h-[44px] w-full items-center justify-center space-x-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-500 transition-all duration-200 hover:scale-105 hover:bg-blue-500/20 sm:px-6 sm:text-base md:w-auto"
             >
               <History className="h-4 w-4" />
               <span className="font-medium">Ver Historial y Calculadora</span>
-            </button>
+            </Link>
           </div>
 
           <div className="rounded-2xl border border-border/20 bg-muted/5 p-3 backdrop-blur-sm sm:p-4">
