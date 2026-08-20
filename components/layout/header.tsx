@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Bell,
   Search,
   Menu,
   X,
@@ -33,7 +32,6 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -164,34 +162,6 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
         return 'FinTec';
     }
   };
-
-  const notifications = [
-    {
-      id: 1,
-      title: 'Transferencia recibida',
-      description: 'Has recibido $120.00 de Juan Pérez',
-      time: 'Hace 5 min',
-      read: false,
-      type: 'transfer',
-    },
-    {
-      id: 2,
-      title: 'Límite de presupuesto',
-      description: 'Has alcanzado el 80% de tu presupuesto de Alimentación',
-      time: 'Hace 2 horas',
-      read: false,
-      type: 'budget',
-    },
-    {
-      id: 3,
-      title: 'Nueva función disponible',
-      description: 'Ya puedes conectar tus cuentas de Binance',
-      time: 'Hace 1 día',
-      read: true,
-      type: 'feature',
-    },
-  ];
-
   if (!mounted) return null;
 
   if (isMobile) {
@@ -460,49 +430,6 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="relative">
-          <button
-            type="button"
-            aria-label="Notificaciones"
-            onClick={() => setShowNotifications(!showNotifications)}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5 text-foreground transition-all hover:scale-105 active:scale-95"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500"></span>
-          </button>
-
-          <AnimatePresence>
-            {showNotifications && (
-              <motion.div
-                initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="ios-card absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5"
-              >
-                <div className="p-4">
-                  <div className="mb-4 flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-foreground">
-                      Notificaciones
-                    </h3>
-                  </div>
-                  <div className="flex flex-col items-center justify-center py-6 text-center">
-                    <div className="mb-3 rounded-full bg-foreground/5 p-3">
-                      <Bell className="h-6 w-6 text-muted-foreground/50" />
-                    </div>
-                    <p className="text-sm font-medium text-foreground">
-                      Sin notificaciones nuevas
-                    </p>
-                    <p className="mx-auto mt-1 max-w-[200px] text-xs text-muted-foreground">
-                      El centro de notificaciones estará disponible
-                      próximamente.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
         <div className="relative">
           <button
             type="button"

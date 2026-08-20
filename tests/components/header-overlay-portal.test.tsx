@@ -133,19 +133,13 @@ describe('Header overlay portalization', () => {
   });
 
   it('shows notifications inline and closes by clicking the bell again', async () => {
+    // Notifications bell moved to fixed NotificationBell component (outside header) — header no longer contains it
     render(<Header onMenuClick={() => {}} isMobileMenuOpen={false} />);
 
     const header = screen.getByRole('banner');
-    fireEvent.click(screen.getByLabelText('Notificaciones'));
-
-    const notificationsTitle = await screen.findByText('Notificaciones');
-    expect(header.contains(notificationsTitle)).toBe(true);
-
-    fireEvent.click(screen.getByLabelText('Notificaciones'));
-
-    await waitFor(() => {
-      expect(screen.queryByText('Notificaciones')).not.toBeInTheDocument();
-    });
+    expect(screen.queryByLabelText('Notificaciones')).not.toBeInTheDocument();
+    // Header should not contain notifications panel
+    expect(header.textContent).not.toContain('Sin notificaciones nuevas');
   });
 
   it('keeps a higher-priority surface interactive over header overlays', async () => {
