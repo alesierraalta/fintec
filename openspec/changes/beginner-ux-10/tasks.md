@@ -54,5 +54,5 @@ Chain strategy: feature-branch-chain
 
 ## Phase 4: Verification and Rollback
 
-- [ ] 4.1 Run `npm run type-check`, `npm run lint`, focused tests, `npm run test:ci`, and guarded E2E lanes; record exact results per commit.
-- [ ] 4.2 Verify each diff stays under 400 lines, child bases exclude prior slices after the chain decision, and rollback is independent; all threat rows are `N/A`.
+- [x] 4.1 Run `npm run type-check`, `npm run lint`, focused tests, `npm run test:ci`, and guarded E2E lanes; record exact results per commit.
+- [x] 4.2 Verify each diff stays under 400 lines, child bases exclude prior slices after the chain decision, and rollback is independent; all threat rows are `N/A`.
