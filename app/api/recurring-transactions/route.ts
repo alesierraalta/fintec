@@ -5,6 +5,11 @@ import {
   DeleteRecurringTransactionQuerySchema,
   UpdateRecurringTransactionPayloadSchema,
 } from '@/lib/validations/recurring-transactions';
+import { resolveRecurringNextExecutionDate } from '@/lib/dates/recurring';
+import {
+  RecurringFrequency,
+  RecurringTransaction,
+} from '@/types/recurring-transactions';
 import { z } from 'zod';
 
 const RECURRING_UPDATE_VALIDATION_ERROR =
@@ -124,25 +129,103 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const repository = createServerAppRepository({ supabase });
-    const transaction = await repository.recurringTransactions.create(
-      body,
-      user.id
+    const registerFirstOperation = body.registerFirstOperation === true;
+
+    // Compute the next execution date BEFORE persisting the rule so the rule
+    // and its schedule are stored atomically. When the user registers the
+    // first operation now, the next scheduled operation is the following
+    // frequency occurrence (never the immediate operation), so cron cannot
+    // duplicate it.
+    const nextExecutionDate = resolveRecurringNextExecutionDate(
+      body.startDate as string,
+      body.frequency as RecurringFrequency,
+      body.intervalCount ? Number(body.intervalCount) : 1,
+      registerFirstOperation
     );
 
-    return NextResponse.json(
-      {
-        success: true,
-        data: transaction,
-        message: 'Recurring transaction created successfully',
-      },
-      { status: 201 }
-    );
+    const repository = createServerAppRepository({ supabase });
+
+    // Rule-first: persist the rule before reporting success. If this fails,
+    // nothing follows (no first operation, no success claim).
+    let transaction: RecurringTransaction;
+    try {
+      transaction = await repository.recurringTransactions.create(
+        { ...body, nextExecutionDate },
+        user.id
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            'No se pudo guardar la regla recurrente. Revisa tu conexión o intenta de nuevo.',
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
+    }
+
+    // The user explicitly declined to register the first operation now: the
+    // rule is saved and cron schedules its first due occurrence.
+    if (!registerFirstOperation) {
+      return NextResponse.json(
+        {
+          success: true,
+          outcome: 'rule-created',
+          data: transaction,
+          message: 'Regla recurrente guardada correctamente',
+        },
+        { status: 201 }
+      );
+    }
+
+    // Register the first operation now. If it fails, we MUST retain the rule,
+    // report the partial state with a corrective action in Spanish, and never
+    // claim full success.
+    try {
+      const firstTransaction = await repository.transactions.create({
+        type: transaction.type,
+        accountId: transaction.accountId,
+        categoryId: transaction.categoryId,
+        currencyCode: transaction.currencyCode,
+        amountMinor: transaction.amountMinor,
+        date: transaction.startDate,
+        description: transaction.description,
+        note: transaction.note,
+        tags: transaction.tags,
+        isDebt: false,
+      } as any);
+
+      return NextResponse.json(
+        {
+          success: true,
+          outcome: 'first-operation-created',
+          data: transaction,
+          transactionId: firstTransaction.id,
+          message: 'Regla recurrente y primera operación creadas',
+        },
+        { status: 201 }
+      );
+    } catch (error) {
+      return NextResponse.json(
+        {
+          success: false,
+          outcome: 'partial-failure',
+          data: transaction,
+          error:
+            'No se pudo registrar la primera operación, aunque la regla recurrente quedó guardada. Reintenta registrar la operación o edítala desde la página de recurrencias.',
+          transactionId: undefined,
+          details: error instanceof Error ? error.message : 'Unknown error',
+        },
+        { status: 202 }
+      );
+    }
   } catch (error) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to create recurring transaction',
+        error:
+          'No se pudo procesar la regla recurrente. Revisa tu conexión o intenta de nuevo.',
         details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }

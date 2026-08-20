@@ -39,6 +39,15 @@ export interface CreateRecurringTransactionDTO {
   intervalCount?: number; // Default 1
   startDate: string; // ISO date string
   endDate?: string; // ISO date string, null means no end date
+  /**
+   * Explicit next scheduled execution date. When registerFirstOperation is
+   * true this must be the next occurrence AFTER the immediate operation;
+   * otherwise it identifies the first scheduled occurrence (typically the
+   * start date). Computed before rule creation so rule and schedule are
+   * persisted atomically and cron never duplicates an immediate operation.
+   */
+  nextExecutionDate?: string; // ISO date string
+  registerFirstOperation?: boolean;
 }
 
 export interface UpdateRecurringTransactionDTO {
