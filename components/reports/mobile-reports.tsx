@@ -4,6 +4,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { formatCurrency } from '@/lib/money';
+import {
+  formatDisplayMoney,
+  unavailableMoney,
+} from '@/lib/currency-display-policy';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
 import {
   DEBT_PORTFOLIO_MODE,
@@ -249,7 +253,7 @@ export function MobileReports() {
                 ))
               ) : (
                 <p className="truncate text-lg font-bold text-text-primary">
-                  {formatCurrency(0, baseCurrency)}
+                  {formatDisplayMoney(unavailableMoney('missing-amount')).text}
                 </p>
               )}
             </div>
@@ -272,7 +276,7 @@ export function MobileReports() {
                 ))
               ) : (
                 <p className="truncate text-lg font-bold text-text-primary">
-                  {formatCurrency(0, baseCurrency)}
+                  {formatDisplayMoney(unavailableMoney('missing-amount')).text}
                 </p>
               )}
             </div>
@@ -297,7 +301,7 @@ export function MobileReports() {
               ))
             ) : (
               <p className="truncate text-2xl font-bold text-text-primary">
-                {formatCurrency(0, baseCurrency)}
+                {formatDisplayMoney(unavailableMoney('missing-amount')).text}
               </p>
             )}
           </div>

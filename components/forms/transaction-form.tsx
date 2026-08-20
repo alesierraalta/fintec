@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { CategoryForm } from '@/components/forms/category-form';
 import { DebtDirection, DebtStatus, TransactionType } from '@/types';
@@ -30,6 +31,7 @@ import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { toMinorUnits, fromMinorUnits } from '@/lib/money';
+import { TRANSFER_FLOW_PATH } from '@/hooks/use-transaction-form';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -71,6 +73,9 @@ const transactionTypes = [
 const isTransactionType = (value: unknown): value is TransactionType =>
   Object.values(TransactionType).some((type) => type === value);
 
+const isTransferLegType = (t: TransactionType | undefined) =>
+  t === TransactionType.TRANSFER_OUT || t === TransactionType.TRANSFER_IN;
+
 const isDebtDirection = (value: unknown): value is DebtDirection =>
   Object.values(DebtDirection).some((direction) => direction === value);
 
@@ -82,6 +87,7 @@ export function TransactionForm({
   type = TransactionType.EXPENSE,
   debtMode,
 }: TransactionFormProps) {
+  const router = useRouter();
   const repository = useRepository();
   const { user } = useAuth();
   const {
@@ -220,6 +226,11 @@ export function TransactionForm({
 
   const selectedType = transactionTypes.find((t) => t.value === formData.type);
 
+  // #56: transfers open the canonical flow from picker and submit guard.
+  const openCanonicalTransferFlow = () => {
+    router.replace(TRANSFER_FLOW_PATH);
+  };
+
   // The "main" account drives the debt's transaction currency, which in
   // turn filters the source-account picker. The picker only shows accounts
   // in the SAME currency so the linked EXPENSE debits the right one.
@@ -264,6 +275,15 @@ export function TransactionForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // #56: transfer legs route to the canonical flow — no single-leg edit.
+    if (
+      isTransferLegType(transaction?.type) ||
+      isTransferLegType(formData.type)
+    ) {
+      openCanonicalTransferFlow();
+      return;
+    }
 
     // Check if user is at transaction limit (only for new transactions).
     // Owners/admins are never upsold, regardless of their free-tier status.
@@ -547,12 +567,16 @@ export function TransactionForm({
                   <button
                     key={typeOption.value}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      if (typeOption.value === TransactionType.TRANSFER_OUT) {
+                        openCanonicalTransferFlow();
+                        return;
+                      }
                       setFormData((prev) => ({
                         ...prev,
                         type: typeOption.value,
-                      }))
-                    }
+                      }));
+                    }}
                     className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
                       isSelected
                         ? `${typeOption.borderColor} ${typeOption.bgColor} ${typeOption.color} shadow-ios-sm`

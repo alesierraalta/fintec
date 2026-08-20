@@ -217,5 +217,5 @@ jest_final_check.txt
 test_output.txt
 reports-verification.png
 
-# Local-only bombardeo e2e (no-excess-tests, gitignored, excluded from review budget)
-testLocales/
+# local real-run harnesses and exploratory test scripts
+/testLocales/

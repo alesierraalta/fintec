@@ -17,6 +17,7 @@ import {
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
+import { TRANSFER_FLOW_PATH } from '@/hooks/use-transaction-form';
 import {
   CreateTransactionDTO,
   DebtDirection,
@@ -540,12 +541,17 @@ export function DesktopAddTransaction() {
                     <button
                       key={type.value}
                       type="button"
-                      onClick={() =>
+                      onClick={() => {
+                        // #56: transfers open the canonical flow on selection.
+                        if (type.value === TransactionType.TRANSFER_OUT) {
+                          router.replace(TRANSFER_FLOW_PATH);
+                          return;
+                        }
                         setFormData((prev) => ({
                           ...prev,
                           type: type.value as TransactionType,
-                        }))
-                      }
+                        }));
+                      }}
                       className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                         isSelected
                           ? `bg-gradient-to-r ${type.color} border-0 shadow-xl`

@@ -5,6 +5,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { formatCurrency } from '@/lib/money';
 import {
+  formatDisplayMoney,
+  unavailableMoney,
+} from '@/lib/currency-display-policy';
+import {
   DEBT_PORTFOLIO_MODE,
   filterTransactionsByDebtMode,
   OPERATIONAL_DEBT_MODE,
@@ -504,7 +508,7 @@ export function DesktopReports() {
                 ))
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {formatCurrency(0, baseCurrency)}
+                  {formatDisplayMoney(unavailableMoney('missing-amount')).text}
                 </p>
               )}
             </div>
@@ -534,7 +538,7 @@ export function DesktopReports() {
                 ))
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {formatCurrency(0, baseCurrency)}
+                  {formatDisplayMoney(unavailableMoney('missing-amount')).text}
                 </p>
               )}
             </div>
@@ -564,7 +568,7 @@ export function DesktopReports() {
                 ))
               ) : (
                 <p className="text-2xl font-bold text-text-primary">
-                  {formatCurrency(0, baseCurrency)}
+                  {formatDisplayMoney(unavailableMoney('missing-amount')).text}
                 </p>
               )}
             </div>

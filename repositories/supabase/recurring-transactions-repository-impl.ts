@@ -99,7 +99,10 @@ export class SupabaseRecurringTransactionsRepository
       interval_count: data.intervalCount || 1,
       start_date: data.startDate,
       end_date: data.endDate,
-      next_execution_date: data.startDate, // First execution is the start date
+      // Explicit next execution date computed before rule creation; falls back
+      // to the start date when the caller did not provide one so schedule
+      // semantics remain consistent with an immediate first operation.
+      next_execution_date: data.nextExecutionDate ?? data.startDate,
       is_active: true,
     };
 
@@ -368,5 +371,3 @@ export class SupabaseRecurringTransactionsRepository
     return data as string;
   }
 }
-
-

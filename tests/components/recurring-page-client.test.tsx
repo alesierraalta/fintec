@@ -5,6 +5,10 @@ import RecurringPage from '@/app/recurring/recurring-page-client';
 import { useAppStore } from '@/lib/store';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
+import { useAuth } from '@/hooks/use-auth';
+import { useRepository } from '@/providers';
+import { useRecurringCreation } from '@/hooks/use-recurring-creation';
+import { toast } from 'sonner';
 
 jest.mock('@/components/layout/main-layout', () => ({
   MainLayout: ({ children }: { children: React.ReactNode }) => (
@@ -30,6 +34,18 @@ jest.mock('@/hooks/use-bcv-rates', () => ({
   useBCVRates: jest.fn(),
 }));
 
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: jest.fn(),
+}));
+
+jest.mock('@/providers', () => ({
+  useRepository: jest.fn(),
+}));
+
+jest.mock('@/hooks/use-recurring-creation', () => ({
+  useRecurringCreation: jest.fn(),
+}));
+
 const mockPush = jest.fn();
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -47,6 +63,19 @@ jest.mock('sonner', () => ({
     error: jest.fn(),
   },
 }));
+
+const mockCreateRecurring = jest.fn();
+
+const activeAccountFixture = {
+  id: 'acc-1',
+  name: 'Cuenta Principal',
+  type: 'BANK',
+  currencyCode: 'USD',
+  balance: 500000,
+  active: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
 
 const recurringTransactionFixture = {
   id: 'rec-1',
@@ -104,6 +133,11 @@ describe('RecurringPage edit/delete flows', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockCreateRecurring.mockReset();
+    mockCreateRecurring.mockResolvedValue({
+      status: 'rule-created',
+      transaction: recurringTransactionFixture,
+    });
     (global.fetch as any) = jest.fn();
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -114,6 +148,19 @@ describe('RecurringPage edit/delete flows', () => {
     (useBCVRates as jest.Mock).mockReturnValue({ usd: 36.5, eur: 40 });
     (useBinanceRates as jest.Mock).mockReturnValue({
       rates: { usdt_ves: 36.4 },
+    });
+    (useAuth as jest.Mock).mockReturnValue({ user: { id: 'user-1' } });
+    (useRepository as jest.Mock).mockReturnValue({
+      accounts: {
+        findByUserId: jest.fn().mockResolvedValue([activeAccountFixture]),
+      },
+    });
+    mockCreateRecurring.mockResolvedValue({
+      status: 'rule-created',
+      transaction: recurringTransactionFixture,
+    });
+    (useRecurringCreation as jest.Mock).mockReturnValue({
+      createRecurring: mockCreateRecurring,
     });
   });
 
@@ -236,19 +283,23 @@ describe('RecurringPage edit/delete flows', () => {
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
-  it('redirects to /transactions/add?recurring=true when clicking Nueva Recurrente button', async () => {
+  it('opens the create-rule dialog when clicking Nueva Recurrente', async () => {
     mockFetchJsonOnce(createRecurringGetResponse());
     render(<RecurringPage />);
-    
+
     expect(await screen.findByText('Arriendo')).toBeInTheDocument();
-    
-    const newBtn = screen.getByRole('button', { name: /Nueva Recurrente/i });
-    fireEvent.click(newBtn);
-    
-    expect(mockPush).toHaveBeenCalledWith('/transactions/add?recurring=true');
+
+    fireEvent.click(screen.getByRole('button', { name: /Nueva Recurrente/i }));
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Nueva transaccion recurrente',
+      })
+    ).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it('redirects to /transactions/add?recurring=true when clicking Crear Primera Recurrente button on empty state', async () => {
+  it('opens the create-rule dialog when clicking Crear Primera Recurrente on empty state', async () => {
     mockFetchJsonOnce({
       success: true,
       data: {
@@ -261,12 +312,198 @@ describe('RecurringPage edit/delete flows', () => {
         },
       },
     });
-    
+
     render(<RecurringPage />);
-    
-    const createFirstBtn = await screen.findByRole('button', { name: /Crear Primera Recurrente/i });
+
+    const createFirstBtn = await screen.findByRole('button', {
+      name: /Crear Primera Recurrente/i,
+    });
     fireEvent.click(createFirstBtn);
-    
-    expect(mockPush).toHaveBeenCalledWith('/transactions/add?recurring=true');
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Nueva transaccion recurrente',
+      })
+    ).toBeInTheDocument();
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+});
+
+  describe('RecurringPage create flow (rule-first via useRecurringCreation)', () => {
+  beforeAll(() => {
+    if (!global.requestAnimationFrame) {
+      global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
+        setTimeout(cb, 0)) as any;
+    }
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockCreateRecurring.mockReset();
+    mockCreateRecurring.mockResolvedValue({
+      status: 'rule-created',
+      transaction: recurringTransactionFixture,
+    });
+    (global.fetch as any) = jest.fn();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockedUseAppStore = useAppStore as any;
+    mockedUseAppStore.mockImplementation((selector: any) =>
+      selector({ selectedRateSource: 'bcv_usd' })
+    );
+    (useBCVRates as jest.Mock).mockReturnValue({ usd: 36.5, eur: 40 });
+    (useBinanceRates as jest.Mock).mockReturnValue({
+      rates: { usdt_ves: 36.4 },
+    });
+    (useAuth as jest.Mock).mockReturnValue({ user: { id: 'user-1' } });
+    (useRepository as jest.Mock).mockReturnValue({
+      accounts: {
+        findByUserId: jest.fn().mockResolvedValue([activeAccountFixture]),
+      },
+    });
+    (useRecurringCreation as jest.Mock).mockReturnValue({
+      createRecurring: mockCreateRecurring,
+    });
+  });
+
+  async function openCreateDialog() {
+    mockFetchJsonOnce(createRecurringGetResponse());
+    render(<RecurringPage />);
+    expect(await screen.findByText('Arriendo')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Nueva Recurrente/i }));
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Nueva transaccion recurrente',
+      })
+    ).toBeInTheDocument();
+  }
+
+  async function fillRequiredFields() {
+    fireEvent.change(screen.getByLabelText('Nombre'), {
+      target: { value: 'Arriendo' },
+    });
+    fireEvent.change(screen.getByLabelText('Monto'), {
+      target: { value: '1200' },
+    });
+    await waitFor(() => {
+      expect(screen.getByLabelText('Cuenta')).not.toBeDisabled();
+    });
+    fireEvent.change(screen.getByLabelText('Cuenta'), {
+      target: { value: 'acc-1' },
+    });
+    fireEvent.change(screen.getByLabelText('Fecha de inicio'), {
+      target: { value: '2026-03-01' },
+    });
+  }
+
+  it('registers the first operation when explicitly chosen and refreshes the list', async () => {
+    mockCreateRecurring.mockResolvedValueOnce({
+      status: 'first-operation-created',
+      transaction: recurringTransactionFixture,
+      transactionId: 'tx-1',
+    });
+    mockFetchJsonOnce(createRecurringGetResponse());
+    await openCreateDialog();
+
+    await fillRequiredFields();
+    fireEvent.click(
+      screen.getByLabelText('Registrar la primera operacion ahora')
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+
+    await waitFor(() =>
+      expect(mockCreateRecurring).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Arriendo',
+          type: 'EXPENSE',
+          accountId: 'acc-1',
+          currencyCode: 'USD',
+          amountMinor: 120000,
+          frequency: 'monthly',
+          startDate: '2026-03-01',
+        }),
+        true
+      )
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        'Regla recurrente y primera operación creadas'
+      )
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('persists the rule without a first operation when the choice is declined', async () => {
+    mockFetchJsonOnce(createRecurringGetResponse());
+    await openCreateDialog();
+
+    await fillRequiredFields();
+    // The checkbox is left UNCHECKED: the explicit choice is "no operation now".
+    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+
+    await waitFor(() =>
+      expect(mockCreateRecurring).toHaveBeenCalledWith(
+        expect.objectContaining({ name: 'Arriendo' }),
+        false
+      )
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(
+        'Regla recurrente guardada correctamente'
+      )
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('shows the Spanish corrective error and retains the rule on partial-failure', async () => {
+    mockCreateRecurring.mockResolvedValueOnce({
+      status: 'partial-failure',
+      transaction: recurringTransactionFixture,
+      error:
+        'No se pudo registrar la primera operación, aunque la regla recurrente quedó guardada. Reintenta registrar la operación o edítala desde la página de recurrencias.',
+    });
+    await openCreateDialog();
+
+    await fillRequiredFields();
+    fireEvent.click(
+      screen.getByLabelText('Registrar la primera operacion ahora')
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'No se pudo registrar la primera operación, aunque la regla recurrente quedó guardada. Reintenta registrar la operación o edítala desde la página de recurrencias.'
+      )
+    );
+    await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('heading', {
+          name: 'Nueva transaccion recurrente',
+        })
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('keeps the dialog open and shows the Spanish error when the rule cannot be persisted', async () => {
+    mockCreateRecurring.mockRejectedValueOnce(
+      new Error(
+        'No se pudo guardar la regla recurrente. Revisa tu conexión o intenta de nuevo.'
+      )
+    );
+    await openCreateDialog();
+
+    await fillRequiredFields();
+    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'No se pudo guardar la regla recurrente. Revisa tu conexión o intenta de nuevo.'
+      )
+    );
+    expect(
+      screen.getByRole('heading', {
+        name: 'Nueva transaccion recurrente',
+      })
+    ).toBeInTheDocument();
   });
 });

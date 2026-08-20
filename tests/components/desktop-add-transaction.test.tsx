@@ -1,16 +1,18 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { DesktopAddTransaction } from '@/components/transactions/desktop-add-transaction';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 
 const mockPush = jest.fn();
+const mockReplace = jest.fn();
 const mockGet = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
+    replace: mockReplace,
   }),
   useSearchParams: () => ({
     get: mockGet,
@@ -20,7 +22,9 @@ jest.mock('next/navigation', () => ({
 jest.mock('framer-motion', () => ({
   motion: {
     div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-    button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+    button: ({ children, ...props }: any) => (
+      <button {...props}>{children}</button>
+    ),
   },
 }));
 
@@ -30,6 +34,9 @@ const mockRepository = {
   },
   accounts: {
     findByUserId: jest.fn().mockResolvedValue([]),
+  },
+  transactions: {
+    create: jest.fn(),
   },
 };
 
@@ -41,10 +48,9 @@ jest.mock('@/providers/repository-provider', () => ({
   useRepository: () => mockRepository,
 }));
 
+const authState = { user: { id: 'user-1' } };
 jest.mock('@/hooks/use-auth', () => ({
-  useAuth: () => ({
-    user: { id: 'user-1' },
-  }),
+  useAuth: () => authState,
 }));
 
 jest.mock('@/hooks', () => ({
@@ -93,5 +99,16 @@ describe('DesktopAddTransaction recurring pre-selection', () => {
 
     const checkbox = await screen.findByLabelText(/Transacción Recurrente/i);
     expect(checkbox).not.toBeChecked();
+  });
+
+  it('redirects to /transfers when Transferencia is selected and persists nothing', async () => {
+    render(<DesktopAddTransaction />);
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Transferencia' })
+    );
+
+    expect(mockReplace).toHaveBeenCalledWith('/transfers');
+    expect(mockRepository.transactions.create).not.toHaveBeenCalled();
   });
 });

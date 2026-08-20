@@ -16,7 +16,12 @@ import {
   TrendingUp,
   Info,
 } from 'lucide-react';
-import { formatCurrencyWithBCV } from '@/lib/currency-ves';
+import {
+  deriveFreshness,
+  formatDisplayMoney,
+  historicalMoney,
+  liveMoney,
+} from '@/lib/currency-display-policy';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { logger } from '@/lib/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
@@ -175,11 +180,26 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
     });
   };
 
-  const formatAmount = (amountMinor: number, currencyCode: string) => {
-    return formatCurrencyWithBCV(amountMinor, currencyCode, {
-      showUSDEquivalent: currencyCode === 'VES',
-      locale: 'es-ES',
-    });
+  // Historical transfer amount is the factual transaction amount (transaction-time).
+  const formatAmount = (amountMinor: number, currencyCode: string) =>
+    formatDisplayMoney(historicalMoney(amountMinor, currencyCode)).text;
+
+  // The USD equivalent of a VES transfer is a CURRENT-rate live projection and
+  // must be disclosed with source + freshness (never implied as the real amount).
+  const vesLiveEquivalent = (amountMinor: number) => {
+    const rate = currentBCVRates?.usd;
+    if (!rate) return null;
+    const usdMinor = Math.round((amountMinor / 100 / rate) * 100);
+    return formatDisplayMoney(
+      liveMoney({
+        amountMinor: usdMinor,
+        currencyCode: 'USD',
+        rate,
+        source: 'BCV',
+        observedAt: currentBCVRates?.lastUpdated ?? new Date().toISOString(),
+        freshness: deriveFreshness(currentBCVRates?.lastUpdated, Date.now()),
+      })
+    );
   };
 
   const getExchangeRateText = (transfer: Transfer) => {
@@ -694,11 +714,18 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
                         <div className="col-span-2">
                           <div className="flex items-center space-x-2">
                             <DollarSign className="h-4 w-4 text-primary-600" />
-                            <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                            <span className="flex flex-col font-semibold text-neutral-900 dark:text-neutral-100">
                               {formatAmount(
                                 transfer.amount,
                                 transfer.fromTransaction.currencyCode
                               )}
+                              {transfer.fromTransaction.currencyCode === 'VES' &&
+                                vesLiveEquivalent(transfer.amount) && (
+                                  <span className="text-[10px] font-normal text-neutral-400">
+                                    {vesLiveEquivalent(transfer.amount)!.text} ·{' '}
+                                    {vesLiveEquivalent(transfer.amount)!.provenance}
+                                  </span>
+                                )}
                             </span>
                           </div>
                         </div>

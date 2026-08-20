@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -69,6 +69,7 @@ export function DesktopTransfer() {
   );
   const [exchangeMode, setExchangeMode] =
     useState<TransferExchangeMode>('manual');
+  const submittingRef = useRef(false);
   const selectedRateSource = useAppStore((state) => state.selectedRateSource);
   const bcvRates = useBCVRates();
   const { rates: binanceRates } = useBinanceRates();
@@ -393,6 +394,8 @@ export function DesktopTransfer() {
   };
 
   const handleTransfer = async () => {
+    if (submittingRef.current) return;
+
     if (!isFormValid()) {
       toast.error('Por favor completa cuenta origen, destino, monto y fecha');
       return;
@@ -421,6 +424,7 @@ export function DesktopTransfer() {
     }
 
     setLoading(true);
+    submittingRef.current = true;
 
     try {
       // Get the user's session token for authentication
@@ -487,6 +491,7 @@ export function DesktopTransfer() {
         `Error al procesar la transferencia: ${error instanceof Error ? error.message : 'Error desconocido'}`
       );
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

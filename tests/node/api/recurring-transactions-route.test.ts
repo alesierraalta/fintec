@@ -28,6 +28,10 @@ describe('recurring transactions route handlers', () => {
     delete: jest.fn(),
   };
 
+  const transactions = {
+    create: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
 
@@ -42,6 +46,7 @@ describe('recurring transactions route handlers', () => {
 
     mockCreateServerAppRepository.mockReturnValue({
       recurringTransactions,
+      transactions,
     } as any);
   });
 
@@ -168,6 +173,128 @@ describe('recurring transactions route handlers', () => {
 
       expect(response.status).toBe(500);
       expect(body.details).toBe('insert failed');
+    });
+  });
+
+  describe('POST /api/recurring-transactions — durable rule-first creation', () => {
+    const validBody = {
+      name: 'Rent',
+      type: 'EXPENSE',
+      accountId: 'acc-1',
+      currencyCode: 'USD',
+      amountMinor: 1000,
+      frequency: 'monthly',
+      startDate: '2026-06-01',
+    };
+
+    const ruleFixture = { id: 'rec-1', name: 'Rent', userId: 'user-1' };
+
+    beforeEach(() => {
+      recurringTransactions.create.mockResolvedValue(ruleFixture);
+      transactions.create.mockResolvedValue({ id: 'tx-1' });
+    });
+
+    it('persists the rule before the first operation when registerFirstOperation is true', async () => {
+      const response = await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: true }),
+        }) as any
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(body.outcome).toBe('first-operation-created');
+      // Rule-first: the recurring rule must be persisted and the first operation
+      // created only after it, so the rule id is available in the same request.
+      expect(recurringTransactions.create).toHaveBeenCalledTimes(1);
+      expect(transactions.create).toHaveBeenCalledTimes(1);
+    });
+
+    it('does NOT register a first operation when registerFirstOperation is false', async () => {
+      const response = await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: false }),
+        }) as any
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(201);
+      expect(body.outcome).toBe('rule-created');
+      expect(recurringTransactions.create).toHaveBeenCalledTimes(1);
+      expect(transactions.create).not.toHaveBeenCalled();
+    });
+
+    it('computes nextExecutionDate as the first occurrence when no immediate operation', async () => {
+      await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: false }),
+        }) as any
+      );
+
+      expect(recurringTransactions.create).toHaveBeenCalledWith(
+        expect.objectContaining({ nextExecutionDate: '2026-06-01' }),
+        'user-1'
+      );
+    });
+
+    it('computes nextExecutionDate as a later occurrence after an immediate operation', async () => {
+      await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: true }),
+        }) as any
+      );
+
+      // startDate 2026-06-01 + one month = 2026-07-01, strictly later than the
+      // immediate operation so cron never re-executes it.
+      expect(recurringTransactions.create).toHaveBeenCalledWith(
+        expect.objectContaining({ nextExecutionDate: '2026-07-01' }),
+        'user-1'
+      );
+    });
+
+    it('returns Spanish actionable error when rule creation fails and nothing follows', async () => {
+      recurringTransactions.create.mockRejectedValue(
+        new Error('insert failed')
+      );
+
+      const response = await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: true }),
+        }) as any
+      );
+      const body = await response.json();
+
+      expect(response.status).toBe(500);
+      expect(body.success).toBe(false);
+      expect(body.error).toContain('No se pudo guardar');
+      expect(recurringTransactions.create).toHaveBeenCalledTimes(1);
+      // Nothing follows a failed rule creation.
+      expect(transactions.create).not.toHaveBeenCalled();
+    });
+
+    it('retains the rule and reports partial failure in Spanish when the first operation fails', async () => {
+      transactions.create.mockRejectedValue(new Error('write failed'));
+
+      const response = await POST(
+        new Request('http://localhost/api/recurring-transactions', {
+          method: 'POST',
+          body: JSON.stringify({ ...validBody, registerFirstOperation: true }),
+        }) as any
+      );
+      const body = await response.json();
+
+      // The rule was persisted, so we must not claim full success.
+      expect(recurringTransactions.create).toHaveBeenCalledTimes(1);
+      expect(response.status).toBe(202);
+      expect(body.outcome).toBe('partial-failure');
+      expect(body.success).toBe(false);
+      expect(body.data).toEqual(ruleFixture);
+      expect(body.error).toContain('No se pudo registrar la primera');
     });
   });
 

@@ -33,9 +33,14 @@ import { getFrequencyLabel } from '@/types/recurring-transactions';
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { toast } from 'sonner';
+import { useRecurringCreation } from '@/hooks/use-recurring-creation';
 import { RecurringRowActionsMenu } from '@/components/recurring/recurring-row-actions-menu';
 import { RecurringEditDialog } from '@/components/recurring/recurring-edit-dialog';
 import { RecurringDeleteDialog } from '@/components/recurring/recurring-delete-dialog';
+import {
+  RecurringCreateDialog,
+  CreateRecurringPayload,
+} from '@/components/recurring/recurring-create-dialog';
 
 export default function RecurringPage() {
   const router = useRouter();
@@ -48,6 +53,8 @@ export default function RecurringPage() {
   const [loading, setLoading] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [selectedTransaction, setSelectedTransaction] =
     useState<RecurringTransaction | null>(null);
   const [activeRowMutation, setActiveRowMutation] = useState<{
@@ -64,6 +71,7 @@ export default function RecurringPage() {
   const { rates: binanceRates } = useBinanceRates({
     enabled: shouldFetchBinanceRates,
   });
+  const { createRecurring } = useRecurringCreation();
 
   const frequencyOptions = [
     { value: 'weekly', label: 'Semanal' },
@@ -327,6 +335,38 @@ export default function RecurringPage() {
     [extractErrorMessage, getAccessToken, refreshRecurringData]
   );
 
+  const handleCreateRecurring = useCallback(
+    async ({ data, registerFirstOperation }: CreateRecurringPayload) => {
+      setIsCreating(true);
+
+      try {
+        const result = await createRecurring(data, registerFirstOperation);
+
+        if (result.status === 'partial-failure') {
+          toast.error(result.error);
+        } else {
+          toast.success(
+            result.status === 'first-operation-created'
+              ? 'Regla recurrente y primera operación creadas'
+              : 'Regla recurrente guardada correctamente'
+          );
+        }
+
+        setCreateDialogOpen(false);
+        await refreshRecurringData();
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'No se pudo guardar la regla recurrente'
+        );
+      } finally {
+        setIsCreating(false);
+      }
+    },
+    [createRecurring, refreshRecurringData]
+  );
+
   if (loading) {
     return (
       <MainLayout>
@@ -354,7 +394,7 @@ export default function RecurringPage() {
           </div>
           <Button
             className="flex min-h-[44px] items-center gap-2 self-start"
-            onClick={() => router.push('/transactions/add?recurring=true')}
+            onClick={() => setCreateDialogOpen(true)}
           >
             <Plus className="h-4 w-4" />
             Nueva Recurrente
@@ -542,7 +582,7 @@ export default function RecurringPage() {
                 </p>
                 <Button
                   className="flex min-h-[44px] items-center gap-2"
-                  onClick={() => router.push('/transactions/add?recurring=true')}
+                  onClick={() => setCreateDialogOpen(true)}
                 >
                   <Plus className="h-4 w-4" />
                   Crear Primera Recurrente
@@ -638,6 +678,13 @@ export default function RecurringPage() {
             }
           }}
           onConfirmDelete={handleDeleteRecurringTransaction}
+        />
+
+        <RecurringCreateDialog
+          open={createDialogOpen}
+          isSubmitting={isCreating}
+          onOpenChange={setCreateDialogOpen}
+          onSubmit={handleCreateRecurring}
         />
       </div>
     </MainLayout>

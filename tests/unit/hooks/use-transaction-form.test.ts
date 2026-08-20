@@ -6,8 +6,9 @@ import {
 import { DebtStatus, TransactionType } from '@/types';
 
 const mockGet = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('next/navigation', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), replace: mockReplace }),
   useSearchParams: () => ({ get: mockGet }),
 }));
 
@@ -275,5 +276,21 @@ describe('useTransactionForm', () => {
     const { result } = renderHook(() => useTransactionForm());
     await waitFor(() => expect(result.current.loadingAccounts).toBe(false));
     expect(result.current.formData.isRecurring).toBe(false);
+  });
+
+  it('redirects TRANSFER_OUT to /transfers and never persists', async () => {
+    const { result } = renderHook(() => useTransactionForm());
+    await waitFor(() => expect(result.current.loadingAccounts).toBe(false));
+    act(() => {
+      result.current.setFormData((prev) => ({
+        ...prev,
+        type: TransactionType.TRANSFER_OUT,
+      }));
+    });
+    await act(async () => {
+      await result.current.handleSubmit();
+    });
+    expect(mockReplace).toHaveBeenCalledWith('/transfers');
+    expect(mockRepository.transactions.create).not.toHaveBeenCalled();
   });
 });
