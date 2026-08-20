@@ -5,6 +5,7 @@ import type {
   AIInfraRepository,
   AppRepository,
   ApprovalRequestsRepository,
+  FeedbacksRepository,
   OrdersRepository,
   PaymentOrdersRepository,
   SubscriptionsRepository,
@@ -17,6 +18,7 @@ import {
   SupabaseAIInfraRepository,
   SupabaseAppRepository,
   SupabaseApprovalRequestsRepository,
+  SupabaseFeedbacksRepository,
   SupabaseOrdersRepository,
   SupabasePaymentOrdersRepository,
   SupabaseSubscriptionsRepository,
@@ -327,6 +329,30 @@ export function createServerUsersProfileRepository(
     case 'postgres': {
       throw new Error(
         `Users profile repository is not implemented for DB_PROVIDER=${provider}`
+      );
+    }
+    default: {
+      return assertNever(provider);
+    }
+  }
+}
+
+export function createServerFeedbacksRepository(
+  options: CreateServerScopedRepositoryOptions = {}
+): FeedbacksRepository {
+  const provider = options.provider ?? getServerDBProvider();
+
+  switch (provider) {
+    case 'supabase': {
+      return new SupabaseFeedbacksRepository(
+        requireSupabaseClient(options.supabase),
+        options.requestContext
+      );
+    }
+    case 'local':
+    case 'postgres': {
+      throw new Error(
+        `Feedbacks repository is not implemented for DB_PROVIDER=${provider}`
       );
     }
     default: {
