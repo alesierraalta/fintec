@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { RouteAwareProviders } from './route-aware-providers';
+import { NotificationBell } from '@/components/notifications/notification-bell';
 import './globals.css';
 
 const inter = Inter({
@@ -54,6 +55,7 @@ export default function RootLayout({
           <div id="root" className="h-dynamic-screen w-full overflow-x-hidden">
             {children}
           </div>
+          <NotificationBell />
         </RouteAwareProviders>
         <Toaster position="top-right" richColors />
         <div id="modal-root" />

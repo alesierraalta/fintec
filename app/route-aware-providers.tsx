@@ -2,11 +2,21 @@
 
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { NativeOAuthListener } from '@/components/providers/native-oauth-listener';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 interface RouteAwareProvidersProps {
   children: ReactNode;
@@ -32,21 +42,25 @@ export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
 
   if (shouldBypassAppProviders(pathname)) {
     return (
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <NativeOAuthListener>
-          <RepositoryProvider>
-            <SubscriptionProvider>{children}</SubscriptionProvider>
-          </RepositoryProvider>
-        </NativeOAuthListener>
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
+          <NativeOAuthListener>
+            <RepositoryProvider>
+              <SubscriptionProvider>{children}</SubscriptionProvider>
+            </RepositoryProvider>
+          </NativeOAuthListener>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }
