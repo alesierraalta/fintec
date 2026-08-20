@@ -350,3 +350,13 @@ export const WaitlistSchema = z.object({
 });
 
 export type WaitlistFormType = z.infer<typeof WaitlistSchema>;
+
+// Feedback Schema
+export const FeedbackSchema = z.object({
+  target_type: z.string().min(1).max(100),
+  target_id: z.string().min(1).max(200),
+  sentiment: z.enum(['up', 'down', 'neutral']),
+  comment: z.string().max(2000).nullable().optional(),
+});
+
+export type FeedbackFormType = z.infer<typeof FeedbackSchema>;
