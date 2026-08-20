@@ -1,7 +1,7 @@
 // Supabase database types and mappings
 // These types represent the database schema for Supabase
 
-export interface SupabaseAccount {
+export type SupabaseAccount = {
   id: string;
   user_id: string;
   name: string;
@@ -15,7 +15,7 @@ export interface SupabaseAccount {
   updated_at: string;
 }
 
-export interface SupabaseTransaction {
+export type SupabaseTransaction = {
   id: string;
   type: 'INCOME' | 'EXPENSE' | 'TRANSFER_OUT' | 'TRANSFER_IN';
   account_id: string;
@@ -42,7 +42,7 @@ export interface SupabaseTransaction {
   updated_at: string;
 }
 
-export interface SupabaseCategory {
+export type SupabaseCategory = {
   id: string;
   name: string;
   kind: 'INCOME' | 'EXPENSE';
@@ -56,7 +56,7 @@ export interface SupabaseCategory {
   updated_at: string;
 }
 
-export interface SupabaseBudget {
+export type SupabaseBudget = {
   id: string;
   user_id: string;
   name: string;
@@ -69,7 +69,7 @@ export interface SupabaseBudget {
   updated_at: string;
 }
 
-export interface SupabaseGoal {
+export type SupabaseGoal = {
   id: string;
   user_id: string;
   name: string;
@@ -83,7 +83,7 @@ export interface SupabaseGoal {
   updated_at: string;
 }
 
-export interface SupabaseGoalContribution {
+export type SupabaseGoalContribution = {
   id: string;
   goal_id: string;
   user_id: string;
@@ -94,7 +94,7 @@ export interface SupabaseGoalContribution {
   created_at: string;
 }
 
-export interface SupabaseExchangeRate {
+export type SupabaseExchangeRate = {
   id: string;
   base_currency: string;
   quote_currency: string;
@@ -104,7 +104,7 @@ export interface SupabaseExchangeRate {
   created_at: string;
 }
 
-export interface SupabaseTransfer {
+export type SupabaseTransfer = {
   id: string;
   from_transaction_id: string;
   to_transaction_id: string;
@@ -112,7 +112,7 @@ export interface SupabaseTransfer {
   created_at: string;
 }
 
-export interface SupabaseUser {
+export type SupabaseUser = {
   id: string;
   email: string;
   name?: string;
@@ -125,7 +125,7 @@ export interface SupabaseUser {
   updated_at: string;
 }
 
-export interface SupabasePaymentOrder {
+export type SupabasePaymentOrder = {
   id: string;
   user_id: string;
   amount_minor: number;
@@ -142,7 +142,7 @@ export interface SupabasePaymentOrder {
   updated_at: string;
 }
 
-export interface SupabaseOrder {
+export type SupabaseOrder = {
   id: string;
   user_id: string;
   service_name: string;
@@ -152,7 +152,7 @@ export interface SupabaseOrder {
   created_at: string;
 }
 
-export interface SupabaseScrapeAttempt {
+export type SupabaseScrapeAttempt = {
   id: string;
   attempt_id: string;
   provider: string;
@@ -167,117 +167,151 @@ export interface SupabaseScrapeAttempt {
   created_at: string;
 }
 
+export type SupabaseFeedback = {
+  id: string;
+  user_id: string;
+  target_type: string;
+  target_id: string;
+  sentiment: 'up' | 'down' | 'neutral';
+  comment: string | null;
+  created_at: string;
+}
+
+export type SupabaseNotification = {
+  id: string;
+  user_id: string;
+  title: string;
+  message: string;
+  type: 'success' | 'info' | 'warning' | 'error';
+  is_read: boolean;
+  action_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // Database interface for TypeScript with Supabase
 export interface Database {
   public: {
     Tables: {
       users: {
         Row: SupabaseUser;
-        Insert: Omit<SupabaseUser, 'created_at' | 'updated_at'> & {
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseUser>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       accounts: {
         Row: SupabaseAccount;
-        Insert: Omit<SupabaseAccount, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseAccount>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       transactions: {
         Row: SupabaseTransaction;
-        Insert: Omit<
-          SupabaseTransaction,
-          'id' | 'created_at' | 'updated_at'
-        > & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseTransaction>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       categories: {
         Row: SupabaseCategory;
-        Insert: Omit<SupabaseCategory, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseCategory>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       budgets: {
         Row: SupabaseBudget;
-        Insert: Omit<SupabaseBudget, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseBudget>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       goals: {
         Row: SupabaseGoal;
-        Insert: Omit<SupabaseGoal, 'id' | 'created_at' | 'updated_at'> & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabaseGoal>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       goal_contributions: {
         Row: SupabaseGoalContribution;
-        Insert: Omit<SupabaseGoalContribution, 'id' | 'created_at'> & {
-          id?: string;
-          created_at?: string;
-        };
-        Update: Partial<SupabaseGoalContribution>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       exchange_rates: {
         Row: SupabaseExchangeRate;
-        Insert: Omit<SupabaseExchangeRate, 'id' | 'created_at'> & {
-          id?: string;
-          created_at?: string;
-        };
-        Update: Partial<SupabaseExchangeRate>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       transfers: {
         Row: SupabaseTransfer;
-        Insert: Omit<SupabaseTransfer, 'id' | 'created_at'> & {
-          id?: string;
-          created_at?: string;
-        };
-        Update: Partial<SupabaseTransfer>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       payment_orders: {
         Row: SupabasePaymentOrder;
-        Insert: Omit<
-          SupabasePaymentOrder,
-          'id' | 'created_at' | 'updated_at'
-        > & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<SupabasePaymentOrder>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       orders: {
         Row: SupabaseOrder;
-        Insert: Omit<SupabaseOrder, 'id' | 'created_at'> & {
-          id?: string;
-          created_at?: string;
-        };
-        Update: Partial<SupabaseOrder>;
+        Insert: any;
+        Update: any;
+        Relationships: [];
       };
       scrape_attempts: {
         Row: SupabaseScrapeAttempt;
-        Insert: Omit<SupabaseScrapeAttempt, 'id' | 'created_at'> & {
+        Insert: any;
+        Update: any;
+        Relationships: [];
+      };
+      feedbacks: {
+        Row: SupabaseFeedback;
+        Insert: {
           id?: string;
+          user_id: string;
+          target_type: string;
+          target_id: string;
+          sentiment: 'up' | 'down' | 'neutral';
+          comment?: string | null;
           created_at?: string;
         };
-        Update: Partial<SupabaseScrapeAttempt>;
+        Update: {
+          id?: string;
+          user_id?: string;
+          target_type?: string;
+          target_id?: string;
+          sentiment?: 'up' | 'down' | 'neutral';
+          comment?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      notifications: {
+        Row: SupabaseNotification;
+        Insert: {
+          id?: string;
+          user_id: string;
+          title: string;
+          message: string;
+          type?: 'success' | 'info' | 'warning' | 'error';
+          is_read?: boolean;
+          action_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          title?: string;
+          message?: string;
+          type?: 'success' | 'info' | 'warning' | 'error';
+          is_read?: boolean;
+          action_url?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
       };
     };
     Views: {

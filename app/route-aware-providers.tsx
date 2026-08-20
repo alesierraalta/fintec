@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 import { SubscriptionProvider } from '@/providers/subscription-provider';
 import { NativeOAuthListener } from '@/components/providers/native-oauth-listener';
+
+// QueryClient per instance to avoid SSR cache sharing between requests (pr-review C1)
 
 interface RouteAwareProvidersProps {
   children: ReactNode;
@@ -28,25 +32,40 @@ function shouldBypassAppProviders(pathname: string | null): boolean {
 }
 
 export function RouteAwareProviders({ children }: RouteAwareProvidersProps) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            refetchOnWindowFocus: false,
+          },
+        },
+      })
+  );
   const pathname = usePathname();
 
   if (shouldBypassAppProviders(pathname)) {
     return (
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          {children}
+        </ThemeProvider>
+      </QueryClientProvider>
     );
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider>
-        <NativeOAuthListener>
-          <RepositoryProvider>
-            <SubscriptionProvider>{children}</SubscriptionProvider>
-          </RepositoryProvider>
-        </NativeOAuthListener>
-      </AuthProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthProvider>
+          <NativeOAuthListener>
+            <RepositoryProvider>
+              <SubscriptionProvider>{children}</SubscriptionProvider>
+            </RepositoryProvider>
+          </NativeOAuthListener>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 }

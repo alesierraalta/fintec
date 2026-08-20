@@ -8,6 +8,7 @@ export { SupabaseBudgetsRepository } from './budgets-repository-impl';
 export { SupabaseGoalsRepository } from './goals-repository-impl';
 export { SupabaseExchangeRatesRepository } from './exchange-rates-repository-impl';
 export { SupabaseNotificationsRepository } from './notifications-repository-impl';
+export { SupabaseFeedbacksRepository } from './feedback-repository-impl';
 export { SupabaseRecurringTransactionsRepository } from './recurring-transactions-repository-impl';
 export { SupabaseTransfersRepository } from './transfers-repository-impl';
 export { SupabaseWaitlistRepository } from './waitlist-repository-impl';
@@ -46,6 +47,7 @@ import { SupabasePaymentOrdersRepository } from './payment-orders-repository-imp
 import { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
 import { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
 
+import { SupabaseFeedbacksRepository } from './feedback-repository-impl';
 import { SupabaseApprovalRequestsRepository } from './approval-requests-repository-impl';
 import { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
 import { SupabaseOrdersRepository } from './orders-repository-impl';
@@ -59,6 +61,7 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly goals: SupabaseGoalsRepository;
   public readonly exchangeRates: SupabaseExchangeRatesRepository;
   public readonly notifications: SupabaseNotificationsRepository;
+  public readonly feedbacks: SupabaseFeedbacksRepository;
   public readonly recurringTransactions: SupabaseRecurringTransactionsRepository;
   public readonly transfers: SupabaseTransfersRepository;
   public readonly waitlist: SupabaseWaitlistRepository;
@@ -99,6 +102,7 @@ export class SupabaseAppRepository implements AppRepository {
       this.client,
       requestContext
     );
+    this.feedbacks = new SupabaseFeedbacksRepository(this.client, requestContext);
     this.recurringTransactions = new SupabaseRecurringTransactionsRepository(
       this.client,
       requestContext
