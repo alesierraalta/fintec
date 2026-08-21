@@ -381,8 +381,8 @@ describe('SpendingChart Component', () => {
     });
   });
 
-  describe('6. Synchronized Hover Interaction', () => {
-    it('should update center stats when hovering a category item and reset on mouse leave', () => {
+  describe('6. Category Interaction', () => {
+    it('should persist selected category details after clicking a category item', () => {
       const todayIso = dayjs().toISOString();
       (useOptimizedTransactions as jest.Mock).mockReturnValue({
         expenseTransactions: [
@@ -409,20 +409,15 @@ describe('SpendingChart Component', () => {
 
       render(<SpendingChart />);
 
-      // Hover over Alimentación category card
-      const categoryCard = screen
-        .getByText('Alimentación')
-        .closest('div[class*="cursor-pointer"]');
-      expect(categoryCard).toBeInTheDocument();
+      const categoryButton = screen.getByRole('button', {
+        name: /Alimentación/i,
+      });
+      expect(screen.getByText('Total gastado')).toBeInTheDocument();
 
-      fireEvent.mouseEnter(categoryCard!);
+      fireEvent.click(categoryButton);
+
       expect(screen.getByText(/Alimentación \(75%\)/i)).toBeInTheDocument();
-
-      fireEvent.mouseLeave(categoryCard!);
-      expect(
-        screen.queryByText(/Alimentación \(75%\)/i)
-      ).not.toBeInTheDocument();
-      expect(screen.getAllByText('Total gastado').length).toBe(2);
+      expect(screen.queryByText('Total gastado')).not.toBeInTheDocument();
     });
 
     it('should update center stats when hovering a pie cell', () => {

@@ -201,21 +201,12 @@ export function SpendingChartSkeleton() {
         <Skeleton className="h-8 w-64 rounded-xl" />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-border/20 bg-card/40 p-4">
-          <Skeleton className="mb-2 h-3.5 w-20 rounded" />
-          <Skeleton className="h-6 w-28 rounded-lg" />
-        </div>
-        <div className="rounded-2xl border border-border/20 bg-card/40 p-4">
-          <Skeleton className="mb-2 h-3.5 w-20 rounded" />
-          <Skeleton className="h-6 w-12 rounded-lg" />
-        </div>
-      </div>
 
-      <div className="relative flex h-72 items-center justify-center">
+
+      <div className="relative flex h-[280px] items-center justify-center">
         <div className="h-52 w-52 rounded-full border-[18px] border-muted/50" />
         <div className="absolute flex flex-col items-center justify-center space-y-2">
-          <Skeleton className="h-7 w-7 rounded-full" />
+
           <Skeleton className="h-5 w-24 rounded" />
           <Skeleton className="h-3 w-12 rounded" />
         </div>
@@ -242,16 +233,6 @@ export function SpendingChartSkeleton() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 border-t border-border/20 pt-6">
-        <div className="rounded-2xl border border-border/20 bg-card/30 p-3 text-center">
-          <Skeleton className="mx-auto mb-1 h-5 w-10 rounded" />
-          <Skeleton className="mx-auto h-3 w-24 rounded" />
-        </div>
-        <div className="rounded-2xl border border-border/20 bg-card/30 p-3 text-center">
-          <Skeleton className="mx-auto mb-1 h-5 w-16 rounded" />
-          <Skeleton className="mx-auto h-3 w-28 rounded" />
-        </div>
-      </div>
     </div>
   );
 }
@@ -277,6 +258,7 @@ function SpendingChartComponent({
   const [selectedPeriod, setSelectedPeriod] =
     useState<SpendingPeriod>(initialPeriod);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   const rawExpenses = useMemo(() => {
     if (customTransactions) {
@@ -407,9 +389,16 @@ function SpendingChartComponent({
     <div className={`space-y-6 ${className}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="text-ios-title font-bold text-foreground">
-            Gastos por Categoría
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-ios-title font-bold text-foreground">
+              Gastos por Categoría
+            </h3>
+            {spendingData.length > 0 && (
+              <span className="rounded-full border border-border/30 bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                {spendingData.length}
+              </span>
+            )}
+          </div>
           <p className="text-ios-caption text-muted-foreground">
             Distribución de tus egresos
           </p>
@@ -417,7 +406,7 @@ function SpendingChartComponent({
         <div
           role="tablist"
           aria-label="Filtro de período de gastos"
-          className="inline-flex max-w-full flex-wrap items-center gap-1 rounded-2xl border border-border/30 bg-muted/40 p-1 backdrop-blur-sm"
+          className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-2xl border border-border/30 bg-muted/40 p-1 backdrop-blur-sm"
         >
           {PERIOD_OPTIONS.map((period) => {
             const isSelected = selectedPeriod === period.id;
@@ -429,8 +418,9 @@ function SpendingChartComponent({
                 onClick={() => {
                   setSelectedPeriod(period.id);
                   setActiveIndex(null);
+                  setSelectedIndex(null);
                 }}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`min-h-[44px] shrink-0 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                   isSelected
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -458,41 +448,29 @@ function SpendingChartComponent({
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-border/20 bg-card/50 p-4 backdrop-blur-sm">
-              <p className="text-ios-caption text-muted-foreground">
-                Total gastado
-              </p>
-              <p className="text-ios-title font-bold text-foreground">
-                {formatUSD(totalSpending)}
-              </p>
-            </div>
-            <div className="rounded-2xl border border-border/20 bg-card/50 p-4 backdrop-blur-sm">
-              <p className="text-ios-caption text-muted-foreground">
-                Categorías
-              </p>
-              <p className="text-ios-title font-bold text-foreground">
-                {spendingData.length}
-              </p>
-            </div>
-          </div>
-
-          <div className="relative w-full">
-            <div className="h-80 min-h-[320px] w-full min-w-[250px]">
+          <div
+              className="grid gap-6"
+              style={{
+                gridTemplateColumns:
+                  'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+              }}
+            >
+          <div className="relative flex h-[280px] w-full items-center justify-center">
+            <div className="h-full w-full max-w-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={spendingData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={75}
-                    outerRadius={115}
+                    innerRadius="32%"
+                    outerRadius="48%"
                     paddingAngle={spendingData.length > 1 ? 3 : 0}
                     dataKey="value"
                     animationBegin={0}
                     animationDuration={600}
                     onMouseEnter={(_, index) => setActiveIndex(index)}
-                    onMouseLeave={() => setActiveIndex(null)}
+                    onMouseLeave={() => setActiveIndex(selectedIndex)}
                   >
                     {spendingData.map((entry, index) => {
                       const isHighlighted =
@@ -545,21 +523,10 @@ function SpendingChartComponent({
             </div>
 
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-2xl border border-border/20 bg-card/85 p-3.5 text-center shadow-ios-sm backdrop-blur-xl transition-all duration-200">
+              <div className="text-center transition-all duration-200">
                 {activeCategory ? (
                   <>
-                    <div
-                      className="mx-auto mb-1.5 w-fit rounded-xl border p-2 transition-colors duration-200"
-                      style={{
-                        backgroundColor: `${activeCategory.color}15`,
-                        borderColor: `${activeCategory.color}30`,
-                      }}
-                    >
-                      <activeCategory.icon
-                        className="h-5 w-5"
-                        style={{ color: activeCategory.color }}
-                      />
-                    </div>
+
                     <p className="text-ios-title font-bold text-foreground">
                       {formatUSD(activeCategory.value)}
                     </p>
@@ -569,9 +536,7 @@ function SpendingChartComponent({
                   </>
                 ) : (
                   <>
-                    <div className="mx-auto mb-1.5 w-fit rounded-xl border border-primary/20 bg-primary/10 p-2">
-                      <DollarSign className="mx-auto h-5 w-5 text-primary" />
-                    </div>
+
                     <p className="text-ios-title font-bold text-foreground">
                       {formatUSD(totalSpending)}
                     </p>
@@ -584,16 +549,22 @@ function SpendingChartComponent({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 content-center gap-2">
             {spendingData.map((item, index) => {
               const Icon = item.icon;
-              const isSelected = activeIndex === index;
+              const isSelected = selectedIndex === index || activeIndex === index;
               return (
-                <div
+                <button
+                  type="button"
                   key={item.name}
+                  aria-pressed={selectedIndex === index}
+                  onClick={() => {
+                    setSelectedIndex(index);
+                    setActiveIndex(index);
+                  }}
                   onMouseEnter={() => setActiveIndex(index)}
-                  onMouseLeave={() => setActiveIndex(null)}
-                  className={`flex cursor-pointer items-center justify-between rounded-2xl border p-4 backdrop-blur-sm transition-all duration-200 ${
+                  onMouseLeave={() => setActiveIndex(selectedIndex)}
+                  className={`flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl border p-2.5 text-left backdrop-blur-sm transition-all duration-200 ${
                     isSelected
                       ? 'scale-[1.02] border-primary/40 bg-card/90 shadow-ios-md'
                       : 'border-border/20 bg-card/60 hover:border-border/40 hover:bg-card/80'
@@ -632,31 +603,12 @@ function SpendingChartComponent({
                       </span>
                     </div>
                   </div>
-                </div>
+              </button>
               );
             })}
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-4 border-t border-border/20 pt-6">
-            <div className="rounded-2xl border border-primary/10 bg-primary/5 p-3 text-center backdrop-blur-sm">
-              <p className="text-ios-body font-bold text-primary">
-                {spendingData.length}
-              </p>
-              <p className="text-ios-caption text-muted-foreground">
-                Categorías activas
-              </p>
-            </div>
-            <div className="rounded-2xl border border-neutral-500/10 bg-neutral-500/5 p-3 text-center backdrop-blur-sm dark:border-neutral-400/10 dark:bg-neutral-400/5">
-              <p className="text-ios-body font-bold text-neutral-600 dark:text-neutral-400">
-                {spendingData.length > 0
-                  ? formatUSD(totalSpending / spendingData.length)
-                  : '$0.00'}
-              </p>
-              <p className="text-ios-caption text-muted-foreground">
-                Promedio por categoría
-              </p>
-            </div>
-          </div>
         </>
       )}
     </div>
