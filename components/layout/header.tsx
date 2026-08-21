@@ -431,7 +431,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <div className="hidden md:flex">
+        <div className="hidden lg:flex">
           <NotificationBell variant="header" />
         </div>
         <div className="relative">

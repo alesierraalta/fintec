@@ -90,9 +90,16 @@ export function NotificationBell({
   if (!userId) return null;
 
   const count = typeof unreadCount === 'number' ? unreadCount : 0;
+  const isHeader = variant === 'header';
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end md:bottom-auto md:right-6 md:top-5">
+    <div
+      className={
+        isHeader
+          ? 'relative z-50 flex flex-col items-end'
+          : 'fixed bottom-5 right-5 z-50 flex flex-col items-end lg:hidden'
+      }
+    >
       <button
         type="button"
         aria-label={
@@ -101,7 +108,11 @@ export function NotificationBell({
         aria-haspopup="dialog"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="transition-ios focus-ring relative flex h-12 w-12 items-center justify-center rounded-full border border-border/30 bg-card/90 shadow-ios-md backdrop-blur-xl hover:bg-card hover:shadow-ios-lg md:h-[52px] md:w-[52px]"
+        className={`transition-ios focus-ring relative flex items-center justify-center border border-border/30 bg-card/90 backdrop-blur-xl hover:bg-card hover:shadow-ios-lg ${
+          isHeader
+            ? 'h-10 w-10 rounded-xl shadow-ios-md'
+            : 'h-12 w-12 rounded-full shadow-ios-md'
+        }`}
       >
         <Bell
           className="h-5 w-5 text-foreground md:h-6 md:w-6"
@@ -185,12 +196,16 @@ export function NotificationBell({
                         </span>
                       </div>
                       {n.action_url && (
-                        <a
-                          href={n.action_url}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOpen(false);
+                            router.push(n.action_url!);
+                          }}
                           className="focus-ring mt-1 inline-block rounded text-xs font-medium text-primary hover:underline"
                         >
                           Ver detalle
-                        </a>
+                        </button>
                       )}
                     </div>
                     <button
