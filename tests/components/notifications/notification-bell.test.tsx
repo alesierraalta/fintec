@@ -95,8 +95,10 @@ describe('NotificationBell positioning', () => {
     expect(trigger.parentElement).toHaveClass('relative', 'flex-col');
     expect(trigger.parentElement).not.toHaveClass('fixed');
     expect(screen.getByRole('dialog', { name: 'Notificaciones' })).toHaveClass(
+      'absolute',
+      'top-full',
+      'right-0',
       'mt-3'
     );
-    expect(screen.getByRole('dialog')).not.toHaveClass('absolute');
   });
 });

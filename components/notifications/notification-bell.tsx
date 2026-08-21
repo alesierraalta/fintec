@@ -134,7 +134,7 @@ export function NotificationBell({
           ref={panelRef}
           role="dialog"
           aria-label="Notificaciones"
-          className={`${isHeader ? 'mt-3' : 'absolute bottom-full right-0 mb-3'} max-h-[70vh] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg backdrop-blur-xl`}
+          className={`${isHeader ? 'absolute top-full right-0 mt-3' : 'absolute bottom-full right-0 mb-3'} max-h-[70vh] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg backdrop-blur-xl`}
         >
           <div className="flex items-center justify-between border-b border-border/30 px-4 py-3">
             <h2 className="text-sm font-semibold text-popover-foreground">
