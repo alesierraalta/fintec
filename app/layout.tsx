@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RouteAwareProviders } from './route-aware-providers';
+import { getAdminVisibility } from '@/lib/admin/guard';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import './globals.css';
 
@@ -44,16 +45,17 @@ export const viewport = {
   interactiveWidget: 'resizes-visual', // Ajusta viewport cuando aparece el teclado
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const isAdmin = await getAdminVisibility();
   return (
     <html lang="es" suppressHydrationWarning>
       <head></head>
       <body className={`${inter.className} overflow-x-hidden`}>
-        <RouteAwareProviders>
+        <RouteAwareProviders isAdmin={isAdmin}>
           <div id="root" className="h-dynamic-screen w-full overflow-x-hidden">
             {children}
           </div>
