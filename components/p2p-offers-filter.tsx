@@ -114,11 +114,11 @@ export default function P2POffersFilter() {
         aria-label="Filtros de búsqueda"
         className="rounded-2xl border border-border/50 bg-card/80 p-3 shadow-ios-sm sm:p-4"
       >
-        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="flex flex-wrap items-center gap-3">
           <div
             role="group"
             aria-label="Operación"
-            className="grid w-full shrink-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1 md:w-auto"
+            className="grid w-full shrink-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1 sm:w-auto"
           >
             <button
               type="button"
@@ -176,7 +176,7 @@ export default function P2POffersFilter() {
             ))}
           </div>
 
-          <div className="relative min-w-0 flex-1 md:max-w-[200px]">
+          <div className="relative w-full shrink-0 sm:w-[180px]">
             <DollarSign
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -198,7 +198,7 @@ export default function P2POffersFilter() {
             />
           </div>
 
-          <div className="relative min-w-0 flex-1 md:max-w-[230px]">
+          <div className="relative w-full shrink-0 sm:w-[210px]">
             <Wallet
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -226,14 +226,14 @@ export default function P2POffersFilter() {
             />
           </div>
 
-          <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 md:max-w-[260px]">
+          <div className="grid w-full shrink-0 grid-cols-2 gap-2 sm:w-[280px]">
             <input
               name="minCompletionRate"
               type="number"
               min="0"
               max="100"
               step="0.1"
-              placeholder="Completados ≥ %"
+              placeholder="Comp. ≥ %"
               aria-label="Completados mínimo en porcentaje"
               inputMode="decimal"
               autoComplete="off"
@@ -287,7 +287,7 @@ export default function P2POffersFilter() {
             disabled={loading}
             size="md"
             icon={<Search className="h-4 w-4" aria-hidden="true" />}
-            className="w-full shrink-0 md:w-auto"
+            className="w-full shrink-0 sm:w-auto"
           >
             {loading ? 'Buscando…' : 'Buscar ofertas'}
           </Button>
