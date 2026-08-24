@@ -15,8 +15,14 @@ import {
 } from 'lucide-react';
 import { MainLayout } from '@/components/layout/main-layout';
 import { VesCalculator } from '@/components/currency/ves-calculator';
-import { bcvHistoryService, type BCVHistoryRecord } from '@/lib/services/bcv-history-service';
-import { binanceHistoryService, type BinanceHistoryRecord } from '@/lib/services/binance-history-service';
+import {
+  bcvHistoryService,
+  type BCVHistoryRecord,
+} from '@/lib/services/bcv-history-service';
+import {
+  binanceHistoryService,
+  type BinanceHistoryRecord,
+} from '@/lib/services/binance-history-service';
 import { formatCaracasDayKey } from '@/lib/utils/date-key';
 import { logger } from '@/lib/utils/logger';
 
@@ -56,19 +62,31 @@ function getTrendColor(current: number, previous: number) {
 }
 
 export default function CalculatorClient() {
-  const [bcvHistoricalRates, setBcvHistoricalRates] = useState<BCVHistoryRecord[]>([]);
-  const [binanceHistoricalRates, setBinanceHistoricalRates] = useState<BinanceHistoryRecord[]>([]);
+  const [bcvHistoricalRates, setBcvHistoricalRates] = useState<
+    BCVHistoryRecord[]
+  >([]);
+  const [binanceHistoricalRates, setBinanceHistoricalRates] = useState<
+    BinanceHistoryRecord[]
+  >([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'history' | 'calculator'>('calculator');
+  const [activeTab, setActiveTab] = useState<'history' | 'calculator'>(
+    'calculator'
+  );
   const [activeSource, setActiveSource] = useState<'BCV' | 'Binance'>('BCV');
-  const [selectedBCVRate, setSelectedBCVRate] = useState<BCVHistoryRecord | null>(null);
-  const [selectedBinanceRate, setSelectedBinanceRate] = useState<BinanceHistoryRecord | null>(null);
+  const [selectedBCVRate, setSelectedBCVRate] =
+    useState<BCVHistoryRecord | null>(null);
+  const [selectedBinanceRate, setSelectedBinanceRate] =
+    useState<BinanceHistoryRecord | null>(null);
 
   const [selectedDate, setSelectedDate] = useState('');
   const [historyMinDate, setHistoryMinDate] = useState('2023-01-01');
-  const [historyMaxDate, setHistoryMaxDate] = useState(() => formatCaracasDayKey(new Date()));
-  const [dateSearchMessage, setDateSearchMessage] = useState<string | null>(null);
+  const [historyMaxDate, setHistoryMaxDate] = useState(() =>
+    formatCaracasDayKey(new Date())
+  );
+  const [dateSearchMessage, setDateSearchMessage] = useState<string | null>(
+    null
+  );
   const [dateSearchError, setDateSearchError] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -110,9 +128,20 @@ export default function CalculatorClient() {
     let cancelled = false;
     const computeRange = async () => {
       try {
-        const bcvAll = await (bcvHistoryService.getAllHistoricalRates?.() ?? bcvHistoryService.getHistoricalRates(3650));
-        const binanceAll = await ((binanceHistoryService as unknown as { getAllHistoricalRates?: () => Promise<BinanceHistoryRecord[]> }).getAllHistoricalRates?.() ?? binanceHistoryService.getHistoricalRates(3650));
-        const allDates = [...bcvAll.map((r) => r.date), ...binanceAll.map((r) => r.date)].filter(Boolean).sort();
+        const bcvAll = await (bcvHistoryService.getAllHistoricalRates?.() ??
+          bcvHistoryService.getHistoricalRates(3650));
+        const binanceAll = await ((
+          binanceHistoryService as unknown as {
+            getAllHistoricalRates?: () => Promise<BinanceHistoryRecord[]>;
+          }
+        ).getAllHistoricalRates?.() ??
+          binanceHistoryService.getHistoricalRates(3650));
+        const allDates = [
+          ...bcvAll.map((r) => r.date),
+          ...binanceAll.map((r) => r.date),
+        ]
+          .filter(Boolean)
+          .sort();
         if (!cancelled && allDates.length > 0) {
           setHistoryMinDate(allDates[0]);
         }
@@ -152,7 +181,9 @@ export default function CalculatorClient() {
         return;
       }
       if (dateStr < historyMinDate || dateStr > historyMaxDate) {
-        setDateSearchError(`Fecha fuera de rango (${historyMinDate} - ${historyMaxDate})`);
+        setDateSearchError(
+          `Fecha fuera de rango (${historyMinDate} - ${historyMaxDate})`
+        );
         return;
       }
       setIsSearching(true);
@@ -160,41 +191,79 @@ export default function CalculatorClient() {
         if (source === 'BCV') {
           const svc: unknown = bcvHistoryService;
           const getter =
-            (svc as { getBCVRateOnOrBefore?: (d: string) => Promise<BCVHistoryRecord | null> }).getBCVRateOnOrBefore?.bind(svc as object) ??
-            (svc as { getRatesForDate: (d: string) => Promise<BCVHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+            (
+              svc as {
+                getBCVRateOnOrBefore?: (
+                  d: string
+                ) => Promise<BCVHistoryRecord | null>;
+              }
+            ).getBCVRateOnOrBefore?.bind(svc as object) ??
+            (
+              svc as {
+                getRatesForDate: (
+                  d: string
+                ) => Promise<BCVHistoryRecord | null>;
+              }
+            ).getRatesForDate.bind(svc as object);
           const rate = await getter(dateStr);
           if (!rate) {
             setDateSearchError('No hay tasa disponible para esa fecha');
             return;
           }
           if (rate.date !== dateStr) {
-            setDateSearchMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+            setDateSearchMessage(
+              'No hay tasa para ese día, se muestra la más cercana anterior'
+            );
           }
           setSelectedBCVRate(rate);
           setBcvHistoricalRates((prev) => {
             if (prev.some((r) => r.date === rate.date)) return prev;
-            const next = [...prev, rate].sort((a, b) => b.date.localeCompare(a.date));
+            const next = [...prev, rate].sort((a, b) =>
+              b.date.localeCompare(a.date)
+            );
             return next;
           });
           setActiveSource('BCV');
         } else {
           const svc: unknown = binanceHistoryService;
           const getter =
-            (svc as { getBinanceRateOnOrBefore?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateOnOrBefore?.bind(svc as object) ??
-            (svc as { getBinanceRateForDate?: (d: string) => Promise<BinanceHistoryRecord | null> }).getBinanceRateForDate?.bind(svc as object) ??
-            (svc as { getRatesForDate: (d: string) => Promise<BinanceHistoryRecord | null> }).getRatesForDate.bind(svc as object);
+            (
+              svc as {
+                getBinanceRateOnOrBefore?: (
+                  d: string
+                ) => Promise<BinanceHistoryRecord | null>;
+              }
+            ).getBinanceRateOnOrBefore?.bind(svc as object) ??
+            (
+              svc as {
+                getBinanceRateForDate?: (
+                  d: string
+                ) => Promise<BinanceHistoryRecord | null>;
+              }
+            ).getBinanceRateForDate?.bind(svc as object) ??
+            (
+              svc as {
+                getRatesForDate: (
+                  d: string
+                ) => Promise<BinanceHistoryRecord | null>;
+              }
+            ).getRatesForDate.bind(svc as object);
           const rate = await getter(dateStr);
           if (!rate) {
             setDateSearchError('No hay tasa disponible para esa fecha');
             return;
           }
           if (rate.date !== dateStr) {
-            setDateSearchMessage('No hay tasa para ese día, se muestra la más cercana anterior');
+            setDateSearchMessage(
+              'No hay tasa para ese día, se muestra la más cercana anterior'
+            );
           }
           setSelectedBinanceRate(rate);
           setBinanceHistoricalRates((prev) => {
             if (prev.some((r) => r.date === rate.date)) return prev;
-            const next = [...prev, rate].sort((a, b) => b.date.localeCompare(a.date));
+            const next = [...prev, rate].sort((a, b) =>
+              b.date.localeCompare(a.date)
+            );
             return next;
           });
           setActiveSource('Binance');
@@ -256,12 +325,20 @@ export default function CalculatorClient() {
           disabled={isSearching}
           className="inline-flex items-center gap-1 rounded-xl bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:opacity-50"
         >
-          {isSearching ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+          {isSearching ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Search className="h-4 w-4" />
+          )}
           <span>Buscar</span>
         </button>
       </div>
       {dateSearchMessage && (
-        <p role="status" aria-live="polite" className="mt-2 text-xs text-amber-600">
+        <p
+          role="status"
+          aria-live="polite"
+          className="mt-2 text-xs text-amber-600"
+        >
           {dateSearchMessage}
         </p>
       )}
@@ -283,8 +360,12 @@ export default function CalculatorClient() {
               <Calculator className="h-6 w-6 text-blue-500" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Calculadora VES</h1>
-              <p className="text-sm text-muted-foreground">Convierte entre VES, USD, EUR y BUSD con tasas BCV y Binance</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Calculadora VES
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Convierte entre VES, USD, EUR y BUSD con tasas BCV y Binance
+              </p>
             </div>
           </div>
         </div>
@@ -324,8 +405,6 @@ export default function CalculatorClient() {
         <div className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl backdrop-blur-xl">
           {activeTab === 'calculator' && (
             <div className="space-y-6">
-              {/* Date picker accessible from calculator tab */}
-              {HistoryDatePicker}
               <VesCalculator
                 bcvRates={bcvHistoricalRates}
                 binanceRates={binanceHistoricalRates}
@@ -374,9 +453,16 @@ export default function CalculatorClient() {
               </div>
 
               {loading ? (
-                <div className="space-y-3" aria-busy="true" aria-label="Cargando historial">
+                <div
+                  className="space-y-3"
+                  aria-busy="true"
+                  aria-label="Cargando historial"
+                >
                   {[0, 1, 2, 3, 4].map((i) => (
-                    <div key={i} className="animate-pulse rounded-2xl border border-border/10 bg-muted/20 p-4">
+                    <div
+                      key={i}
+                      className="animate-pulse rounded-2xl border border-border/10 bg-muted/20 p-4"
+                    >
                       <div className="flex items-center justify-between">
                         <div className="h-4 w-24 rounded bg-muted/40" />
                         <div className="h-4 w-20 rounded bg-muted/40" />
@@ -390,7 +476,10 @@ export default function CalculatorClient() {
                   </div>
                 </div>
               ) : error ? (
-                <div role="alert" className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center">
+                <div
+                  role="alert"
+                  className="rounded-2xl border border-destructive/30 bg-destructive/10 p-6 text-center"
+                >
                   <p className="text-sm text-destructive">{error}</p>
                   <button
                     type="button"
@@ -406,7 +495,9 @@ export default function CalculatorClient() {
                     bcvHistoricalRates.length === 0 ? (
                       <div className="py-12 text-center">
                         <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                        <p className="text-muted-foreground">No hay datos históricos de BCV disponibles</p>
+                        <p className="text-muted-foreground">
+                          No hay datos históricos de BCV disponibles
+                        </p>
                       </div>
                     ) : (
                       bcvHistoricalRates.map((rate, index) => {
@@ -430,14 +521,20 @@ export default function CalculatorClient() {
                             }}
                             onClick={() => handleSelectBCV(rate)}
                             className={`cursor-pointer rounded-2xl border p-4 transition-colors hover:bg-muted/10 ${
-                              isSelected ? 'border-blue-500/50 bg-blue-500/5' : 'border-border/10 bg-muted/5'
+                              isSelected
+                                ? 'border-blue-500/50 bg-blue-500/5'
+                                : 'border-border/10 bg-muted/5'
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-4">
                                 <div className="text-center">
-                                  <p className="text-sm font-medium text-foreground">{formatDate(rate.date)}</p>
-                                  <p className="text-xs text-muted-foreground">{formatTime(rate.timestamp)}</p>
+                                  <p className="text-sm font-medium text-foreground">
+                                    {formatDate(rate.date)}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {formatTime(rate.timestamp)}
+                                  </p>
                                 </div>
 
                                 <div className="flex items-center space-x-6">
@@ -445,7 +542,10 @@ export default function CalculatorClient() {
                                     <DollarSign className="h-4 w-4 text-green-500" />
                                     <div>
                                       <p className="text-sm font-medium text-foreground">
-                                        {(typeof rate.usd === 'number' ? rate.usd : parseFloat(rate.usd) || 0).toLocaleString('es-VE', {
+                                        {(typeof rate.usd === 'number'
+                                          ? rate.usd
+                                          : parseFloat(rate.usd) || 0
+                                        ).toLocaleString('es-VE', {
                                           minimumFractionDigits: 2,
                                           maximumFractionDigits: 2,
                                         })}{' '}
@@ -453,10 +553,20 @@ export default function CalculatorClient() {
                                       </p>
                                       {previousRate && (
                                         <div className="flex items-center space-x-1">
-                                          {getTrendIcon(rate.usd, previousRate.usd)}
-                                          <span className={`text-xs ${getTrendColor(rate.usd, previousRate.usd)}`}>
+                                          {getTrendIcon(
+                                            rate.usd,
+                                            previousRate.usd
+                                          )}
+                                          <span
+                                            className={`text-xs ${getTrendColor(rate.usd, previousRate.usd)}`}
+                                          >
                                             {previousRate.usd !== 0
-                                              ? ((rate.usd - previousRate.usd) / previousRate.usd * 100).toFixed(2)
+                                              ? (
+                                                  ((rate.usd -
+                                                    previousRate.usd) /
+                                                    previousRate.usd) *
+                                                  100
+                                                ).toFixed(2)
                                               : '0.00'}
                                             %
                                           </span>
@@ -469,14 +579,28 @@ export default function CalculatorClient() {
                                     <Euro className="h-4 w-4 text-blue-500" />
                                     <div>
                                       <p className="text-sm font-medium text-foreground">
-                                        {rate.eur.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
+                                        {rate.eur.toLocaleString('es-VE', {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        })}{' '}
+                                        Bs
                                       </p>
                                       {previousRate && (
                                         <div className="flex items-center space-x-1">
-                                          {getTrendIcon(rate.eur, previousRate.eur)}
-                                          <span className={`text-xs ${getTrendColor(rate.eur, previousRate.eur)}`}>
+                                          {getTrendIcon(
+                                            rate.eur,
+                                            previousRate.eur
+                                          )}
+                                          <span
+                                            className={`text-xs ${getTrendColor(rate.eur, previousRate.eur)}`}
+                                          >
                                             {previousRate.eur !== 0
-                                              ? ((rate.eur - previousRate.eur) / previousRate.eur * 100).toFixed(2)
+                                              ? (
+                                                  ((rate.eur -
+                                                    previousRate.eur) /
+                                                    previousRate.eur) *
+                                                  100
+                                                ).toFixed(2)
                                               : '0.00'}
                                             %
                                           </span>
@@ -488,7 +612,9 @@ export default function CalculatorClient() {
                               </div>
 
                               <div className="text-right">
-                                <span className="rounded-lg bg-blue-500/10 px-2 py-1 text-xs text-blue-500">BCV</span>
+                                <span className="rounded-lg bg-blue-500/10 px-2 py-1 text-xs text-blue-500">
+                                  BCV
+                                </span>
                               </div>
                             </div>
                           </motion.div>
@@ -498,12 +624,15 @@ export default function CalculatorClient() {
                   ) : binanceHistoricalRates.length === 0 ? (
                     <div className="py-12 text-center">
                       <Calendar className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
-                      <p className="text-muted-foreground">No hay datos históricos de Binance disponibles</p>
+                      <p className="text-muted-foreground">
+                        No hay datos históricos de Binance disponibles
+                      </p>
                     </div>
                   ) : (
                     binanceHistoricalRates.map((rate, index) => {
                       const previousRate = binanceHistoricalRates[index + 1];
-                      const isSelected = selectedBinanceRate?.date === rate.date;
+                      const isSelected =
+                        selectedBinanceRate?.date === rate.date;
                       return (
                         <motion.div
                           key={rate.id ?? rate.date}
@@ -522,14 +651,20 @@ export default function CalculatorClient() {
                           }}
                           onClick={() => handleSelectBinance(rate)}
                           className={`cursor-pointer rounded-2xl border p-4 transition-colors hover:bg-muted/10 ${
-                            isSelected ? 'border-blue-500/50 bg-blue-500/5' : 'border-border/10 bg-muted/5'
+                            isSelected
+                              ? 'border-blue-500/50 bg-blue-500/5'
+                              : 'border-border/10 bg-muted/5'
                           }`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-4">
                               <div className="text-center">
-                                <p className="text-sm font-medium text-foreground">{formatDate(rate.date)}</p>
-                                <p className="text-xs text-muted-foreground">{formatTime(rate.timestamp)}</p>
+                                <p className="text-sm font-medium text-foreground">
+                                  {formatDate(rate.date)}
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  {formatTime(rate.timestamp)}
+                                </p>
                               </div>
 
                               <div className="flex items-center space-x-6">
@@ -537,14 +672,27 @@ export default function CalculatorClient() {
                                   <DollarSign className="h-4 w-4 text-yellow-500" />
                                   <div>
                                     <p className="text-sm font-medium text-foreground">
-                                      {rate.usd.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} Bs
+                                      {rate.usd.toLocaleString('es-VE', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}{' '}
+                                      Bs
                                     </p>
                                     {previousRate && (
                                       <div className="flex items-center space-x-1">
-                                        {getTrendIcon(rate.usd, previousRate.usd)}
-                                        <span className={`text-xs ${getTrendColor(rate.usd, previousRate.usd)}`}>
+                                        {getTrendIcon(
+                                          rate.usd,
+                                          previousRate.usd
+                                        )}
+                                        <span
+                                          className={`text-xs ${getTrendColor(rate.usd, previousRate.usd)}`}
+                                        >
                                           {previousRate.usd !== 0
-                                            ? ((rate.usd - previousRate.usd) / previousRate.usd * 100).toFixed(2)
+                                            ? (
+                                                ((rate.usd - previousRate.usd) /
+                                                  previousRate.usd) *
+                                                100
+                                              ).toFixed(2)
                                             : '0.00'}
                                           %
                                         </span>
@@ -556,7 +704,9 @@ export default function CalculatorClient() {
                             </div>
 
                             <div className="text-right">
-                              <span className="rounded-lg bg-yellow-500/10 px-2 py-1 text-xs text-yellow-600">Binance</span>
+                              <span className="rounded-lg bg-yellow-500/10 px-2 py-1 text-xs text-yellow-600">
+                                Binance
+                              </span>
                             </div>
                           </div>
                         </motion.div>
