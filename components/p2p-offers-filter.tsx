@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   buildBinanceP2PTradeUrl,
   BINANCE_P2P_AMOUNT_UNITS,
@@ -12,6 +12,7 @@ import {
   BinanceP2PSide,
 } from '@/types/binance-p2p-offers';
 import { useBinanceP2POffers } from '@/hooks/use-binance-p2p-offers';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { BinanceMarketLink } from '@/components/p2p-offers/binance-market-link';
@@ -70,23 +71,70 @@ export default function P2POffersFilter() {
 
   const { status, result, error, retryAfterSeconds, loading, search } =
     useBinanceP2POffers();
+  const { rates: binanceRateSnapshot } = useBinanceRates();
+  const usdtVesRate = binanceRateSnapshot.usdt_ves;
+
+  const buildQuery = (state: FilterState): BinanceP2POffersQuery => {
+    const shared = {
+      paymentMethod: state.payType,
+      minCompletionRateBps:
+        state.minCompletionRate === null
+          ? 0
+          : Math.round(state.minCompletionRate * 100),
+      minOrderCount: state.minOrderCount ?? 0,
+    };
+    if (state.amountUnit === 'USDT') {
+      // * Query by the fiat equivalent: Binance ranks and limits ads by the Bs
+      // amount, so converting with the live rate first returns every ad that
+      // actually accepts this trade size instead of a near-empty default page.
+      const fiatMinor = state.amount
+        ? Math.round(state.amount * usdtVesRate * 100)
+        : 0;
+      return {
+        side: state.tradeType,
+        amountMinor: fiatMinor,
+        amountUnit: 'VES',
+        ...shared,
+      };
+    }
+    return {
+      side: state.tradeType,
+      amountMinor: state.amount ? Math.round(state.amount * 100) : 0,
+      amountUnit: 'VES',
+      ...shared,
+    };
+  };
 
   const handleSearch = () => {
-    const query: BinanceP2POffersQuery = {
-      side: filterState.tradeType,
-      amountMinor: filterState.amount
-        ? Math.round(filterState.amount * 100)
-        : 0,
-      amountUnit: filterState.amountUnit,
-      paymentMethod: filterState.payType,
-      minCompletionRateBps:
-        filterState.minCompletionRate === null
-          ? 0
-          : Math.round(filterState.minCompletionRate * 100),
-      minOrderCount: filterState.minOrderCount ?? 0,
-    };
-    search(query);
+    search(buildQuery(filterState));
   };
+
+  // * Re-run the search automatically when the operation or unit changes once
+  // results are on screen, so toggles never sit above stale offers. The mount
+  // pass only arms the guard: changes must come from the user, not mount.
+  const hasSearched = status !== 'idle';
+  const autoSearchArmedRef = useRef(false);
+  useEffect(() => {
+    if (!autoSearchArmedRef.current) {
+      autoSearchArmedRef.current = true;
+      return;
+    }
+    if (hasSearched) {
+      search(buildQuery(filterState));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterState.tradeType, filterState.amountUnit]);
+
+  const conversionHint = (() => {
+    if (filterState.amount === null || filterState.amount <= 0) return null;
+    if (!Number.isFinite(usdtVesRate) || usdtVesRate <= 0) return null;
+    if (filterState.amountUnit === 'USDT') {
+      const bsMinor = Math.round(filterState.amount * usdtVesRate * 100);
+      return `≈ Bs. ${formatVes(bsMinor)} · tasa Binance`;
+    }
+    const usdtAmount = filterState.amount / usdtVesRate;
+    return `≈ ${usdtAmount.toLocaleString('es-VE', { maximumFractionDigits: 2 })} USDT · tasa Binance`;
+  })();
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -114,11 +162,11 @@ export default function P2POffersFilter() {
         aria-label="Filtros de búsqueda"
         className="rounded-2xl border border-border/50 bg-card/80 p-3 shadow-ios-sm sm:p-4"
       >
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:flex lg:flex-row lg:items-start">
           <div
             role="group"
             aria-label="Operación"
-            className="grid w-full shrink-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1 sm:w-auto"
+            className="grid w-full shrink-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1 md:w-auto"
           >
             <button
               type="button"
@@ -126,14 +174,14 @@ export default function P2POffersFilter() {
               onClick={() =>
                 setFilterState((prev) => ({ ...prev, tradeType: 'BUY' }))
               }
-              className={`focus-ring flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors ${
+              className={`focus-ring flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
                 isBuy
                   ? 'bg-success-600 text-white shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <ArrowRightLeft className="h-4 w-4" aria-hidden="true" />
-              Comprar USDT
+              Comprar
             </button>
             <button
               type="button"
@@ -141,64 +189,69 @@ export default function P2POffersFilter() {
               onClick={() =>
                 setFilterState((prev) => ({ ...prev, tradeType: 'SELL' }))
               }
-              className={`focus-ring flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-3 text-sm font-semibold transition-colors ${
+              className={`focus-ring flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors ${
                 !isBuy
                   ? 'bg-destructive text-destructive-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               <ArrowRightLeft className="h-4 w-4" aria-hidden="true" />
-              Vender USDT
+              Vender
             </button>
           </div>
 
-          <div
-            role="group"
-            aria-label="Unidad de cantidad"
-            className="grid shrink-0 grid-cols-2 gap-1 rounded-xl border border-border bg-muted/40 p-1"
-          >
-            {BINANCE_P2P_AMOUNT_UNITS.map((unit) => (
-              <button
-                key={unit}
-                type="button"
-                aria-pressed={filterState.amountUnit === unit}
-                onClick={() =>
-                  setFilterState((prev) => ({ ...prev, amountUnit: unit }))
-                }
-                className={`focus-ring min-h-[44px] rounded-lg px-3 text-xs font-semibold transition-colors ${
-                  filterState.amountUnit === unit
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
+          {/* Amount with embedded unit toggle */}
+          <div className="min-w-0 flex-1">
+            <div className="relative">
+              <DollarSign
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <input
+                name="amount"
+                type="number"
+                min={filterState.amountUnit === 'USDT' ? '0.01' : '1'}
+                step="0.01"
+                placeholder={filterState.amountUnit === 'USDT' ? '10' : '1000'}
+                aria-label={`Cantidad en ${filterState.amountUnit}`}
+                inputMode="decimal"
+                autoComplete="off"
+                value={filterState.amount === null ? '' : filterState.amount}
+                onChange={handleAmountChange}
+                className="h-[52px] w-full rounded-xl border border-border bg-background pl-10 pr-[124px] text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+              />
+              <div
+                role="group"
+                aria-label="Unidad de cantidad"
+                className="absolute right-1.5 top-1/2 grid -translate-y-1/2 grid-cols-2 gap-0.5 rounded-lg bg-muted/60 p-0.5"
               >
-                {unit}
-              </button>
-            ))}
+                {BINANCE_P2P_AMOUNT_UNITS.map((unit) => (
+                  <button
+                    key={unit}
+                    type="button"
+                    aria-pressed={filterState.amountUnit === unit}
+                    onClick={() =>
+                      setFilterState((prev) => ({ ...prev, amountUnit: unit }))
+                    }
+                    className={`focus-ring min-h-[44px] rounded-md px-3 text-xs font-semibold transition-colors ${
+                      filterState.amountUnit === unit
+                        ? 'bg-background text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {unit}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {conversionHint && (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                {conversionHint}
+              </p>
+            )}
           </div>
 
-          <div className="relative w-full shrink-0 sm:w-[180px]">
-            <DollarSign
-              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <input
-              name="amount"
-              type="number"
-              min={filterState.amountUnit === 'USDT' ? '0.01' : '1'}
-              step="0.01"
-              placeholder={
-                filterState.amountUnit === 'USDT' ? 'Ej. 10…' : 'Ej. 1000…'
-              }
-              aria-label={`Cantidad en ${filterState.amountUnit}`}
-              inputMode="decimal"
-              autoComplete="off"
-              value={filterState.amount === null ? '' : filterState.amount}
-              onChange={handleAmountChange}
-              className="h-12 w-full rounded-xl border border-border bg-background pl-10 pr-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div className="relative w-full shrink-0 sm:w-[210px]">
+          <div className="relative min-w-0 flex-1 md:max-w-[240px]">
             <Wallet
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -212,7 +265,7 @@ export default function P2POffersFilter() {
                 }))
               }
               aria-label="Método de pago"
-              className="h-12 w-full appearance-none rounded-xl border border-border bg-background pl-10 pr-8 text-base text-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
+              className="h-[52px] w-full appearance-none rounded-xl border border-border bg-background pl-10 pr-8 text-base text-foreground outline-none transition-colors focus:border-primary focus:ring-1 focus:ring-primary"
             >
               {BINANCE_P2P_PAYMENT_IDENTIFIERS.map((id) => (
                 <option key={id} value={id}>
@@ -226,60 +279,6 @@ export default function P2POffersFilter() {
             />
           </div>
 
-          <div className="grid w-full shrink-0 grid-cols-2 gap-2 sm:w-[280px]">
-            <input
-              name="minCompletionRate"
-              type="number"
-              min="0"
-              max="100"
-              step="0.1"
-              placeholder="Comp. ≥ %"
-              aria-label="Completados mínimo en porcentaje"
-              inputMode="decimal"
-              autoComplete="off"
-              value={
-                filterState.minCompletionRate === null
-                  ? ''
-                  : filterState.minCompletionRate
-              }
-              onChange={(event) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  minCompletionRate:
-                    event.target.value === ''
-                      ? null
-                      : parseFloat(event.target.value),
-                }))
-              }
-              className="h-12 min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-            <input
-              name="minOrderCount"
-              type="number"
-              min="0"
-              step="1"
-              placeholder="Órdenes ≥"
-              aria-label="Órdenes mínimas del vendedor"
-              inputMode="numeric"
-              autoComplete="off"
-              value={
-                filterState.minOrderCount === null
-                  ? ''
-                  : filterState.minOrderCount
-              }
-              onChange={(event) =>
-                setFilterState((prev) => ({
-                  ...prev,
-                  minOrderCount:
-                    event.target.value === ''
-                      ? null
-                      : parseInt(event.target.value, 10),
-                }))
-              }
-              className="h-12 min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
           <Button
             type="button"
             onClick={handleSearch}
@@ -287,13 +286,67 @@ export default function P2POffersFilter() {
             disabled={loading}
             size="md"
             icon={<Search className="h-4 w-4" aria-hidden="true" />}
-            className="w-full shrink-0 sm:w-auto"
+            className="h-[52px] w-full shrink-0 md:w-auto"
           >
             {loading ? 'Buscando…' : 'Buscar ofertas'}
           </Button>
         </div>
-      </section>
 
+        {/* Quality filters */}
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:max-w-[460px]">
+          <input
+            name="minCompletionRate"
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            placeholder="Comp. ≥ %"
+            aria-label="Completados mínimo en porcentaje"
+            inputMode="decimal"
+            autoComplete="off"
+            value={
+              filterState.minCompletionRate === null
+                ? ''
+                : filterState.minCompletionRate
+            }
+            onChange={(event) =>
+              setFilterState((prev) => ({
+                ...prev,
+                minCompletionRate:
+                  event.target.value === ''
+                    ? null
+                    : parseFloat(event.target.value),
+              }))
+            }
+            className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+          <input
+            name="minOrderCount"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="Órdenes ≥"
+            aria-label="Órdenes mínimas del vendedor"
+            inputMode="numeric"
+            autoComplete="off"
+            value={
+              filterState.minOrderCount === null
+                ? ''
+                : filterState.minOrderCount
+            }
+            onChange={(event) =>
+              setFilterState((prev) => ({
+                ...prev,
+                minOrderCount:
+                  event.target.value === ''
+                    ? null
+                    : parseInt(event.target.value, 10),
+              }))
+            }
+            className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+        </div>
+      </section>
       {/* Context / status strip */}
       {hasOffers && result && (
         <div

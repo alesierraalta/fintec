@@ -10,6 +10,10 @@ import type {
 
 jest.mock('@/hooks/use-binance-p2p-offers');
 
+jest.mock('@/hooks/use-binance-rates', () => ({
+  useBinanceRates: () => ({ rates: { usdt_ves: 930.5 } }),
+}));
+
 const mockUseBinanceP2POffers = useBinanceP2POffers as jest.Mock;
 
 function createOffer(): BinanceP2POffer {
@@ -84,13 +88,9 @@ describe('P2POffersFilter', () => {
     expect(
       screen.getByRole('group', { name: 'Unidad de cantidad' })
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Comprar USDT/i })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: /Vender USDT/i })
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Ej. 1000…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Comprar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Vender' })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('1000')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Completados mínimo en porcentaje')
     ).toBeInTheDocument();
@@ -108,23 +108,24 @@ describe('P2POffersFilter', () => {
   it('updates state on user input', () => {
     renderWithState({});
 
-    const amountInput = screen.getByPlaceholderText('Ej. 1000…');
+    const amountInput = screen.getByPlaceholderText('1000');
     fireEvent.change(amountInput, { target: { value: '500' } });
     expect(amountInput).toHaveValue(500);
 
-    const sellBtn = screen.getByRole('button', { name: /Vender USDT/i });
+    const sellBtn = screen.getByRole('button', { name: 'Vender' });
     fireEvent.click(sellBtn);
     expect(sellBtn).toHaveAttribute('aria-pressed', 'true');
-    expect(
-      screen.getByRole('button', { name: /Comprar USDT/i })
-    ).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Comprar' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
   });
 
   it('calls search with correct query on button click', () => {
     const mockSearch = jest.fn();
     renderWithState({ search: mockSearch });
 
-    const amountInput = screen.getByPlaceholderText('Ej. 1000…');
+    const amountInput = screen.getByPlaceholderText('1000');
     fireEvent.change(amountInput, { target: { value: '500' } });
 
     fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
@@ -139,7 +140,7 @@ describe('P2POffersFilter', () => {
     });
   });
 
-  it('searches in USDT when the quantity unit changes', () => {
+  it('queries the Bs equivalent when the amount unit is USDT', () => {
     const mockSearch = jest.fn();
     renderWithState({ search: mockSearch });
 
@@ -149,14 +150,46 @@ describe('P2POffersFilter', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
 
+    // 10 USDT x 930.5 = 9.305 Bs -> 930500 minor, queried as VES so
+    // Binance returns every ad that accepts this trade size
     expect(mockSearch).toHaveBeenCalledWith({
       side: 'BUY',
-      amountMinor: 1000,
-      amountUnit: 'USDT',
+      amountMinor: 930500,
+      amountUnit: 'VES',
       paymentMethod: 'ALL',
       minCompletionRateBps: 0,
       minOrderCount: 0,
     });
+  });
+
+  it('shows the live Bs equivalent under the amount field', () => {
+    renderWithState({});
+
+    fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
+    fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
+      target: { value: '10' },
+    });
+
+    expect(
+      screen.getByText('≈ Bs. 9305,00 · tasa Binance')
+    ).toBeInTheDocument();
+  });
+
+  it('re-searches automatically when the operation side changes', () => {
+    const mockSearch = jest.fn();
+    renderWithState({
+      status: 'live',
+      result: createResult('live'),
+      search: mockSearch,
+    });
+
+    expect(mockSearch).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Vender' }));
+
+    expect(mockSearch).toHaveBeenCalledTimes(1);
+    expect(mockSearch).toHaveBeenCalledWith(
+      expect.objectContaining({ side: 'SELL' })
+    );
   });
 
   it('sends minimum seller quality filters', () => {
