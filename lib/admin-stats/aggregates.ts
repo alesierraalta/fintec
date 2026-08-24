@@ -30,7 +30,7 @@ export function buildActivity(users: UserRow[], now: Date, window: StatsWindow, 
   const active = users.filter((user) => {
     if (!user.last_activity_at) return false;
     const activity = new Date(user.last_activity_at);
-    if (activity > now || activity < new Date(now.getTime() - 30 * 86400000)) return false;
+    if (activity > now || activity < new Date(now.getTime() - days * 86400000)) return false;
     return true;
   });
   for (const user of active) {
@@ -60,15 +60,19 @@ export function mergeResourceCounts(rows: Record<Family, FamilyRows>) {
     return [family, Array.isArray(value) ? value.reduce((sum, row) => sum + Number(row.count ?? 0), 0) : unavailable(family)];
   })) as AdminStats['resources']['totals'];
   const byUser = new Map<string, Record<string, string | number | Unavailable>>();
+  const failed = new Set<Family>();
   for (const family of families) {
     const value = rows[family];
     if (!Array.isArray(value)) {
+      failed.add(family);
       for (const entry of byUser.values()) entry[family] = unavailable(family);
       continue;
     }
     for (const row of value) {
       if (!row.user_id) continue;
-      const entry = byUser.get(row.user_id) ?? { userId: row.user_id, accounts: 0, transactions: 0, budgets: 0, goals: 0, subscriptions: 0, feedbacks: 0 };
+      const base: Record<string, string | number | Unavailable> = { userId: row.user_id, accounts: 0, transactions: 0, budgets: 0, goals: 0, subscriptions: 0, feedbacks: 0 };
+      for (const failedFamily of failed) base[failedFamily] = unavailable(failedFamily);
+      const entry = byUser.get(row.user_id) ?? base;
       entry[family] = Number(entry[family]) + Number(row.count ?? 0);
       byUser.set(row.user_id, entry);
     }
