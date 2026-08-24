@@ -219,3 +219,5 @@ reports-verification.png
 
 # local real-run harnesses and exploratory test scripts
 /testLocales/
+
+.local-audit/
