@@ -13,15 +13,32 @@ describe('GET /api/admin/stats', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     guard.mockResolvedValue('admin-id');
-    stats.mockResolvedValue({} as any);
+    stats.mockResolvedValue({
+      featureUsage: {
+        status: 'empty',
+        window: '30d',
+        items: [],
+        monthlyCounters: {
+          status: 'empty',
+          source: 'usage_tracking',
+          basis: 'month_based',
+          items: [],
+        },
+      },
+    } as any);
   });
-  const request = (url = 'http://localhost/api/admin/stats') => new Request(url) as any;
+  const request = (url = 'http://localhost/api/admin/stats') =>
+    new Request(url) as any;
 
   it('returns the default aggregate and no-store header', async () => {
     const response = await GET(request());
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect((await response.json()).data).toEqual({});
+    const body = await response.json();
+    expect(body.data.featureUsage.status).toBeDefined();
+    expect(body.data.featureUsage.window).toBeDefined();
+    expect(Array.isArray(body.data.featureUsage.items)).toBe(true);
+    expect(body.data.featureUsage.monthlyCounters).toBeDefined();
     expect(stats).toHaveBeenCalledWith('30d');
   });
 
@@ -31,14 +48,18 @@ describe('GET /api/admin/stats', () => {
   });
 
   it('rejects unsupported windows without calling the service', async () => {
-    const response = await GET(request('http://localhost/api/admin/stats?window=365d'));
+    const response = await GET(
+      request('http://localhost/api/admin/stats?window=365d')
+    );
     expect(response.status).toBe(400);
     expect(response.headers.get('cache-control')).toBe('no-store');
     expect(stats).not.toHaveBeenCalled();
   });
 
   it('returns forbidden without calling the service', async () => {
-    guard.mockRejectedValue(new AppError('Admin access required', 'FORBIDDEN', 403));
+    guard.mockRejectedValue(
+      new AppError('Admin access required', 'FORBIDDEN', 403)
+    );
     const response = await GET(request());
     expect(response.status).toBe(403);
     expect(response.headers.get('cache-control')).toBe('no-store');
