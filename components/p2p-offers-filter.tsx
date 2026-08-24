@@ -21,7 +21,6 @@ import {
   ArrowRightLeft,
   ChevronDown,
   Clock3,
-  DollarSign,
   ExternalLink,
   Info,
   Search,
@@ -162,7 +161,7 @@ export default function P2POffersFilter() {
         aria-label="Filtros de búsqueda"
         className="rounded-2xl border border-border/50 bg-card/80 p-3 shadow-ios-sm sm:p-4"
       >
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:flex lg:flex-row lg:items-start">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[auto_minmax(0,1fr)_minmax(200px,240px)]">
           <div
             role="group"
             aria-label="Operación"
@@ -200,13 +199,15 @@ export default function P2POffersFilter() {
             </button>
           </div>
 
-          {/* Amount with embedded unit toggle */}
+          {/* Amount with attached unit toggle */}
           <div className="min-w-0 flex-1">
-            <div className="relative">
-              <DollarSign
-                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            <div className="flex w-full items-stretch overflow-hidden rounded-xl border border-border bg-background focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+              <span
+                className="flex items-center pl-3.5 pr-2 text-sm font-medium text-foreground"
                 aria-hidden="true"
-              />
+              >
+                $
+              </span>
               <input
                 name="amount"
                 type="number"
@@ -218,12 +219,12 @@ export default function P2POffersFilter() {
                 autoComplete="off"
                 value={filterState.amount === null ? '' : filterState.amount}
                 onChange={handleAmountChange}
-                className="h-[52px] w-full rounded-xl border border-border bg-background pl-10 pr-[124px] text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+                className="h-[52px] min-w-0 flex-1 border-0 bg-transparent px-0 pl-0 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-0 focus:ring-0"
               />
               <div
                 role="group"
                 aria-label="Unidad de cantidad"
-                className="absolute right-1.5 top-1/2 grid -translate-y-1/2 grid-cols-2 gap-0.5 rounded-lg bg-muted/60 p-0.5"
+                className="grid grid-cols-2 gap-0.5 border-l border-border bg-muted/60 p-0.5"
               >
                 {BINANCE_P2P_AMOUNT_UNITS.map((unit) => (
                   <button
@@ -233,7 +234,7 @@ export default function P2POffersFilter() {
                     onClick={() =>
                       setFilterState((prev) => ({ ...prev, amountUnit: unit }))
                     }
-                    className={`focus-ring min-h-[44px] rounded-md px-3 text-xs font-semibold transition-colors ${
+                    className={`focus-ring h-[44px] rounded-md px-2.5 text-xs font-semibold transition-colors ${
                       filterState.amountUnit === unit
                         ? 'bg-background text-foreground shadow-sm'
                         : 'text-muted-foreground hover:text-foreground'
@@ -251,7 +252,7 @@ export default function P2POffersFilter() {
             )}
           </div>
 
-          <div className="relative min-w-0 flex-1 md:max-w-[240px]">
+          <div className="relative min-w-0 flex-1 md:col-span-2 lg:col-span-1">
             <Wallet
               className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               aria-hidden="true"
@@ -279,21 +280,8 @@ export default function P2POffersFilter() {
             />
           </div>
 
-          <Button
-            type="button"
-            onClick={handleSearch}
-            loading={loading}
-            disabled={loading}
-            size="md"
-            icon={<Search className="h-4 w-4" aria-hidden="true" />}
-            className="h-[52px] w-full shrink-0 md:w-auto"
-          >
-            {loading ? 'Buscando…' : 'Buscar ofertas'}
-          </Button>
-        </div>
-
         {/* Quality filters */}
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:max-w-[460px]">
+        <div className="grid grid-cols-2 gap-2 sm:max-w-[460px] md:col-span-2 lg:col-span-2 lg:max-w-none">
           <input
             name="minCompletionRate"
             type="number"
@@ -346,6 +334,19 @@ export default function P2POffersFilter() {
             className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
           />
         </div>
+
+        <Button
+          type="button"
+          onClick={handleSearch}
+          loading={loading}
+          disabled={loading}
+          size="md"
+          icon={<Search className="h-4 w-4" aria-hidden="true" />}
+          className="h-[52px] w-full shrink-0 sm:w-auto md:col-span-2 lg:col-span-1 lg:justify-self-end"
+        >
+          {loading ? 'Buscando…' : 'Buscar ofertas'}
+        </Button>
+      </div>
       </section>
       {/* Context / status strip */}
       {hasOffers && result && (

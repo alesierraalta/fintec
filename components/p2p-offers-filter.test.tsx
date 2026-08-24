@@ -105,6 +105,61 @@ describe('P2POffersFilter', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders the dollar marker as a static sibling of the amount input', () => {
+    renderWithState({});
+
+    const amountInput = screen.getByPlaceholderText('1000');
+    const dollarMarker = screen.getByText('$');
+
+    expect(dollarMarker).toHaveAttribute('aria-hidden', 'true');
+    expect(dollarMarker.parentElement).toBe(amountInput.parentElement);
+  });
+
+  it('does not use overlay right padding on the amount input', () => {
+    renderWithState({});
+
+    expect(screen.getByPlaceholderText('1000')).not.toHaveClass('pr-[124px]');
+  });
+
+  it('applies focus-within treatment to the amount group', () => {
+    renderWithState({});
+
+    const amountInput = screen.getByPlaceholderText('1000');
+    expect(amountInput.parentElement).toHaveClass('focus-within:ring-1');
+  });
+
+  it('attaches the unit segment after the amount input', () => {
+    renderWithState({});
+
+    const amountInput = screen.getByPlaceholderText('1000');
+    const unitSegment = screen.getByRole('group', { name: 'Unidad de cantidad' });
+
+    expect(unitSegment).toHaveClass('border-l');
+    expect(amountInput.compareDocumentPosition(unitSegment)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
+  it('keeps the search action after quality filters in the responsive grid', () => {
+    renderWithState({});
+
+    const operationGroup = screen.getByRole('group', { name: 'Operación' });
+    const toolbarGrid = operationGroup.parentElement;
+    const qualityWrapper = screen
+      .getByLabelText('Completados mínimo en porcentaje')
+      .parentElement;
+    const searchButton = screen.getByRole('button', { name: /Buscar ofertas/i });
+
+    expect(toolbarGrid).toHaveClass(
+      'lg:grid-cols-[auto_minmax(0,1fr)_minmax(200px,240px)]'
+    );
+    expect(qualityWrapper?.parentElement).toBe(toolbarGrid);
+    expect(searchButton.parentElement).toBe(toolbarGrid);
+    expect(qualityWrapper?.compareDocumentPosition(searchButton)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+  });
+
   it('updates state on user input', () => {
     renderWithState({});
 
