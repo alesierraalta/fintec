@@ -267,14 +267,19 @@ function mapOffer(
   if (paymentMethods.length === 0) return null;
 
   const nickname = getBoundedString(advertiser.nickName, 80);
+  // * Required so the UI can link straight to this seller's Binance page
+  const userNo = getBoundedString(advertiser.userNo, 100);
   const monthOrderCount = parseNonNegativeInteger(
     advertiser.monthOrderCount,
     1_000_000_000
   );
-  if (nickname === null || monthOrderCount === null) return null;
+  if (nickname === null || userNo === null || monthOrderCount === null) {
+    return null;
+  }
 
   const merchant = {
     nickname,
+    userNo,
     monthOrderCount,
     monthCompletionRateBps: parseRateBasisPoints(advertiser.monthFinishRate),
     positiveRateBps: parseRateBasisPoints(advertiser.positiveRate),

@@ -49,6 +49,15 @@ export const BINANCE_P2P_MAX_AMOUNT_MINOR = 100_000_000_000;
 export const BINANCE_P2P_MARKET_URL =
   'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES';
 
+/**
+ * Web URL for one seller's P2P ads. The `advertiserNo` query parameter is the
+ * same shape Binance uses in its own app share links, and the Binance mobile
+ * app opens it directly to that seller.
+ */
+export function buildBinanceP2PTradeUrl(userNo: string): string {
+  return `${BINANCE_P2P_MARKET_URL}&advertiserNo=${encodeURIComponent(userNo)}`;
+}
+
 export interface BinanceP2POffersQuery {
   side: BinanceP2PSide;
   amountMinor: number;
@@ -70,6 +79,7 @@ export interface BinanceP2PPaymentMethod {
 
 export interface BinanceP2PMerchant {
   nickname: string;
+  userNo: string;
   monthOrderCount: number;
   monthCompletionRateBps: number | null;
   positiveRateBps: number | null;

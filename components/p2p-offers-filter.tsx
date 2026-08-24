@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import {
-  BINANCE_P2P_MARKET_URL,
+  buildBinanceP2PTradeUrl,
   BINANCE_P2P_AMOUNT_UNITS,
   BINANCE_P2P_PAYMENT_IDENTIFIERS,
   BINANCE_P2P_PAYMENT_LABELS,
@@ -165,7 +165,7 @@ export default function P2POffersFilter() {
                 onClick={() =>
                   setFilterState((prev) => ({ ...prev, amountUnit: unit }))
                 }
-                className={`min-h-[44px] rounded-lg px-3 text-xs font-semibold transition-colors focus-ring ${
+                className={`focus-ring min-h-[44px] rounded-lg px-3 text-xs font-semibold transition-colors ${
                   filterState.amountUnit === unit
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -484,7 +484,7 @@ export default function P2POffersFilter() {
                   </div>
 
                   <BinanceMarketLink
-                    href={BINANCE_P2P_MARKET_URL}
+                    href={buildBinanceP2PTradeUrl(offer.merchant.userNo)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`focus-ring flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-colors sm:w-auto ${

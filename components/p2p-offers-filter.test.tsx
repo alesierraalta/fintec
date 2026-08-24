@@ -24,6 +24,7 @@ function createOffer(): BinanceP2POffer {
     payTimeLimitMinutes: 15,
     merchant: {
       nickname: 'CryptoTrader',
+      userNo: 's-fixture-seller-1',
       monthOrderCount: 150,
       monthCompletionRateBps: 9850,
       positiveRateBps: 9900,
@@ -227,7 +228,7 @@ describe('P2POffersFilter', () => {
     const continueLink = screen.getByRole('link', { name: /Comprar USDT/i });
     expect(continueLink).toHaveAttribute(
       'href',
-      'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES'
+      'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES&advertiserNo=s-fixture-seller-1'
     );
   });
 });

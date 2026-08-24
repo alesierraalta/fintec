@@ -38,6 +38,7 @@ function createRawOffer(
     },
     advertiser: {
       nickName: 'Fixture Merchant',
+      userNo: 's-fixture-user-no',
       monthOrderCount: 48,
       monthFinishRate: '0.9876',
       positiveRate: '0.9912',
@@ -103,6 +104,8 @@ describe('BinanceP2POffersService', () => {
       availableQuantity: { value: '7999.12340000', scale: 8 },
       payTimeLimitMinutes: 15,
       merchant: {
+        nickname: 'Fixture Merchant',
+        userNo: 's-fixture-user-no',
         monthOrderCount: 48,
         monthCompletionRateBps: 9_876,
       },
