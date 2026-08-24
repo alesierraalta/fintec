@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RouteAwareProviders } from './route-aware-providers';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import './globals.css';
@@ -57,6 +59,8 @@ export default function RootLayout({
           </div>
           <NotificationBell />
         </RouteAwareProviders>
+        <Analytics />
+        <SpeedInsights />
         <Toaster position="top-right" richColors />
         <div id="modal-root" />
       </body>
