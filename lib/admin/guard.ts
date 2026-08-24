@@ -2,9 +2,20 @@ import { getAuthenticatedUser } from '@/lib/auth/get-authenticated-user';
 import { isAdmin } from '@/lib/payment-orders/admin-utils';
 import { AppError } from '@/lib/errors/app-error';
 
-export async function getAdminAccess(): Promise<{ userId: string; isAdmin: boolean }> {
+export async function getAdminAccess(): Promise<{
+  userId: string;
+  isAdmin: boolean;
+}> {
   const userId = await getAuthenticatedUser();
   return { userId, isAdmin: isAdmin(userId) };
+}
+
+export async function getAdminVisibility(): Promise<boolean> {
+  try {
+    return (await getAdminAccess()).isAdmin;
+  } catch {
+    return false;
+  }
 }
 
 export async function requireAdmin(): Promise<string> {
