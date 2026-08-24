@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
+import { useAdminAccess } from '@/contexts/admin-access-context';
 import { useSubscription } from '@/hooks/use-subscription';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
@@ -52,6 +53,7 @@ export function Sidebar() {
   const router = useRouter();
   const { closeSidebar, isMobile, isOpen } = useSidebar();
   const { isPremium } = useSubscription();
+  const isAdmin = useAdminAccess();
   const handleLinkClick = () => {
     if (isMobile) {
       closeSidebar();
@@ -111,7 +113,10 @@ export function Sidebar() {
 
       {/* Navigation - More friendly spacing */}
       <nav className="no-scrollbar flex-1 space-y-2 overflow-y-auto px-4">
-        {navigation.map((item) => {
+        {(isAdmin
+          ? [...navigation, { name: 'Admin', href: '/admin', icon: Shield }]
+          : navigation
+        ).map((item) => {
           // Solo mostrar items premium si el usuario es premium
           if (item.premium && !isPremium) {
             return null;
