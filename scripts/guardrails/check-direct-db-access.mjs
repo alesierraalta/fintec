@@ -36,6 +36,9 @@ const ALLOWED_FILES = new Set([
   // One-off maintenance script; runs outside the app with a service-role
   // client to batch-read/write embeddings across all users
   'scripts/backfill-embeddings.ts',
+  // Admin maintenance script; runs outside the app with a service-role
+  // client to delete test users scoped to one exact target project
+  'scripts/admin/delete-test-users.ts',
   // AI tool resolver calls the dedicated RLS-scoped query_transactions RPC;
   // pending extraction into a repository adapter
   'lib/ai/tools/resolvers.ts',
