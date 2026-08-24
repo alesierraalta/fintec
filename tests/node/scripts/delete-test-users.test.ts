@@ -3,6 +3,7 @@ import {
   normalizeAuthUsers,
   reconcileTargets,
   serializeAudit,
+  validateTargetProject,
   validateConfirmation,
 } from '@/scripts/admin/delete-test-users';
 
@@ -43,6 +44,24 @@ describe('delete test users helpers', () => {
     ).toBe(true);
     expect(reconcileTargets([{ id: 'a' }], [{ id: 'b' }]).ok).toBe(false);
   });
+  it.each([
+    ['unset', undefined, 'https://project.supabase.co'],
+    ['mismatched', 'https://other.supabase.co', 'https://project.supabase.co'],
+  ])('rejects %s target project URLs', (_, configured, target) => {
+    expect(() => validateTargetProject(configured, target)).toThrow(
+      'DELETE_TEST_USERS_TARGET_URL'
+    );
+  });
+
+  it('accepts an exact target project URL match', () => {
+    expect(
+      validateTargetProject(
+        'https://project.supabase.co',
+        'https://project.supabase.co'
+      )
+    ).toBe(true);
+  });
+
   it('redacts emails and credentials from audit JSON', () => {
     const serialized = serializeAudit({
       mode: 'dry_run',

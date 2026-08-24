@@ -82,6 +82,12 @@ export function reconcileTargets(
     ? { ok: true }
     : { ok: false, reason: 'target_set_changed' };
 }
+export function validateTargetProject(configuredUrl?: string, targetUrl?: string): true {
+  if (!targetUrl) throw new Error('DELETE_TEST_USERS_TARGET_URL must be set');
+  if (configuredUrl !== targetUrl)
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL must exactly match DELETE_TEST_USERS_TARGET_URL');
+  return true;
+}
 export function validateConfirmation(
   args: DeleteArgs,
   targetCount: number,
@@ -197,6 +203,10 @@ async function main() {
     throw new Error(
       'NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
     );
+  validateTargetProject(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.DELETE_TEST_USERS_TARGET_URL
+  );
   const client = createServiceClient();
   const users = await inventory(client);
   if (!users.length) throw new Error('No matching test users found');

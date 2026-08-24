@@ -13,11 +13,13 @@ const rows: Record<string, Row[]> = {
   users: [
     {
       id: 'u1',
+      email: 'test@fintec.com',
       created_at: '2025-01-02T10:00:00.000Z',
       last_activity_at: '2025-01-31T12:00:00.000Z',
     },
     {
       id: 'u2',
+      email: 'real@fintec.com',
       created_at: '2025-01-03T10:00:00.000Z',
       last_activity_at: '2025-01-31T12:00:00.000Z',
     },
@@ -129,31 +131,28 @@ describe('admin stats service', () => {
   it('returns aggregate-only metrics with UTC activity and nullable transaction ownership excluded', async () => {
     const result = await getAdminStats('30d');
     expect(result.window).toBe('30d');
-    expect(result.users.total).toBe(3);
+    expect(result.users.total).toBe(2);
+    expect(result.resources.perUserCounts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ userId: 'u1' })])
+    );
     expect(
-      result.users.newByDay.find((bucket) => bucket.date === '2025-01-02')
+      result.users.newByDay.find((bucket) => bucket.date === '2025-01-03')
         ?.count
     ).toBe(1);
-    expect(result.users.dau).toBe(2);
-    expect(result.users.peakDailyActive).toBe(2);
+    expect(result.users.dau).toBe(1);
+    expect(result.users.peakDailyActive).toBe(1);
     expect(result.users.peakDate).toBe('2025-01-31');
     expect(result.users.activityBasis).toBe('last_activity_at_session_refresh');
     expect(result.resources.totals).toEqual({
-      accounts: 2,
-      transactions: 1,
-      budgets: 1,
+      accounts: 1,
+      transactions: 0,
+      budgets: 0,
       goals: 1,
-      subscriptions: 1,
+      subscriptions: 0,
       feedbacks: 1,
     });
     expect(result.resources.perUserCounts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({
-          userId: 'u1',
-          accounts: 1,
-          transactions: 1,
-          budgets: 1,
-        }),
         expect.objectContaining({ userId: 'u2', goals: 1, feedbacks: 1 }),
       ])
     );
@@ -175,12 +174,11 @@ describe('admin stats service', () => {
       status: 'unavailable',
       reason: 'query_failed',
     });
-    expect(result.resources.totals.accounts).toBe(2);
-    expect(result.resources.totals.budgets).toBe(1);
+    expect(result.resources.totals.accounts).toBe(1);
+    expect(result.resources.totals.budgets).toBe(0);
     expect(result.resources.totals.feedbacks).not.toBe(0);
     expect(result.resources.perUserCounts).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ userId: 'u1', accounts: 1, budgets: 1 }),
         expect.objectContaining({ userId: 'u2', goals: 1 }),
       ])
     );
