@@ -82,6 +82,32 @@ describe('admin stats service', () => {
         await expect(getAdminStats('30d')).rejects.toMatchObject({ code: 'PGRST205' });
       });
 
+      it('includes activity from 60 days ago in the 90-day peak', async () => {
+        const originalUsers = rows.users;
+        rows.users = [{ id: 'u60', created_at: '2024-12-01T00:00:00Z', last_activity_at: '2024-12-02T12:00:00Z' }];
+        try {
+          const result = await getAdminStats('90d');
+          expect(result.users.peakDailyActive).toBe(1);
+          expect(result.users.peakDate).toBe('2024-12-02');
+        } finally {
+          rows.users = originalUsers;
+        }
+      });
+
+      it('keeps unavailable families unavailable for users introduced later', async () => {
+        const originalBudgets = rows.budgets;
+        rejectedTable = 'accounts';
+        rows.budgets = [{ user_id: 'new-user' }];
+        try {
+          const result = await getAdminStats('30d');
+          expect(result.resources.perUserCounts).toEqual(expect.arrayContaining([
+            expect.objectContaining({ userId: 'new-user', accounts: { status: 'unavailable', reason: 'query_failed' }, budgets: 1 }),
+          ]));
+        } finally {
+          rows.budgets = originalBudgets;
+        }
+      });
+
       it('returns empty activity rather than invented values', async () => {
     rows.users = [{ id: 'u1', created_at: '2025-01-01T00:00:00Z', last_activity_at: null }];
     const result = await getAdminStats('7d');
