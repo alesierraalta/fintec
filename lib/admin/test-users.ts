@@ -4,6 +4,16 @@ const DEFAULT_TEST_USER_EMAIL_PATTERNS = [
   'perf-test-*@*',
   // RFC 6761 reserves .test exclusively for testing.
   '*@*.test',
+  // RFC 2606 reserves example.com for documentation and examples.
+  '*@example.com',
+  // Generated CI prefixes identify synthetic test users.
+  'jest-test-*@*',
+  'debug-*@*',
+  'fixture-*@*',
+  'uhook-*@*',
+  'fintec-smoke+*@*',
+  // The owner demo account is used for screenshots.
+  'demo.screenshots@fintec.app',
 ] as const;
 const MAX_PATTERN_LENGTH = 200;
 const MAX_PATTERN_LIST_LENGTH = 1000;

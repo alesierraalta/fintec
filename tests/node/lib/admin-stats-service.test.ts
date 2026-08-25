@@ -121,8 +121,18 @@ describe('test-user matcher', () => {
     expect(isTestUserEmail('perf-test-99@other-host.dev')).toBe(true);
     expect(isTestUserEmail('someone@fintec.test')).toBe(true);
     expect(isTestUserEmail('someone@sub.fintec.test')).toBe(true);
+    expect(isTestUserEmail('fintec-smoke+migration-prepush-...@example.com')).toBe(true);
+    expect(isTestUserEmail('jest-test-1784126350767@example.com')).toBe(true);
+    expect(isTestUserEmail('debug-1784126319459@example.com')).toBe(true);
+    expect(isTestUserEmail('fixture-1784123633774@real-run-test.fintec')).toBe(true);
+    expect(isTestUserEmail('uhook-1784149137577-349525@x.com')).toBe(true);
+    expect(isTestUserEmail('demo.screenshots@fintec.app')).toBe(true);
     expect(isTestUserEmail('eval-fixture-run-1@fintec.local.evil')).toBe(false);
-    expect(isTestUserEmail('real.user@example.com')).toBe(false);
+    expect(isTestUserEmail('clean.user@gmail.com')).toBe(false);
+    expect(isTestUserEmail('debugging-fan@hotmail.com')).toBe(false);
+    expect(isTestUserEmail('mysmoke@a.com')).toBe(false);
+    expect(isTestUserEmail('demo.other@fintec.app')).toBe(false);
+    expect(isTestUserEmail('real.user@example.net')).toBe(false);
     expect(isTestUserEmail('user@fintec.tester')).toBe(false);
     expect(isTestUserEmail('user@fintec.commercial')).toBe(false);
     expect(isTestUserEmail(null)).toBe(false);
@@ -153,6 +163,13 @@ describe('test-user matcher', () => {
       'eval-fixture-*@fintec.local',
       'perf-test-*@*',
       '*@*.test',
+      '*@example.com',
+      'jest-test-*@*',
+      'debug-*@*',
+      'fixture-*@*',
+      'uhook-*@*',
+      'fintec-smoke+*@*',
+      'demo.screenshots@fintec.app',
     ]);
     expect(isTestUserEmail('test@fintec.com')).toBe(true);
     expect(warn).toHaveBeenCalledTimes(1);
