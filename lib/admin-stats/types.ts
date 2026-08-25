@@ -44,6 +44,15 @@ export type FeatureUsage = {
 export type FamilyResult<T> = T | UnavailableResult;
 export type StatsWindowDays = { window: StatsWindow; days: number };
 
+export type UserRosterEntry = {
+  id: string;
+  name: string | null;
+  email: string | null;
+  createdAt: string | null;
+  lastActivityAt: string | null;
+  isAdmin: boolean;
+};
+
 type ResourceFamily =
   | 'accounts'
   | 'transactions'
@@ -65,6 +74,7 @@ export interface AdminStats {
     peakDate: string | null;
     activityBasis: 'last_activity_at_session_refresh';
     activityStatus: ActivityStatus;
+    list: UserRosterEntry[];
   };
   resources: {
     totals: Record<ResourceFamily, ResourceValue>;

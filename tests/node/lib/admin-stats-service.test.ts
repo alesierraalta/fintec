@@ -20,26 +20,42 @@ const rows: Record<string, Row[]> = {
     {
       id: 'u2',
       email: 'real@fintec.com',
+      name: null,
       created_at: '2025-01-03T10:00:00.000Z',
       last_activity_at: '2025-01-31T12:00:00.000Z',
     },
     {
       id: 'u3',
-      created_at: '2024-12-01T10:00:00.000Z',
+      email: null,
+      name: 'Nullable activity',
+      created_at: '2025-01-03T10:00:00.000Z',
       last_activity_at: null,
+    },
+    {
+      id: 'u4',
+      email: 'admin@fintec.com',
+      name: 'Configured admin',
+      created_at: '2025-01-04T10:00:00.000Z',
+      last_activity_at: '2025-01-31T12:00:00.000Z',
     },
   ],
   accounts: [
     { id: 'a1', user_id: 'u1' },
     { id: 'a2', user_id: null },
+    { id: 'a4', user_id: 'u4' },
   ],
-  transactions: [{ account_id: 'a1' }, { account_id: 'a2' }],
-  budgets: [{ user_id: 'u1' }],
-  goals: [{ user_id: 'u2' }],
-  subscriptions: [{ user_id: 'u1' }],
-  feedbacks: [{ user_id: 'u2' }],
+  transactions: [
+    { account_id: 'a1' },
+    { account_id: 'a2' },
+    { account_id: 'a4', created_at: '2025-01-31T12:00:00.000Z' },
+  ],
+  budgets: [{ user_id: 'u1' }, { user_id: 'u4' }],
+  goals: [{ user_id: 'u2' }, { user_id: 'u4' }],
+  subscriptions: [{ user_id: 'u1' }, { user_id: 'u4' }],
+  feedbacks: [{ user_id: 'u2' }, { user_id: 'u4' }],
   usage_tracking: [
     {
+      user_id: 'u2',
       month_year: '2025-01',
       transaction_count: 2,
       backup_count: 3,
@@ -47,6 +63,21 @@ const rows: Record<string, Row[]> = {
       export_count: 5,
       ai_requests: 6,
     },
+    {
+      user_id: 'u4',
+      month_year: '2025-01',
+      transaction_count: 20,
+      backup_count: 30,
+      api_calls: 40,
+      export_count: 50,
+      ai_requests: 60,
+    },
+  ],
+  ai_conversation_sessions: [
+    { user_id: 'u4', started_at: '2025-01-31T12:00:00.000Z', message_count: 4 },
+  ],
+  ai_conversation_messages: [
+    { user_id: 'u4', created_at: '2025-01-31T12:00:00.000Z' },
   ],
 };
 
@@ -121,35 +152,60 @@ describe('test-user matcher', () => {
 });
 
 describe('admin stats service', () => {
+  const originalAdminIds = process.env.ADMIN_USER_IDS;
+
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2025-01-31T23:00:00.000Z'));
     rejectedTable = null;
+    delete process.env.ADMIN_USER_IDS;
     (createServiceClient as jest.Mock).mockReturnValue(clientFixture());
   });
-  afterEach(() => jest.useRealTimers());
+  afterEach(() => {
+    if (originalAdminIds === undefined) delete process.env.ADMIN_USER_IDS;
+    else process.env.ADMIN_USER_IDS = originalAdminIds;
+    jest.useRealTimers();
+  });
 
   it('returns aggregate-only metrics with UTC activity and nullable transaction ownership excluded', async () => {
     const result = await getAdminStats('30d');
     expect(result.window).toBe('30d');
-    expect(result.users.total).toBe(2);
+    expect(result.users.total).toBe(3);
+    expect(result.users.list.map((user) => user.id)).toEqual([
+      'u4',
+      'u2',
+      'u3',
+    ]);
+    expect(result.users.list[1]).toMatchObject({ name: null, isAdmin: false });
+    expect(result.users.list[2]).toMatchObject({
+      email: null,
+      lastActivityAt: null,
+    });
+    expect(Object.keys(result.users.list[0])).toEqual([
+      'id',
+      'name',
+      'email',
+      'createdAt',
+      'lastActivityAt',
+      'isAdmin',
+    ]);
     expect(result.resources.perUserCounts).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ userId: 'u1' })])
     );
     expect(
       result.users.newByDay.find((bucket) => bucket.date === '2025-01-03')
         ?.count
-    ).toBe(1);
-    expect(result.users.dau).toBe(1);
-    expect(result.users.peakDailyActive).toBe(1);
+    ).toBe(2);
+    expect(result.users.dau).toBe(2);
+    expect(result.users.peakDailyActive).toBe(2);
     expect(result.users.peakDate).toBe('2025-01-31');
     expect(result.users.activityBasis).toBe('last_activity_at_session_refresh');
     expect(result.resources.totals).toEqual({
-      accounts: 1,
-      transactions: 0,
-      budgets: 0,
-      goals: 1,
-      subscriptions: 0,
-      feedbacks: 1,
+      accounts: 2,
+      transactions: 1,
+      budgets: 1,
+      goals: 2,
+      subscriptions: 1,
+      feedbacks: 2,
     });
     expect(result.resources.perUserCounts).toEqual(
       expect.arrayContaining([
@@ -164,7 +220,57 @@ describe('admin stats service', () => {
       exportCount: 5,
       aiRequests: 6,
     });
-    expect(JSON.stringify(result)).not.toMatch(/email|name|description/);
+  });
+
+  it('excludes configured admins from every metric while retaining them in the roster', async () => {
+    process.env.ADMIN_USER_IDS = ' u4 ';
+    const result = await getAdminStats('30d');
+
+    expect(result.users.total).toBe(2);
+    expect(
+      result.users.newByDay.find((bucket) => bucket.date === '2025-01-04')
+        ?.count
+    ).toBe(0);
+    expect(result.users.dau).toBe(1);
+    expect(result.users.wau).toBe(1);
+    expect(result.users.mau).toBe(1);
+    expect(result.users.peakDailyActive).toBe(1);
+    expect(result.resources.totals).toEqual({
+      accounts: 1,
+      transactions: 0,
+      budgets: 0,
+      goals: 1,
+      subscriptions: 0,
+      feedbacks: 1,
+    });
+    expect(result.resources.perUserCounts).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ userId: 'u4' })])
+    );
+    expect(result.usage.byMonth).toEqual([
+      expect.objectContaining({
+        transactionCount: 2,
+        backupCount: 3,
+        apiCalls: 4,
+        exportCount: 5,
+        aiRequests: 6,
+      }),
+    ]);
+    expect(result.users.list).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'u4',
+          isAdmin: true,
+          name: 'Configured admin',
+        }),
+      ])
+    );
+  });
+
+  it('treats empty administrator configuration as a no-op', async () => {
+    process.env.ADMIN_USER_IDS = '';
+    const result = await getAdminStats('30d');
+    expect(result.users.total).toBe(3);
+    expect(result.users.list.map((user) => user.id)).toContain('u4');
   });
 
   it('degrades an unavailable feedbacks family without fabricating a zero', async () => {
@@ -174,8 +280,8 @@ describe('admin stats service', () => {
       status: 'unavailable',
       reason: 'query_failed',
     });
-    expect(result.resources.totals.accounts).toBe(1);
-    expect(result.resources.totals.budgets).toBe(0);
+    expect(result.resources.totals.accounts).toBe(2);
+    expect(result.resources.totals.budgets).toBe(1);
     expect(result.resources.totals.feedbacks).not.toBe(0);
     expect(result.resources.perUserCounts).toEqual(
       expect.arrayContaining([

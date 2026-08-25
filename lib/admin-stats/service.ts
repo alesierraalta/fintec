@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/admin';
 import { logger } from '@/lib/utils/logger';
 import { isTestUserEmail } from '@/lib/admin/test-users';
+import { getAdminUserIds } from '@/lib/payment-orders/admin-utils';
 import {
   mergeResourceCounts,
   buildActivity,
@@ -82,16 +83,40 @@ export async function getAdminStats(
   const parsed = parseStatsWindow(window);
   const now = new Date();
   try {
-    const users = await read('users', 'id,email,created_at,last_activity_at');
-    const excluded = new Set(
+    const users = await read(
+      'users',
+      'id,name,email,created_at,last_activity_at'
+    );
+    const testExcludedIds = new Set(
       users
         .filter((row) =>
           isTestUserEmail(typeof row.email === 'string' ? row.email : null)
         )
         .map((row) => String(row.id))
     );
+    const adminIds = new Set(getAdminUserIds());
+    const excluded = new Set([...testExcludedIds, ...adminIds]);
     const includedUsers = users.filter((row) => !excluded.has(String(row.id)));
     const includedIds = new Set(includedUsers.map((row) => String(row.id)));
+    const rosterList = users
+      .filter((row) => !testExcludedIds.has(String(row.id)))
+      .map((row) => ({
+        id: String(row.id),
+        name: typeof row.name === 'string' ? row.name : null,
+        email: typeof row.email === 'string' ? row.email : null,
+        createdAt: typeof row.created_at === 'string' ? row.created_at : null,
+        lastActivityAt:
+          typeof row.last_activity_at === 'string'
+            ? row.last_activity_at
+            : null,
+        isAdmin: adminIds.has(String(row.id)),
+      }))
+      .sort((a, b) => {
+        if (a.createdAt === b.createdAt) return a.id.localeCompare(b.id);
+        if (a.createdAt === null) return 1;
+        if (b.createdAt === null) return -1;
+        return b.createdAt.localeCompare(a.createdAt);
+      });
     const [
       accountsRaw,
       transactionsRaw,
@@ -215,6 +240,7 @@ export async function getAdminStats(
         total: includedUsers.length,
         newByDay: buildNewByDay(includedUsers as any, now, parsed.days),
         ...buildActivity(includedUsers as any, now, parsed.window, parsed.days),
+        list: rosterList,
       },
       resources,
       usage: { byMonth: usage },
