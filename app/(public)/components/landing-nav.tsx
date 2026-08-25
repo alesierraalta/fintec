@@ -55,8 +55,24 @@ export function LandingNav({ links }: LandingNavProps) {
             ))}
           </div>
 
-          {/* Mobile hamburger */}
-          <MobileMenuToggle links={mobileLinks} />
+          {/* Mobile actions */}
+          <div className="flex items-center gap-2">
+            <Link
+              href="/download"
+              aria-label="Descargar APK Android Beta"
+              className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95 md:hidden"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M16 6l1.2-1.2-1.4-1.4L15 2l-1.8 1.8A6.9 6.9 0 0012 3.5a6.9 6.9 0 00-1.2.1L9 2 8.2 3.4 9.4 4.6 10.6 6H6.8a1.8 1.8 0 00-1.8 1.8v5.5a1.8 1.8 0 001.8 1.8H7V19a1 1 0 001 1h1v2.5a1.25 1.25 0 102.5 0V20h1v2.5a1.25 1.25 0 102.5 0V20h1a1 1 0 001-1v-3.9h.2a1.8 1.8 0 001.8-1.8V7.8A1.8 1.8 0 0016 6h0zM12 4.5a5 5 0 015 5H7a5 5 0 015-5zM5.5 10a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm13 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z" />
+              </svg>
+            </Link>
+            <MobileMenuToggle links={mobileLinks} />
+          </div>
         </div>
       </div>
     </nav>
