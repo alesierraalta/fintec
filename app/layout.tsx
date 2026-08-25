@@ -5,7 +5,6 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RouteAwareProviders } from './route-aware-providers';
 import { getAdminVisibility } from '@/lib/admin/guard';
-import { NotificationBell } from '@/components/notifications/notification-bell';
 import './globals.css';
 
 const inter = Inter({
@@ -59,7 +58,6 @@ export default async function RootLayout({
           <div id="root" className="h-dynamic-screen w-full overflow-x-hidden">
             {children}
           </div>
-          <NotificationBell />
         </RouteAwareProviders>
         <Analytics />
         <SpeedInsights />

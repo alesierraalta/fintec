@@ -75,6 +75,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           />
         )}
 
+        {/* Mobile Sidebar Drawer */}
+        {isMobile && isOpen && (
+          <div className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col shadow-2xl animate-slide-in">
+            <Sidebar />
+          </div>
+        )}
+
         {/* Desktop Sidebar - Only render on desktop */}
         {!isMobile && (
           <div

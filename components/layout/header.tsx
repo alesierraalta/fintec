@@ -203,6 +203,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
+            <NotificationBell variant="header" />
             <button
               type="button"
               ref={userMenuTriggerRef}
