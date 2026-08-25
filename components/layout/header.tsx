@@ -174,8 +174,8 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
           className="w-full shrink-0"
           style={{ height: 'env(safe-area-inset-top)' }}
         ></div>
-        <div className="flex h-14 w-full shrink-0 items-center justify-between px-4">
-          <div className="flex shrink-0 items-center gap-3">
+        <div className="relative flex h-14 w-full shrink-0 items-center justify-between px-4">
+          <div className="flex shrink-0 items-center">
             <button
               type="button"
               onClick={onMenuClick}
@@ -198,10 +198,14 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                 </motion.div>
               </AnimatePresence>
             </button>
-            <h1 aria-label={getPageTitle()} className="flex h-7 w-24 items-center">
-              <FinTecLogo containerClassName="h-7 w-24" priority alt="FinTec" />
-            </h1>
           </div>
+
+          <h1
+            aria-label={getPageTitle()}
+            className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+          >
+            <FinTecLogo containerClassName="h-8 w-28" priority alt="FinTec" />
+          </h1>
 
           <div className="flex shrink-0 items-center gap-2">
             <NotificationBell variant="header" />
