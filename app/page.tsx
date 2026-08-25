@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { LazyDashboardContent } from '@/components/dashboard/lazy-dashboard-content';
 import { LocalProvidersForRootDashboard } from '@/app/_lib/local-providers-for-root-dashboard';
@@ -89,6 +91,20 @@ export default async function HomePage() {
         </MainLayout>
       </LocalProvidersForRootDashboard>
     );
+  }
+
+  // Mobile: unauthenticated users get direct app auth flow, not marketing landing
+  // headers() throws outside request scope (e.g. in tests) — treat as desktop
+  let isMobile = false;
+  try {
+    const headersList = await headers();
+    const ua = headersList.get('user-agent') ?? '';
+    isMobile = /Android|iPhone|iPad|iPod|Mobile|Capacitor/i.test(ua);
+  } catch {
+    isMobile = false;
+  }
+  if (isMobile) {
+    redirect('/auth/login');
   }
 
   return <LandingPage />;
