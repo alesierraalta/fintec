@@ -1,60 +1,71 @@
-import { Clock, Globe, Shield, Zap } from 'lucide-react';
+import { Globe, LockKeyhole, Smartphone, Zap } from 'lucide-react';
 
 /**
- * Stats section with verifiable trust indicators only.
- * NO fabricated statistics — only features that can be verified.
- * Updated 2025-08-25: fixed misleading E2E claim (was confused with e2e tests).
+ * Trust indicators written as user benefits. Technical implementation details
+ * belong in security documentation, not in the marketing landing page.
  */
 export function StatsSection() {
   const trustIndicators = [
     {
-      label: 'Tasas del BCV',
-      value: 'Oficiales',
+      eyebrow: 'Tasas BCV',
+      title: 'Fuente oficial',
       icon: Globe,
-      description: 'Fuente oficial del Banco Central',
+      description: 'Consulta la referencia publicada por el Banco Central.',
     },
     {
-      label: 'Binance P2P',
-      value: 'En vivo',
+      eyebrow: 'Mercado P2P',
+      title: 'Referencia actualizada',
       icon: Zap,
-      description: 'Mercado P2P actualizado',
+      description: 'Revisa valores de Binance P2P cuando estén disponibles.',
     },
     {
-      label: 'Disponibilidad',
-      value: 'Alta',
-      icon: Clock,
-      description: 'Acceso continuo (según red)',
+      eyebrow: 'Acceso flexible',
+      title: 'Donde estés',
+      icon: Smartphone,
+      description: 'Usa FinTec desde tu teléfono o computadora.',
     },
     {
-      label: 'Seguridad',
-      value: 'Protegido',
-      icon: Shield,
-      description: 'TLS + RLS Supabase',
+      eyebrow: 'Privacidad',
+      title: 'Tus datos son tuyos',
+      icon: LockKeyhole,
+      description: 'Tu información permanece asociada a tu cuenta personal.',
     },
   ];
 
   return (
-    <section className="relative bg-muted/20 px-4 py-16 sm:px-6 lg:px-8">
+    <section className="relative px-4 py-20 sm:px-6 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/70 to-transparent" />
       <div className="mx-auto max-w-7xl">
-        <h2 className="sr-only">Indicadores de confianza de FinTec</h2>
-        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">
+        <div className="mb-10 max-w-2xl">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+            Pensado para tu día a día
+          </p>
+          <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
+            Información útil, sin complicaciones
+          </h2>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {trustIndicators.map((indicator) => {
-            const IconComponent = indicator.icon;
+            const Icon = indicator.icon;
             return (
-              <div key={indicator.label} className="text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                  <IconComponent className="h-8 w-8 text-primary" />
+              <article
+                key={indicator.eyebrow}
+                className="group rounded-2xl border border-border/50 bg-card/70 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-lg hover:shadow-black/5"
+              >
+                <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-105">
+                  <Icon className="h-5 w-5" />
                 </div>
-                <div className="mb-1 text-2xl font-bold text-foreground sm:text-3xl">
-                  {indicator.value}
-                </div>
-                <div className="font-medium text-muted-foreground">
-                  {indicator.label}
-                </div>
-                <div className="mt-1 text-xs text-muted-foreground/70">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                  {indicator.eyebrow}
+                </p>
+                <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
+                  {indicator.title}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {indicator.description}
-                </div>
-              </div>
+                </p>
+              </article>
             );
           })}
         </div>
