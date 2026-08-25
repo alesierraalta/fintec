@@ -2,10 +2,11 @@ import { Star } from 'lucide-react';
 import { testimonials } from './data';
 
 /**
- * Testimonials section with static data.
- * Uses semantic blockquote structure for accessibility.
+ * @deprecated — Disabled 2025-08-25 for honesty: no verified feedback yet.
+ * Kept for reference; LandingPage no longer renders it. Returns null when empty.
  */
 export function TestimonialsSection() {
+  if (testimonials.length === 0) return null;
   return (
     <section className="bg-muted/20 px-4 py-20 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">

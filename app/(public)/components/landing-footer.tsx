@@ -103,27 +103,31 @@ export function LandingFooter() {
           ))}
         </div>
 
-        {/* Social links and copyright */}
+        {/* Social links and copyright — honest beta disclaimer */}
         <div className="mt-12 flex flex-col items-center justify-between border-t border-border/20 pt-8 md:flex-row">
-          <div className="mb-4 flex items-center gap-4 md:mb-0">
-            {socialLinks.map((social) => {
-              const IconComponent = socialIconMap[social.icon];
-              if (!IconComponent) return null;
+          {socialLinks.length > 0 ? (
+            <div className="mb-4 flex items-center gap-4 md:mb-0">
+              {socialLinks.map((social) => {
+                const IconComponent = socialIconMap[social.icon];
+                if (!IconComponent) return null;
 
-              return (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={social.label}
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
-                >
-                  <IconComponent />
-                </a>
-              );
-            })}
-          </div>
+                return (
+                  <a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={social.label}
+                    className="flex h-10 w-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground"
+                  >
+                    <IconComponent />
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="mb-4 md:mb-0" />
+          )}
 
           <div className="text-center text-sm text-muted-foreground md:text-right">
             <p>
@@ -131,7 +135,8 @@ export function LandingFooter() {
               reservados.
             </p>
             <p className="mt-1">
-              Tasas actualizadas en tiempo real desde fuentes oficiales
+              Tasas BCV oficiales + Binance P2P · Actualización automática ·
+              Producto en beta
             </p>
           </div>
         </div>

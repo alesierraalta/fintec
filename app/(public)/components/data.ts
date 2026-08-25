@@ -49,34 +49,17 @@ export const navLinks: NavLink[] = [
   { label: 'Registrarse', href: '/auth/register' },
 ];
 
-// Testimonials — clearly marked as early access feedback
-export const testimonials: Testimonial[] = [
-  {
-    quote:
-      'FinTec me permitió tener un control real de mis finanzas en bolívares y dólares. Las tasas actualizadas son un game changer.',
-    author: 'María G.',
-    role: 'Usuario de early access',
-  },
-  {
-    quote:
-      'Por fin una app que entiende la realidad financiera de Venezuela. La gestión de cuentas y transacciones es exactamente lo que necesitaba.',
-    author: 'Carlos R.',
-    role: 'Usuario de early access',
-  },
-  {
-    quote:
-      'La interfaz es limpia y rápida. Poder ver las tasas del BCV y Binance en un solo lugar me ahorra mucho tiempo cada día.',
-    author: 'Ana P.',
-    role: 'Usuario de early access',
-  },
-];
+// Testimonials — REMOVED for honesty (2025-08-25): no verified user feedback yet.
+// Previously contained fabricated early-access quotes. Section disabled until real feedback exists.
+// Keep type for potential future use.
+export const testimonials: Testimonial[] = [];
 
 // FAQ items
 export const faqItems: FAQItem[] = [
   {
     question: '¿Qué es FinTec?',
     answer:
-      'FinTec es una aplicación de finanzas personales diseñada para el mercado venezolano. Te permite gestionar cuentas, transacciones, presupuestos y más, con tasas de cambio actualizadas del BCV y Binance en tiempo real.',
+      'FinTec es una aplicación de finanzas personales (en beta) diseñada para el mercado venezolano. Te permite gestionar cuentas, transacciones, presupuestos y más, con tasas de cambio del BCV y Binance P2P actualizadas automáticamente.',
   },
   {
     question: '¿FinTec es gratuito?',
@@ -91,12 +74,12 @@ export const faqItems: FAQItem[] = [
   {
     question: '¿Mis datos están seguros?',
     answer:
-      'Sí. Utilizamos encriptación de nivel bancario y autenticación segura para proteger tu información. Tu privacidad y seguridad son nuestra prioridad.',
+      'Sí. Usamos cifrado TLS en tránsito, RLS de Supabase y encriptación en reposo. La autenticación es segura y tu privacidad es prioritaria. Producto en beta: seguimos mejorando continuamente.',
   },
   {
     question: '¿En qué dispositivos puedo usar FinTec?',
     answer:
-      'FinTec está disponible como aplicación web accesible desde cualquier navegador. También estamos desarrollando aplicaciones nativas para iOS y Android a través de Capacitor.',
+      'Hoy como aplicación web accesible desde cualquier navegador (móvil y escritorio). Estamos trabajando en apps nativas para iOS/Android vía Capacitor, actualmente en beta.',
   },
   {
     question: '¿Puedo gestionar múltiples cuentas?',
@@ -133,24 +116,9 @@ export const footerColumns: FooterColumn[] = [
   },
 ];
 
-// Social links
-export const socialLinks = [
-  {
-    label: 'Twitter/X',
-    href: 'https://x.com/fintec',
-    icon: 'twitter',
-  },
-  {
-    label: 'GitHub',
-    href: 'https://github.com/fintec',
-    icon: 'github',
-  },
-  {
-    label: 'LinkedIn',
-    href: 'https://linkedin.com/company/fintec',
-    icon: 'linkedin',
-  },
-];
+// Social links — disabled for honesty (2025-08-25): no verified public profiles yet.
+// Previous links (x.com/fintec etc.) were placeholders. Add real URLs when available.
+export const socialLinks: { label: string; href: string; icon: string }[] = [];
 
 // Features
 export const features: FeatureItem[] = [
@@ -167,16 +135,16 @@ export const features: FeatureItem[] = [
     icon: 'Shield',
     title: 'Seguridad Avanzada',
     description:
-      'Tus datos están protegidos con encriptación de nivel bancario y autenticación segura',
+      'Cifrado en tránsito (TLS), RLS en base de datos y autenticación segura',
     color: 'text-purple-500',
     bgColor: 'bg-purple-500/10',
     borderColor: 'border-purple-500/20',
   },
   {
     icon: 'Smartphone',
-    title: 'Diseño iOS Nativo',
+    title: 'Diseño Moderno',
     description:
-      'Interfaz elegante y familiar que se siente como una app nativa de iOS',
+      'Interfaz limpia y adaptable inspirada en apps nativas — funciona en móvil y escritorio',
     color: 'text-orange-500',
     bgColor: 'bg-orange-500/10',
     borderColor: 'border-orange-500/20',

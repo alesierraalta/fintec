@@ -45,16 +45,14 @@ export default function DownloadPage() {
 
       {/* Nav */}
       <nav className="z-10 mx-auto flex w-full max-w-7xl items-center justify-between p-6">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href="/" aria-label="FinTec - Inicio">
           <FinTecLogo
-            containerClassName="w-8 h-8 md:w-10 md:h-10"
-            className="rounded-lg"
+            containerClassName="h-10 w-32 sm:h-12 sm:w-40"
+            priority
+            sizes="(max-width: 768px) 128px, 160px"
+            fallbackClassName="text-xl"
             alt="FinTec"
-            sizes="40px"
           />
-          <span className="hidden text-xl font-bold tracking-tight sm:block">
-            FinTec
-          </span>
         </Link>
         <Link
           href="/"
@@ -71,7 +69,16 @@ export default function DownloadPage() {
           Versión Beta · Solo Android
         </span>
 
-        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+        <div className="flex justify-center">
+          <FinTecLogo
+            containerClassName="h-14 w-14 rounded-2xl shadow-lg sm:h-16 sm:w-16"
+            className="rounded-2xl"
+            alt="FinTec"
+            priority
+            sizes="64px"
+          />
+        </div>
+        <h1 className="mt-6 text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
           Descarga FinTec{' '}
           <span className="bg-gradient-to-r from-primary to-blue-500 bg-clip-text text-transparent">
             para Android

@@ -3,6 +3,7 @@ import { Clock, Globe, Shield, Zap } from 'lucide-react';
 /**
  * Stats section with verifiable trust indicators only.
  * NO fabricated statistics — only features that can be verified.
+ * Updated 2025-08-25: fixed misleading E2E claim (was confused with e2e tests).
  */
 export function StatsSection() {
   const trustIndicators = [
@@ -20,20 +21,20 @@ export function StatsSection() {
     },
     {
       label: 'Disponibilidad',
-      value: '24/7',
+      value: 'Alta',
       icon: Clock,
-      description: 'Acceso continuo a tus datos',
+      description: 'Acceso continuo (según red)',
     },
     {
       label: 'Seguridad',
-      value: 'E2E',
+      value: 'Protegido',
       icon: Shield,
-      description: 'Encriptación de extremo a extremo',
+      description: 'TLS + RLS Supabase',
     },
   ];
 
   return (
-    <section className="bg-muted/20 px-4 py-16 sm:px-6 lg:px-8">
+    <section className="relative bg-muted/20 px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <h2 className="sr-only">Indicadores de confianza de FinTec</h2>
         <div className="grid grid-cols-2 gap-8 lg:grid-cols-4">

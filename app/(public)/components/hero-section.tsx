@@ -7,6 +7,10 @@ export function HeroSection() {
     <section className="px-4 pb-16 pt-24 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <div className="mb-16 text-center">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold tracking-widest text-primary">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+            BETA · ACCESO ANTICIPADO
+          </div>
           <h1 className="mb-6 text-4xl font-bold leading-tight text-foreground sm:text-5xl lg:text-6xl">
             Controla tus Finanzas con
             <span className="block bg-gradient-to-r from-primary via-blue-500 to-purple-500 bg-clip-text text-transparent">
@@ -39,12 +43,12 @@ export function HeroSection() {
           </div>
         </div>
 
-        {/* App Screenshot */}
+        {/* App Preview — illustrative, not a real screenshot */}
         <div className="mx-auto max-w-4xl">
           <div className="overflow-hidden rounded-2xl border border-border/20 bg-card/50 shadow-2xl backdrop-blur-sm">
             <Image
               src="/hero-screenshot.svg"
-              alt="FinTec dashboard showing account management, live exchange rates, and financial analytics"
+              alt="Vista ilustrativa del dashboard de FinTec — interfaz en desarrollo, captura no real, solo preview ilustrativo"
               width={1200}
               height={675}
               priority
@@ -52,6 +56,9 @@ export function HeroSection() {
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1200px"
             />
           </div>
+          <p className="mt-3 text-center text-xs text-muted-foreground/70">
+            Vista ilustrativa — interfaz en desarrollo. Captura no real.
+          </p>
         </div>
       </div>
     </section>
