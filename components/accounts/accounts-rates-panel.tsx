@@ -24,6 +24,7 @@ function AccountsRatesPanelImpl({
   bcv,
   binance,
   selectedSource,
+  onOpenHistory,
 }: AccountsRatesPanelProps) {
   const usdVes = binance?.rates?.usd_ves ?? 0;
   const selectedValue = getExchangeRate(selectedSource, bcv, {
@@ -60,6 +61,7 @@ function AccountsRatesPanelImpl({
             <Link
               href="/calculator"
               data-testid="rates-history-button"
+                  onClick={onOpenHistory}
               className="flex min-h-[44px] w-full items-center justify-center space-x-2 rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-500 transition-all duration-200 hover:scale-105 hover:bg-blue-500/20 sm:px-6 sm:text-base md:w-auto"
             >
               <History className="h-4 w-4" />

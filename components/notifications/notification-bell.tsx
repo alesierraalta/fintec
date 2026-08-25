@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Bell, Check, CheckCheck, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -18,7 +19,12 @@ export function NotificationBell({
   const queryClient = useQueryClient();
   const [userId, setUserId] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [overlayHost, setOverlayHost] = useState<HTMLElement | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setOverlayHost(document.body);
+  }, []);
 
   useEffect(() => {
     supabase.auth
@@ -92,49 +98,12 @@ export function NotificationBell({
   const count = typeof unreadCount === 'number' ? unreadCount : 0;
   const isHeader = variant === 'header';
 
-  return (
-    <div
-      className={
-        isHeader
-          ? 'relative z-50 flex flex-col items-end'
-          : 'fixed bottom-5 right-5 z-50 flex flex-col items-end lg:hidden'
-      }
-    >
-      <div className="relative flex flex-col items-end">
-        <button
-          type="button"
-        aria-label={
-          count > 0 ? `Notificaciones, ${count} sin leer` : 'Notificaciones'
-        }
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={`transition-ios focus-ring relative flex items-center justify-center border border-border/30 bg-card/90 backdrop-blur-xl hover:bg-card hover:shadow-ios-lg ${
-          isHeader
-            ? 'h-10 w-10 rounded-xl shadow-ios-md'
-            : 'h-12 w-12 rounded-full shadow-ios-md'
-        }`}
-      >
-        <Bell
-          className="h-5 w-5 text-foreground md:h-6 md:w-6"
-          aria-hidden="true"
-        />
-        {count > 0 && (
-          <span
-            aria-hidden="true"
-            className="absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold leading-none text-destructive-foreground shadow-sm"
-          >
-            {count > 99 ? '99+' : count}
-          </span>
-        )}
-      </button>
-
-      {open && (
-        <div
+  const panelElement = (
+<div
           ref={panelRef}
           role="dialog"
           aria-label="Notificaciones"
-          className={`${isHeader ? 'absolute top-full right-0 mt-3' : 'absolute bottom-full right-0 mb-3'} max-h-[70vh] w-[min(360px,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg backdrop-blur-xl`}
+          className={`${isHeader ? 'fixed inset-x-4 top-[4.5rem] z-[60] mx-auto max-h-[70vh] w-auto max-w-[360px] lg:inset-x-auto lg:left-auto lg:right-4 lg:w-[360px]' : 'absolute bottom-full right-0 mb-3 max-h-[70vh] w-[min(360px,calc(100vw-2rem))]'} overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg backdrop-blur-xl`}
         >
           <div className="flex items-center justify-between border-b border-border/30 px-4 py-3">
             <h2 className="text-sm font-semibold text-popover-foreground">
@@ -223,7 +192,49 @@ export function NotificationBell({
             )}
           </div>
         </div>
-      )}
+  );
+
+  return (
+    <div
+      className={
+        isHeader
+          ? 'relative z-50 flex flex-col items-end'
+          : 'fixed bottom-5 right-5 z-50 flex flex-col items-end lg:hidden'
+      }
+    >
+      <div className="relative flex flex-col items-end">
+        <button
+          type="button"
+        aria-label={
+          count > 0 ? `Notificaciones, ${count} sin leer` : 'Notificaciones'
+        }
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={`transition-ios focus-ring relative flex items-center justify-center border border-border/30 bg-card/90 backdrop-blur-xl hover:bg-card hover:shadow-ios-lg ${
+          isHeader
+            ? 'h-10 w-10 rounded-xl shadow-ios-md'
+            : 'h-12 w-12 rounded-full shadow-ios-md'
+        }`}
+      >
+        <Bell
+          className="h-5 w-5 text-foreground md:h-6 md:w-6"
+          aria-hidden="true"
+        />
+        {count > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold leading-none text-destructive-foreground shadow-sm"
+          >
+            {count > 99 ? '99+' : count}
+          </span>
+        )}
+      </button>
+
+      {open &&
+        (isHeader
+          ? overlayHost && createPortal(panelElement, overlayHost)
+          : panelElement)}
       </div>
     </div>
   );

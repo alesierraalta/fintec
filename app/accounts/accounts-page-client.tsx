@@ -33,7 +33,6 @@ import {
   convertBalanceToDisplay,
   getDisplayCurrency,
 } from '@/lib/rate-display';
-import { AccountsRatesPanel } from '@/components/accounts/accounts-rates-panel';
 import { RateBadge } from '@/components/accounts/rate-badge';
 import { useAccountsPage } from '@/hooks/use-accounts-page';
 import { AccountsSkeleton } from '@/components/skeletons/accounts-skeleton';
@@ -789,13 +788,6 @@ export default function AccountsPage() {
             )}
           </div>
         </div>
-        {/* Exchange Rates Section - now self-contained panel */}
-        <AccountsRatesPanel
-          bcv={bcvRates}
-          binance={binanceRatesState}
-          selectedSource={usdEquivalentType}
-          onOpenHistory={() => setShowRatesHistory(true)}
-        />
       </div>
 
       {isOpen && (
