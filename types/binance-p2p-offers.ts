@@ -54,8 +54,13 @@ export const BINANCE_P2P_MARKET_URL =
  * same shape Binance uses in its own app share links, and the Binance mobile
  * app opens it directly to that seller.
  */
-export function buildBinanceP2PTradeUrl(userNo: string): string {
-  return `${BINANCE_P2P_MARKET_URL}&advertiserNo=${encodeURIComponent(userNo)}`;
+/**
+ * Direct link to a specific P2P ad. Per Binance P2P skill, the canonical ad detail
+ * URL is https://c2c.binance.com/en/adv?code={adNo}. This opens the exact
+ * advertisement (and thus the seller) instead of the generic market page.
+ */
+export function buildBinanceP2PTradeUrl(adNo: string): string {
+  return `https://c2c.binance.com/en/adv?code=${encodeURIComponent(adNo)}`;
 }
 
 export interface BinanceP2POffersQuery {

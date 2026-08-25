@@ -15,7 +15,7 @@ describe('buildBinanceAppDeepLink', () => {
 describe('buildBinanceP2PTradeUrl', () => {
   it('targets the chosen seller via advertiserNo', () => {
     expect(buildBinanceP2PTradeUrl('s-abc-123')).toBe(
-      'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES&advertiserNo=s-abc-123'
+      'https://c2c.binance.com/en/adv?code=s-abc-123'
     );
   });
 });

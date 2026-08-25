@@ -132,7 +132,9 @@ describe('P2POffersFilter', () => {
     renderWithState({});
 
     const amountInput = screen.getByPlaceholderText('1000');
-    const unitSegment = screen.getByRole('group', { name: 'Unidad de cantidad' });
+    const unitSegment = screen.getByRole('group', {
+      name: 'Unidad de cantidad',
+    });
 
     expect(unitSegment).toHaveClass('border-l');
     expect(amountInput.compareDocumentPosition(unitSegment)).toBe(
@@ -145,10 +147,12 @@ describe('P2POffersFilter', () => {
 
     const operationGroup = screen.getByRole('group', { name: 'Operación' });
     const toolbarGrid = operationGroup.parentElement;
-    const qualityWrapper = screen
-      .getByLabelText('Completados mínimo en porcentaje')
-      .parentElement;
-    const searchButton = screen.getByRole('button', { name: /Buscar ofertas/i });
+    const qualityWrapper = screen.getByLabelText(
+      'Completados mínimo en porcentaje'
+    ).parentElement;
+    const searchButton = screen.getByRole('button', {
+      name: /Buscar ofertas/i,
+    });
 
     expect(toolbarGrid).toHaveClass(
       'lg:grid-cols-[auto_minmax(0,1fr)_minmax(200px,240px)]'
@@ -316,7 +320,7 @@ describe('P2POffersFilter', () => {
     const continueLink = screen.getByRole('link', { name: /Comprar USDT/i });
     expect(continueLink).toHaveAttribute(
       'href',
-      'https://p2p.binance.com/en/trade/all-payments/USDT?fiat=VES&advertiserNo=s-fixture-seller-1'
+      'https://c2c.binance.com/en/adv?code=offer1'
     );
   });
 });

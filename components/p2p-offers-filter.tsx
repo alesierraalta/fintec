@@ -280,73 +280,73 @@ export default function P2POffersFilter() {
             />
           </div>
 
-        {/* Quality filters */}
-        <div className="grid grid-cols-2 gap-2 sm:max-w-[460px] md:col-span-2 lg:col-span-2 lg:max-w-none">
-          <input
-            name="minCompletionRate"
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            placeholder="Comp. ≥ %"
-            aria-label="Completados mínimo en porcentaje"
-            inputMode="decimal"
-            autoComplete="off"
-            value={
-              filterState.minCompletionRate === null
-                ? ''
-                : filterState.minCompletionRate
-            }
-            onChange={(event) =>
-              setFilterState((prev) => ({
-                ...prev,
-                minCompletionRate:
-                  event.target.value === ''
-                    ? null
-                    : parseFloat(event.target.value),
-              }))
-            }
-            className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-          />
-          <input
-            name="minOrderCount"
-            type="number"
-            min="0"
-            step="1"
-            placeholder="Órdenes ≥"
-            aria-label="Órdenes mínimas del vendedor"
-            inputMode="numeric"
-            autoComplete="off"
-            value={
-              filterState.minOrderCount === null
-                ? ''
-                : filterState.minOrderCount
-            }
-            onChange={(event) =>
-              setFilterState((prev) => ({
-                ...prev,
-                minOrderCount:
-                  event.target.value === ''
-                    ? null
-                    : parseInt(event.target.value, 10),
-              }))
-            }
-            className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
-          />
-        </div>
+          {/* Quality filters */}
+          <div className="grid grid-cols-2 gap-2 sm:max-w-[460px] md:col-span-2 lg:col-span-2 lg:max-w-none">
+            <input
+              name="minCompletionRate"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              placeholder="Comp. ≥ %"
+              aria-label="Completados mínimo en porcentaje"
+              inputMode="decimal"
+              autoComplete="off"
+              value={
+                filterState.minCompletionRate === null
+                  ? ''
+                  : filterState.minCompletionRate
+              }
+              onChange={(event) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  minCompletionRate:
+                    event.target.value === ''
+                      ? null
+                      : parseFloat(event.target.value),
+                }))
+              }
+              className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+            <input
+              name="minOrderCount"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="Órdenes ≥"
+              aria-label="Órdenes mínimas del vendedor"
+              inputMode="numeric"
+              autoComplete="off"
+              value={
+                filterState.minOrderCount === null
+                  ? ''
+                  : filterState.minOrderCount
+              }
+              onChange={(event) =>
+                setFilterState((prev) => ({
+                  ...prev,
+                  minOrderCount:
+                    event.target.value === ''
+                      ? null
+                      : parseInt(event.target.value, 10),
+                }))
+              }
+              className="h-[52px] min-w-0 rounded-xl border border-border bg-background px-3 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
 
-        <Button
-          type="button"
-          onClick={handleSearch}
-          loading={loading}
-          disabled={loading}
-          size="md"
-          icon={<Search className="h-4 w-4" aria-hidden="true" />}
-          className="h-[52px] w-full shrink-0 sm:w-auto md:col-span-2 lg:col-span-1 lg:justify-self-end"
-        >
-          {loading ? 'Buscando…' : 'Buscar ofertas'}
-        </Button>
-      </div>
+          <Button
+            type="button"
+            onClick={handleSearch}
+            loading={loading}
+            disabled={loading}
+            size="md"
+            icon={<Search className="h-4 w-4" aria-hidden="true" />}
+            className="h-[52px] w-full shrink-0 sm:w-auto md:col-span-2 lg:col-span-1 lg:justify-self-end"
+          >
+            {loading ? 'Buscando…' : 'Buscar ofertas'}
+          </Button>
+        </div>
       </section>
       {/* Context / status strip */}
       {hasOffers && result && (
@@ -538,7 +538,7 @@ export default function P2POffersFilter() {
                   </div>
 
                   <BinanceMarketLink
-                    href={buildBinanceP2PTradeUrl(offer.merchant.userNo)}
+                    href={buildBinanceP2PTradeUrl(offer.id)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className={`focus-ring flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-colors sm:w-auto ${
