@@ -6,7 +6,7 @@ Guia operativa para que cualquier integrante nuevo pueda contribuir en menos de 
 
 ### Requisitos
 
-- Node.js >= 18 (recomendado 20 LTS).
+- Node.js 24.x LTS (fijado en `"engines": { "node": "24.x" }` en `package.json`).
 - npm.
 - Git.
 

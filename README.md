@@ -14,7 +14,7 @@ Plataforma de gestion financiera construida sobre Next.js App Router.
 
 ### Prerrequisitos
 
-- Node.js >= 18 (recomendado: 20 LTS para desarrollo local estable con Next 16).
+- Node.js 24.x LTS (el proyecto fija `"engines": { "node": "24.x" }` en `package.json`; Vercel y CI usan esta versión).
 - npm.
 
 ### Setup local
