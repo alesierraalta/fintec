@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Download } from 'lucide-react';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { MobileMenuToggle } from './mobile-menu';
 import type { NavLink } from './data';
@@ -13,6 +14,7 @@ export function LandingNav({ links }: LandingNavProps) {
   const desktopAuthLinks = links.filter(
     (l) => l.href === '/auth/login' || l.href === '/auth/register'
   );
+  const downloadLink = links.find((l) => l.href === '/download');
 
   return (
     <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border/20 bg-background/80 pt-safe-top backdrop-blur-xl">
@@ -27,8 +29,17 @@ export function LandingNav({ links }: LandingNavProps) {
             />
           </Link>
 
-          {/* Desktop auth links */}
+          {/* Desktop links */}
           <div className="hidden items-center space-x-3 md:flex">
+            {downloadLink && (
+              <Link
+                href={downloadLink.href}
+                className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 py-2 font-medium text-primary transition-all duration-200 hover:bg-primary/20"
+              >
+                <Download className="h-4 w-4" />
+                {downloadLink.label}
+              </Link>
+            )}
             {desktopAuthLinks.map((link) => (
               <Link
                 key={link.href}

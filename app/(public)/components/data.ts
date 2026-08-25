@@ -44,6 +44,7 @@ export interface FeatureItem {
 export const navLinks: NavLink[] = [
   { label: 'Inicio', href: '/' },
   { label: 'Pricing', href: '/pricing' },
+  { label: 'Descargar', href: '/download' },
   { label: 'Iniciar Sesión', href: '/auth/login' },
   { label: 'Registrarse', href: '/auth/register' },
 ];
@@ -112,6 +113,7 @@ export const footerColumns: FooterColumn[] = [
       { label: 'Características', href: '/#caracteristicas' },
       { label: 'Pricing', href: '/pricing' },
       { label: 'Tasas en Vivo', href: '/#tasas-en-vivo' },
+      { label: 'Descargar APK (Beta Android)', href: '/download' },
     ],
   },
   {
