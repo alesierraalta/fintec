@@ -31,7 +31,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–3 h.
   - **Dependencias:** None.
 
-- [ ] **T02 GREEN — Create the bounded page-visits migration and local schema fixture.** Implement the next timestamped `supabase/migrations/<timestamp>_page_visits.sql` with UUID identity, `visited_at`, UTC `visit_date`, normalized `path`, keyed `ip_hash`, optional validated `country_code`, checks, `(visited_at, path)`, `(visit_date, ip_hash)`, and `(visit_date, path)` indexes; enable RLS, revoke direct client table privileges, and add the restricted SQL aggregate function/RPC with a 90-day maximum. Mirror the executable schema in `supabase/schemas/baseline.sql` because `supabase/config.toml` disables migration replay for the local DB lane. <!-- sdd-owner: implementation -->
+- [x] **T02 GREEN — Create the bounded page-visits migration and local schema fixture.** Implement the next timestamped `supabase/migrations/<timestamp>_page_visits.sql` with UUID identity, `visited_at`, UTC `visit_date`, normalized `path`, keyed `ip_hash`, optional validated `country_code`, checks, `(visited_at, path)`, `(visit_date, ip_hash)`, and `(visit_date, path)` indexes; enable RLS, revoke direct client table privileges, and add the restricted SQL aggregate function/RPC with a 90-day maximum. Mirror the executable schema in `supabase/schemas/baseline.sql` because `supabase/config.toml` disables migration replay for the local DB lane. <!-- sdd-owner: implementation -->
   - **Descripción:** Persistir únicamente el mínimo privado y dejar el agregado en la base de datos sin políticas permisivas para clientes.
   - **Archivos:** `supabase/migrations/<timestamp>_page_visits.sql`, `supabase/schemas/baseline.sql`, `repositories/supabase/types.ts`.
   - **Done:** Applying/resetting the schema creates the table and RPC, exposes no `user_agent`/PII column, grants no anon/authenticated direct write/read, and the service role can insert and call only the bounded aggregate path; generated/manual Supabase types include `page_visits` and the RPC without widening client access.
@@ -45,7 +45,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–4 h including DB setup.
   - **Dependencias:** T02.
 
-- [ ] **T04 REFACTOR — Harden the SQL contract and type boundary.** Remove duplicated grants/constraints or schema definitions, keep `search_path` fixed for any `SECURITY DEFINER` function, cap route/result sizes, preserve UTC half-open bounds, and keep `repositories/supabase/types.ts` aligned without importing a service client into browser-facing code. <!-- sdd-owner: implementation -->
+- [x] **T04 REFACTOR — Harden the SQL contract and type boundary.** Remove duplicated grants/constraints or schema definitions, keep `search_path` fixed for any `SECURITY DEFINER` function, cap route/result sizes, preserve UTC half-open bounds, and keep `repositories/supabase/types.ts` aligned without importing a service client into browser-facing code. <!-- sdd-owner: implementation -->
   - **Descripción:** Dejar migración, baseline, RPC y tipos coherentes y auditables para despliegue/rollback.
   - **Archivos:** `supabase/migrations/<timestamp>_page_visits.sql`, `supabase/schemas/baseline.sql`, `repositories/supabase/types.ts`.
   - **Done:** `npm run type-check`, the focused DB test, and `npm run precommit:supabase` pass without broad grants, unbounded SQL, or duplicate schema logic.
@@ -61,7 +61,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–3 h.
   - **Dependencias:** T02.
 
-- [ ] **T06 GREEN — Implement the page-visits helper layer.** Create `lib/page-visits/hash.ts` for conservative IP normalization and daily HMAC digesting, `lib/page-visits/types.ts` for internal payload/range/DTO contracts, and `lib/page-visits/ingest.ts` for defensive validation, `isTestUserEmail()` reuse, fail-closed configuration, lazy `createServiceClient()`, minimal `page_visits` insertion, timeout/error isolation, and safe generic logging. Consolidate the design’s crypto responsibility in `hash.ts` rather than adding a duplicate `crypto.ts`. <!-- sdd-owner: implementation -->
+- [x] **T06 GREEN — Implement the page-visits helper layer.** Create `lib/page-visits/hash.ts` for conservative IP normalization and daily HMAC digesting, `lib/page-visits/types.ts` for internal payload/range/DTO contracts, and `lib/page-visits/ingest.ts` for defensive validation, `isTestUserEmail()` reuse, fail-closed configuration, lazy `createServiceClient()`, minimal `page_visits` insertion, timeout/error isolation, and safe generic logging. Consolidate the design’s crypto responsibility in `hash.ts` rather than adding a duplicate `crypto.ts`. <!-- sdd-owner: implementation -->
   - **Descripción:** Abstraer service_role y mantener todos los datos sensibles en memoria hasta producir el digest.
   - **Archivos:** `lib/page-visits/hash.ts`, `lib/page-visits/types.ts`, `lib/page-visits/ingest.ts`, `lib/admin/test-users.ts` only for an import/API compatibility correction.
   - **Done:** The insert payload contains only normalized `path`, UTC `visited_at`, `ip_hash`, and validated optional country; test users and absent HMAC secrets are skipped, service-role creation occurs only inside ingestion, and failures resolve without throwing into middleware.
@@ -75,7 +75,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 1–2 h.
   - **Dependencias:** T06.
 
-- [ ] **T08 REFACTOR — Keep helper responsibilities non-overlapping.** Keep pure normalization/HMAC in `hash.ts`, DTOs in `types.ts`, Supabase and error isolation in `ingest.ts`, and test-user policy delegated to `lib/admin/test-users.ts`; remove any raw-request logging or duplicate secret/IP parsing. <!-- sdd-owner: implementation -->
+- [x] **T08 REFACTOR — Keep helper responsibilities non-overlapping.** Keep pure normalization/HMAC in `hash.ts`, DTOs in `types.ts`, Supabase and error isolation in `ingest.ts`, and test-user policy delegated to `lib/admin/test-users.ts`; remove any raw-request logging or duplicate secret/IP parsing. <!-- sdd-owner: implementation -->
   - **Descripción:** Preparar una superficie pequeña y reutilizable por middleware y tests sin importar Next/Supabase en lógica pura innecesaria.
   - **Archivos:** `lib/page-visits/hash.ts`, `lib/page-visits/types.ts`, `lib/page-visits/ingest.ts`, `tests/node/lib/page-visits-hash.test.ts`, `tests/node/lib/page-visits-ingest.test.ts`.
   - **Done:** `npm run lint` on the touched targets and Prettier checks pass; imports are server-safe and the helper API has one source of truth for privacy rules.
@@ -91,7 +91,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1–2 focused sessions, 3–4 h.
   - **Dependencias:** T06, T08.
 
-- [ ] **T10 GREEN — Integrate the predicate and non-blocking middleware recording.** Add `lib/page-visits/predicate.ts` for eligibility, bot filtering, and pathname normalization; update `lib/supabase/middleware.ts` to expose the already-fetched user to a synchronous callback without a second auth lookup; update `middleware.ts` matcher/signature to construct the session response first, then schedule `recordPageVisit()` through `event.waitUntil()` or a caught fire-and-forget fallback. Preserve existing cookies, headers, session refresh, admin inclusion, test-user exclusion, and optional `PAGE_VISITS_ENABLED` kill switch semantics. <!-- sdd-owner: implementation -->
+- [x] **T10 GREEN — Integrate the predicate and non-blocking middleware recording.** Add `lib/page-visits/predicate.ts` for eligibility, bot filtering, and pathname normalization; update `lib/supabase/middleware.ts` to expose the already-fetched user to a synchronous callback without a second auth lookup; update `middleware.ts` matcher/signature to construct the session response first, then schedule `recordPageVisit()` through `event.waitUntil()` or a caught fire-and-forget fallback. Preserve existing cookies, headers, session refresh, admin inclusion, test-user exclusion, and optional `PAGE_VISITS_ENABLED` kill switch semantics. <!-- sdd-owner: implementation -->
   - **Descripción:** Instrumentar todos los documentos App Router sin bloquear navegación ni persistir query/UA/IP.
   - **Archivos:** `lib/page-visits/predicate.ts`, `lib/supabase/middleware.ts`, `middleware.ts`, `lib/page-visits/ingest.ts` only if the callback payload needs a typed seam.
   - **Done:** Eligible public/authenticated/admin documents schedule exactly one event after response construction; excluded requests do not; async failures are caught, no second `auth.getUser()` occurs, and response status/headers/cookies remain unchanged.
@@ -105,7 +105,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–3 h.
   - **Dependencias:** T10.
 
-- [ ] **T12 REFACTOR — Consolidate middleware filtering and rollback seams.** Remove duplicated matcher/predicate logic, keep `PAGE_VISITS_ENABLED` default/disable behavior explicit, ensure `waitUntil` is feature-detected, and keep session-refresh behavior unchanged for API/static requests even when analytics is skipped. <!-- sdd-owner: implementation -->
+- [x] **T12 REFACTOR — Consolidate middleware filtering and rollback seams.** Remove duplicated matcher/predicate logic, keep `PAGE_VISITS_ENABLED` default/disable behavior explicit, ensure `waitUntil` is feature-detected, and keep session-refresh behavior unchanged for API/static requests even when analytics is skipped. <!-- sdd-owner: implementation -->
   - **Descripción:** Dejar un único predicado reusable y una única ruta de scheduling antes de pasar a agregados.
   - **Archivos:** `middleware.ts`, `lib/page-visits/predicate.ts`, `lib/supabase/middleware.ts`, `tests/middleware.test.ts`, `tests/node/lib/page-visits-predicate.test.ts`.
   - **Done:** Prettier/lint/type-check and focused tests pass; no client bundle imports service-role/HMAC code and disabling analytics changes no navigation behavior.
@@ -123,7 +123,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1–2 focused sessions, 3–4 h.
   - **Dependencias:** T04, T08.
 
-- [ ] **T14 GREEN — Implement the server aggregation service and guarded endpoint.** Create `lib/page-visits/aggregation.ts` with typed range parsing, lazy service-role RPC invocation, bounded dates, zero-fill/peak/top-route DTO materialization, and no raw-row transfer; create `app/api/admin/visits/route.ts` as a dynamic `GET` using `requireAdmin()` before validation/data access, existing `withErrorHandling`/response envelopes, and `Cache-Control: no-store` on success and every handled error. <!-- sdd-owner: implementation -->
+- [x] **T14 GREEN — Implement the server aggregation service and guarded endpoint.** Create `lib/page-visits/aggregation.ts` with typed range parsing, lazy service-role RPC invocation, bounded dates, zero-fill/peak/top-route DTO materialization, and no raw-row transfer; create `app/api/admin/visits/route.ts` as a dynamic `GET` using `requireAdmin()` before validation/data access, existing `withErrorHandling`/response envelopes, and `Cache-Control: no-store` on success and every handled error. <!-- sdd-owner: implementation -->
   - **Descripción:** Exponer solo agregados SQL acotados y mantener la guardia existente como única autorización.
   - **Archivos:** `lib/page-visits/aggregation.ts`, `app/api/admin/visits/route.ts`, `repositories/supabase/types.ts` if the RPC type needs alignment.
   - **Done:** Admin receives exactly the DTO contract for 7/30/90 days; unauthenticated/non-admin callers cannot invoke the service; invalid ranges return 400 without querying; no response contains hashes, UA, IP, identity, query strings, or event rows.
@@ -137,7 +137,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–3 h.
   - **Dependencias:** T14.
 
-- [ ] **T16 REFACTOR — Keep aggregation policy and route coordination separate.** Leave SQL access and DTO materialization in `lib/page-visits/aggregation.ts`, keep `app/api/admin/visits/route.ts` thin, avoid duplicate admin guards/range parsers, and preserve the payment-orders/admin-stats routes unchanged. <!-- sdd-owner: implementation -->
+- [x] **T16 REFACTOR — Keep aggregation policy and route coordination separate.** Leave SQL access and DTO materialization in `lib/page-visits/aggregation.ts`, keep `app/api/admin/visits/route.ts` thin, avoid duplicate admin guards/range parsers, and preserve the payment-orders/admin-stats routes unchanged. <!-- sdd-owner: implementation -->
   - **Descripción:** Reducir el blast radius y asegurar que el navegador nunca recibe filas de eventos.
   - **Archivos:** `lib/page-visits/aggregation.ts`, `app/api/admin/visits/route.ts`, `tests/node/lib/page-visits-aggregation.test.ts`, `tests/node/api/admin-visits-route.test.ts`.
   - **Done:** Prettier/lint/type-check and focused tests pass; route contains no Supabase query, reducer, or authorization policy duplication.
@@ -153,7 +153,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1–2 focused sessions, 3–4 h.
   - **Dependencias:** T16.
 
-- [ ] **T18 GREEN — Build and compose the admin visits section.** Create `components/admin/page-visits-section.tsx` as a client island fetching only `/api/admin/visits?range=...` with `cache: 'no-store'`; use `StatCard`, `.glass-card`, `DashboardLoading`, `ResponsiveContainer`, `AreaChart`, Spanish/i18n labels, daily page views/unique visitors, peaks, bounded top routes, and honest loading/error/empty states; compose it in `app/admin/page.tsx` without a second guard or payment-orders change. <!-- sdd-owner: implementation -->
+- [x] **T18 GREEN — Build and compose the admin visits section.** Create `components/admin/page-visits-section.tsx` as a client island fetching only `/api/admin/visits?range=...` with `cache: 'no-store'`; use `StatCard`, `.glass-card`, `DashboardLoading`, `ResponsiveContainer`, `AreaChart`, Spanish/i18n labels, daily page views/unique visitors, peaks, bounded top routes, and honest loading/error/empty states; compose it in `app/admin/page.tsx` without a second guard or payment-orders change. <!-- sdd-owner: implementation -->
   - **Descripción:** Integrar una sección agregada y responsive en la página admin existente.
   - **Archivos:** `components/admin/page-visits-section.tsx`, `app/admin/page.tsx`, `tests/components/page-visits-section.test.tsx`, `tests/app/admin/page.test.tsx`.
   - **Done:** Authorized admins see cards/chart/table and range changes reload the matching API; unauthorized flows stay unchanged; no component queries Supabase, renders raw rows, sets cookies, or creates a parallel analytics shell.
@@ -167,7 +167,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
   - **Estimación:** 1 focused session, 2–3 h.
   - **Dependencias:** T18.
 
-- [ ] **T20 REFACTOR — Align UI styling, labels, and client/server boundaries.** Reuse existing admin primitives instead of duplicating loading/cards/chart logic, centralize `admin.visits` labels through the existing i18n mechanism when available, and keep the server page responsible only for access control and composition. <!-- sdd-owner: implementation -->
+- [x] **T20 REFACTOR — Align UI styling, labels, and client/server boundaries.** Reuse existing admin primitives instead of duplicating loading/cards/chart logic, centralize `admin.visits` labels through the existing i18n mechanism when available, and keep the server page responsible only for access control and composition. <!-- sdd-owner: implementation -->
   - **Descripción:** Pulir la sección sin introducir framework de analítica, guardia ni traducción paralela.
   - **Archivos:** `components/admin/page-visits-section.tsx`, `app/admin/page.tsx`, `tests/components/page-visits-section.test.tsx`, `tests/app/admin/page.test.tsx`, existing message file only if the repository has one.
   - **Done:** Prettier/lint/type-check and DOM tests pass; the component is aggregate-only, Spanish copy has the established fallback, and no unrelated admin file changes remain.
@@ -194,7 +194,7 @@ Strict TDD is enabled in `openspec/config.yaml`. Tasks marked RED must introduce
 
 ### 7. Documentation and cleanup
 
-- [ ] **T23 GREEN/REFACTOR — Document operation, privacy, and rollback.** Add `docs/page-visits-analytics.md` covering `PAGE_VISITS_ENABLED`, `PAGE_VISITS_HMAC_SECRET`, server-only `SUPABASE_SERVICE_ROLE_KEY`, daily HMAC semantics/rotation, retention by `visit_date`, no raw-IP/User-Agent/query logging, migration/baseline deployment order, monitoring, and kill-switch rollback; update the nearest existing environment/deployment index only if one is actually present. <!-- sdd-owner: implementation -->
+- [x] **T23 GREEN/REFACTOR — Document operation, privacy, and rollback.** Add `docs/page-visits-analytics.md` covering `PAGE_VISITS_ENABLED`, `PAGE_VISITS_HMAC_SECRET`, server-only `SUPABASE_SERVICE_ROLE_KEY`, daily HMAC semantics/rotation, retention by `visit_date`, no raw-IP/User-Agent/query logging, migration/baseline deployment order, monitoring, and kill-switch rollback; update the nearest existing environment/deployment index only if one is actually present. <!-- sdd-owner: implementation -->
   - **Descripción:** Hacer auditable la configuración y el manejo de secretos sin incluir valores reales ni crear un `.env` comprometido.
   - **Archivos:** `docs/page-visits-analytics.md`, `README.md` or existing docs index only if the repository convention requires a link.
   - **Done:** Docs explain setup, rotation invalidation across dates, bounded ranges, RLS/service-role boundaries, retention decision, rollout and rollback; no secret, IP, UA, cookie, user ID, or hosted data is committed.

@@ -24,6 +24,9 @@ const ALLOWED_PREFIXES = [
   // observe production seams and assert real database state.
   'evals/',
   'supabase/functions/',
+  // Page-visits analytics is server-only: service_role via createServiceClient,
+  // RLS denies anon/authenticated, admin-only aggregation via RPC.
+  'lib/page-visits/',
 ];
 
 const ALLOWED_FILES = new Set([
