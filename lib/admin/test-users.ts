@@ -1,6 +1,9 @@
 const DEFAULT_TEST_USER_EMAIL_PATTERNS = [
   'test@fintec.com',
   'eval-fixture-*@fintec.local',
+  'perf-test-*@*',
+  // RFC 6761 reserves .test exclusively for testing.
+  '*@*.test',
 ] as const;
 const MAX_PATTERN_LENGTH = 200;
 const MAX_PATTERN_LIST_LENGTH = 1000;

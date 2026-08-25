@@ -117,7 +117,14 @@ describe('test-user matcher', () => {
     delete process.env.TEST_USER_EMAIL_PATTERNS;
     expect(isTestUserEmail('TEST@FINTEC.COM')).toBe(true);
     expect(isTestUserEmail('eval-fixture-run-1@fintec.local')).toBe(true);
+    expect(isTestUserEmail('perf-test-36@fintec.test')).toBe(true);
+    expect(isTestUserEmail('perf-test-99@other-host.dev')).toBe(true);
+    expect(isTestUserEmail('someone@fintec.test')).toBe(true);
+    expect(isTestUserEmail('someone@sub.fintec.test')).toBe(true);
     expect(isTestUserEmail('eval-fixture-run-1@fintec.local.evil')).toBe(false);
+    expect(isTestUserEmail('real.user@example.com')).toBe(false);
+    expect(isTestUserEmail('user@fintec.tester')).toBe(false);
+    expect(isTestUserEmail('user@fintec.commercial')).toBe(false);
     expect(isTestUserEmail(null)).toBe(false);
     expect(isTestUserEmail('')).toBe(false);
   });
@@ -144,6 +151,8 @@ describe('test-user matcher', () => {
     expect(getTestUserPatterns()).toEqual([
       'test@fintec.com',
       'eval-fixture-*@fintec.local',
+      'perf-test-*@*',
+      '*@*.test',
     ]);
     expect(isTestUserEmail('test@fintec.com')).toBe(true);
     expect(warn).toHaveBeenCalledTimes(1);
