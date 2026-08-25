@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import AccountsPage from '@/app/accounts/accounts-page-client';
+import CalculatorClient from '@/app/calculator/calculator-client';
 import type { BinanceRatesSnapshot } from '@/hooks/use-binance-rates';
 
 const mockBinanceRatesComponent = jest.fn(
@@ -153,13 +153,13 @@ jest.mock('sonner', () => ({
   },
 }));
 
-describe('AccountsPage Binance state wiring', () => {
+describe('Calculator Binance state wiring', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it('passes the shared Binance snapshot into the renderer so balances and card stay in sync', async () => {
-    render(<AccountsPage />);
+    render(<CalculatorClient />);
 
     expect(await screen.findByTestId('binance-card')).toHaveTextContent(
       'fallback:105'
