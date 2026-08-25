@@ -11,6 +11,7 @@ CREATE INDEX IF NOT EXISTS page_visits_visit_date_hash_idx ON public.page_visits
 CREATE INDEX IF NOT EXISTS page_visits_visit_date_path_idx ON public.page_visits (visit_date, path);
 ALTER TABLE public.page_visits ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.page_visits FROM anon, authenticated;
+GRANT ALL ON TABLE public.page_visits TO service_role;
 
 CREATE OR REPLACE FUNCTION public.aggregate_page_visits(start_date date, end_date date)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
