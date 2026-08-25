@@ -48,7 +48,7 @@ describe('middleware', () => {
     const request = { url: 'http://localhost:3000/api/test', method: 'GET' };
     await middleware(request);
 
-    expect(updateSession).toHaveBeenCalledWith(request);
+    expect(updateSession).toHaveBeenCalledWith(request, expect.any(Function));
   });
 
   it('should return the result from updateSession', async () => {
@@ -66,6 +66,6 @@ describe('middleware', () => {
     const matcherPattern = config.matcher[0];
     expect(matcherPattern).toContain('_next/static');
     expect(matcherPattern).toContain('_next/image');
-    expect(matcherPattern).toContain('favicon.ico');
+    expect(matcherPattern).toMatch(/favicon\\?\.ico/);
   });
 });

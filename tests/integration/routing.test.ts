@@ -38,7 +38,7 @@ describe('Routing and Middleware Integration', () => {
     const mockRequest = { url: 'http://localhost/test' } as any;
     await middleware(mockRequest);
 
-    expect(updateSession).toHaveBeenCalledWith(mockRequest);
+    expect(updateSession).toHaveBeenCalledWith(mockRequest, expect.any(Function));
   });
 
   it('proxy.ts should no longer exist at the root', () => {

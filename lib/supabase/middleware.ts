@@ -1,7 +1,10 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
-export async function updateSession(request: NextRequest) {
+export async function updateSession(
+  request: NextRequest,
+  onUser?: (user: { email?: string | null } | null) => void
+) {
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -37,7 +40,8 @@ export async function updateSession(request: NextRequest) {
       },
     });
 
-    await supabase.auth.getUser();
+    const { data } = await supabase.auth.getUser();
+    onUser?.(data.user);
   } catch {
     return response;
   }

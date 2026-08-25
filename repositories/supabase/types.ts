@@ -287,6 +287,12 @@ export interface Database {
         };
         Relationships: [];
       };
+      page_visits: {
+        Row: { id: string; visited_at: string; visit_date: string; path: string; ip_hash: string; country_code: string | null };
+        Insert: { id?: string; visited_at?: string; path: string; ip_hash: string; country_code?: string | null };
+        Update: never;
+        Relationships: [];
+      };
       notifications: {
         Row: SupabaseNotification;
         Insert: {
@@ -317,9 +323,9 @@ export interface Database {
     Views: {
       [_ in never]: never;
     };
-    Functions: {
-      [_ in never]: never;
-    };
+        Functions: {
+          aggregate_page_visits: { Args: { start_date: string; end_date: string }; Returns: unknown };
+        };
     Enums: {
       account_type:
         | 'CASH'
