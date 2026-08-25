@@ -20,6 +20,7 @@ import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { FinTecLogo } from '@/components/branding/fintec-logo';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -167,7 +168,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
 
   if (isMobile) {
     return (
-      <header className="ios-header sticky top-0 z-50 flex w-full max-w-full shrink-0 flex-col overflow-x-hidden shadow-sm">
+      <header className="ios-header sticky top-0 z-50 flex w-full max-w-full shrink-0 flex-col shadow-sm">
         <div
           aria-hidden="true"
           className="w-full shrink-0"
@@ -197,8 +198,8 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                 </motion.div>
               </AnimatePresence>
             </button>
-            <h1 className="text-ios-title font-bold tracking-tight text-foreground">
-              {getPageTitle()}
+            <h1 aria-label={getPageTitle()} className="flex h-7 w-24 items-center">
+              <FinTecLogo containerClassName="h-7 w-24" priority alt="FinTec" />
             </h1>
           </div>
 

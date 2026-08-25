@@ -199,7 +199,7 @@ describe('Header overlay portalization', () => {
     const mobileRow = header.lastElementChild;
     const userButton = screen.getByLabelText('Abrir menú de usuario');
 
-    expect(header).toHaveClass('overflow-x-hidden');
+    expect(header).not.toHaveClass('overflow-x-hidden');
     expect(safeAreaSpacer).toHaveAttribute('aria-hidden', 'true');
     expect(mobileRow).toHaveClass(
       'flex',

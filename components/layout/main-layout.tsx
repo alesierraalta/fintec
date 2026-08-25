@@ -6,7 +6,6 @@ import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
 import Header from './header';
 import { MobileNav } from './mobile-nav';
-import { MobileMenuFAB } from './mobile-menu-fab';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
@@ -123,9 +122,6 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
       {/* Mobile Navigation */}
       {!hideMobileChrome && <MobileNav />}
-
-      {/* Mobile Menu FAB */}
-      {!hideMobileChrome && <MobileMenuFAB />}
 
       {/* Floating Add Transaction Button */}
       {showGlobalFab && (
