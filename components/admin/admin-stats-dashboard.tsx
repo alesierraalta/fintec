@@ -6,8 +6,7 @@ import { StatCard } from '@/components/dashboard/stat-card';
 import { DashboardLoading } from '@/components/ui/suspense-loading';
 import { Button } from '@/components/ui/button';
 import type { AdminStats, StatsWindow } from '@/lib/admin-stats/types';
-import { AdminStatsCharts } from './admin-stats-charts';
-import { AdminFeatureUsage } from './admin-feature-usage';
+import { LazyAdminCharts } from './lazy-admin-charts';
 import { UserRoster } from './user-roster';
 
 const windows: StatsWindow[] = ['7d', '30d', '90d'];
@@ -93,8 +92,7 @@ export function AdminStatsDashboard() {
           Sin actividad de actualización de sesión en la ventana seleccionada.
         </p>
       )}
-      <AdminStatsCharts data={data} />
-      <AdminFeatureUsage featureUsage={data.featureUsage} />
+      <LazyAdminCharts data={data} />
       <UserRoster users={data.users.list} />
       <section className="glass-card rounded-3xl p-6">
         <h2 className="text-lg font-semibold">Recursos totales</h2>

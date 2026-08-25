@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
-import { WaitlistSchema, WaitlistFormType } from '@/lib/validations/schemas';
-import { cn } from '@/lib/utils'; // Assuming utils exists, standard in shadcn/ui
+import { cn } from '@/lib/utils';
+
+// Lightweight client-side check only: pulling in zod here used to add a
+// ~240 KB chunk to this public page. The /api/waitlist route re-validates
+// every payload with WaitlistSchema.authoritatively.
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 interface WaitlistFormProps {
   onSuccess?: () => void;
@@ -14,30 +16,33 @@ interface WaitlistFormProps {
 }
 
 export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
+  const [email, setEmail] = useState('');
+  const [honeypot, setHoneypot] = useState('');
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-  } = useForm<WaitlistFormType>({
-    resolver: zodResolver(WaitlistSchema),
-    defaultValues: {
-      email: '',
-      honeypot: '',
-      referrer: typeof window !== 'undefined' ? document.referrer : '',
-    },
-  });
-
-  const onSubmit = async (data: WaitlistFormType) => {
+  const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setServerError(null);
+
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setFieldError('Ingresa un correo electrónico válido');
+      return;
+    }
+    setFieldError(null);
+    setIsSubmitting(true);
+
     try {
       const response = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          email,
+          honeypot,
+          referrer: typeof document !== 'undefined' ? document.referrer : '',
+        }),
       });
 
       const result = await response.json();
@@ -47,7 +52,7 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
       }
 
       setIsSuccess(true);
-      reset();
+      setEmail('');
       if (onSuccess) {
         onSuccess();
       }
@@ -57,6 +62,8 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
       } else {
         setServerError('An unexpected error occurred');
       }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -96,14 +103,16 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
 
   return (
     <form
-      onSubmit={handleSubmit(onSubmit)}
+      onSubmit={onSubmit}
+      noValidate
       className={cn('relative mx-auto w-full max-w-md', className)}
     >
       <div className="group relative">
         <div className="absolute -inset-0.5 rounded-xl bg-gradient-to-r from-primary to-blue-600 opacity-30 blur transition duration-1000 group-hover:opacity-100 group-hover:duration-200"></div>
         <div className="relative flex items-center rounded-xl bg-card p-1 shadow-2xl ring-1 ring-white/10">
           <input
-            {...register('email')}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             type="email"
             placeholder="tu@email.com"
             disabled={isSubmitting}
@@ -126,7 +135,8 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
 
       {/* Honeypot field - hidden */}
       <input
-        {...register('honeypot')}
+        value={honeypot}
+        onChange={(e) => setHoneypot(e.target.value)}
         type="text"
         className="hidden"
         tabIndex={-1}
@@ -134,7 +144,7 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
       />
 
       <AnimatePresence>
-        {(errors.email || serverError) && (
+        {(fieldError || serverError) && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -142,7 +152,7 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
             className="absolute left-0 right-0 top-full mt-3 flex items-center justify-center rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-500"
           >
             <AlertCircle className="mr-2 h-4 w-4" />
-            <span>{errors.email?.message || serverError}</span>
+            <span>{fieldError || serverError}</span>
           </motion.div>
         )}
       </AnimatePresence>

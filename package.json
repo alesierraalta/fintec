@@ -77,7 +77,6 @@
     "@capacitor/keyboard": "^8.0.0",
     "@capacitor/splash-screen": "^8.0.0",
     "@capacitor/status-bar": "^8.0.0",
-    "@fontsource/inter": "^5.2.8",
     "@formkit/drag-and-drop": "^0.5.3",
     "@hookform/resolvers": "^5.2.2",
     "@supabase/ssr": "^0.7.0",
