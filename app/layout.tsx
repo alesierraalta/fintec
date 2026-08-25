@@ -4,6 +4,7 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { RouteAwareProviders } from './route-aware-providers';
+import { ServiceWorkerRegistration } from './service-worker-registration';
 import { getAdminVisibility } from '@/lib/admin/guard';
 import './globals.css';
 
@@ -62,6 +63,7 @@ export default async function RootLayout({
         <Analytics />
         <SpeedInsights />
         <Toaster position="top-right" richColors />
+        <ServiceWorkerRegistration />
         <div id="modal-root" />
       </body>
     </html>
