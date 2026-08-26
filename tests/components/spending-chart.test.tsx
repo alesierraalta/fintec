@@ -2,6 +2,12 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import dayjs from '@/lib/dates/dayjs';
 
+// Mock Next router
+const mockPush = jest.fn();
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
+
 // Mock hooks
 jest.mock('@/hooks/use-optimized-data', () => ({
   useOptimizedTransactions: jest.fn(),
@@ -418,6 +424,31 @@ describe('SpendingChart Component', () => {
 
       expect(screen.getByText(/Alimentación \(75%\)/i)).toBeInTheDocument();
       expect(screen.queryByText('Total gastado')).not.toBeInTheDocument();
+    });
+
+    it('should navigate to the selected category transactions', () => {
+      const todayIso = dayjs().toISOString();
+      (useOptimizedTransactions as jest.Mock).mockReturnValue({
+        expenseTransactions: [
+          {
+            id: 'tx-1',
+            type: 'EXPENSE',
+            amountMinor: 5000,
+            currencyCode: 'USD',
+            categoryId: 'cat-1',
+            date: todayIso,
+          },
+        ],
+        categories: mockCategories,
+        loading: false,
+      });
+
+      render(<SpendingChart />);
+      fireEvent.click(screen.getByRole('button', { name: /Alimentación/i }));
+
+      expect(mockPush).toHaveBeenCalledWith(
+        '/transactions?categoryId=cat-1&type=EXPENSE'
+      );
     });
 
     it('should update center stats when hovering a pie cell', () => {

@@ -4,6 +4,8 @@ import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
+import { LazySpendingChart } from './lazy-spending-chart';
+import { IncomeSources } from './income-sources';
 import { AccountsOverview } from './accounts-overview';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { fromMinorUnits } from '@/lib/money';
@@ -479,6 +481,14 @@ export function MobileDashboard() {
           </h3>
         </div>
         <QuickActions />
+      </div>
+
+      {/* Spending and income sources */}
+      <div className="glass-card space-y-8 rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
+        <LazySpendingChart />
+        <div className="border-t border-border/30 pt-6">
+          <IncomeSources />
+        </div>
       </div>
 
       {/* iOS-style Recent Transactions */}

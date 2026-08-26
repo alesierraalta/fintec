@@ -24,7 +24,8 @@ import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
-import type { Transaction, TransactionType } from '@/types/domain';
+import { TransactionType } from '@/types/domain';
+import type { Transaction } from '@/types/domain';
 import {
   Plus,
   ArrowDownLeft,
@@ -54,6 +55,7 @@ const TransactionForm = dynamic(
 );
 
 const ITEMS_PER_PAGE = 50;
+const TRANSACTION_TYPES = new Set<string>(Object.values(TransactionType));
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   USD: '$',
@@ -81,6 +83,12 @@ export default function TransactionsPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const searchQuery = searchParams.get('search') || '';
+  const categoryIdQuery = searchParams.get('categoryId') || '';
+  const typeParam = searchParams.get('type');
+  const typeQuery =
+    typeParam && TRANSACTION_TYPES.has(typeParam)
+      ? (typeParam as TransactionType)
+      : null;
   const { isOpen, openModal, closeModal } = useModal();
   const {
     transactions,
@@ -129,6 +137,8 @@ export default function TransactionsPage() {
     debtMode?: 'ALL' | 'ONLY_DEBT' | 'EXCLUDE_DEBT';
   }>({
     search: searchQuery || undefined,
+    categoryId: categoryIdQuery || undefined,
+    type: typeQuery || undefined,
   });
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -324,17 +334,18 @@ export default function TransactionsPage() {
     (newFilters: any) => {
       setFilters(newFilters);
 
-      // Sync search to URL if it changed in filters
-      if (typeof newFilters.search !== 'undefined') {
-        const params = new URLSearchParams(searchParams.toString());
-        if (newFilters.search) {
-          params.set('search', newFilters.search);
+      // Keep filter state in the URL so dashboard links survive the first render.
+      const params = new URLSearchParams(searchParams.toString());
+      for (const key of ['search', 'categoryId', 'type']) {
+        const value = newFilters[key];
+        if (value) {
+          params.set(key, value);
         } else {
-          params.delete('search');
+          params.delete(key);
         }
-        const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-        router.replace(newUrl, { scroll: false });
       }
+      const newUrl = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      router.replace(newUrl, { scroll: false });
     },
     [router, pathname, searchParams]
   );
@@ -740,6 +751,8 @@ export default function TransactionsPage() {
             <TransactionFilters
               onFiltersChange={handleFiltersChange}
               initialSearch={searchQuery}
+              initialCategoryId={categoryIdQuery}
+              initialType={typeQuery || ''}
             />
           </CollapsibleSection>
 

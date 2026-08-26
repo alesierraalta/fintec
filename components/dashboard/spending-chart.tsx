@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, memo } from 'react';
+import { useRouter } from 'next/navigation';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import {
   DollarSign,
@@ -254,6 +255,7 @@ function SpendingChartComponent({
 
   const activeUsdVesRate = useActiveUsdVesRate();
   const { convert } = useCurrencyConverter();
+  const router = useRouter();
 
   const [selectedPeriod, setSelectedPeriod] =
     useState<SpendingPeriod>(initialPeriod);
@@ -331,26 +333,37 @@ function SpendingChartComponent({
       return { spendingData: [], totalSpending: 0 };
     }
 
-    const categoryMap = new Map<string, number>();
+    const categoryMap = new Map<
+      string,
+      { id: string; name: string; categoryId?: string; value: number }
+    >();
     let total = 0;
 
     filteredExpenses.forEach((expense) => {
       const category = categories.find((c) => c.id === expense.categoryId);
-      const categoryName = category?.name || 'Sin categoría';
+      const categoryKey = category?.id || 'uncategorized';
       const amountUSD = convertExpenseToUSD(expense);
 
       total += amountUSD;
-      categoryMap.set(
-        categoryName,
-        (categoryMap.get(categoryName) || 0) + amountUSD
-      );
+      const current = categoryMap.get(categoryKey);
+      categoryMap.set(categoryKey, {
+        id: categoryKey,
+        name: category?.name || 'Sin categoría',
+        categoryId: category?.id,
+        value: (current?.value || 0) + amountUSD,
+      });
     });
 
-    const sortedEntries = Array.from(categoryMap.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    const sortedEntries = Array.from(categoryMap.values()).sort(
+      (a, b) => b.value - a.value
+    );
 
-    let aggregatedList: { name: string; value: number }[] = [];
+    let aggregatedList: {
+      id: string;
+      name: string;
+      categoryId?: string;
+      value: number;
+    }[] = [];
 
     if (sortedEntries.length > MAX_VISIBLE_CATEGORIES) {
       const topItems = sortedEntries.slice(0, MAX_VISIBLE_CATEGORIES - 1);
@@ -360,16 +373,21 @@ function SpendingChartComponent({
         0
       );
 
-      aggregatedList = [...topItems, { name: 'Otras', value: surplusTotal }];
+      aggregatedList = [
+        ...topItems,
+        { id: 'other', name: 'Otras', value: surplusTotal },
+      ];
     } else {
       aggregatedList = sortedEntries;
     }
 
     const items = aggregatedList.map((item) => ({
+      id: item.id,
       name: item.name,
       value: item.value,
       percentage: total > 0 ? Math.round((item.value / total) * 100) : 0,
       color: getCategoryColor(item.name),
+      categoryId: item.categoryId,
       icon: getCategoryIcon(item.name),
     }));
 
@@ -384,6 +402,15 @@ function SpendingChartComponent({
     activeIndex !== null && spendingData[activeIndex]
       ? spendingData[activeIndex]
       : null;
+
+  const navigateToCategory = (index: number) => {
+    const categoryId = spendingData[index]?.categoryId;
+    if (categoryId) {
+      router.push(
+        `/transactions?categoryId=${encodeURIComponent(categoryId)}&type=EXPENSE`
+      );
+    }
+  };
 
   return (
     <div className={`space-y-6 ${className}`}>
@@ -471,13 +498,18 @@ function SpendingChartComponent({
                     animationDuration={600}
                     onMouseEnter={(_, index) => setActiveIndex(index)}
                     onMouseLeave={() => setActiveIndex(selectedIndex)}
+                    onClick={(_, index) => {
+                      if (spendingData[index]?.categoryId) {
+                        navigateToCategory(index);
+                      }
+                    }}
                   >
                     {spendingData.map((entry, index) => {
                       const isHighlighted =
                         activeIndex === null || activeIndex === index;
                       return (
                         <Cell
-                          key={`cell-${entry.name}-${index}`}
+                          key={`cell-${entry.id}`}
                           fill={entry.color}
                           opacity={isHighlighted ? 1 : 0.35}
                           stroke={
@@ -486,7 +518,7 @@ function SpendingChartComponent({
                               : 'transparent'
                           }
                           strokeWidth={activeIndex === index ? 2 : 0}
-                          className="cursor-pointer transition-all duration-200"
+                          className={`${entry.categoryId ? 'cursor-pointer' : 'cursor-default'} transition-all duration-200`}
                         />
                       );
                     })}
@@ -556,18 +588,23 @@ function SpendingChartComponent({
               return (
                 <button
                   type="button"
-                  key={item.name}
-                  aria-pressed={selectedIndex === index}
+                  key={item.id}
+                  aria-pressed={item.categoryId ? selectedIndex === index : undefined}
+                  disabled={!item.categoryId}
                   onClick={() => {
+                    if (!item.categoryId) return;
                     setSelectedIndex(index);
                     setActiveIndex(index);
+                    navigateToCategory(index);
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(selectedIndex)}
-                  className={`flex min-h-[44px] w-full cursor-pointer items-center justify-between rounded-xl border p-2.5 text-left backdrop-blur-sm transition-all duration-200 ${
+                  className={`flex min-h-[44px] w-full ${item.categoryId ? 'cursor-pointer' : 'cursor-default'} items-center justify-between rounded-xl border p-2.5 text-left backdrop-blur-sm transition-all duration-200 ${
                     isSelected
                       ? 'scale-[1.02] border-primary/40 bg-card/90 shadow-ios-md'
-                      : 'border-border/20 bg-card/60 hover:border-border/40 hover:bg-card/80'
+                      : item.categoryId
+                          ? 'border-border/20 bg-card/60 hover:border-border/40 hover:bg-card/80'
+                          : 'border-border/20 bg-card/60'
                   }`}
                 >
                   <div className="flex items-center space-x-3">

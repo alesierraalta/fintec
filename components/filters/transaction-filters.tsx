@@ -11,6 +11,8 @@ interface TransactionFiltersProps {
   onFiltersChange: (filters: any) => void;
   className?: string;
   initialSearch?: string;
+  initialCategoryId?: string;
+  initialType?: string;
 }
 
 const transactionTypes = [
@@ -39,6 +41,8 @@ export function TransactionFilters({
   onFiltersChange,
   className,
   initialSearch = '',
+  initialCategoryId = '',
+  initialType = '',
 }: TransactionFiltersProps) {
   const { accounts: rawAccounts, categories: rawCategories } =
     useOptimizedData();
@@ -46,8 +50,8 @@ export function TransactionFilters({
   const [filters, setFilters] = useState({
     search: initialSearch,
     accountId: '',
-    categoryId: '',
-    type: '',
+    categoryId: initialCategoryId,
+    type: initialType,
     period: '',
     dateFrom: '',
     dateTo: '',

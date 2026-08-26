@@ -7,6 +7,7 @@ import { SkeletonStatCard } from '@/components/ui/skeleton-stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { LazySpendingChart } from './lazy-spending-chart';
+import { IncomeSources } from './income-sources';
 import { AccountsOverview } from './accounts-overview';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useRepository } from '@/providers';
@@ -592,6 +593,9 @@ export function DesktopDashboard() {
             </h2>
           </div>
           <LazySpendingChart />
+          <div className="mt-8 border-t border-border/30 pt-6">
+            <IncomeSources />
+          </div>
         </div>
 
         {/* Accounts Overview */}
