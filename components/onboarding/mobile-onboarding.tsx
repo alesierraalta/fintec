@@ -13,12 +13,14 @@ const slides = [
   },
   {
     title: 'Control total',
-    description: 'Organiza gastos, ingresos, presupuestos y cuentas sin esfuerzo.',
+    description:
+      'Organiza gastos, ingresos, presupuestos y cuentas sin esfuerzo.',
     icon: TrendingUp,
   },
   {
     title: 'Tasas reales',
-    description: 'Consulta BCV y Binance P2P en tiempo real, sin salir de la app.',
+    description:
+      'Consulta BCV y Binance P2P en tiempo real, sin salir de la app.',
     icon: ShieldCheck,
   },
 ] as const;
@@ -28,7 +30,10 @@ type MobileOnboardingProps = {
   onSkip: () => void;
 };
 
-export function MobileOnboarding({ onComplete, onSkip }: MobileOnboardingProps) {
+export function MobileOnboarding({
+  onComplete,
+  onSkip,
+}: MobileOnboardingProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const slide = slides[currentSlide];
   const Icon = slide.icon;
@@ -46,35 +51,43 @@ export function MobileOnboarding({ onComplete, onSkip }: MobileOnboardingProps) 
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex min-h-dynamic-screen items-center justify-center bg-black px-5 py-6 text-white backdrop-blur-md animate-fade-in"
+      className="min-h-dynamic-screen fixed inset-0 z-[100] flex animate-fade-in items-center justify-center bg-background px-5 py-6 text-white"
       role="dialog"
       aria-modal="true"
       aria-labelledby="mobile-onboarding-title"
       aria-describedby="mobile-onboarding-description"
     >
-      <div className="glass-card flex min-h-[min(42rem,calc(100dvh-3rem))] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-white/15 bg-white/[0.08] shadow-ios-lg">
+      <div className="black-theme-card flex min-h-[min(42rem,calc(100dvh-3rem))] w-full max-w-md flex-col overflow-hidden rounded-3xl p-0 shadow-2xl">
         <div className="flex items-center justify-center px-6 pb-2 pt-[max(1.5rem,env(safe-area-inset-top))]">
-          <FinTecLogo
-            containerClassName="h-8 w-28"
-            priority
-            alt="FinTec"
-          />
+          <FinTecLogo containerClassName="h-8 w-28" priority alt="FinTec" />
         </div>
 
-        <div key={currentSlide} className="flex flex-1 flex-col items-center justify-center px-8 text-center animate-fade-in">
+        <div
+          key={currentSlide}
+          className="flex flex-1 animate-fade-in flex-col items-center justify-center px-8 text-center"
+        >
           <div className="mb-8 flex h-24 w-24 items-center justify-center rounded-3xl border border-primary/30 bg-primary/15 text-primary shadow-glow">
             <Icon size={42} strokeWidth={1.7} aria-hidden="true" />
           </div>
-          <h1 id="mobile-onboarding-title" className="text-ios-large-title font-semibold tracking-tight">
+          <h1
+            id="mobile-onboarding-title"
+            className="text-ios-large-title font-semibold tracking-tight"
+          >
             {slide.title}
           </h1>
-          <p id="mobile-onboarding-description" className="mt-4 max-w-xs text-ios-body text-white/65">
+          <p
+            id="mobile-onboarding-description"
+            className="mt-4 max-w-xs text-ios-body text-white/65"
+          >
             {slide.description}
           </p>
         </div>
 
         <div className="px-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4">
-          <div className="mb-6 flex justify-center gap-2" aria-label={`Paso ${currentSlide + 1} de ${slides.length}`}>
+          <div
+            className="mb-6 flex justify-center gap-2"
+            aria-label={`Paso ${currentSlide + 1} de ${slides.length}`}
+          >
             {slides.map((item, index) => (
               <span
                 key={item.title}
