@@ -22,10 +22,10 @@ interface FloatingActionButtonProps {
 }
 
 const positionClasses = {
-  'bottom-right': 'right-4 sm:right-6 bottom-[120px] sm:bottom-6 mb-safe-bottom',
+  'bottom-right': 'right-4 sm:right-6 bottom-mobile-chrome mb-4',
   'bottom-center':
-    'left-1/2 transform -translate-x-1/2 bottom-[120px] sm:bottom-6 mb-safe-bottom',
-  'bottom-left': 'left-4 sm:left-6 bottom-[120px] sm:bottom-6 mb-safe-bottom',
+    'left-1/2 transform -translate-x-1/2 bottom-mobile-chrome mb-4',
+  'bottom-left': 'left-4 sm:left-6 bottom-mobile-chrome mb-4',
 };
 
 const variantClasses = {
@@ -97,7 +97,7 @@ export function FloatingActionButton({
           onClick={onClick}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className={`fixed z-50 ${positionClasses[position]} ${extended ? 'rounded-full px-5 py-4' : 'rounded-full p-4'} ${variantClasses[variant]} font-medium text-white shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 active:shadow-lg ${className} `}
+          className={`fixed z-[40] ${positionClasses[position]} ${extended ? 'rounded-full px-5 py-4' : 'rounded-full p-4'} ${variantClasses[variant]} font-medium text-white shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 active:shadow-lg ${className} `}
           aria-label={label}
         >
           <motion.div className="flex items-center space-x-2" layout>

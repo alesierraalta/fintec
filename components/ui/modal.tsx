@@ -90,7 +90,7 @@ export function Modal({
   return (
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -171,7 +171,7 @@ export function Modal({
             {/* Content - scrollable area */}
             <div
               className={cn(
-                'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+                'min-h-0 flex-1 overflow-y-auto overscroll-contain pb-safe-bottom',
                 title || description ? 'px-4 py-4 sm:px-6' : ''
               )}
             >

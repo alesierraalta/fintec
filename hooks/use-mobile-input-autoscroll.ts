@@ -18,7 +18,10 @@ import { useMediaQuery } from './use-media-query';
  * }
  * ```
  */
-export function useMobileInputAutoScroll(delay: number = 300) {
+export function useMobileInputAutoScroll(
+  delay: number = 300,
+  containerSelector = '#root'
+) {
   const isMobile = useMediaQuery('(max-width: 1023px)');
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -26,7 +29,10 @@ export function useMobileInputAutoScroll(delay: number = 300) {
   const handleFocus = useCallback(
     (e: FocusEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      if (
+            target.closest(containerSelector) &&
+            (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')
+          ) {
         // Clear any pending timeout to avoid memory leaks
         if (scrollTimeoutRef.current) {
           clearTimeout(scrollTimeoutRef.current);
@@ -43,7 +49,7 @@ export function useMobileInputAutoScroll(delay: number = 300) {
         }, delay);
       }
     },
-    [delay]
+    [containerSelector, delay]
   );
 
   useEffect(() => {

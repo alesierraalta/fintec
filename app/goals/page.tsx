@@ -279,7 +279,7 @@ export default function GoalsPage() {
 
   return (
     <MainLayout>
-      <div className="animate-fade-in space-y-8">
+      <div className="min-w-0 animate-fade-in space-y-8">
         {/* iOS-style Header */}
         <div className="py-8 text-center">
           <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
@@ -310,7 +310,7 @@ export default function GoalsPage() {
         </div>
 
         {/* iOS-style Summary Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
