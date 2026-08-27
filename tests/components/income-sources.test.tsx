@@ -78,10 +78,24 @@ describe('IncomeSources', () => {
       />
     );
 
-    expect(screen.getByText('Salario')).toBeInTheDocument();
+    expect(screen.getAllByText('Salario')).toHaveLength(2);
     expect(screen.getByText('$125.00')).toBeInTheDocument();
-    expect(screen.getByText('Freelance')).toBeInTheDocument();
+    expect(screen.getAllByText('Freelance')).toHaveLength(2);
     expect(screen.getByText('$50.00')).toBeInTheDocument();
+
+    const chart = screen.getByTestId('income-sources-chart');
+    expect(chart).toBeInTheDocument();
+    expect(
+      screen.getByRole('progressbar', { name: 'Salario: 71.4%' })
+    ).toHaveAttribute('aria-valuenow', '71.4');
+    expect(
+      screen.getByRole('progressbar', { name: 'Freelance: 28.6%' })
+    ).toHaveAttribute('aria-valuenow', '28.6');
+
+    const salaryBar = screen.getByRole('progressbar', {
+      name: 'Salario: 71.4%',
+    }).firstElementChild as HTMLElement;
+    expect(Number.parseFloat(salaryBar.style.width)).toBeCloseTo(71.43, 2);
   });
 
   it('shows a clear empty state when there is no current-month income', () => {

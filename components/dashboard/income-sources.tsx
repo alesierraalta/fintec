@@ -45,7 +45,7 @@ function IncomeSourcesComponent({
     const now = dayjs();
     const sourceMap = new Map<
       string,
-      { id: string; name: string; amount: number }
+      { id: string; name: string; amount: number; color?: string }
     >();
 
     transactions.forEach((transaction) => {
@@ -80,11 +80,18 @@ function IncomeSourcesComponent({
         id: key,
         name: category?.name || 'Sin categoría',
         amount: (current?.amount || 0) + amount,
+        color: category?.color,
       });
     });
 
     return Array.from(sourceMap.values()).sort((a, b) => b.amount - a.amount);
   }, [transactions, categories, activeUsdVesRate, convert]);
+  const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
+  const fallbackColors = [
+    'hsl(var(--primary))',
+    'hsl(var(--success))',
+    'hsl(var(--accent))',
+  ];
 
   return (
     <section
@@ -119,7 +126,53 @@ function IncomeSourcesComponent({
           </p>
         </div>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2">
+        <>
+          <div
+            className="glass-card space-y-3 rounded-2xl p-4"
+            data-testid="income-sources-chart"
+            role="list"
+            aria-label="Distribución de ingresos por categoría"
+          >
+            {sources.map((source, index) => {
+              const percentage =
+                totalIncome > 0 ? (source.amount / totalIncome) * 100 : 0;
+              const percentageLabel = `${new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 1,
+              }).format(percentage)}%`;
+
+              return (
+                <div key={source.id} className="space-y-1.5" role="listitem">
+                  <div className="flex items-center justify-between gap-3 text-ios-caption">
+                    <span className="min-w-0 truncate font-medium text-foreground">
+                      {source.name}
+                    </span>
+                    <span className="shrink-0 text-muted-foreground">
+                      {percentageLabel}
+                    </span>
+                  </div>
+                  <div
+                    className="h-2.5 w-full overflow-hidden rounded-full bg-muted/50"
+                    role="progressbar"
+                    aria-label={`${source.name}: ${percentageLabel}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Number(percentage.toFixed(1))}
+                  >
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${percentage}%`,
+                        backgroundColor:
+                          source.color || fallbackColors[index % fallbackColors.length],
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="grid gap-2 sm:grid-cols-2">
           {sources.map((source) => (
             <div
               key={source.id}
@@ -139,7 +192,8 @@ function IncomeSourcesComponent({
               </span>
             </div>
           ))}
-        </div>
+          </div>
+        </>
       )}
     </section>
   );
