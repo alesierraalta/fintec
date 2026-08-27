@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useMemo, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { ArrowDownToLine, DollarSign, Package } from 'lucide-react';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
@@ -95,9 +95,16 @@ function IncomeSourcesComponent({
 
     return Array.from(sourceMap.values()).sort((a, b) => b.amount - a.amount);
   }, [transactions, categories, activeUsdVesRate, convert]);
-  const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
+  useEffect(() => {
+        setActiveIndex(null);
+        setSelectedIndex(null);
+      }, [sources]);
+
+      const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const activeSource = activeIndex === null ? null : sources[activeIndex];
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const displayedIndex = activeIndex ?? selectedIndex;
+  const activeSource = displayedIndex === null ? null : sources[displayedIndex];
   const formatPercentage = (amount: number) =>
     `${percentageFormatter.format(
       totalIncome > 0 ? (amount / totalIncome) * 100 : 0
@@ -140,24 +147,29 @@ function IncomeSourcesComponent({
           <div
             className="glass-card relative rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl"
             data-testid="income-sources-chart"
-            role="img"
-            aria-label="Distribución de ingresos por categoría"
           >
-            <div className="relative h-[260px] w-full sm:h-[300px]">
+            <div
+              className="relative h-[260px] w-full sm:h-[300px]"
+              role="img"
+              aria-label="Distribución de ingresos por categoría"
+            >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={sources}
                     cx="50%"
                     cy="50%"
-                    innerRadius="54%"
-                    outerRadius="78%"
+                    innerRadius="58%"
+                    outerRadius="82%"
                     paddingAngle={sources.length > 1 ? 3 : 0}
                     dataKey="amount"
                     nameKey="name"
                     onMouseEnter={(_, index) => setActiveIndex(index)}
-                    onMouseLeave={() => setActiveIndex(null)}
-                    onClick={(_, index) => setActiveIndex(index)}
+                    onMouseLeave={() => setActiveIndex(selectedIndex)}
+                    onClick={(_, index) => {
+                      setSelectedIndex(index);
+                      setActiveIndex(index);
+                    }}
                   >
                     {sources.map((source, index) => (
                       <Cell
@@ -193,17 +205,16 @@ function IncomeSourcesComponent({
                 </div>
               </div>
             </div>
-          </div>
 
           <div
-            className="grid gap-2 sm:grid-cols-2"
+            className="mt-2 grid gap-2 border-t border-border/20 pt-2 sm:grid-cols-2"
             role="list"
             aria-label="Detalle de fuentes de ingresos"
           >
             {sources.map((source) => (
               <div
                 key={source.id}
-                className="glass-card transition-smooth flex min-h-[44px] items-center justify-between rounded-2xl px-4 py-3"
+                className="flex min-h-[44px] items-center justify-between border-t border-border/20 px-2 py-3 first:border-t-0"
                 role="listitem"
               >
                 <div className="flex min-w-0 items-center gap-3">
@@ -223,6 +234,7 @@ function IncomeSourcesComponent({
                 </span>
               </div>
             ))}
+          </div>
           </div>
         </>
       )}

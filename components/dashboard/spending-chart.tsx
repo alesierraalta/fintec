@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo, memo } from 'react';
+import React, { useEffect, useState, useMemo, memo } from 'react';
 import { useRouter } from 'next/navigation';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import {
   DollarSign,
   ShoppingCart,
@@ -202,12 +202,9 @@ export function SpendingChartSkeleton() {
         <Skeleton className="h-8 w-64 rounded-xl" />
       </div>
 
-
-
       <div className="relative flex h-[280px] items-center justify-center">
         <div className="h-52 w-52 rounded-full border-[18px] border-muted/50" />
         <div className="absolute flex flex-col items-center justify-center space-y-2">
-
           <Skeleton className="h-5 w-24 rounded" />
           <Skeleton className="h-3 w-12 rounded" />
         </div>
@@ -233,7 +230,6 @@ export function SpendingChartSkeleton() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }
@@ -394,13 +390,19 @@ function SpendingChartComponent({
     return { spendingData: items, totalSpending: total };
   }, [filteredExpenses, categories, activeUsdVesRate, convert]);
 
+  useEffect(() => {
+        setActiveIndex(null);
+        setSelectedIndex(null);
+      }, [spendingData]);
+
   if (isLoading) {
     return <SpendingChartSkeleton />;
   }
 
+  const displayedIndex = activeIndex ?? selectedIndex;
   const activeCategory =
-    activeIndex !== null && spendingData[activeIndex]
-      ? spendingData[activeIndex]
+    displayedIndex !== null && spendingData[displayedIndex]
+      ? spendingData[displayedIndex]
       : null;
 
   const navigateToCategory = (index: number) => {
@@ -477,12 +479,13 @@ function SpendingChartComponent({
         <>
           <div
               className="grid gap-6"
-              style={{
-                gridTemplateColumns:
-                  'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-              }}
+            style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
             >
-          <div className="relative flex h-[280px] w-full items-center justify-center">
+          <div
+            className="relative flex h-[280px] w-full items-center justify-center"
+            role="img"
+            aria-label="Distribución de gastos por categoría"
+          >
             <div className="h-full w-full max-w-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -490,8 +493,8 @@ function SpendingChartComponent({
                     data={spendingData}
                     cx="50%"
                     cy="50%"
-                    innerRadius="32%"
-                    outerRadius="48%"
+                      innerRadius="58%"
+                      outerRadius="84%"
                     paddingAngle={spendingData.length > 1 ? 3 : 0}
                     dataKey="value"
                     animationBegin={0}
@@ -499,9 +502,10 @@ function SpendingChartComponent({
                     onMouseEnter={(_, index) => setActiveIndex(index)}
                     onMouseLeave={() => setActiveIndex(selectedIndex)}
                     onClick={(_, index) => {
-                      if (spendingData[index]?.categoryId) {
+                        if (!spendingData[index]?.categoryId) return;
+                        setSelectedIndex(index);
+                        setActiveIndex(index);
                         navigateToCategory(index);
-                      }
                     }}
                   >
                     {spendingData.map((entry, index) => {
@@ -523,33 +527,6 @@ function SpendingChartComponent({
                       );
                     })}
                   </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const item = payload[0].payload;
-                        return (
-                          <div className="rounded-2xl border border-border/40 bg-card/95 p-3 shadow-ios-md backdrop-blur-xl">
-                            <div className="flex items-center space-x-2">
-                              <div
-                                className="h-3 w-3 rounded-full"
-                                style={{ backgroundColor: item.color }}
-                              />
-                              <span className="font-semibold text-foreground">
-                                {item.name}
-                              </span>
-                            </div>
-                            <p className="mt-1 text-sm font-bold text-foreground">
-                              {formatUSD(item.value)}
-                              <span className="ml-1 text-xs font-normal text-muted-foreground">
-                                ({item.percentage}%)
-                              </span>
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -558,7 +535,6 @@ function SpendingChartComponent({
               <div className="text-center transition-all duration-200">
                 {activeCategory ? (
                   <>
-
                     <p className="text-ios-title font-bold text-foreground">
                       {formatUSD(activeCategory.value)}
                     </p>
@@ -568,7 +544,6 @@ function SpendingChartComponent({
                   </>
                 ) : (
                   <>
-
                     <p className="text-ios-title font-bold text-foreground">
                       {formatUSD(totalSpending)}
                     </p>
@@ -584,12 +559,15 @@ function SpendingChartComponent({
           <div className="grid grid-cols-1 content-center gap-2">
             {spendingData.map((item, index) => {
               const Icon = item.icon;
-              const isSelected = selectedIndex === index || activeIndex === index;
+                const isSelected =
+                  selectedIndex === index || activeIndex === index;
               return (
                 <button
                   type="button"
                   key={item.id}
-                  aria-pressed={item.categoryId ? selectedIndex === index : undefined}
+                    aria-pressed={
+                      item.categoryId ? selectedIndex === index : undefined
+                    }
                   disabled={!item.categoryId}
                   onClick={() => {
                     if (!item.categoryId) return;
@@ -615,7 +593,10 @@ function SpendingChartComponent({
                         borderColor: `${item.color}30`,
                       }}
                     >
-                      <Icon className="h-4 w-4" style={{ color: item.color }} />
+                        <Icon
+                          className="h-4 w-4"
+                          style={{ color: item.color }}
+                        />
                     </div>
                     <div>
                       <p className="text-ios-body font-medium text-foreground">
@@ -645,7 +626,6 @@ function SpendingChartComponent({
             })}
           </div>
         </div>
-
         </>
       )}
     </div>

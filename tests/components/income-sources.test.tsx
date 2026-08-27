@@ -34,6 +34,7 @@ jest.mock('recharts', () => ({
     </div>
   ),
   Cell: () => null,
+      Tooltip: () => <div data-testid="income-tooltip" />,
 }));
 jest.mock('lucide-react', () => ({
   ArrowDownToLine: () => <svg aria-hidden="true" />,
@@ -115,14 +116,75 @@ describe('IncomeSources', () => {
     expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
     expect(screen.getByText('(71.4%)')).toBeInTheDocument();
     expect(screen.getByText('(28.6%)')).toBeInTheDocument();
+    expect(chart).not.toContainElement(screen.getByRole('list'));
 
     fireEvent.mouseEnter(screen.getByTestId('pie-cell-0'));
     expect(screen.getByText('Salario · 71.4%')).toBeInTheDocument();
     fireEvent.mouseLeave(screen.getByTestId('pie-cell-0'));
     expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByTestId('pie-cell-1'));
+    const freelanceCell = screen.getByTestId('pie-cell-1');
+    fireEvent.click(freelanceCell);
     expect(screen.getByText('Freelance · 28.6%')).toBeInTheDocument();
+    fireEvent.mouseLeave(freelanceCell);
+    expect(screen.getByText('Freelance · 28.6%')).toBeInTheDocument();
+  });
+
+  it('renders a loading state before income data is ready', () => {
+    (useOptimizedData as jest.Mock).mockReturnValue({
+      transactions: [],
+      categories: [],
+      loading: true,
+    });
+
+    render(<IncomeSources />);
+    expect(screen.getByLabelText('Cargando ingresos')).toBeInTheDocument();
+    expect(screen.queryByTestId('income-sources-chart')).not.toBeInTheDocument();
+  });
+
+  it('changes the persisted selection when a different slice is clicked', () => {
+    const categories = [
+      { id: 'salary', name: 'Salario' },
+      { id: 'freelance', name: 'Freelance' },
+    ];
+    render(
+      <IncomeSources
+        categories={categories as any}
+        transactions={[
+          { type: 'INCOME', amountMinor: 10000, currencyCode: 'USD', categoryId: 'salary', date: dayjs().toISOString() },
+          { type: 'INCOME', amountMinor: 5000, currencyCode: 'USD', categoryId: 'freelance', date: dayjs().toISOString() },
+        ] as any}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('pie-cell-0'));
+    expect(screen.getByText('Salario · 66.7%')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('pie-cell-1'));
+    expect(screen.getByText('Freelance · 33.3%')).toBeInTheDocument();
+  });
+
+  it('clears selected income context when data is replaced', () => {
+    const categories = [{ id: 'salary', name: 'Salario' }, { id: 'freelance', name: 'Freelance' }];
+    const { rerender } = render(
+      <IncomeSources
+        categories={categories as any}
+        transactions={[{ type: 'INCOME', amountMinor: 10000, currencyCode: 'USD', categoryId: 'salary', date: dayjs().toISOString() }] as any}
+      />
+    );
+    fireEvent.click(screen.getByTestId('pie-cell-0'));
+    expect(screen.getByText('Salario · 100%')).toBeInTheDocument();
+    rerender(
+      <IncomeSources
+        categories={categories as any}
+        transactions={[{ type: 'INCOME', amountMinor: 5000, currencyCode: 'USD', categoryId: 'freelance', date: dayjs().toISOString() }] as any}
+      />
+    );
+    expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
+  });
+
+  it('does not render a tooltip overlay', () => {
+    render(<IncomeSources transactions={[]} categories={[]} />);
+    expect(screen.queryByTestId('income-tooltip')).not.toBeInTheDocument();
   });
 
   it('shows a clear empty state when there is no current-month income', () => {

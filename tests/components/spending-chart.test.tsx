@@ -29,7 +29,7 @@ jest.mock('recharts', () => ({
   PieChart: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="pie-chart">{children}</div>
   ),
-  Pie: ({ data, onMouseEnter, onMouseLeave }: any) => (
+  Pie: ({ data, onClick, onMouseEnter, onMouseLeave }: any) => (
     <div data-testid="pie">
       {data?.map((entry: any, index: number) => (
         <div
@@ -37,6 +37,7 @@ jest.mock('recharts', () => ({
           data-testid={`pie-cell-${index}`}
           onMouseEnter={() => onMouseEnter && onMouseEnter(null, index)}
           onMouseLeave={() => onMouseLeave && onMouseLeave()}
+              onClick={() => onClick && onClick(null, index)}
         >
           {entry.name} - {entry.value}
         </div>
@@ -44,7 +45,7 @@ jest.mock('recharts', () => ({
     </div>
   ),
   Cell: () => null,
-  Tooltip: () => null,
+  Tooltip: () => <div data-testid="spending-tooltip" />,
 }));
 
 // Mock lucide-react
@@ -198,6 +199,13 @@ describe('SpendingChart Component', () => {
       expect(screen.getAllByText('$75.00').length).toBeGreaterThan(0);
       expect(screen.getByText('Alimentación')).toBeInTheDocument();
       expect(screen.getByText('Transporte')).toBeInTheDocument();
+
+      const chart = screen.getByRole('img', {
+        name: 'Distribución de gastos por categoría',
+      });
+      expect(chart).not.toContainElement(
+        screen.getByRole('button', { name: /Alimentación/ })
+      );
     });
 
     it('should convert VES transactions to USD using activeUsdVesRate', () => {
@@ -469,6 +477,7 @@ describe('SpendingChart Component', () => {
       });
 
       render(<SpendingChart />);
+      expect(screen.queryByTestId('spending-tooltip')).not.toBeInTheDocument();
 
       const pieCell = screen.getByTestId('pie-cell-0');
       fireEvent.mouseEnter(pieCell);
@@ -481,7 +490,46 @@ describe('SpendingChart Component', () => {
     });
   });
 
-  describe('7. Deterministic Category Colors and Icons', () => {
+  it('persists selection when a pie slice is clicked', () => {
+        const todayIso = dayjs().toISOString();
+        (useOptimizedTransactions as jest.Mock).mockReturnValue({
+          expenseTransactions: [
+            { id: 'tx-1', type: 'EXPENSE', amountMinor: 7500, currencyCode: 'USD', categoryId: 'cat-1', date: todayIso },
+            { id: 'tx-2', type: 'EXPENSE', amountMinor: 2500, currencyCode: 'USD', categoryId: 'cat-2', date: todayIso },
+          ],
+          categories: mockCategories,
+          loading: false,
+        });
+
+        render(<SpendingChart />);
+        fireEvent.click(screen.getByTestId('pie-cell-1'));
+        expect(screen.getByText(/Transporte \(25%\)/i)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Transporte/i })).toHaveAttribute('aria-pressed', 'true');
+      });
+
+      it('clears selection when the period changes or data is replaced', () => {
+        const todayIso = dayjs().toISOString();
+        const { rerender } = render(
+          <SpendingChart
+            transactions={[{ id: 'tx-1', type: 'EXPENSE', amountMinor: 10000, currencyCode: 'USD', categoryId: 'cat-1', date: todayIso } as any]}
+            categories={mockCategories as any}
+          />
+        );
+        fireEvent.click(screen.getByRole('button', { name: /Alimentación/i }));
+        expect(screen.getByText(/Alimentación \(100%\)/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', { name: /Histórico/i }));
+        expect(screen.getByText('Total gastado')).toBeInTheDocument();
+
+        rerender(
+          <SpendingChart
+            transactions={[{ id: 'tx-2', type: 'EXPENSE', amountMinor: 5000, currencyCode: 'USD', categoryId: 'cat-2', date: todayIso } as any]}
+            categories={mockCategories as any}
+          />
+        );
+        expect(screen.getByText('Total gastado')).toBeInTheDocument();
+      });
+
+      describe('7. Deterministic Category Colors and Icons', () => {
     it('should map standard categories to high-contrast colors and valid icons', () => {
       expect(getCategoryColor('Alimentación')).toBe('#10b981');
       expect(getCategoryColor('Transporte')).toBe('#3b82f6');
