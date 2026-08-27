@@ -1,7 +1,10 @@
+'use client';
+
 import Link from 'next/link';
 import { Download } from 'lucide-react';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { MobileMenuToggle } from './mobile-menu';
+import { useIsNative } from '@/hooks/use-is-native';
 import type { NavLink } from './data';
 
 interface LandingNavProps {
@@ -9,8 +12,10 @@ interface LandingNavProps {
 }
 
 export function LandingNav({ links }: LandingNavProps) {
-  // Separate mobile-only links from desktop auth links
-  const mobileLinks = links;
+  const isNative = useIsNative();
+  const mobileLinks = isNative
+    ? links.filter((link) => link.href !== '/download')
+    : links;
   const desktopAuthLinks = links.filter(
     (l) => l.href === '/auth/login' || l.href === '/auth/register'
   );
@@ -31,7 +36,7 @@ export function LandingNav({ links }: LandingNavProps) {
 
           {/* Desktop links */}
           <div className="hidden items-center space-x-3 md:flex">
-            {downloadLink && (
+            {!isNative && downloadLink && (
               <Link
                 href={downloadLink.href}
                 className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 py-2 font-medium text-primary transition-all duration-200 hover:bg-primary/20"
@@ -57,13 +62,15 @@ export function LandingNav({ links }: LandingNavProps) {
 
           {/* Mobile actions */}
           <div className="flex items-center gap-2">
-            <Link
-              href="/download"
-              aria-label="Descargar APK Android Beta"
-              className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95 md:hidden"
-            >
-              <Download className="h-6 w-6" />
-            </Link>
+            {!isNative && (
+              <Link
+                href="/download"
+                aria-label="Descargar APK Android Beta"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95 md:hidden"
+              >
+                <Download className="h-6 w-6" />
+              </Link>
+            )}
             <MobileMenuToggle links={mobileLinks} />
           </div>
         </div>

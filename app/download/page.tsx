@@ -3,11 +3,11 @@ import Link from 'next/link';
 import {
   AlertTriangle,
   ArrowRight,
-  Download,
   ShieldCheck,
   Smartphone,
 } from 'lucide-react';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
+import { DownloadCta } from './download-cta';
 
 export const metadata: Metadata = {
   title: 'Descargar FinTec para Android (Beta)',
@@ -92,17 +92,7 @@ export default function DownloadPage() {
         </p>
 
         {/* Download CTA */}
-        <a
-          href={APK_URL}
-          download
-          className="group mt-8 inline-flex items-center gap-3 rounded-2xl bg-primary px-8 py-4 text-lg font-semibold text-primary-foreground shadow-xl shadow-primary/25 transition-all duration-200 hover:scale-[1.02] hover:bg-primary/90 active:scale-[0.98]"
-        >
-          <Download className="h-6 w-6 transition-transform group-hover:translate-y-0.5" />
-          Descargar APK
-        </a>
-        <p className="mt-3 text-xs text-muted-foreground">
-          APK directo (~4 MB) · No requiere Play Store
-        </p>
+        <DownloadCta apkUrl={APK_URL} />
 
         {/* Beta notice */}
         <div className="glass-card mt-10 w-full rounded-3xl p-6 text-left shadow-ios-md">

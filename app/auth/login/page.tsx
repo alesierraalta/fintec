@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { LoginForm } from '@/components/auth/login-form';
 import { EmailConfirmationModal } from '@/components/auth/email-confirmation-modal';
+import { MobileOnboarding } from '@/components/onboarding/mobile-onboarding';
 import { useAuth } from '@/hooks/use-auth';
+import { useIsNative } from '@/hooks/use-is-native';
+import { useOnboarding } from '@/hooks/use-onboarding';
 
 function getInitialEmailConfirmationState() {
   if (typeof window === 'undefined') {
@@ -26,9 +29,21 @@ function getInitialEmailConfirmationState() {
 export default function LoginPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const isNative = useIsNative();
+  const {
+    isLoading: isOnboardingLoading,
+    isVisible: isOnboardingVisible,
+    completeOnboarding,
+    skipOnboarding,
+  } = useOnboarding();
+  const [hasMounted, setHasMounted] = useState(false);
   const [emailConfirmationState, setEmailConfirmationState] = useState(
     getInitialEmailConfirmationState
   );
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -50,7 +65,6 @@ export default function LoginPage() {
     setEmailConfirmationState({ show: false, email: '' });
   };
 
-  // Don't render login form if user is already authenticated
   if (loading) {
     return (
       <div className="min-h-dynamic-screen flex items-center justify-center bg-background">
@@ -60,21 +74,33 @@ export default function LoginPage() {
   }
 
   if (user) {
-    return null; // Will redirect
+    return null;
   }
+
+  const holdLoginForOnboarding =
+    hasMounted && isNative && (isOnboardingLoading || isOnboardingVisible);
 
   return (
     <>
-      <div className="min-h-dynamic-screen flex flex-col p-4">
-        <div className="flex flex-grow items-center justify-center">
-          <div className="w-full max-w-md">
-            <LoginForm />
+      {!holdLoginForOnboarding && (
+        <div className="min-h-dynamic-screen flex flex-col p-4">
+          <div className="flex flex-grow items-center justify-center">
+            <div className="w-full max-w-md">
+              <LoginForm />
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {hasMounted && isNative && !isOnboardingLoading && isOnboardingVisible && (
+        <MobileOnboarding
+          onComplete={completeOnboarding}
+          onSkip={skipOnboarding}
+        />
+      )}
 
       <EmailConfirmationModal
-        open={emailConfirmationState.show}
+        open={emailConfirmationState.show && !holdLoginForOnboarding}
         onClose={handleCloseModal}
         email={emailConfirmationState.email}
       />
