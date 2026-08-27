@@ -4,10 +4,12 @@
 
 /* CSS Variables for Theme */
 :root {
-  --safe-area-top: env(safe-area-inset-top);
-  --safe-area-right: env(safe-area-inset-right);
-  --safe-area-bottom: env(safe-area-inset-bottom);
-  --safe-area-left: env(safe-area-inset-left);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
+  --mobile-nav-height: 68px;
+  --mobile-chrome-bottom: 68px;
 
   /* iOS Light Theme - System Colors */
   --background: 240 5% 96%;   /* System Background (Grayish) */
@@ -138,7 +140,15 @@ body {
 }
 
 #root main.app-shell-main {
+  min-width: 0;
   overflow: visible;
+}
+
+@layer utilities {
+  .pb-mobile-chrome { padding-bottom: var(--mobile-chrome-bottom); }
+  .bottom-mobile-chrome { bottom: var(--mobile-chrome-bottom); }
+  .mb-mobile-chrome { margin-bottom: var(--mobile-chrome-bottom); }
+  .pb-safe-bottom { padding-bottom: var(--safe-area-bottom); }
 }
 
 /* Utility Classes */

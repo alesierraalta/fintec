@@ -6,6 +6,7 @@ import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
 import Header from './header';
 import { MobileNav } from './mobile-nav';
+import { MobileMenuFAB } from './mobile-menu-fab';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
@@ -40,7 +41,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   useViewportHeight();
 
   // Auto-scroll global para todos los inputs en móvil
-  useMobileInputAutoScroll();
+  useMobileInputAutoScroll(300, '#root');
 
   // Usar isMobile directamente para evitar retrasos de render
 
@@ -100,7 +101,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
             className={cn(
               'app-shell-main no-horizontal-scroll flex-1 bg-background',
               isFullHeightPage && 'flex min-h-0 flex-col overflow-hidden',
-              isMobile && !hideMobileChrome ? 'pb-24' : ''
+              isMobile && !hideMobileChrome ? 'pb-mobile-chrome' : ''
             )}
           >
             {isFullHeightPage ? (
@@ -121,7 +122,12 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       </div>
 
       {/* Mobile Navigation */}
-      {!hideMobileChrome && <MobileNav />}
+      {!hideMobileChrome && (
+            <>
+              <MobileNav />
+              <MobileMenuFAB />
+            </>
+          )}
 
       {/* Floating Add Transaction Button */}
       {showGlobalFab && (

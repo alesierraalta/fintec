@@ -27,8 +27,26 @@ jest.mock('@/contexts/sidebar-context', () => ({
   useSidebar: () => mockUseSidebar(),
 }));
 
+class ResizeObserverMock {
+  constructor(private readonly callback: ResizeObserverCallback) {}
+
+  observe(target: Element): void {
+    this.callback([], this as unknown as ResizeObserver);
+    void target;
+  }
+
+  unobserve(): void {}
+
+  disconnect(): void {}
+}
+
 describe('Mobile navigation layout contract', () => {
   beforeEach(() => {
+    Object.defineProperty(globalThis, 'ResizeObserver', {
+      configurable: true,
+      writable: true,
+      value: ResizeObserverMock,
+    });
     jest.clearAllMocks();
 
     mockUseSidebar.mockReturnValue({ isMobile: true });
@@ -57,11 +75,14 @@ describe('Mobile navigation layout contract', () => {
       paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',
       paddingRight: 'max(0.5rem, env(safe-area-inset-right))',
     });
-    expect(links).toHaveLength(7);
-    expect(screen.getByRole('link', { name: 'P2P' })).toHaveAttribute(
-      'href',
-      '/p2p-offers'
-    );
+    expect(links).toHaveLength(5);
+    expect(links.map((link) => link.getAttribute('href'))).toEqual([
+      '/',
+      '/accounts',
+      '/transactions',
+      '/transfers',
+      '/goals',
+    ]);
     expect(activeLink).toHaveAttribute('aria-current', 'page');
 
     for (const link of links) {

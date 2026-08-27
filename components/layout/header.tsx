@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Download,
@@ -19,6 +21,7 @@ import { createPortal } from 'react-dom';
 import RateSelector from '@/components/currency/rate-selector';
 import { NotificationBell } from '@/components/notifications/notification-bell';
 import { useAuth } from '@/hooks/use-auth';
+import { useIsNative } from '@/hooks/use-is-native';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -32,6 +35,7 @@ interface HeaderProps {
 export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
   const { theme, setTheme } = useTheme();
   const { user, signOut } = useAuth();
+  const isNative = useIsNative();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -210,13 +214,15 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
           </h1>
 
           <div className="flex shrink-0 items-center gap-2">
-            <Link
-              href="/download"
-              aria-label="Descargar APK Android Beta"
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95"
-            >
-              <Download className="h-6 w-6" />
-            </Link>
+            {!isNative && (
+              <Link
+                href="/download"
+                aria-label="Descargar APK Android Beta"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95"
+              >
+                <Download className="h-6 w-6" />
+              </Link>
+            )}
             <NotificationBell variant="header" />
             <button
               type="button"
@@ -446,13 +452,15 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
       </div>
 
       <div className="flex items-center gap-4">
-        <Link
-          href="/download"
-          aria-label="Descargar APK Android Beta"
-          className="hidden h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95 lg:flex"
-        >
-          <Download className="h-6 w-6" />
-        </Link>
+        {!isNative && (
+          <Link
+            href="/download"
+            aria-label="Descargar APK Android Beta"
+            className="hidden h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95 lg:flex"
+          >
+            <Download className="h-6 w-6" />
+          </Link>
+        )}
         <div className="hidden lg:flex">
           <NotificationBell variant="header" />
         </div>

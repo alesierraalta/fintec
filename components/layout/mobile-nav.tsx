@@ -11,24 +11,22 @@ import {
   ArrowUpDown,
   ArrowRightLeft,
   Target,
-  HandCoins,
-  DollarSign,
 } from 'lucide-react';
 import { useSidebar } from '@/contexts/sidebar-context';
+import { useMobileChromeGeometry } from '@/hooks/use-mobile-chrome-geometry';
 
 const mobileNavigation = [
   { name: 'Inicio', href: '/', icon: Home },
   { name: 'Cuentas', href: '/accounts', icon: CreditCard },
   { name: 'Gastos', href: '/transactions', icon: ArrowUpDown },
   { name: 'Transferir', href: '/transfers', icon: ArrowRightLeft },
-  { name: 'Deudas', href: '/debts', icon: HandCoins },
-  { name: 'P2P', href: '/p2p-offers', icon: DollarSign },
   { name: 'Metas', href: '/goals', icon: Target },
 ];
 
 export function MobileNav() {
   const pathname = usePathname();
   const { isMobile } = useSidebar();
+  useMobileChromeGeometry();
   const overlayHost = useMemo(() => {
     if (typeof document === 'undefined') return null;
     return document.getElementById('modal-root') ?? document.body;
@@ -47,7 +45,7 @@ export function MobileNav() {
         paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
       }}
     >
-      <div className="px-1.5 pt-2">
+      <div className="px-1.5 pt-2" data-mobile-nav-row>
         <div className="flex w-full items-stretch justify-between gap-1.5">
           {mobileNavigation.map((item) => {
             const isActive = pathname === item.href;
@@ -75,18 +73,13 @@ export function MobileNav() {
                 />
                 <span
                   className={cn(
-                    'nav-label-mobile relative z-10 mt-1 w-full truncate px-0.5 text-center text-[10px] font-medium leading-[1.1] tracking-tighter sm:text-xs',
+                    'relative z-10 mt-1 w-full truncate px-0.5 text-center text-[10px] font-medium leading-[1.1] tracking-tighter sm:text-xs',
                     isActive && 'font-semibold'
                   )}
                 >
                   {item.name}
                 </span>
-                <style dangerouslySetInnerHTML={{ __html: `
-                  @media (max-width: 350px) {
-                    .nav-label-mobile { display: none !important; }
-                  }
-                `}} />
-              </Link>
+                              </Link>
             );
           })}
         </div>

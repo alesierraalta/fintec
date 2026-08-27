@@ -39,8 +39,6 @@ export const metadata: Metadata = {
 export const viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1, // Prevent pinch-zoom distortion
-  userScalable: false, // Lock zoom on mobile
   viewportFit: 'cover', // For iOS safe areas
   interactiveWidget: 'resizes-visual', // Ajusta viewport cuando aparece el teclado
 };

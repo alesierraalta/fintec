@@ -183,7 +183,7 @@ export default function DebtsPageClient() {
   }, [summary.netDebtBaseMinor]);
 
   return (
-    <div className="space-y-6 p-4 pb-24 md:p-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div className="rounded-2xl border border-border bg-card p-4">
         <h1 className="text-2xl font-semibold text-foreground">Deudas</h1>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -25,7 +25,7 @@ const config: CapacitorConfig = {
       resizeOnFullScreen: true,
     },
     StatusBar: {
-      style: 'dark',
+      style: 'light',
       backgroundColor: '#000000',
     },
     // App plugin required for appUrlOpen deep-link listener (REQ-12, REQ-13, REQ-14)
@@ -36,7 +36,7 @@ const config: CapacitorConfig = {
     App: {},
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     backgroundColor: '#000000',
   },
   android: {

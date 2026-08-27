@@ -40,3 +40,6 @@ export { useTutorial } from './use-tutorial';
 export { useMediaQuery } from './use-media-query';
 export { useViewportHeight } from './use-viewport-height';
 export { useMobileInputAutoScroll } from './use-mobile-input-autoscroll';
+export { useMobileChromeGeometry } from './use-mobile-chrome-geometry';
+export { useIsNative } from './use-is-native';
+export { useOnboarding, markSeen } from './use-onboarding';

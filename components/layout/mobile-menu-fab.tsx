@@ -16,6 +16,8 @@ import {
   Settings,
   ArrowUpRight,
   Calculator,
+  HandCoins,
+  DollarSign,
   X,
 } from 'lucide-react';
 
@@ -56,6 +58,18 @@ const menuItems: MenuItem[] = [
     href: '/calculator',
     icon: Calculator,
     description: 'Convierte VES con BCV y Binance',
+  },
+  {
+    name: 'Deudas',
+    href: '/debts',
+    icon: HandCoins,
+    description: 'Controla lo que debes y te deben',
+  },
+  {
+    name: 'Ofertas P2P',
+    href: '/p2p-offers',
+    icon: DollarSign,
+    description: 'Explora ofertas de intercambio P2P',
   },
   {
     name: 'Presupuestos',
@@ -118,7 +132,7 @@ export function MobileMenuFAB() {
       {isOpen && (
         <button
           type="button"
-          className="fixed inset-0 z-40 animate-fade-in bg-background/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-[55] animate-fade-in bg-background/30 backdrop-blur-sm lg:hidden"
           onClick={closeMenu}
           aria-label="Cerrar menú"
         />
@@ -129,7 +143,7 @@ export function MobileMenuFAB() {
         aria-hidden={!isOpen}
         inert={!isOpen ? true : undefined}
         className={cn(
-          'fixed inset-x-0 bottom-0 z-50 transition-transform duration-300 ease-out lg:hidden',
+          'fixed inset-x-0 bottom-0 z-[60] pb-safe-bottom transition-transform duration-300 ease-out lg:hidden',
           isOpen ? 'translate-y-0' : 'translate-y-full'
         )}
       >
@@ -213,7 +227,7 @@ export function MobileMenuFAB() {
       </div>
 
       {/* FAB Button */}
-      <div className="fixed bottom-[120px] left-6 z-50 lg:hidden">
+      <div className="fixed bottom-mobile-chrome left-6 z-[40] mb-4 lg:hidden">
         <button
           type="button"
           onClick={toggleMenu}
