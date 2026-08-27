@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import dayjs from '@/lib/dates/dayjs';
 
 jest.mock('@/hooks/use-optimized-data', () => ({
@@ -10,6 +10,30 @@ jest.mock('@/hooks/use-currency-converter', () => ({
 }));
 jest.mock('@/lib/rates', () => ({
   useActiveUsdVesRate: jest.fn(),
+}));
+jest.mock('recharts', () => ({
+  ResponsiveContainer: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="responsive-container">{children}</div>
+  ),
+  PieChart: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="pie-chart">{children}</div>
+  ),
+  Pie: ({ data, onClick, onMouseEnter, onMouseLeave }: any) => (
+    <div data-testid="pie">
+      {data.map((entry: any, index: number) => (
+        <div
+          key={entry.id}
+          data-testid={`pie-cell-${index}`}
+          onMouseEnter={() => onMouseEnter?.(null, index)}
+          onMouseLeave={onMouseLeave}
+          onClick={() => onClick?.(null, index)}
+        >
+          {entry.name}
+        </div>
+      ))}
+    </div>
+  ),
+  Cell: () => null,
 }));
 jest.mock('lucide-react', () => ({
   ArrowDownToLine: () => <svg aria-hidden="true" />,
@@ -83,19 +107,22 @@ describe('IncomeSources', () => {
     expect(screen.getAllByText('Freelance')).toHaveLength(2);
     expect(screen.getByText('$50.00')).toBeInTheDocument();
 
-    const chart = screen.getByTestId('income-sources-chart');
+    const chart = screen.getByRole('img', {
+      name: 'Distribución de ingresos por categoría',
+    });
     expect(chart).toBeInTheDocument();
-    expect(
-      screen.getByRole('progressbar', { name: 'Salario: 71.4%' })
-    ).toHaveAttribute('aria-valuenow', '71.4');
-    expect(
-      screen.getByRole('progressbar', { name: 'Freelance: 28.6%' })
-    ).toHaveAttribute('aria-valuenow', '28.6');
+    expect(screen.getByTestId('pie-chart')).toBeInTheDocument();
+    expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
+    expect(screen.getByText('(71.4%)')).toBeInTheDocument();
+    expect(screen.getByText('(28.6%)')).toBeInTheDocument();
 
-    const salaryBar = screen.getByRole('progressbar', {
-      name: 'Salario: 71.4%',
-    }).firstElementChild as HTMLElement;
-    expect(Number.parseFloat(salaryBar.style.width)).toBeCloseTo(71.43, 2);
+    fireEvent.mouseEnter(screen.getByTestId('pie-cell-0'));
+    expect(screen.getByText('Salario · 71.4%')).toBeInTheDocument();
+    fireEvent.mouseLeave(screen.getByTestId('pie-cell-0'));
+    expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTestId('pie-cell-1'));
+    expect(screen.getByText('Freelance · 28.6%')).toBeInTheDocument();
   });
 
   it('shows a clear empty state when there is no current-month income', () => {

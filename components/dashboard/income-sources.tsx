@@ -1,6 +1,7 @@
 'use client';
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
+import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts';
 import { ArrowDownToLine, DollarSign, Package } from 'lucide-react';
 import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { useCurrencyConverter } from '@/hooks/use-currency-converter';
@@ -23,6 +24,14 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+const percentageFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+});
+const fallbackColors = [
+  'hsl(var(--primary))',
+  'hsl(var(--success))',
+  'hsl(var(--accent))',
+];
 
 function IncomeSourcesComponent({
   transactions: customTransactions,
@@ -87,11 +96,12 @@ function IncomeSourcesComponent({
     return Array.from(sourceMap.values()).sort((a, b) => b.amount - a.amount);
   }, [transactions, categories, activeUsdVesRate, convert]);
   const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
-  const fallbackColors = [
-    'hsl(var(--primary))',
-    'hsl(var(--success))',
-    'hsl(var(--accent))',
-  ];
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const activeSource = activeIndex === null ? null : sources[activeIndex];
+  const formatPercentage = (amount: number) =>
+    `${percentageFormatter.format(
+      totalIncome > 0 ? (amount / totalIncome) * 100 : 0
+    )}%`;
 
   return (
     <section
@@ -128,70 +138,91 @@ function IncomeSourcesComponent({
       ) : (
         <>
           <div
-            className="glass-card space-y-3 rounded-2xl p-4"
+            className="glass-card relative rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl"
             data-testid="income-sources-chart"
-            role="list"
+            role="img"
             aria-label="Distribución de ingresos por categoría"
           >
-            {sources.map((source, index) => {
-              const percentage =
-                totalIncome > 0 ? (source.amount / totalIncome) * 100 : 0;
-              const percentageLabel = `${new Intl.NumberFormat('en-US', {
-                maximumFractionDigits: 1,
-              }).format(percentage)}%`;
-
-              return (
-                <div key={source.id} className="space-y-1.5" role="listitem">
-                  <div className="flex items-center justify-between gap-3 text-ios-caption">
-                    <span className="min-w-0 truncate font-medium text-foreground">
-                      {source.name}
-                    </span>
-                    <span className="shrink-0 text-muted-foreground">
-                      {percentageLabel}
-                    </span>
-                  </div>
-                  <div
-                    className="h-2.5 w-full overflow-hidden rounded-full bg-muted/50"
-                    role="progressbar"
-                    aria-label={`${source.name}: ${percentageLabel}`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={Number(percentage.toFixed(1))}
+            <div className="relative h-[260px] w-full sm:h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={sources}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius="54%"
+                    outerRadius="78%"
+                    paddingAngle={sources.length > 1 ? 3 : 0}
+                    dataKey="amount"
+                    nameKey="name"
+                    onMouseEnter={(_, index) => setActiveIndex(index)}
+                    onMouseLeave={() => setActiveIndex(null)}
+                    onClick={(_, index) => setActiveIndex(index)}
                   >
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${percentage}%`,
-                        backgroundColor:
-                          source.color || fallbackColors[index % fallbackColors.length],
-                      }}
-                    />
-                  </div>
+                    {sources.map((source, index) => (
+                      <Cell
+                        key={source.id}
+                        fill={
+                          source.color ||
+                          fallbackColors[index % fallbackColors.length]
+                        }
+                        opacity={
+                          activeIndex === null || activeIndex === index
+                            ? 1
+                            : 0.35
+                        }
+                        stroke="hsl(var(--foreground))"
+                        strokeWidth={activeIndex === index ? 3 : 1}
+                      />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="rounded-2xl border border-border/30 bg-background/55 px-5 py-3 text-center shadow-lg backdrop-blur-md">
+                  <p className="text-ios-title font-bold text-foreground">
+                    {currencyFormatter.format(
+                      activeSource?.amount ?? totalIncome
+                    )}
+                  </p>
+                  <p className="max-w-[150px] truncate text-ios-caption text-muted-foreground">
+                    {activeSource
+                      ? `${activeSource.name} · ${formatPercentage(activeSource.amount)}`
+                      : 'Total de ingresos'}
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-          {sources.map((source) => (
-            <div
-              key={source.id}
-              className="glass-card transition-smooth flex min-h-[44px] items-center justify-between rounded-2xl px-4 py-3"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <DollarSign
-                  className="h-4 w-4 shrink-0 text-success"
-                  aria-hidden="true"
-                />
-                <span className="truncate text-ios-body text-foreground">
-                  {source.name}
+          <div
+            className="grid gap-2 sm:grid-cols-2"
+            role="list"
+            aria-label="Detalle de fuentes de ingresos"
+          >
+            {sources.map((source) => (
+              <div
+                key={source.id}
+                className="glass-card transition-smooth flex min-h-[44px] items-center justify-between rounded-2xl px-4 py-3"
+                role="listitem"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <DollarSign
+                    className="h-4 w-4 shrink-0 text-success"
+                    aria-hidden="true"
+                  />
+                  <span className="truncate text-ios-body text-foreground">
+                    {source.name}
+                  </span>
+                </div>
+                <span className="ml-3 whitespace-nowrap text-right text-ios-body font-semibold text-foreground">
+                  {currencyFormatter.format(source.amount)}
+                  <span className="ml-1 text-ios-caption font-normal text-muted-foreground">
+                    ({formatPercentage(source.amount)})
+                  </span>
                 </span>
               </div>
-              <span className="amount-positive ml-3 whitespace-nowrap text-ios-body font-semibold">
-                {currencyFormatter.format(source.amount)}
-              </span>
-            </div>
-          ))}
+            ))}
           </div>
         </>
       )}
