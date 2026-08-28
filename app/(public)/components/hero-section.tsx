@@ -1,6 +1,5 @@
-import Link from 'next/link';
 import { ArrowDownLeft, ArrowRight, ArrowUpRight, Eye, Play, TrendingUp, WalletCards } from 'lucide-react';
-import { trackLandingEvent } from '@/lib/analytics/landing-events';
+import { TrackedLandingLink } from './tracked-landing-link';
 
 const recentMovements = [
   { name: 'Ingreso recibido', detail: 'Cuenta principal', amount: '+ $120.00', icon: ArrowDownLeft, accent: 'bg-emerald-500/10 text-emerald-600' },
@@ -17,8 +16,8 @@ export function HeroSection() {
           <h1 className="mb-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl lg:text-7xl">Tus finanzas, claras.<span className="block bg-gradient-to-r from-primary via-blue-500 to-cyan-500 bg-clip-text text-transparent">Tus decisiones, mejores.</span></h1>
           <p className="mx-auto mb-9 max-w-2xl text-lg leading-relaxed text-muted-foreground sm:text-xl">Organiza tus cuentas, movimientos y presupuestos para tomar mejores decisiones financieras en Venezuela.</p>
           <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/auth/register" onClick={() => trackLandingEvent('landing_hero_cta_click', { cta_id: 'hero_primary', destination: '/auth/register' })} className="group inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 sm:w-auto">Crear mi primer presupuesto<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></Link>
-            <Link href="#tasas-en-vivo" onClick={() => trackLandingEvent('rate_cockpit_interaction', { interaction: 'hero_rates_link', source: 'BCV' })} className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-border bg-card/70 px-7 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-muted/70 sm:w-auto"><Play className="h-4 w-4 fill-current" />Ver cómo se consulta la tasa</Link>
+            <TrackedLandingLink href="/auth/register" eventName="landing_hero_cta_click" properties={{ cta_id: 'hero_primary', destination: '/auth/register' }} className="group inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:bg-primary/90 sm:w-auto">Crear mi primer presupuesto<ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></TrackedLandingLink>
+            <TrackedLandingLink href="#tasas-en-vivo" eventName="rate_cockpit_interaction" properties={{ interaction: 'hero_rates_link', source: 'BCV' }} className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl border border-border bg-card/70 px-7 py-3.5 text-base font-semibold text-foreground backdrop-blur-sm transition-colors hover:bg-muted/70 sm:w-auto"><Play className="h-4 w-4 fill-current" />Ver cómo se consulta la tasa</TrackedLandingLink>
           </div>
         </div>
 

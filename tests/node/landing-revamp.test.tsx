@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroSection } from '@/app/(public)/components/hero-section';
 import { EvidenceStrip } from '@/app/(public)/components/evidence-strip';
@@ -5,6 +7,16 @@ import { FeaturesSection } from '@/app/(public)/components/features-section';
 import { RateCockpit } from '@/app/(public)/components/rate-cockpit';
 
 describe('landing revamp', () => {
+  it('keeps interactive handlers out of the server-rendered hero', () => {
+    const source = readFileSync(
+      path.join(process.cwd(), 'app/(public)/components/hero-section.tsx'),
+      'utf8'
+    );
+
+    expect(source).not.toMatch(/<Link[^>]*onClick/);
+    expect(source).toContain('<TrackedLandingLink');
+  });
+
   it('keeps rates out of the hero and uses a management-first CTA', () => {
     const html = renderToStaticMarkup(<HeroSection />);
     expect(html).not.toContain('Tasas de referencia');
