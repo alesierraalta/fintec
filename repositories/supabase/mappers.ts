@@ -360,7 +360,8 @@ export function mapSupabaseTransferToDomain(
     id: supabaseTransfer.id,
     fromTransactionId: supabaseTransfer.from_transaction_id,
     toTransactionId: supabaseTransfer.to_transaction_id,
-    feeMinor: supabaseTransfer.fee_minor,
+    feeMinor: supabaseTransfer.fee_minor ?? undefined,
+    commissionMinor: supabaseTransfer.fee_minor ?? undefined,
     createdAt: supabaseTransfer.created_at,
   };
 }
@@ -368,11 +369,12 @@ export function mapSupabaseTransferToDomain(
 export function mapDomainTransferToSupabase(
   transfer: Partial<Transfer>
 ): Partial<SupabaseTransfer> {
+  const fee = transfer.commissionMinor ?? transfer.feeMinor;
   return {
     id: transfer.id,
     from_transaction_id: transfer.fromTransactionId,
     to_transaction_id: transfer.toTransactionId,
-    fee_minor: transfer.feeMinor,
+    fee_minor: fee ?? null,
     created_at: transfer.createdAt,
   };
 }

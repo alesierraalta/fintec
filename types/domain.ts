@@ -141,7 +141,8 @@ export interface Transfer {
   id: string;
   fromTransactionId: string;
   toTransactionId: string;
-  feeMinor?: number; // Fee in base currency (minor units)
+  feeMinor?: number; // Fee in base currency (minor units) - legacy, maps to commission
+  commissionMinor?: number; // Commission in source currency (minor units)
   exchangeRate?: number; // Rate used if different currencies
   createdAt: string;
 }
@@ -267,6 +268,7 @@ export interface CreateTransferDTO {
   description?: string;
   note?: string;
   feeMinor?: number;
+  commissionMinor?: number; // Commission in source currency (minor units), optional
 }
 
 export interface UpdateTransactionDTO extends Partial<CreateTransactionDTO> {
