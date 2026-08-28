@@ -28,8 +28,9 @@ import {
   EyeOff,
 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
+import type { DashboardPeriodControllerProps } from './dashboard-period-props';
 
-export function DesktopDashboard() {
+export function DesktopDashboard(props: DashboardPeriodControllerProps) {
   const {
     accounts: rawAccounts,
     transactions: rawTransactions,
@@ -592,9 +593,12 @@ export function DesktopDashboard() {
               ¿En Qué Gastas?
             </h2>
           </div>
-          <LazySpendingChart />
+          <LazySpendingChart {...props} />
           <div className="mt-8 border-t border-border/30 pt-6">
-            <IncomeSources />
+            <IncomeSources
+              period={props.period}
+              referenceNow={props.referenceNow}
+            />
           </div>
         </div>
 

@@ -494,8 +494,22 @@ describe('SpendingChart Component', () => {
         const todayIso = dayjs().toISOString();
         (useOptimizedTransactions as jest.Mock).mockReturnValue({
           expenseTransactions: [
-            { id: 'tx-1', type: 'EXPENSE', amountMinor: 7500, currencyCode: 'USD', categoryId: 'cat-1', date: todayIso },
-            { id: 'tx-2', type: 'EXPENSE', amountMinor: 2500, currencyCode: 'USD', categoryId: 'cat-2', date: todayIso },
+        {
+          id: 'tx-1',
+          type: 'EXPENSE',
+          amountMinor: 7500,
+          currencyCode: 'USD',
+          categoryId: 'cat-1',
+          date: todayIso,
+        },
+        {
+          id: 'tx-2',
+          type: 'EXPENSE',
+          amountMinor: 2500,
+          currencyCode: 'USD',
+          categoryId: 'cat-2',
+          date: todayIso,
+        },
           ],
           categories: mockCategories,
           loading: false,
@@ -504,14 +518,26 @@ describe('SpendingChart Component', () => {
         render(<SpendingChart />);
         fireEvent.click(screen.getByTestId('pie-cell-1'));
         expect(screen.getByText(/Transporte \(25%\)/i)).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: /Transporte/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /Transporte/i })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    );
       });
 
       it('clears selection when the period changes or data is replaced', () => {
         const todayIso = dayjs().toISOString();
         const { rerender } = render(
           <SpendingChart
-            transactions={[{ id: 'tx-1', type: 'EXPENSE', amountMinor: 10000, currencyCode: 'USD', categoryId: 'cat-1', date: todayIso } as any]}
+        transactions={[
+          {
+            id: 'tx-1',
+            type: 'EXPENSE',
+            amountMinor: 10000,
+            currencyCode: 'USD',
+            categoryId: 'cat-1',
+            date: todayIso,
+          } as any,
+        ]}
             categories={mockCategories as any}
           />
         );
@@ -522,7 +548,16 @@ describe('SpendingChart Component', () => {
 
         rerender(
           <SpendingChart
-            transactions={[{ id: 'tx-2', type: 'EXPENSE', amountMinor: 5000, currencyCode: 'USD', categoryId: 'cat-2', date: todayIso } as any]}
+        transactions={[
+          {
+            id: 'tx-2',
+            type: 'EXPENSE',
+            amountMinor: 5000,
+            currencyCode: 'USD',
+            categoryId: 'cat-2',
+            date: todayIso,
+          } as any,
+        ]}
             categories={mockCategories as any}
           />
         );
@@ -560,4 +595,47 @@ describe('SpendingChart Component', () => {
       expect(formatUSD(0)).toBe('$0.00');
     });
   });
+
+  it.each([
+    ['today', '2026-01-15T12:00:00', '2026-01-14T23:59:59', '$10.00'],
+    ['this_week', '2026-01-12T00:00:00', '2026-01-11T23:59:59', '$20.00'],
+    ['last_month', '2025-12-31T23:59:59', '2026-01-01T00:00:00', '$30.00'],
+  ] as const)(
+    'includes the exact %s boundary and excludes the adjacent record',
+    (period, includedDate, excludedDate, expectedTotal) => {
+      (useOptimizedTransactions as jest.Mock).mockReturnValue({
+        expenseTransactions: [
+          {
+            id: 'included',
+            type: 'EXPENSE',
+            amountMinor: Number(expectedTotal.slice(1)) * 100,
+            currencyCode: 'USD',
+            categoryId: 'cat-1',
+            date: includedDate,
+          },
+          {
+            id: 'excluded',
+            type: 'EXPENSE',
+            amountMinor: 9900,
+            currencyCode: 'USD',
+            categoryId: 'cat-2',
+            date: excludedDate,
+          },
+        ],
+        categories: mockCategories,
+        loading: false,
+      });
+
+      render(
+        <SpendingChart
+          initialPeriod={period}
+          referenceNow={dayjs('2026-01-15T12:00:00')}
+        />
+      );
+
+      expect(screen.getAllByText(expectedTotal).length).toBeGreaterThan(0);
+      expect(screen.getByText('Alimentación')).toBeInTheDocument();
+      expect(screen.queryByText('Transporte')).not.toBeInTheDocument();
+    }
+  );
 });

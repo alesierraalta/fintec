@@ -17,6 +17,7 @@ import {
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { FreeLimitWarning } from '@/components/subscription/free-limit-warning';
+import type { DashboardPeriodControllerProps } from './dashboard-period-props';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,7 +27,7 @@ import {
   EyeOff,
 } from 'lucide-react';
 
-export function MobileDashboard() {
+export function MobileDashboard(props: DashboardPeriodControllerProps) {
   const {
     accounts: rawAccounts,
     transactions: rawTransactions,
@@ -309,11 +310,19 @@ export function MobileDashboard() {
               )}
               <p className="amount-emphasis-white text-sm text-white">
                 Total:{' '}
-                {liveProjection(totalBalance, getExchangeRate(usdEquivalentType))
-                  .text}{' '}
+                {
+                  liveProjection(
+                    totalBalance,
+                    getExchangeRate(usdEquivalentType)
+                  ).text
+                }{' '}
                 (
-                {liveProjection(totalBalance, getExchangeRate(usdEquivalentType))
-                  .provenance}
+                {
+                  liveProjection(
+                    totalBalance,
+                    getExchangeRate(usdEquivalentType)
+                  ).provenance
+                }
                 )
               </p>
             </div>
@@ -351,11 +360,19 @@ export function MobileDashboard() {
             )}
             <p className="text-sm text-muted-foreground">
               Total:{' '}
-              {liveProjection(monthlyIncome, getExchangeRate(usdEquivalentType))
-                .text}{' '}
+              {
+                liveProjection(
+                  monthlyIncome,
+                  getExchangeRate(usdEquivalentType)
+                ).text
+              }{' '}
               (
-              {liveProjection(monthlyIncome, getExchangeRate(usdEquivalentType))
-                .provenance}
+              {
+                liveProjection(
+                  monthlyIncome,
+                  getExchangeRate(usdEquivalentType)
+                ).provenance
+              }
               )
             </p>
           </div>
@@ -391,11 +408,19 @@ export function MobileDashboard() {
             )}
             <p className="text-sm text-muted-foreground">
               Total:{' '}
-              {liveProjection(monthlyExpenses, getExchangeRate(usdEquivalentType))
-                .text}{' '}
+              {
+                liveProjection(
+                  monthlyExpenses,
+                  getExchangeRate(usdEquivalentType)
+                ).text
+              }{' '}
               (
-              {liveProjection(monthlyExpenses, getExchangeRate(usdEquivalentType))
-                .provenance}
+              {
+                liveProjection(
+                  monthlyExpenses,
+                  getExchangeRate(usdEquivalentType)
+                ).provenance
+              }
               )
             </p>
           </div>
@@ -442,15 +467,19 @@ export function MobileDashboard() {
               className={`text-sm ${monthlyIncome - monthlyExpenses >= 0 ? 'amount-positive' : 'amount-negative'}`}
             >
               Total:{' '}
-              {liveProjection(
-                monthlyIncome - monthlyExpenses,
-                getExchangeRate(usdEquivalentType)
-              ).text}{' '}
+              {
+                liveProjection(
+                  monthlyIncome - monthlyExpenses,
+                  getExchangeRate(usdEquivalentType)
+                ).text
+              }{' '}
               (
-              {liveProjection(
-                monthlyIncome - monthlyExpenses,
-                getExchangeRate(usdEquivalentType)
-              ).provenance}
+              {
+                liveProjection(
+                  monthlyIncome - monthlyExpenses,
+                  getExchangeRate(usdEquivalentType)
+                ).provenance
+              }
               )
             </p>
           </div>
@@ -485,9 +514,12 @@ export function MobileDashboard() {
 
       {/* Spending and income sources */}
       <div className="glass-card space-y-8 rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
-        <LazySpendingChart />
+        <LazySpendingChart {...props} />
         <div className="border-t border-border/30 pt-6">
-          <IncomeSources />
+          <IncomeSources
+            period={props.period}
+            referenceNow={props.referenceNow}
+          />
         </div>
       </div>
 

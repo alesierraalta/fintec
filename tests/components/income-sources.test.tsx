@@ -139,7 +139,9 @@ describe('IncomeSources', () => {
 
     render(<IncomeSources />);
     expect(screen.getByLabelText('Cargando ingresos')).toBeInTheDocument();
-    expect(screen.queryByTestId('income-sources-chart')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('income-sources-chart')
+    ).not.toBeInTheDocument();
   });
 
   it('changes the persisted selection when a different slice is clicked', () => {
@@ -150,10 +152,24 @@ describe('IncomeSources', () => {
     render(
       <IncomeSources
         categories={categories as any}
-        transactions={[
-          { type: 'INCOME', amountMinor: 10000, currencyCode: 'USD', categoryId: 'salary', date: dayjs().toISOString() },
-          { type: 'INCOME', amountMinor: 5000, currencyCode: 'USD', categoryId: 'freelance', date: dayjs().toISOString() },
-        ] as any}
+        transactions={
+          [
+            {
+              type: 'INCOME',
+              amountMinor: 10000,
+              currencyCode: 'USD',
+              categoryId: 'salary',
+              date: dayjs().toISOString(),
+            },
+            {
+              type: 'INCOME',
+              amountMinor: 5000,
+              currencyCode: 'USD',
+              categoryId: 'freelance',
+              date: dayjs().toISOString(),
+            },
+          ] as any
+        }
       />
     );
 
@@ -164,11 +180,24 @@ describe('IncomeSources', () => {
   });
 
   it('clears selected income context when data is replaced', () => {
-    const categories = [{ id: 'salary', name: 'Salario' }, { id: 'freelance', name: 'Freelance' }];
+    const categories = [
+      { id: 'salary', name: 'Salario' },
+      { id: 'freelance', name: 'Freelance' },
+    ];
     const { rerender } = render(
       <IncomeSources
         categories={categories as any}
-        transactions={[{ type: 'INCOME', amountMinor: 10000, currencyCode: 'USD', categoryId: 'salary', date: dayjs().toISOString() }] as any}
+        transactions={
+          [
+            {
+              type: 'INCOME',
+              amountMinor: 10000,
+              currencyCode: 'USD',
+              categoryId: 'salary',
+              date: dayjs().toISOString(),
+            },
+          ] as any
+        }
       />
     );
     fireEvent.click(screen.getByTestId('pie-cell-0'));
@@ -176,7 +205,17 @@ describe('IncomeSources', () => {
     rerender(
       <IncomeSources
         categories={categories as any}
-        transactions={[{ type: 'INCOME', amountMinor: 5000, currencyCode: 'USD', categoryId: 'freelance', date: dayjs().toISOString() }] as any}
+        transactions={
+          [
+            {
+              type: 'INCOME',
+              amountMinor: 5000,
+              currencyCode: 'USD',
+              categoryId: 'freelance',
+              date: dayjs().subtract(1, 'minute').toISOString(),
+            },
+          ] as any
+        }
       />
     );
     expect(screen.getByText('Total de ingresos')).toBeInTheDocument();
@@ -187,11 +226,104 @@ describe('IncomeSources', () => {
     expect(screen.queryByTestId('income-tooltip')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['today', 'Hoy', 'today', 1000],
+    ['this_week', 'Esta semana', 'week', 3000],
+    ['last_month', 'Mes anterior', 'last-month', 3000],
+    ['all', 'Histórico', 'future', 10000],
+  ] as const)(
+    'filters income for %s and uses its period label',
+    (period, label, expectedCategory, expectedAmount) => {
+      const referenceNow = dayjs('2026-01-15T12:00:00');
+      const categories = [
+        { id: 'today', name: 'Hoy' },
+        { id: 'week', name: 'Semana' },
+        { id: 'last-month', name: 'Mes anterior' },
+        { id: 'future', name: 'Futuro' },
+      ];
+      render(
+        <IncomeSources
+          categories={categories as any}
+          period={period}
+          referenceNow={referenceNow}
+          transactions={
+            [
+              {
+                type: 'INCOME',
+                amountMinor: 1000,
+                currencyCode: 'USD',
+                categoryId: 'today',
+                date: '2026-01-15T10:00:00',
+              },
+              {
+                type: 'INCOME',
+                amountMinor: 2000,
+                currencyCode: 'USD',
+                categoryId: 'week',
+                date: '2026-01-12T10:00:00',
+              },
+              {
+                type: 'INCOME',
+                amountMinor: 3000,
+                currencyCode: 'USD',
+                categoryId: 'last-month',
+                date: '2025-12-20T10:00:00',
+              },
+              {
+                type: 'INCOME',
+                amountMinor: 4000,
+                currencyCode: 'USD',
+                categoryId: 'future',
+                date: '2026-01-16T10:00:00',
+              },
+            ] as any
+          }
+        />
+      );
+      expect(screen.getByText(`${label}, por categoría`)).toBeInTheDocument();
+      expect(
+        screen.getAllByText(`$${(expectedAmount / 100).toFixed(2)}`).length
+      ).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(
+          categories.find((category) => category.id === expectedCategory)!.name
+        ).length
+      ).toBeGreaterThan(0);
+      if (period !== 'all')
+        expect(screen.queryByText('Futuro')).not.toBeInTheDocument();
+    }
+  );
+
+  it.each([
+    ['today', 'hoy'],
+    ['this_week', 'esta semana'],
+    ['this_month', 'este mes'],
+    ['last_month', 'mes anterior'],
+    ['all', 'histórico'],
+  ] as const)(
+    'uses period-specific empty copy for %s',
+    (period, periodText) => {
+      render(
+        <IncomeSources
+          period={period}
+          referenceNow={dayjs('2026-01-15T12:00:00')}
+          transactions={[]}
+          categories={[]}
+        />
+      );
+      expect(
+        screen.getByText(
+          `Todavía no hay ingresos registrados para ${periodText}.`
+        )
+      ).toBeInTheDocument();
+    }
+  );
+
   it('shows a clear empty state when there is no current-month income', () => {
     render(<IncomeSources transactions={[]} categories={[]} />);
 
     expect(
-      screen.getByText(/Todavía no hay ingresos registrados este mes/i)
+      screen.getByText(/Todavía no hay ingresos registrados para este mes/i)
     ).toBeInTheDocument();
   });
 });

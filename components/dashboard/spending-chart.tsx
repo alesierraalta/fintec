@@ -23,28 +23,24 @@ import { useActiveUsdVesRate } from '@/lib/rates';
 import { fromMinorUnits } from '@/lib/money';
 import { Skeleton } from '@/components/ui/skeleton';
 import dayjs from '@/lib/dates/dayjs';
+import {
+  DASHBOARD_PERIOD_OPTIONS,
+  filterByDashboardPeriod,
+  type DashboardPeriod,
+} from '@/lib/dates/dashboard-periods';
 import type { Transaction, Category } from '@/types';
+import type { DashboardPeriodFilterProps } from './dashboard-period-props';
 
-export type SpendingPeriod =
-  | 'this_month'
-  | 'last_month'
-  | 'last_30_days'
-  | 'all';
+export type SpendingPeriod = DashboardPeriod;
 
-export interface SpendingChartProps {
+export interface SpendingChartProps extends DashboardPeriodFilterProps {
   transactions?: Transaction[];
   categories?: Category[];
   loading?: boolean;
   initialPeriod?: SpendingPeriod;
+  onPeriodChange?: (period: SpendingPeriod) => void;
   className?: string;
 }
-
-const PERIOD_OPTIONS: { id: SpendingPeriod; label: string }[] = [
-  { id: 'this_month', label: 'Este mes' },
-  { id: 'last_month', label: 'Mes anterior' },
-  { id: 'last_30_days', label: 'Últimos 30 días' },
-  { id: 'all', label: 'Histórico' },
-];
 
 const HIGH_CONTRAST_PALETTE = [
   '#10b981',
@@ -241,6 +237,9 @@ function SpendingChartComponent({
   categories: customCategories,
   loading: customLoading,
   initialPeriod = 'this_month',
+  period: controlledPeriod,
+  referenceNow: controlledReferenceNow,
+  onPeriodChange,
   className = '',
 }: SpendingChartProps) {
   const {
@@ -255,6 +254,9 @@ function SpendingChartComponent({
 
   const [selectedPeriod, setSelectedPeriod] =
     useState<SpendingPeriod>(initialPeriod);
+  const [fallbackReferenceNow] = useState(() => dayjs());
+  const selectedPeriodValue = controlledPeriod ?? selectedPeriod;
+  const referenceNow = controlledReferenceNow ?? fallbackReferenceNow;
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
@@ -268,36 +270,15 @@ function SpendingChartComponent({
   const categories = customCategories || hookCategories;
   const isLoading = customLoading !== undefined ? customLoading : hookLoading;
 
-  const filteredExpenses = useMemo(() => {
-    if (!rawExpenses || rawExpenses.length === 0) return [];
-    const now = dayjs();
-
-    return rawExpenses.filter((tx) => {
-      if (selectedPeriod === 'all') return true;
-      if (!tx.date) return true;
-
-      const txDate = dayjs(tx.date);
-      if (!txDate.isValid()) return true;
-
-      switch (selectedPeriod) {
-        case 'this_month':
-          return txDate.isSame(now, 'month') && txDate.isSame(now, 'year');
-        case 'last_month': {
-          const prev = now.subtract(1, 'month');
-          return txDate.isSame(prev, 'month') && txDate.isSame(prev, 'year');
-        }
-        case 'last_30_days': {
-          const thirtyDaysAgo = now.subtract(30, 'day').startOf('day');
-          return (
-            txDate.isSameOrAfter(thirtyDaysAgo) &&
-            txDate.isSameOrBefore(now.endOf('day'))
+  const filteredExpenses = useMemo(
+    () =>
+      filterByDashboardPeriod(
+        rawExpenses || [],
+        selectedPeriodValue,
+        referenceNow
+      ),
+    [rawExpenses, selectedPeriodValue, referenceNow]
           );
-        }
-        default:
-          return true;
-      }
-    });
-  }, [rawExpenses, selectedPeriod]);
 
   const convertExpenseToUSD = (tx: Transaction): number => {
     const currency = tx.currencyCode || 'USD';
@@ -393,7 +374,7 @@ function SpendingChartComponent({
   useEffect(() => {
         setActiveIndex(null);
         setSelectedIndex(null);
-      }, [spendingData]);
+  }, [spendingData, selectedPeriodValue]);
 
   if (isLoading) {
     return <SpendingChartSkeleton />;
@@ -434,11 +415,11 @@ function SpendingChartComponent({
         </div>
         <div
           role="tablist"
-          aria-label="Filtro de período de gastos"
+          aria-label="Filtro de período para gastos e ingresos"
           className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-2xl border border-border/30 bg-muted/40 p-1 backdrop-blur-sm"
         >
-          {PERIOD_OPTIONS.map((period) => {
-            const isSelected = selectedPeriod === period.id;
+          {DASHBOARD_PERIOD_OPTIONS.map((period) => {
+            const isSelected = selectedPeriodValue === period.id;
             return (
               <button
                 key={period.id}
@@ -446,6 +427,7 @@ function SpendingChartComponent({
                 aria-selected={isSelected}
                 onClick={() => {
                   setSelectedPeriod(period.id);
+                  onPeriodChange?.(period.id);
                   setActiveIndex(null);
                   setSelectedIndex(null);
                 }}

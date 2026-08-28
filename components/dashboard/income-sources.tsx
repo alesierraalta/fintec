@@ -9,9 +9,14 @@ import { useActiveUsdVesRate } from '@/lib/rates';
 import { fromMinorUnits } from '@/lib/money';
 import { cn } from '@/lib/utils';
 import dayjs from '@/lib/dates/dayjs';
+import {
+  filterByDashboardPeriod,
+  getDashboardPeriodLabel,
+} from '@/lib/dates/dashboard-periods';
 import type { Category, Transaction } from '@/types';
+import type { DashboardPeriodFilterProps } from './dashboard-period-props';
 
-interface IncomeSourcesProps {
+interface IncomeSourcesProps extends DashboardPeriodFilterProps {
   transactions?: Transaction[];
   categories?: Category[];
   loading?: boolean;
@@ -38,6 +43,8 @@ function IncomeSourcesComponent({
   categories: customCategories,
   loading: customLoading,
   className,
+  period = 'this_month',
+  referenceNow: providedReferenceNow,
 }: IncomeSourcesProps) {
   const {
     transactions: hookTransactions,
@@ -49,23 +56,23 @@ function IncomeSourcesComponent({
   const transactions = customTransactions ?? hookTransactions;
   const categories = customCategories ?? hookCategories;
   const isLoading = customLoading ?? hookLoading;
+  const [fallbackReferenceNow] = useState(() => dayjs());
+  const referenceNow = providedReferenceNow ?? fallbackReferenceNow;
+  const periodLabel = getDashboardPeriodLabel(period);
 
   const sources = useMemo(() => {
-    const now = dayjs();
+    const periodTransactions = filterByDashboardPeriod(
+      transactions,
+      period,
+      referenceNow
+    );
     const sourceMap = new Map<
       string,
       { id: string; name: string; amount: number; color?: string }
     >();
 
-    transactions.forEach((transaction) => {
-      if (
-        transaction.type !== 'INCOME' ||
-        !transaction.date ||
-        !dayjs(transaction.date).isSame(now, 'month') ||
-        !dayjs(transaction.date).isSame(now, 'year')
-      ) {
-        return;
-      }
+    periodTransactions.forEach((transaction) => {
+      if (transaction.type !== 'INCOME') return;
 
       const currency = transaction.currencyCode || 'USD';
       const amountMajor = fromMinorUnits(
@@ -94,7 +101,14 @@ function IncomeSourcesComponent({
     });
 
     return Array.from(sourceMap.values()).sort((a, b) => b.amount - a.amount);
-  }, [transactions, categories, activeUsdVesRate, convert]);
+  }, [
+    transactions,
+    categories,
+    period,
+    referenceNow,
+    activeUsdVesRate,
+    convert,
+  ]);
   useEffect(() => {
         setActiveIndex(null);
         setSelectedIndex(null);
@@ -125,7 +139,7 @@ function IncomeSourcesComponent({
             ¿De dónde vienen tus ingresos?
           </h3>
           <p className="text-ios-caption text-muted-foreground">
-            Este mes, por categoría
+            {periodLabel}, por categoría
           </p>
         </div>
       </div>
@@ -139,7 +153,8 @@ function IncomeSourcesComponent({
         <div className="glass-card flex items-center gap-3 rounded-2xl p-4 text-muted-foreground">
           <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
           <p className="text-ios-caption">
-            Todavía no hay ingresos registrados este mes.
+            Todavía no hay ingresos registrados para {periodLabel.toLowerCase()}
+            .
           </p>
         </div>
       ) : (
