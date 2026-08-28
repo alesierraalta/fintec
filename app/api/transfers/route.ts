@@ -64,6 +64,8 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
             }
           : null,
         amount: transfer.amountMinor,
+        commissionMinor: transfer.commissionMinor,
+        totalDebitMinor: transfer.totalDebitMinor,
         date: transfer.date,
         description: transfer.description,
       })),
@@ -104,6 +106,31 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     }
   }
 
+  let commissionMinor: number | undefined;
+  const rawCommission = body.commissionMinor ?? body.commission ?? body.commissionMajor ?? body.feeMinor ?? body.comision ?? body.comisionMinor;
+  if (rawCommission !== undefined && rawCommission !== null && String(rawCommission).trim() !== '') {
+    const parsed = Number(rawCommission);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      throw new ValidationError('commission must be a non-negative finite number');
+    }
+    // Convert to minor using 2 decimals (source currency unknown here, use 2 as default; repo will revalidate with exact currency)
+    // Keep raw minor if already integer minor? Heuristic: if value is integer and already minor-like, keep? But we treat as major.
+    // To support both, if rawCommission is integer and >=1000 and body has explicit commissionMinor, we already used it.
+    // For now, treat as major and convert with 2 decimals
+    const decimals = 2;
+    const factor = Math.pow(10, decimals);
+    const asMinor = Math.round(parsed * factor);
+    // If parsed has more decimals than allowed for 2, we still allow but repo will validate with actual currency precision
+    if (!Number.isSafeInteger(asMinor) || asMinor < 0) {
+      throw new ValidationError('commission overflows');
+    }
+    commissionMinor = asMinor;
+    // If body already provided commissionMinor as integer minor directly, prefer that exact value
+    if (body.commissionMinor !== undefined && Number.isSafeInteger(body.commissionMinor) && body.commissionMinor >= 0) {
+      commissionMinor = body.commissionMinor;
+    }
+  }
+
   const requestContext = new RequestContext(userId);
   const repository = createServerTransfersRepository({
     supabase,
@@ -117,6 +144,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     date: body.date,
     exchangeRate: body.exchangeRate,
     rateSource: body.rateSource || null,
+    commissionMinor,
   });
 
   return NextResponse.json(successResponse(created), { status: 201 });

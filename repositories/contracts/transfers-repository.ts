@@ -14,6 +14,8 @@ export interface TransferRecord {
   amountMinor: number;
   date?: string;
   description?: string;
+  commissionMinor?: number;
+  totalDebitMinor?: number;
 }
 
 export interface CreateTransferInput {
@@ -24,6 +26,8 @@ export interface CreateTransferInput {
   date?: string;
   exchangeRate?: number;
   rateSource?: string | null;
+  commissionMinor?: number;
+  commissionMajor?: number;
 }
 
 export interface CreateTransferResult {
@@ -35,6 +39,8 @@ export interface CreateTransferResult {
   fromCurrency?: string;
   toCurrency?: string;
   exchangeRate?: number;
+  commissionMinor?: number;
+  totalDebitMinor?: number;
 }
 
 export interface TransfersRepository {

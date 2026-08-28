@@ -744,7 +744,7 @@ $$;
 ALTER FUNCTION "public"."create_transaction_v2"("p_type" "text", "p_account_id" "uuid", "p_category_id" "uuid", "p_currency_code" "text", "p_amount_minor" bigint, "p_amount_base_minor" bigint, "p_exchange_rate" numeric, "p_date" "date", "p_description" "text", "p_note" "text", "p_tags" "text"[], "p_is_debt" boolean, "p_debt_direction" "public"."debt_direction", "p_debt_status" "public"."debt_status", "p_counterparty_name" "text") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text" DEFAULT 'Transferencia'::"text", "p_date" "date" DEFAULT CURRENT_DATE, "p_exchange_rate" numeric DEFAULT 1.0, "p_rate_source" "text" DEFAULT NULL::"text", "p_note" "text" DEFAULT NULL::"text") RETURNS json
+CREATE OR REPLACE FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text" DEFAULT 'Transferencia'::"text", "p_date" "date" DEFAULT CURRENT_DATE, "p_exchange_rate" numeric DEFAULT 1.0, "p_rate_source" "text" DEFAULT NULL::"text", "p_note" "text" DEFAULT NULL::"text", "p_commission_minor" bigint DEFAULT NULL::bigint) RETURNS json
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
@@ -754,110 +754,67 @@ DECLARE
   v_to_account RECORD;
   v_from_amount_minor BIGINT;
   v_to_amount_minor BIGINT;
+  v_commission_minor BIGINT;
+  v_total_debit_minor BIGINT;
   v_from_txn_id UUID;
   v_to_txn_id UUID;
   v_from_decimals INTEGER;
   v_to_decimals INTEGER;
+  v_effective_rate NUMERIC;
   v_combined_note TEXT;
 BEGIN
-  -- Ownership guard: an authenticated caller may only transfer as themselves.
-  -- auth.uid() IS NULL for service_role (admin/cron) calls, which bypasses this.
   IF auth.uid() IS NOT NULL AND p_user_id <> auth.uid() THEN
     RAISE EXCEPTION 'Unauthorized: cannot transfer funds for another user';
   END IF;
-
-  SELECT * INTO v_from_account FROM public.accounts 
-  WHERE id = p_from_account_id AND user_id = p_user_id FOR UPDATE;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Source account not found or does not belong to user';
+  SELECT * INTO v_from_account FROM public.accounts WHERE id = p_from_account_id AND user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Source account not found or does not belong to user'; END IF;
+  SELECT * INTO v_to_account FROM public.accounts WHERE id = p_to_account_id AND user_id = p_user_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Destination account not found or does not belong to user'; END IF;
+  IF p_from_account_id = p_to_account_id THEN RAISE EXCEPTION 'Cannot transfer to the same account'; END IF;
+  IF p_commission_minor IS NOT NULL THEN
+    IF p_commission_minor < 0 THEN RAISE EXCEPTION 'commission must be non-negative'; END IF;
+    IF p_commission_minor > 9007199254740991 THEN RAISE EXCEPTION 'commission overflows safe integer'; END IF;
   END IF;
-  
-  SELECT * INTO v_to_account FROM public.accounts 
-  WHERE id = p_to_account_id AND user_id = p_user_id FOR UPDATE;
-  
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Destination account not found or does not belong to user';
-  END IF;
-  
-  IF p_from_account_id = p_to_account_id THEN
-    RAISE EXCEPTION 'Cannot transfer to the same account';
-  END IF;
-  
-  v_from_decimals := CASE 
-    WHEN v_from_account.currency_code = 'JPY' THEN 0
-    WHEN v_from_account.currency_code IN ('CLP', 'COP') THEN 0
-    ELSE 2
-  END;
-  
-  v_to_decimals := CASE 
-    WHEN v_to_account.currency_code = 'JPY' THEN 0
-    WHEN v_to_account.currency_code IN ('CLP', 'COP') THEN 0
-    ELSE 2
-  END;
-  
+  v_commission_minor := COALESCE(p_commission_minor, 0);
+  v_from_decimals := CASE WHEN v_from_account.currency_code = 'JPY' THEN 0 WHEN v_from_account.currency_code IN ('CLP', 'COP') THEN 0 ELSE 2 END;
+  v_to_decimals := CASE WHEN v_to_account.currency_code = 'JPY' THEN 0 WHEN v_to_account.currency_code IN ('CLP', 'COP') THEN 0 ELSE 2 END;
   v_from_amount_minor := (p_amount_major * POWER(10, v_from_decimals))::BIGINT;
-  
-  IF v_from_account.balance < v_from_amount_minor THEN
-    RAISE EXCEPTION 'Insufficient balance. Available: %, Requested: %', 
-      v_from_account.balance, v_from_amount_minor;
+  IF v_from_amount_minor <= 0 THEN RAISE EXCEPTION 'amount must be positive'; END IF;
+  IF v_from_account.currency_code = v_to_account.currency_code THEN
+    v_effective_rate := 1.0;
+  ELSE
+    v_effective_rate := COALESCE(p_exchange_rate, 1.0);
+    IF v_effective_rate <= 0 THEN RAISE EXCEPTION 'exchangeRate must be positive'; END IF;
   END IF;
-  
+  IF v_from_account.currency_code = v_to_account.currency_code THEN
+    v_to_amount_minor := v_from_amount_minor;
+  ELSE
+    v_to_amount_minor := (p_amount_major * v_effective_rate * POWER(10, v_to_decimals))::BIGINT;
+  END IF;
+  IF v_to_amount_minor <= 0 THEN RAISE EXCEPTION 'calculated destination amount must be positive'; END IF;
+  v_total_debit_minor := v_from_amount_minor + v_commission_minor;
+  IF v_total_debit_minor > 9007199254740991 THEN RAISE EXCEPTION 'total debit overflows'; END IF;
+  IF v_from_account.balance < v_total_debit_minor THEN RAISE EXCEPTION 'Insufficient balance. Available: %, Requested (amount + commission): %', v_from_account.balance, v_total_debit_minor; END IF;
   v_transfer_id := gen_random_uuid();
-  
-  v_to_amount_minor := (p_amount_major * p_exchange_rate * POWER(10, v_to_decimals))::BIGINT;
-
-  v_combined_note := CASE
-    WHEN p_note IS NOT NULL AND p_rate_source IS NOT NULL THEN p_note || ' | Tasa: ' || p_rate_source
-    WHEN p_note IS NOT NULL THEN p_note
-    WHEN p_rate_source IS NOT NULL THEN 'Tasa: ' || p_rate_source
-    ELSE NULL
-  END;
-  
-  INSERT INTO public.transactions (
-    transfer_id, account_id, type, amount_minor, amount_base_minor,
-    currency_code, exchange_rate, description, date, note
-  ) VALUES (
-    v_transfer_id, p_from_account_id, 'TRANSFER_OUT', v_from_amount_minor, v_from_amount_minor,
-    v_from_account.currency_code, 
-    p_exchange_rate,
-    COALESCE(p_description, 'Transferencia'), p_date,
-    v_combined_note
-  ) RETURNING id INTO v_from_txn_id;
-  
-  UPDATE public.accounts 
-  SET balance = balance - v_from_amount_minor, updated_at = NOW()
-  WHERE id = p_from_account_id;
-  
-  INSERT INTO public.transactions (
-    transfer_id, account_id, type, amount_minor, amount_base_minor,
-    currency_code, exchange_rate, description, date, note
-  ) VALUES (
-    v_transfer_id, p_to_account_id, 'TRANSFER_IN', v_to_amount_minor, v_to_amount_minor,
-    v_to_account.currency_code,
-    p_exchange_rate,
-    COALESCE(p_description, 'Transferencia'), p_date,
-    v_combined_note
-  ) RETURNING id INTO v_to_txn_id;
-  
-  UPDATE public.accounts 
-  SET balance = balance + v_to_amount_minor, updated_at = NOW()
-  WHERE id = p_to_account_id;
-  
-  RETURN json_build_object(
-    'success', true, 'transferId', v_transfer_id,
-    'fromTransactionId', v_from_txn_id, 'toTransactionId', v_to_txn_id,
-    'fromAmount', v_from_amount_minor, 'toAmount', v_to_amount_minor,
-    'fromCurrency', v_from_account.currency_code,
-    'toCurrency', v_to_account.currency_code,
-    'exchangeRate', p_exchange_rate
-  );
-EXCEPTION
-  WHEN OTHERS THEN
-    RAISE EXCEPTION 'Transfer failed: %', SQLERRM;
+  v_combined_note := CASE WHEN p_note IS NOT NULL AND p_rate_source IS NOT NULL THEN p_note || ' | Tasa: ' || p_rate_source WHEN p_note IS NOT NULL THEN p_note WHEN p_rate_source IS NOT NULL THEN 'Tasa: ' || p_rate_source ELSE NULL END;
+  INSERT INTO public.transactions (transfer_id, account_id, type, amount_minor, amount_base_minor, currency_code, exchange_rate, description, date, note) VALUES (v_transfer_id, p_from_account_id, 'TRANSFER_OUT', v_from_amount_minor, v_from_amount_minor, v_from_account.currency_code, v_effective_rate, COALESCE(p_description, 'Transferencia'), p_date, v_combined_note) RETURNING id INTO v_from_txn_id;
+  UPDATE public.accounts SET balance = balance - v_total_debit_minor, updated_at = NOW() WHERE id = p_from_account_id;
+  INSERT INTO public.transactions (transfer_id, account_id, type, amount_minor, amount_base_minor, currency_code, exchange_rate, description, date, note) VALUES (v_transfer_id, p_to_account_id, 'TRANSFER_IN', v_to_amount_minor, v_to_amount_minor, v_to_account.currency_code, v_effective_rate, COALESCE(p_description, 'Transferencia'), p_date, v_combined_note) RETURNING id INTO v_to_txn_id;
+  UPDATE public.accounts SET balance = balance + v_to_amount_minor, updated_at = NOW() WHERE id = p_to_account_id;
+  INSERT INTO public.transfers (id, from_transaction_id, to_transaction_id, fee_minor, created_at) VALUES (v_transfer_id, v_from_txn_id, v_to_txn_id, p_commission_minor, NOW());
+  RETURN json_build_object('success', true, 'transferId', v_transfer_id, 'fromTransactionId', v_from_txn_id, 'toTransactionId', v_to_txn_id, 'fromAmount', v_from_amount_minor, 'toAmount', v_to_amount_minor, 'fromCurrency', v_from_account.currency_code, 'toCurrency', v_to_account.currency_code, 'exchangeRate', v_effective_rate, 'commissionMinor', p_commission_minor, 'totalDebitMinor', v_total_debit_minor);
+EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'Transfer failed: %', SQLERRM;
 END;
 $$;
 
+ALTER FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text", "p_commission_minor" bigint) OWNER TO "postgres";
+
+CREATE OR REPLACE FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text" DEFAULT 'Transferencia'::"text", "p_date" "date" DEFAULT CURRENT_DATE, "p_exchange_rate" numeric DEFAULT 1.0, "p_rate_source" "text" DEFAULT NULL::"text", "p_note" "text" DEFAULT NULL::"text") RETURNS json
+    LANGUAGE "sql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+  SELECT "public"."create_transfer"("p_user_id", "p_from_account_id", "p_to_account_id", "p_amount_major", "p_description", "p_date", "p_exchange_rate", "p_rate_source", "p_note", NULL::bigint);
+$$;
 
 ALTER FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") OWNER TO "postgres";
 
@@ -4274,6 +4231,10 @@ GRANT ALL ON FUNCTION "public"."create_transaction_v2"("p_type" "text", "p_accou
 
 
 
+REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text", "p_commission_minor" bigint) FROM PUBLIC;
+REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text", "p_commission_minor" bigint) FROM "anon";
+GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text", "p_commission_minor" bigint) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text", "p_commission_minor" bigint) TO "service_role";
 REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") FROM PUBLIC;
 REVOKE ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") FROM "anon";
 GRANT ALL ON FUNCTION "public"."create_transfer"("p_user_id" "uuid", "p_from_account_id" "uuid", "p_to_account_id" "uuid", "p_amount_major" numeric, "p_description" "text", "p_date" "date", "p_exchange_rate" numeric, "p_rate_source" "text", "p_note" "text") TO "authenticated";

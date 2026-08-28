@@ -28,6 +28,11 @@ import {
   isExchangeableTransferPair,
   recalculateTransferAmounts,
 } from '@/lib/transfers/exchange-calculations';
+import {
+  isSameCurrencyTransfer,
+  getTotalDebitMinor,
+  parseCommissionMinor,
+} from '@/lib/transfers/transfer-policy';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
 
@@ -39,6 +44,7 @@ interface TransferData {
   date: string;
   exchangeRate?: number;
   rateSource?: string;
+  commission?: string;
 }
 
 type TransferExchangeMode = 'manual' | 'auto';
@@ -62,6 +68,8 @@ export function MobileTransfer() {
     rateSource: undefined,
   });
   const [amountError, setAmountError] = useState<string>('');
+  const [commission, setCommission] = useState<string>('');
+  const [commissionError, setCommissionError] = useState<string>('');
   const [targetAmount, setTargetAmount] = useState(0);
   const [lastAmountEdited, setLastAmountEdited] = useState<'source' | 'target'>(
     'source'
@@ -70,8 +78,15 @@ export function MobileTransfer() {
     useState<TransferExchangeMode>('manual');
   const submittingRef = useRef(false);
   const selectedRateSource = useAppStore((state) => state.selectedRateSource);
-  const bcvRates = useBCVRates();
-  const { rates: binanceRates } = useBinanceRates();
+  const fromForPolicy = accounts.find((acc) => acc.id === transferData.fromAccountId);
+  const toForPolicy = accounts.find((acc) => acc.id === transferData.toAccountId);
+  const isSameCurrency = isSameCurrencyTransfer(
+    fromForPolicy?.currencyCode,
+    toForPolicy?.currencyCode
+  );
+  const ratesEnabled = Boolean(fromForPolicy && toForPolicy && !isSameCurrency);
+  const bcvRates = useBCVRates({ enabled: ratesEnabled });
+  const { rates: binanceRates } = useBinanceRates({ enabled: ratesEnabled });
   const activeUsdVes =
     selectedRateSource === 'binance'
       ? (binanceRates?.usd_ves ?? binanceRates?.sell_rate?.avg ?? 0)
@@ -139,7 +154,7 @@ export function MobileTransfer() {
     });
   };
 
-  const validateAmount = (amount: number) => {
+  const validateAmount = (amount: number, commissionStr: string = commission) => {
     const fromAccount = getFromAccount();
     if (!fromAccount) {
       setAmountError('');
@@ -151,18 +166,57 @@ export function MobileTransfer() {
       return true;
     }
 
-    // Convert amount to minor units for comparison
     const amountInMinorUnits = toMinorUnits(amount, fromAccount.currencyCode);
+    let commissionMinor = 0;
+    if (commissionStr && commissionStr.trim() !== '') {
+      try {
+        const parsed = parseCommissionMinor(commissionStr, fromAccount.currencyCode);
+        commissionMinor = parsed ?? 0;
+        setCommissionError('');
+      } catch (e) {
+        setCommissionError(e instanceof Error ? e.message : 'Comisión inválida');
+        return false;
+      }
+    } else {
+      setCommissionError('');
+    }
 
-    if (amountInMinorUnits > fromAccount.balance) {
-      setAmountError(
-        `Saldo insuficiente. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)}`
-      );
+    try {
+      const total = getTotalDebitMinor(amountInMinorUnits, commissionMinor);
+      if (total > fromAccount.balance) {
+        setAmountError(
+          `Saldo insuficiente para monto + comisión. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)} — Total requerido: ${formatBalance(total, fromAccount.currencyCode)}`
+        );
+        return false;
+      }
+    } catch {
+      setAmountError('Monto + comisión excede límite seguro');
       return false;
     }
 
     setAmountError('');
     return true;
+  };
+
+  const validateCommission = (value: string) => {
+    const fromAccount = getFromAccount();
+    if (!value || value.trim() === '') {
+      setCommissionError('');
+      return true;
+    }
+    if (!fromAccount) {
+      setCommissionError('');
+      return true;
+    }
+    try {
+      parseCommissionMinor(value, fromAccount.currencyCode);
+      setCommissionError('');
+      if (transferData.amount > 0) validateAmount(transferData.amount, value);
+      return true;
+    } catch (e) {
+      setCommissionError(e instanceof Error ? e.message : 'Comisión inválida');
+      return false;
+    }
   };
 
   const getFromAccount = useCallback(
@@ -226,17 +280,16 @@ export function MobileTransfer() {
     const to = getToAccount();
     if (!from || !to) return;
 
-    // Same currency parsing logic
-    if (from.currencyCode === to.currencyCode) {
-      if (
-        !isExchangeableTransferPair(from.currencyCode, to.currencyCode) &&
-        transferData.exchangeRate !== 1.0
-      ) {
+    if (isSameCurrencyTransfer(from.currencyCode, to.currencyCode)) {
+      if (transferData.exchangeRate !== 1 || transferData.rateSource !== undefined) {
         setTransferData((prev) => ({
           ...prev,
-          exchangeRate: 1.0,
+          exchangeRate: 1,
           rateSource: undefined,
         }));
+      }
+      if (targetAmount !== transferData.amount) {
+        setTargetAmount(transferData.amount);
       }
       return;
     }
@@ -294,11 +347,21 @@ export function MobileTransfer() {
     const from = getFromAccount();
     const to = getToAccount();
 
-    if (
-      !from ||
-      !to ||
-      !isExchangeableTransferPair(from.currencyCode, to.currencyCode)
-    ) {
+    if (!from || !to) {
+      if (targetAmount !== 0) {
+        setTargetAmount(0);
+      }
+      return;
+    }
+
+    if (isSameCurrencyTransfer(from.currencyCode, to.currencyCode)) {
+      if (targetAmount !== transferData.amount) {
+        setTargetAmount(transferData.amount);
+      }
+      return;
+    }
+
+    if (!isExchangeableTransferPair(from.currencyCode, to.currencyCode)) {
       if (targetAmount !== 0) {
         setTargetAmount(0);
       }
@@ -350,6 +413,10 @@ export function MobileTransfer() {
       return transferData.amount;
     }
 
+    if (isSameCurrencyTransfer(from.currencyCode, to.currencyCode)) {
+      return transferData.amount;
+    }
+
     if (
       exchangeMode === 'auto' &&
       isExchangeableTransferPair(from.currencyCode, to.currencyCode)
@@ -376,10 +443,21 @@ export function MobileTransfer() {
   const isFormValid = () => {
     const fromAccount = getFromAccount();
     const toAccount = getToAccount();
+    const isSame = fromAccount && toAccount && isSameCurrencyTransfer(fromAccount.currencyCode, toAccount.currencyCode);
     const hasDifferentCurrencies =
       fromAccount &&
       toAccount &&
-      fromAccount.currencyCode !== toAccount.currencyCode;
+      fromAccount.currencyCode !== toAccount.currencyCode &&
+      !isSame;
+
+    if (commissionError) return false;
+    if (commission && commission.trim() !== '') {
+      try {
+        if (fromAccount) parseCommissionMinor(commission, fromAccount.currencyCode);
+      } catch {
+        return false;
+      }
+    }
 
     return (
       transferData.fromAccountId &&
@@ -388,8 +466,9 @@ export function MobileTransfer() {
       transferData.amount > 0 &&
       !!transferData.date &&
       (!hasDifferentCurrencies || transferData.exchangeRate) &&
-      !amountError
-    ); // Add balance validation
+      !amountError &&
+      !commissionError
+    );
   };
 
   const handleTransfer = async () => {
@@ -411,8 +490,18 @@ export function MobileTransfer() {
       transferData.amount,
       fromAccount.currencyCode
     );
-    if (fromAccount.balance < amountInMinorUnits) {
-      toast.error('Saldo insuficiente en la cuenta origen');
+    let commissionMinor: number | undefined;
+    if (commission && commission.trim() !== '') {
+      try {
+        commissionMinor = parseCommissionMinor(commission, fromAccount.currencyCode) ?? undefined;
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : 'Comisión inválida');
+        return;
+      }
+    }
+    const totalDebit = commissionMinor !== undefined ? getTotalDebitMinor(amountInMinorUnits, commissionMinor) : amountInMinorUnits;
+    if (fromAccount.balance < totalDebit) {
+      toast.error(`Saldo insuficiente para monto + comisión. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)} — Requerido: ${formatBalance(totalDebit, fromAccount.currencyCode)}`);
       return;
     }
 
@@ -450,8 +539,10 @@ export function MobileTransfer() {
             transferData.description ||
             `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
           date: transferData.date,
-          exchangeRate: transferData.exchangeRate,
-          rateSource: transferData.rateSource,
+          exchangeRate: isSameCurrency ? 1 : transferData.exchangeRate,
+          rateSource: isSameCurrency ? undefined : transferData.rateSource,
+          commissionMinor,
+          commission: commission && commission.trim() !== '' ? commission : undefined,
         }),
       });
 
@@ -484,6 +575,8 @@ export function MobileTransfer() {
         exchangeRate: undefined,
         rateSource: undefined,
       });
+      setCommission('');
+      setCommissionError('');
       setTargetAmount(0);
       setLastAmountEdited('source');
       setExchangeMode('manual');
@@ -743,6 +836,55 @@ export function MobileTransfer() {
                 <span className="text-sm text-red-600">{amountError}</span>
               </div>
             )}
+
+            {/* Comisión (opcional) */}
+            <div className="space-y-3 rounded-xl border border-border/40 bg-muted/20 p-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">
+                  Comisión (opcional)
+                </label>
+                {getFromAccount() && (
+                  <span className="text-xs text-muted-foreground">
+                    {getFromAccount()!.currencyCode}
+                  </span>
+                )}
+              </div>
+              <div className="relative">
+                <input
+                  type="number"
+                  value={commission}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCommission(v);
+                    validateCommission(v);
+                  }}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  className={`w-full rounded-xl border border-border bg-background py-3 pl-4 pr-16 text-base font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none ${
+                    commissionError ? 'border-red-500 focus:border-red-500' : ''
+                  }`}
+                  aria-label="Comisión opcional"
+                />
+                <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  {getFromAccount()?.currencyCode ?? ''}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Se debitará adicional al monto transferido. Deja vacío si no hay comisión.
+              </p>
+              {commissionError && (
+                <div className="flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-2 dark:border-red-700 dark:bg-red-900/20">
+                  <X className="h-4 w-4 text-red-500" />
+                  <span className="text-sm text-red-600">{commissionError}</span>
+                </div>
+              )}
+              {commission && !commissionError && getFromAccount() && transferData.amount > 0 && (
+                <p className="text-xs font-medium text-foreground">
+                  Total a debitar: {formatBalance(getTotalDebitMinor(toMinorUnits(transferData.amount, getFromAccount()!.currencyCode), parseCommissionMinor(commission, getFromAccount()!.currencyCode) ?? 0), getFromAccount()!.currencyCode)}
+                </p>
+              )}
+            </div>
 
             {getFromAccount() &&
               getToAccount() &&
@@ -1094,6 +1236,17 @@ export function MobileTransfer() {
                   <p className="text-center text-sm text-muted-foreground">
                     <span className="font-medium">Descripción:</span>{' '}
                     {transferData.description}
+                  </p>
+                </div>
+              )}
+
+              {commission && commission.trim() !== '' && (
+                <div className="mt-4 space-y-1 border-t border-border/40 pt-4 text-center text-sm">
+                  <p className="text-muted-foreground">
+                    Comisión: {formatBalance(parseCommissionMinor(commission, getFromAccount()?.currencyCode || 'USD') ?? 0, getFromAccount()?.currencyCode || 'USD')}
+                  </p>
+                  <p className="font-semibold text-foreground">
+                    Total debitado: {formatBalance(getTotalDebitMinor(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'USD'), parseCommissionMinor(commission, getFromAccount()?.currencyCode || 'USD') ?? 0), getFromAccount()?.currencyCode || 'USD')}
                   </p>
                 </div>
               )}

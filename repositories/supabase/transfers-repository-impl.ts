@@ -102,20 +102,39 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       grouped.get(mapped.transferId)!.push(mapped);
     }
 
+    const transferIds = Array.from(grouped.keys());
+    let feeByTransfer = new Map<string, number | undefined>();
+    if (transferIds.length > 0) {
+      const { data: transfersData } = await this.client
+        .from('transfers')
+        .select('id, fee_minor')
+        .in('id', transferIds);
+      for (const row of (transfersData as any[]) || []) {
+        const fee = row.fee_minor;
+        if (fee !== null && fee !== undefined) {
+          feeByTransfer.set(row.id, fee);
+        }
+      }
+    }
+
     return Array.from(grouped.entries()).map(([transferId, transactions]) => {
       const fromTransaction =
         transactions.find((t) => t.type === 'TRANSFER_OUT') || null;
       const toTransaction =
         transactions.find((t) => t.type === 'TRANSFER_IN') || null;
+      const commissionMinor = feeByTransfer.get(transferId);
+      const amountMinor = fromTransaction?.amountMinor || toTransaction?.amountMinor || 0;
+      const totalDebitMinor = commissionMinor !== undefined ? amountMinor + commissionMinor : amountMinor;
 
       return {
         id: transferId,
         fromTransaction,
         toTransaction,
-        amountMinor:
-          fromTransaction?.amountMinor || toTransaction?.amountMinor || 0,
+        amountMinor,
         date: fromTransaction?.date || toTransaction?.date,
         description: fromTransaction?.description || toTransaction?.description,
+        commissionMinor,
+        totalDebitMinor,
       };
     });
   }
@@ -133,16 +152,61 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       throw new Error('amountMajor must be a positive finite number');
     }
 
-    // Default to 1 only when truly absent (null / undefined).
-    // Reject any supplied value that is non-number, non-finite, or ≤ 0.
-    const exchangeRate = input.exchangeRate ?? 1;
-    if (
-      typeof exchangeRate !== 'number' ||
-      !Number.isFinite(exchangeRate) ||
-      exchangeRate <= 0
-    ) {
-      throw new Error('exchangeRate must be a positive finite number');
+    let commissionMinor: number | null = null;
+    if (input.commissionMinor !== undefined && input.commissionMinor !== null) {
+      if (!Number.isSafeInteger(input.commissionMinor) || input.commissionMinor < 0) {
+        throw new Error('commissionMinor must be a non-negative safe integer');
+      }
+      commissionMinor = input.commissionMinor;
+    } else if (input.commissionMajor !== undefined && input.commissionMajor !== null && String(input.commissionMajor).trim() !== '') {
+      const raw = input.commissionMajor;
+      if (typeof raw !== 'number' || !Number.isFinite(raw) || raw < 0) {
+        throw new Error('commissionMajor must be a non-negative finite number');
+      }
+      // Convert using source account currency decimals when possible; fallback to 2
+      try {
+        const { data: accForCommission } = await this.client
+          .from('accounts')
+          .select('id, currency_code')
+          .eq('id', input.fromAccountId)
+          .single();
+        const currencyCode = (accForCommission as any)?.currency_code || 'USD';
+        const { toMinorUnits } = await import('@/lib/money');
+        commissionMinor = toMinorUnits(raw, currencyCode);
+      } catch {
+        commissionMinor = Math.round(raw * 100);
+      }
+      if (!Number.isSafeInteger(commissionMinor!)) throw new Error('commission overflows');
     }
+
+    // Resolve effective exchange rate: force 1 for same-currency transfers
+    let effectiveRate: number | undefined = input.exchangeRate;
+    try {
+      const scope = await this.getAccountScope(userId);
+      // Fetch accounts to determine currencies if possible
+      const { data: accounts } = await this.client
+        .from('accounts')
+        .select('id, currency_code')
+        .in('id', [input.fromAccountId, input.toAccountId]);
+      const fromAcc = (accounts as any[])?.find((a) => a.id === input.fromAccountId);
+      const toAcc = (accounts as any[])?.find((a) => a.id === input.toAccountId);
+      if (fromAcc && toAcc && fromAcc.currency_code === toAcc.currency_code) {
+        effectiveRate = 1;
+      } else if (effectiveRate === undefined || effectiveRate === null) {
+        effectiveRate = 1;
+      } else if (typeof effectiveRate !== 'number' || !Number.isFinite(effectiveRate) || effectiveRate <= 0) {
+        throw new Error('exchangeRate must be a positive finite number');
+      }
+    } catch (e) {
+      if ((e as Error).message?.includes('exchangeRate')) throw e;
+      // Fallback: use provided rate or 1
+      if (effectiveRate === undefined || effectiveRate === null) effectiveRate = 1;
+      if (typeof effectiveRate !== 'number' || !Number.isFinite(effectiveRate) || effectiveRate <= 0) {
+        throw new Error('exchangeRate must be a positive finite number');
+      }
+    }
+
+    const exchangeRate = effectiveRate;
 
     const { data, error } = await (this.client as any).rpc('create_transfer', {
       p_user_id: userId,
@@ -153,6 +217,7 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       p_date: input.date || new Date().toISOString().split('T')[0],
       p_exchange_rate: exchangeRate,
       p_rate_source: input.rateSource || null,
+      p_commission_minor: commissionMinor,
     });
 
     if (error) {
@@ -178,6 +243,8 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       fromCurrency: data.fromCurrency || data.from_currency,
       toCurrency: data.toCurrency || data.to_currency,
       exchangeRate: data.exchangeRate || data.exchange_rate,
+      commissionMinor: data.commissionMinor ?? data.commission_minor ?? data.feeMinor ?? data.fee_minor ?? commissionMinor ?? undefined,
+      totalDebitMinor: data.totalDebitMinor ?? data.total_debit_minor ?? undefined,
     };
   }
 

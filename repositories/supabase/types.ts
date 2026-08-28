@@ -108,7 +108,7 @@ export type SupabaseTransfer = {
   id: string;
   from_transaction_id: string;
   to_transaction_id: string;
-  fee_minor?: number;
+  fee_minor?: number | null;
   created_at: string;
 }
 

@@ -1,4 +1,5 @@
 import { fromMinorUnits, toMinorUnits } from '@/lib/money';
+import { isSameCurrencyTransfer } from './transfer-policy';
 
 const RATE_SCALE = 1_000_000;
 
@@ -40,10 +41,11 @@ export function isExchangeableTransferPair(
   fromCurrency?: string,
   toCurrency?: string
 ): boolean {
+  if (!fromCurrency || !toCurrency) return false;
+  if (isSameCurrencyTransfer(fromCurrency, toCurrency)) return false;
   return (
     (fromCurrency === 'USD' && toCurrency === 'VES') ||
-    (fromCurrency === 'VES' && toCurrency === 'USD') ||
-    (fromCurrency === 'USD' && toCurrency === 'USD')
+    (fromCurrency === 'VES' && toCurrency === 'USD')
   );
 }
 
@@ -112,6 +114,19 @@ export function recalculateTransferAmounts(
     targetAmountMajor,
     lastEdited,
   } = input;
+
+  if (isSameCurrencyTransfer(fromCurrency, toCurrency)) {
+    if (lastEdited === 'target') {
+      return {
+        sourceAmountMajor: targetAmountMajor,
+        targetAmountMajor,
+      };
+    }
+    return {
+      sourceAmountMajor,
+      targetAmountMajor: sourceAmountMajor,
+    };
+  }
 
   if (!isExchangeableTransferPair(fromCurrency, toCurrency)) {
     return {
