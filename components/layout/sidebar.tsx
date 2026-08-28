@@ -10,6 +10,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
 import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
+import { mobilePrimaryNavigation, mobileSecondaryNavigation, mobileAdminNavigation } from './navigation';
 import {
   Home,
   CreditCard,
@@ -30,23 +31,9 @@ import {
   Calculator,
 } from 'lucide-react';
 
-const navigation = [
-  { name: 'Inicio', href: '/', icon: Home },
-  { name: 'Cuentas', href: '/accounts', icon: Wallet },
-  { name: 'Gastos', href: '/transactions', icon: ArrowUpDown },
-  { name: 'Recurrentes', href: '/recurring', icon: Repeat },
-  { name: 'Transferir', href: '/transfers', icon: ArrowRightLeft },
-  { name: 'Categorías', href: '/categories', icon: PieChart },
-  { name: 'Presupuestos', href: '/budgets', icon: CreditCard },
-  { name: 'Metas', href: '/goals', icon: Target },
-  { name: 'Reportes', href: '/reports', icon: TrendingUp },
-  { name: 'Calculadora', href: '/calculator', icon: Calculator },
-  { name: 'Deudas', href: '/debts', icon: HandCoins },
-  { name: 'Ofertas P2P', href: '/p2p-offers', icon: DollarSign },
-  { name: 'Respaldos', href: '/backups', icon: Shield },
-  { name: 'Chats', href: '/chat', icon: MessageSquare, premium: true },
-  { name: 'Ajustes', href: '/settings', icon: Settings },
-];
+const navigation = [...mobilePrimaryNavigation, ...mobileSecondaryNavigation].map((item) => ({
+  ...item, name: item.desktopLabel ?? item.mobileLabel,
+}));
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -114,7 +101,7 @@ export function Sidebar() {
       {/* Navigation - More friendly spacing */}
       <nav className="no-scrollbar flex-1 space-y-2 overflow-y-auto px-4">
         {(isAdmin
-          ? [...navigation, { name: 'Admin', href: '/admin', icon: Shield }]
+          ? [...navigation, { ...mobileAdminNavigation, name: 'Admin' }]
           : navigation
         ).map((item) => {
           // Solo mostrar items premium si el usuario es premium
