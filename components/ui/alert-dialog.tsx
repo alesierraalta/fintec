@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 
 interface AlertDialogContextValue {
     open: boolean;
@@ -70,6 +71,13 @@ export interface AlertDialogContentProps {
 export function AlertDialogContent({ children, className }: AlertDialogContentProps) {
     const { open, onOpenChange } = useAlertDialog();
     const [mounted, setMounted] = React.useState(false);
+    const registerBack = useNativeBackNavigation();
+    const backId = React.useId();
+
+    React.useEffect(() => {
+        if (!open) return;
+        return registerBack({ id: `alert-dialog-${backId}`, priority: 110, close: () => onOpenChange(false) });
+    }, [open, onOpenChange, registerBack, backId]);
 
     React.useEffect(() => {
         setMounted(true);

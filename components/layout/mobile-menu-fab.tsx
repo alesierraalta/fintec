@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/contexts/sidebar-context';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 import {
   Tags,
   BarChart3,
@@ -101,6 +102,7 @@ export function MobileMenuFAB() {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const { isMobile } = useSidebar();
+  const registerBack = useNativeBackNavigation();
   const { isFree, isOwnerAdmin, loading, error } = useSubscription();
   const overlayHost = useMemo(() => {
     if (typeof document === 'undefined') return null;
@@ -117,6 +119,11 @@ export function MobileMenuFAB() {
 
   const toggleMenu = () => setIsOpen(!isOpen);
   const closeMenu = () => setIsOpen(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBack({ id: 'mobile-menu', priority: 95, close: closeMenu });
+  }, [isOpen, registerBack]);
 
   const handleNavigate = (href: string) => {
     router.push(href);

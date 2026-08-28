@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 
 interface MobileMenuProps {
   links: { label: string; href: string }[];
@@ -14,11 +15,16 @@ export function MobileMenuToggle({ links }: MobileMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
-
+  const registerBack = useNativeBackNavigation();
   const closeMenu = useCallback(() => {
     setIsOpen(false);
     triggerRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBack({ id: 'public-mobile-menu', priority: 95, close: closeMenu });
+  }, [isOpen, registerBack, closeMenu]);
 
   // Focus trap
   useEffect(() => {

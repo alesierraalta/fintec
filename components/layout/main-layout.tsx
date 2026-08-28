@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
@@ -12,6 +13,7 @@ import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 
 const TransactionForm = dynamic(
   () =>
@@ -38,7 +40,13 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { isOpen, isMobile, closeSidebar, toggleSidebar } = useSidebar();
   const { isOpen: isModalOpen, closeModal } = useModal();
+  const registerBack = useNativeBackNavigation();
   useViewportHeight();
+
+  useEffect(() => {
+    if (!isMobile || !isOpen) return;
+    return registerBack({ id: 'mobile-sidebar', priority: 90, close: closeSidebar });
+  }, [isMobile, isOpen, closeSidebar, registerBack]);
 
   // Auto-scroll global para todos los inputs en móvil
   useMobileInputAutoScroll(300, '#root');

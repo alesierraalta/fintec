@@ -16,6 +16,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 import {
   useHistoricalRates,
   type VesRates,
@@ -253,6 +254,12 @@ export function TransactionDetailPanel({
 }: TransactionDetailPanelProps) {
   const { vesRates } = useHistoricalRates(transaction, isOpen);
   const originalOverflow = useRef<string | null>(null);
+  const registerBack = useNativeBackNavigation();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    return registerBack({ id: `transaction-detail-${transaction.id}`, priority: 105, close: onClose });
+  }, [isOpen, onClose, registerBack, transaction.id]);
 
   // Handle ESC key
   useEffect(() => {

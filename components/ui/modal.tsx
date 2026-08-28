@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 import { ModalSize } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -27,6 +28,13 @@ export function Modal({
   const [mounted, setMounted] = React.useState(false);
   const modalRef = React.useRef<HTMLDivElement>(null);
   const lastActiveElementRef = React.useRef<HTMLElement | null>(null);
+  const registerBack = useNativeBackNavigation();
+  const backId = React.useId();
+
+  React.useEffect(() => {
+    if (!open) return;
+    return registerBack({ id: `modal-${backId}`, priority: 100, close: onClose });
+  }, [open, onClose, registerBack, backId]);
 
   React.useEffect(() => {
     setMounted(true);

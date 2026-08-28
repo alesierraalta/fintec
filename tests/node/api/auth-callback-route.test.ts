@@ -5,6 +5,7 @@
  */
 
 import { GET } from '@/app/auth/callback/route';
+import { sanitizeNext } from '@/lib/auth/sanitize-next';
 import { createClient } from '@/lib/supabase/server';
 import { NextRequest } from 'next/server';
 
@@ -175,31 +176,26 @@ describe('GET /auth/callback', () => {
 });
 
 describe('sanitizeNext (open-redirect guard)', () => {
-  it('is exported as a named function for mutation testing', async () => {
-    const mod = await import('@/app/auth/callback/route');
-    expect(typeof mod.sanitizeNext).toBe('function');
+  it('is exported as a named function for mutation testing', () => {
+    expect(typeof sanitizeNext).toBe('function');
   });
 
-  it('returns undefined for absolute external URLs', async () => {
-    const { sanitizeNext } = await import('@/app/auth/callback/route');
+  it('returns undefined for absolute external URLs', () => {
     expect(sanitizeNext('https://evil.com')).toBeUndefined();
     expect(sanitizeNext('http://evil.com/path')).toBeUndefined();
   });
 
-  it('returns undefined for protocol-relative URLs', async () => {
-    const { sanitizeNext } = await import('@/app/auth/callback/route');
+  it('returns undefined for protocol-relative URLs', () => {
     expect(sanitizeNext('//evil.com')).toBeUndefined();
   });
 
-  it('returns the path for safe relative paths', async () => {
-    const { sanitizeNext } = await import('@/app/auth/callback/route');
+  it('returns the path for safe relative paths', () => {
     expect(sanitizeNext('/dashboard')).toBe('/dashboard');
     expect(sanitizeNext('/transactions')).toBe('/transactions');
     expect(sanitizeNext('/accounts/123')).toBe('/accounts/123');
   });
 
-  it('returns undefined for null/undefined input', async () => {
-    const { sanitizeNext } = await import('@/app/auth/callback/route');
+  it('returns undefined for null/undefined input', () => {
     expect(sanitizeNext(null)).toBeUndefined();
     expect(sanitizeNext(undefined)).toBeUndefined();
   });
