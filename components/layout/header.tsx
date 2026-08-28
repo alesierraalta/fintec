@@ -182,14 +182,14 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
           style={{ height: 'env(safe-area-inset-top)' }}
         ></div>
         <div className="relative flex h-14 w-full shrink-0 items-center justify-between px-4">
-          <div className="flex shrink-0 items-center">
+          <div className="relative z-10 flex shrink-0 items-center gap-2">
             <button
               type="button"
               onClick={onMenuClick}
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/5 text-foreground transition-all hover:scale-95 active:scale-90"
               aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
-                  aria-expanded={isMobileMenuOpen}
-                  aria-controls="mobile-drawer"
+              aria-expanded={isMobileMenuOpen}
+              aria-controls="mobile-drawer"
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -207,22 +207,25 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                 </motion.div>
               </AnimatePresence>
             </button>
+            {!isNative && (
+              <Link
+                href="/download"
+                aria-label="Descargar APK Android Beta"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95"
+              >
+                <Download className="h-5 w-5" />
+              </Link>
+            )}
           </div>
 
-          {!isNative && (
-                <Link href="/download" aria-label="Descargar APK Android Beta" className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20">
-                  <Download className="h-5 w-5" />
-                </Link>
-              )}
-
-              <h1
+          <h1
             aria-label={getPageTitle()}
-            className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 w-[min(7rem,35vw)] -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+            className="pointer-events-none absolute left-1/2 top-1/2 z-0 flex h-8 w-[min(7rem,35vw)] -translate-x-1/2 -translate-y-1/2 items-center justify-center"
           >
             <FinTecLogo containerClassName="h-8 w-28" priority alt="FinTec" />
           </h1>
 
-          <div className="flex min-w-0 shrink-0 items-center gap-1">
+          <div className="relative z-10 flex min-w-0 shrink-0 items-center gap-1">
 
             <NotificationBell variant="header" />
             <button
