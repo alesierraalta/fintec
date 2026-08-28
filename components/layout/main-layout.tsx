@@ -1,19 +1,18 @@
 'use client';
 
 import { useRouter, usePathname } from 'next/navigation';
-import { useEffect } from 'react';
+
 import dynamic from 'next/dynamic';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { Sidebar } from './sidebar';
 import Header from './header';
 import { MobileNav } from './mobile-nav';
-import { MobileMenuFAB } from './mobile-menu-fab';
+import { MobileDrawer } from './mobile-drawer';
 import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
-import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
 
 const TransactionForm = dynamic(
   () =>
@@ -40,13 +39,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { isOpen, isMobile, closeSidebar, toggleSidebar } = useSidebar();
   const { isOpen: isModalOpen, closeModal } = useModal();
-  const registerBack = useNativeBackNavigation();
   useViewportHeight();
-
-  useEffect(() => {
-    if (!isMobile || !isOpen) return;
-    return registerBack({ id: 'mobile-sidebar', priority: 90, close: closeSidebar });
-  }, [isMobile, isOpen, closeSidebar, registerBack]);
 
   // Auto-scroll global para todos los inputs en móvil
   useMobileInputAutoScroll(300, '#root');
@@ -75,20 +68,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       )}
     >
       <div className="no-horizontal-scroll flex h-full">
-        {/* Mobile Backdrop */}
-        {isMobile && isOpen && (
-          <div
-            className="fixed inset-0 z-40 animate-fade-in bg-background/30 backdrop-blur-sm lg:hidden"
-            onClick={closeSidebar}
-          />
-        )}
-
-        {/* Mobile Sidebar Drawer */}
-        {isMobile && isOpen && (
-          <div className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col shadow-2xl animate-slide-in">
-            <Sidebar />
-          </div>
-        )}
+        <MobileDrawer open={isMobile && isOpen} onClose={closeSidebar} />
 
         {/* Desktop Sidebar - Only render on desktop */}
         {!isMobile && (
@@ -133,7 +113,6 @@ function MainLayoutContent({ children }: MainLayoutProps) {
       {!hideMobileChrome && (
             <>
               <MobileNav />
-              <MobileMenuFAB />
             </>
           )}
 

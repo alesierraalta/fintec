@@ -1,25 +1,18 @@
 'use client';
 
-import { MobileMenuFAB } from '@/components/layout/mobile-menu-fab';
-import { SidebarProvider } from '@/contexts/sidebar-context';
+import Header from '@/components/layout/header';
+import { MobileDrawer } from '@/components/layout/mobile-drawer';
+import { SidebarProvider, useSidebar } from '@/contexts/sidebar-context';
 
-export function MobileMenuFabRegressionHarness() {
-  return (
-    <SidebarProvider>
-      <div className="min-h-dynamic-screen bg-background text-foreground">
-        <main className="px-4 py-6">
-          <section className="rounded-3xl border border-border/40 bg-card/90 p-4 shadow-ios backdrop-blur-sm">
-            <h1 className="text-lg font-semibold text-foreground">
-              Mobile FAB regression harness
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Focused Playwright surface for the móvil Más opciones trigger.
-            </p>
-          </section>
-        </main>
+function HarnessContent() {
+  const { isOpen, toggleSidebar, closeSidebar } = useSidebar();
+  return <div className="min-h-dynamic-screen bg-background text-foreground">
+    <Header onMenuClick={toggleSidebar} isMobileMenuOpen={isOpen} />
+    <MobileDrawer open={isOpen} onClose={closeSidebar} />
+    <main className="px-4 py-6"><h1 className="text-lg font-semibold">Mobile navigation regression harness</h1></main>
+  </div>;
+}
 
-        <MobileMenuFAB />
-      </div>
-    </SidebarProvider>
-  );
+export function MobileNavigationRegressionHarness() {
+  return <SidebarProvider><HarnessContent /></SidebarProvider>;
 }

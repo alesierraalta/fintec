@@ -47,10 +47,6 @@ jest.mock('@/components/layout/mobile-nav', () => ({
   MobileNav: () => <div data-testid="mobile-nav" />,
 }));
 
-jest.mock('@/components/layout/mobile-menu-fab', () => ({
-  MobileMenuFAB: () => <div data-testid="mobile-menu-fab" />,
-}));
-
 describe('App shell scroll contracts', () => {
   it('renders app-shell main without nested overflow scrolling classes', () => {
     const { container } = render(

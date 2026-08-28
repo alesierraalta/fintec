@@ -6,7 +6,7 @@ import {
   AlertDialogContent,
 } from '@/components/ui/alert-dialog';
 import { MobileMenuToggle } from '@/app/(public)/components/mobile-menu';
-import { MobileMenuFAB } from '@/components/layout/mobile-menu-fab';
+import { MobileDrawer } from '@/components/layout/mobile-drawer';
 import { TransactionDetailPanel } from '@/components/transactions/transaction-detail-panel';
 import type { TransientBackEntry } from '@/lib/navigation/transient-back-registry';
 
@@ -88,17 +88,12 @@ describe('transient back adapters', () => {
   });
 
   it('registers the mobile drawer only while open', async () => {
-    render(<MobileMenuFAB />);
-    await act(async () => {});
-    expect(registerBack).not.toHaveBeenCalled();
-
-    await act(async () => {
-      await screen.getByRole('button', { name: 'Abrir menú' }).click();
+      render(<MobileDrawer open onClose={jest.fn()} />);
+      await act(async () => {});
+      expectRegistration(95, /^mobile-drawer$/);
     });
-    expectRegistration(95, /^mobile-menu$/);
-  });
 
-  it('registers an open transaction detail panel', async () => {
+    it('registers an open transaction detail panel', async () => {
     render(
       <TransactionDetailPanel
         transaction={transaction}

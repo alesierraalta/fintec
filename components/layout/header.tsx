@@ -26,6 +26,7 @@ import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
+import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -187,6 +188,8 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
               onClick={onMenuClick}
               className="flex h-10 w-10 items-center justify-center rounded-xl bg-foreground/5 text-foreground transition-all hover:scale-95 active:scale-90"
               aria-label={isMobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+                  aria-expanded={isMobileMenuOpen}
+                  aria-controls="mobile-drawer"
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -206,23 +209,21 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
             </button>
           </div>
 
-          <h1
+          {!isNative && (
+                <Link href="/download" aria-label="Descargar APK Android Beta" className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20">
+                  <Download className="h-5 w-5" />
+                </Link>
+              )}
+
+              <h1
             aria-label={getPageTitle()}
-            className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 w-28 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
+            className="pointer-events-none absolute left-1/2 top-1/2 flex h-8 w-[min(7rem,35vw)] -translate-x-1/2 -translate-y-1/2 items-center justify-center"
           >
             <FinTecLogo containerClassName="h-8 w-28" priority alt="FinTec" />
           </h1>
 
-          <div className="flex shrink-0 items-center gap-2">
-            {!isNative && (
-              <Link
-                href="/download"
-                aria-label="Descargar APK Android Beta"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95"
-              >
-                <Download className="h-6 w-6" />
-              </Link>
-            )}
+          <div className="flex min-w-0 shrink-0 items-center gap-1">
+
             <NotificationBell variant="header" />
             <button
               type="button"
@@ -290,6 +291,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                     Tema
                   </p>
                   <ThemeToggle isMinimized={true} />
+                    <div className="mb-6"><PremiumStatusCard isCompact /></div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

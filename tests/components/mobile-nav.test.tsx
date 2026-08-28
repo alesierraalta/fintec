@@ -67,7 +67,7 @@ describe('Mobile navigation layout contract', () => {
       name: 'Navegación móvil principal',
     });
     const links = screen.getAllByRole('link');
-    const activeLink = screen.getByRole('link', { name: 'Gastos' });
+    const activeLink = screen.getByRole('link', { name: 'Transacciones' });
 
     expect(nav).toBeInTheDocument();
     expect(nav).toHaveStyle({
@@ -88,7 +88,7 @@ describe('Mobile navigation layout contract', () => {
     for (const link of links) {
       expect(link).toHaveClass(
         'min-h-[52px]',
-        'min-w-0',
+        'min-w-[44px]',
         'basis-0',
         'px-1',
         'py-1.5'

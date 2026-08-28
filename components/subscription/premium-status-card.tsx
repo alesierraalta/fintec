@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 
 interface PremiumStatusCardProps {
   isMinimized?: boolean;
+  isCompact?: boolean;
 }
 
 /**
@@ -15,6 +16,7 @@ interface PremiumStatusCardProps {
  */
 export function PremiumStatusCard({
   isMinimized = false,
+  isCompact = false,
 }: PremiumStatusCardProps) {
   const { isPremium, loading } = useSubscription();
 
@@ -35,6 +37,15 @@ export function PremiumStatusCard({
         >
           <BadgeCheck className="h-5 w-5 text-primary" aria-hidden="true" />
         </div>
+      </div>
+    );
+  }
+
+  if (isCompact) {
+    return (
+      <div className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-primary/20 bg-primary/10 px-3 py-2 shadow-ios-sm" aria-label="Premium Activo">
+        <BadgeCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+        <span className="text-xs font-semibold text-foreground">Premium Activo</span>
       </div>
     );
   }
