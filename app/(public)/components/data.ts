@@ -95,7 +95,7 @@ export const footerColumns: FooterColumn[] = [
     links: [
       { label: 'Características', href: '/#caracteristicas' },
       { label: 'Pricing', href: '/pricing' },
-      { label: 'Tasas en Vivo', href: '/#tasas-en-vivo' },
+      { label: 'Tasas de referencia', href: '/#tasas-en-vivo' },
       { label: 'Descargar APK (Beta Android)', href: '/download' },
     ],
   },
@@ -151,9 +151,9 @@ export const features: FeatureItem[] = [
   },
   {
     icon: 'Zap',
-    title: 'Tasas en Tiempo Real',
+    title: 'Conversión integrada',
     description:
-      'Accede a tasas del BCV y Binance P2P actualizadas automáticamente 24/7',
+      'Convierte entre bolívares, dólares y euros mientras organizas tus movimientos y presupuestos',
     color: 'text-yellow-500',
     bgColor: 'bg-yellow-500/10',
     borderColor: 'border-yellow-500/20',
