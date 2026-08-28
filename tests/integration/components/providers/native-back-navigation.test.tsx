@@ -1,7 +1,12 @@
 import React from 'react';
+import fs from 'node:fs';
+import path from 'node:path';
 import { act, render } from '@testing-library/react';
 import { NativeBackNavigation, useNativeBackNavigation } from '@/components/providers/native-back-navigation';
-import { AppNavigationProvider } from '@/components/providers/app-navigation-provider';
+import {
+  AppNavigationProvider,
+  useAppNavigation,
+} from '@/components/providers/app-navigation-provider';
 
 const addListener = jest.fn();
 const remove = jest.fn();
@@ -12,6 +17,7 @@ const exitApp = jest.fn();
 let native = true;
 let pathname = '/';
 let handler: ((event: { canGoBack: boolean }) => void) | undefined;
+let resetNavigation: (() => void) | undefined;
 
 jest.mock('@capacitor/core', () => ({ Capacitor: { isNativePlatform: () => native } }));
 jest.mock('@capacitor/app', () => ({
@@ -36,8 +42,32 @@ function Surface({ open = false }: { open?: boolean }) {
 }
 const closeSurface = jest.fn();
 
-function NavigationSurface({ open = false }: { open?: boolean }) {
-  return <AppNavigationProvider><NativeBackNavigation><Surface open={open} /></NativeBackNavigation></AppNavigationProvider>;
+function ResetNavigationCapture() {
+  const { replace } = useAppNavigation();
+  React.useEffect(() => {
+    resetNavigation = () => replace('/');
+    return () => {
+      resetNavigation = undefined;
+    };
+  }, [replace]);
+  return null;
+}
+
+function NavigationSurface({
+  open = false,
+  captureReset = false,
+}: {
+  open?: boolean;
+  captureReset?: boolean;
+}) {
+  return (
+    <AppNavigationProvider>
+      <NativeBackNavigation>
+        <Surface open={open} />
+        {captureReset ? <ResetNavigationCapture /> : null}
+      </NativeBackNavigation>
+    </AppNavigationProvider>
+  );
 }
 
 describe('NativeBackNavigation', () => {
@@ -46,6 +76,7 @@ describe('NativeBackNavigation', () => {
     handler = undefined;
     native = true;
     pathname = '/';
+    resetNavigation = undefined;
   });
 
   it('registers once on native and cleans up async handles', async () => {
@@ -77,6 +108,17 @@ describe('NativeBackNavigation', () => {
     expect(exitApp).not.toHaveBeenCalled();
   });
 
+  it('falls back to Home instead of exiting when a non-root stack desynchronizes', async () => {
+    pathname = '/transactions';
+    render(<NavigationSurface captureReset />);
+    await act(async () => {});
+    act(() => resetNavigation?.());
+    act(() => handler?.({ canGoBack: false }));
+
+    expect(push).toHaveBeenCalledWith('/');
+    expect(exitApp).not.toHaveBeenCalled();
+  });
+
   it('exits only at the Home root', async () => {
     render(<NavigationSurface />);
     await act(async () => {});
@@ -89,5 +131,14 @@ describe('NativeBackNavigation', () => {
     render(<NavigationSurface />);
     await act(async () => {});
     expect(addListener).not.toHaveBeenCalled();
+  });
+
+  it('keeps Capacitor back handling active on Android 13+', () => {
+    const manifest = fs.readFileSync(
+      path.resolve(process.cwd(), 'android/app/src/main/AndroidManifest.xml'),
+      'utf8'
+    );
+
+    expect(manifest).toContain('android:enableOnBackInvokedCallback="false"');
   });
 });

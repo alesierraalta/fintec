@@ -2,9 +2,18 @@ export const APP_ROOT = '/';
 
 function normalize(path: string): string {
   const [withoutHash] = path.split('#');
-  const [withoutQuery] = withoutHash.split('?');
-  if (!withoutQuery || withoutQuery === '/') return APP_ROOT;
-  return withoutQuery.endsWith('/') ? withoutQuery.slice(0, -1) : withoutQuery;
+  const queryIndex = withoutHash.indexOf('?');
+  const pathname = queryIndex === -1 ? withoutHash : withoutHash.slice(0, queryIndex);
+  const search = queryIndex === -1 ? '' : withoutHash.slice(queryIndex);
+  const normalizedPathname = pathname.endsWith('/')
+    ? pathname.slice(0, -1)
+    : pathname;
+
+  if (!normalizedPathname || normalizedPathname === '/') {
+    return search ? `/${search}` : APP_ROOT;
+  }
+
+  return `${normalizedPathname}${search}`;
 }
 
 /** Logical app history, independent from the WebView's native history. */

@@ -17,6 +17,7 @@ import {
   type TransientBackEntry,
 } from '@/lib/navigation/transient-back-registry';
 import { useAppNavigation } from '@/components/providers/app-navigation-provider';
+import { APP_ROOT } from '@/lib/navigation/app-navigation-stack';
 
 type RegisterTransient = (entry: TransientBackEntry) => () => void;
 const RegistryContext = createContext<RegisterTransient>(() => () => undefined);
@@ -58,6 +59,10 @@ export function NativeBackNavigation({
       const target = back();
       if (target) {
         push(target);
+        return;
+      }
+      if (pathnameRef.current && pathnameRef.current !== APP_ROOT) {
+        push(APP_ROOT);
         return;
       }
       void exitRef.current();

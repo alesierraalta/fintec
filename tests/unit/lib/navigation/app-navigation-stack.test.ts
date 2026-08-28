@@ -14,10 +14,23 @@ describe('AppNavigationStack', () => {
 
   it('does not duplicate the current route and normalizes route decorations', () => {
     const stack = new AppNavigationStack('/transactions?period=month');
-    stack.push('/transactions#details');
+    stack.push('/transactions?period=month#details');
 
-    expect(stack.snapshot).toEqual(['/', '/transactions']);
+    expect(stack.snapshot).toEqual(['/', '/transactions?period=month']);
     expect(stack.size).toBe(2);
+  });
+
+  it('keeps query parameters as distinct logical routes', () => {
+    const stack = new AppNavigationStack();
+    stack.push('/transactions?categoryId=cat1&type=EXPENSE');
+    stack.push('/transactions?categoryId=cat2&type=EXPENSE');
+
+    expect(stack.snapshot).toEqual([
+      '/',
+      '/transactions?categoryId=cat1&type=EXPENSE',
+      '/transactions?categoryId=cat2&type=EXPENSE',
+    ]);
+    expect(stack.pop()).toBe('/transactions?categoryId=cat1&type=EXPENSE');
   });
 
   it('resets to Home before replacing the current route', () => {
