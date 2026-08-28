@@ -396,11 +396,13 @@ function SpendingChartComponent({
   };
 
   return (
-    <div className={`space-y-6 ${className}`}>
+    <section className={`glass-card space-y-6 rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl ${className}`} aria-labelledby="spending-chart-title">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-destructive" aria-hidden="true" />
+          <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-ios-title font-bold text-foreground">
+            <h3 id="spending-chart-title" className="text-ios-title font-bold text-foreground">
               Gastos por Categoría
             </h3>
             {spendingData.length > 0 && (
@@ -412,6 +414,7 @@ function SpendingChartComponent({
           <p className="text-ios-caption text-muted-foreground">
             Distribución de tus egresos
           </p>
+          </div>
         </div>
         <div
           role="tablist"
@@ -445,7 +448,7 @@ function SpendingChartComponent({
       </div>
 
       {spendingData.length === 0 ? (
-        <div className="rounded-3xl border border-border/20 bg-card/30 py-12 text-center backdrop-blur-sm">
+        <div className="rounded-3xl border border-border/30 bg-card/30 py-12 text-center backdrop-blur-sm">
           <div className="mx-auto mb-4 w-fit rounded-2xl border border-border/20 bg-muted/50 p-4 backdrop-blur-sm">
             <Package className="mx-auto h-12 w-12 text-muted-foreground" />
           </div>
@@ -464,7 +467,7 @@ function SpendingChartComponent({
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
             >
           <div
-            className="relative flex h-[280px] w-full items-center justify-center"
+            className="relative mx-auto flex h-[280px] w-full max-w-[300px] items-center justify-center"
             role="img"
             aria-label="Distribución de gastos por categoría"
           >
@@ -514,7 +517,7 @@ function SpendingChartComponent({
             </div>
 
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="text-center transition-all duration-200">
+              <div className="rounded-2xl border border-border/30 bg-background/55 px-5 py-3 text-center shadow-lg backdrop-blur-md transition-all duration-200">
                 {activeCategory ? (
                   <>
                     <p className="text-ios-title font-bold text-foreground">
@@ -538,7 +541,7 @@ function SpendingChartComponent({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 content-center gap-2">
+          <div className="grid grid-cols-1 content-center gap-2 sm:grid-cols-2">
             {spendingData.map((item, index) => {
               const Icon = item.icon;
                 const isSelected =
@@ -559,7 +562,7 @@ function SpendingChartComponent({
                   }}
                   onMouseEnter={() => setActiveIndex(index)}
                   onMouseLeave={() => setActiveIndex(selectedIndex)}
-                  className={`flex min-h-[44px] w-full ${item.categoryId ? 'cursor-pointer' : 'cursor-default'} items-center justify-between rounded-xl border p-2.5 text-left backdrop-blur-sm transition-all duration-200 ${
+                  className={`glass-card flex min-h-[44px] w-full ${item.categoryId ? 'cursor-pointer' : 'cursor-default'} items-center justify-between rounded-2xl border border-border/30 bg-card/45 px-4 py-3 text-left backdrop-blur-xl transition-all duration-200 ${
                     isSelected
                       ? 'scale-[1.02] border-primary/40 bg-card/90 shadow-ios-md'
                       : item.categoryId
@@ -610,7 +613,7 @@ function SpendingChartComponent({
         </div>
         </>
       )}
-    </div>
+    </section>
   );
 }
 

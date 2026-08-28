@@ -109,14 +109,13 @@ function IncomeSourcesComponent({
     activeUsdVesRate,
     convert,
   ]);
-  useEffect(() => {
+      const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
+      const [activeIndex, setActiveIndex] = useState<number | null>(null);
+      const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+      useEffect(() => {
         setActiveIndex(null);
         setSelectedIndex(null);
       }, [sources]);
-
-      const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const displayedIndex = activeIndex ?? selectedIndex;
   const activeSource = displayedIndex === null ? null : sources[displayedIndex];
   const formatPercentage = (amount: number) =>
@@ -126,7 +125,7 @@ function IncomeSourcesComponent({
 
   return (
     <section
-      className={cn('space-y-4', className)}
+      className={cn('glass-card space-y-6 rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl', className)}
       aria-labelledby="income-sources-title"
     >
       <div className="flex items-center gap-2">
@@ -134,7 +133,7 @@ function IncomeSourcesComponent({
         <div>
           <h3
             id="income-sources-title"
-            className="text-ios-headline font-semibold text-foreground"
+            className="text-ios-title font-bold text-foreground"
           >
             ¿De dónde vienen tus ingresos?
           </h3>
@@ -146,12 +145,12 @@ function IncomeSourcesComponent({
 
       {isLoading ? (
         <div
-          className="h-20 animate-pulse rounded-2xl bg-muted/40"
+          className="h-[280px] animate-pulse rounded-3xl border border-border/30 bg-card/30"
           aria-label="Cargando ingresos"
         />
       ) : sources.length === 0 ? (
-        <div className="glass-card flex items-center gap-3 rounded-2xl p-4 text-muted-foreground">
-          <Package className="h-5 w-5 shrink-0" aria-hidden="true" />
+        <div className="rounded-3xl border border-border/30 bg-card/30 py-12 text-center text-muted-foreground backdrop-blur-sm">
+          <Package className="mx-auto mb-4 h-12 w-12" aria-hidden="true" />
           <p className="text-ios-caption">
             Todavía no hay ingresos registrados para {periodLabel.toLowerCase()}
             .
@@ -160,11 +159,11 @@ function IncomeSourcesComponent({
       ) : (
         <>
           <div
-            className="glass-card relative rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl"
+            className="relative mx-auto h-[280px] w-full max-w-[300px]"
             data-testid="income-sources-chart"
           >
             <div
-              className="relative h-[260px] w-full sm:h-[300px]"
+              className="relative h-[280px] w-full"
               role="img"
               aria-label="Distribución de ingresos por categoría"
             >
@@ -175,7 +174,9 @@ function IncomeSourcesComponent({
                     cx="50%"
                     cy="50%"
                     innerRadius="58%"
-                    outerRadius="82%"
+                    outerRadius="84%"
+                        animationBegin={0}
+                        animationDuration={600}
                     paddingAngle={sources.length > 1 ? 3 : 0}
                     dataKey="amount"
                     nameKey="name"
@@ -222,14 +223,14 @@ function IncomeSourcesComponent({
             </div>
 
           <div
-            className="mt-2 grid gap-2 border-t border-border/20 pt-2 sm:grid-cols-2"
+            className="grid gap-2 sm:grid-cols-2"
             role="list"
             aria-label="Detalle de fuentes de ingresos"
           >
             {sources.map((source) => (
               <div
                 key={source.id}
-                className="flex min-h-[44px] items-center justify-between border-t border-border/20 px-2 py-3 first:border-t-0"
+                className="glass-card flex min-h-[44px] items-center justify-between rounded-2xl border border-border/30 bg-card/45 px-4 py-3 backdrop-blur-xl"
                 role="listitem"
               >
                 <div className="flex min-w-0 items-center gap-3">
