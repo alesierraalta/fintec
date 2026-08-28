@@ -11,11 +11,12 @@ import {
   useRef,
   type ReactNode,
 } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   TransientBackRegistry,
   type TransientBackEntry,
 } from '@/lib/navigation/transient-back-registry';
+import { useAppNavigation } from '@/components/providers/app-navigation-provider';
 
 type RegisterTransient = (entry: TransientBackEntry) => () => void;
 const RegistryContext = createContext<RegisterTransient>(() => () => undefined);
@@ -34,6 +35,11 @@ export function NativeBackNavigation({
   exit = () => App.exitApp(),
 }: NativeBackNavigationProps) {
   const router = useRouter();
+  const { push } = router;
+  const pathname = usePathname();
+  const { back } = useAppNavigation();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
   const registryRef = useRef<TransientBackRegistry>();
   if (!registryRef.current) registryRef.current = new TransientBackRegistry();
   const exitRef = useRef(exit);
@@ -47,25 +53,34 @@ export function NativeBackNavigation({
     if (!Capacitor.isNativePlatform()) return;
     let mounted = true;
     let handle: { remove: () => Promise<void> | void } | undefined;
-    const onBack = (event: BackButtonListenerEvent) => {
+    const onBack = (_event: BackButtonListenerEvent) => {
       if (registryRef.current!.closeTop()) return;
-      if (event.canGoBack) router.back();
-      else void exitRef.current();
+      const target = back();
+      if (target) {
+        push(target);
+        return;
+      }
+      void exitRef.current();
     };
+    const onBrowserBack = () => {
+      if (registryRef.current!.closeTop()) return;
+      const target = back();
+      if (target && target !== pathnameRef.current) push(target);
+    };
+    window.addEventListener('popstate', onBrowserBack);
     App.addListener('backButton', onBack).then((listener) => {
       if (mounted) handle = listener;
       else void listener.remove();
     });
     return () => {
       mounted = false;
+      window.removeEventListener('popstate', onBrowserBack);
       if (handle) void handle.remove();
     };
-  }, [router]);
+  }, [back, push]);
 
   const value = useMemo(() => register, [register]);
   return (
-    <RegistryContext.Provider value={value}>
-      {children}
-    </RegistryContext.Provider>
+    <RegistryContext.Provider value={value}>{children}</RegistryContext.Provider>
   );
 }
