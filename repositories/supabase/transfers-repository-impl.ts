@@ -208,17 +208,51 @@ export class SupabaseTransfersRepository implements TransfersRepository {
 
     const exchangeRate = effectiveRate;
 
-    const { data, error } = await (this.client as any).rpc('create_transfer', {
-      p_user_id: userId,
-      p_from_account_id: input.fromAccountId,
-      p_to_account_id: input.toAccountId,
-      p_amount_major: amountMajor,
-      p_description: input.description || 'Transferencia',
-      p_date: input.date || new Date().toISOString().split('T')[0],
-      p_exchange_rate: exchangeRate,
-      p_rate_source: input.rateSource || null,
-      p_commission_minor: commissionMinor,
-    });
+    let data: any;
+    let error: any;
+    // Try new 10-param signature first; fallback to legacy 9-param if PostgREST still has old schema cache
+    {
+      const res: any = await (this.client as any).rpc('create_transfer', {
+        p_user_id: userId,
+        p_from_account_id: input.fromAccountId,
+        p_to_account_id: input.toAccountId,
+        p_amount_major: amountMajor,
+        p_description: input.description || 'Transferencia',
+        p_date: input.date || new Date().toISOString().split('T')[0],
+        p_exchange_rate: exchangeRate,
+        p_rate_source: input.rateSource || null,
+        p_commission_minor: commissionMinor,
+      });
+      data = res.data;
+      error = res.error;
+      const msg = error?.message || '';
+      const needsFallback =
+        !!error &&
+        (msg.includes('Node cannot be found') ||
+          msg.includes('PGRST') ||
+          msg.toLowerCase().includes('could not find the function') ||
+          msg.includes('schema cache'));
+      if (needsFallback) {
+        const fallback: any = await (this.client as any).rpc('create_transfer', {
+          p_user_id: userId,
+          p_from_account_id: input.fromAccountId,
+          p_to_account_id: input.toAccountId,
+          p_amount_major: amountMajor,
+          p_description: input.description || 'Transferencia',
+          p_date: input.date || new Date().toISOString().split('T')[0],
+          p_exchange_rate: exchangeRate,
+          p_rate_source: input.rateSource || null,
+        });
+        // If fallback succeeded, use it and drop commission (will be stored as NULL until migration)
+        if (!fallback.error) {
+          data = fallback.data;
+          error = null;
+          if (commissionMinor !== null && commissionMinor !== undefined && commissionMinor !== 0) {
+            console.warn('[transfers] commission ignored — legacy create_transfer without p_commission_minor, apply migration 20260828120000');
+          }
+        }
+      }
+    }
 
     if (error) {
       if (error.message && error.message.includes('Node cannot be found')) {
