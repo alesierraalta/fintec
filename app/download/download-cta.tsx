@@ -29,7 +29,7 @@ export function DownloadCta({ apkUrl }: DownloadCtaProps) {
         Descargar APK
       </a>
       <p className="mt-3 text-xs text-muted-foreground">
-        APK directo (~4 MB) · No requiere Play Store
+        APK directo (~12 MB) · No requiere Play Store
       </p>
     </>
   );
