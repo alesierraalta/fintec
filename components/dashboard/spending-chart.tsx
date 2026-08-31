@@ -210,7 +210,7 @@ export function SpendingChartSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="flex items-center justify-between rounded-2xl border border-border/20 bg-card/40 p-4"
+            className="flex items-center justify-between border-b border-border/20 py-4"
           >
             <div className="flex items-center space-x-3">
               <Skeleton className="h-9 w-9 rounded-xl" />
@@ -278,7 +278,7 @@ function SpendingChartComponent({
         referenceNow
       ),
     [rawExpenses, selectedPeriodValue, referenceNow]
-          );
+  );
 
   const convertExpenseToUSD = (tx: Transaction): number => {
     const currency = tx.currencyCode || 'USD';
@@ -372,8 +372,8 @@ function SpendingChartComponent({
   }, [filteredExpenses, categories, activeUsdVesRate, convert]);
 
   useEffect(() => {
-        setActiveIndex(null);
-        setSelectedIndex(null);
+    setActiveIndex(null);
+    setSelectedIndex(null);
   }, [spendingData, selectedPeriodValue]);
 
   if (isLoading) {
@@ -396,30 +396,37 @@ function SpendingChartComponent({
   };
 
   return (
-    <section className={`glass-card space-y-6 rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl ${className}`} aria-labelledby="spending-chart-title">
+    <section
+      className={`space-y-6 ${className}`}
+      aria-labelledby="spending-chart-title"
+      role="region"
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <DollarSign className="h-4 w-4 text-destructive" aria-hidden="true" />
           <div>
-          <div className="flex items-center gap-2">
-            <h3 id="spending-chart-title" className="text-ios-title font-bold text-foreground">
-              Gastos por Categoría
-            </h3>
-            {spendingData.length > 0 && (
-              <span className="rounded-full border border-border/30 bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
-                {spendingData.length}
-              </span>
-            )}
-          </div>
-          <p className="text-ios-caption text-muted-foreground">
-            Distribución de tus egresos
-          </p>
+            <div className="flex items-center gap-2">
+              <h3
+                id="spending-chart-title"
+                className="text-ios-title font-bold text-foreground"
+              >
+                Gastos por Categoría
+              </h3>
+              {spendingData.length > 0 && (
+                <span className="rounded-full border border-border/30 bg-muted/40 px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
+                  {spendingData.length}
+                </span>
+              )}
+            </div>
+            <p className="text-ios-caption text-muted-foreground">
+              Distribución de tus egresos
+            </p>
           </div>
         </div>
         <div
           role="tablist"
           aria-label="Filtro de período para gastos e ingresos"
-          className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto rounded-2xl border border-border/30 bg-muted/40 p-1 backdrop-blur-sm"
+          className="inline-flex max-w-full flex-nowrap items-center gap-1 overflow-x-auto border-b border-border/30 bg-muted/40 p-1"
         >
           {DASHBOARD_PERIOD_OPTIONS.map((period) => {
             const isSelected = selectedPeriodValue === period.id;
@@ -434,7 +441,7 @@ function SpendingChartComponent({
                   setActiveIndex(null);
                   setSelectedIndex(null);
                 }}
-                className={`min-h-[44px] shrink-0 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`focus-ring min-h-[44px] min-w-[44px] shrink-0 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                   isSelected
                     ? 'bg-card text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground'
@@ -448,8 +455,8 @@ function SpendingChartComponent({
       </div>
 
       {spendingData.length === 0 ? (
-        <div className="rounded-3xl border border-border/30 bg-card/30 py-12 text-center backdrop-blur-sm">
-          <div className="mx-auto mb-4 w-fit rounded-2xl border border-border/20 bg-muted/50 p-4 backdrop-blur-sm">
+        <div className="py-12 text-center">
+          <div className="mx-auto mb-4 w-fit p-4">
             <Package className="mx-auto h-12 w-12 text-muted-foreground" />
           </div>
           <h3 className="mb-2 text-ios-body font-semibold text-foreground">
@@ -463,154 +470,154 @@ function SpendingChartComponent({
       ) : (
         <>
           <div
-              className="grid gap-6"
+            className="grid gap-6"
             style={{ gridTemplateColumns: 'minmax(0, 1fr)' }}
-            >
-          <div
-            className="relative mx-auto flex h-[280px] w-full max-w-[300px] items-center justify-center"
-            role="img"
-            aria-label="Distribución de gastos por categoría"
           >
-            <div className="h-full w-full max-w-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={spendingData}
-                    cx="50%"
-                    cy="50%"
+            <div
+              className="relative mx-auto flex h-[280px] w-full max-w-[300px] items-center justify-center"
+              role="img"
+              aria-label="Distribución de gastos por categoría"
+            >
+              <div className="h-full w-full max-w-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={spendingData}
+                      cx="50%"
+                      cy="50%"
                       innerRadius="58%"
                       outerRadius="84%"
-                    paddingAngle={spendingData.length > 1 ? 3 : 0}
-                    dataKey="value"
-                    animationBegin={0}
-                    animationDuration={600}
-                    onMouseEnter={(_, index) => setActiveIndex(index)}
-                    onMouseLeave={() => setActiveIndex(selectedIndex)}
-                    onClick={(_, index) => {
+                      paddingAngle={spendingData.length > 1 ? 3 : 0}
+                      dataKey="value"
+                      animationBegin={0}
+                      animationDuration={600}
+                      onMouseEnter={(_, index) => setActiveIndex(index)}
+                      onMouseLeave={() => setActiveIndex(selectedIndex)}
+                      onClick={(_, index) => {
                         if (!spendingData[index]?.categoryId) return;
                         setSelectedIndex(index);
                         setActiveIndex(index);
                         navigateToCategory(index);
-                    }}
-                  >
-                    {spendingData.map((entry, index) => {
-                      const isHighlighted =
-                        activeIndex === null || activeIndex === index;
-                      return (
-                        <Cell
-                          key={`cell-${entry.id}`}
-                          fill={entry.color}
-                          opacity={isHighlighted ? 1 : 0.35}
-                          stroke={
-                            activeIndex === index
-                              ? 'hsl(var(--foreground))'
-                              : 'transparent'
-                          }
-                          strokeWidth={activeIndex === index ? 2 : 0}
-                          className={`${entry.categoryId ? 'cursor-pointer' : 'cursor-default'} transition-all duration-200`}
-                        />
-                      );
-                    })}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+                      }}
+                    >
+                      {spendingData.map((entry, index) => {
+                        const isHighlighted =
+                          activeIndex === null || activeIndex === index;
+                        return (
+                          <Cell
+                            key={`cell-${entry.id}`}
+                            fill={entry.color}
+                            opacity={isHighlighted ? 1 : 0.35}
+                            stroke={
+                              activeIndex === index
+                                ? 'hsl(var(--foreground))'
+                                : 'transparent'
+                            }
+                            strokeWidth={activeIndex === index ? 2 : 0}
+                            className={`${entry.categoryId ? 'cursor-pointer' : 'cursor-default'} transition-all duration-200`}
+                          />
+                        );
+                      })}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <div className="rounded-2xl border border-border/30 bg-background/55 px-5 py-3 text-center shadow-lg backdrop-blur-md transition-all duration-200">
-                {activeCategory ? (
-                  <>
-                    <p className="text-ios-title font-bold text-foreground">
-                      {formatUSD(activeCategory.value)}
-                    </p>
-                    <p className="max-w-[130px] truncate text-ios-caption font-medium text-muted-foreground">
-                      {activeCategory.name} ({activeCategory.percentage}%)
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-ios-title font-bold text-foreground">
-                      {formatUSD(totalSpending)}
-                    </p>
-                    <p className="text-ios-caption text-muted-foreground">
-                      Total gastado
-                    </p>
-                  </>
-                )}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="bg-background/55 px-5 py-3 text-center transition-all duration-200">
+                  {activeCategory ? (
+                    <>
+                      <p className="text-ios-title font-bold text-foreground">
+                        {formatUSD(activeCategory.value)}
+                      </p>
+                      <p className="max-w-[130px] truncate text-ios-caption font-medium text-muted-foreground">
+                        {activeCategory.name} ({activeCategory.percentage}%)
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-ios-title font-bold text-foreground">
+                        {formatUSD(totalSpending)}
+                      </p>
+                      <p className="text-ios-caption text-muted-foreground">
+                        Total gastado
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 content-center gap-2 sm:grid-cols-2">
-            {spendingData.map((item, index) => {
-              const Icon = item.icon;
+            <div className="grid grid-cols-1 content-center gap-2 sm:grid-cols-2">
+              {spendingData.map((item, index) => {
+                const Icon = item.icon;
                 const isSelected =
                   selectedIndex === index || activeIndex === index;
-              return (
-                <button
-                  type="button"
-                  key={item.id}
+                return (
+                  <button
+                    type="button"
+                    key={item.id}
                     aria-pressed={
                       item.categoryId ? selectedIndex === index : undefined
                     }
-                  disabled={!item.categoryId}
-                  onClick={() => {
-                    if (!item.categoryId) return;
-                    setSelectedIndex(index);
-                    setActiveIndex(index);
-                    navigateToCategory(index);
-                  }}
-                  onMouseEnter={() => setActiveIndex(index)}
-                  onMouseLeave={() => setActiveIndex(selectedIndex)}
-                  className={`glass-card flex min-h-[44px] w-full ${item.categoryId ? 'cursor-pointer' : 'cursor-default'} items-center justify-between rounded-2xl border border-border/30 bg-card/45 px-4 py-3 text-left backdrop-blur-xl transition-all duration-200 ${
-                    isSelected
-                      ? 'scale-[1.02] border-primary/40 bg-card/90 shadow-ios-md'
-                      : item.categoryId
-                          ? 'border-border/20 bg-card/60 hover:border-border/40 hover:bg-card/80'
-                          : 'border-border/20 bg-card/60'
-                  }`}
-                >
-                  <div className="flex items-center space-x-3">
-                    <div
-                      className="rounded-xl border p-2.5 backdrop-blur-sm"
-                      style={{
-                        backgroundColor: `${item.color}15`,
-                        borderColor: `${item.color}30`,
-                      }}
-                    >
+                    disabled={!item.categoryId}
+                    onClick={() => {
+                      if (!item.categoryId) return;
+                      setSelectedIndex(index);
+                      setActiveIndex(index);
+                      navigateToCategory(index);
+                    }}
+                    onMouseEnter={() => setActiveIndex(index)}
+                    onMouseLeave={() => setActiveIndex(selectedIndex)}
+                    className={`focus-ring flex min-h-[44px] w-full ${item.categoryId ? 'cursor-pointer' : 'cursor-default'} items-center justify-between border-b border-border/30 px-2 py-3 text-left transition-colors duration-200 ${
+                      isSelected
+                        ? 'bg-primary/10'
+                        : item.categoryId
+                          ? 'hover:bg-muted/40'
+                          : ''
+                    }`}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <div
+                        className="p-2.5"
+                        style={{
+                          backgroundColor: `${item.color}15`,
+                          borderColor: `${item.color}30`,
+                        }}
+                      >
                         <Icon
                           className="h-4 w-4"
                           style={{ color: item.color }}
                         />
+                      </div>
+                      <div>
+                        <p className="text-ios-body font-medium text-foreground">
+                          {item.name}
+                        </p>
+                        <p className="text-ios-caption text-muted-foreground">
+                          {item.percentage}%
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-ios-body font-medium text-foreground">
-                        {item.name}
+                    <div className="text-right">
+                      <p className="text-base font-semibold tabular-nums text-foreground">
+                        {formatUSD(item.value)}
                       </p>
-                      <p className="text-ios-caption text-muted-foreground">
-                        {item.percentage}%
-                      </p>
+                      <div className="flex items-center justify-end space-x-1.5">
+                        <div
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-ios-caption text-muted-foreground">
+                          {item.percentage}%
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-ios-body font-semibold text-foreground">
-                      {formatUSD(item.value)}
-                    </p>
-                    <div className="flex items-center justify-end space-x-1.5">
-                      <div
-                        className="h-2 w-2 rounded-full shadow-sm"
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-ios-caption text-muted-foreground">
-                        {item.percentage}%
-                      </span>
-                    </div>
-                  </div>
-              </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
         </>
       )}
     </section>

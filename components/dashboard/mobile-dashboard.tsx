@@ -269,7 +269,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* Balance Total Card with Rate Selector */}
-      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -281,7 +281,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
             type="button"
             onClick={() => setShowBalances(!showBalances)}
             aria-pressed={showBalances}
-            className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {showBalances ? (
               <EyeOff className="h-4 w-4" />
@@ -296,7 +296,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           {showBalances ? (
             <div className="space-y-2">
               {totalBalanceVES > 0 && (
-                <p className="amount-emphasis-white text-xl font-semibold text-white">
+                <p className="amount-emphasis-white text-2xl font-semibold text-foreground">
                   Bs.{' '}
                   {totalBalanceVES.toLocaleString('es-VE', {
                     minimumFractionDigits: 2,
@@ -304,11 +304,11 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
                 </p>
               )}
               {totalBalanceUSD > 0 && (
-                <p className="amount-emphasis-white text-xl font-semibold text-white">
+                <p className="amount-emphasis-white text-2xl font-semibold text-foreground">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="amount-emphasis-white text-sm text-white">
+              <p className="amount-emphasis-white break-words text-3xl tabular-nums text-foreground">
                 Total:{' '}
                 {
                   liveProjection(
@@ -335,8 +335,8 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Summary Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+      <div className="glass-card grid grid-cols-1 gap-4 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="min-w-0 py-4">
           <div className="mb-4 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
             <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -345,7 +345,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           </div>
           <div className="space-y-1">
             {monthlyIncomeVES > 0 && (
-              <p className="amount-positive text-lg">
+              <p className="amount-positive text-2xl tabular-nums">
                 Bs.{' '}
                 {monthlyIncomeVES.toLocaleString('es-VE', {
                   minimumFractionDigits: 2,
@@ -354,11 +354,11 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
             )}
             {(monthlyIncomeUSD > 0 ||
               (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
-              <p className="amount-positive text-lg">
+              <p className="amount-positive text-2xl tabular-nums">
                 ${monthlyIncomeUSD.toFixed(2)}
               </p>
             )}
-            <p className="text-sm text-muted-foreground">
+            <p className="break-words text-2xl tabular-nums text-muted-foreground">
               Total:{' '}
               {
                 liveProjection(
@@ -384,7 +384,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           </div>
         </div>
 
-        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+        <div className="min-w-0 py-4">
           <div className="mb-4 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
             <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -393,7 +393,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           </div>
           <div className="space-y-1">
             {monthlyExpensesVES > 0 && (
-              <p className="amount-negative text-lg">
+              <p className="amount-negative text-2xl tabular-nums">
                 Bs.{' '}
                 {monthlyExpensesVES.toLocaleString('es-VE', {
                   minimumFractionDigits: 2,
@@ -402,11 +402,11 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
             )}
             {(monthlyExpensesUSD > 0 ||
               (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
-              <p className="amount-negative text-lg">
+              <p className="amount-negative text-2xl tabular-nums">
                 ${monthlyExpensesUSD.toFixed(2)}
               </p>
             )}
-            <p className="text-sm text-muted-foreground">
+            <p className="break-words text-2xl tabular-nums text-muted-foreground">
               Total:{' '}
               {
                 liveProjection(
@@ -432,7 +432,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           </div>
         </div>
 
-        <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+        <div className="min-w-0 py-4">
           <div className="mb-4 flex items-center space-x-2">
             <div
               className={`h-2 w-2 ${monthlyIncome - monthlyExpenses >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
@@ -444,7 +444,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
           <div className="space-y-1">
             {monthlyIncomeVES - monthlyExpensesVES !== 0 && (
               <p
-                className={`text-lg ${monthlyIncomeVES - monthlyExpensesVES >= 0 ? 'amount-positive' : 'amount-negative'}`}
+                className={`text-2xl tabular-nums ${monthlyIncomeVES - monthlyExpensesVES >= 0 ? 'amount-positive' : 'amount-negative'}`}
               >
                 {monthlyIncomeVES - monthlyExpensesVES >= 0 ? '+' : ''}Bs.{' '}
                 {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString(
@@ -457,14 +457,14 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
               (monthlyIncomeVES - monthlyExpensesVES === 0 &&
                 monthlyIncomeUSD - monthlyExpensesUSD === 0)) && (
               <p
-                className={`text-lg ${monthlyIncomeUSD - monthlyExpensesUSD >= 0 ? 'amount-positive' : 'amount-negative'}`}
+                className={`text-2xl tabular-nums ${monthlyIncomeUSD - monthlyExpensesUSD >= 0 ? 'amount-positive' : 'amount-negative'}`}
               >
                 {monthlyIncomeUSD - monthlyExpensesUSD > 0 ? '+' : ''}$
                 {Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
               </p>
             )}
             <p
-              className={`text-sm ${monthlyIncome - monthlyExpenses >= 0 ? 'amount-positive' : 'amount-negative'}`}
+              className={`break-words text-2xl tabular-nums ${monthlyIncome - monthlyExpenses >= 0 ? 'amount-positive' : 'amount-negative'}`}
             >
               Total:{' '}
               {
@@ -501,7 +501,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       {/* iOS-style Quick Actions */}
       <div
         id="quick-actions"
-        className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]"
+        className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6"
       >
         <div className="mb-6 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -513,9 +513,11 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* Spending and income sources */}
-      <div className="glass-card space-y-8 rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
-        <LazySpendingChart {...props} />
-        <div className="border-t border-border/30 pt-6">
+      <div className="space-y-6">
+        <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-4 sm:p-6">
+          <LazySpendingChart {...props} />
+        </div>
+        <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-4 sm:p-6">
           <IncomeSources
             period={props.period}
             referenceNow={props.referenceNow}
@@ -524,13 +526,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Recent Transactions */}
-      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
-        <div className="mb-6 flex items-center space-x-2">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
-          <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
-            MOVIMIENTOS RECIENTES
-          </h3>
-        </div>
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
         <RecentTransactions
           transactions={rawTransactions}
           bcvRates={bcvRates}
@@ -540,7 +536,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Accounts Overview */}
-      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
         <div className="mb-6 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -551,7 +547,7 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Mobile Insights */}
-      <div className="glass-card transition-smooth hover-lift rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
         <div className="mb-4 flex items-center space-x-2">
           <div className="h-2 w-2 animate-pulse rounded-full bg-gradient-to-r from-primary to-blue-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">

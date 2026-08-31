@@ -226,7 +226,6 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
           </h1>
 
           <div className="relative z-10 flex min-w-0 shrink-0 items-center gap-1">
-
             <NotificationBell variant="header" />
             <button
               type="button"
@@ -282,7 +281,9 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                     </div>
                   </div>
                   <button
+                    type="button"
                     onClick={() => setShowUserMenu(false)}
+                    aria-label="Cerrar menú de usuario"
                     className="flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-foreground"
                   >
                     <X className="h-5 w-5" />
@@ -294,7 +295,9 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                     Tema
                   </p>
                   <ThemeToggle isMinimized={true} />
-                    <div className="mb-6"><PremiumStatusCard isCompact /></div>
+                  <div className="mb-6">
+                    <PremiumStatusCard isCompact />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

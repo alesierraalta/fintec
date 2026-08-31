@@ -10,8 +10,13 @@ jest.mock('@/lib/auth/is-frontend-auth-bypass-enabled', () => ({
   isFrontendAuthBypassEnabled: jest.fn(),
 }));
 
-const mockCreateClient = createClient as jest.MockedFunction<typeof createClient>;
-const mockIsFrontendAuthBypassEnabled = isFrontendAuthBypassEnabled as jest.MockedFunction<typeof isFrontendAuthBypassEnabled>;
+const mockCreateClient = createClient as jest.MockedFunction<
+  typeof createClient
+>;
+const mockIsFrontendAuthBypassEnabled =
+  isFrontendAuthBypassEnabled as jest.MockedFunction<
+    typeof isFrontendAuthBypassEnabled
+  >;
 
 const env = process.env as Record<string, string | undefined>;
 const originalNodeEnv = env.NODE_ENV;
@@ -91,6 +96,22 @@ describe('getRootAuthState', () => {
     const result = await getRootAuthState();
 
     expect(result).toBe('landing');
+  });
+
+  it('allows bypass when getUser returns an auth-session error', async () => {
+    mockCreateClient.mockResolvedValue({
+      auth: {
+        getUser: jest.fn().mockResolvedValue({
+          data: { user: null },
+          error: new Error('Auth session missing'),
+        }),
+      },
+    } as any);
+    mockIsFrontendAuthBypassEnabled.mockReturnValue(true);
+
+    const result = await getRootAuthState();
+
+    expect(result).toBe('authenticated');
   });
 
   it('rejects bypass in production', async () => {

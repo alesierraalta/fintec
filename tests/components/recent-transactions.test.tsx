@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { RecentTransactions } from '@/components/dashboard/recent-transactions';
 import { TransactionType } from '@/types';
 
@@ -68,5 +68,37 @@ describe('RecentTransactions', () => {
     expect(screen.getByText('Cine')).toBeInTheDocument();
     expect(screen.getByText('Transacción sin descripción')).toBeInTheDocument();
     expect(screen.getByText('Gasolina')).toBeInTheDocument();
+  });
+
+  test('preserves native VES amount and activates callback rows from keyboard', () => {
+    const onTransactionClick = jest.fn();
+    render(
+      <RecentTransactions
+        transactions={[
+          makeTransaction({ currencyCode: 'VES', amountMinor: 10000 }),
+        ]}
+        bcvRates={{ usd: 50, eur: 55 }}
+        binanceRates={{ usd_ves: 50 }}
+        onTransactionClick={onTransactionClick}
+      />
+    );
+
+    const row = screen.getByRole('button');
+    expect(row).toHaveClass('focus-ring');
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onTransactionClick).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(/~\$2\.00/)).toBeInTheDocument();
+  });
+
+  test('does not advertise a row as interactive without a callback', () => {
+    render(
+      <RecentTransactions
+        transactions={[makeTransaction({ description: 'Solo lectura' })]}
+      />
+    );
+    expect(
+      screen.queryByRole('button', { name: /Solo lectura/i })
+    ).not.toBeInTheDocument();
   });
 });

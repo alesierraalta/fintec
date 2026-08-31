@@ -161,7 +161,7 @@ export const RecentTransactions = memo(function RecentTransactions({
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="flex animate-pulse items-center justify-between rounded-lg border border-border bg-card p-4"
+              className="flex animate-pulse items-center justify-between py-4"
             >
               <div className="flex items-center space-x-3">
                 <div className="h-8 w-8 rounded-full bg-muted"></div>
@@ -189,7 +189,7 @@ export const RecentTransactions = memo(function RecentTransactions({
             variant="ghost"
             size="sm"
             onClick={onViewAll}
-            className="text-primary hover:text-primary/80"
+            className="focus-ring min-h-[44px] min-w-[44px] text-primary hover:text-primary/80"
           >
             Ver todas
             <ChevronRight className="ml-1 h-4 w-4" />
@@ -210,18 +210,28 @@ export const RecentTransactions = memo(function RecentTransactions({
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="divide-y divide-border/30">
           {transactions.slice(0, 5).map((transaction) => (
             <div
               key={transaction.id}
-              className={`${isMobile ? 'p-4' : 'flex items-center justify-between p-4'} cursor-pointer rounded-lg border border-border bg-card transition-all duration-200 ${
+              className={`${isMobile ? 'py-4' : 'flex items-center justify-between py-4'} min-w-0 transition-colors duration-200 ${onTransactionClick ? 'focus-ring cursor-pointer' : ''} ${
                 hoveredTransaction === transaction.id
-                  ? 'border-primary/50 bg-card/80 shadow-md dark:bg-primary/10'
-                  : 'hover:border-border/80 hover:shadow-sm'
+                  ? 'bg-primary/10'
+                  : 'hover:bg-muted/40'
               }`}
               onMouseEnter={() => setHoveredTransaction(transaction.id)}
               onMouseLeave={() => setHoveredTransaction(null)}
               onClick={() => onTransactionClick?.(transaction)}
+              onKeyDown={(event) => {
+                if (
+                  onTransactionClick &&
+                  (event.key === 'Enter' || event.key === ' ')
+                ) {
+                  event.preventDefault();
+                  onTransactionClick(transaction);
+                }
+              }}
+              {...(onTransactionClick ? { role: 'button', tabIndex: 0 } : {})}
             >
               {isMobile ? (
                 // Mobile layout: vertical stack
@@ -260,7 +270,7 @@ export const RecentTransactions = memo(function RecentTransactions({
 
                   <div className="border-t border-border/20 pt-2">
                     <p
-                      className={`text-lg font-bold ${
+                      className={`text-lg font-bold tabular-nums ${
                         transaction.type === TransactionType.INCOME ||
                         transaction.type === TransactionType.TRANSFER_IN
                           ? 'amount-positive'
@@ -303,7 +313,7 @@ export const RecentTransactions = memo(function RecentTransactions({
                   </div>
                   <div className="text-right">
                     <p
-                      className={`text-sm font-semibold ${
+                      className={`text-base font-semibold tabular-nums ${
                         transaction.type === TransactionType.INCOME ||
                         transaction.type === TransactionType.TRANSFER_IN
                           ? 'amount-positive'

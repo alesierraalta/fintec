@@ -1,0 +1,89 @@
+# Tasks: Home Summary De-nesting
+
+## Review Workload Forecast
+
+| Field                   | Value                                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
+| Estimated changed lines | 420–500 authored lines across 7 dashboard renderers and 4 focused test files                                  |
+| 400-line budget risk    | High                                                                                                          |
+| Chained PRs recommended | Yes                                                                                                           |
+| Suggested split         | PR 1 → PR 2 → PR 3 by the work units below; accepted execution may remain one branch under the size exception |
+| Delivery strategy       | exception-ok                                                                                                  |
+| Chain strategy          | size-exception                                                                                                |
+
+Decision needed before apply: No
+Chained PRs recommended: Yes
+Chain strategy: size-exception
+400-line budget risk: High
+
+The accepted `exception-ok` strategy permits one branch if the diff exceeds 400 lines. Keep the work-unit boundaries and cut unrelated cleanup, abstractions, snapshots, and global styling so the exception remains minimal.
+
+## Scope Guardrails
+
+- Limit authored changes to `components/dashboard/desktop-dashboard.tsx`, `components/dashboard/mobile-dashboard.tsx`, `components/dashboard/spending-chart.tsx`, `components/dashboard/income-sources.tsx`, `components/dashboard/accounts-overview.tsx`, `components/dashboard/recent-transactions.tsx`, `components/dashboard/quick-actions.tsx`, and the focused tests named below.
+- Do not modify `components/layout/main-layout.tsx`, `app/globals.css`, `components/ui/skeleton-stat-card.tsx`, or `components/goals/goal-card.tsx`; their existing shell, token, skeleton, and non-Home contracts are intentionally reused.
+- Preserve calculations, rate conversion, currency provenance/source/freshness disclosure, loading/empty/error behavior, item order, period/reference-time props, routes, callbacks, modal types, `#quick-actions`, and `showBalances` semantics. Do not merge the desktop/mobile branches or add a generalized `HomeSection`/design-system component.
+- Use semantic Tailwind tokens and existing amount/focus/safe-area utilities. Do not add global CSS, broad visual snapshot baselines, or tests that only pin implementation text.
+
+## Work Unit 1 — RED: Lock the protected Home contracts
+
+**Start:** Existing dashboard renderers and focused component tests are unchanged. **Finish:** Focused behavioral tests describe the intended flat hierarchy, amount toggle, native/equivalent display, and keyboard row behavior; the new hierarchy assertions fail only for the not-yet-flattened implementation. **Rollback:** Remove the new `tests/components/home-summary-visual-hierarchy.test.tsx` assertions and the narrowly added assertions in the existing component tests.
+
+- [x] Add `tests/components/home-summary-visual-hierarchy.test.tsx` with mocked data/repository/rate dependencies and one parameterized render path for `DesktopDashboard` and `MobileDashboard`; assert visible VES/USD values, equivalent/source text, the default `aria-pressed` state, obscured values after toggling, and exact values/disclosures after toggling back. Add semantic, focused DOM/class checks that summary metrics use one shared grid and affected flat content/list regions do not contain avoidable descendant `glass-card` shells; do not add snapshots. <!-- sdd-owner: implementation -->
+- [x] Extend `tests/components/spending-chart.test.tsx` only as needed to assert the chart root and category detail controls no longer carry nested card chrome while retaining the existing loading, empty, conversion, period-boundary, selection, and navigation cases. <!-- sdd-owner: implementation -->
+- [x] Extend `tests/components/recent-transactions.test.tsx` with one VES native-plus-equivalent display case and the callback-supplied row keyboard activation/focus case (Enter/Space); assert that a row without a callback is not advertised as a false interactive control. Keep the formatted strings and pending semantics under test. <!-- sdd-owner: implementation -->
+- [x] Reconstruct the RED check against an isolated `HEAD` baseline with `npm test -- --runInBand tests/components/home-summary-visual-hierarchy.test.tsx tests/components/spending-chart.test.tsx tests/components/recent-transactions.test.tsx`; record the expected hierarchy/chrome failures and confirm they are not caused by changed calculations or routes. <!-- deviation: the original pre-implementation run was blocked by missing cross-env, so this is explicit baseline reconstruction rather than historical RED timing. sdd-owner: implementation -->
+
+## Work Unit 2 — GREEN: Flatten dashboard parent surfaces and responsive metric grids
+
+**Start:** Work Unit 1 tests are present and failing on nested parent/card composition. **Finish:** Both branch renderers own the section surfaces and insets, metrics are a shared responsive grid, lower sections retain their existing order and data flow, desktop goals/tip and mobile insight are flat, and Work Unit 1 hierarchy/toggle tests pass. **Rollback:** Revert only `components/dashboard/desktop-dashboard.tsx` and `components/dashboard/mobile-dashboard.tsx`.
+
+- [x] Refactor `components/dashboard/desktop-dashboard.tsx` JSX/class composition without moving or rewriting its `useMemo`, rate helpers, `loadAllData`, goals repository effect, `scrollToQuickActions`, or summary calculations: retain one elevated hero surface and one responsive summary surface with `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3`, remove individual metric card shells, remove redundant `mb-8`, and keep labels, signs, amounts, provenance, and the existing three-stat loading branch. <!-- sdd-owner: implementation -->
+- [x] In `components/dashboard/desktop-dashboard.tsx`, make recent transactions, quick actions, spending, income sources, accounts, and the goals section each use one local surface/inset; remove the duplicate parent headings where the child already owns the heading, split spending and income into sibling sections inside a layout-only support column, and preserve tutorial attributes, `lg`/`xl` placement, account heading, tip divider, goals `slice(0, 2)`, CTA text, summary, loading, and empty copy. <!-- sdd-owner: implementation -->
+- [x] In `components/dashboard/mobile-dashboard.tsx`, apply the same single-inset surface recipe and `grid-cols-1 sm:grid-cols-2 xl:grid-cols-3` metric grouping while keeping the existing JS `<1024` branch boundary, mobile transaction `<768` behavior, section order, safe-area/mobile chrome, live projection disclosure, and all calculations. Split spending and income into sibling flat sections; keep quick actions, recent transactions, accounts, and the `PERSPECTIVA FINANCIERA` insight as separate flat regions. <!-- sdd-owner: implementation -->
+- [x] Preserve the desktop and mobile header shortcut as a 44px focused actionable control, retain the balance hero elevation only, remove hero hover-lift/scale escalation, and replace the mobile balance's literal white text with theme-safe foreground/amount utilities without changing visible strings or `showBalances` behavior. <!-- sdd-owner: implementation -->
+- [x] Verify Work Unit 2 with `npm test -- --runInBand tests/components/home-summary-visual-hierarchy.test.tsx tests/components/dashboard-period-sync.test.tsx`; confirm both chart consumers still receive the same period/reference time and both branch toggle cases retain exact values and disclosures. <!-- sdd-owner: implementation -->
+
+## Work Unit 3 — GREEN: Flatten spending and income visual renderers
+
+**Start:** Dashboard parents are flat section owners, while child chart renderers still introduce card shells. **Finish:** Spending and income roots, loading/empty states, annotations, and detail rows are content-only within the parent surface; period tabs and chart/category controls retain semantics, focus, selection, and 44px targets. **Rollback:** Revert only `components/dashboard/spending-chart.tsx` and `components/dashboard/income-sources.tsx` plus their focused test assertions.
+
+- [x] Update `components/dashboard/spending-chart.tsx` to remove root/empty/center/detail card chrome and row hover-scale/shadows while retaining `SpendingChartProps`, memoization, filtering, conversion, category aggregation, `MAX_VISIBLE_CATEGORIES`, period callbacks, pie selection, `aria-label`, category navigation, and the loading skeleton's shape-only placeholders. Use divided/subtle-tint rows, keep `Otras` disabled, preserve `aria-pressed`, and retain internal period-tab scrolling with visible focus and 44px targets. <!-- sdd-owner: implementation -->
+- [x] Update `components/dashboard/income-sources.tsx` to remove root/loading/empty/center card chrome and convert source tiles to a narrow one-column `divide-y` list with the existing `sm` two-column option only where it remains usable; use `py-3`, `min-w-0`, right-aligned tabular values that can wrap at 320px, and retain aggregation, period labels, percentages, roles, chart interaction, and existing copy. <!-- sdd-owner: implementation -->
+- [x] Run the chart/source behavior set with `npm test -- --runInBand tests/components/spending-chart.test.tsx tests/components/income-sources.test.tsx tests/components/dashboard-period-sync.test.tsx`; confirm loading, empty, filtering, conversion, selection, percentages, navigation, and synchronized period/reference behavior remain unchanged. <!-- sdd-owner: implementation -->
+
+## Work Unit 4 — GREEN: Flatten rows and actionable controls with accessibility parity
+
+**Start:** Child list rows and quick actions still use repeated card layers; callback row keyboard behavior is covered by Work Unit 1. **Finish:** Accounts, transactions, and quick actions use calm grouped rows/control surfaces with readable tabular amounts, truthful semantics, visible focus, and preserved outcomes. **Rollback:** Revert only `components/dashboard/accounts-overview.tsx`, `components/dashboard/recent-transactions.tsx`, and `components/dashboard/quick-actions.tsx` plus their focused test additions.
+
+- [x] Update `components/dashboard/accounts-overview.tsx` without changing its hook, BCV conversion, account mapping/order, balance-change calculations, native currency strings, empty copy, or total calculation: remove the duplicate internal headings, use a divided `min-w-0` account list, keep status pills as markers, flatten the total footer to a divider/plain content with `amount-emphasis-main text-3xl tabular-nums`, and make the existing `Crear cuenta` action 44px with focus styling. <!-- sdd-owner: implementation -->
+- [x] Update `components/dashboard/recent-transactions.tsx` to use divided flat loading/populated rows, preserve the mobile/desktop DOM order, account mapping, rate selection, original/native and VES-equivalent formatting, pending labels, order, optional view-all and transaction callbacks, and promote row amounts to readable tabular `text-base`/`text-lg` treatment. When `onTransactionClick` exists, add `role="button"`, `tabIndex`, Enter/Space activation, and visible focus; when absent, do not add an interactive role. Keep icon circles/badges as semantic markers rather than surfaces. <!-- sdd-owner: implementation -->
+- [x] Update `components/dashboard/quick-actions.tsx` to keep `ACTIONS_DATA`, priority, `handleActionClick`, `TransactionForm`, `useModal`, `/transactions/add`, and `/transfers` unchanged while removing the icon's nested card chrome/backdrop blur and hover-scale; retain only control-level border/rounded/shadow treatment, `min-h-[44px]`, `focus-ring`, and the current active state. <!-- sdd-owner: implementation -->
+- [x] Run `npm test -- --runInBand tests/components/recent-transactions.test.tsx tests/components/home-summary-visual-hierarchy.test.tsx` and `PLAYWRIGHT_LANE=auth-required npm run e2e:auth-required -- tests/e2e/25-transfer-canonical-flow.spec.ts`; confirm VES/native-plus-equivalent text, callback keyboard behavior, quick-action form outcomes, transfer routing, and no persisted transfer mutation. <!-- sdd-owner: implementation -->
+
+## TRIANGULATE — Focused verification and real-run evidence
+
+**Start:** Work Units 1–4 are implemented in one bounded branch. **Finish:** Behavioral tests, repository checks, canonical action flow, seven-width real rendering, theme contrast, overflow, state, and accessibility evidence all pass. **Rollback:** Stop at the failing work unit and revert only its listed target files; do not broaden the change to shared shell/global CSS.
+
+- [x] Run the complete focused Jest set with `npm test -- --runInBand tests/components/home-summary-visual-hierarchy.test.tsx tests/components/dashboard-period-sync.test.tsx tests/components/spending-chart.test.tsx tests/components/income-sources.test.tsx tests/components/recent-transactions.test.tsx tests/app/app-shell-scroll-contract.test.tsx`; use semantic queries and focused role/class checks only, with no snapshot updates. <!-- sdd-owner: implementation -->
+- [x] Run `npm run lint`, `npm run type-check`, `npm run build`, and `npx prettier --check components/dashboard/desktop-dashboard.tsx components/dashboard/mobile-dashboard.tsx components/dashboard/spending-chart.tsx components/dashboard/income-sources.tsx components/dashboard/accounts-overview.tsx components/dashboard/recent-transactions.tsx components/dashboard/quick-actions.tsx tests/components/home-summary-visual-hierarchy.test.tsx tests/components/spending-chart.test.tsx tests/components/recent-transactions.test.tsx`; resolve only regressions from the bounded target files. <!-- sdd-owner: implementation -->
+- [x] Run the existing mobile containment lane with `PLAYWRIGHT_LANE=no-auth npm run e2e:no-auth -- tests/e2e/mobile-header-nav-overflow.spec.ts` and the authenticated action lane with `PLAYWRIGHT_LANE=auth-required npm run e2e:auth-required -- tests/e2e/25-transfer-canonical-flow.spec.ts`; include `tests/app/app-shell-scroll-contract.test.tsx` results as evidence that the unchanged shell remains the sole scroll owner. <!-- sdd-owner: implementation -->
+- [x] Start the configured app with `PORT=3001 npm run dev -- -p 3001` and perform a real authenticated/no-auth Home run, capturing full-page light and dark evidence at exactly 320, 375, 430, 768, 1024, 1280, and 1440px. At 768px confirm mobile navigation/transaction rows; at 1024px confirm the unchanged desktop branch boundary; at every width inspect hero, shared metrics, spending, income, accounts, recent rows, goals/tip or insight, and mobile chrome. <!-- sdd-owner: implementation -->
+- [x] During that real run, evaluate `document.documentElement.scrollWidth`, `document.body.scrollWidth`, and `document.querySelector('#root')?.scrollWidth` against `innerWidth + 1`; verify long VES/USD values and provenance reflow at 320px, period tabs scroll internally, no affected section nests a `.glass-card` under another section surface, flat rows use dividers/subtle tint, and only the hero/actionable controls retain elevation. <!-- sdd-owner: implementation -->
+- [x] Exercise pointer and keyboard controls in both themes: amount toggle off/on with exact value/provenance comparison, header shortcut, income/expense forms, `/transactions/add`, `/transfers`, period tabs, chart category selection, view-all where supplied, and every existing Home control's focus/44px target. Re-run representative loading, empty, and intentionally failed existing-request/repository states to confirm truthful copy without adding a retry API. <!-- sdd-owner: implementation -->
+
+## REFACTOR — Scope and diff hygiene
+
+**Start:** All focused and real-run checks pass. **Finish:** The diff is the smallest visual-only implementation, formatted, reviewable, and reversible as one commit/size exception. **Rollback:** Revert the final visual commit containing only the listed dashboard renderers and focused tests.
+
+- [x] Review `git diff --stat` and `git diff -- components/dashboard tests/components`; remove incidental cleanup, duplicated class constants with one caller, generated screenshots, snapshots, global CSS/layout edits, and any calculation/route/data-contract changes; verify `components/layout/main-layout.tsx` and `app/globals.css` remain untouched. <!-- sdd-owner: implementation -->
+- [x] Re-run `npm run lint`, `npm run type-check`, `npm run build`, and the focused Jest/Playwright commands above after the final class composition cleanup; record the authored line count and retain the accepted `size-exception` if it remains above 400 lines. <!-- sdd-owner: implementation -->
+
+## Parent lifecycle gates
+
+- [x] Start or reuse one bounded review after the implementation checks pass; review the final diff against the forecast, protected behavior, rollback boundaries, and seven-width light/dark evidence before delivery. <!-- sdd-owner: parent; receipt: review-c43935dab5903a47 -->
+- [x] Confirm delivery remains one `exception-ok` branch unless the parent elects to promote the three work-unit boundaries into the recommended chain; do not stage or alter unrelated copied `.claude` line-ending changes. <!-- sdd-owner: parent -->
+
+## Final verifier polish successor
+
+- [x] Apply the four narrowly scoped visual residual corrections: desktop converted summary totals use `text-2xl`, mobile converted summary totals use explicit `tabular-nums`, goal Target markers are plain colored icons, and the empty-account CreditCard marker has no rounded/background shell. <!-- sdd-owner: implementation -->

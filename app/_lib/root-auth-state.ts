@@ -7,6 +7,12 @@ import { isFrontendAuthBypassEnabled } from '@/lib/auth/is-frontend-auth-bypass-
  * otherwise returns 'landing' for the public landing experience.
  */
 export async function getRootAuthState(): Promise<'authenticated' | 'landing'> {
+  // The helper hard-blocks this flag in production. In non-production test
+  // lanes, short-circuit before Supabase reports the expected missing session.
+  if (isFrontendAuthBypassEnabled()) {
+    return 'authenticated';
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,11 +25,6 @@ export async function getRootAuthState(): Promise<'authenticated' | 'landing'> {
 
   if (error) {
     return 'landing';
-  }
-
-  // No user and no error — check bypass
-  if (isFrontendAuthBypassEnabled()) {
-    return 'authenticated';
   }
 
   return 'landing';

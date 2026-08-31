@@ -109,13 +109,13 @@ function IncomeSourcesComponent({
     activeUsdVesRate,
     convert,
   ]);
-      const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
-      const [activeIndex, setActiveIndex] = useState<number | null>(null);
-      const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-      useEffect(() => {
-        setActiveIndex(null);
-        setSelectedIndex(null);
-      }, [sources]);
+  const totalIncome = sources.reduce((sum, source) => sum + source.amount, 0);
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  useEffect(() => {
+    setActiveIndex(null);
+    setSelectedIndex(null);
+  }, [sources]);
   const displayedIndex = activeIndex ?? selectedIndex;
   const activeSource = displayedIndex === null ? null : sources[displayedIndex];
   const formatPercentage = (amount: number) =>
@@ -125,7 +125,7 @@ function IncomeSourcesComponent({
 
   return (
     <section
-      className={cn('glass-card space-y-6 rounded-3xl border border-border/30 bg-card/45 p-3 shadow-ios backdrop-blur-xl', className)}
+      className={cn('space-y-6', className)}
       aria-labelledby="income-sources-title"
     >
       <div className="flex items-center gap-2">
@@ -145,11 +145,11 @@ function IncomeSourcesComponent({
 
       {isLoading ? (
         <div
-          className="h-[280px] animate-pulse rounded-3xl border border-border/30 bg-card/30"
+          className="h-[280px] animate-pulse bg-muted/30"
           aria-label="Cargando ingresos"
         />
       ) : sources.length === 0 ? (
-        <div className="rounded-3xl border border-border/30 bg-card/30 py-12 text-center text-muted-foreground backdrop-blur-sm">
+        <div className="py-12 text-center text-muted-foreground">
           <Package className="mx-auto mb-4 h-12 w-12" aria-hidden="true" />
           <p className="text-ios-caption">
             Todavía no hay ingresos registrados para {periodLabel.toLowerCase()}
@@ -175,8 +175,8 @@ function IncomeSourcesComponent({
                     cy="50%"
                     innerRadius="58%"
                     outerRadius="84%"
-                        animationBegin={0}
-                        animationDuration={600}
+                    animationBegin={0}
+                    animationDuration={600}
                     paddingAngle={sources.length > 1 ? 3 : 0}
                     dataKey="amount"
                     nameKey="name"
@@ -207,7 +207,7 @@ function IncomeSourcesComponent({
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="rounded-2xl border border-border/30 bg-background/55 px-5 py-3 text-center shadow-lg backdrop-blur-md">
+                <div className="bg-background/55 px-5 py-3 text-center">
                   <p className="text-ios-title font-bold text-foreground">
                     {currencyFormatter.format(
                       activeSource?.amount ?? totalIncome
@@ -222,35 +222,35 @@ function IncomeSourcesComponent({
               </div>
             </div>
 
-          <div
-            className="grid gap-2 sm:grid-cols-2"
-            role="list"
-            aria-label="Detalle de fuentes de ingresos"
-          >
-            {sources.map((source) => (
-              <div
-                key={source.id}
-                className="glass-card flex min-h-[44px] items-center justify-between rounded-2xl border border-border/30 bg-card/45 px-4 py-3 backdrop-blur-xl"
-                role="listitem"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <DollarSign
-                    className="h-4 w-4 shrink-0 text-success"
-                    aria-hidden="true"
-                  />
-                  <span className="truncate text-ios-body text-foreground">
-                    {source.name}
+            <div
+              className="divide-y divide-border/30 sm:grid sm:grid-cols-2 sm:gap-x-4 sm:divide-y-0"
+              role="list"
+              aria-label="Detalle de fuentes de ingresos"
+            >
+              {sources.map((source) => (
+                <div
+                  key={source.id}
+                  className="flex min-h-[44px] min-w-0 items-center justify-between px-2 py-3"
+                  role="listitem"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <DollarSign
+                      className="h-4 w-4 shrink-0 text-success"
+                      aria-hidden="true"
+                    />
+                    <span className="truncate text-ios-body text-foreground">
+                      {source.name}
+                    </span>
+                  </div>
+                  <span className="ml-3 min-w-0 break-words text-right text-base font-semibold tabular-nums text-foreground">
+                    {currencyFormatter.format(source.amount)}
+                    <span className="ml-1 text-ios-caption font-normal text-muted-foreground">
+                      ({formatPercentage(source.amount)})
+                    </span>
                   </span>
                 </div>
-                <span className="ml-3 whitespace-nowrap text-right text-ios-body font-semibold text-foreground">
-                  {currencyFormatter.format(source.amount)}
-                  <span className="ml-1 text-ios-caption font-normal text-muted-foreground">
-                    ({formatPercentage(source.amount)})
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
           </div>
         </>
       )}

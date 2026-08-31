@@ -2,8 +2,6 @@
 
 import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useAppStore } from '@/lib/store';
-import { StatCard } from './stat-card';
-import { SkeletonStatCard } from '@/components/ui/skeleton-stat-card';
 import { QuickActions } from './quick-actions';
 import { RecentTransactions } from './recent-transactions';
 import { LazySpendingChart } from './lazy-spending-chart';
@@ -397,7 +395,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* Balance Total Card with Rate Selector */}
-      <div className="glass-card transition-smooth hover-lift mb-8 rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
@@ -410,7 +408,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               type="button"
               onClick={() => setShowBalances(!showBalances)}
               aria-pressed={showBalances}
-              className="focus-ring flex items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               {showBalances ? (
                 <EyeOff className="h-4 w-4" />
@@ -438,7 +436,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="amount-emphasis-white text-lg font-semibold">
+              <p className="amount-emphasis-white text-3xl font-semibold tabular-nums">
                 Total: ${totalBalance.toFixed(2)} (
                 {getRateName(usdEquivalentType)})
               </p>
@@ -452,17 +450,20 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Summary Cards */}
-      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="glass-card grid grid-cols-1 gap-4 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {showStatsSkeleton ? (
           <>
-            <SkeletonStatCard />
-            <SkeletonStatCard />
-            <SkeletonStatCard />
+            {[1, 2, 3].map((item) => (
+              <div key={item} className="min-w-0 animate-pulse py-4">
+                <div className="mb-3 h-4 w-32 rounded bg-muted/40" />
+                <div className="h-8 w-24 rounded bg-muted/40" />
+              </div>
+            ))}
           </>
         ) : (
           <>
             {/* Monthly Income Card */}
-            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+            <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -471,7 +472,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               </div>
               <div className="space-y-1">
                 {monthlyIncomeVES > 0 && (
-                  <div className="amount-positive text-lg">
+                  <div className="amount-positive text-2xl tabular-nums">
                     Bs.{' '}
                     {monthlyIncomeVES.toLocaleString('es-VE', {
                       minimumFractionDigits: 2,
@@ -480,11 +481,11 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
                 )}
                 {(monthlyIncomeUSD > 0 ||
                   (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
-                  <div className="amount-positive text-lg">
+                  <div className="amount-positive text-2xl tabular-nums">
                     ${monthlyIncomeUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-sm">
+                <div className="amount-emphasis-white text-2xl tabular-nums">
                   Total: ${monthlyIncome.toFixed(2)} (
                   {getRateName(usdEquivalentType)})
                 </div>
@@ -492,7 +493,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             </div>
 
             {/* Monthly Expenses Card */}
-            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+            <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -501,7 +502,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               </div>
               <div className="space-y-1">
                 {monthlyExpensesVES > 0 && (
-                  <div className="amount-negative text-lg">
+                  <div className="amount-negative text-2xl tabular-nums">
                     Bs.{' '}
                     {monthlyExpensesVES.toLocaleString('es-VE', {
                       minimumFractionDigits: 2,
@@ -510,11 +511,11 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
                 )}
                 {(monthlyExpensesUSD > 0 ||
                   (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
-                  <div className="amount-negative text-lg">
+                  <div className="amount-negative text-2xl tabular-nums">
                     ${monthlyExpensesUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-sm">
+                <div className="amount-emphasis-white text-2xl tabular-nums">
                   Total: ${monthlyExpenses.toFixed(2)} (
                   {getRateName(usdEquivalentType)})
                 </div>
@@ -522,7 +523,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             </div>
 
             {/* Total Transactions Card */}
-            <div className="glass-card transition-smooth hover-lift group rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md hover:bg-card/90 hover:shadow-ios-lg active:scale-[0.99]">
+            <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
                 <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
@@ -540,19 +541,13 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Content Grid */}
-      <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {/* Recent Transactions */}
         <div className="lg:col-span-2 xl:col-span-2">
           <div
-            className="h-full rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
+            className="glass-card h-full rounded-3xl border border-border/40 bg-card/90 p-6"
             data-tutorial="recent-transactions"
           >
-            <div className="mb-6 flex items-center space-x-2">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-              <h2 className="text-ios-title font-semibold text-foreground">
-                Movimientos Recientes
-              </h2>
-            </div>
             <RecentTransactions
               transactions={rawTransactions}
               bcvRates={bcvRates}
@@ -566,7 +561,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
         <div className="lg:col-span-1 xl:col-span-1">
           <div
             id="quick-actions"
-            className="h-full rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
+            className="glass-card h-full rounded-3xl border border-border/40 bg-card/90 p-6"
             data-tutorial="quick-actions"
           >
             <div className="mb-6 flex items-center space-x-2">
@@ -582,19 +577,15 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
 
       {/* Second Row */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Spending Chart */}
-        <div
-          className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
-          data-tutorial="spending-chart"
-        >
-          <div className="mb-6 flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-            <h2 className="text-ios-title font-semibold text-foreground">
-              ¿En Qué Gastas?
-            </h2>
+        <div className="space-y-6">
+          {/* Spending Chart */}
+          <div
+            className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
+            data-tutorial="spending-chart"
+          >
+            <LazySpendingChart {...props} />
           </div>
-          <LazySpendingChart {...props} />
-          <div className="mt-8 border-t border-border/30 pt-6">
+          <div className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6">
             <IncomeSources
               period={props.period}
               referenceNow={props.referenceNow}
@@ -604,7 +595,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
 
         {/* Accounts Overview */}
         <div
-          className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
+          className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
           data-tutorial="accounts-overview"
         >
           <div className="mb-6 flex items-center space-x-2">
@@ -664,7 +655,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
 
       {/* iOS-style Goals Section */}
       <div
-        className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
+        className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
         data-tutorial="goals-progress"
       >
         <div className="mb-6 flex items-center justify-between">
@@ -680,7 +671,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               </span>
             )}
           </div>
-          <button className="text-ios-body font-medium text-green-600 transition-colors hover:text-green-700">
+          <button className="focus-ring min-h-[44px] min-w-[44px] text-ios-body font-medium text-green-600 transition-colors hover:text-green-700">
             Ver todas
           </button>
         </div>
@@ -690,7 +681,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="animate-pulse rounded-xl border border-border/10 bg-card/80 p-4"
+                className="animate-pulse border-b border-border/30 py-4"
               >
                 <div className="mb-2 h-4 rounded bg-muted/30"></div>
                 <div className="mb-4 h-3 w-3/4 rounded bg-muted/30"></div>
@@ -745,14 +736,9 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               }[progressColor];
 
               return (
-                <div
-                  key={goal.id}
-                  className="rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-shadow duration-300 hover:shadow-xl"
-                >
+                <div key={goal.id} className="py-4">
                   <div className="flex items-center space-x-3">
-                    <div className={`p-2 ${iconBgColor} rounded-xl border`}>
-                      <Target className={`h-4 w-4 ${iconColor}`} />
-                    </div>
+                    <Target className={`h-4 w-4 shrink-0 ${iconColor}`} />
                     <div className="min-w-0 flex-1">
                       <h3 className="text-ios-body font-medium text-foreground">
                         {goal.description}
@@ -782,7 +768,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               );
             })}
 
-            <div className="group rounded-xl border border-border/10 bg-card/80 p-4 shadow-lg backdrop-blur-sm transition-colors duration-300 hover:bg-card/90 hover:shadow-xl">
+            <div className="py-4">
               <div className="text-center">
                 <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded-full bg-muted/20 transition-colors duration-300 group-hover:bg-green-500/10">
                   {goals.length > 2 ? (

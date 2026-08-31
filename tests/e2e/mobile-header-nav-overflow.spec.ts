@@ -6,9 +6,8 @@ const canonicalUser = getCanonicalTestUserConfig();
 const mobileNavLabels = [
   'Inicio',
   'Cuentas',
-  'Gastos',
+  'Transacciones',
   'Transferir',
-  'Deudas',
   'Metas',
 ];
 
@@ -63,8 +62,10 @@ test.describe('Mobile header and nav overflow regression', () => {
   test('keeps header controls and mobile nav contained on narrow viewports', async ({
     page,
   }) => {
-    await expect(page.getByTitle('Seleccionar fuente de tasa')).toBeVisible();
-    await expect(page.getByAltText('FinTec Logo')).toBeVisible();
+    await expect(
+      page.getByRole('link', { name: 'Descargar APK Android Beta' })
+    ).toBeVisible();
+    await expect(page.getByAltText('FinTec')).toBeVisible();
     await expect(page.getByLabel('Abrir menú de usuario')).toBeVisible();
 
     await expectNoHorizontalOverflow(page);
@@ -73,12 +74,12 @@ test.describe('Mobile header and nav overflow regression', () => {
       name: 'Navegación móvil principal',
     });
     const navBox = await nav.boundingBox();
-    const navPaddingBottom = await nav.evaluate((element) =>
-      Number.parseFloat(getComputedStyle(element).paddingBottom)
-    );
 
     expect(navBox).not.toBeNull();
-    expect(navPaddingBottom).toBeGreaterThanOrEqual(12);
+    expect(navBox!.height).toBeGreaterThanOrEqual(44);
+    expect(navBox!.y + navBox!.height).toBeLessThanOrEqual(
+      page.viewportSize()!.height + 1
+    );
 
     const linkBoxes = [] as NonNullable<
       Awaited<ReturnType<typeof nav.boundingBox>>
@@ -110,19 +111,26 @@ test.describe('Mobile header and nav overflow regression', () => {
   test('keeps overlays interactive without introducing horizontal reflow', async ({
     page,
   }) => {
-    const rateTrigger = page.getByTitle('Seleccionar fuente de tasa');
+    const drawerTrigger = page.getByRole('button', {
+      name: 'Abrir menú',
+      exact: true,
+    });
     const userMenuTrigger = page.getByLabel('Abrir menú de usuario');
 
-    await rateTrigger.click();
-    await expect(page.getByText('BCV USD')).toBeVisible();
+    await drawerTrigger.click();
+    const drawer = page.getByRole('dialog', { name: 'Más opciones' });
+    await expect(drawer).toBeVisible();
     await expectNoHorizontalOverflow(page);
-    await page.locator('[data-overlay-backdrop="rate-selector"]').click();
-    await expect(page.getByText('BCV USD')).toHaveCount(0);
+    await drawer.getByRole('button', { name: 'Cerrar menú' }).click();
+    await expect(drawer).toBeHidden();
 
     await userMenuTrigger.click();
-    await expect(page.getByText('Mi Perfil')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Perfil' })).toBeVisible();
     await expectNoHorizontalOverflow(page);
-    await page.locator('[data-overlay-backdrop="mobile-user-menu"]').click();
-    await expect(page.getByText('Mi Perfil')).toHaveCount(0);
+    await page
+      .getByRole('button', { name: 'Cerrar menú de usuario' })
+      .last()
+      .click();
+    await expect(page.getByRole('button', { name: 'Perfil' })).toHaveCount(0);
   });
 });

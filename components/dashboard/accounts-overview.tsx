@@ -183,29 +183,17 @@ export const AccountsOverview = memo(function AccountsOverview() {
 
   return (
     <div className="space-y-6">
-      {/* iOS-style Header */}
-      <div className="text-center">
-        <p className="mb-2 text-ios-caption font-medium uppercase tracking-wide text-muted-foreground">
-          Cuentas
-        </p>
-        <h3 className="text-ios-title font-semibold text-foreground">
-          Resumen General
-        </h3>
-      </div>
-
-      <div className="space-y-3">
+      <div className="divide-y divide-border/30">
         {accounts.length === 0 ? (
           <div className="py-12 text-center">
-            <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-muted/20 backdrop-blur-sm">
-              <CreditCard className="h-5 w-5 text-muted-foreground" />
-            </div>
+            <CreditCard className="mx-auto mb-6 h-5 w-5 text-muted-foreground" />
             <h3 className="mb-3 text-ios-headline font-medium text-foreground">
               Sin cuentas registradas
             </h3>
             <p className="mb-6 text-ios-body text-muted-foreground">
               Configura tu primera cuenta para comenzar
             </p>
-            <button className="transition-ios rounded-xl bg-primary/10 px-4 py-2 text-ios-body font-medium text-primary backdrop-blur-sm hover:bg-primary/20">
+            <button className="focus-ring transition-ios min-h-[44px] rounded-xl bg-primary/10 px-4 py-2 text-ios-body font-medium text-primary hover:bg-primary/20">
               Crear cuenta
             </button>
           </div>
@@ -238,12 +226,10 @@ export const AccountsOverview = memo(function AccountsOverview() {
             return (
               <div
                 key={account.id}
-                className="transition-ios flex items-center justify-between rounded-2xl border border-border/15 bg-card/40 p-4 shadow-ios-sm backdrop-blur-xl hover:scale-[1.01] hover:bg-card/60 hover:shadow-ios-md"
+                className="transition-ios flex min-w-0 items-center justify-between gap-4 py-4 hover:bg-muted/30"
               >
                 <div className="flex items-center space-x-4">
-                  <div
-                    className={`rounded-xl p-3 ${colors.bg} border ${colors.border} shadow-ios-sm backdrop-blur-sm`}
-                  >
+                  <div className={`shrink-0 p-3 ${colors.bg}`}>
                     <account.icon className={`h-5 w-5 ${colors.icon}`} />
                   </div>
                   <div>
@@ -254,14 +240,14 @@ export const AccountsOverview = memo(function AccountsOverview() {
                       {account.type}
                     </p>
                     {!account.active && (
-                      <span className="mt-1 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-ios-caption text-orange-600 backdrop-blur-sm">
+                      <span className="mt-1 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-ios-caption text-orange-600">
                         Inactiva
                       </span>
                     )}
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="amount-emphasis-main text-ios-body font-semibold">
+                  <p className="amount-emphasis-main text-base font-semibold tabular-nums">
                     {account.balance}
                   </p>
                   <div className="mt-1 flex items-center justify-end">
@@ -300,11 +286,11 @@ export const AccountsOverview = memo(function AccountsOverview() {
 
       {/* iOS-style Total Balance */}
       <div className="border-t border-border/10 pt-6">
-        <div className="ios-card bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 text-center">
+        <div className="text-center">
           <p className="mb-3 text-ios-caption font-semibold uppercase tracking-wide text-muted-foreground">
             Balance Total
           </p>
-          <p className="amount-emphasis-main text-ios-large-title font-bold">
+          <p className="amount-emphasis-main text-3xl font-bold tabular-nums">
             ${totalBalance.toFixed(2)}
           </p>
           {totalBalanceChange && (

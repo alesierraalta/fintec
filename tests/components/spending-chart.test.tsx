@@ -37,7 +37,7 @@ jest.mock('recharts', () => ({
           data-testid={`pie-cell-${index}`}
           onMouseEnter={() => onMouseEnter && onMouseEnter(null, index)}
           onMouseLeave={() => onMouseLeave && onMouseLeave()}
-              onClick={() => onClick && onClick(null, index)}
+          onClick={() => onClick && onClick(null, index)}
         >
           {entry.name} - {entry.value}
         </div>
@@ -161,6 +161,9 @@ describe('SpendingChart Component', () => {
         screen.getByText(/Cuando tengas gastos en este período/i)
       ).toBeInTheDocument();
       expect(screen.getByRole('tablist')).toBeInTheDocument();
+      expect(
+        screen.getByRole('region', { name: /gastos por categoría/i })
+      ).not.toHaveClass('glass-card');
     });
   });
 
@@ -426,6 +429,7 @@ describe('SpendingChart Component', () => {
       const categoryButton = screen.getByRole('button', {
         name: /Alimentación/i,
       });
+      expect(categoryButton).not.toHaveClass('glass-card');
       expect(screen.getByText('Total gastado')).toBeInTheDocument();
 
       fireEvent.click(categoryButton);
@@ -491,9 +495,9 @@ describe('SpendingChart Component', () => {
   });
 
   it('persists selection when a pie slice is clicked', () => {
-        const todayIso = dayjs().toISOString();
-        (useOptimizedTransactions as jest.Mock).mockReturnValue({
-          expenseTransactions: [
+    const todayIso = dayjs().toISOString();
+    (useOptimizedTransactions as jest.Mock).mockReturnValue({
+      expenseTransactions: [
         {
           id: 'tx-1',
           type: 'EXPENSE',
@@ -510,24 +514,24 @@ describe('SpendingChart Component', () => {
           categoryId: 'cat-2',
           date: todayIso,
         },
-          ],
-          categories: mockCategories,
-          loading: false,
-        });
+      ],
+      categories: mockCategories,
+      loading: false,
+    });
 
-        render(<SpendingChart />);
-        fireEvent.click(screen.getByTestId('pie-cell-1'));
-        expect(screen.getByText(/Transporte \(25%\)/i)).toBeInTheDocument();
+    render(<SpendingChart />);
+    fireEvent.click(screen.getByTestId('pie-cell-1'));
+    expect(screen.getByText(/Transporte \(25%\)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Transporte/i })).toHaveAttribute(
       'aria-pressed',
       'true'
     );
-      });
+  });
 
-      it('clears selection when the period changes or data is replaced', () => {
-        const todayIso = dayjs().toISOString();
-        const { rerender } = render(
-          <SpendingChart
+  it('clears selection when the period changes or data is replaced', () => {
+    const todayIso = dayjs().toISOString();
+    const { rerender } = render(
+      <SpendingChart
         transactions={[
           {
             id: 'tx-1',
@@ -538,16 +542,16 @@ describe('SpendingChart Component', () => {
             date: todayIso,
           } as any,
         ]}
-            categories={mockCategories as any}
-          />
-        );
-        fireEvent.click(screen.getByRole('button', { name: /Alimentación/i }));
-        expect(screen.getByText(/Alimentación \(100%\)/i)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('tab', { name: /Histórico/i }));
-        expect(screen.getByText('Total gastado')).toBeInTheDocument();
+        categories={mockCategories as any}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Alimentación/i }));
+    expect(screen.getByText(/Alimentación \(100%\)/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('tab', { name: /Histórico/i }));
+    expect(screen.getByText('Total gastado')).toBeInTheDocument();
 
-        rerender(
-          <SpendingChart
+    rerender(
+      <SpendingChart
         transactions={[
           {
             id: 'tx-2',
@@ -558,13 +562,13 @@ describe('SpendingChart Component', () => {
             date: todayIso,
           } as any,
         ]}
-            categories={mockCategories as any}
-          />
-        );
-        expect(screen.getByText('Total gastado')).toBeInTheDocument();
-      });
+        categories={mockCategories as any}
+      />
+    );
+    expect(screen.getByText('Total gastado')).toBeInTheDocument();
+  });
 
-      describe('7. Deterministic Category Colors and Icons', () => {
+  describe('7. Deterministic Category Colors and Icons', () => {
     it('should map standard categories to high-contrast colors and valid icons', () => {
       expect(getCategoryColor('Alimentación')).toBe('#10b981');
       expect(getCategoryColor('Transporte')).toBe('#3b82f6');

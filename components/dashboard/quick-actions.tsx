@@ -101,10 +101,10 @@ export const QuickActions = memo(function QuickActions() {
             <button
               key={action.name}
               onClick={() => handleActionClick(action)}
-              className={`group w-full rounded-2xl border p-4 backdrop-blur-xl ${action.color} ${action.borderColor} transition-ios text-left shadow-ios-sm hover:shadow-ios-md ${action.shadowColor} hover:scale-[1.02] active:scale-[0.98]`}
+              className={`focus-ring group min-h-[44px] w-full rounded-2xl border p-4 ${action.color} ${action.borderColor} transition-ios text-left shadow-ios-sm hover:shadow-ios-md ${action.shadowColor} active:scale-[0.98]`}
             >
               <div className="flex items-center space-x-4">
-                <div className="transition-ios rounded-xl border border-border/15 bg-card/40 p-3 shadow-ios-sm backdrop-blur-sm group-hover:border-border/25">
+                <div className="transition-ios p-3 group-hover:text-primary">
                   <action.icon className={`h-5 w-5 ${action.iconColor}`} />
                 </div>
                 <div className="min-w-0 flex-1">
