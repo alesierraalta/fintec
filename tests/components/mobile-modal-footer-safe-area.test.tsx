@@ -6,6 +6,10 @@ import { AccountType, TransactionType } from '@/types/domain';
 
 const mockUpdateAccount = jest.fn();
 
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({ user: { id: 'user-1' } }),
+}));
+
 jest.mock('@/providers/repository-provider', () => ({
   useRepository: () => ({
     accounts: {

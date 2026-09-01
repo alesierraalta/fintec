@@ -17,14 +17,16 @@ export class SupabaseUsersProfileRepository implements UsersProfileRepository {
   }
 
   async upsert(input: UpsertUserProfileInput): Promise<void> {
-    const { error } = await (this.client.from('users') as any).upsert({
-      id: input.id,
-      email: input.email,
-      name: input.name || null,
-      base_currency: input.baseCurrency || 'USD',
-      updated_at: new Date().toISOString(),
-      created_at: new Date().toISOString(),
-    } as any);
+    const { error } = await (this.client.from('users') as any).upsert(
+      {
+        id: input.id,
+        email: input.email,
+        name: input.name || null,
+        base_currency: input.baseCurrency || 'USD',
+        updated_at: new Date().toISOString(),
+      } as any,
+      { onConflict: 'id' }
+    );
 
     if (error) {
       throw new Error(`Failed to upsert user profile: ${error.message}`);

@@ -161,15 +161,17 @@ export class SupabaseAppRepository implements AppRepository {
         throw new Error('User not authenticated');
       }
 
-      // Ensure user exists in users table
-      const { error } = await (this.client.from('users') as any).upsert({
-        id: user.id,
-        email: user.email!,
-        name: user.user_metadata?.name || null,
-        base_currency: 'USD',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      } as any);
+      // Ensure user exists in users table — preserve original created_at on updates
+      const { error } = await (this.client.from('users') as any).upsert(
+        {
+          id: user.id,
+          email: user.email!,
+          name: user.user_metadata?.name || null,
+          base_currency: 'USD',
+          updated_at: new Date().toISOString(),
+        } as any,
+        { onConflict: 'id' }
+      );
 
       if (error) {
         throw new Error(`Failed to initialize user: ${error.message}`);
