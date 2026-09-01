@@ -83,17 +83,31 @@ export async function getPageVisits(
   );
   const end = addDays(start, days);
   const client = createServiceClient();
-  const { data, error } = await (client as any).rpc('aggregate_page_visits', {
-    start_date: dateOnly(start),
-    end_date: dateOnly(end),
-  });
-  if (error) throw error;
-  const result = data ?? { daily: [], routes: [] };
-  return materializeVisits(
-    range,
-    dateOnly(start),
-    dateOnly(end),
-    result.daily ?? [],
-    result.routes ?? []
-  );
+  try {
+    const { data, error } = await (client as any).rpc('aggregate_page_visits', {
+      start_date: dateOnly(start),
+      end_date: dateOnly(end),
+    });
+    if (error) throw error;
+    const result = data ?? { daily: [], routes: [] };
+    return materializeVisits(
+      range,
+      dateOnly(start),
+      dateOnly(end),
+      result.daily ?? [],
+      result.routes ?? []
+    );
+  } catch (error: any) {
+    const msg = error?.message ?? String(error);
+    const isMissingRpc =
+      msg.includes('Node cannot be found') ||
+      msg.includes('PGRST') ||
+      msg.toLowerCase().includes('could not find') ||
+      msg.includes('schema cache') ||
+      msg.includes('aggregate_page_visits');
+    if (isMissingRpc) {
+      return materializeVisits(range, dateOnly(start), dateOnly(end), [], []);
+    }
+    throw error;
+  }
 }

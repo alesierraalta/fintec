@@ -30,44 +30,69 @@ export function FinancialRealtimeSync() {
       scheduleFinancialRealtimeRefresh(repository, userId, domains);
     };
     const removeChannel = () => {
-      if (channel) {
-        void supabase.removeChannel(channel);
-        channel = undefined;
-      }
+      if (!channel) return;
+      const toRemove = channel;
+      channel = undefined;
+      void supabase.removeChannel(toRemove);
     };
     const connect = () => {
       if (stopped || channel) return;
+      const instanceId = Math.random().toString(36).slice(2, 6);
       const nextChannel = supabase
-        .channel(`financial-data:${userId}`)
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'accounts', filter: `user_id=eq.${userId}`,
-        }, () => refresh(['accounts', 'transactions', 'budgets']))
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'budgets', filter: `user_id=eq.${userId}`,
-        }, () => refresh(['budgets', 'transactions']))
+        .channel(`financial-data:${userId}:${instanceId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'accounts',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => refresh(['accounts', 'transactions', 'budgets'])
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'budgets',
+            filter: `user_id=eq.${userId}`,
+          },
+          () => refresh(['budgets', 'transactions'])
+        )
         // Transactions are account-scoped; do not invent a transactions.user_id filter.
-        .on('postgres_changes', {
-          event: '*', schema: 'public', table: 'transactions',
-        }, () => refresh(['transactions', 'accounts', 'budgets']))
-        ; channel = nextChannel;
-          nextChannel.subscribe((status) => {
-          if (stopped) return;
-          if (status === 'SUBSCRIBED') {
-            reconnectAttempts = 0;
-            refresh(['transactions', 'accounts', 'budgets']);
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'transactions',
+          },
+          () => refresh(['transactions', 'accounts', 'budgets'])
+        );
+      channel = nextChannel;
+      nextChannel.subscribe((status) => {
+        if (stopped) return;
+        if (status === 'SUBSCRIBED') {
+          reconnectAttempts = 0;
+          refresh(['transactions', 'accounts', 'budgets']);
+        }
+        if (
+          status === 'CHANNEL_ERROR' ||
+          status === 'TIMED_OUT' ||
+          status === 'CLOSED'
+        ) {
+          removeChannel();
+          if (!retryTimer && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            const delay = RESUBSCRIBE_DELAY * 2 ** reconnectAttempts;
+            reconnectAttempts += 1;
+            retryTimer = setTimeout(() => {
+              retryTimer = undefined;
+              connect();
+            }, delay);
           }
-          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            removeChannel();
-            if (!retryTimer && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-              const delay = RESUBSCRIBE_DELAY * 2 ** reconnectAttempts;
-              reconnectAttempts += 1;
-              retryTimer = setTimeout(() => {
-                retryTimer = undefined;
-                connect();
-              }, delay);
-            }
-          }
-        });
+        }
+      });
     };
 
     connect();

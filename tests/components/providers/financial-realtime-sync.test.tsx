@@ -3,7 +3,9 @@ import { FinancialRealtimeSync } from '@/components/providers/financial-realtime
 import { getClientDBProvider } from '@/repositories/factory';
 import { supabase } from '@/repositories/supabase/client';
 
-jest.mock('@/hooks/use-auth', () => ({ useAuth: () => ({ user: { id: 'user-a' } }) }));
+jest.mock('@/hooks/use-auth', () => ({
+  useAuth: () => ({ user: { id: 'user-a' } }),
+}));
 jest.mock('@/providers', () => ({ useRepository: () => ({}) }));
 jest.mock('@/repositories/factory', () => ({ getClientDBProvider: jest.fn() }));
 jest.mock('@/lib/finance/financial-data-sync', () => ({
@@ -33,7 +35,9 @@ describe('FinancialRealtimeSync', () => {
   it('creates one user channel and removes it on cleanup', () => {
     render(<FinancialRealtimeSync />).unmount();
 
-    expect(supabase.channel).toHaveBeenCalledWith('financial-data:user-a');
+    expect(supabase.channel).toHaveBeenCalledWith(
+      expect.stringMatching(/^financial-data:user-a:/)
+    );
     expect(channel.on).toHaveBeenCalledTimes(3);
     expect(supabase.removeChannel).toHaveBeenCalledWith(channel);
   });
