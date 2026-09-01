@@ -251,3 +251,35 @@ export async function getAdminStats(
     throw error;
   }
 }
+
+export async function getAdminStatsDebug(window: StatsWindow = '30d') {
+  const users = await read('users', 'id,email,created_at');
+  const testIds = new Set(
+    users
+      .filter((row) =>
+        isTestUserEmail(typeof row.email === 'string' ? row.email : null)
+      )
+      .map((row) => String(row.id))
+  );
+  const adminIds = new Set(getAdminUserIds());
+  const excluded = new Set([...testIds, ...adminIds]);
+  const filtered = users.filter((row) => !excluded.has(String(row.id)));
+  return {
+    totalRaw: users.length,
+    totalTest: testIds.size,
+    totalAdmin: adminIds.size,
+    totalFiltered: filtered.length,
+    adminIds: [...adminIds],
+    testSample: users
+      .filter((r) => testIds.has(String(r.id)))
+      .slice(0, 5)
+      .map((r) => ({ id: String(r.id), email: r.email as string | null })),
+    rawSample: users.slice(0, 10).map((r) => ({
+      id: String(r.id),
+      email: r.email as string | null,
+      created_at: r.created_at as string | null,
+      isTest: testIds.has(String(r.id)),
+      isAdmin: adminIds.has(String(r.id)),
+    })),
+  };
+}
