@@ -1,355 +1,115 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRepository } from '@/providers';
 import { useAuth } from './use-auth';
-import type { Transaction, Account, Category } from '@/types';
+import type { Account, Category, Transaction } from '@/types';
 import {
-  createEmptyOptimizedDataCache,
-  loadOptimizedDataCache,
-  persistOptimizedDataCache,
   MAX_CACHED_TRANSACTIONS,
-  type OptimizedDataCache,
+  createEmptyOptimizedDataCache,
+  getOptimizedDataSnapshot,
+  invalidateOptimizedDataCache,
+  subscribeOptimizedData,
+  updateOptimizedDataCache,
+  type OptimizedDataDomain,
 } from '@/lib/cache/optimized-data-cache';
+import { runFinancialMutation, type FinancialDataDomain } from '@/lib/finance/financial-data-sync';
 
-// Cache interface
-interface DataCache extends OptimizedDataCache {
-  transactions: Transaction[];
-  accounts: Account[];
-  categories: Category[];
-}
-
-// Cache durations in milliseconds - diferenciadas por tipo de dato
-const CACHE_DURATION = {
-  transactions: 2 * 60 * 1000, // 2 minutos (cambian frecuentemente)
-  accounts: 10 * 60 * 1000, // 10 minutos (cambian poco)
-  categories: 30 * 60 * 1000, // 30 minutos (casi estáticas)
-};
-
-// Global cache to persist across component unmounts
-let globalCache: DataCache = createEmptyOptimizedDataCache();
-let activeCacheUserId: string | null = null;
-
-const persistActiveCache = () => {
-  if (!activeCacheUserId) return;
-  persistOptimizedDataCache(activeCacheUserId, globalCache);
+const SERVER_SNAPSHOT = createEmptyOptimizedDataCache();
+const CACHE_DURATION: Record<OptimizedDataDomain, number> = {
+  transactions: 2 * 60 * 1000,
+  accounts: 10 * 60 * 1000,
+  categories: 30 * 60 * 1000,
 };
 
 export function useOptimizedData() {
   const repository = useRepository();
   const { user } = useAuth();
+  const userId = user?.id ?? null;
+  const snapshot = useSyncExternalStore(
+    (listener) => subscribeOptimizedData(userId, listener),
+    () => getOptimizedDataSnapshot(userId),
+    () => SERVER_SNAPSHOT,
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isInitialLoad, setIsInitialLoad] = useState(() => {
-    return (
-      globalCache.transactions.length === 0 || globalCache.accounts.length === 0
-    );
-  });
 
-  useEffect(() => {
-    const userId = user?.id ?? null;
+  const isInitialLoad = Boolean(userId) && (
+    snapshot.transactions.length === 0 || snapshot.accounts.length === 0
+  );
+  const isCacheValid = useCallback(
+    (domain: OptimizedDataDomain) => Date.now() - snapshot.lastUpdated[domain] < CACHE_DURATION[domain],
+    [snapshot],
+  );
 
-    if (!userId) {
-      activeCacheUserId = null;
-      globalCache = createEmptyOptimizedDataCache();
-      setIsInitialLoad(true);
-      return;
+  const loadDomain = useCallback(async (domain: OptimizedDataDomain, forceRefresh = false) => {
+    if (!userId) return [];
+    if (!forceRefresh && isCacheValid(domain) && snapshot[domain].length > 0) return snapshot[domain];
+    try {
+      setLoading(true);
+      let data: any[];
+      if (domain === 'transactions') data = await repository.transactions.findAll(MAX_CACHED_TRANSACTIONS);
+      else if (domain === 'accounts') data = await repository.accounts.findByUserId(userId);
+      else data = await repository.categories.findAll();
+      updateOptimizedDataCache(userId, { [domain]: data }, [domain]);
+      return data;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : `Error loading ${domain}`);
+      return [];
+    } finally {
+      setLoading(false);
     }
+  }, [isCacheValid, repository, snapshot, userId]);
 
-    if (activeCacheUserId !== userId) {
-      activeCacheUserId = userId;
-      globalCache =
-        (loadOptimizedDataCache(userId) as DataCache | null) ||
-        createEmptyOptimizedDataCache();
-      setIsInitialLoad(
-        globalCache.transactions.length === 0 ||
-          globalCache.accounts.length === 0
-      );
-      return;
-    }
+  const loadTransactions = useCallback((force = false) => loadDomain('transactions', force), [loadDomain]);
+  const loadAccounts = useCallback((force = false) => loadDomain('accounts', force), [loadDomain]);
+  const loadCategories = useCallback((force = false) => loadDomain('categories', force), [loadDomain]);
+  const loadAllData = useCallback(async (force = false) => {
+    const [transactions, accounts, categories] = await Promise.all([
+      loadTransactions(force), loadAccounts(force), loadCategories(force),
+    ]);
+    return { transactions, accounts, categories };
+  }, [loadAccounts, loadCategories, loadTransactions]);
+  const invalidateCache = useCallback((domain?: OptimizedDataDomain) => {
+    if (userId) invalidateOptimizedDataCache(userId, domain);
+  }, [userId]);
+  const mutation = useCallback((domains: FinancialDataDomain[], fn: () => Promise<any>) => (
+    runFinancialMutation({ userId: userId ?? undefined, repository, domains, mutation: fn })
+  ), [repository, userId]);
 
-    if (!isInitialLoad) return;
-
-    const hasCachedData =
-      globalCache.transactions.length > 0 ||
-      globalCache.accounts.length > 0 ||
-      globalCache.categories.length > 0;
-
-    if (hasCachedData) {
-      setIsInitialLoad(false);
-    }
-  }, [user?.id, isInitialLoad]);
-
-  // Check if cache is valid with differentiated durations
-  const isCacheValid = useCallback((type: keyof DataCache['lastUpdated']) => {
-    const lastUpdated = globalCache.lastUpdated[type];
-    const duration = CACHE_DURATION[type];
-    return Date.now() - lastUpdated < duration;
-  }, []);
-
-  // Load transactions with caching
-  const loadTransactions = useCallback(
-    async (forceRefresh = false) => {
-      if (!user) return [];
-
-      // Check for stale cache - if all transactions are INCOME, likely stale
-      if (
-        !forceRefresh &&
-        isCacheValid('transactions') &&
-        globalCache.transactions.length > 0
-      ) {
-        const allIncome = globalCache.transactions.every(
-          (t) => t.type === 'INCOME'
-        );
-        if (allIncome && globalCache.transactions.length > 2) {
-          forceRefresh = true;
-        } else {
-          return globalCache.transactions;
-        }
-      }
-
-      try {
-        setLoading(true);
-        // * Optimization: Load only recent transactions initially to save bandwidth
-        // Pagination/Infinite scroll handles older history when needed
-        const transactions = await repository.transactions.findAll(
-          MAX_CACHED_TRANSACTIONS
-        );
-        globalCache.transactions = transactions;
-        globalCache.lastUpdated.transactions = Date.now();
-        persistActiveCache();
-        return transactions;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Error loading transactions'
-        );
-        return [];
-      } finally {
-        setLoading(false);
-      }
-    },
-    [user, repository, isCacheValid]
-  );
-
-  // Load accounts with caching
-  const loadAccounts = useCallback(
-    async (forceRefresh = false) => {
-      if (!user) return [];
-
-      if (
-        !forceRefresh &&
-        isCacheValid('accounts') &&
-        globalCache.accounts.length > 0
-      ) {
-        return globalCache.accounts;
-      }
-
-      try {
-        setLoading(true);
-        const accounts = await repository.accounts.findByUserId(user.id);
-        globalCache.accounts = accounts;
-        globalCache.lastUpdated.accounts = Date.now();
-        persistActiveCache();
-        return accounts;
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading accounts');
-        return [];
-      } finally {
-        setLoading(false);
-      }
-    },
-    [user, repository, isCacheValid]
-  );
-
-  // Load categories with caching
-  const loadCategories = useCallback(
-    async (forceRefresh = false) => {
-      if (
-        !forceRefresh &&
-        isCacheValid('categories') &&
-        globalCache.categories.length > 0
-      ) {
-        return globalCache.categories;
-      }
-
-      try {
-        setLoading(true);
-        const categories = await repository.categories.findAll();
-        globalCache.categories = categories;
-        globalCache.lastUpdated.categories = Date.now();
-        persistActiveCache();
-        return categories;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Error loading categories'
-        );
-        return [];
-      } finally {
-        setLoading(false);
-      }
-    },
-    [repository, isCacheValid]
-  );
-
-  // Load all data efficiently
-  const loadAllData = useCallback(
-    async (forceRefresh = false) => {
-      if (!user) return { transactions: [], accounts: [], categories: [] };
-
-      try {
-        setError(null);
-
-        // Load data in parallel, using cache when possible
-        const [transactions, accounts, categories] = await Promise.all([
-          loadTransactions(forceRefresh),
-          loadAccounts(forceRefresh),
-          loadCategories(forceRefresh),
-        ]);
-
-        // Mark initial load as complete if we have any data
-        if (
-          transactions.length > 0 ||
-          accounts.length > 0 ||
-          categories.length > 0
-        ) {
-          setIsInitialLoad(false);
-        }
-
-        return { transactions, accounts, categories };
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading data');
-        return { transactions: [], accounts: [], categories: [] };
-      }
-    },
-    [user, loadTransactions, loadAccounts, loadCategories]
-  );
-
-  // Invalidate cache for specific data type
-  const invalidateCache = useCallback(
-    (type?: keyof DataCache['lastUpdated']) => {
-      if (type) {
-        globalCache.lastUpdated[type] = 0;
-        globalCache[type] = [];
-      } else {
-        // Invalidate all cache
-        globalCache = createEmptyOptimizedDataCache();
-        // Reset initial load state when cache is cleared
-        setIsInitialLoad(true);
-      }
-
-      persistActiveCache();
-    },
-    []
-  );
-
-  // Memoized helper functions
-  const getAccountName = useCallback((accountId?: string) => {
-    return (
-      globalCache.accounts.find((a) => a.id === accountId)?.name || 'Cuenta'
-    );
-  }, []);
-
-  const getCategoryName = useCallback((categoryId?: string) => {
-    return (
-      globalCache.categories.find((c) => c.id === categoryId)?.name ||
-      'Categoría'
-    );
-  }, []);
-
-  const getAccountById = useCallback((accountId?: string) => {
-    return globalCache.accounts.find((a) => a.id === accountId);
-  }, []);
-
-  const getCategoryById = useCallback((categoryId?: string) => {
-    return globalCache.categories.find((c) => c.id === categoryId);
-  }, []);
-
-  // Memoized computed values
-  const cachedData = {
-    transactions: globalCache.transactions,
-    accounts: globalCache.accounts,
-    categories: globalCache.categories,
-  };
-
-  // Determine if we should show loading state
-  // In no-auth/bypass mode there is no user to load for; do not block
-  // rendering on a spinner — let consumers render their honest empty state
-  // (e.g. "Sin datos") instead of an indefinite "Cargando…".
-  const needsData =
-    globalCache.transactions.length === 0 || globalCache.accounts.length === 0;
-  const shouldShowLoading = Boolean(user) && isInitialLoad && needsData;
-
-  // Mutation functions with auto-invalidation
-  const createTransaction = useCallback(
-    async (data: any) => {
-      const result = await repository.transactions.create(data);
-      invalidateCache('transactions'); // Auto-invalidar cache de transacciones
-      return result;
-    },
-    [repository, invalidateCache]
-  );
-
-  const updateTransaction = useCallback(
-    async (id: string, data: any) => {
-      const result = await repository.transactions.update(id, data);
-      invalidateCache('transactions'); // Auto-invalidar cache de transacciones
-      return result;
-    },
-    [repository, invalidateCache]
-  );
-
-  const deleteTransaction = useCallback(
-    async (id: string) => {
-      await repository.transactions.delete(id);
-      invalidateCache('transactions'); // Auto-invalidar cache de transacciones
-    },
-    [repository, invalidateCache]
-  );
-
-  const createAccount = useCallback(
-    async (data: any) => {
-      const result = await repository.accounts.create(data);
-      invalidateCache('accounts'); // Auto-invalidar cache de cuentas
-      return result;
-    },
-    [repository, invalidateCache]
-  );
-
-  const updateAccount = useCallback(
-    async (id: string, data: any) => {
-      const result = await repository.accounts.update(id, data);
-      invalidateCache('accounts'); // Auto-invalidar cache de cuentas
-      return result;
-    },
-    [repository, invalidateCache]
-  );
+  const createTransaction = useCallback((data: any) => mutation(
+    ['transactions', 'accounts', 'budgets'], () => repository.transactions.create(data),
+  ), [mutation, repository]);
+  const updateTransaction = useCallback((id: string, data: any) => mutation(
+    ['transactions', 'accounts', 'budgets'], () => repository.transactions.update(id, data),
+  ), [mutation, repository]);
+  const deleteTransaction = useCallback((id: string) => mutation(
+    ['transactions', 'accounts', 'budgets'], async () => { await repository.transactions.delete(id); },
+  ), [mutation, repository]);
+  const createAccount = useCallback((data: any) => mutation(
+    ['accounts'], () => repository.accounts.create(data),
+  ), [mutation, repository]);
+  const updateAccount = useCallback((id: string, data: any) => mutation(
+    ['accounts'], () => repository.accounts.update(id, data),
+  ), [mutation, repository]);
 
   return {
-    // Data
-    ...cachedData,
-
-    // Loading states
-    loading: shouldShowLoading,
+    transactions: snapshot.transactions as Transaction[],
+    accounts: snapshot.accounts as Account[],
+    categories: snapshot.categories as Category[],
+    loading: loading || isInitialLoad,
     isInitialLoad,
     error,
-
-    // Load functions
     loadTransactions,
     loadAccounts,
     loadCategories,
     loadAllData,
-
-    // Cache management
     invalidateCache,
     isCacheValid,
-
-    // Helper functions
-    getAccountName,
-    getCategoryName,
-    getAccountById,
-    getCategoryById,
-
-    // Mutation functions with auto-invalidation
+    getAccountName: (id?: string) => snapshot.accounts.find((account) => account.id === id)?.name || 'Cuenta',
+    getCategoryName: (id?: string) => snapshot.categories.find((category) => category.id === id)?.name || 'Categoría',
+    getAccountById: (id?: string) => snapshot.accounts.find((account) => account.id === id),
+    getCategoryById: (id?: string) => snapshot.categories.find((category) => category.id === id),
     createTransaction,
     updateTransaction,
     deleteTransaction,
@@ -358,43 +118,14 @@ export function useOptimizedData() {
   };
 }
 
-// Hook for transaction-specific optimizations
 export function useOptimizedTransactions() {
-  const { transactions, loadTransactions, invalidateCache, ...rest } =
-    useOptimizedData();
-
-  // Memoized filtered transactions
-  const expenseTransactions = useMemo(
-    () => transactions.filter((t) => t.type === 'EXPENSE'),
-    [transactions]
-  );
-
-  const incomeTransactions = useMemo(
-    () => transactions.filter((t) => t.type === 'INCOME'),
-    [transactions]
-  );
-
-  const recentTransactions = useMemo(
-    () =>
-      transactions
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-        .slice(0, 10),
-    [transactions]
-  );
-
-  // Refresh transactions and invalidate cache
+  const data = useOptimizedData();
+  const expenseTransactions = useMemo(() => data.transactions.filter((transaction) => transaction.type === 'EXPENSE'), [data.transactions]);
+  const incomeTransactions = useMemo(() => data.transactions.filter((transaction) => transaction.type === 'INCOME'), [data.transactions]);
+  const recentTransactions = useMemo(() => [...data.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 10), [data.transactions]);
   const refreshTransactions = useCallback(async () => {
-    invalidateCache('transactions');
-    return await loadTransactions(true);
-  }, [loadTransactions, invalidateCache]);
-
-  return {
-    transactions,
-    expenseTransactions,
-    incomeTransactions,
-    recentTransactions,
-    loadTransactions,
-    refreshTransactions,
-    ...rest,
-  };
+    data.invalidateCache('transactions');
+    return data.loadTransactions(true);
+  }, [data]);
+  return { ...data, expenseTransactions, incomeTransactions, recentTransactions, refreshTransactions };
 }

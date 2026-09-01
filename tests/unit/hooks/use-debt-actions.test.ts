@@ -7,6 +7,7 @@ const updateMock = jest.fn().mockResolvedValue({});
 const deleteMock = jest.fn().mockResolvedValue({});
 const settleDebtMock = jest.fn().mockResolvedValue({});
 const onSuccessMock = jest.fn();
+const runFinancialMutationMock = jest.fn(({ mutation }: any) => mutation());
 
 const mockRepository = {
   transactions: {
@@ -34,6 +35,10 @@ jest.mock('@/lib/utils/logger', () => ({
   logger: { error: jest.fn() },
 }));
 
+jest.mock('@/lib/finance/financial-data-sync', () => ({
+  runFinancialMutation: (...args: any[]) => runFinancialMutationMock(...args),
+}));
+
 const sampleDebt: Transaction = {
   id: 'debt-1',
   type: TransactionType.EXPENSE,
@@ -55,6 +60,7 @@ describe('useDebtActions', () => {
     deleteMock.mockReset().mockResolvedValue({});
     settleDebtMock.mockReset().mockResolvedValue({});
     onSuccessMock.mockReset();
+    runFinancialMutationMock.mockClear();
     toastSuccessMock.mockReset();
     toastErrorMock.mockReset();
   });
@@ -64,7 +70,8 @@ describe('useDebtActions', () => {
       const { result } = renderHook(() =>
         useDebtActions({
           repository: mockRepository as any,
-          onSuccess: onSuccessMock,
+          userId: 'user-1',
+              onSuccess: onSuccessMock,
         })
       );
 

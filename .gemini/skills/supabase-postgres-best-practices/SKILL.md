@@ -1,11 +1,10 @@
 ---
 name: supabase-postgres-best-practices
-description: >
-  Supabase Postgres best practices for performance optimization, query tuning, and schema design.
-  Contains rules across 8 categories, prioritized by impact to guide automated optimization.
-  Trigger: Writing SQL queries, designing schemas, or optimizing Postgres performance in Supabase.
+description: "Supabase Postgres performance, RLS, indexes, pooling, diagnostics, schema, and freshness. Trigger: SQL queries, query plans, indexes, RLS policies, Postgres tuning, Supavisor, database performance."
+license: Apache-2.0
 metadata:
-  version: '1.0'
+  author: gentleman-programmer
+  version: "1.0"
   scope: [root]
   auto_invoke:
     - 'Writing SQL queries or designing schemas'
@@ -14,80 +13,46 @@ metadata:
     - 'Configuring connection pooling or scaling'
     - 'Optimizing for Postgres-specific features'
     - 'Working with Row-Level Security (RLS)'
-allowed-tools: Read, Edit, Write, Grep, Task
 ---
 
-## When to Use
+## Activation Contract
 
-Use this skill when:
+Activate for FinTec Supabase/Postgres query, schema, RLS, connection, locking, or performance work. Read the narrow reference needed; use evidence, not assumptions.
 
-- Writing SQL queries or designing schemas
-- Implementing indexes or query optimization
-- Reviewing database performance issues
-- Configuring connection pooling or scaling
-- Optimizing for Postgres-specific features
-- Working with Row-Level Security (RLS)
+## Hard Rules
 
----
+- Measure with `EXPLAIN (ANALYZE, BUFFERS)`, `pg_stat_statements`, and current table statistics before and after changes.
+- Index RLS, filter, join, and order columns with correct leading keys. The transaction shape is `account_id IN (...) ORDER BY date, created_at`; design and validate indexes against that shape.
+- Wrap row-independent auth helpers as `(select auth.uid())`; verify policy behavior with representative queries.
+- Use Supavisor transaction pooling for temporary/serverless workloads; use session pooling or direct connections where session state or appropriate long-lived access requires it.
+- Keep transactions short and avoid idle-in-transaction sessions.
+- Remove redundant or overlapping indexes only with usage/plan evidence and a safe rollback path.
+- Inspect client/framework caches and invalidation before attributing stale results to Postgres; Realtime signals require authoritative refetch and reconnect/resync.
 
-## Critical Patterns
+## Decision Gates
 
-- Start with query performance and indexing before schema or feature tweaks.
-- Use EXPLAIN (ANALYZE, BUFFERS) to validate changes.
-- Keep transactions short and avoid idle-in-transaction connections.
-- Align indexes with WHERE, JOIN, ORDER BY, and LIMIT patterns.
-- Enforce RLS by default and validate policies with real queries.
-- Prefer Postgres-native features (partial indexes, GIN/BRIN, generated columns).
+| Situation | Action |
+| --- | --- |
+| Slow query | Capture plan, stats, cardinality, and workload first |
+| RLS query | Optimize policy expression and supporting leading-key indexes |
+| Serverless/temporary connection | Supavisor transaction pooling |
+| Session state or long-lived connection | Session pooling or direct mode |
+| Proposed index removal | Require evidence of redundancy and low usage |
 
----
+## Execution Steps
 
-## Rule Categories by Priority
+1. Record exact query, RLS policy, parameters, workload, and freshness layer.
+2. Inspect plan, `pg_stat_statements`, and statistics.
+3. Apply the smallest evidence-backed SQL/design change.
+4. Re-measure, test policy isolation, and check cache invalidation and transaction duration.
 
-| Priority | Category                 | Impact      | Prefix    |
-| -------- | ------------------------ | ----------- | --------- |
-| 1        | Query Performance        | CRITICAL    | query-    |
-| 2        | Connection Management    | CRITICAL    | conn-     |
-| 3        | Security & RLS           | CRITICAL    | security- |
-| 4        | Schema Design            | HIGH        | schema-   |
-| 5        | Concurrency & Locking    | MEDIUM-HIGH | lock-     |
-| 6        | Data Access Patterns     | MEDIUM      | data-     |
-| 7        | Monitoring & Diagnostics | LOW-MEDIUM  | monitor-  |
-| 8        | Advanced Features        | LOW         | advanced- |
+## Output Contract
 
----
+Report evidence, query/index or policy change, pool mode, validation results, freshness implications, and residual risk. Do not claim improvement without measurements.
 
-## How to Use
+## References
 
-Read individual rule files for detailed explanations and SQL examples:
-
-- references/query-missing-indexes.md
-- references/schema-partial-indexes.md
-- references/\_sections.md
-- references/external-links.md
-
-Each rule file contains:
-
-- Brief explanation of why it matters
-- Incorrect SQL example with explanation
-- Correct SQL example with explanation
-- Optional EXPLAIN output or metrics
-- Additional context and references
-- Supabase-specific notes (when applicable)
-
----
-
-## Commands
-
-```bash
-# Inspect a query plan
-psql "$DATABASE_URL" -c "EXPLAIN (ANALYZE, BUFFERS) SELECT ..."
-
-# Check active connections
-psql "$DATABASE_URL" -c "SELECT * FROM pg_stat_activity;"
-```
-
----
-
-## Resources
-
-- **References**: `references/`
+- `references/query-missing-indexes.md`
+- `references/schema-partial-indexes.md`
+- `references/transaction-freshness.md`
+- `references/external-links.md`

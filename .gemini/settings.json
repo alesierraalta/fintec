@@ -2,15 +2,8 @@
   "mcpServers": {
     "engram": {
       "command": "C:\\Users\\ismar\\bin\\engram.exe",
-      "args": ["mcp"]
-    },
-    "serena": {
-      "command": "uvx",
       "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server"
+        "mcp"
       ]
     },
     "supabase": {

@@ -1,39 +1,16 @@
-# query-missing-indexes
+# Query indexes
 
-## Why It Matters
-
-Missing indexes cause sequential scans, higher latency, and avoidable load.
-
-## Incorrect
+Match indexes to measured `WHERE`, RLS, `JOIN`, and `ORDER BY` predicates. For the current transaction query, validate an account-leading design such as:
 
 ```sql
-SELECT *
-FROM transactions
-WHERE user_id = $1
-ORDER BY created_at DESC;
+-- Validate with EXPLAIN before retaining or changing it.
+CREATE INDEX transactions_account_date_created_idx
+  ON transactions (account_id, date DESC, created_at DESC);
 ```
 
-Explanation: No matching index for the filter and sort.
+The relevant shape is `account_id IN (...) ORDER BY date, created_at`; confirm direction, selectivity, and actual plan with `EXPLAIN (ANALYZE, BUFFERS)`. Check `pg_stat_statements` and table statistics. Do not add overlapping indexes, and remove redundancy only with usage and plan evidence.
 
-## Correct
+## References
 
-```sql
-CREATE INDEX CONCURRENTLY transactions_user_id_created_at_idx
-  ON transactions (user_id, created_at DESC);
-```
-
-Explanation: Aligns index keys with the filter and sort order.
-
-## EXPLAIN (Optional)
-
-```
-EXPLAIN (ANALYZE, BUFFERS) SELECT ...
-```
-
-## Supabase Notes
-
-- Ensure auth.uid() filters are supported by matching indexes.
-
-## Additional Context
-
-- Check for redundant or overlapping indexes before adding new ones.
+- https://supabase.com/docs/guides/database/query-optimization
+- https://www.postgresql.org/docs/current/indexes-multicolumn.html

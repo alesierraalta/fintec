@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { X, DollarSign, AlertTriangle, Bell } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
+import { useAuth } from '@/hooks/use-auth';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 // Simple success/error state management
 
 interface BalanceAlertSettingsProps {
@@ -22,6 +24,7 @@ export function BalanceAlertSettings({
   account,
 }: BalanceAlertSettingsProps) {
   const repository = useRepository();
+      const { user } = useAuth();
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [minimumBalance, setMinimumBalance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -48,10 +51,16 @@ export function BalanceAlertSettings({
         ? Math.round(parseFloat(minimumBalance) * 100)
         : 0;
 
-      await repository.accounts.update(account.id, {
-        id: account.id,
-        alertEnabled,
-        minimumBalance: minimumBalanceMinor,
+      await runFinancialMutation({
+        userId: user?.id,
+        repository,
+        domains: ['accounts'],
+        mutation: () =>
+          repository.accounts.update(account.id, {
+            id: account.id,
+            alertEnabled,
+            minimumBalance: minimumBalanceMinor,
+          }),
       });
 
       const message = alertEnabled

@@ -6,6 +6,7 @@ import { AccountType, Account } from '@/types';
 import { useRepository } from '@/providers/repository-provider';
 import { useAuth } from '@/hooks/use-auth';
 import { Money, toMinorUnits, fromMinorUnits, CURRENCIES } from '@/lib/money';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import {
   Wallet,
   CreditCard,
@@ -151,10 +152,10 @@ export function AccountForm({ isOpen, onClose, onSuccess, account }: AccountForm
       if (account) {
         // Update existing account
         const updateData = { ...accountData, id: account.id };
-        const updatedAccount = await repository.accounts.update(account.id, updateData);
+        const updatedAccount = await runFinancialMutation({ userId: user.id, repository, domains: ['accounts'], mutation: () => repository.accounts.update(account.id, updateData) });
       } else {
         // Create new account
-        const createdAccount = await repository.accounts.create(accountData);
+        const createdAccount = await runFinancialMutation({ userId: user.id, repository, domains: ['accounts'], mutation: () => repository.accounts.create(accountData) });
 
         // Verificar que la cuenta se guardó correctamente
         if (!createdAccount || !createdAccount.id) {

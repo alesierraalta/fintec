@@ -6,6 +6,7 @@ import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
 import { useDebtActions } from '@/hooks/use-debt-actions';
+    import { useFinancialDataSync } from '@/hooks/use-financial-data-sync';
 import { DebtDirection, DebtStatus, DebtSummary, Transaction } from '@/types';
 import {
   AlertDialog,
@@ -118,10 +119,17 @@ export default function DebtsPageClient() {
     loadDebts();
   }, [loadDebts]);
 
+  useFinancialDataSync(
+    user?.id,
+    () => loadDebts(),
+    ['transactions', 'accounts'],
+  );
+
   // Debt actions hook (must be after loadDebts)
   const debtActions = useDebtActions({
     repository,
-    onSuccess: loadDebts,
+    userId: user?.id,
+        onSuccess: () => undefined,
   });
 
   // Action handlers
@@ -161,13 +169,11 @@ export default function DebtsPageClient() {
 
   const handleCreateSuccess = useCallback(() => {
     closeCreateModal();
-    loadDebts();
   }, [closeCreateModal, loadDebts]);
 
   const handleEditSuccess = useCallback(() => {
     closeEditModal();
     setSelectedDebt(null);
-    loadDebts();
   }, [closeEditModal, loadDebts]);
 
   const netLabel = useMemo(() => {
@@ -452,7 +458,7 @@ export default function DebtsPageClient() {
       <DebtSettlementForm
         open={isSettleDialogOpen}
         onClose={closeSettleDialog}
-        onSuccess={loadDebts}
+        onSuccess={() => undefined}
         debt={selectedDebt}
         onSettle={debtActions.settleDebt}
         settlingId={debtActions.settlingId}

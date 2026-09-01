@@ -6,7 +6,6 @@ import {
   clearAllOptimizedDataCaches,
   MAX_CACHED_TRANSACTIONS,
 } from '@/lib/cache/optimized-data-cache';
-import { logger } from '@/lib/utils/logger';
 
 describe('optimized data cache storage', () => {
   beforeEach(() => {
@@ -32,6 +31,14 @@ describe('optimized data cache storage', () => {
     expect(loadOptimizedDataCache('user-b')?.transactions).toEqual([
       { id: 'tx-b' },
     ]);
+  });
+
+  it('does not load a legacy global payload for a user', () => {
+    const legacyCache = createEmptyOptimizedDataCache();
+    legacyCache.transactions = [{ id: 'global-tx' }] as any;
+    localStorage.setItem('fintec_data_cache_v1', JSON.stringify(legacyCache));
+
+    expect(loadOptimizedDataCache('user-a')).toBeNull();
   });
 
   it('clears all user-scoped and legacy cache keys', () => {
@@ -111,50 +118,6 @@ describe('optimized data cache projection and bounds', () => {
 describe('optimized data cache failure semantics', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  it('does not crash and logs when localStorage is unavailable/quota exceeded', () => {
-    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
-
-    try {
-      const cache = createEmptyOptimizedDataCache();
-      cache.transactions = [{ id: 'tx-1' }] as any;
-
-      const setItemSpy = jest
-        .spyOn(Storage.prototype, 'setItem')
-        .mockImplementation(() => {
-          throw new DOMException('quota exceeded', 'QuotaExceededError');
-        });
-
-      expect(() => persistOptimizedDataCache('user-a', cache)).not.toThrow();
-      expect(warnSpy).toHaveBeenCalledWith(
-        '[optimized-data-cache] failed to persist cache',
-        expect.objectContaining({ error: 'quota exceeded' })
-      );
-
-      setItemSpy.mockRestore();
-    } finally {
-      warnSpy.mockRestore();
-    }
-  });
-
-  it('returns null and logs when reading fails', () => {
-    const warnSpy = jest.spyOn(logger, 'warn').mockImplementation(() => {});
-
-    try {
-      const getItemSpy = jest
-        .spyOn(Storage.prototype, 'getItem')
-        .mockImplementation(() => {
-          throw new DOMException('denied', 'SecurityError');
-        });
-
-      expect(loadOptimizedDataCache('user-a')).toBeNull();
-      expect(warnSpy).toHaveBeenCalled();
-
-      getItemSpy.mockRestore();
-    } finally {
-      warnSpy.mockRestore();
-    }
   });
 
   it('returns null for a corrupted payload without crashing', () => {

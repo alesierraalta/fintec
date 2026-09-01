@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { TRANSFER_FLOW_PATH } from '@/hooks/use-transaction-form';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -401,10 +402,10 @@ export function TransactionForm({
       if (transaction) {
         // Update existing transaction
         const updateData = { ...transactionData, id: transaction.id };
-        await repository.transactions.update(transaction.id, updateData);
+        await runFinancialMutation({ userId: user?.id, repository, domains: ['transactions', 'accounts', 'budgets'], mutation: () => repository.transactions.update(transaction.id, updateData) });
       } else {
         // Create new transaction
-        await repository.transactions.create(transactionData);
+        await runFinancialMutation({ userId: user?.id, repository, domains: ['transactions', 'accounts', 'budgets'], mutation: () => repository.transactions.create(transactionData) });
       }
 
       toast.success(

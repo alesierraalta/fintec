@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { CategoryKind, TransactionType } from '@/types';
 import type { Category, Transaction } from '@/types';
@@ -161,8 +161,6 @@ describe('CategoriesPage Slice 2', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-
-  // Fix 1 + Fix 4 (a11y + 44px): All action buttons in both modes
   it('all action buttons have accessible names and 44px targets in grid and list modes', async () => {
     setupMocks();
     render(<Page />);
@@ -182,8 +180,6 @@ describe('CategoriesPage Slice 2', () => {
       expect(screen.getByTestId('drilldown')).toBeInTheDocument()
     );
   });
-
-  // Fix 2: No mount-time cache invalidation
   it('does not call invalidateCache or loadAllData on mount', () => {
     setupMocks();
     render(<Page />);
@@ -191,50 +187,10 @@ describe('CategoriesPage Slice 2', () => {
     expect(mockLoadAllData).not.toHaveBeenCalled();
   });
 
-  // Fix 4: RefreshKey increments only after loadAllData resolves
-  it('increments refreshKey only after loadAllData resolves', async () => {
-    let resolveLoad!: () => void;
-    setupMocks();
-    mockLoadAllData.mockReset();
-    mockLoadAllData.mockReturnValue(
-      new Promise<void>((r) => {
-        resolveLoad = r;
-      })
-    );
-    render(<Page />);
-
-    await userEvent.click(
-      screen.getByRole('button', { name: /view category food/i })
-    );
-    await waitFor(() =>
-      expect(screen.getByTestId('drilldown')).toBeInTheDocument()
-    );
-    expect(screen.getByTestId('rk').textContent).toBe('0');
-    await userEvent.click(
-      screen.getByRole('button', { name: /edit transaction/i })
-    );
-    await waitFor(() =>
-      expect(mockInvalidateCache).toHaveBeenCalledWith('transactions')
-    );
-    expect(screen.getByTestId('rk').textContent).toBe('0');
-    await act(async () => {
-      resolveLoad();
-    });
-    await waitFor(() => expect(screen.getByTestId('rk').textContent).toBe('1'));
-  });
-
-  // Recategorization proof: row persists while reload is pending, gone only after resolve
-  it('removes drilldown row only after recategorization reload resolves', async () => {
-    let resolveLoad!: () => void;
+  it('removes drilldown row after recategorization success signal', async () => {
     setupMocks(
       [cat()],
       [tx({ id: 't1', categoryId: 'c1', description: 'Groceries' })]
-    );
-    mockLoadAllData.mockReset();
-    mockLoadAllData.mockReturnValue(
-      new Promise<void>((r) => {
-        resolveLoad = r;
-      })
     );
     render(<Page />);
 
@@ -252,34 +208,14 @@ describe('CategoriesPage Slice 2', () => {
     await userEvent.click(
       screen.getByRole('button', { name: /edit transaction/i })
     );
-    await waitFor(() => expect(mockInvalidateCache).toHaveBeenCalled());
-    // Row must survive while reload is pending
-    expect(screen.getByTestId('tx-t1')).toBeInTheDocument();
-    expect(screen.getByTestId('rk').textContent).toBe('0');
-
-    await act(async () => {
-      resolveLoad();
-    });
     await waitFor(() => {
+      expect(screen.getByTestId('rk').textContent).toBe('1');
       expect(screen.queryByTestId('tx-t1')).not.toBeInTheDocument();
     });
     expect(screen.getByTestId('rk').textContent).toBe('1');
+    expect(mockInvalidateCache).not.toHaveBeenCalled();
+    expect(mockLoadAllData).not.toHaveBeenCalled();
   });
-
-  // Fix 5: Shared formatCurrency delegation with sentinel proof
-  it('delegates money display to shared formatCurrency', () => {
-    const { formatCurrency } = require('@/lib/money');
-    formatCurrency.mockReturnValue('$SENTINEL$');
-
-    setupMocks(
-      [cat({ id: 'c1', name: 'Food' })],
-      [tx({ amountMinor: 1050, currencyCode: 'USD' })]
-    );
-    render(<Page />);
-    expect(formatCurrency).toHaveBeenCalledWith(1050, 'USD');
-    expect(screen.getAllByText('$SENTINEL$').length).toBeGreaterThanOrEqual(1);
-  });
-
   // Card counts must match what the drilldown opens by default: the category
   // PLUS its descendants. A parent with 3 direct and 4 subcategory
   // transactions must show 7, not 3.

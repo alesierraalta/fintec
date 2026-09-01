@@ -33,6 +33,7 @@ import { logger } from '@/lib/utils/logger';
 import { CURRENCIES, toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
 import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
 
@@ -385,7 +386,12 @@ export function DesktopAddTransaction() {
             : undefined,
       };
 
-      await repository.transactions.create(transactionData);
+      await runFinancialMutation({
+            userId: user?.id,
+            repository,
+            domains: ['transactions', 'accounts', 'budgets'],
+            mutation: () => repository.transactions.create(transactionData),
+          });
 
       // If recurring is enabled, create recurring transaction
       if (formData.isRecurring) {

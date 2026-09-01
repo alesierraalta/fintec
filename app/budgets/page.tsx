@@ -19,6 +19,8 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import type { Budget, Category } from '@/types';
 import { toast } from 'sonner';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
+import { useFinancialDataSync } from '@/hooks/use-financial-data-sync';
 
 const BudgetForm = dynamic(
   () => import('@/components/forms/budget-form').then((mod) => mod.BudgetForm),
@@ -53,6 +55,12 @@ export default function BudgetsPage() {
     setCategories(allCategories);
     setSummary(monthSummary);
   };
+
+  useFinancialDataSync(user?.id, () => reloadBudgetData(selectedMonth), [
+    'transactions',
+    'accounts',
+    'budgets',
+  ]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -134,34 +142,44 @@ export default function BudgetsPage() {
     openModal();
   };
 
-  const handleSaveBudget = async (budgetData: Partial<Budget>) => {
-    try {
-      setLoading(true);
-      if (selectedBudget) {
-        await repository.budgets.update(selectedBudget.id, {
-          ...budgetData,
-          id: selectedBudget.id,
-        } as any);
-        toast.success('Presupuesto actualizado correctamente');
-      } else {
-        await repository.budgets.create({
-          categoryId: budgetData.categoryId!,
-          monthYear: selectedMonth,
-          amountBaseMinor: budgetData.amountBaseMinor || 0,
-          active: true,
-        });
-        toast.success('Presupuesto creado correctamente');
-      }
-
-      await reloadBudgetData(selectedMonth);
-      closeModal();
-    } catch (error) {
-      console.error('Failed to save budget:', error);
-      toast.error('No se pudo guardar el presupuesto');
-    } finally {
-      setLoading(false);
-    }
-  };
+      const handleSaveBudget = async (budgetData: Partial<Budget>) => {
+        try {
+          setLoading(true);
+          if (selectedBudget) {
+            await runFinancialMutation({
+              userId: user?.id,
+              repository,
+              domains: ['budgets'],
+              mutation: () =>
+                repository.budgets.update(selectedBudget.id, {
+                  ...budgetData,
+                  id: selectedBudget.id,
+                } as any),
+            });
+            toast.success('Presupuesto actualizado correctamente');
+          } else {
+            await runFinancialMutation({
+              userId: user?.id,
+              repository,
+              domains: ['budgets'],
+              mutation: () =>
+                repository.budgets.create({
+                  categoryId: budgetData.categoryId!,
+                  monthYear: selectedMonth,
+                  amountBaseMinor: budgetData.amountBaseMinor || 0,
+                  active: true,
+                }),
+            });
+            toast.success('Presupuesto creado correctamente');
+          }
+          closeModal();
+        } catch (error) {
+          console.error('Failed to save budget:', error);
+          toast.error('No se pudo guardar el presupuesto');
+        } finally {
+          setLoading(false);
+        }
+      };
 
   const handleDeleteBudget = async (budgetId: string) => {
     if (
@@ -171,8 +189,12 @@ export default function BudgetsPage() {
 
     try {
       setLoading(true);
-      await repository.budgets.delete(budgetId);
-      await reloadBudgetData(selectedMonth);
+      await runFinancialMutation({
+        userId: user?.id,
+        repository,
+        domains: ['budgets'],
+        mutation: () => repository.budgets.delete(budgetId),
+      });
       toast.success('Presupuesto eliminado correctamente');
     } catch (error) {
       console.error('Failed to delete budget:', error);
@@ -194,13 +216,14 @@ export default function BudgetsPage() {
         return;
       }
 
-      const copiedBudgets = await repository.budgets.copyBudgetsToNextMonth(
-        previousMonth,
-        selectedMonth
-      );
-      const skippedCount = sourceBudgets.length - copiedBudgets.length;
-
-      await reloadBudgetData(selectedMonth);
+      const copiedBudgets = await runFinancialMutation({
+        userId: user?.id,
+        repository,
+        domains: ['budgets'],
+        mutation: () =>
+          repository.budgets.copyBudgetsToNextMonth(previousMonth, selectedMonth),
+      });
+  const skippedCount = sourceBudgets.length - copiedBudgets.length;
 
       if (copiedBudgets.length === 0) {
         toast.info(

@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { useBalanceAlerts } from '@/hooks/use-balance-alerts';
 import { useModal } from '@/hooks';
 import { useRepository } from '@/providers/repository-provider';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
+import { useFinancialDataSync } from '@/hooks/use-financial-data-sync';
 
 export interface AccountsPageState {
   accounts: Account[];
@@ -127,6 +129,12 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
     }
   }, [user, repository, checkAlerts]);
 
+  useFinancialDataSync(user?.id, () => loadAllData(), [
+    'transactions',
+    'accounts',
+    'budgets',
+  ]);
+
   // Trigger on mount and on user/repository change
   useEffect(() => {
     if (user?.id) {
@@ -192,8 +200,7 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
 
   const handleAccountSaved = useCallback(() => {
     closeModal();
-    void loadAccounts();
-  }, [closeModal, loadAccounts]);
+  }, [closeModal]);
 
   const handleDeleteAccount = useCallback((account: Account) => {
     setOpenDropdown(null);
@@ -204,16 +211,16 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
     if (!accountToDelete) return;
     try {
       setDeletingAccount(true);
-      await repository.accounts.delete(accountToDelete.id);
+      await runFinancialMutation({ userId: user?.id, repository, domains: ['accounts', 'transactions', 'budgets'], mutation: () => repository.accounts.delete(accountToDelete.id) });
       setAccountToDelete(null);
-      await loadAccounts();
+      // The synchronization event triggers the authoritative account reload.
       toast.success('Cuenta eliminada correctamente');
     } catch (err) {
       toast.error('Error al eliminar la cuenta');
     } finally {
       setDeletingAccount(false);
     }
-  }, [accountToDelete, repository, loadAccounts]);
+  }, [accountToDelete, repository, loadAccounts, user?.id]);
 
   const cancelDeleteAccount = useCallback(() => {
     if (deletingAccount) return;
@@ -253,8 +260,7 @@ export function useAccountsPage(opts: UseAccountsPageOpts): AccountsPageHook {
   const handleCloseAlertSettings = useCallback(() => {
     setShowAlertSettings(false);
     setSelectedAccountForAlert(null);
-    void loadAccounts();
-  }, [loadAccounts]);
+  }, []);
 
   // Derivation helpers (depend only on local state)
   const getCategoryName = useCallback(
