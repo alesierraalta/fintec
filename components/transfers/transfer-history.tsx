@@ -25,6 +25,7 @@ import {
 import { useBCVRates } from '@/hooks/use-bcv-rates';
 import { logger } from '@/lib/utils/logger';
 import { useAuth } from '@/hooks/use-auth';
+import { useFinancialDataSync } from '@/hooks/use-financial-data-sync';
 
 interface Transfer {
   id: string;
@@ -129,6 +130,12 @@ export function TransferHistory({ className = '' }: TransferHistoryProps) {
     }
     loadTransfers();
   }, [loadTransfers, authLoading, session?.access_token]);
+
+      useFinancialDataSync(
+    session?.user?.id,
+    () => loadTransfers(),
+    ['transactions', 'accounts', 'budgets'],
+  );
 
   const filteredTransfers = transfers
     .filter((transfer) => {

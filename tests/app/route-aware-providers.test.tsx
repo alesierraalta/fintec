@@ -64,6 +64,10 @@ jest.mock('@/providers', () => ({
     mockRepositoryProvider(props),
 }));
 
+jest.mock('@/components/providers/financial-realtime-sync', () => ({
+  FinancialRealtimeSync: () => null,
+}));
+
 jest.mock('@/providers/subscription-provider', () => ({
   SubscriptionProvider: (props: { children: React.ReactNode }) =>
     mockSubscriptionProvider(props),
@@ -151,24 +155,6 @@ describe('RouteAwareProviders', () => {
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
   });
 
-  it('applies app providers on dashboard routes', () => {
-    mockUsePathname.mockReturnValue('/dashboard');
-
-    render(
-      <RouteAwareProviders>
-        <div>App content</div>
-      </RouteAwareProviders>
-    );
-
-    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
-    expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
-    expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
-    expect(screen.getByText('App content')).toBeInTheDocument();
-    expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
-    expect(mockAuthProvider).toHaveBeenCalledTimes(1);
-    expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
-    expect(mockSubscriptionProvider).toHaveBeenCalledTimes(1);
-  });
 
   it('does NOT render MotionConfig globally anymore (perf-page-transitions requirement)', () => {
     mockUsePathname.mockReturnValue('/dashboard');

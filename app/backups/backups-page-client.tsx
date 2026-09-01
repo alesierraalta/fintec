@@ -24,6 +24,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 
 export default function BackupsPage() {
   const { user } = useAuth();
@@ -105,7 +106,11 @@ export default function BackupsPage() {
   const handleImportBackup = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    if (!user || !event.target.files?.[0]) return;
+    if (!user) {
+      toast.error('Usuario no autenticado');
+      return;
+    }
+    if (!event.target.files?.[0]) return;
 
     const file = event.target.files[0];
 
@@ -113,9 +118,15 @@ export default function BackupsPage() {
       setImportLoading(true);
       setImportResult(null);
 
-      const result = await backupService.importFromFile(user.id, file, {
-        overwrite: false,
-        skipExisting: true,
+      const result = await runFinancialMutation({
+        userId: user.id,
+        repository,
+        domains: ['accounts', 'transactions', 'budgets', 'categories'],
+        mutation: () =>
+          backupService.importFromFile(user.id, file, {
+            overwrite: false,
+            skipExisting: true,
+          }),
       });
 
       setImportResult(result);

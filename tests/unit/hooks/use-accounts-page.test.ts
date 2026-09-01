@@ -156,9 +156,7 @@ describe('useAccountsPage', () => {
 
       expect(result.current.isOpen).toBe(true);
 
-      // handleAccountSaved closes the modal synchronously (via the same
-      // single-source-of-truth closeModal) and fires a background reload we
-      // intentionally do not await here — the modal-close is the behavior.
+      // handleAccountSaved closes the modal synchronously via closeModal.
       act(() => {
         result.current.handleAccountSaved();
       });

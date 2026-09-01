@@ -45,6 +45,7 @@ const customJestConfig = {
         '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
       ],
       testPathIgnorePatterns: [
+        `${ROOT}/testLocales/`,
         `${ROOT}/.next/`,
         `${ROOT}/node_modules/`,
         `${ROOT}/tests/node/`,
@@ -81,6 +82,7 @@ const customJestConfig = {
         '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
       ],
       testPathIgnorePatterns: [
+        `${ROOT}/testLocales/`,
         `${ROOT}/.next/`,
         `${ROOT}/node_modules/`,
         `${ROOT}/tests/db/`,
@@ -110,6 +112,7 @@ const customJestConfig = {
         '/node_modules/(?!(@ai-sdk|ai|@supabase|jose|uuid)/)',
       ],
       testPathIgnorePatterns: [
+        `${ROOT}/testLocales/`,
         `${ROOT}/.next/`,
         `${ROOT}/node_modules/`,
         `${ROOT}/tests/e2e/`,
@@ -123,6 +126,7 @@ const customJestConfig = {
   ],
   // Default for other tests
   testPathIgnorePatterns: [
+    `${ROOT}/testLocales/`,
     `${ROOT}/tests/e2e/`,
     `${ROOT}/.stryker-tmp/`,
     `${ROOT}/.claude/`,

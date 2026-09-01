@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/contexts/auth-context';
 import { RepositoryProvider } from '@/providers';
 import { SubscriptionProvider } from '@/providers/subscription-provider';
+import { FinancialRealtimeSync } from '@/components/providers/financial-realtime-sync';
 
 interface LocalProvidersForRootDashboardProps {
   children: React.ReactNode;
@@ -24,7 +25,10 @@ export function LocalProvidersForRootDashboard({
   return (
     <AuthProvider>
       <RepositoryProvider>
-        <SubscriptionProvider>{children}</SubscriptionProvider>
+        <SubscriptionProvider>
+            <FinancialRealtimeSync />
+            {children}
+          </SubscriptionProvider>
       </RepositoryProvider>
     </AuthProvider>
   );

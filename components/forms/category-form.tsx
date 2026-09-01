@@ -7,7 +7,8 @@ import { IconPicker } from './icon-picker';
 import { CategoryKind } from '@/types';
 import { Tag, Folder } from 'lucide-react';
 import { useRepository } from '@/providers/repository-provider';
-import { useOptimizedData } from '@/hooks/use-optimized-data';
+import { useAuth } from '@/hooks/use-auth';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 
 interface CategoryFormProps {
   isOpen: boolean;
@@ -25,7 +26,7 @@ const categoryKinds = [
 
 export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave, defaultKind }: CategoryFormProps) {
   const repository = useRepository();
-  const { invalidateCache, loadCategories } = useOptimizedData();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: category?.name || '',
     kind: category?.kind || defaultKind || 'EXPENSE',
@@ -74,36 +75,37 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
     e.preventDefault();
     if (!formData.name.trim()) return;
 
+    if (!user) {
+      setError('Usuario no autenticado');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
     try {
-      let createdCategory = null;
-      
-      if (category) {
-        // Update existing category
-        await repository.categories.update(category.id, {
-          id: category.id,
-          name: formData.name.trim(),
-          kind: formData.kind as CategoryKind,
-          color: formData.color,
-          icon: formData.icon,
-          parentId: formData.parentId || undefined,
-        });
-      } else {
-        // Create new category
-        createdCategory = await repository.categories.create({
-          name: formData.name.trim(),
-          kind: formData.kind as CategoryKind,
-          color: formData.color,
-          icon: formData.icon,
-          parentId: formData.parentId || undefined,
-        });
-      }
-      
-      // Invalidate cache and refresh data
-      invalidateCache('categories');
-      await loadCategories(true);
+      const createdCategory = await runFinancialMutation({
+        userId: user.id,
+        repository,
+        domains: ['categories'],
+        mutation: () =>
+          category
+            ? repository.categories.update(category.id, {
+                id: category.id,
+                name: formData.name.trim(),
+                kind: formData.kind as CategoryKind,
+                color: formData.color,
+                icon: formData.icon,
+                parentId: formData.parentId || undefined,
+              })
+            : repository.categories.create({
+                name: formData.name.trim(),
+                kind: formData.kind as CategoryKind,
+                color: formData.color,
+                icon: formData.icon,
+                parentId: formData.parentId || undefined,
+              }),
+      });
       
       onSave?.(createdCategory);
       onClose();

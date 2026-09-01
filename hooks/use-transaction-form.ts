@@ -22,6 +22,7 @@ import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
 import { toMinorUnits } from '@/lib/money';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 
 // * Transaction type options (shared constant)
 export const TRANSACTION_TYPES = [
@@ -415,7 +416,12 @@ export function useTransactionForm(): UseTransactionFormReturn {
             : undefined,
       };
 
-      await repository.transactions.create(transactionData);
+      await runFinancialMutation({
+            userId: user?.id,
+            repository,
+            domains: ['transactions', 'accounts', 'budgets'],
+            mutation: () => repository.transactions.create(transactionData),
+          });
 
       // If recurring is enabled, create recurring transaction
       if (formData.isRecurring) {

@@ -35,6 +35,8 @@ import {
 } from '@/lib/transfers/transfer-policy';
 import { logger } from '@/lib/utils/logger';
 import { toast } from 'sonner';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
+import { useFinancialDataSync } from '@/hooks/use-financial-data-sync';
 
 interface TransferData {
   fromAccountId: string;
@@ -126,7 +128,18 @@ export function MobileTransfer() {
     }));
   }, [user, authLoading, repository]);
 
-  const getAccountIcon = (currencyCode: string) => {
+  useFinancialDataSync(
+    user?.id,
+    () => {
+      if (!user) return;
+      return repository.accounts.findByUserId(user.id).then((userAccounts) => {
+        setAccounts(userAccounts.filter((account) => account.active));
+      });
+    },
+    ['accounts', 'transactions'],
+  );
+
+      const getAccountIcon = (currencyCode: string) => {
     if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
       return <Bitcoin className="h-5 w-5 text-orange-500" />;
     }
@@ -520,50 +533,56 @@ export function MobileTransfer() {
         data: { session },
       } = await supabase.auth.getSession();
 
-      if (!session) {
+      if (!session || !user) {
         throw new Error('Usuario no autenticado');
       }
 
-      // Call the real API endpoint
-      const response = await fetch('/api/transfers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          fromAccountId: transferData.fromAccountId,
-          toAccountId: transferData.toAccountId,
-          amount: transferData.amount,
-          description:
-            transferData.description ||
-            `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
-          date: transferData.date,
-          exchangeRate: isSameCurrency ? 1 : transferData.exchangeRate,
-          rateSource: isSameCurrency ? undefined : transferData.rateSource,
-          commissionMinor,
-          commission: commission && commission.trim() !== '' ? commission : undefined,
-        }),
-      });
-
-      const result = await response.json().catch(() => null);
-
-      if (!response.ok || result?.error) {
-        throw new Error(
-          result?.error?.message ?? 'Error al procesar la transferencia'
+        const formattedAmount = formatCurrencyWithBCV(
+          toMinorUnits(transferData.amount, fromAccount.currencyCode),
+          fromAccount.currencyCode
         );
-      }
+          await runFinancialMutation({
+            userId: user.id,
+            repository,
+            domains: ['accounts', 'transactions'],
+            mutation: async () => {
+        // Call the real API endpoint
+        const response = await fetch('/api/transfers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            fromAccountId: transferData.fromAccountId,
+            toAccountId: transferData.toAccountId,
+            amount: transferData.amount,
+            description:
+              transferData.description ||
+              `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
+            date: transferData.date,
+            exchangeRate: isSameCurrency ? 1 : transferData.exchangeRate,
+            rateSource: isSameCurrency ? undefined : transferData.rateSource,
+            commissionMinor,
+            commission: commission && commission.trim() !== '' ? commission : undefined,
+          }),
+        });
 
-      const formattedAmount = formatCurrencyWithBCV(
-        toMinorUnits(transferData.amount, fromAccount.currencyCode),
-        fromAccount.currencyCode
-      );
+        const result = await response.json().catch(() => null);
+
+        if (!response.ok || result?.error) {
+          throw new Error(
+            result?.error?.message ?? 'Error al procesar la transferencia'
+          );
+        }
+
+              return result;
+            },
+          });
+
       toast.success(
         `Transferencia exitosa: ${formattedAmount} de ${fromAccount.name} a ${toAccount.name}`
       );
-
-      // Refresh accounts to show updated balances
-      // loadAccounts(); // TODO: Implement account refresh
 
       // Reset form
       setTransferData({

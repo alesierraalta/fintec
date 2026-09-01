@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { FormLoading } from '@/components/ui/suspense-loading';
 import { toast } from 'sonner';
+import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 
 const CategoryForm = dynamic(
   () =>
@@ -75,7 +76,6 @@ export default function CategoriesPage() {
   const {
     categories: rawCategories,
     transactions: rawTransactions,
-    invalidateCache,
     loadAllData,
   } = optimized;
 
@@ -175,6 +175,11 @@ export default function CategoriesPage() {
   };
 
   const handleDeleteCategory = async (categoryId: string) => {
+    if (!user) {
+      toast.error('Usuario no autenticado');
+      return;
+    }
+
     try {
       const canDelete = await repository.categories.canDelete(categoryId);
       if (!canDelete) {
@@ -194,9 +199,18 @@ export default function CategoriesPage() {
     if (!categoryToDelete) return;
 
     try {
+      if (!user) {
+        toast.error('Usuario no autenticado');
+        return;
+      }
+
       setDeletingCategory(true);
-      await repository.categories.delete(categoryToDelete);
-      await loadAllData(true);
+      await runFinancialMutation({
+        userId: user.id,
+        repository,
+        domains: ['categories'],
+        mutation: () => repository.categories.delete(categoryToDelete),
+      });
       toast.success('Categoria eliminada correctamente');
       setCategoryToDelete(null);
     } catch (error) {
@@ -213,8 +227,6 @@ export default function CategoriesPage() {
 
   const handleCategorySaved = () => {
     closeModal();
-    // Data is refreshed via optimized loader
-    loadAllData(true);
   };
 
   const handleViewCategory = (categoryId: string) => {
@@ -226,9 +238,7 @@ export default function CategoriesPage() {
     setEditTransaction(transaction);
   };
 
-  const handleTransactionEditSuccess = async () => {
-    invalidateCache('transactions');
-    await loadAllData(true);
+  const handleTransactionEditSuccess = () => {
     setRefreshKey((k) => k + 1);
     setEditTransaction(null);
   };
