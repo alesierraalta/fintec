@@ -218,6 +218,135 @@ describe('BinanceP2POffersService', () => {
     expect(result.offers.map((offer) => offer.id)).toEqual(['fixture-offer-a']);
   });
 
+  it('requests full pages sequentially, preserves distinct ads, and never requests page four', async () => {
+    const page = Array.from({ length: 20 }, (_, index) =>
+      createRawOffer({
+        adv: { advNo: `page-one-${index}` },
+        advertiser: { userNo: 'same-seller' },
+      })
+    );
+    const pageTwo = [
+      createRawOffer({ adv: { advNo: 'page-one-0' } }),
+      ...Array.from({ length: 19 }, (_, index) =>
+        createRawOffer({
+          adv: { advNo: `page-two-${index}` },
+          advertiser: { userNo: 'same-seller' },
+        })
+      ),
+    ];
+    const fetcher = jest
+      .fn()
+      .mockResolvedValueOnce(createResponse(page))
+      .mockResolvedValueOnce(createResponse(pageTwo))
+      .mockResolvedValueOnce(
+        createResponse([
+          createRawOffer({
+            adv: { advNo: 'page-three-only' },
+            advertiser: { userNo: 'same-seller' },
+          }),
+        ])
+      );
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    const result = await service.search(baseQuery);
+    const bodies = fetcher.mock.calls.map(([, init]) =>
+      JSON.parse((init as RequestInit).body as string)
+    );
+
+    expect(bodies.map((body) => body.page)).toEqual([1, 2, 3]);
+    expect(
+      bodies.every(
+        (body) => body.rows === 20 && body.payTypes.includes('PagoMovil')
+      )
+    ).toBe(true);
+    expect(bodies.some((body) => body.page === 4)).toBe(false);
+    expect(result.offers).toHaveLength(40);
+    expect(result.offers.map((offer) => offer.id)).toContain('page-three-only');
+    expect(
+      result.offers.filter((offer) => offer.merchant.userNo === 'same-seller')
+    ).toHaveLength(40);
+  });
+
+  it('stops after a short page and retries only the failed page', async () => {
+    const fullPage = Array.from({ length: 20 }, (_, index) =>
+      createRawOffer({ adv: { advNo: `full-${index}` } })
+    );
+    const fetcher = jest
+      .fn()
+      .mockResolvedValueOnce(createResponse(fullPage))
+      .mockResolvedValueOnce(createResponse([], 503))
+      .mockResolvedValueOnce(createResponse([], 200));
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    const result = await service.search(baseQuery);
+    const pages = fetcher.mock.calls.map(
+      ([, init]) => JSON.parse((init as RequestInit).body as string).page
+    );
+
+    expect(result.status).toBe('live');
+    expect(pages).toEqual([1, 2, 2]);
+    expect(result.offers).toHaveLength(20);
+  });
+
+  it('fails closed on a later page and returns same-query stale data when seeded', async () => {
+    let now = Date.parse('2026-07-16T12:00:00.000Z');
+    const fullPage = Array.from({ length: 20 }, (_, index) =>
+      createRawOffer({ adv: { advNo: `seed-${index}` } })
+    );
+    const fetcher = jest.fn().mockResolvedValue(createResponse(fullPage));
+    const service = new BinanceP2POffersService({
+      fetcher,
+      now: () => now,
+      retryDelayMs: 0,
+    });
+    const seeded = await service.search(baseQuery);
+    now += 31_000;
+    fetcher.mockReset().mockResolvedValue(createResponse([], 400));
+
+    const result = await service.search(baseQuery);
+
+    expect(seeded.status).toBe('live');
+    expect(result).toMatchObject({ status: 'stale', offers: seeded.offers });
+    expect(result.offers).not.toHaveLength(0);
+  });
+
+  it('returns unavailable without a successful prefix when page two fails without stale data', async () => {
+    const fullPage = Array.from({ length: 20 }, (_, index) =>
+      createRawOffer({ adv: { advNo: `prefix-${index}` } })
+    );
+    const fetcher = jest
+      .fn()
+      .mockResolvedValueOnce(createResponse(fullPage))
+      .mockResolvedValueOnce(createResponse([], 400));
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    await expect(service.search(baseQuery)).resolves.toMatchObject({
+      status: 'unavailable',
+      offers: [],
+      fetchedAt: null,
+    });
+  });
+
+  it('sends native USDT payload units and rejects malformed page data fail-closed', async () => {
+    const fetcher = jest
+      .fn()
+      .mockResolvedValue(
+        createResponse({ invalid: true } as unknown as unknown[])
+      );
+    const service = new BinanceP2POffersService({ fetcher, retryDelayMs: 0 });
+
+    const result = await service.search({
+      ...baseQuery,
+      amountMinor: 1005,
+      amountUnit: 'USDT',
+    });
+    const [, init] = fetcher.mock.calls[0] as [string, RequestInit];
+
+    expect(JSON.parse(init.body as string)).toMatchObject({ transAmount: '' });
+    expect(result.query.amountUnit).toBe('USDT');
+    expect(result).toMatchObject({ status: 'unavailable', offers: [] });
+  });
+
   it('serves only same-query stale data and never fabricates an unavailable result', async () => {
     let now = Date.parse('2026-07-16T12:00:00.000Z');
     const fetcher = jest
