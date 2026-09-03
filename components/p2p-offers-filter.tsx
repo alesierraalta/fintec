@@ -88,9 +88,6 @@ export default function P2POffersFilter() {
       minOrderCount: state.minOrderCount ?? 0,
     };
     if (state.amountUnit === 'USDT') {
-      // * Query by the fiat equivalent: Binance ranks and limits ads by the Bs
-      // amount, so converting with the live rate first returns every ad that
-      // actually accepts this trade size instead of a near-empty default page.
       const amountMinor = parseAmountMinor(state.amount);
       return {
         side: state.tradeType,
