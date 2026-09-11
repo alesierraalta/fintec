@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ReceiptScannerDropzone } from '@/components/receipts';
+import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 import {
   ArrowLeft,
   ArrowRightLeft,
@@ -54,6 +56,7 @@ type TransferExchangeMode = 'manual' | 'auto';
 
 export function DesktopTransfer() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const repository = useRepository();
   const { user, loading: authLoading } = useAuth();
 
@@ -81,8 +84,12 @@ export function DesktopTransfer() {
     useState<TransferExchangeMode>('manual');
   const submittingRef = useRef(false);
   const selectedRateSource = useAppStore((state) => state.selectedRateSource);
-  const fromForPolicy = accounts.find((acc) => acc.id === transferData.fromAccountId);
-  const toForPolicy = accounts.find((acc) => acc.id === transferData.toAccountId);
+  const fromForPolicy = accounts.find(
+    (acc) => acc.id === transferData.fromAccountId
+  );
+  const toForPolicy = accounts.find(
+    (acc) => acc.id === transferData.toAccountId
+  );
   const isSameCurrency = isSameCurrencyTransfer(
     fromForPolicy?.currencyCode,
     toForPolicy?.currencyCode
@@ -94,6 +101,81 @@ export function DesktopTransfer() {
     selectedRateSource === 'binance'
       ? (binanceRates?.usd_ves ?? binanceRates?.sell_rate?.avg ?? 0)
       : bcvRates.usd || 0;
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const amt = searchParams.get('amount');
+    const targetAmt = searchParams.get('targetAmount');
+    const fromId = searchParams.get('fromAccountId');
+    const toId = searchParams.get('toAccountId');
+    const rate = searchParams.get('exchangeRate');
+    const desc = searchParams.get('description');
+    const d = searchParams.get('date');
+    const comm = searchParams.get('commission') || searchParams.get('fee');
+
+    if (amt || fromId || toId) {
+      setTransferData((prev) => ({
+        ...prev,
+        amount: amt ? parseFloat(amt) : prev.amount,
+        fromAccountId: fromId || prev.fromAccountId,
+        toAccountId: toId || prev.toAccountId,
+        exchangeRate: rate ? parseFloat(rate) : prev.exchangeRate,
+        rateSource: rate ? 'Custom' : prev.rateSource,
+        description: desc || prev.description,
+        date: d || prev.date,
+      }));
+    }
+    if (targetAmt) {
+      const parsedTarget = parseFloat(targetAmt);
+      if (parsedTarget > 0) {
+        setTargetAmount(parsedTarget);
+        setExchangeMode('manual');
+      }
+    }
+    if (comm) {
+      setCommission(comm);
+    }
+  }, [searchParams]);
+
+  const handleReceiptScanSuccess = (result: ScannedReceiptResult) => {
+    // If both netAmount and fee are provided, source amount is netAmount so
+    // total debit (amount + fee) equals the gross total without double counting.
+    let sourceAmt = result.amount || 0;
+    let feeAmt: number | undefined = result.fee;
+
+    if (
+      result.netAmount !== undefined &&
+      result.fee !== undefined &&
+      result.netAmount > 0
+    ) {
+      sourceAmt = result.netAmount;
+      feeAmt = result.fee;
+    }
+
+    const targetAmt = result.targetAmount || 0;
+    const exchangeRate = result.exchangeRate;
+
+    setTransferData((prev) => ({
+      ...prev,
+      fromAccountId: result.suggestedAccountId || prev.fromAccountId,
+      toAccountId: result.suggestedToAccountId || prev.toAccountId,
+      amount: sourceAmt,
+      date: result.date || prev.date || new Date().toISOString().split('T')[0],
+      description:
+        prev.description || result.suggestedDescription || 'Transferencia',
+      exchangeRate: exchangeRate || prev.exchangeRate,
+      rateSource: exchangeRate ? 'Custom' : 'Custom',
+    }));
+
+    if (targetAmt > 0) {
+      setTargetAmount(targetAmt);
+      setExchangeMode('manual');
+    }
+
+    if (feeAmt !== undefined && feeAmt > 0) {
+      setCommission(String(feeAmt));
+    }
+  };
 
   useEffect(() => {
     const loadAccounts = async () => {
@@ -137,10 +219,10 @@ export function DesktopTransfer() {
         setAccounts(userAccounts.filter((account) => account.active));
       });
     },
-    ['accounts', 'transactions'],
+    ['accounts', 'transactions']
   );
 
-      const getAccountIcon = (currencyCode: string) => {
+  const getAccountIcon = (currencyCode: string) => {
     if (currencyCode === 'BTC' || currencyCode.includes('BTC')) {
       return <Bitcoin className="h-6 w-6 text-orange-500" />;
     }
@@ -168,7 +250,10 @@ export function DesktopTransfer() {
     });
   };
 
-  const validateAmount = (amount: number, commissionStr: string = commission) => {
+  const validateAmount = (
+    amount: number,
+    commissionStr: string = commission
+  ) => {
     const fromAccount = getFromAccount();
     if (!fromAccount) {
       setAmountError('');
@@ -184,11 +269,16 @@ export function DesktopTransfer() {
     let commissionMinor = 0;
     if (commissionStr && commissionStr.trim() !== '') {
       try {
-        const parsed = parseCommissionMinor(commissionStr, fromAccount.currencyCode);
+        const parsed = parseCommissionMinor(
+          commissionStr,
+          fromAccount.currencyCode
+        );
         commissionMinor = parsed ?? 0;
         setCommissionError('');
       } catch (e) {
-        setCommissionError(e instanceof Error ? e.message : 'Comisión inválida');
+        setCommissionError(
+          e instanceof Error ? e.message : 'Comisión inválida'
+        );
         return false;
       }
     } else {
@@ -296,7 +386,10 @@ export function DesktopTransfer() {
     if (!from || !to) return;
 
     if (isSameCurrencyTransfer(from.currencyCode, to.currencyCode)) {
-      if (transferData.exchangeRate !== 1 || transferData.rateSource !== undefined) {
+      if (
+        transferData.exchangeRate !== 1 ||
+        transferData.rateSource !== undefined
+      ) {
         setTransferData((prev) => ({
           ...prev,
           exchangeRate: 1,
@@ -458,7 +551,10 @@ export function DesktopTransfer() {
   const isFormValid = () => {
     const fromAccount = getFromAccount();
     const toAccount = getToAccount();
-    const isSame = fromAccount && toAccount && isSameCurrencyTransfer(fromAccount.currencyCode, toAccount.currencyCode);
+    const isSame =
+      fromAccount &&
+      toAccount &&
+      isSameCurrencyTransfer(fromAccount.currencyCode, toAccount.currencyCode);
     const hasDifferentCurrencies =
       fromAccount &&
       toAccount &&
@@ -468,7 +564,8 @@ export function DesktopTransfer() {
     if (commissionError) return false;
     if (commission && commission.trim() !== '') {
       try {
-        if (fromAccount) parseCommissionMinor(commission, fromAccount.currencyCode);
+        if (fromAccount)
+          parseCommissionMinor(commission, fromAccount.currencyCode);
       } catch {
         return false;
       }
@@ -508,15 +605,22 @@ export function DesktopTransfer() {
     let commissionMinor: number | undefined;
     if (commission && commission.trim() !== '') {
       try {
-        commissionMinor = parseCommissionMinor(commission, fromAccount.currencyCode) ?? undefined;
+        commissionMinor =
+          parseCommissionMinor(commission, fromAccount.currencyCode) ??
+          undefined;
       } catch (e) {
         toast.error(e instanceof Error ? e.message : 'Comisión inválida');
         return;
       }
     }
-    const totalDebit = commissionMinor !== undefined ? getTotalDebitMinor(amountInMinorUnits, commissionMinor) : amountInMinorUnits;
+    const totalDebit =
+      commissionMinor !== undefined
+        ? getTotalDebitMinor(amountInMinorUnits, commissionMinor)
+        : amountInMinorUnits;
     if (fromAccount.balance < totalDebit) {
-      toast.error(`Saldo insuficiente para monto + comisión. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)} — Requerido: ${formatBalance(totalDebit, fromAccount.currencyCode)}`);
+      toast.error(
+        `Saldo insuficiente para monto + comisión. Disponible: ${formatBalance(fromAccount.balance, fromAccount.currencyCode)} — Requerido: ${formatBalance(totalDebit, fromAccount.currencyCode)}`
+      );
       return;
     }
 
@@ -539,44 +643,45 @@ export function DesktopTransfer() {
         throw new Error('Usuario no autenticado');
       }
 
-          await runFinancialMutation({
-            userId: user.id,
-            repository,
-            domains: ['accounts', 'transactions'],
-            mutation: async () => {
-        // Call the real API endpoint
-        const response = await fetch('/api/transfers', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            fromAccountId: transferData.fromAccountId,
-            toAccountId: transferData.toAccountId,
-            amount: transferData.amount,
-            description:
-              transferData.description ||
-              `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
-            date: transferData.date,
-            exchangeRate: isSameCurrency ? 1 : transferData.exchangeRate,
-            rateSource: isSameCurrency ? undefined : transferData.rateSource,
-            commissionMinor,
-            commission: commission && commission.trim() !== '' ? commission : undefined,
-          }),
-        });
-
-        const result = await response.json().catch(() => null);
-
-        if (!response.ok || result?.error) {
-          throw new Error(
-            result?.error?.message ?? 'Error al procesar la transferencia'
-          );
-        }
-
-              return result;
+      await runFinancialMutation({
+        userId: user.id,
+        repository,
+        domains: ['accounts', 'transactions'],
+        mutation: async () => {
+          // Call the real API endpoint
+          const response = await fetch('/api/transfers', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${session.access_token}`,
             },
+            body: JSON.stringify({
+              fromAccountId: transferData.fromAccountId,
+              toAccountId: transferData.toAccountId,
+              amount: transferData.amount,
+              description:
+                transferData.description ||
+                `Transferencia de ${fromAccount.name} a ${toAccount.name}`,
+              date: transferData.date,
+              exchangeRate: isSameCurrency ? 1 : transferData.exchangeRate,
+              rateSource: isSameCurrency ? undefined : transferData.rateSource,
+              commissionMinor,
+              commission:
+                commission && commission.trim() !== '' ? commission : undefined,
+            }),
           });
+
+          const result = await response.json().catch(() => null);
+
+          if (!response.ok || result?.error) {
+            throw new Error(
+              result?.error?.message ?? 'Error al procesar la transferencia'
+            );
+          }
+
+          return result;
+        },
+      });
 
       toast.success(
         `Transferencia exitosa: $${transferData.amount.toFixed(2)} de ${fromAccount.name} a ${toAccount.name}`
@@ -619,6 +724,18 @@ export function DesktopTransfer() {
           Transfiere dinero entre tus cuentas de forma segura
         </p>
       </div>
+
+      {/* Receipt Scanner AI Dropzone */}
+      <ReceiptScannerDropzone
+        accounts={accounts.map((a) => ({
+          id: a.id,
+          name: a.name,
+          currencyCode: a.currencyCode,
+          type: a.type,
+        }))}
+        expectedType="TRANSFER"
+        onScanSuccess={handleReceiptScanSuccess}
+      />
 
       {/* Main Transfer Form */}
       <div className="space-y-8">
@@ -907,7 +1024,8 @@ export function DesktopTransfer() {
                   <div className="relative">
                     <DollarSign className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 transform text-muted-foreground" />
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       value={commission}
                       onChange={(e) => {
                         const v = e.target.value;
@@ -915,10 +1033,10 @@ export function DesktopTransfer() {
                         validateCommission(v);
                       }}
                       placeholder="0.00"
-                      step="0.01"
-                      min="0"
                       className={`w-full rounded-xl border border-border bg-background py-3 pl-11 pr-16 text-base font-semibold text-foreground transition-colors placeholder:text-muted-foreground focus:border-primary-500 focus:outline-none ${
-                        commissionError ? 'border-red-500 focus:border-red-500' : ''
+                        commissionError
+                          ? 'border-red-500 focus:border-red-500'
+                          : ''
                       }`}
                       aria-label="Comisión opcional"
                     />
@@ -927,19 +1045,38 @@ export function DesktopTransfer() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Se debitará adicional al monto transferido. Deja vacío si no hay comisión.
+                    Se debitará adicional al monto transferido. Deja vacío si no
+                    hay comisión.
                   </p>
                   {commissionError && (
                     <div className="flex items-center space-x-2 rounded-xl border border-red-200 bg-red-50 p-2 dark:border-red-700 dark:bg-red-900/20">
                       <X className="h-4 w-4 text-red-500" />
-                      <span className="text-sm text-red-600">{commissionError}</span>
+                      <span className="text-sm text-red-600">
+                        {commissionError}
+                      </span>
                     </div>
                   )}
-                  {commission && !commissionError && getFromAccount() && transferData.amount > 0 && (
-                    <p className="text-xs font-medium text-foreground">
-                      Total a debitar: {formatBalance(getTotalDebitMinor(toMinorUnits(transferData.amount, getFromAccount()!.currencyCode), parseCommissionMinor(commission, getFromAccount()!.currencyCode) ?? 0), getFromAccount()!.currencyCode)}
-                    </p>
-                  )}
+                  {commission &&
+                    !commissionError &&
+                    getFromAccount() &&
+                    transferData.amount > 0 && (
+                      <p className="text-xs font-medium text-foreground">
+                        Total a debitar:{' '}
+                        {formatBalance(
+                          getTotalDebitMinor(
+                            toMinorUnits(
+                              transferData.amount,
+                              getFromAccount()!.currencyCode
+                            ),
+                            parseCommissionMinor(
+                              commission,
+                              getFromAccount()!.currencyCode
+                            ) ?? 0
+                          ),
+                          getFromAccount()!.currencyCode
+                        )}
+                      </p>
+                    )}
                 </div>
 
                 {getFromAccount() &&
@@ -1322,12 +1459,35 @@ export function DesktopTransfer() {
                 {commission && commission.trim() !== '' && (
                   <div className="mt-4 space-y-1 border-t border-border/40 pt-4 text-center text-sm">
                     <p className="text-muted-foreground">
-                      Comisión: {formatBalance(parseCommissionMinor(commission, getFromAccount()?.currencyCode || 'USD') ?? 0, getFromAccount()?.currencyCode || 'USD')}
+                      Comisión:{' '}
+                      {formatBalance(
+                        parseCommissionMinor(
+                          commission,
+                          getFromAccount()?.currencyCode || 'USD'
+                        ) ?? 0,
+                        getFromAccount()?.currencyCode || 'USD'
+                      )}
                     </p>
                     <p className="font-semibold text-foreground">
-                      Total debitado: {formatBalance(getTotalDebitMinor(toMinorUnits(transferData.amount, getFromAccount()?.currencyCode || 'USD'), parseCommissionMinor(commission, getFromAccount()?.currencyCode || 'USD') ?? 0), getFromAccount()?.currencyCode || 'USD')}
+                      Total debitado:{' '}
+                      {formatBalance(
+                        getTotalDebitMinor(
+                          toMinorUnits(
+                            transferData.amount,
+                            getFromAccount()?.currencyCode || 'USD'
+                          ),
+                          parseCommissionMinor(
+                            commission,
+                            getFromAccount()?.currencyCode || 'USD'
+                          ) ?? 0
+                        ),
+                        getFromAccount()?.currencyCode || 'USD'
+                      )}
                     </p>
-                    <p className="text-xs text-muted-foreground">Se debita monto + comisión del origen; el destino recibe solo el monto.</p>
+                    <p className="text-xs text-muted-foreground">
+                      Se debita monto + comisión del origen; el destino recibe
+                      solo el monto.
+                    </p>
                   </div>
                 )}
 
