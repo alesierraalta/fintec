@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   buildBinanceP2PTradeUrl,
+  buildBinanceP2PSellerProfileUrl,
   BINANCE_P2P_AMOUNT_UNITS,
   BINANCE_P2P_PAYMENT_IDENTIFIERS,
   BINANCE_P2P_PAYMENT_LABELS,
@@ -12,7 +13,6 @@ import {
   BinanceP2PSide,
 } from '@/types/binance-p2p-offers';
 import { useBinanceP2POffers } from '@/hooks/use-binance-p2p-offers';
-import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { BinanceMarketLink } from '@/components/p2p-offers/binance-market-link';
@@ -30,7 +30,7 @@ import {
 
 interface FilterState {
   tradeType: BinanceP2PSide;
-  amount: number | null;
+  amount: string;
   amountUnit: BinanceP2PAmountUnit;
   payType: BinanceP2PPaymentIdentifier;
   minCompletionRate: number | null;
@@ -58,10 +58,17 @@ function formatCompletionRate(bps: number | null): string {
   })}%`;
 }
 
+function parseAmountMinor(value: string): number {
+  const match = /^(\d+)(?:\.(\d{0,2}))?$/.exec(value.trim());
+  if (!match) return 0;
+  const parsed = Number(`${match[1]}${(match[2] ?? '').padEnd(2, '0')}`);
+  return Number.isSafeInteger(parsed) ? parsed : 0;
+}
+
 export default function P2POffersFilter() {
   const [filterState, setFilterState] = useState<FilterState>({
     tradeType: 'BUY',
-    amount: null,
+    amount: '',
     amountUnit: 'VES',
     payType: 'ALL',
     minCompletionRate: null,
@@ -70,8 +77,6 @@ export default function P2POffersFilter() {
 
   const { status, result, error, retryAfterSeconds, loading, search } =
     useBinanceP2POffers();
-  const { rates: binanceRateSnapshot } = useBinanceRates();
-  const usdtVesRate = binanceRateSnapshot.usdt_ves;
 
   const buildQuery = (state: FilterState): BinanceP2POffersQuery => {
     const shared = {
@@ -83,22 +88,17 @@ export default function P2POffersFilter() {
       minOrderCount: state.minOrderCount ?? 0,
     };
     if (state.amountUnit === 'USDT') {
-      // * Query by the fiat equivalent: Binance ranks and limits ads by the Bs
-      // amount, so converting with the live rate first returns every ad that
-      // actually accepts this trade size instead of a near-empty default page.
-      const fiatMinor = state.amount
-        ? Math.round(state.amount * usdtVesRate * 100)
-        : 0;
+      const amountMinor = parseAmountMinor(state.amount);
       return {
         side: state.tradeType,
-        amountMinor: fiatMinor,
-        amountUnit: 'VES',
+        amountMinor,
+        amountUnit: 'USDT',
         ...shared,
       };
     }
     return {
       side: state.tradeType,
-      amountMinor: state.amount ? Math.round(state.amount * 100) : 0,
+      amountMinor: parseAmountMinor(state.amount),
       amountUnit: 'VES',
       ...shared,
     };
@@ -124,24 +124,8 @@ export default function P2POffersFilter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterState.tradeType, filterState.amountUnit]);
 
-  const conversionHint = (() => {
-    if (filterState.amount === null || filterState.amount <= 0) return null;
-    if (!Number.isFinite(usdtVesRate) || usdtVesRate <= 0) return null;
-    if (filterState.amountUnit === 'USDT') {
-      const bsMinor = Math.round(filterState.amount * usdtVesRate * 100);
-      return `≈ Bs. ${formatVes(bsMinor)} · tasa Binance`;
-    }
-    const usdtAmount = filterState.amount / usdtVesRate;
-    return `≈ ${usdtAmount.toLocaleString('es-VE', { maximumFractionDigits: 2 })} USDT · tasa Binance`;
-  })();
-
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    if (val === '') {
-      setFilterState((prev) => ({ ...prev, amount: null }));
-    } else {
-      setFilterState((prev) => ({ ...prev, amount: parseFloat(val) }));
-    }
+    setFilterState((prev) => ({ ...prev, amount: e.target.value }));
   };
 
   const isBuy = filterState.tradeType === 'BUY';
@@ -217,7 +201,7 @@ export default function P2POffersFilter() {
                 aria-label={`Cantidad en ${filterState.amountUnit}`}
                 inputMode="decimal"
                 autoComplete="off"
-                value={filterState.amount === null ? '' : filterState.amount}
+                value={filterState.amount}
                 onChange={handleAmountChange}
                 className="h-[52px] min-w-0 flex-1 border-0 bg-transparent px-0 pl-0 text-base text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-0 focus:ring-0"
               />
@@ -245,11 +229,6 @@ export default function P2POffersFilter() {
                 ))}
               </div>
             </div>
-            {conversionHint && (
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                {conversionHint}
-              </p>
-            )}
           </div>
 
           <div className="relative min-w-0 flex-1 md:col-span-2 lg:col-span-1">
@@ -537,19 +516,30 @@ export default function P2POffersFilter() {
                     </div>
                   </div>
 
-                  <BinanceMarketLink
-                    href={buildBinanceP2PTradeUrl(offer.id)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`focus-ring flex min-h-[44px] w-full shrink-0 items-center justify-center gap-2 rounded-xl px-5 text-sm font-bold text-white transition-colors sm:w-auto ${
-                      isBuy
-                        ? 'bg-success-600 hover:bg-success-700'
-                        : 'bg-destructive hover:bg-destructive/90'
-                    }`}
-                  >
-                    {isBuy ? 'Comprar USDT' : 'Vender USDT'}
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  </BinanceMarketLink>
+                  {status === 'live' ? (
+                    <div className="flex flex-wrap gap-2 sm:w-52">
+                      <BinanceMarketLink
+                        href={buildBinanceP2PTradeUrl(offer.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="focus-ring flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-success-600 px-3 text-xs font-bold text-white"
+                      >
+                        Comprar/Vender USDT · oferta exacta{' '}
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      </BinanceMarketLink>
+                      <BinanceMarketLink
+                        href={buildBinanceP2PSellerProfileUrl(
+                          offer.merchant.userNo
+                        )}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="focus-ring flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-border px-3 text-xs font-semibold text-foreground"
+                      >
+                        Ver perfil del vendedor{' '}
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      </BinanceMarketLink>
+                    </div>
+                  ) : null}
                 </Card>
               </li>
             ))}

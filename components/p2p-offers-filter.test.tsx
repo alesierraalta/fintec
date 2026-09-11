@@ -199,39 +199,51 @@ describe('P2POffersFilter', () => {
     });
   });
 
-  it('queries the Bs equivalent when the amount unit is USDT', () => {
+  it('queries native USDT minor units when the amount unit is USDT', () => {
     const mockSearch = jest.fn();
     renderWithState({ search: mockSearch });
 
     fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
     fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
-      target: { value: '10' },
+      target: { value: '10.05' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
-
-    // 10 USDT x 930.5 = 9.305 Bs -> 930500 minor, queried as VES so
-    // Binance returns every ad that accepts this trade size
     expect(mockSearch).toHaveBeenCalledWith({
       side: 'BUY',
-      amountMinor: 930500,
-      amountUnit: 'VES',
+      amountMinor: 1005,
+      amountUnit: 'USDT',
       paymentMethod: 'ALL',
       minCompletionRateBps: 0,
       minOrderCount: 0,
     });
   });
 
-  it('shows the live Bs equivalent under the amount field', () => {
+  it.each(['', '1e3', '0.001', '90071992547409.92'])(
+    'sends zero minor units for blank, invalid, or unsafe amount %j',
+    (amount) => {
+      const mockSearch = jest.fn();
+      renderWithState({ search: mockSearch });
+
+      fireEvent.change(screen.getByPlaceholderText('1000'), {
+        target: { value: amount },
+      });
+      fireEvent.click(screen.getByRole('button', { name: /Buscar ofertas/i }));
+
+      expect(mockSearch).toHaveBeenCalledWith(
+        expect.objectContaining({ amountMinor: 0, amountUnit: 'VES' })
+      );
+    }
+  );
+
+  it('does not show a conversion hint under the amount field', () => {
     renderWithState({});
 
     fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
     fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
-      target: { value: '10' },
+      target: { value: '10.05' },
     });
 
-    expect(
-      screen.getByText('≈ Bs. 9305,00 · tasa Binance')
-    ).toBeInTheDocument();
+    expect(screen.queryByText(/tasa Binance/i)).not.toBeInTheDocument();
   });
 
   it('re-searches automatically when the operation side changes', () => {
@@ -302,6 +314,38 @@ describe('P2POffersFilter', () => {
     expect(screen.getByText('No se encontraron ofertas')).toBeInTheDocument();
   });
 
+  it('renders exactly two safe labelled handoffs for each live offer', () => {
+    renderWithState({ status: 'live', result: createResult('live') });
+
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(2);
+    expect(
+      screen.getByRole('link', { name: /oferta exacta/i })
+    ).toHaveAttribute('href', 'https://c2c.binance.com/en/adv?code=offer1');
+    expect(
+      screen.getByRole('link', { name: /perfil del vendedor/i })
+    ).toHaveAttribute(
+      'href',
+      'https://c2c.binance.com/en/advertiserDetail?advertiserNo=s-fixture-seller-1'
+    );
+    for (const link of links) {
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
+  });
+
+  it('keeps stale offer details visible without focusable handoffs', () => {
+    renderWithState({ status: 'stale', result: createResult('stale') });
+    expect(screen.getByText('CryptoTrader')).toBeInTheDocument();
+    expect(screen.getByText(/Binance no respondió/i)).toBeInTheDocument();
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
+  it('keeps empty and unavailable states action-free', () => {
+    renderWithState({ status: 'empty', result: null });
+    expect(screen.queryAllByRole('link')).toHaveLength(0);
+  });
+
   it('renders offers with dominant price and market context', () => {
     renderWithState({
       status: 'live',
@@ -317,7 +361,7 @@ describe('P2POffersFilter', () => {
     expect(context).toBeInTheDocument();
     expect(context).toHaveTextContent('Todos los métodos');
 
-    const continueLink = screen.getByRole('link', { name: /Comprar USDT/i });
+    const continueLink = screen.getByRole('link', { name: /oferta exacta/i });
     expect(continueLink).toHaveAttribute(
       'href',
       'https://c2c.binance.com/en/adv?code=offer1'

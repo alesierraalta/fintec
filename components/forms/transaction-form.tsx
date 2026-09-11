@@ -33,6 +33,8 @@ import { useActiveUsdVesRate } from '@/lib/rates';
 import { toMinorUnits, fromMinorUnits } from '@/lib/money';
 import { TRANSFER_FLOW_PATH } from '@/hooks/use-transaction-form';
 import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
+import { ReceiptScannerDropzone } from '@/components/receipts';
+import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 
 interface TransactionFormProps {
   isOpen: boolean;
@@ -228,8 +230,57 @@ export function TransactionForm({
   const selectedType = transactionTypes.find((t) => t.value === formData.type);
 
   // #56: transfers open the canonical flow from picker and submit guard.
-  const openCanonicalTransferFlow = () => {
-    router.replace(TRANSFER_FLOW_PATH);
+  const openCanonicalTransferFlow = (queryParams?: Record<string, string>) => {
+    if (queryParams && Object.keys(queryParams).length > 0) {
+      const search = new URLSearchParams(queryParams).toString();
+      router.replace(`${TRANSFER_FLOW_PATH}?${search}`);
+    } else {
+      router.replace(TRANSFER_FLOW_PATH);
+    }
+  };
+
+  const handleReceiptScanSuccess = (result: ScannedReceiptResult) => {
+    setFormData((prev) => {
+      let nextType = prev.type;
+      if (result.type === 'EXPENSE') nextType = TransactionType.EXPENSE;
+      if (result.type === 'INCOME') nextType = TransactionType.INCOME;
+
+      let matchedCategoryId = prev.categoryId;
+      if (result.suggestedCategoryName) {
+        const norm = result.suggestedCategoryName.toLowerCase();
+        const targetKind =
+          nextType === TransactionType.INCOME ? 'INCOME' : 'EXPENSE';
+        const found = categories.find(
+          (c) =>
+            c.kind === targetKind &&
+            (c.name.toLowerCase().includes(norm) ||
+              norm.includes(c.name.toLowerCase()))
+        );
+        if (found) matchedCategoryId = found.id;
+      }
+
+      let updatedNote = prev.note;
+      if (result.formattedNotes) {
+        updatedNote = updatedNote
+          ? `${result.formattedNotes}\n\n${updatedNote}`
+          : result.formattedNotes;
+      }
+
+      return {
+        ...prev,
+        type: nextType,
+        amount: result.amount ? result.amount.toString() : prev.amount,
+        date: result.date || prev.date,
+        accountId: result.suggestedAccountId || prev.accountId,
+        categoryId: matchedCategoryId,
+        description: prev.description || result.suggestedDescription || '',
+        note: updatedNote,
+        tags:
+          result.tags && result.tags.length > 0
+            ? result.tags.join(', ')
+            : prev.tags,
+      };
+    });
   };
 
   // The "main" account drives the debt's transaction currency, which in
@@ -402,10 +453,21 @@ export function TransactionForm({
       if (transaction) {
         // Update existing transaction
         const updateData = { ...transactionData, id: transaction.id };
-        await runFinancialMutation({ userId: user?.id, repository, domains: ['transactions', 'accounts', 'budgets'], mutation: () => repository.transactions.update(transaction.id, updateData) });
+        await runFinancialMutation({
+          userId: user?.id,
+          repository,
+          domains: ['transactions', 'accounts', 'budgets'],
+          mutation: () =>
+            repository.transactions.update(transaction.id, updateData),
+        });
       } else {
         // Create new transaction
-        await runFinancialMutation({ userId: user?.id, repository, domains: ['transactions', 'accounts', 'budgets'], mutation: () => repository.transactions.create(transactionData) });
+        await runFinancialMutation({
+          userId: user?.id,
+          repository,
+          domains: ['transactions', 'accounts', 'budgets'],
+          mutation: () => repository.transactions.create(transactionData),
+        });
       }
 
       toast.success(
@@ -522,6 +584,45 @@ export function TransactionForm({
       size="md"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Receipt Scanner AI Dropzone */}
+        {!debtMode && (
+          <ReceiptScannerDropzone
+            accounts={accounts.map((a) => ({
+              id: a.id,
+              name: a.name,
+              currencyCode: a.currencyCode,
+              type: a.type,
+            }))}
+            expectedType={
+              formData.type === TransactionType.INCOME
+                ? 'INCOME'
+                : formData.type === TransactionType.EXPENSE
+                  ? 'EXPENSE'
+                  : undefined
+            }
+            onScanSuccess={handleReceiptScanSuccess}
+            onTransferRedirect={(result) => {
+              openCanonicalTransferFlow({
+                amount: result.amount ? result.amount.toString() : '',
+                targetAmount: result.targetAmount
+                  ? result.targetAmount.toString()
+                  : '',
+                fromAccountId: result.suggestedAccountId || '',
+                toAccountId: result.suggestedToAccountId || '',
+                exchangeRate: result.exchangeRate
+                  ? result.exchangeRate.toString()
+                  : '',
+                description: result.suggestedDescription || '',
+                date: result.date || '',
+                commission:
+                  result.fee !== undefined && result.fee > 0
+                    ? result.fee.toString()
+                    : '',
+              });
+            }}
+          />
+        )}
+
         {formData.isDebt && showDebtInfo && (
           <div className="animate-fade-in-up rounded-xl bg-blue-50 p-4 text-xs text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
             <p className="mb-2 font-semibold">

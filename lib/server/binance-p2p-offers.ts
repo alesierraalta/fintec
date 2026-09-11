@@ -20,6 +20,8 @@ const FRESH_CACHE_MS = 30_000;
 const STALE_CACHE_MS = 120_000;
 const UPSTREAM_TIMEOUT_MS = 5_000;
 const RETRY_DELAY_MS = 150;
+const PAGE_SIZE = 20;
+const MAX_PAGES = 3;
 const MAX_CACHE_ENTRIES = 100;
 const MAX_IN_FLIGHT_ENTRIES = 100;
 
@@ -413,26 +415,15 @@ export class BinanceP2POffersService {
   private async fetchWithRetry(
     query: BinanceP2POffersQuery
   ): Promise<BinanceP2POffersResult> {
-    try {
-      return await this.fetchOnce(query);
-    } catch (error) {
-      if (!(error instanceof UpstreamRequestError) || !error.retryable) {
-        throw error;
-      }
-
-      if (this.retryDelayMs > 0) {
-        await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
-      }
-      return this.fetchOnce(query);
-    }
+    return this.fetchOnce(query);
   }
 
-  private async fetchOnce(
-    query: BinanceP2POffersQuery
-  ): Promise<BinanceP2POffersResult> {
+  private async fetchPage(
+    query: BinanceP2POffersQuery,
+    page: number
+  ): Promise<unknown[]> {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
-
     try {
       let response: Response;
       try {
@@ -450,8 +441,8 @@ export class BinanceP2POffersService {
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36',
           },
           body: JSON.stringify({
-            page: 1,
-            rows: 20,
+            page,
+            rows: PAGE_SIZE,
             payTypes:
               query.paymentMethod === 'ALL' ? [] : [query.paymentMethod],
             countries: [],
@@ -469,37 +460,58 @@ export class BinanceP2POffersService {
       } catch {
         throw new UpstreamRequestError(true);
       }
-
-      if (!response.ok) {
-        throw new UpstreamRequestError(response.status >= 500);
-      }
-
+      if (!response.ok) throw new UpstreamRequestError(response.status >= 500);
       let payload: unknown;
       try {
         payload = await response.json();
       } catch {
         throw new UpstreamRequestError(false);
       }
-
-      if (!isRecord(payload) || !Array.isArray(payload.data)) {
+      if (!isRecord(payload) || !Array.isArray(payload.data))
         throw new UpstreamRequestError(false);
-      }
-
-      const offers: BinanceP2POffer[] = [];
-      for (const entry of payload.data) {
-        const offer = mapOffer(entry, query);
-        if (offer) offers.push(offer);
-      }
-
-      return {
-        status: offers.length > 0 ? 'live' : 'empty',
-        query,
-        offers,
-        fetchedAt: new Date(this.now()).toISOString(),
-      };
+      return payload.data;
     } finally {
       clearTimeout(timeout);
     }
+  }
+
+  private async fetchPageWithRetry(
+    query: BinanceP2POffersQuery,
+    page: number
+  ): Promise<unknown[]> {
+    try {
+      return await this.fetchPage(query, page);
+    } catch (error) {
+      if (!(error instanceof UpstreamRequestError) || !error.retryable)
+        throw error;
+      if (this.retryDelayMs > 0)
+        await new Promise((resolve) => setTimeout(resolve, this.retryDelayMs));
+      return this.fetchPage(query, page);
+    }
+  }
+
+  private async fetchOnce(
+    query: BinanceP2POffersQuery
+  ): Promise<BinanceP2POffersResult> {
+    const offers: BinanceP2POffer[] = [];
+    const seen = new Set<string>();
+    for (let page = 1; page <= MAX_PAGES; page += 1) {
+      const entries = await this.fetchPageWithRetry(query, page);
+      for (const entry of entries) {
+        const offer = mapOffer(entry, query);
+        if (offer && !seen.has(offer.id)) {
+          seen.add(offer.id);
+          offers.push(offer);
+        }
+      }
+      if (entries.length < PAGE_SIZE) break;
+    }
+    return {
+      status: offers.length > 0 ? 'live' : 'empty',
+      query,
+      offers,
+      fetchedAt: new Date(this.now()).toISOString(),
+    };
   }
 
   private touchCacheEntry(key: string, entry: CacheEntry): void {

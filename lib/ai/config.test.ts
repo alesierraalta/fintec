@@ -56,7 +56,7 @@ describe('AI Config', () => {
 
       const chain = getGoogleModelFallbackChain();
 
-      expect(chain.primary).toBe('gemini-2.5-flash');
+      expect(chain.primary).toBe('gemini-3.1-flash-lite');
       expect(chain.fallbacks).toEqual(['gemini-2.5-flash-lite']);
     });
   });

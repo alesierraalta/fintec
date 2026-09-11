@@ -83,8 +83,7 @@ export default function CalculatorClient() {
     useState<BinanceHistoryRecord | null>(null);
   const bcvRates = useBCVRates();
   const binanceRates = useBinanceRates();
-  const selectedRateSource =
-    activeSource === 'Binance' ? 'binance' : 'bcv_usd';
+  const selectedRateSource = activeSource === 'Binance' ? 'binance' : 'bcv_usd';
 
   const [selectedDate, setSelectedDate] = useState('');
   const [historyMinDate, setHistoryMinDate] = useState('2023-01-01');
@@ -409,16 +408,16 @@ export default function CalculatorClient() {
           </button>
         </div>
 
-        <div className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl backdrop-blur-xl">
+        <div>
           {activeTab === 'calculator' && (
             <div className="space-y-6">
               <AccountsRatesPanel
-                  bcv={bcvRates}
-                  binance={binanceRates}
-                  selectedSource={selectedRateSource}
-                  onOpenHistory={() => setActiveTab('history')}
-                />
-                <VesCalculator
+                bcv={bcvRates}
+                binance={binanceRates}
+                selectedSource={selectedRateSource}
+                onOpenHistory={() => setActiveTab('history')}
+              />
+              <VesCalculator
                 bcvRates={bcvHistoricalRates}
                 binanceRates={binanceHistoricalRates}
                 selectedBCVRate={selectedBCVRate}

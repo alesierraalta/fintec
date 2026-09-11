@@ -62,7 +62,7 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
   // Default fallback chain if not configured
   if (!chainString) {
     return {
-      primary: process.env.GOOGLE_MODEL || 'gemini-2.5-flash',
+      primary: process.env.GOOGLE_MODEL || 'gemini-3.1-flash-lite',
       fallbacks: ['gemini-2.5-flash-lite'],
     };
   }
@@ -74,7 +74,7 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
 
   if (models.length === 0) {
     return {
-      primary: 'gemini-2.5-flash',
+      primary: 'gemini-3.1-flash-lite',
       fallbacks: [],
     };
   }
@@ -247,7 +247,7 @@ export function getModelDisplayName(): string {
     case 'openai':
       return `OpenAI ${process.env.OPENAI_MODEL || 'GPT-5 Mini'}`;
     case 'google':
-      return `Google ${process.env.GOOGLE_MODEL || 'Gemini 3 Flash'}`;
+      return `Google ${process.env.GOOGLE_MODEL || 'Gemini 3.1 Flash-Lite'}`;
     case 'anthropic':
       return `Anthropic ${process.env.ANTHROPIC_MODEL || 'Claude Haiku 4.5'}`;
     case 'nvidia':

@@ -1,0 +1,95 @@
+/**
+ * AI Receipt Scanner Type Definitions
+ *
+ * Covers extraction of Venezuelan banking receipts (Pago Móvil, transferencias),
+ * Crypto exchanges (Binance P2P, Convert), and international payments (Zelle, etc.).
+ */
+
+export type ScannedReceiptType = 'EXPENSE' | 'INCOME' | 'TRANSFER';
+
+export type AccountMatchConfidence = 'HIGH' | 'MEDIUM' | 'AMBIGUOUS' | 'NONE';
+
+export interface AccountCandidate {
+  id: string;
+  name: string;
+  currencyCode: string;
+  type?: string;
+  bankName?: string;
+}
+
+export interface CounterpartyInfo {
+  name?: string;
+  idNumber?: string; // Cédula (V-..., J-..., E-...) or Tax ID
+  phone?: string; // Phone number for Pago Móvil (0414..., 0424..., etc.)
+  bank?: string; // Destination/origin bank
+  accountNumber?: string; // Full or masked account number
+}
+
+export interface ScannedReceiptResult {
+  /** Detected transaction operation type */
+  type: ScannedReceiptType;
+  /** Overall confidence of receipt extraction */
+  confidence: 'HIGH' | 'MEDIUM' | 'LOW';
+
+  /** Primary amount in major units (e.g. 150.50) */
+  amount: number;
+  /** Primary currency (ISO 4217, e.g. 'VES', 'USD', 'USDT', 'EUR') */
+  currency: string;
+
+  /** For transfers/exchanges: secondary/target amount (e.g. 1,825.00 VES) */
+  targetAmount?: number;
+  /** For transfers/exchanges: target currency (e.g. 'VES') */
+  targetCurrency?: string;
+  /** Exchange rate used or calculated (e.g. targetAmount / amount) */
+  exchangeRate?: number;
+
+  /** Fee or commission charged (e.g. 0.06 USDT, or banking commission in VES) */
+  fee?: number;
+  /** Currency of the fee (e.g. 'USDT', 'VES') */
+  feeCurrency?: string;
+  /** Net amount after deducting fees (e.g. release quantity 42.66 USDT) */
+  netAmount?: number;
+
+  /** Extracted transaction date in YYYY-MM-DD */
+  date: string;
+  /** Extracted transaction time in HH:mm if available */
+  time?: string;
+
+  /** Unique transaction reference / confirmation / order ID */
+  referenceId?: string;
+  /** Payment method identified (e.g. 'Pago Móvil', 'Binance P2P', 'Transferencia Bancaria', 'Zelle', 'Punto de Venta') */
+  paymentMethod?: string;
+  /** Platform or banking institution (e.g. 'Banesco', 'Banco de Venezuela', 'Mercantil', 'Binance') */
+  bankOrPlatform?: string;
+
+  /** Counterparty / Beneficiary / Originator */
+  counterparty?: CounterpartyInfo;
+
+  /** Smart Account Resolution */
+  suggestedAccountId?: string;
+  suggestedToAccountId?: string;
+  accountMatchConfidence: AccountMatchConfidence;
+  accountMatchReason?: string;
+  matchingAccountCandidates?: string[]; // IDs of candidate accounts if ambiguous
+
+  /** Helpers for prefilling user forms */
+  suggestedDescription: string;
+  suggestedCategoryName?: string;
+  formattedNotes: string;
+  tags: string[];
+
+  /** Image metadata if available */
+  receiptImageUrl?: string;
+}
+
+export interface ScanReceiptRequest {
+  image: string; // Base64 data URL or public URL
+  accounts?: AccountCandidate[];
+  expectedType?: ScannedReceiptType;
+}
+
+export interface ScanReceiptResponse {
+  success: boolean;
+  data?: ScannedReceiptResult;
+  error?: string;
+}

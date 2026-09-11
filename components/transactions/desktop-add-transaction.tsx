@@ -36,6 +36,8 @@ import { useAppStore } from '@/lib/store';
 import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
 import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
+import { ReceiptScannerDropzone } from '@/components/receipts';
+import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 
 // Data constants (same as mobile)
 const transactionTypes = [
@@ -115,6 +117,54 @@ export function DesktopAddTransaction() {
   const [calculatorValue, setCalculatorValue] = useState('0');
   const activeUsdVes = useActiveUsdVesRate();
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
+
+  const handleReceiptScanSuccess = (result: ScannedReceiptResult) => {
+    setFormData((prev) => {
+      let nextType = prev.type;
+      if (result.type === 'EXPENSE') nextType = TransactionType.EXPENSE;
+      if (result.type === 'INCOME') nextType = TransactionType.INCOME;
+
+      let matchedCategoryId = prev.categoryId;
+      if (result.suggestedCategoryName) {
+        const norm = result.suggestedCategoryName.toLowerCase();
+        const targetKind =
+          nextType === TransactionType.INCOME ? 'INCOME' : 'EXPENSE';
+        const found = categories.find(
+          (c) =>
+            c.kind === targetKind &&
+            (c.name.toLowerCase().includes(norm) ||
+              norm.includes(c.name.toLowerCase()))
+        );
+        if (found) matchedCategoryId = found.id;
+      }
+
+      let updatedNote = prev.note;
+      if (result.formattedNotes) {
+        updatedNote = updatedNote
+          ? `${result.formattedNotes}\n\n${updatedNote}`
+          : result.formattedNotes;
+      }
+
+      return {
+        ...prev,
+        type: nextType,
+        amount: result.amount ? result.amount.toString() : prev.amount,
+        date: result.date || prev.date,
+        accountId: result.suggestedAccountId || prev.accountId,
+        categoryId: matchedCategoryId,
+        description: prev.description || result.suggestedDescription || '',
+        note: updatedNote,
+        tags:
+          result.tags && result.tags.length > 0
+            ? result.tags.join(', ')
+            : prev.tags,
+      };
+    });
+
+    if (result.amount) {
+      setCalculatorValue(result.amount.toString());
+    }
+  };
 
   // Load categories and accounts from database
   useEffect(() => {
@@ -387,11 +437,11 @@ export function DesktopAddTransaction() {
       };
 
       await runFinancialMutation({
-            userId: user?.id,
-            repository,
-            domains: ['transactions', 'accounts', 'budgets'],
-            mutation: () => repository.transactions.create(transactionData),
-          });
+        userId: user?.id,
+        repository,
+        domains: ['transactions', 'accounts', 'budgets'],
+        mutation: () => repository.transactions.create(transactionData),
+      });
 
       // If recurring is enabled, create recurring transaction
       if (formData.isRecurring) {
@@ -524,6 +574,46 @@ export function DesktopAddTransaction() {
             {error}
           </div>
         )}
+
+        {/* Receipt Scanner AI Dropzone */}
+        <div className="mb-6">
+          <ReceiptScannerDropzone
+            accounts={accounts.map((a) => ({
+              id: a.id,
+              name: a.name,
+              currencyCode: a.currencyCode,
+              type: a.type,
+            }))}
+            expectedType={
+              formData.type === 'INCOME'
+                ? 'INCOME'
+                : formData.type === 'EXPENSE'
+                  ? 'EXPENSE'
+                  : undefined
+            }
+            onScanSuccess={handleReceiptScanSuccess}
+            onTransferRedirect={(result) => {
+              const query = new URLSearchParams({
+                amount: result.amount ? result.amount.toString() : '',
+                targetAmount: result.targetAmount
+                  ? result.targetAmount.toString()
+                  : '',
+                fromAccountId: result.suggestedAccountId || '',
+                toAccountId: result.suggestedToAccountId || '',
+                exchangeRate: result.exchangeRate
+                  ? result.exchangeRate.toString()
+                  : '',
+                description: result.suggestedDescription || '',
+                date: result.date || '',
+                commission:
+                  result.fee !== undefined && result.fee > 0
+                    ? result.fee.toString()
+                    : '',
+              }).toString();
+              router.replace(`${TRANSFER_FLOW_PATH}?${query}`);
+            }}
+          />
+        </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 gap-6 pb-32 lg:grid-cols-3">

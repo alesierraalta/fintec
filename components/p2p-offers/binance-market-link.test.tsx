@@ -13,9 +13,20 @@ describe('buildBinanceAppDeepLink', () => {
 });
 
 describe('buildBinanceP2PTradeUrl', () => {
-  it('targets the chosen seller via advertiserNo', () => {
-    expect(buildBinanceP2PTradeUrl('s-abc-123')).toBe(
-      'https://c2c.binance.com/en/adv?code=s-abc-123'
+  it('targets the exact advertisement via advNo', () => {
+    expect(buildBinanceP2PTradeUrl('adv/seller with spaces')).toBe(
+      'https://c2c.binance.com/en/adv?code=adv%2Fseller%20with%20spaces'
+    );
+  });
+});
+
+describe('buildBinanceP2PSellerProfileUrl', () => {
+  it('uses userNo in the seller profile route and encodes it', async () => {
+    const { buildBinanceP2PSellerProfileUrl } = await import(
+      '@/types/binance-p2p-offers'
+    );
+    expect(buildBinanceP2PSellerProfileUrl('seller/with spaces')).toBe(
+      'https://c2c.binance.com/en/advertiserDetail?advertiserNo=seller%2Fwith%20spaces'
     );
   });
 });

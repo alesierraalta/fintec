@@ -23,17 +23,33 @@ export class CircuitBreaker {
   ) {}
 
   private async getRepository() {
-    const supabase = await createClient();
-    let serviceSupabase: any;
+    let supabase: any;
+    try {
+      supabase = await createClient();
+    } catch {
+      supabase = undefined;
+    }
 
+    let serviceSupabase: any;
     try {
       serviceSupabase = createServiceClient() as any;
     } catch {
       serviceSupabase = undefined;
     }
 
+    if (!supabase && !serviceSupabase) {
+      return {
+        getCircuitBreakerState: async () => ({
+          state: 'CLOSED',
+          failure_count: 0,
+        }),
+        initializeCircuitBreakerState: async () => {},
+        updateCircuitBreakerState: async () => {},
+      } as any;
+    }
+
     return createServerAIInfraRepository({
-      supabase,
+      supabase: supabase || serviceSupabase,
       serviceSupabase,
     });
   }
