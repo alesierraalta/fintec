@@ -68,12 +68,27 @@ export class CircuitBreaker {
 
     try {
       const result = await fn();
-      await this.onSuccess();
+      try {
+        await this.onSuccess();
+      } catch (infraErr) {
+        console.warn(
+          `[Circuit Breaker] Failed to record success for ${this.id}:`,
+          infraErr
+        );
+      }
       return result;
     } catch (error) {
+      console.error(`[Circuit Breaker] Error executing ${this.id}:`, error);
       // Only trip circuit for transient errors
       if (this.shouldTripCircuit(error as Error)) {
-        await this.onFailure();
+        try {
+          await this.onFailure();
+        } catch (infraErr) {
+          console.warn(
+            `[Circuit Breaker] Failed to record failure for ${this.id}:`,
+            infraErr
+          );
+        }
       } else {
         console.log(
           `[Circuit Breaker] Skipping trip for persistent error: ${(error as Error).message}`
