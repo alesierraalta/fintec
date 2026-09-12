@@ -226,8 +226,7 @@ export function MobileReports() {
     const daysInPeriod = Math.max(
       1,
       Math.ceil(
-        (new Date().getTime() - periodStart.getTime()) /
-          (24 * 60 * 60 * 1000)
+        (new Date().getTime() - periodStart.getTime()) / (24 * 60 * 60 * 1000)
       )
     );
     const avgDailyExpense = Math.round(totalExpenses / daysInPeriod);
@@ -899,7 +898,7 @@ export function MobileReports() {
         </div>
 
         <h1 className="mb-4 bg-gradient-to-r from-primary via-cyan-600 to-blue-500 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
-          📊 Reportes
+          Reportes
         </h1>
         <p className="mb-6 font-light text-muted-foreground">
           Análisis de tus finanzas

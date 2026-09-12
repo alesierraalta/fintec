@@ -114,6 +114,13 @@ describe('SupabaseTransfersRepository - Query Projections', () => {
         if (table === 'transactions') {
           return createTransferQueryMock(mockSelectCalls);
         }
+        if (table === 'transfers') {
+          return {
+            select: jest.fn(() => ({
+              in: jest.fn(() => Promise.resolve({ data: [], error: null })),
+            })),
+          };
+        }
       }),
     };
     repo = new SupabaseTransfersRepository(mockClient);

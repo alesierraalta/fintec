@@ -372,7 +372,6 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
         </div>
 
         <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
-          <span className="mr-2">💳</span>
           <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard Financiero
           </span>
@@ -622,24 +621,24 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
                 </>
               ) : savingsRate > 20 ? (
                 <>
-                  💪 Buen trabajo! Estás ahorrando {savingsRate.toFixed(0)}% de
-                  tus ingresos. Intenta aumentar un poco más para alcanzar tus
-                  metas más rápido.
+                  Buen trabajo! Estás ahorrando {savingsRate.toFixed(0)}% de tus
+                  ingresos. Intenta aumentar un poco más para alcanzar tus metas
+                  más rápido.
                 </>
               ) : savingsRate > 0 ? (
                 <>
-                  📊 Estás ahorrando {savingsRate.toFixed(0)}% de tus ingresos.
+                  Estás ahorrando {savingsRate.toFixed(0)}% de tus ingresos.
                   Considera reducir algunos gastos para mejorar tu tasa de
                   ahorro.
                 </>
               ) : monthlyIncome > 0 ? (
                 <>
-                  ⚠️ Tus gastos superan tus ingresos este mes. Revisa tus gastos
-                  y busca áreas donde puedas reducir.
+                  Tus gastos superan tus ingresos este mes. Revisa tus gastos y
+                  busca áreas donde puedas reducir.
                 </>
               ) : (
                 <>
-                  💡 Comienza registrando tus ingresos y gastos para obtener
+                  Comienza registrando tus ingresos y gastos para obtener
                   insights personalizados sobre tus finanzas.
                 </>
               )}

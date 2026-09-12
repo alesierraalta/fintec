@@ -206,7 +206,7 @@ function BinanceRateAdvancedImpl({
       </div>
 
       <div className="mb-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-center backdrop-blur-sm">
-        <p className="text-xs font-bold text-primary">💵 Tasa estimada</p>
+        <p className="text-xs font-bold text-primary">Tasa estimada</p>
         <p
           data-testid="binance-rate-adjusted"
           className="text-2xl font-bold text-primary sm:text-3xl"

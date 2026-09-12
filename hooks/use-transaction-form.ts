@@ -30,19 +30,16 @@ export const TRANSACTION_TYPES = [
     value: 'EXPENSE',
     label: 'Gasto',
     color: 'from-red-500 to-pink-600',
-    emoji: '💸',
   },
   {
     value: 'INCOME',
     label: 'Ingreso',
     color: 'from-green-500 to-emerald-600',
-    emoji: '💰',
   },
   {
     value: 'TRANSFER_OUT',
     label: 'Transferencia',
     color: 'from-blue-500 to-cyan-600',
-    emoji: '🔄',
   },
 ] as const;
 
@@ -227,8 +224,7 @@ export function useTransactionForm(): UseTransactionFormReturn {
 
   // * Determine category kind for new category creation
   const getCategoryKindForTransaction = useCallback(():
-    | 'INCOME'
-    | 'EXPENSE' => {
+    'INCOME' | 'EXPENSE' => {
     if (formData.type === 'INCOME') return 'INCOME';
     return 'EXPENSE'; // Default for EXPENSE and TRANSFER_OUT
   }, [formData.type]);
@@ -417,18 +413,17 @@ export function useTransactionForm(): UseTransactionFormReturn {
       };
 
       await runFinancialMutation({
-            userId: user?.id,
-            repository,
-            domains: ['transactions', 'accounts', 'budgets'],
-            mutation: () => repository.transactions.create(transactionData),
-          });
+        userId: user?.id,
+        repository,
+        domains: ['transactions', 'accounts', 'budgets'],
+        mutation: () => repository.transactions.create(transactionData),
+      });
 
       // If recurring is enabled, create recurring transaction
       if (formData.isRecurring) {
         try {
-          const { calculate_next_execution_date } = await import(
-            '@/lib/dates/recurring'
-          );
+          const { calculate_next_execution_date } =
+            await import('@/lib/dates/recurring');
 
           const recurringData = {
             name: `${formData.description} - Recurrente`,

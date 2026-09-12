@@ -34,9 +34,9 @@ export function ApprovalListener() {
       )
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✓ [HITL] Realtime ready for approval requests');
+          console.log('[HITL] Realtime ready for approval requests');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('✗ [HITL] Realtime subscription failed');
+          console.error('[HITL] Realtime subscription failed');
           toast.error(
             'Failed to connect to approval system. Please refresh the page.'
           );

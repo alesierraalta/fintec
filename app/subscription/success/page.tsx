@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, Loader2, AlertTriangle } from 'lucide-react';
 
 function SubscriptionSuccessContent() {
   const router = useRouter();
@@ -35,7 +35,7 @@ function SubscriptionSuccessContent() {
       <MainLayout>
         <div className="container mx-auto max-w-2xl px-4 py-16">
           <Card className="p-8 text-center">
-            <div className="mb-4 text-5xl text-destructive">⚠️</div>
+            <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-destructive" />
             <h1 className="mb-4 text-2xl font-bold">Error</h1>
             <p className="mb-6 text-muted-foreground">{error}</p>
             <Button onClick={() => router.push('/pricing')}>

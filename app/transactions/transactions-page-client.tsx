@@ -39,6 +39,8 @@ import {
   Search,
   X,
   Receipt,
+  CreditCard,
+  Loader2,
 } from 'lucide-react';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
@@ -763,7 +765,7 @@ export default function TransactionsPage() {
 
           {/* Collapsible Filters */}
           <CollapsibleSection
-            title="🔍 Filtros"
+            title="Filtros"
             storageKey="transactions-filters"
             collapseOnMobile={true}
             defaultExpanded={false}
@@ -833,7 +835,9 @@ export default function TransactionsPage() {
                 <EmptyState
                   title="¡Comienza tu Gestión Financiera!"
                   description="Crea tu primera transacción para empezar a controlar tus ingresos y gastos"
-                  icon={<div className="text-4xl">💳</div>}
+                  icon={
+                    <CreditCard className="h-10 w-10 text-muted-foreground" />
+                  }
                   actionLabel="Crear Primera Transacción"
                   onAction={handleNewTransaction}
                 />
@@ -1104,7 +1108,7 @@ export default function TransactionsPage() {
                   className="focus-ring flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-destructive px-4 py-2 text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-50"
                 >
                   {deleting ? (
-                    <span className="animate-spin">⏳</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     'Eliminar'
                   )}

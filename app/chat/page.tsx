@@ -1,11 +1,11 @@
 import { requireAuthenticatedUser } from '@/app/_lib/require-authenticated-user';
 import { MainLayout } from '@/components/layout/main-layout';
-import { Bot } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import type { Metadata } from 'next';
 import { ChatPageClient } from './chat-page-client';
 
 export const metadata: Metadata = {
-  title: 'Asistente IA | FinTec',
+  title: 'Asistente Financiero | FinTec',
   description: 'Consulta con nuestro asistente financiero inteligente.',
 };
 
@@ -25,7 +25,10 @@ export default async function ChatPage() {
         <div className="border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
-              <Bot className="h-5 w-5 text-white" aria-hidden="true" />
+              <MessageSquare
+                className="h-5 w-5 text-white"
+                aria-hidden="true"
+              />
               <span
                 className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success"
                 aria-hidden="true"
@@ -33,7 +36,7 @@ export default async function ChatPage() {
             </div>
             <div className="min-w-0">
               <h1 className="truncate text-base font-semibold text-foreground">
-                Asistente Financiero IA
+                Asistente Financiero
               </h1>
               <p className="truncate text-xs text-muted-foreground">
                 Pregúntame sobre tus finanzas

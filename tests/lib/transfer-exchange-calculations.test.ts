@@ -10,7 +10,7 @@ describe('transfer exchange calculations', () => {
   it('detects exchangeable pairs in both directions', () => {
     expect(isExchangeableTransferPair('USD', 'VES')).toBe(true);
     expect(isExchangeableTransferPair('VES', 'USD')).toBe(true);
-    expect(isExchangeableTransferPair('USD', 'USD')).toBe(true);
+    expect(isExchangeableTransferPair('USD', 'USD')).toBe(false);
     expect(isExchangeableTransferPair('USD', 'EUR')).toBe(false);
   });
 

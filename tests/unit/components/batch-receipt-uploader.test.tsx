@@ -397,7 +397,7 @@ describe('BatchReceiptUploaderModal Component', () => {
     expect(screen.getByText('Listo')).toBeInTheDocument();
 
     // Verify account and category pre-filled
-    const categorySelect = screen.getByDisplayValue('🍔 Alimentación');
+    const categorySelect = screen.getByDisplayValue('Alimentación');
     expect(categorySelect).toBeInTheDocument();
 
     const accountSelect = screen.getByDisplayValue('Banesco VES (VES)');

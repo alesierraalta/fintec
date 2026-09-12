@@ -88,7 +88,7 @@ describe('ReceiptScannerDropzone', () => {
     mockHookState.isScanning = true;
     render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
 
-    expect(screen.getByText(/Analizando captura con IA/i)).toBeInTheDocument();
+    expect(screen.getByText(/Analizando comprobante/i)).toBeInTheDocument();
   });
 
   it('renders scanned result and calls reset on dismiss', () => {

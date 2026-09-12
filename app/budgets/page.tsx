@@ -142,44 +142,44 @@ export default function BudgetsPage() {
     openModal();
   };
 
-      const handleSaveBudget = async (budgetData: Partial<Budget>) => {
-        try {
-          setLoading(true);
-          if (selectedBudget) {
-            await runFinancialMutation({
-              userId: user?.id,
-              repository,
-              domains: ['budgets'],
-              mutation: () =>
-                repository.budgets.update(selectedBudget.id, {
-                  ...budgetData,
-                  id: selectedBudget.id,
-                } as any),
-            });
-            toast.success('Presupuesto actualizado correctamente');
-          } else {
-            await runFinancialMutation({
-              userId: user?.id,
-              repository,
-              domains: ['budgets'],
-              mutation: () =>
-                repository.budgets.create({
-                  categoryId: budgetData.categoryId!,
-                  monthYear: selectedMonth,
-                  amountBaseMinor: budgetData.amountBaseMinor || 0,
-                  active: true,
-                }),
-            });
-            toast.success('Presupuesto creado correctamente');
-          }
-          closeModal();
-        } catch (error) {
-          console.error('Failed to save budget:', error);
-          toast.error('No se pudo guardar el presupuesto');
-        } finally {
-          setLoading(false);
-        }
-      };
+  const handleSaveBudget = async (budgetData: Partial<Budget>) => {
+    try {
+      setLoading(true);
+      if (selectedBudget) {
+        await runFinancialMutation({
+          userId: user?.id,
+          repository,
+          domains: ['budgets'],
+          mutation: () =>
+            repository.budgets.update(selectedBudget.id, {
+              ...budgetData,
+              id: selectedBudget.id,
+            } as any),
+        });
+        toast.success('Presupuesto actualizado correctamente');
+      } else {
+        await runFinancialMutation({
+          userId: user?.id,
+          repository,
+          domains: ['budgets'],
+          mutation: () =>
+            repository.budgets.create({
+              categoryId: budgetData.categoryId!,
+              monthYear: selectedMonth,
+              amountBaseMinor: budgetData.amountBaseMinor || 0,
+              active: true,
+            }),
+        });
+        toast.success('Presupuesto creado correctamente');
+      }
+      closeModal();
+    } catch (error) {
+      console.error('Failed to save budget:', error);
+      toast.error('No se pudo guardar el presupuesto');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleDeleteBudget = async (budgetId: string) => {
     if (
@@ -221,9 +221,12 @@ export default function BudgetsPage() {
         repository,
         domains: ['budgets'],
         mutation: () =>
-          repository.budgets.copyBudgetsToNextMonth(previousMonth, selectedMonth),
+          repository.budgets.copyBudgetsToNextMonth(
+            previousMonth,
+            selectedMonth
+          ),
       });
-  const skippedCount = sourceBudgets.length - copiedBudgets.length;
+      const skippedCount = sourceBudgets.length - copiedBudgets.length;
 
       if (copiedBudgets.length === 0) {
         toast.info(
@@ -265,7 +268,7 @@ export default function BudgetsPage() {
           </div>
 
           <h1 className="mb-6 bg-gradient-to-r from-primary via-blue-600 to-indigo-500 bg-clip-text text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl lg:text-6xl">
-            💰 Presupuestos
+            Presupuestos
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
             Controla tus gastos con presupuestos mensuales

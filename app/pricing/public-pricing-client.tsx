@@ -68,7 +68,7 @@ export function PublicPricingClient() {
                         ? 'Para empezar'
                         : key === 'base'
                           ? 'Sin límites'
-                          : 'Con IA'}
+                          : 'Automatizado'}
                     </p>
                   </div>
                   <div className="mb-6 flex items-baseline gap-1">

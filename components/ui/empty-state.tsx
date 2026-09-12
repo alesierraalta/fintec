@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Inbox } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
@@ -33,7 +33,7 @@ export function EmptyState({
     >
       <div className="relative mb-6 rounded-full bg-muted/10 p-6">
         <div className="absolute inset-0 animate-pulse rounded-full bg-primary/5" />
-        {icon || <span className="text-4xl">📭</span>}
+        {icon || <Inbox className="h-10 w-10 text-muted-foreground" />}
       </div>
 
       <h3 className="mb-3 max-w-lg text-balance text-xl font-semibold text-foreground sm:text-2xl">

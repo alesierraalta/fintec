@@ -10,10 +10,11 @@ import {
   Plus,
   Minus,
   Check,
+  CheckCircle2,
+  Package,
   X,
   Wallet,
   Repeat,
-  Sparkles,
   Settings,
   AlertTriangle,
   Calendar,
@@ -38,8 +39,6 @@ const TYPE_ICONS = {
   INCOME: Plus,
   TRANSFER_OUT: Repeat,
 };
-
-import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
 
 export function MobileAddTransaction() {
   const router = useRouter();
@@ -200,7 +199,7 @@ export function MobileAddTransaction() {
             {/* Header badge */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-semibold text-primary">
-                <Sparkles className="h-4 w-4" />
+                <CheckCircle2 className="h-4 w-4" />
                 <span>Confirmación Rápida</span>
               </div>
               <span
@@ -338,8 +337,7 @@ export function MobileAddTransaction() {
                       value={acc.id}
                       className="bg-card text-foreground"
                     >
-                      {getAccountEmoji(acc.type)} {acc.name} ({acc.currencyCode}
-                      )
+                      {acc.name} ({acc.currencyCode})
                     </option>
                   ))}
                 </select>
@@ -354,35 +352,29 @@ export function MobileAddTransaction() {
               {/* Category Select */}
               <div className="space-y-1.5">
                 <label
-                  htmlFor="scan-confirm-category"
-                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                  htmlFor="mobile-scan-category"
+                  className="text-xs font-semibold text-muted-foreground"
                 >
-                  <Tag className="h-3.5 w-3.5 text-pink-400" />
-                  <span>Categoría</span>
+                  Categoría sugerida
                 </label>
                 <select
-                  id="scan-confirm-category"
+                  id="mobile-scan-category"
                   value={formData.categoryId}
                   onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      categoryId: e.target.value,
-                    }))
+                    setFormData({ ...formData, categoryId: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-xs font-medium text-foreground outline-none transition-colors focus:border-primary sm:text-sm"
+                  className="w-full rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 text-sm font-medium text-foreground backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
-                  <option value="" className="bg-card text-muted-foreground">
-                    -- Sin categoría --
+                  <option value="" className="bg-card text-foreground">
+                    Seleccionar categoría
                   </option>
-                  {getCategoriesByType(
-                    (formData.type as TransactionType) || 'EXPENSE'
-                  ).map((cat) => (
+                  {categories.map((cat) => (
                     <option
                       key={cat.id}
                       value={cat.id}
                       className="bg-card text-foreground"
                     >
-                      {getCategoryEmoji(cat.icon)} {cat.name}
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -404,7 +396,7 @@ export function MobileAddTransaction() {
               )}
               {scannedResult.items && scannedResult.items.length > 0 && (
                 <span className="inline-flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
-                  🛒 {scannedResult.items.length}{' '}
+                  {scannedResult.items.length}{' '}
                   {scannedResult.items.length === 1 ? 'artículo' : 'artículos'}
                 </span>
               )}
@@ -444,7 +436,7 @@ export function MobileAddTransaction() {
         {Boolean(scannedResult) && isDetailedFormOpen && (
           <div className="animate-in fade-in flex items-center justify-between rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-primary">
             <div className="flex items-center gap-1.5 font-medium">
-              <Sparkles className="h-3.5 w-3.5" />
+              <CheckCircle2 className="h-3.5 w-3.5" />
               <span>Modo detallado activo</span>
             </div>
             <button
@@ -559,9 +551,7 @@ export function MobileAddTransaction() {
                                 isSelected ? 'bg-white/20' : 'bg-white/10'
                               }`}
                             >
-                              <span className="text-xl">
-                                {getAccountEmoji(account.type)}
-                              </span>
+                              <Wallet className="h-5 w-5 text-white" />
                             </div>
                             <div className="flex-1 text-left">
                               <p
@@ -649,9 +639,7 @@ export function MobileAddTransaction() {
                                   isSelected ? 'bg-white/20' : 'bg-white/10'
                                 }`}
                               >
-                                <span className="text-sm">
-                                  {getCategoryEmoji(category.icon)}
-                                </span>
+                                <Tag className="h-4 w-4 text-white" />
                               </div>
                               <span
                                 className={`text-center text-xs font-medium ${
@@ -1065,7 +1053,7 @@ export function MobileAddTransaction() {
                       htmlFor="isRecurring"
                       className="font-medium text-white"
                     >
-                      🔄 Transacción Recurrente
+                      Transacción Recurrente
                     </label>
                   </div>
 
@@ -1128,7 +1116,7 @@ export function MobileAddTransaction() {
 
                       <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
                         <p className="text-sm text-blue-300">
-                          💡 Esta transacción se repetirá automáticamente cada{' '}
+                          Esta transacción se repetirá automáticamente cada{' '}
                           {formData.frequency === 'weekly'
                             ? 'semana'
                             : formData.frequency === 'monthly'

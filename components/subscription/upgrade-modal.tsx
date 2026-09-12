@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { X, BadgeCheck, Zap } from 'lucide-react';
+import { X, BadgeCheck, Zap, Check } from 'lucide-react';
 import { Modal } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
 import { useUpgrade } from '@/hooks/use-subscription';
@@ -112,7 +112,7 @@ export function UpgradeModal({
                         key={index}
                         className="flex items-start gap-1 text-xs"
                       >
-                        <span className="mt-0.5 text-primary">✓</span>
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
                         <span>{feature}</span>
                       </li>
                     ))}

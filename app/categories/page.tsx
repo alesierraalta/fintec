@@ -318,7 +318,7 @@ export default function CategoriesPage() {
           </div>
 
           <h1 className="mb-6 bg-gradient-to-r from-primary via-purple-600 to-blue-500 bg-clip-text text-4xl font-bold tracking-tight text-foreground sm:text-5xl md:text-6xl lg:text-6xl">
-            🏷️ Categorías
+            Categorías
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
             Organiza tus transacciones por categorías

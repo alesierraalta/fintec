@@ -237,7 +237,7 @@ export default function AccountsPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h4 className="text-sm font-medium text-foreground">
-              <span aria-hidden="true">📊</span> Estadísticas por Categoría
+              Estadísticas por Categoría
             </h4>
             <span className="text-xs text-muted-foreground">
               {stats.length} categorías
@@ -362,7 +362,6 @@ export default function AccountsPage() {
 
             {/* Main Title */}
             <h1 className="relative mb-3 text-4xl font-bold tracking-tight sm:mb-4 sm:text-5xl md:text-6xl lg:text-6xl">
-              <span className="mr-2">💼</span>
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mis Cuentas
               </span>
@@ -482,9 +481,9 @@ export default function AccountsPage() {
             >
               <span className="text-ios-caption font-medium text-muted-foreground">
                 {accounts.length >= 5
-                  ? '🏆 Maestro Financiero'
+                  ? 'Maestro Financiero'
                   : accounts.length >= 3
-                    ? '🥉 Organizador Avanzado'
+                    ? 'Organizador Avanzado'
                     : accounts.length >= 1
                       ? '¡Buen Comienzo!'
                       : ''}
@@ -706,7 +705,7 @@ export default function AccountsPage() {
                 animate={{ opacity: 1, scale: 1 }}
               >
                 <p className="mb-4 text-sm text-error-600 sm:text-ios-body">
-                  ❌ {error}
+                  {error}
                 </p>
                 <motion.button
                   onClick={loadAccounts}
@@ -714,7 +713,7 @@ export default function AccountsPage() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  🔄 Reintentar
+                  Reintentar
                 </motion.button>
               </motion.div>
             ) : accounts.length === 0 ? (
@@ -737,8 +736,7 @@ export default function AccountsPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.7 }}
                 >
-                  <span aria-hidden="true">🎯</span> ¡Tu Viaje Financiero
-                  Comienza Aquí!
+                  ¡Tu Viaje Financiero Comienza Aquí!
                 </motion.h3>
                 <motion.p
                   className="mx-auto mb-6 max-w-sm px-4 text-sm leading-relaxed text-muted-foreground sm:mb-8 sm:text-ios-body"
@@ -747,8 +745,7 @@ export default function AccountsPage() {
                   transition={{ delay: 0.8 }}
                 >
                   Crea tu primera cuenta para empezar a organizar tus finanzas
-                  de manera inteligente y alcanzar tus metas{' '}
-                  <span aria-hidden="true">🚀</span>
+                  de manera inteligente y alcanzar tus metas
                 </motion.p>
                 <motion.button
                   onClick={handleNewAccount}

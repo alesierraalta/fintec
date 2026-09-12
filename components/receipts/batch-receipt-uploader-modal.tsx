@@ -20,7 +20,8 @@ import {
   Eye,
   X,
   Plus,
-  Sparkles,
+  Receipt,
+  Package,
   CopyCheck,
 } from 'lucide-react';
 import { Button, Input, Select, Modal } from '@/components/ui';
@@ -729,7 +730,7 @@ export function BatchReceiptUploaderModal({
       { value: '', label: 'Seleccionar categoría...' },
       ...categories.map((c) => ({
         value: c.id,
-        label: `${c.icon || '🏷️'} ${c.name}`,
+        label: c.name,
       })),
     ];
   }, [categories]);
@@ -767,7 +768,7 @@ export function BatchReceiptUploaderModal({
         title={
           <div className="flex flex-wrap items-center gap-2 pr-8 sm:pr-0">
             <div className="flex items-center gap-2">
-              <Sparkles
+              <Receipt
                 className="h-5 w-5 shrink-0 text-indigo-500"
                 aria-hidden="true"
               />
@@ -780,7 +781,7 @@ export function BatchReceiptUploaderModal({
             </span>
           </div>
         }
-        description="Sube hasta 20 capturas de pago o facturas. La IA extraerá monto, fecha, motivo y cuenta automáticamente."
+        description="Sube hasta 20 capturas de pago o facturas. Extraeremos monto, fecha, motivo y cuenta automáticamente."
       >
         <div className="flex max-h-[80vh] flex-col">
           {/* Scrollable Content Body */}
@@ -1036,7 +1037,7 @@ export function BatchReceiptUploaderModal({
                                   item.result.items.length > 0 && (
                                     <span
                                       data-testid="batch-item-count-badge"
-                                      className="rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                                      className="inline-flex items-center gap-1 rounded-md border border-primary/20 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
                                       title={item.result.items
                                         .map(
                                           (it) =>
@@ -1044,7 +1045,8 @@ export function BatchReceiptUploaderModal({
                                         )
                                         .join(', ')}
                                     >
-                                      🛒 {item.result.items.length}{' '}
+                                      <Package className="h-3 w-3" />
+                                      {item.result.items.length}{' '}
                                       {item.result.items.length === 1
                                         ? 'artículo'
                                         : 'artículos'}

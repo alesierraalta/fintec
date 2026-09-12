@@ -1,6 +1,6 @@
 import { generateObject } from 'ai';
 import { z } from 'zod';
-import { getAIModel, AI_CONFIG } from '@/lib/ai/config';
+import { getVisionModel } from '@/lib/ai/config';
 import { CircuitBreaker } from '@/lib/ai/recovery/circuit-breaker';
 import { logger } from '@/lib/utils/logger';
 import { matchReceiptAccounts } from './account-matcher';
@@ -10,9 +10,7 @@ import type {
   ScannedReceiptType,
 } from './types';
 
-const circuitBreaker = new CircuitBreaker(
-  `${AI_CONFIG.provider}_receipt_scanner`
-);
+const circuitBreaker = new CircuitBreaker('vision_receipt_scanner');
 
 /**
  * Zod schema for structured output from the LLM
@@ -216,7 +214,7 @@ Your goal is to accurately read and classify financial transaction screenshots, 
 Always return clean, validated data. If a field is not present in the image, leave it null/undefined.`;
 
 function formatReceiptNotes(raw: RawReceiptExtraction): string {
-  const lines: string[] = ['🧾 Comprobante analizado con IA'];
+  const lines: string[] = ['Comprobante procesado'];
 
   if (raw.referenceId) {
     lines.push(`• Referencia: ${raw.referenceId}`);
@@ -286,7 +284,7 @@ export async function scanReceiptWithAI(params: {
   const { image, accounts = [], expectedType } = params;
 
   return await circuitBreaker.execute(async () => {
-    const model = getAIModel();
+    const model = getVisionModel();
 
     let userPrompt =
       'Please extract all financial transaction details from this receipt screenshot.';
@@ -307,11 +305,8 @@ export async function scanReceiptWithAI(params: {
     const result = await generateObject({
       model,
       schema: receiptExtractionSchema,
+      system: SYSTEM_INSTRUCTION,
       messages: [
-        {
-          role: 'system',
-          content: SYSTEM_INSTRUCTION,
-        },
         {
           role: 'user',
           content: [
@@ -384,7 +379,7 @@ export async function scanReceiptWithAI(params: {
           raw.paymentMethod?.toLowerCase().replace(/\s+/g, '-'),
           raw.bankOrPlatform?.toLowerCase().replace(/\s+/g, '-'),
           itemTag,
-          'comprobante-ia',
+          'comprobante-digital',
         ].filter(Boolean) as string[]
       )
     );

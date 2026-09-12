@@ -1,16 +1,15 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import { Modal } from '@/components/ui/modal';
-import {
-  AlertDialog,
-  AlertDialogContent,
-} from '@/components/ui/alert-dialog';
+import { AlertDialog, AlertDialogContent } from '@/components/ui/alert-dialog';
 import { MobileMenuToggle } from '@/app/(public)/components/mobile-menu';
 import { MobileDrawer } from '@/components/layout/mobile-drawer';
 import { TransactionDetailPanel } from '@/components/transactions/transaction-detail-panel';
 import type { TransientBackEntry } from '@/lib/navigation/transient-back-registry';
 
-const registerBack = jest.fn<(entry: TransientBackEntry) => () => void>(() => jest.fn());
+const registerBack = jest.fn<(entry: TransientBackEntry) => () => void>(() =>
+  jest.fn()
+);
 const useSidebar = jest.fn(() => ({ isMobile: true }));
 const useSubscription = jest.fn(() => ({
   isFree: false,
@@ -22,9 +21,16 @@ const useSubscription = jest.fn(() => ({
 jest.mock('@/components/providers/native-back-navigation', () => ({
   useNativeBackNavigation: () => registerBack,
 }));
-jest.mock('@/contexts/sidebar-context', () => ({ useSidebar: () => useSidebar() }));
-jest.mock('@/hooks/use-subscription', () => ({ useSubscription: () => useSubscription() }));
-jest.mock('next/navigation', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('@/contexts/sidebar-context', () => ({
+  useSidebar: () => useSidebar(),
+}));
+jest.mock('@/hooks/use-subscription', () => ({
+  useSubscription: () => useSubscription(),
+}));
+jest.mock('next/navigation', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+  usePathname: () => '/dashboard',
+}));
 jest.mock('@/lib/hooks/use-historical-rates', () => ({
   useHistoricalRates: () => ({ vesRates: { dateLabel: 'hoy' } }),
 }));
@@ -41,7 +47,11 @@ const transaction = {
 
 function expectRegistration(priority: number, id: string) {
   expect(registerBack).toHaveBeenCalledWith(
-    expect.objectContaining({ id: expect.stringMatching(id), priority, close: expect.any(Function) })
+    expect.objectContaining({
+      id: expect.stringMatching(id),
+      priority,
+      close: expect.any(Function),
+    })
   );
 }
 
@@ -54,7 +64,11 @@ describe('transient back adapters', () => {
 
   it('registers and unregisters an open modal', async () => {
     const onClose = jest.fn();
-    const view = render(<Modal open onClose={onClose} title="Modal">Content</Modal>);
+    const view = render(
+      <Modal open onClose={onClose} title="Modal">
+        Content
+      </Modal>
+    );
     await act(async () => {});
 
     expectRegistration(100, /^modal-/);
@@ -77,23 +91,27 @@ describe('transient back adapters', () => {
   });
 
   it('registers the public mobile menu only while open', async () => {
-    const view = render(<MobileMenuToggle links={[{ label: 'Inicio', href: '/' }]} />);
+    const view = render(
+      <MobileMenuToggle links={[{ label: 'Inicio', href: '/' }]} />
+    );
     expect(registerBack).not.toHaveBeenCalled();
 
     await act(async () => {
-      await screen.getByRole('button', { name: 'Abrir menú de navegación' }).click();
+      await screen
+        .getByRole('button', { name: 'Abrir menú de navegación' })
+        .click();
     });
     expectRegistration(95, /^public-mobile-menu$/);
     view.unmount();
   });
 
   it('registers the mobile drawer only while open', async () => {
-      render(<MobileDrawer open onClose={jest.fn()} />);
-      await act(async () => {});
-      expectRegistration(95, /^mobile-drawer$/);
-    });
+    render(<MobileDrawer open onClose={jest.fn()} />);
+    await act(async () => {});
+    expectRegistration(95, /^mobile-drawer$/);
+  });
 
-    it('registers an open transaction detail panel', async () => {
+  it('registers an open transaction detail panel', async () => {
     render(
       <TransactionDetailPanel
         transaction={transaction}

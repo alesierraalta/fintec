@@ -196,7 +196,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-md mb-2 font-bold text-primary">
-                    📧 ¡Verifica tu correo!
+                    ¡Verifica tu correo!
                   </h3>
                   <p className="mb-3 text-xs text-foreground/70">
                     Hemos enviado un correo a:
@@ -208,7 +208,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                     <p>• Revisa tu bandeja de entrada</p>
                     <p>• Verifica la carpeta de spam</p>
                     <p className="mt-2 font-medium text-primary/80">
-                      ⚠️ Confirmá tu email antes de ingresar
+                      Confirmá tu email antes de ingresar
                     </p>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                   visibleError.includes('Email') ? (
                     <div className="mt-3 rounded-lg border border-primary/20 bg-primary/10 p-3">
                       <p className="mb-2 text-sm font-medium text-primary">
-                        📧 ¿No recibiste el correo?
+                        ¿No recibiste el correo?
                       </p>
                       <ul className="space-y-1 pl-4 text-[11px] text-primary/80">
                         <li>• Revisa tu carpeta de spam</li>
@@ -245,7 +245,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                     </div>
                   ) : (
                     <div className="mt-3 rounded-lg border border-warning/20 bg-warning/10 p-3 text-[11px] text-warning/80">
-                      <p className="mb-1 font-medium text-warning">🔍 Tips:</p>
+                      <p className="mb-1 font-medium text-warning">Tips:</p>
                       <ul className="space-y-0.5 pl-2">
                         <li>• Revisa email y contraseña</li>
                         <li>• Asegura cuenta verificada</li>

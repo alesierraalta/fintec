@@ -10,7 +10,7 @@ import {
   useManageSubscription,
 } from '@/hooks/use-subscription';
 import { Loading } from '@/components/ui/loading';
-import { BadgeCheck, Zap, ArrowRight, Settings } from 'lucide-react';
+import { BadgeCheck, Zap, ArrowRight, Settings, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TIER_FEATURES } from '@/types/subscription';
 import type { SubscriptionStatusPayload } from '@/types/subscription';
@@ -105,7 +105,7 @@ export default function SubscriptionPageClient({
                 <div className="grid gap-2 sm:grid-cols-2">
                   {tierInfo.features.slice(0, 6).map((feature, index) => (
                     <div key={index} className="flex items-start gap-2 text-sm">
-                      <span className="mt-0.5 text-primary">✓</span>
+                      <Check className="h-4 w-4 shrink-0 text-primary" />
                       <span>{feature}</span>
                     </div>
                   ))}

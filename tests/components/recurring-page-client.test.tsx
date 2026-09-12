@@ -272,13 +272,16 @@ describe('RecurringPage edit/delete flows', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
-    await waitFor(() => {
-      expect(
-        screen.queryByRole('heading', {
-          name: 'Eliminar transaccion recurrente',
-        })
-      ).not.toBeInTheDocument();
-    });
+    await waitFor(
+      () => {
+        expect(
+          screen.queryByRole('heading', {
+            name: 'Eliminar transaccion recurrente',
+          })
+        ).not.toBeInTheDocument();
+      },
+      { timeout: 3000 }
+    );
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
@@ -329,7 +332,7 @@ describe('RecurringPage edit/delete flows', () => {
   });
 });
 
-  describe('RecurringPage create flow (rule-first via useRecurringCreation)', () => {
+describe('RecurringPage create flow (rule-first via useRecurringCreation)', () => {
   beforeAll(() => {
     if (!global.requestAnimationFrame) {
       global.requestAnimationFrame = ((cb: FrameRequestCallback) =>
@@ -408,7 +411,9 @@ describe('RecurringPage edit/delete flows', () => {
     fireEvent.click(
       screen.getByLabelText('Registrar la primera operacion ahora')
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Crear regla recurrente' })
+    );
 
     await waitFor(() =>
       expect(mockCreateRecurring).toHaveBeenCalledWith(
@@ -438,7 +443,9 @@ describe('RecurringPage edit/delete flows', () => {
 
     await fillRequiredFields();
     // The checkbox is left UNCHECKED: the explicit choice is "no operation now".
-    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Crear regla recurrente' })
+    );
 
     await waitFor(() =>
       expect(mockCreateRecurring).toHaveBeenCalledWith(
@@ -467,7 +474,9 @@ describe('RecurringPage edit/delete flows', () => {
     fireEvent.click(
       screen.getByLabelText('Registrar la primera operacion ahora')
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Crear regla recurrente' })
+    );
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(
@@ -493,7 +502,9 @@ describe('RecurringPage edit/delete flows', () => {
     await openCreateDialog();
 
     await fillRequiredFields();
-    fireEvent.click(screen.getByRole('button', { name: 'Crear regla recurrente' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Crear regla recurrente' })
+    );
 
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith(

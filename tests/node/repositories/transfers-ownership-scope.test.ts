@@ -118,6 +118,14 @@ describe('SupabaseTransfersRepository ownership scoping', () => {
         return { select: transactionsSelect };
       }
 
+      if (table === 'transfers') {
+        return {
+          select: jest.fn(() => ({
+            in: jest.fn(() => Promise.resolve({ data: [], error: null })),
+          })),
+        };
+      }
+
       throw new Error(`Unexpected table ${table}`);
     });
 

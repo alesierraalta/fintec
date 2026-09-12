@@ -1,44 +1,12 @@
 /**
  * Icon/Emoji mapping helpers for domain entities (Categories, Accounts)
+ * Cleaned up to return empty strings (emojis removed)
  */
 
-export const getCategoryEmoji = (icon?: string | null): string => {
-  if (!icon) return '💰';
-  const emojiMap: Record<string, string> = {
-    Utensils: '🍽️',
-    Car: '🚗',
-    ShoppingBag: '🛍️',
-    Music: '🎵',
-    Stethoscope: '🩺',
-    Home: '🏠',
-    Book: '📚',
-    Dumbbell: '🏋️',
-    Plane: '✈️',
-    Smartphone: '📱',
-    Calendar: '📅',
-    Banknote: '💵',
-    Heart: '❤️',
-    Zap: '⚡',
-    Building2: '🏢',
-    Receipt: '🧾',
-    Briefcase: '💼',
-    Coffee: '☕',
-    TrendingUp: '📈',
-    Gift: '🎁',
-    Star: '⭐',
-    Repeat: '🔄',
-    PiggyBank: '🐷',
-  };
-  return emojiMap[icon] || '💰';
+export const getCategoryEmoji = (_icon?: string | null): string => {
+  return '';
 };
 
-export const getAccountEmoji = (type?: string | null): string => {
-  if (!type) return '💰';
-  const emojiMap: Record<string, string> = {
-    BANK: '🏦',
-    CARD: '💳',
-    CASH: '💵',
-    INVESTMENT: '📈',
-  };
-  return emojiMap[type] || '💰';
+export const getAccountEmoji = (_type?: string | null): string => {
+  return '';
 };

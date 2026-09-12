@@ -44,10 +44,10 @@ export function PricingPreviewSection() {
       name: 'Premium IA',
       price: '$9.99',
       period: '/mes',
-      description: 'Potenciado con IA',
+      description: 'Automatizado',
       features: [
         'Todo lo de Plan Full',
-        'Categorización automática con IA',
+        'Categorización automática',
         'Predicciones y consejos',
         'Detección de anomalías',
         'Acceso a API',

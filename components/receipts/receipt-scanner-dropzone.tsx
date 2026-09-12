@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState, useId, useMemo } from 'react';
 import {
   Camera,
   Upload,
-  Sparkles,
+  Receipt,
   CheckCircle2,
   AlertCircle,
   AlertTriangle,
@@ -228,11 +228,11 @@ export function ReceiptScannerDropzone({
         >
           <div className="flex flex-col items-center justify-center gap-2 py-3">
             <div className="relative">
-              <Sparkles className="h-8 w-8 animate-spin text-primary" />
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <Loader2 className="absolute inset-0 h-8 w-8 animate-ping text-primary/30" />
             </div>
             <div className="text-sm font-semibold text-foreground">
-              Analizando captura con IA...
+              Analizando comprobante...
             </div>
             <p className="text-xs text-muted-foreground">
               Detectando montos, referencia, banco y cuentas sugeridas
@@ -379,7 +379,7 @@ export function ReceiptScannerDropzone({
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
               <div className="flex-1 space-y-0.5">
                 <span className="font-semibold text-amber-800 dark:text-amber-200">
-                  ⚠️ Posible comprobante duplicado:
+                  Posible comprobante duplicado:
                 </span>{' '}
                 <span>{duplicateMatch.reason}</span>
               </div>
@@ -543,7 +543,7 @@ export function ReceiptScannerDropzone({
             }}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:underline focus:outline-none"
           >
-            <Sparkles className="h-3.5 w-3.5" />
+            <Receipt className="h-3.5 w-3.5" />
             <span>¿Tienes varios comprobantes? Cargar en lote (hasta 20)</span>
           </button>
         </div>

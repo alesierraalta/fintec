@@ -516,9 +516,7 @@ export default function BackupsPage() {
 
         {/* Tips */}
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
-          <h3 className="mb-2 text-sm font-medium text-blue-400">
-            💡 Consejos
-          </h3>
+          <h3 className="mb-2 text-sm font-medium text-blue-400">Consejos</h3>
           <ul className="space-y-1 text-sm text-blue-300">
             <li>
               • Realiza respaldos regularmente, especialmente antes de cambios
@@ -578,7 +576,7 @@ export default function BackupsPage() {
               </div>
 
               <p className="mb-3 text-xs italic text-muted-foreground">
-                💡 Recomendación: Crea un respaldo antes de vaciar tu cuenta
+                Recomendación: Crea un respaldo antes de vaciar tu cuenta
               </p>
 
               <Button
@@ -611,7 +609,7 @@ export default function BackupsPage() {
             <div className="space-y-4">
               <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4">
                 <p className="mb-2 text-sm font-medium text-red-300">
-                  ⚠️ Esta acción NO se puede deshacer
+                  Esta acción NO se puede deshacer
                 </p>
                 <p className="text-sm text-gray-300">
                   Se eliminarán permanentemente todos tus datos financieros.

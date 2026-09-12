@@ -13,7 +13,7 @@ import {
   X,
   Wallet,
   Repeat,
-  Sparkles,
+  FileCheck,
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
@@ -37,7 +37,6 @@ import { useActiveUsdVesRate } from '@/lib/rates';
 import { useAppStore } from '@/lib/store';
 import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import { evaluateCalculatorExpression } from '@/lib/utils/evaluate-calculator-expression';
-import { getCategoryEmoji, getAccountEmoji } from '@/lib/utils/emojis';
 import { ReceiptScannerDropzone } from '@/components/receipts';
 import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 
@@ -48,21 +47,18 @@ const transactionTypes = [
     label: 'Gasto',
     icon: Minus,
     color: 'from-red-500 to-pink-600',
-    emoji: '💸',
   },
   {
     value: 'INCOME',
     label: 'Ingreso',
     icon: Plus,
     color: 'from-green-500 to-emerald-600',
-    emoji: '💰',
   },
   {
     value: 'TRANSFER_OUT',
     label: 'Transferencia',
     icon: Repeat,
     color: 'from-blue-500 to-cyan-600',
-    emoji: '🔄',
   },
 ];
 
@@ -735,9 +731,7 @@ export function DesktopAddTransaction() {
                                 isSelected ? 'bg-muted/30' : 'bg-muted/20'
                               }`}
                             >
-                              <span className="text-xl" aria-hidden="true">
-                                {getAccountEmoji(account.type)}
-                              </span>
+                              <Wallet className="h-5 w-5 text-muted-foreground" />
                             </div>
                             <div className="flex-1 text-left">
                               <p
@@ -830,9 +824,7 @@ export function DesktopAddTransaction() {
                                   isSelected ? 'bg-muted/30' : 'bg-muted/20'
                                 }`}
                               >
-                                <span className="text-lg">
-                                  {getCategoryEmoji(category.icon)}
-                                </span>
+                                <Tag className="h-4 w-4 text-muted-foreground" />
                               </div>
                               <span
                                 className={`text-center text-xs font-medium ${
@@ -984,7 +976,7 @@ export function DesktopAddTransaction() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1 rounded-md bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
-                        <Sparkles className="h-3 w-3" />
+                        <FileCheck className="h-3 w-3" />
                         Comprobante Detectado
                       </span>
                       <span className="text-base font-bold text-foreground">
@@ -1025,7 +1017,7 @@ export function DesktopAddTransaction() {
 
                 {!formData.accountId && (
                   <p className="text-xs font-medium text-amber-500">
-                    ⚠️ Selecciona una cuenta en la columna izquierda para
+                    Selecciona una cuenta en la columna izquierda para
                     confirmar.
                   </p>
                 )}
@@ -1309,7 +1301,7 @@ export function DesktopAddTransaction() {
                       htmlFor="isRecurring"
                       className="font-medium text-foreground"
                     >
-                      🔄 Transacción Recurrente
+                      Transacción Recurrente
                     </label>
                   </div>
 
@@ -1372,7 +1364,7 @@ export function DesktopAddTransaction() {
 
                       <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-3">
                         <p className="text-sm text-blue-300">
-                          💡 Esta transacción se repetirá automáticamente cada{' '}
+                          Esta transacción se repetirá automáticamente cada{' '}
                           {formData.frequency === 'weekly'
                             ? 'semana'
                             : formData.frequency === 'monthly'

@@ -13,7 +13,9 @@ jest.mock('@/lib/supabase/server', () => ({
 
 // Mock main layout
 jest.mock('@/components/layout/main-layout', () => ({
-  MainLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  MainLayout: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 // Mock chat interface to avoid loading AI SDK
@@ -40,8 +42,10 @@ describe('Chat Page - Dynamic Import', () => {
     const { default: ChatPage } = await import('@/app/chat/page');
     render(await ChatPage());
 
-    expect(screen.getByText('Asistente Financiero IA')).toBeInTheDocument();
-    expect(screen.getByText('Pregúntame sobre tus finanzas')).toBeInTheDocument();
+    expect(screen.getByText('Asistente Financiero')).toBeInTheDocument();
+    expect(
+      screen.getByText('Pregúntame sobre tus finanzas')
+    ).toBeInTheDocument();
   });
 
   it('should render the chat interface component', async () => {

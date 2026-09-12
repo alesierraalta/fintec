@@ -7,6 +7,7 @@ export type { ModelFallbackChain } from '@/lib/ai/providers';
 export {
   AIConfigurationError,
   getAIModel,
+  getVisionModel,
   getGoogleModelFallbackChain,
   getModelDisplayName,
   isQuotaExceededError,

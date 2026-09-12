@@ -3,11 +3,7 @@
 export type SubscriptionTier = 'free' | 'base' | 'premium';
 
 export type SubscriptionStatus =
-  | 'active'
-  | 'cancelled'
-  | 'past_due'
-  | 'paused'
-  | 'trialing';
+  'active' | 'cancelled' | 'past_due' | 'paused' | 'trialing';
 
 export interface Subscription {
   id: string;
@@ -122,12 +118,12 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     interval: 'month',
     features: [
       'Todo lo de Base',
-      '🤖 Categorización automática con IA',
-      '📈 Predicciones de gastos',
-      '💡 Consejos financieros personalizados',
-      '🔍 Detección de anomalías',
-      '🎯 Optimización de presupuestos',
-      '🏆 Insights de cumplimiento de metas',
+      'Categorización automática',
+      'Predicciones de gastos',
+      'Consejos financieros personalizados',
+      'Detección de anomalías',
+      'Optimización de presupuestos',
+      'Insights de cumplimiento de metas',
       'Dashboard de análisis avanzado',
       'Acceso a API',
       'Reportes con marca blanca',

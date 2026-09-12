@@ -246,7 +246,6 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
         </div>
 
         <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
-          <span className="mr-2">💰</span>
           <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
             Dashboard
           </span>

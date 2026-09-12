@@ -1,7 +1,7 @@
 'use client';
 
 import { UIMessage } from 'ai';
-import { Bot, Wrench, Check } from 'lucide-react';
+import { MessageSquare, Wrench, Check } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { BalanceCard } from './balance-card';
@@ -34,7 +34,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
       {/* Assistant Avatar */}
       {!isUser && (
         <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
-          <Bot className="h-4 w-4 text-white" aria-hidden="true" />
+          <MessageSquare className="h-4 w-4 text-white" aria-hidden="true" />
         </div>
       )}
 

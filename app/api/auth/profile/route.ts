@@ -42,7 +42,7 @@ function getWelcomeNotifications(userId: string, userName: string) {
   return [
     {
       user_id: userId,
-      title: `¡Bienvenido/a ${userName}! 🎉`,
+      title: `¡Bienvenido/a ${userName}!`,
       message:
         'Tu cuenta ha sido creada exitosamente. ¡Estás listo/a para gestionar tus finanzas de manera inteligente!',
       type: 'success' as const,
@@ -50,7 +50,7 @@ function getWelcomeNotifications(userId: string, userName: string) {
     },
     {
       user_id: userId,
-      title: 'Comienza tu viaje financiero 💰',
+      title: 'Comienza tu viaje financiero',
       message:
         'Te recomendamos empezar creando tus primeras cuentas y categorías para organizar mejor tus finanzas.',
       type: 'info' as const,
@@ -58,7 +58,7 @@ function getWelcomeNotifications(userId: string, userName: string) {
     },
     {
       user_id: userId,
-      title: 'Tutorial disponible 📚',
+      title: 'Tutorial disponible',
       message:
         'Aprende a usar todas las funciones con nuestro tutorial interactivo. ¡No te pierdas ninguna característica!',
       type: 'info' as const,

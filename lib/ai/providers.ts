@@ -239,6 +239,44 @@ export function getAIModel(): LanguageModel {
 }
 
 /**
+ * Get a multimodal vision-capable language model.
+ * If the active provider is text-only (e.g. nvidia), gracefully falls back
+ * to a configured vision provider (Google Gemini, OpenAI, or Anthropic).
+ */
+export function getVisionModel(): LanguageModel {
+  const currentProvider = (process.env.AI_PROVIDER || 'google') as AIProviderId;
+
+  // If the active provider natively supports multimodal vision and has credentials:
+  if (
+    currentProvider === 'google' &&
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  ) {
+    return createGoogleAdapter().createModel();
+  }
+  if (currentProvider === 'openai' && process.env.OPENAI_API_KEY) {
+    return createOpenAIAdapter().createModel();
+  }
+  if (currentProvider === 'anthropic' && process.env.ANTHROPIC_API_KEY) {
+    return createAnthropicAdapter().createModel();
+  }
+
+  // Active provider is text-only (such as nvidia) or lacks credentials:
+  // Fall back to the first available vision provider with credentials:
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return createGoogleAdapter().createModel();
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return createOpenAIAdapter().createModel();
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return createAnthropicAdapter().createModel();
+  }
+
+  // Default to provider adapter
+  return getProviderAdapter().createModel();
+}
+
+/**
  * Get human-readable model name for logging/display.
  */
 export function getModelDisplayName(): string {

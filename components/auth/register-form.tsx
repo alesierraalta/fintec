@@ -136,7 +136,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
             </motion.div>
 
             <h2 className="mb-4 text-3xl font-bold tracking-tight text-foreground">
-              📧 <span className="italic text-primary">Revisá</span> tu Correo
+              <span className="italic text-primary">Revisá</span> tu Correo
             </h2>
 
             <div className="mb-8 space-y-6">
@@ -292,7 +292,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
                       onClick={() => router.push('/auth/login')}
                       className="text-xs font-bold text-destructive hover:underline"
                     >
-                      💡 Ya tengo cuenta, quiero iniciar sesión
+                      Ya tengo cuenta, quiero iniciar sesión
                     </button>
                   )}
                 </div>

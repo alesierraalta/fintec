@@ -51,7 +51,7 @@ export function EmailConfirmationModal({
           </p>
           <div className="rounded-lg border border-primary/20 bg-primary/10 p-4">
             <p className="mb-2 text-sm font-medium text-primary">
-              📧 Pasos siguientes:
+              Pasos siguientes:
             </p>
             <ol className="list-inside list-decimal space-y-1 text-left text-sm text-primary">
               <li>Revisa tu bandeja de entrada</li>

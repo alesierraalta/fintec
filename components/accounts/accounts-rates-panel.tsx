@@ -40,7 +40,7 @@ function AccountsRatesPanelImpl({
               id="rates-title"
               className="text-base font-semibold text-foreground"
             >
-              💱 Tasas de Cambio
+              Tasas de Cambio
             </span>
             <span
               data-testid="selected-rate-strip"

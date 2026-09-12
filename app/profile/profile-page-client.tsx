@@ -89,7 +89,6 @@ function ProfileContent() {
             </div>
 
             <h1 className="mb-4 text-ios-large-title font-bold tracking-tight">
-              <span className="mr-2">👤</span>
               <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Mi Perfil
               </span>
