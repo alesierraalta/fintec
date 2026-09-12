@@ -765,9 +765,16 @@ export function BatchReceiptUploaderModal({
         onClose={handleModalClose}
         size="xl"
         title={
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-indigo-500" aria-hidden="true" />
-            <span>Carga de Comprobantes en Lote</span>
+          <div className="flex flex-wrap items-center gap-2 pr-8 sm:pr-0">
+            <div className="flex items-center gap-2">
+              <Sparkles
+                className="h-5 w-5 shrink-0 text-indigo-500"
+                aria-hidden="true"
+              />
+              <span className="text-base font-semibold text-foreground sm:text-lg">
+                Carga de Comprobantes en Lote
+              </span>
+            </div>
             <span className="rounded-full bg-indigo-500/10 px-2.5 py-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
               Hasta {MAX_BATCH_RECEIPTS} fotos
             </span>
