@@ -18,7 +18,7 @@ import {
   Globe,
   Database,
   BadgeCheck,
-  Rocket,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -74,7 +74,7 @@ export default function SettingsPage() {
           </div>
 
           <h1 className="mb-6 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl md:text-6xl lg:text-6xl">
-            ⚙️ Configuración
+            Configuración
           </h1>
           <p className="mb-6 font-light text-muted-foreground">
             Personaliza tu experiencia y configuraciones
@@ -385,7 +385,7 @@ export default function SettingsPage() {
             <div className="mb-6 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="rounded-lg bg-blue-500/10 p-2">
-                  <Rocket className="h-6 w-6 text-blue-500" />
+                  <RefreshCw className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-foreground">
@@ -414,21 +414,20 @@ export default function SettingsPage() {
                   </div>
                   <Button
                     size="sm"
-                    className="shrink-0"
+                    className="shrink-0 gap-1.5"
                     onClick={() => {
-                      toast.info(
-                        'Descargando actualización... Toca el archivo descargado para completar la instalación.'
-                      );
+                      toast.success('Actualizando FinTec...');
                       triggerUpdate();
                     }}
                   >
+                    <RefreshCw className="h-3.5 w-3.5" />
                     Actualizar
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center space-x-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                   <BadgeCheck className="h-4 w-4" />
-                  <span>Estás en la última versión ✓</span>
+                  <span>Estás en la última versión</span>
                 </div>
               )}
             </div>
@@ -467,7 +466,7 @@ export default function SettingsPage() {
         {/* Info Card */}
         <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-4">
           <h3 className="mb-2 text-sm font-medium text-blue-500">
-            💡 Acerca de los Respaldos Automáticos
+            Acerca de los Respaldos Automáticos
           </h3>
           <ul className="space-y-1 text-sm text-blue-600/80">
             <li>

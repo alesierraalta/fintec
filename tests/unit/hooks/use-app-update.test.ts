@@ -1,8 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { Capacitor } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { Browser } from '@capacitor/browser';
-import { useAppUpdate } from '@/hooks/use-app-update';
+import {
+  useAppUpdate,
+  APPLIED_STORAGE_KEY,
+  DISMISS_STORAGE_KEY,
+} from '@/hooks/use-app-update';
 
 jest.mock('@capacitor/core', () => ({
   Capacitor: {
@@ -16,16 +19,10 @@ jest.mock('@capacitor/app', () => ({
   },
 }));
 
-jest.mock('@capacitor/browser', () => ({
-  Browser: {
-    open: jest.fn(),
-  },
-}));
-
 describe('useAppUpdate hook', () => {
   const mockIsNativePlatform = Capacitor.isNativePlatform as jest.Mock;
   const mockGetInfo = App.getInfo as jest.Mock;
-  const mockBrowserOpen = Browser.open as jest.Mock;
+  const originalLocation = window.location;
 
   const mockVersionPayload = {
     latestVersionName: '1.0.2',
@@ -35,6 +32,27 @@ describe('useAppUpdate hook', () => {
     releaseNotes: 'Novedades: Flujo Scan-to-Confirm en 1 tap',
     publishedAt: '2026-09-12T00:00:00Z',
   };
+
+  beforeAll(() => {
+    delete (window as unknown as { location?: unknown }).location;
+    (window as unknown as { location: unknown }).location = {
+      ...originalLocation,
+      reload: jest.fn(),
+      origin: 'https://fintec.app',
+      href: 'https://fintec.app',
+    };
+
+    if (!window.URL.createObjectURL) {
+      window.URL.createObjectURL = jest.fn();
+    }
+    if (!window.URL.revokeObjectURL) {
+      window.URL.revokeObjectURL = jest.fn();
+    }
+  });
+
+  afterAll(() => {
+    (window as unknown as { location: unknown }).location = originalLocation;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -47,12 +65,24 @@ describe('useAppUpdate hook', () => {
       build: '2',
       version: '1.0.1',
     });
-    mockBrowserOpen.mockResolvedValue(undefined);
 
-    global.fetch = jest.fn().mockResolvedValue({
-      ok: true,
-      json: async () => mockVersionPayload,
-    } as unknown as Response);
+    jest
+      .spyOn(window.URL, 'createObjectURL')
+      .mockReturnValue('blob:https://fintec.app/mock-blob');
+    jest.spyOn(window.URL, 'revokeObjectURL').mockImplementation(() => {});
+
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/api/app/version')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockVersionPayload,
+        } as unknown as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        blob: async () => new Blob(['mock-apk']),
+      } as unknown as Response);
+    });
   });
 
   afterEach(() => {
@@ -98,6 +128,7 @@ describe('useAppUpdate hook', () => {
     );
     expect(result.current.apkUrl).toBe('/fintec-beta.apk');
     expect(result.current.isDismissed).toBe(false);
+    expect(result.current.isUpdating).toBe(false);
   });
 
   it('allows dismissing an update and saves to localStorage', async () => {
@@ -116,7 +147,7 @@ describe('useAppUpdate hook', () => {
     expect(result.current.hasUpdate).toBe(false);
     expect(result.current.isDismissed).toBe(true);
 
-    const stored = localStorage.getItem('fintec_app_update_dismissed');
+    const stored = localStorage.getItem(DISMISS_STORAGE_KEY);
     expect(stored).toBeTruthy();
     const parsed = JSON.parse(stored!);
     expect(parsed.versionCode).toBe(3);
@@ -126,7 +157,7 @@ describe('useAppUpdate hook', () => {
   it('recognizes recent dismissal (<24h) on initial load', async () => {
     mockIsNativePlatform.mockReturnValue(true);
     localStorage.setItem(
-      'fintec_app_update_dismissed',
+      DISMISS_STORAGE_KEY,
       JSON.stringify({
         versionCode: 3,
         dismissedAt: Date.now() - 2 * 60 * 60 * 1000, // 2h ago
@@ -147,7 +178,7 @@ describe('useAppUpdate hook', () => {
   it('ignores expired dismissal (>24h) on initial load', async () => {
     mockIsNativePlatform.mockReturnValue(true);
     localStorage.setItem(
-      'fintec_app_update_dismissed',
+      DISMISS_STORAGE_KEY,
       JSON.stringify({
         versionCode: 3,
         dismissedAt: Date.now() - 25 * 60 * 60 * 1000, // 25h ago
@@ -183,7 +214,21 @@ describe('useAppUpdate hook', () => {
     expect(result.current.updateAvailable).toBe(false);
   });
 
-  it('triggerUpdate opens native Browser on native platform', async () => {
+  it('returns hasUpdate=false and updateAvailable=false when latestBuild has already been applied', async () => {
+    mockIsNativePlatform.mockReturnValue(true);
+    localStorage.setItem(APPLIED_STORAGE_KEY, '3');
+
+    const { result } = renderHook(() => useAppUpdate());
+
+    await waitFor(() => {
+      expect(result.current.latestBuild).toBe(3);
+    });
+
+    expect(result.current.updateAvailable).toBe(false);
+    expect(result.current.hasUpdate).toBe(false);
+  });
+
+  it('triggerUpdate saves to APPLIED_STORAGE_KEY, triggers in-app reload, and does not open external browser', async () => {
     mockIsNativePlatform.mockReturnValue(true);
 
     const { result } = renderHook(() => useAppUpdate());
@@ -196,9 +241,49 @@ describe('useAppUpdate hook', () => {
       await result.current.triggerUpdate();
     });
 
-    expect(mockBrowserOpen).toHaveBeenCalledTimes(1);
-    expect(mockBrowserOpen).toHaveBeenCalledWith({
-      url: expect.stringContaining('/fintec-beta.apk'),
+    expect(localStorage.getItem(APPLIED_STORAGE_KEY)).toBe('3');
+    expect(window.location.reload).toHaveBeenCalledTimes(1);
+    expect(result.current.hasUpdate).toBe(false);
+    expect(result.current.updateAvailable).toBe(false);
+  });
+
+  it('downloadApkInApp downloads APK via blob in background without external browser', async () => {
+    mockIsNativePlatform.mockReturnValue(true);
+
+    const mockBlob = new Blob(['mock-binary-content'], {
+      type: 'application/vnd.android.package-archive',
     });
+    global.fetch = jest.fn().mockImplementation((url: string) => {
+      if (typeof url === 'string' && url.includes('/api/app/version')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => mockVersionPayload,
+        } as unknown as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        blob: async () => mockBlob,
+      } as unknown as Response);
+    });
+
+    const clickSpy = jest
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+
+    const { result } = renderHook(() => useAppUpdate());
+
+    await waitFor(() => {
+      expect(result.current.latestBuild).toBe(3);
+    });
+
+    await act(async () => {
+      await result.current.downloadApkInApp();
+    });
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/fintec-beta.apk')
+    );
+    expect(window.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
+    expect(clickSpy).toHaveBeenCalled();
   });
 });

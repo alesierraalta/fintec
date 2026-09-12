@@ -53,7 +53,7 @@ describe('SettingsPage - Versión y Actualizaciones section', () => {
     });
   });
 
-  it('displays current version and "Estás en la última versión ✓" when web/not native', () => {
+  it('displays current version and "Estás en la última versión" when web/not native', () => {
     mockUseAppUpdate.mockReturnValue({
       isNative: false,
       hasUpdate: false,
@@ -68,15 +68,13 @@ describe('SettingsPage - Versión y Actualizaciones section', () => {
     expect(screen.getByTestId('version-updates-card')).toBeInTheDocument();
     expect(screen.getByText('Versión y Actualizaciones')).toBeInTheDocument();
     expect(screen.getByText('v1.0.1')).toBeInTheDocument();
-    expect(
-      screen.getByText('Estás en la última versión ✓')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Estás en la última versión')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Actualizar/i })
     ).not.toBeInTheDocument();
   });
 
-  it('displays "Estás en la última versión ✓" when on native and up to date', () => {
+  it('displays "Estás en la última versión" when on native and up to date', () => {
     mockUseAppUpdate.mockReturnValue({
       isNative: true,
       hasUpdate: false,
@@ -89,9 +87,7 @@ describe('SettingsPage - Versión y Actualizaciones section', () => {
     render(<SettingsPage />);
 
     expect(screen.getByText('v1.0.2')).toBeInTheDocument();
-    expect(
-      screen.getByText('Estás en la última versión ✓')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Estás en la última versión')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /Actualizar/i })
     ).not.toBeInTheDocument();
@@ -119,9 +115,7 @@ describe('SettingsPage - Versión y Actualizaciones section', () => {
 
     fireEvent.click(updateButton);
 
-    expect(toast.info).toHaveBeenCalledWith(
-      'Descargando actualización... Toca el archivo descargado para completar la instalación.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Actualizando FinTec...');
     expect(mockTriggerUpdate).toHaveBeenCalledTimes(1);
   });
 });

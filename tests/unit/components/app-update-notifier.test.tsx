@@ -17,6 +17,7 @@ describe('AppUpdateNotifier Component', () => {
   const mockUseAppUpdate = useAppUpdate as jest.Mock;
   const mockDismissUpdate = jest.fn();
   const mockTriggerUpdate = jest.fn();
+  const mockDownloadApkInApp = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -29,8 +30,10 @@ describe('AppUpdateNotifier Component', () => {
       currentVersion: '1.0.1',
       latestVersion: '1.0.1',
       releaseNotes: '',
+      isUpdating: false,
       dismissUpdate: mockDismissUpdate,
       triggerUpdate: mockTriggerUpdate,
+      downloadApkInApp: mockDownloadApkInApp,
     });
 
     render(<AppUpdateNotifier />);
@@ -46,8 +49,10 @@ describe('AppUpdateNotifier Component', () => {
       currentVersion: '1.0.1',
       latestVersion: '1.0.2',
       releaseNotes: 'Test release notes',
+      isUpdating: false,
       dismissUpdate: mockDismissUpdate,
       triggerUpdate: mockTriggerUpdate,
+      downloadApkInApp: mockDownloadApkInApp,
     });
 
     render(<AppUpdateNotifier />);
@@ -64,15 +69,17 @@ describe('AppUpdateNotifier Component', () => {
       latestVersion: '1.0.2',
       releaseNotes:
         'Novedades: Flujo Scan-to-Confirm en 1 tap y cámara directa.',
+      isUpdating: false,
       dismissUpdate: mockDismissUpdate,
       triggerUpdate: mockTriggerUpdate,
+      downloadApkInApp: mockDownloadApkInApp,
     });
 
     render(<AppUpdateNotifier />);
 
     expect(screen.getByTestId('app-update-notification')).toBeInTheDocument();
     expect(
-      screen.getByText('¡Nueva versión de FinTec disponible!')
+      screen.getByText('Nueva versión de FinTec disponible')
     ).toBeInTheDocument();
     expect(screen.getByText('v1.0.2')).toBeInTheDocument();
     expect(screen.getByText(/versión actual:\s*v1\.0\.1/i)).toBeInTheDocument();
@@ -83,26 +90,28 @@ describe('AppUpdateNotifier Component', () => {
     ).toBeInTheDocument();
   });
 
-  it('triggers update and shows notification toast when "🚀 Actualizar FinTec" is clicked', () => {
+  it('triggers update and shows notification toast when update button is clicked', () => {
     mockUseAppUpdate.mockReturnValue({
       hasUpdate: true,
       isDismissed: false,
       currentVersion: '1.0.1',
       latestVersion: '1.0.2',
       releaseNotes: 'Novedades de la versión',
+      isUpdating: false,
       dismissUpdate: mockDismissUpdate,
       triggerUpdate: mockTriggerUpdate,
+      downloadApkInApp: mockDownloadApkInApp,
     });
 
     render(<AppUpdateNotifier />);
 
     const updateButton = screen.getByRole('button', {
-      name: /Actualizar FinTec/i,
+      name: /Actualizar ahora|Actualizar FinTec/i,
     });
     fireEvent.click(updateButton);
 
-    expect(toast.info).toHaveBeenCalledWith(
-      'Descargando actualización... Toca el archivo descargado para completar la instalación.'
+    expect(toast.success).toHaveBeenCalledWith(
+      'Actualizando FinTec a la versión v1.0.2...'
     );
     expect(mockTriggerUpdate).toHaveBeenCalledTimes(1);
     expect(mockDismissUpdate).not.toHaveBeenCalled();
@@ -115,8 +124,10 @@ describe('AppUpdateNotifier Component', () => {
       currentVersion: '1.0.1',
       latestVersion: '1.0.2',
       releaseNotes: 'Novedades de la versión',
+      isUpdating: false,
       dismissUpdate: mockDismissUpdate,
       triggerUpdate: mockTriggerUpdate,
+      downloadApkInApp: mockDownloadApkInApp,
     });
 
     render(<AppUpdateNotifier />);

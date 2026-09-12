@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Rocket } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAppUpdate } from '@/hooks/use-app-update';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ export function AppUpdateNotifier() {
     currentVersion,
     latestVersion,
     releaseNotes,
+    isUpdating,
     dismissUpdate,
     triggerUpdate,
   } = useAppUpdate();
@@ -22,9 +23,7 @@ export function AppUpdateNotifier() {
   }
 
   const handleUpdate = () => {
-    toast.info(
-      'Descargando actualización... Toca el archivo descargado para completar la instalación.'
-    );
+    toast.success(`Actualizando FinTec a la versión v${latestVersion}...`);
     triggerUpdate();
   };
 
@@ -36,12 +35,15 @@ export function AppUpdateNotifier() {
     >
       <div className="flex items-start gap-3">
         <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">
-          <Rocket className="h-6 w-6" aria-hidden="true" />
+          <RefreshCw
+            className={`h-6 w-6 ${isUpdating ? 'animate-spin' : ''}`}
+            aria-hidden="true"
+          />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h4 className="text-base font-semibold text-foreground">
-              ¡Nueva versión de FinTec disponible!
+              Nueva versión de FinTec disponible
             </h4>
             <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-bold text-primary">
               v{latestVersion}
@@ -60,9 +62,13 @@ export function AppUpdateNotifier() {
               size="sm"
               variant="primary"
               onClick={handleUpdate}
+              disabled={isUpdating}
               className="gap-1.5 text-xs font-semibold"
             >
-              🚀 Actualizar FinTec
+              <RefreshCw
+                className={`h-3.5 w-3.5 ${isUpdating ? 'animate-spin' : ''}`}
+              />
+              Actualizar ahora
             </Button>
             <Button
               size="sm"
