@@ -53,6 +53,8 @@
     "test:db": "cross-env BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true jest --selectProjects db --runInBand --passWithNoTests",
     "eval:baseline": "tsx evals/baseline/run-baseline.ts",
     "eval:gate": "tsx evals/gate/run-gate.ts",
+    "eval:receipts": "tsx evals/receipt-scanner/run-evals.ts",
+    "eval:receipts:generate": "tsx evals/receipt-scanner/generators/generate-dataset.ts",
     "spellcheck": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\" || true",
     "spellcheck:strict": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\"",
     "secretlint": "secretlint \"{app,components,hooks,lib,repositories,tests,docs}/**/*\" --secretlintignore .secretlintignore",

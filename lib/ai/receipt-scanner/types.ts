@@ -78,8 +78,18 @@ export interface ScannedReceiptResult {
   formattedNotes: string;
   tags: string[];
 
+  /** Optional itemized line items extracted from invoices or physical receipts */
+  items?: ReceiptLineItem[];
+
   /** Image metadata if available */
   receiptImageUrl?: string;
+}
+
+export interface ReceiptLineItem {
+  description: string;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  totalPrice?: number | null;
 }
 
 export interface ScanReceiptRequest {

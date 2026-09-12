@@ -1,5 +1,11 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  fireEvent,
+  within,
+  waitFor,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { DesktopAddTransaction } from '@/components/transactions/desktop-add-transaction';
 import { useRepository } from '@/providers';
@@ -76,8 +82,40 @@ jest.mock('@/lib/hotkeys', () => ({
   useFormShortcuts: jest.fn(),
 }));
 
+jest.mock('@/lib/finance/financial-data-sync', () => ({
+  runFinancialMutation: jest.fn(async ({ mutation }: any) => {
+    return await mutation();
+  }),
+}));
+
 jest.mock('@/components/forms/category-form', () => ({
   CategoryForm: () => <div data-testid="category-form" />,
+}));
+
+jest.mock('@/components/receipts', () => ({
+  ReceiptScannerDropzone: ({ onScanSuccess, onReset }: any) => (
+    <div data-testid="mock-receipt-scanner">
+      <button
+        data-testid="simulate-desktop-scan"
+        onClick={() =>
+          onScanSuccess({
+            type: 'EXPENSE',
+            amount: 80,
+            currency: 'USD',
+            suggestedDescription: 'Restaurante',
+            suggestedCategoryName: 'Restaurante',
+            suggestedAccountId: 'acc-1',
+            referenceId: 'DESK-123',
+          })
+        }
+      >
+        Simulate Scan
+      </button>
+      <button data-testid="simulate-desktop-reset" onClick={() => onReset?.()}>
+        Simulate Reset
+      </button>
+    </div>
+  ),
 }));
 
 describe('DesktopAddTransaction recurring pre-selection', () => {
@@ -110,5 +148,69 @@ describe('DesktopAddTransaction recurring pre-selection', () => {
 
     expect(mockReplace).toHaveBeenCalledWith('/transfers');
     expect(mockRepository.transactions.create).not.toHaveBeenCalled();
+  });
+
+  it('renders confirmation banner when receipt is scanned and submits transaction', async () => {
+    mockRepository.accounts.findByUserId.mockResolvedValueOnce([
+      {
+        id: 'acc-1',
+        name: 'Banesco USD',
+        currencyCode: 'USD',
+        active: true,
+        balance: 100,
+      },
+    ]);
+    mockRepository.categories.findAll.mockResolvedValueOnce([
+      { id: 'cat-1', name: 'Restaurante', kind: 'EXPENSE', active: true },
+    ]);
+    mockRepository.transactions.create.mockResolvedValueOnce({ id: 'tx-1' });
+
+    render(<DesktopAddTransaction />);
+
+    // Wait for accounts and categories to load
+    await waitFor(() => {
+      expect(mockRepository.categories.findAll).toHaveBeenCalled();
+      expect(mockRepository.accounts.findByUserId).toHaveBeenCalled();
+    });
+
+    // Initially no scan banner
+    expect(
+      screen.queryByTestId('desktop-scan-confirm-banner')
+    ).not.toBeInTheDocument();
+
+    // Trigger scan
+    fireEvent.click(screen.getByTestId('simulate-desktop-scan'));
+
+    // Scan banner should be displayed
+    const banner = await screen.findByTestId('desktop-scan-confirm-banner');
+    expect(banner).toBeInTheDocument();
+    expect(within(banner).getByText('80 USD')).toBeInTheDocument();
+    expect(within(banner).getByText(/Restaurante/i)).toBeInTheDocument();
+    expect(within(banner).getByText(/Ref: #DESK-123/i)).toBeInTheDocument();
+
+    // Confirm button in banner
+    const confirmBtn = screen.getByRole('button', {
+      name: /Confirmar y Guardar/i,
+    });
+    expect(confirmBtn).toBeInTheDocument();
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
+      expect(mockRepository.transactions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'EXPENSE',
+          amountMinor: 8000,
+          currencyCode: 'USD',
+          description: 'Restaurante',
+          accountId: 'acc-1',
+        })
+      );
+    });
+
+    // Resetting receipt clears the banner
+    fireEvent.click(screen.getByTestId('simulate-desktop-reset'));
+    expect(
+      screen.queryByTestId('desktop-scan-confirm-banner')
+    ).not.toBeInTheDocument();
   });
 });

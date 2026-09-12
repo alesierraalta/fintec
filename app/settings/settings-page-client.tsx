@@ -6,6 +6,7 @@ import { MainLayout } from '@/components/layout/main-layout';
 import { Button } from '@/components/ui';
 import { useAutoBackup } from '@/hooks/use-auto-backup';
 import { useSubscription } from '@/hooks/use-subscription';
+import { useAppUpdate } from '@/hooks/use-app-update';
 import {
   Shield,
   Clock,
@@ -17,6 +18,7 @@ import {
   Globe,
   Database,
   BadgeCheck,
+  Rocket,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,7 +27,17 @@ export default function SettingsPage() {
   const { settings, updateSettings, performAutoBackup, isBackupDue } =
     useAutoBackup();
   const { tier, isPremium, isOwnerAdmin } = useSubscription();
+  const {
+    isNative,
+    hasUpdate,
+    updateAvailable,
+    currentVersion,
+    latestVersion,
+    triggerUpdate,
+  } = useAppUpdate();
   const [loading, setLoading] = useState(false);
+
+  const isUpdateAvailable = isNative && (updateAvailable || hasUpdate);
 
   const handleFrequencyChange = (frequency: 'daily' | 'weekly' | 'monthly') => {
     updateSettings({ frequency });
@@ -362,6 +374,63 @@ export default function SettingsPage() {
                   Próximamente disponible
                 </p>
               </div>
+            </div>
+          </div>
+
+          {/* Version and Updates */}
+          <div
+            className="rounded-xl border border-border bg-card p-6"
+            data-testid="version-updates-card"
+          >
+            <div className="mb-6 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="rounded-lg bg-blue-500/10 p-2">
+                  <Rocket className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-foreground">
+                    Versión y Actualizaciones
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Estado y versión de la aplicación
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
+                v{currentVersion || '1.0.1'}
+              </span>
+            </div>
+
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+              {isUpdateAvailable ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">
+                      Actualización disponible: v{latestVersion}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Hay una nueva versión lista para instalar.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="shrink-0"
+                    onClick={() => {
+                      toast.info(
+                        'Descargando actualización... Toca el archivo descargado para completar la instalación.'
+                      );
+                      triggerUpdate();
+                    }}
+                  >
+                    Actualizar
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                  <BadgeCheck className="h-4 w-4" />
+                  <span>Estás en la última versión ✓</span>
+                </div>
+              )}
             </div>
           </div>
 

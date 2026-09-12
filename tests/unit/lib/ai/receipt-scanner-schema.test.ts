@@ -115,4 +115,124 @@ describe('receiptExtractionSchema', () => {
       expect(parsed.data.referenceId).toBe('22928458552938688512');
     }
   });
+
+  it('validates an itemized supermarket/grocery purchase with line items and basket category inference', () => {
+    const rawData = {
+      type: 'EXPENSE',
+      confidence: 'HIGH',
+      amount: 850.0,
+      currency: 'VES',
+      date: '2026-09-11',
+      time: '17:15',
+      referenceId: '00091823',
+      paymentMethod: 'Punto de Venta',
+      counterpartyName: 'INVERSIONES Y COMERCIAL 2024 C.A.',
+      counterpartyId: 'J-50192847-9',
+      suggestedMotive:
+        'Mercado en INVERSIONES Y COMERCIAL 2024 C.A. (4 artículos)',
+      suggestedCategory: 'Alimentación',
+      items: [
+        {
+          description: 'HARINA PAN 1KG',
+          quantity: 2,
+          unitPrice: 60.0,
+          totalPrice: 120.0,
+        },
+        {
+          description: 'QUESO BLANCO 500G',
+          quantity: 1,
+          unitPrice: 250.0,
+          totalPrice: 250.0,
+        },
+        {
+          description: 'LECHE ENTERA 1L',
+          quantity: 2,
+          unitPrice: 80.0,
+          totalPrice: 160.0,
+        },
+        {
+          description: 'CAFE MOLIDO 250G',
+          quantity: 1,
+          unitPrice: 200.0,
+          totalPrice: 200.0,
+        },
+      ],
+      tags: ['punto-de-venta', 'factura-detallada', 'comprobante-ia'],
+    };
+
+    const parsed = receiptExtractionSchema.safeParse(rawData);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.type).toBe('EXPENSE');
+      expect(parsed.data.suggestedCategory).toBe('Alimentación');
+      expect(parsed.data.items).toHaveLength(4);
+      expect(parsed.data.items[0]).toEqual({
+        description: 'HARINA PAN 1KG',
+        quantity: 2,
+        unitPrice: 60.0,
+        totalPrice: 120.0,
+      });
+      expect(parsed.data.suggestedMotive).toContain('Mercado');
+    }
+  });
+
+  it('accepts null and zero values for line item quantity, unitPrice, and totalPrice', () => {
+    const rawData = {
+      type: 'EXPENSE',
+      amount: 100.0,
+      currency: 'VES',
+      date: '2026-09-11',
+      items: [
+        {
+          description: 'Promo Item',
+          quantity: null,
+          unitPrice: 0,
+          totalPrice: 0,
+        },
+        {
+          description: 'Unspecified Item',
+          quantity: 1,
+          unitPrice: null,
+          totalPrice: null,
+        },
+      ],
+    };
+
+    const parsed = receiptExtractionSchema.safeParse(rawData);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.items).toHaveLength(2);
+      expect(parsed.data.items[0]).toEqual({
+        description: 'Promo Item',
+        quantity: null,
+        unitPrice: 0,
+        totalPrice: 0,
+      });
+      expect(parsed.data.items[1]).toEqual({
+        description: 'Unspecified Item',
+        quantity: 1,
+        unitPrice: null,
+        totalPrice: null,
+      });
+    }
+  });
+
+  it('rejects negative prices or zero quantity in line items', () => {
+    const invalidData = {
+      type: 'EXPENSE',
+      amount: 100.0,
+      currency: 'VES',
+      date: '2026-09-11',
+      items: [
+        {
+          description: 'Invalid Item',
+          quantity: 0, // Must be positive if provided
+          unitPrice: -5.0, // Must be non-negative
+        },
+      ],
+    };
+
+    const parsed = receiptExtractionSchema.safeParse(invalidData);
+    expect(parsed.success).toBe(false);
+  });
 });

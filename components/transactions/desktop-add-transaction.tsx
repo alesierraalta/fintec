@@ -13,10 +13,12 @@ import {
   X,
   Wallet,
   Repeat,
+  Sparkles,
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { useModal } from '@/hooks';
+import { useOptimizedData } from '@/hooks/use-optimized-data';
 import { TRANSFER_FLOW_PATH } from '@/hooks/use-transaction-form';
 import {
   CreateTransactionDTO,
@@ -82,6 +84,7 @@ export function DesktopAddTransaction() {
   const searchParams = useSearchParams();
   const repository = useRepository();
   const { user } = useAuth();
+  const { transactions: userTransactions } = useOptimizedData();
   const { addNotification } = useNotifications();
   const {
     isOpen: isCategoryModalOpen,
@@ -94,6 +97,8 @@ export function DesktopAddTransaction() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [error, setError] = useState<string>('');
+  const [scannedResult, setScannedResult] =
+    useState<ScannedReceiptResult | null>(null);
   const [formData, setFormData] = useState({
     type: '' as TransactionType | '',
     accountId: '',
@@ -119,6 +124,7 @@ export function DesktopAddTransaction() {
   const selectedRateSource = useAppStore((s) => s.selectedRateSource);
 
   const handleReceiptScanSuccess = (result: ScannedReceiptResult) => {
+    setScannedResult(result);
     setFormData((prev) => {
       let nextType = prev.type;
       if (result.type === 'EXPENSE') nextType = TransactionType.EXPENSE;
@@ -584,6 +590,7 @@ export function DesktopAddTransaction() {
               currencyCode: a.currencyCode,
               type: a.type,
             }))}
+            existingTransactions={userTransactions}
             expectedType={
               formData.type === 'INCOME'
                 ? 'INCOME'
@@ -592,6 +599,7 @@ export function DesktopAddTransaction() {
                   : undefined
             }
             onScanSuccess={handleReceiptScanSuccess}
+            onReset={() => setScannedResult(null)}
             onTransferRedirect={(result) => {
               const query = new URLSearchParams({
                 amount: result.amount ? result.amount.toString() : '',
@@ -966,6 +974,64 @@ export function DesktopAddTransaction() {
 
           {/* Right Column - Details */}
           <div className="space-y-6">
+            {/* Scanned Receipt Direct Confirmation Banner */}
+            {scannedResult && (
+              <div
+                data-testid="desktop-scan-confirm-banner"
+                className="transition-ios animate-in fade-in space-y-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 shadow-ios-lg backdrop-blur-xl duration-200"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-primary/20 px-2 py-0.5 text-xs font-semibold text-primary">
+                        <Sparkles className="h-3 w-3" />
+                        Comprobante Detectado
+                      </span>
+                      <span className="text-base font-bold text-foreground">
+                        {formData.amount || scannedResult.amount}{' '}
+                        {formData.accountId
+                          ? accounts.find((a) => a.id === formData.accountId)
+                              ?.currencyCode
+                          : scannedResult.currency}
+                      </span>
+                    </div>
+
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {formData.description ||
+                        scannedResult.suggestedDescription ||
+                        'Sin descripción'}
+                      {scannedResult.referenceId &&
+                        ` • Ref: #${scannedResult.referenceId}`}
+                      {formData.date && ` • ${formData.date}`}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={loading || !formData.accountId}
+                    className="flex shrink-0 items-center gap-1.5 rounded-xl bg-success px-4 py-2 text-sm font-bold text-white shadow-md transition-all hover:bg-success/90 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4" />
+                        <span>Confirmar y Guardar</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {!formData.accountId && (
+                  <p className="text-xs font-medium text-amber-500">
+                    ⚠️ Selecciona una cuenta en la columna izquierda para
+                    confirmar.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <FileText
@@ -1263,9 +1329,7 @@ export function DesktopAddTransaction() {
                             setFormData({
                               ...formData,
                               frequency: e.target.value as
-                                | 'weekly'
-                                | 'monthly'
-                                | 'yearly',
+                                'weekly' | 'monthly' | 'yearly',
                             })
                           }
                           className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"

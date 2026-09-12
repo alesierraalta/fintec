@@ -1,6 +1,20 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ReceiptScannerDropzone } from '@/components/receipts/receipt-scanner-dropzone';
+
+const mockToast = {
+  error: jest.fn(),
+  info: jest.fn(),
+  success: jest.fn(),
+};
+
+jest.mock('sonner', () => ({
+  toast: {
+    error: (...args: any[]) => mockToast.error(...args),
+    info: (...args: any[]) => mockToast.info(...args),
+    success: (...args: any[]) => mockToast.success(...args),
+  },
+}));
 
 // Mock the hook to test the component behavior and accessibility
 const mockScanFile = jest.fn();
@@ -107,5 +121,193 @@ describe('ReceiptScannerDropzone', () => {
     fireEvent.click(closeBtn);
 
     expect(mockReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders detected line items when scannedResult contains items', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 7,
+      currency: 'USD',
+      confidence: 0.95,
+      items: [
+        {
+          description: 'Harina PAN',
+          quantity: 2,
+          unitPrice: 1.5,
+          totalPrice: 3,
+        },
+        { description: 'Queso Blanco', quantity: 1, totalPrice: 4 },
+      ],
+    };
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    expect(screen.getByTestId('detected-line-items')).toBeInTheDocument();
+    expect(screen.getByText(/2 artículos detectados/i)).toBeInTheDocument();
+    expect(screen.getByText(/Harina PAN/i)).toBeInTheDocument();
+    expect(screen.getByText(/Queso Blanco/i)).toBeInTheDocument();
+  });
+
+  it('renders line items with null or undefined totalPrice without crashing', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 15,
+      currency: 'USD',
+      confidence: 0.95,
+      items: [
+        { description: 'Item with null price', quantity: 1, totalPrice: null },
+        {
+          description: 'Item with undefined price',
+          quantity: null,
+          totalPrice: undefined,
+        },
+      ],
+    };
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    expect(screen.getByTestId('detected-line-items')).toBeInTheDocument();
+    expect(screen.getByText(/2 artículos detectados/i)).toBeInTheDocument();
+    expect(screen.getByText(/Item with null price/i)).toBeInTheDocument();
+    expect(screen.getByText(/Item with undefined price/i)).toBeInTheDocument();
+  });
+
+  it('renders direct camera input with capture="environment" and triggers it on camera button click', () => {
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const cameraInput = screen.getByTestId(
+      'camera-file-input'
+    ) as HTMLInputElement;
+    expect(cameraInput).toBeInTheDocument();
+    expect(cameraInput).toHaveAttribute('capture', 'environment');
+    expect(cameraInput).toHaveAttribute('type', 'file');
+
+    const clickSpy = jest.spyOn(cameraInput, 'click');
+    const cameraBtn = screen.getByTestId('camera-button');
+    fireEvent.click(cameraBtn);
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('reads clipboard image and processes file when clipboard button is clicked', async () => {
+    const fakeBlob = new Blob(['image-content'], { type: 'image/png' });
+    const mockClipboardItem = {
+      types: ['image/png'],
+      getType: jest.fn().mockResolvedValue(fakeBlob),
+    };
+
+    Object.assign(navigator, {
+      clipboard: {
+        read: jest.fn().mockResolvedValue([mockClipboardItem]),
+      },
+    });
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const clipBtn = screen.getByTestId('clipboard-button');
+    fireEvent.click(clipBtn);
+
+    await waitFor(() => {
+      expect(mockScanFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'image/png',
+        })
+      );
+    });
+  });
+
+  it('shows error toast when clipboard contains no images', async () => {
+    const mockClipboardItem = {
+      types: ['text/plain'],
+      getType: jest.fn(),
+    };
+
+    Object.assign(navigator, {
+      clipboard: {
+        read: jest.fn().mockResolvedValue([mockClipboardItem]),
+      },
+    });
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const clipBtn = screen.getByTestId('clipboard-button');
+    fireEvent.click(clipBtn);
+
+    await waitFor(() => {
+      expect(mockToast.error).toHaveBeenCalledWith(
+        'No se encontró ninguna imagen en el portapapeles'
+      );
+    });
+  });
+
+  it('opens lightbox preview modal when thumbnail is clicked, allows zoom in/out/reset, and closes', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 45,
+      currency: 'USD',
+      referenceId: 'REF-789',
+    };
+    mockHookState.previewUrl = 'blob:http://localhost/mock-receipt.jpg';
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const thumbnail = screen.getByTestId('receipt-thumbnail-preview');
+    expect(thumbnail).toBeInTheDocument();
+
+    // Open lightbox
+    fireEvent.click(thumbnail);
+
+    const modal = screen.getByTestId('receipt-lightbox-modal');
+    expect(modal).toBeInTheDocument();
+    expect(screen.getByText('Ref: #REF-789')).toBeInTheDocument();
+
+    const zoomInBtn = screen.getByRole('button', { name: /Acercar zoom/i });
+    const zoomOutBtn = screen.getByRole('button', { name: /Alejar zoom/i });
+    const resetZoomBtn = screen.getByRole('button', {
+      name: /Restablecer zoom/i,
+    });
+    const closeBtn = screen.getByRole('button', {
+      name: /Cerrar vista previa/i,
+    });
+
+    // Test zoom controls
+    fireEvent.click(zoomInBtn);
+    fireEvent.click(zoomOutBtn);
+    fireEvent.click(resetZoomBtn);
+
+    // Close modal via close button
+    fireEvent.click(closeBtn);
+    expect(
+      screen.queryByTestId('receipt-lightbox-modal')
+    ).not.toBeInTheDocument();
+
+    // Reopen and test close via Escape key
+    fireEvent.click(thumbnail);
+    expect(screen.getByTestId('receipt-lightbox-modal')).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(
+      screen.queryByTestId('receipt-lightbox-modal')
+    ).not.toBeInTheDocument();
+  });
+
+  it('calls onReset callback when receipt is dismissed', () => {
+    const onResetMock = jest.fn();
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 10,
+      currency: 'USD',
+    };
+
+    render(
+      <ReceiptScannerDropzone onScanSuccess={jest.fn()} onReset={onResetMock} />
+    );
+
+    const closeBtn = screen.getByRole('button', {
+      name: /Quitar comprobante/i,
+    });
+    fireEvent.click(closeBtn);
+
+    expect(mockReset).toHaveBeenCalledTimes(1);
+    expect(onResetMock).toHaveBeenCalledTimes(1);
   });
 });

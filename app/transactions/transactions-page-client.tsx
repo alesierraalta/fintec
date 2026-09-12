@@ -38,6 +38,7 @@ import {
   ArrowRight,
   Search,
   X,
+  Receipt,
 } from 'lucide-react';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
 import { CollapsibleSection } from '@/components/ui/collapsible-section';
@@ -52,6 +53,14 @@ const TransactionForm = dynamic(
       (mod) => mod.TransactionForm
     ),
   { loading: () => <FormLoading />, ssr: false }
+);
+
+const BatchReceiptUploaderModal = dynamic(
+  () =>
+    import('@/components/receipts').then(
+      (mod) => mod.BatchReceiptUploaderModal
+    ),
+  { ssr: false }
 );
 
 const ITEMS_PER_PAGE = 50;
@@ -90,6 +99,7 @@ export default function TransactionsPage() {
       ? (typeParam as TransactionType)
       : null;
   const { isOpen, openModal, closeModal } = useModal();
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const {
     transactions,
     accounts,
@@ -515,7 +525,18 @@ export default function TransactionsPage() {
             title="Transacciones"
             subtitle="Controla todos tus ingresos y gastos"
             actions={
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsBatchModalOpen(true)}
+                  className="ios-button-secondary flex items-center gap-2"
+                  aria-label="Cargar lote de comprobantes"
+                >
+                  <Receipt className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Lote de Comprobantes</span>
+                  <span className="sm:hidden">Lote</span>
+                </Button>
                 <Button
                   type="button"
                   onClick={handleNewTransaction}
@@ -1008,6 +1029,16 @@ export default function TransactionsPage() {
             transaction={selectedTransaction}
             onSuccess={handleTransactionUpdated}
             type={(selectedTransaction?.type || 'EXPENSE') as TransactionType}
+          />
+        )}
+
+        {isBatchModalOpen && (
+          <BatchReceiptUploaderModal
+            isOpen={isBatchModalOpen}
+            onClose={() => setIsBatchModalOpen(false)}
+            accounts={accounts}
+            categories={categories}
+            existingTransactions={transactions}
           />
         )}
 
