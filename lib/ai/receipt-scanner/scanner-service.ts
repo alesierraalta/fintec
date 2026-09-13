@@ -21,7 +21,7 @@ export const receiptExtractionSchema = z.object({
   type: z
     .enum(['EXPENSE', 'INCOME', 'TRANSFER'])
     .describe(
-      'Transaction type: EXPENSE if paid/debited/sent, INCOME if received/credited, TRANSFER if exchanging between currencies/accounts (e.g. Binance P2P buying or selling USDT, crypto conversion, or bank account transfer)'
+      'Transaction type: EXPENSE if money left your account (paid/debited/sent/transferido a otro). INCOME if money entered your account (received/credited/abono/pago recibido). TRANSFER ONLY for cross-currency exchanges: Binance P2P, crypto-to-fiat conversions, or multi-currency swaps. IMPORTANT: A Venezuelan Pago Móvil or bank wire received IS INCOME, not TRANSFER. A Pago Móvil or bank wire sent IS EXPENSE, not TRANSFER.'
     ),
   confidence: z.enum(['HIGH', 'MEDIUM', 'LOW']).default('HIGH'),
   amount: z
@@ -222,8 +222,17 @@ const SYSTEM_INSTRUCTION = `You are a financial receipt, invoice, and screenshot
 
 Your goal is to accurately read and classify financial transaction screenshots, such as:
 1. Venezuelan Pago Móvil receipts (Banco de Venezuela BDV, Banesco, Mercantil, Provincial BBVA, BNC, Bancaribe, Bancamiga, etc.).
-   - If the receipt says "Operación exitosa", "Transferido a", "Débito", "Pago realizado", "Monto debitado", classify as EXPENSE.
-   - If the receipt says "Crédito", "Abono", "Pago móvil recibido", "Has recibido un pago", classify as INCOME.
+   - EXPENSE signals (money LEFT your account — you sent / you paid):
+     "Operación exitosa", "Transferido a", "Débito", "Pago realizado", "Monto debitado",
+     "Ha realizado una transferencia", "Transferencia enviada", "Pago efectuado",
+     "Usted transfirió", "Monto enviado", "Pagado a".
+   - INCOME signals (money ENTERED your account — you received):
+     "Crédito", "Abono", "Pago móvil recibido", "Has recibido un pago",
+     "Transferencia recibida", "Ha recibido", "Abono a su cuenta",
+     "Comprobante de depósito", "Pago recibido de", "Le han enviado".
+   - ⚠️ CRITICAL: A bank-to-bank transfer screenshot IS **INCOME** (if received) or **EXPENSE** (if sent).
+     It is NEVER a "TRANSFER" — TRANSFER is reserved exclusively for cross-currency exchanges
+     (e.g. Binance P2P, crypto conversions). Do NOT classify a Mercantil/BDV/Banesco wire as TRANSFER.
    - Currency is usually VES (Bolívares / Bs.).
    - Look for: Número de referencia, Fecha y hora, Banco emisor, Banco destino, Cédula/RIF, Teléfono, Monto.
 

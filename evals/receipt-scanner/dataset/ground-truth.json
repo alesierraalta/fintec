@@ -883,5 +883,41 @@
       "isFinancial": true,
       "difficulty": "hard"
     }
+  },
+  {
+    "id": "pagomovil-mercantil-income-01",
+    "name": "Mercantil Transferencia Recibida (INCOME)",
+    "category": "pagomovil",
+    "difficulty": "hard",
+    "imageFileName": "pagomovil-mercantil-income-01.png",
+    "description": "Mercantil bank transfer receipt showing money received into account — must be classified INCOME not TRANSFER",
+    "expected": {
+      "type": "INCOME",
+      "amountMinor": 120000,
+      "currency": "VES",
+      "referenceNumber": "38210947",
+      "paymentMethod": "Transferencia Bancaria",
+      "bankName": "Banco Mercantil",
+      "isFinancial": true,
+      "difficulty": "hard"
+    }
+  },
+  {
+    "id": "pagomovil-bdv-income-01",
+    "name": "BDV Pago Móvil Recibido (INCOME)",
+    "category": "pagomovil",
+    "difficulty": "hard",
+    "imageFileName": "pagomovil-bdv-income-01.png",
+    "description": "BDV Pago Móvil receipt confirming money received — must be INCOME not TRANSFER",
+    "expected": {
+      "type": "INCOME",
+      "amountMinor": 50000,
+      "currency": "VES",
+      "referenceNumber": "90123456",
+      "paymentMethod": "Pago Móvil",
+      "bankName": "Banco de Venezuela",
+      "isFinancial": true,
+      "difficulty": "hard"
+    }
   }
 ]

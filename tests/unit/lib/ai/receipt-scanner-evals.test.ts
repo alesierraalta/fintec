@@ -205,4 +205,77 @@ describe('Receipt Scanner Evals & Fiscal Taxonomy Suite', () => {
       expect(match.suggestedCategoryName).toBe('Servicios Básicos');
     });
   });
+
+  // ─── Regression: Venezuelan bank received-transfer misclassification ──────────
+  // Bug: Uploading a Mercantil received-transfer receipt was classified as TRANSFER
+  // (cross-currency exchange) instead of INCOME. Root cause: system prompt described
+  // TRANSFER as "bank account transfer" which triggered false classification.
+  // Fix: Updated schema type description + strengthened system prompt section 1.
+  describe('Regression: received bank-transfer must be INCOME, never TRANSFER', () => {
+    it('ground-truth.json includes at least one INCOME pagomovil case', () => {
+      expect(fs.existsSync(GT_PATH)).toBe(true);
+      const cases: ReceiptEvalCase[] = JSON.parse(
+        fs.readFileSync(GT_PATH, 'utf8')
+      );
+      const incomePagemovil = cases.filter(
+        (c) => c.category === 'pagomovil' && c.expected.type === 'INCOME'
+      );
+      expect(incomePagemovil.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('ground-truth.json contains pagomovil-mercantil-income-01 case typed as INCOME', () => {
+      const cases: ReceiptEvalCase[] = JSON.parse(
+        fs.readFileSync(GT_PATH, 'utf8')
+      );
+      const mercantilIncome = cases.find(
+        (c) => c.id === 'pagomovil-mercantil-income-01'
+      );
+      expect(mercantilIncome).toBeDefined();
+      expect(mercantilIncome?.expected.type).toBe('INCOME');
+    });
+
+    it('ground-truth.json contains pagomovil-bdv-income-01 case typed as INCOME', () => {
+      const cases: ReceiptEvalCase[] = JSON.parse(
+        fs.readFileSync(GT_PATH, 'utf8')
+      );
+      const bdvIncome = cases.find((c) => c.id === 'pagomovil-bdv-income-01');
+      expect(bdvIncome).toBeDefined();
+      expect(bdvIncome?.expected.type).toBe('INCOME');
+    });
+
+    it('scanner-service schema type description does not mention "bank account transfer" as TRANSFER', () => {
+      const scannerPath = path.resolve(
+        process.cwd(),
+        'lib/ai/receipt-scanner/scanner-service.ts'
+      );
+      const src = fs.readFileSync(scannerPath, 'utf8');
+      // The ambiguous phrase that caused the regression must not be present
+      expect(src).not.toContain(
+        'TRANSFER if exchanging between currencies/accounts (e.g. Binance P2P buying or selling USDT, crypto conversion, or bank account transfer)'
+      );
+    });
+
+    it('scanner-service system prompt contains INCOME signals for Venezuelan banks', () => {
+      const scannerPath = path.resolve(
+        process.cwd(),
+        'lib/ai/receipt-scanner/scanner-service.ts'
+      );
+      const src = fs.readFileSync(scannerPath, 'utf8');
+      // Must have explicit income signals list
+      expect(src).toContain('Transferencia recibida');
+      expect(src).toContain('Ha recibido');
+      expect(src).toContain('Pago recibido de');
+      // Must warn that bank wires are never TRANSFER
+      expect(src).toContain('TRANSFER is reserved exclusively for cross-currency exchanges');
+    });
+
+    it('scanner-service system prompt explicitly guards against misclassifying bank wires as TRANSFER', () => {
+      const scannerPath = path.resolve(
+        process.cwd(),
+        'lib/ai/receipt-scanner/scanner-service.ts'
+      );
+      const src = fs.readFileSync(scannerPath, 'utf8');
+      expect(src).toContain('Do NOT classify a Mercantil/BDV/Banesco wire as TRANSFER');
+    });
+  });
 });
