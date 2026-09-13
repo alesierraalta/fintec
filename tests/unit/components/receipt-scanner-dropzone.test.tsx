@@ -328,59 +328,106 @@ describe('ReceiptScannerDropzone', () => {
     expect(categoryBadge).toHaveTextContent('Coincidencia canasta básica');
   });
 
-  it('does NOT render suggested category badge when transaction is a TRANSFER', () => {
+  it('renders the transfer badge and redirect for a genuine TRANSFER result', () => {
     mockHookState.scannedResult = {
       type: 'TRANSFER',
       amount: 100,
       currency: 'VES',
       suggestedCategoryName: 'Alimentación', // Even if provided somehow
     };
+    const onTransferRedirect = jest.fn();
 
-    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+    render(
+      <ReceiptScannerDropzone
+        onScanSuccess={jest.fn()}
+        onTransferRedirect={onTransferRedirect}
+      />
+    );
 
+    const badge = screen.getByText('Transferencia');
+    expect(badge).toBeInTheDocument();
+    expect(badge).toHaveClass('bg-blue-500/10');
     expect(
       screen.queryByTestId('detected-category-badge')
     ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: /Ir a Transferencias/i })
+    );
+    expect(onTransferRedirect).toHaveBeenCalledWith(
+      mockHookState.scannedResult
+    );
   });
 
-  it('does NOT render suggested category badge when expectedType is TRANSFER', () => {
+  it('does NOT render categories or redirect for expected TRANSFER with a non-transfer result', () => {
     mockHookState.scannedResult = {
       type: 'EXPENSE',
       amount: 100,
       currency: 'VES',
       suggestedCategoryName: 'Alimentación',
     };
+    const onTransferRedirect = jest.fn();
 
     render(
       <ReceiptScannerDropzone
         expectedType="TRANSFER"
         onScanSuccess={jest.fn()}
+        onTransferRedirect={onTransferRedirect}
       />
     );
 
     expect(
       screen.queryByTestId('detected-category-badge')
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Ir a Transferencias/i })
+    ).not.toBeInTheDocument();
+    expect(onTransferRedirect).not.toHaveBeenCalled();
   });
 
-  it('renders Transferencia badge when expectedType is TRANSFER and scanned type is EXPENSE', () => {
-    mockHookState.scannedResult = {
-      type: 'EXPENSE',
-      amount: 21.17,
-      currency: 'VES',
-      suggestedCategoryName: 'Alimentación',
-    };
+  it.each(['EXPENSE', 'INCOME'] as const)(
+    'renders a blue Transferencia badge when expectedType is TRANSFER and scanned type is %s',
+    (type) => {
+      mockHookState.scannedResult = {
+        type,
+        amount: 21.17,
+        currency: 'VES',
+        suggestedCategoryName: 'Alimentación',
+      };
 
-    render(
-      <ReceiptScannerDropzone
-        expectedType="TRANSFER"
-        onScanSuccess={jest.fn()}
-      />
-    );
+      render(
+        <ReceiptScannerDropzone
+          expectedType="TRANSFER"
+          onScanSuccess={jest.fn()}
+        />
+      );
 
-    expect(screen.getByText('Transferencia')).toBeInTheDocument();
-    expect(screen.queryByText('Gasto')).not.toBeInTheDocument();
-  });
+      const badge = screen.getByText('Transferencia');
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveClass('bg-blue-500/10');
+      expect(screen.queryByText('Gasto')).not.toBeInTheDocument();
+      expect(screen.queryByText('Ingreso')).not.toBeInTheDocument();
+    }
+  );
+
+  it.each([
+    ['EXPENSE', 'Gasto'],
+    ['INCOME', 'Ingreso'],
+  ] as const)(
+    'preserves the standard %s badge outside transfer context',
+    (type, label) => {
+      mockHookState.scannedResult = {
+        type,
+        amount: 21.17,
+        currency: 'VES',
+      };
+
+      render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+      expect(screen.getByText(label)).toBeInTheDocument();
+      expect(screen.queryByText('Transferencia')).not.toBeInTheDocument();
+    }
+  );
 
   it('renders fiscal invoice breakdown badge with subtotal, IVA, and IGTF', () => {
     mockHookState.scannedResult = {
