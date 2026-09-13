@@ -1,7 +1,7 @@
 # Test plan — Receipt Scanner & Account Resolution AI
 
 Created: 2026-09-11 · Last updated: 2026-09-13 · Plan path: `docs/testing/test-plan.md` · Sandbox: scratchpad/isolated-suite · Findings precision: 10 / 10
-Baseline: `HEAD` · untracked files: 28 · fingerprint: `rdd-plus-verified-20260911`
+Baseline: `HEAD` (commit `0bcd078`) · untracked files: 28 · fingerprint: `rdd-plus-verified-20260913`
 
 ## Inventory
 
@@ -46,6 +46,7 @@ sibling in the layer sweep name that sibling in "Sibling skill".
 | Mobile FAB Stacking & Geometry                 | High         | Fixed              | FAB covered or clipped by footer due to z-index and safe-area calculation | `floating-action-button.test.tsx`, `mobile-fab-stacking.spec.ts` | Component / E2E | L4          | `exploit-testing`             | probe   | done   |
 | Mobile Drawer Performance & Compositor Offload | High         | Fixed              | Frame drop / GPU thermal throttling / CPU jank on mobile                  | mobile-drawer-performance-exploit.test.tsx                       | Component       | L5          | exploit-testing               | probe   | done   |
 | Page Navigation Latency & Route Guards         | High         | Fixed              | Outbound Supabase network timeout during server-component route hops      | `page-load-performance.spec.ts`                                  | Component / E2E | L5          | `runtime-reliability-testing` | probe   | done   |
+| INCOME vs TRANSFER Misclassification           | High         | Fixed              | Venezuelan received bank wires (Mercantil/BDV) classified as TRANSFER     | `receipt-scanner-evals.test.ts`                                  | Unit            | L1          | `exploit-testing`             | probe   | done   |
 
 Verdicts: probe · pin · none. Statuses: pending · in progress · done · blocked · n/a.
 A `none` verdict is created with status `n/a`; the execution ratio excludes `n/a` rows.
@@ -95,6 +96,34 @@ denominator entirely; the `Skill` cell only labels the rows still owed. In a pla
 | Test | Behavior pinned | Believed correct? | Promote or delete after the change |
 | ---- | --------------- | ----------------- | ---------------------------------- |
 
+## Regression fix: INCOME vs TRANSFER misclassification (2026-09-13)
+
+**Commit**: `0bcd078` · **File**: `lib/ai/receipt-scanner/scanner-service.ts`
+
+**Root cause**: Zod schema `type.describe()` included `'bank account transfer'` as a TRANSFER case.
+The LLM inferred that received Mercantil/BDV pagomovil transfers were TRANSFER (between the user's
+own accounts) rather than INCOME (money received from a third party).
+
+**Fixes applied**:
+
+1. **Schema type description rewritten** — `TRANSFER` now = ONLY cross-currency exchanges (e.g. USDT → VES via Binance P2P); received bank wires are explicitly excluded.
+2. **System prompt section 1 expanded** — added explicit INCOME signal keywords (pagomovil recibido, transferencia recibida, abono en cuenta) and a `⚠️ CRITICAL` guard preventing bank wire receipts from being classified as TRANSFER.
+
+**Verification gates** (all must be green before merging any change to `scanner-service.ts`):
+
+| Gate | Where | What to check | Must pass |
+| ---- | ----- | ------------- | --------- |
+| Unit regression (6 tests) | `tests/unit/lib/ai/receipt-scanner-evals.test.ts` · describe block `Regression: received bank-transfer must be INCOME, never TRANSFER` | pagomovil-mercantil-income-01, pagomovil-bdv-income-01 and 4 supporting cases all return `type: INCOME` | ✅ 6/6 |
+| Full eval suite (16 tests) | `tests/unit/lib/ai/receipt-scanner-evals.test.ts` | All 16 eval cases green, including 2 new INCOME pagomovil hard cases | ✅ 16/16 |
+| Eval dataset size | `lib/ai/receipt-scanner/evals/` | 32 cases total (including pagomovil-mercantil-income-01 + pagomovil-bdv-income-01) | ✅ 32 cases |
+| Schema conformance | `scanner-service.ts` `type` field `.describe()` string | Must NOT contain `'bank account transfer'` | ✅ clean |
+| System prompt INCOME guard | `scanner-service.ts` system prompt section 1 | Must contain INCOME signal keywords AND `CRITICAL` warning against classifying bank wires as TRANSFER | ✅ present |
+
+**New eval cases** (difficulty: hard):
+
+- `pagomovil-mercantil-income-01` — Pago Móvil received from Mercantil → expected `INCOME`
+- `pagomovil-bdv-income-01` — Pago Móvil received from BDV → expected `INCOME`
+
 ## Execution log
 
 | Date       | Target                                         | Rung reached | Findings (path:line)                                                                 | Promoted tests                                                        | Evidence (ledger id)       | Notes                                                 |
@@ -113,6 +142,7 @@ denominator entirely; the `Skill` cell only labels the rows still owed. In a pla
 | 2026-09-12 | Mobile FAB Stacking & Geometry                 | L4           | components/ui/floating-action-button.tsx:100, hooks/use-mobile-chrome-geometry.ts:35 | `floating-action-button.test.tsx`, `mobile-fab-stacking.spec.ts`      | ev-13, ev-14               | 3/3 unit tests passing, E2E geometry verified         |
 | 2026-09-13 | Mobile Drawer Performance & Compositor Offload | L5           | components/layout/mobile-drawer.tsx:81                                               | `mobile-drawer-performance-exploit.test.tsx`                          | ev-15                      | 10/10 exploit ladder tests passing, zero blur filters |
 | 2026-09-13 | Page Navigation Latency & Route Guards         | L5           | app/_lib/require-authenticated-user.ts:10                                            | `page-load-performance.spec.ts`                                       | ev-20                      | E2E soft navigation avg 236ms, JS heap delta 0.00MB   |
+| 2026-09-13 | INCOME vs TRANSFER Misclassification           | L1           | lib/ai/receipt-scanner/scanner-service.ts (schema type.describe + system prompt)    | `receipt-scanner-evals.test.ts`                                       | ev-21                      | 16/16 tests passing; 6 regression + 10 prior eval     |
 
 ## Findings
 
@@ -144,6 +174,7 @@ test and says so in its name. A finding that never got a test stays `open`, reas
 | f-11 | hooks/use-mobile-chrome-geometry.ts:35 Early return on SSR mount missed dynamically mounted MobileNav                                       | High                         | yes        | ev-14       | `mobile-fab-stacking.spec.ts`              | fixed  | dev / 2026-09-12  | added MutationObserver fallback to attach when nav enters DOM          | clean                              |
 | f-12 | components/layout/mobile-drawer.tsx:81 backdrop-blur-xl and framer-motion spring caused GPU rasterization jank on mobile WebViews           | High                         | yes        | ev-15       | mobile-drawer-performance-exploit.test.tsx | fixed  | dev / 2026-09-13  | replaced with transform-gpu pure CSS transitions and solid backdrop    | clean                              |
 | f-16 | app/_lib/require-authenticated-user.ts:10 requireAuthenticatedUser awaited Supabase getUser network call before evaluating auth bypass flag | High                         | yes        | ev-20       | `page-load-performance.spec.ts`            | fixed  | dev / 2026-09-13  | evaluated isFrontendAuthBypassEnabled first, avoiding network timeouts | clean                              |
+| f-17 | lib/ai/receipt-scanner/scanner-service.ts Zod type.describe() listed 'bank account transfer' as TRANSFER case — LLM misclassified Mercantil/BDV received wires as TRANSFER instead of INCOME | High | yes | ev-21 | `receipt-scanner-evals.test.ts :: Regression: received bank-transfer must be INCOME, never TRANSFER` | fixed | dev / 2026-09-13 | (1) Rewrote schema type.describe — TRANSFER = ONLY cross-currency exchanges; (2) Expanded system prompt with INCOME keywords + ⚠️ CRITICAL guard; (3) 6-test regression suite, 2 new eval cases (pagomovil-mercantil-income-01, pagomovil-bdv-income-01) | clean |
 
 Statuses: open · confirmed · fixed · rejected · wontfix.
 
@@ -177,6 +208,7 @@ One row per `observado` conclusion (`references/evidence.md`). `razonado` items 
 | ev-14 | Playwright E2E verifies physical geometry clearance >= 8px                                                                           | true     | Mobile Chrome Pixel 5 on `/` and `/transactions`   | fabBounds.y + height <= navBounds.y - 8px, click navigates        | Negative control: without safe area, FAB sat at Y=84px while nav was Y=102px | `mobile-fab-stacking.spec.ts`              | observado                                 |
 | ev-15 | Mobile drawer uses hardware-accelerated CSS and unmounts cleanly with 0 backdrop-blur                                                | true     | Rapid toggle & DOM inspection                      | transform-gpu present, backdrop-blur absent, 0 DOM nodes on close | Negative control: before fix, glass-card and framer-motion were present      | mobile-drawer-performance-exploit.test.tsx | observado                                 |
 | ev-20 | Server component route transitions fast-path auth bypass with 0ms network timeout                                                    | true     | 18 page transitions across main routes             | Soft navigation avg 236ms, P50 217ms, JS heap delta 0.00MB        | Negative control: before fix, getUser network wait spiked latencies >1200ms  | `page-load-performance.spec.ts`            | observado                                 |
+| ev-21 | Received Venezuelan bank wires (Mercantil pagomovil, BDV pagomovil) must be classified as INCOME, never TRANSFER                     | true     | pagomovil-mercantil-income-01, pagomovil-bdv-income-01 eval cases; 6-test regression suite | All 6 regression tests pass; INCOME type returned; schema type.describe() no longer mentions 'bank account transfer' | Negative control: before fix, both receipts returned type: TRANSFER due to ambiguous Zod describe() | `receipt-scanner-evals.test.ts :: Regression: received bank-transfer must be INCOME, never TRANSFER` | observado                                 |
 
 ### Hypotheses (razonado)
 
