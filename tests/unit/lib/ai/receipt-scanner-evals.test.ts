@@ -25,7 +25,24 @@ describe('Receipt Scanner Evals & Fiscal Taxonomy Suite', () => {
     const rawData = fs.readFileSync(GT_PATH, 'utf8');
     const cases: ReceiptEvalCase[] = JSON.parse(rawData);
 
-    expect(cases.length).toBeGreaterThanOrEqual(30);
+    expect(cases.length).toBeGreaterThanOrEqual(32);
+
+    // Verify every case has ALL required non-optional fields per ReceiptEvalCase + ReceiptGroundTruthExpected
+    const REQUIRED_CASE_FIELDS = [
+      'id', 'name', 'category', 'imageFileName', 'description', 'difficulty', 'expected',
+    ] as const;
+    const REQUIRED_EXPECTED_FIELDS = [
+      'type', 'amountMinor', 'currency', 'referenceNumber', 'paymentMethod', 'bankName', 'isFinancial',
+    ] as const;
+
+    for (const c of cases) {
+      for (const field of REQUIRED_CASE_FIELDS) {
+        expect(c).toHaveProperty(field);
+      }
+      for (const field of REQUIRED_EXPECTED_FIELDS) {
+        expect(c.expected).toHaveProperty(field);
+      }
+    }
 
     // Verify paper-thermal-pos-01 (Farmacia SENIAT)
     const farmaciaCase = cases.find((c) => c.id === 'paper-thermal-pos-01');
