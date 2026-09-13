@@ -363,6 +363,25 @@ describe('ReceiptScannerDropzone', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('renders Transferencia badge when expectedType is TRANSFER and scanned type is EXPENSE', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 21.17,
+      currency: 'VES',
+      suggestedCategoryName: 'Alimentación',
+    };
+
+    render(
+      <ReceiptScannerDropzone
+        expectedType="TRANSFER"
+        onScanSuccess={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('Transferencia')).toBeInTheDocument();
+    expect(screen.queryByText('Gasto')).not.toBeInTheDocument();
+  });
+
   it('renders fiscal invoice breakdown badge with subtotal, IVA, and IGTF', () => {
     mockHookState.scannedResult = {
       type: 'EXPENSE',

@@ -199,6 +199,11 @@ export function ReceiptScannerDropzone({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLightboxOpen]);
 
+  // The result badge follows the active flow: a scan taken inside the transfer
+  // flow reads as a transfer even when the AI classifies the receipt as EXPENSE.
+  const isTransferContext =
+    scannedResult?.type === 'TRANSFER' || expectedType === 'TRANSFER';
+
   return (
     <div className={`w-full ${className}`}>
       <input
@@ -285,7 +290,7 @@ export function ReceiptScannerDropzone({
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span
                     className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold ${
-                      scannedResult.type === 'TRANSFER'
+                      isTransferContext
                         ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                         : scannedResult.type === 'EXPENSE'
                           ? 'bg-red-500/10 text-red-600 dark:text-red-400'
@@ -293,7 +298,7 @@ export function ReceiptScannerDropzone({
                     }`}
                   >
                     <CheckCircle2 className="h-3 w-3" />
-                    {scannedResult.type === 'TRANSFER'
+                    {isTransferContext
                       ? 'Transferencia'
                       : scannedResult.type === 'EXPENSE'
                         ? 'Gasto'
