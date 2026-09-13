@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react';
 import type {
   AccountCandidate,
+  CategoryCandidate,
   ScannedReceiptResult,
   ScannedReceiptType,
   ScanReceiptResponse,
@@ -12,6 +13,7 @@ import { logger } from '@/lib/utils/logger';
 
 export interface UseReceiptScannerOptions {
   accounts?: AccountCandidate[];
+  categories?: CategoryCandidate[];
   expectedType?: ScannedReceiptType;
   onScanSuccess?: (result: ScannedReceiptResult) => void;
   onScanError?: (error: string) => void;
@@ -86,7 +88,8 @@ export async function compressImage(
 }
 
 export function useReceiptScanner(options: UseReceiptScannerOptions = {}) {
-  const { accounts, expectedType, onScanSuccess, onScanError } = options;
+  const { accounts, categories, expectedType, onScanSuccess, onScanError } =
+    options;
 
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,6 +121,7 @@ export function useReceiptScanner(options: UseReceiptScannerOptions = {}) {
           body: JSON.stringify({
             image: compressedBase64,
             accounts,
+            categories,
             expectedType,
           }),
         });
@@ -155,7 +159,7 @@ export function useReceiptScanner(options: UseReceiptScannerOptions = {}) {
         setIsScanning(false);
       }
     },
-    [accounts, expectedType, onScanSuccess, onScanError]
+    [accounts, categories, expectedType, onScanSuccess, onScanError]
   );
 
   const reset = useCallback(() => {

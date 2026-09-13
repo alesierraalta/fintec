@@ -104,6 +104,22 @@ describe('/api/ai/scan-receipt API Route', () => {
           },
         ]),
       },
+      categories: {
+        findActive: jest.fn().mockResolvedValue([
+          {
+            id: 'cat-1',
+            name: 'Alimentación',
+            kind: 'EXPENSE',
+            active: true,
+          },
+          {
+            id: 'cat-2',
+            name: 'Salario',
+            kind: 'INCOME',
+            active: true,
+          },
+        ]),
+      },
     } as any);
   });
 
@@ -218,8 +234,48 @@ describe('/api/ai/scan-receipt API Route', () => {
         { id: 'acc-1', name: 'Banesco', currencyCode: 'VES', type: 'CHECKING' },
         { id: 'acc-2', name: 'Zelle USD', currencyCode: 'USD', type: 'WALLET' },
       ],
+      categories: [
+        {
+          id: 'cat-1',
+          name: 'Alimentación',
+          kind: 'EXPENSE',
+          description: undefined,
+          icon: undefined,
+        },
+        {
+          id: 'cat-2',
+          name: 'Salario',
+          kind: 'INCOME',
+          description: undefined,
+          icon: undefined,
+        },
+      ],
       expectedType: 'EXPENSE',
     });
+  });
+
+  it('passes client-provided categories directly without repository fallback', async () => {
+    const customCategories = [
+      { id: 'custom-1', name: 'Farmacia', kind: 'EXPENSE' as const },
+    ];
+
+    const req = new Request('http://localhost:3000/api/ai/scan-receipt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image:
+          'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        categories: customCategories,
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect(mockScanReceiptWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: customCategories,
+      })
+    );
   });
 
   it('returns 500 when scanReceiptWithAI encounters an error', async () => {

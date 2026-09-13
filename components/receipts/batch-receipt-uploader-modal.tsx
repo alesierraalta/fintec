@@ -340,6 +340,14 @@ export function BatchReceiptUploaderModal({
           type: a.type,
         }));
 
+        const categoryCandidates = categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          kind: (c.kind === 'INCOME' ? 'INCOME' : 'EXPENSE') as
+            'INCOME' | 'EXPENSE',
+          icon: c.icon,
+        }));
+
         const response = await fetch('/api/ai/scan-receipt', {
           method: 'POST',
           headers: {
@@ -348,6 +356,7 @@ export function BatchReceiptUploaderModal({
           body: JSON.stringify({
             image: compressedBase64,
             accounts: accountCandidates,
+            categories: categoryCandidates,
           }),
         });
 
@@ -368,10 +377,11 @@ export function BatchReceiptUploaderModal({
         }
 
         const result = resData.data;
-        const matchedCategory = findMatchingCategory(
-          result.suggestedCategoryName,
-          categories
-        );
+        const matchedCategory =
+          result.suggestedCategoryId &&
+          categories.some((c) => c.id === result.suggestedCategoryId)
+            ? result.suggestedCategoryId
+            : findMatchingCategory(result.suggestedCategoryName, categories);
         const matchedAccount = findMatchingAccount(result, accounts);
 
         const detectedCurrency =

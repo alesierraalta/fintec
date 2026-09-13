@@ -14,6 +14,7 @@ import {
   Wallet,
   Repeat,
   FileCheck,
+  Receipt,
 } from 'lucide-react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
@@ -127,7 +128,12 @@ export function DesktopAddTransaction() {
       if (result.type === 'INCOME') nextType = TransactionType.INCOME;
 
       let matchedCategoryId = prev.categoryId;
-      if (result.suggestedCategoryName) {
+      if (
+        result.suggestedCategoryId &&
+        categories.some((c) => c.id === result.suggestedCategoryId)
+      ) {
+        matchedCategoryId = result.suggestedCategoryId;
+      } else if (result.suggestedCategoryName) {
         const norm = result.suggestedCategoryName.toLowerCase();
         const targetKind =
           nextType === TransactionType.INCOME ? 'INCOME' : 'EXPENSE';
@@ -586,6 +592,13 @@ export function DesktopAddTransaction() {
               currencyCode: a.currencyCode,
               type: a.type,
             }))}
+            categories={categories.map((c) => ({
+              id: c.id,
+              name: c.name,
+              kind: (c.kind === 'INCOME' ? 'INCOME' : 'EXPENSE') as
+                'INCOME' | 'EXPENSE',
+              icon: c.icon,
+            }))}
             existingTransactions={userTransactions}
             expectedType={
               formData.type === 'INCOME'
@@ -996,6 +1009,23 @@ export function DesktopAddTransaction() {
                         ` • Ref: #${scannedResult.referenceId}`}
                       {formData.date && ` • ${formData.date}`}
                     </p>
+                    {scannedResult.taxAmount !== undefined &&
+                      scannedResult.taxAmount !== null && (
+                        <div className="mt-1">
+                          <span
+                            data-testid="desktop-tax-badge"
+                            className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-0.5 font-mono text-[11px] text-muted-foreground"
+                          >
+                            <Receipt className="h-3 w-3 text-primary" />
+                            IVA
+                            {scannedResult.taxRate
+                              ? ` (${scannedResult.taxRate}%)`
+                              : ''}
+                            : {scannedResult.taxAmount.toFixed(2)}{' '}
+                            {scannedResult.currency}
+                          </span>
+                        </div>
+                      )}
                   </div>
 
                   <button

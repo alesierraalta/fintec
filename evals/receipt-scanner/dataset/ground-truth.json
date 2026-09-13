@@ -14,8 +14,52 @@
       "paymentMethod": "Pago Móvil",
       "bankName": "Banco de Venezuela",
       "isFinancial": true,
-      "difficulty": "easy"
-    }
+      "difficulty": "easy",
+      "suggestedCategory": "Alimentación",
+      "expectedCategoryId": "cat-food"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "pagomovil-bdv-02",
@@ -32,8 +76,52 @@
       "paymentMethod": "Pago Móvil",
       "bankName": "Banco de Venezuela",
       "isFinancial": true,
-      "difficulty": "easy"
-    }
+      "difficulty": "easy",
+      "suggestedCategory": "Salud",
+      "expectedCategoryId": "cat-health"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "pagomovil-banesco-fee-01",
@@ -52,8 +140,52 @@
       "paymentMethod": "Pago Móvil",
       "bankName": "Banesco",
       "isFinancial": true,
-      "difficulty": "medium"
-    }
+      "difficulty": "medium",
+      "suggestedCategory": "Servicios",
+      "expectedCategoryId": "cat-services"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "pagomovil-mercantil-01",
@@ -168,8 +300,51 @@
       "paymentMethod": "Binance P2P",
       "bankName": null,
       "isFinancial": true,
-      "difficulty": "easy"
-    }
+      "difficulty": "easy",
+      "expectedCategoryId": "cat-sales"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "p2p-zinli-01",
@@ -225,8 +400,56 @@
       "itemsExpected": true,
       "minItemCount": 3,
       "isFinancial": true,
-      "difficulty": "medium"
-    }
+      "difficulty": "medium",
+      "expectedCategoryId": "cat-health",
+      "subtotalMinor": 28000,
+      "taxAmountMinor": 4480,
+      "taxRate": 16,
+      "invoiceNumber": "00049281",
+      "taxId": "J-00020202-1"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "paper-dual-currency-seniat-01",
@@ -247,8 +470,57 @@
       "itemsExpected": true,
       "minItemCount": 3,
       "isFinancial": true,
-      "difficulty": "hard"
-    }
+      "difficulty": "hard",
+      "expectedCategoryId": "cat-food",
+      "subtotalMinor": 2000,
+      "taxAmountMinor": 320,
+      "taxRate": 16,
+      "igtfAmountMinor": 60,
+      "invoiceNumber": "00084920",
+      "taxId": "J-40192847-1"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "paper-generic-merchant-groceries-01",
@@ -268,8 +540,55 @@
       "itemsExpected": true,
       "minItemCount": 4,
       "isFinancial": true,
-      "difficulty": "medium"
-    }
+      "difficulty": "medium",
+      "expectedCategoryId": "cat-food",
+      "subtotalMinor": 73000,
+      "taxAmountMinor": 12000,
+      "invoiceNumber": "00091823",
+      "taxId": "J-50192847-9"
+    },
+    "candidateCategories": [
+      {
+        "id": "cat-food",
+        "name": "Alimentación y Comidas",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-health",
+        "name": "Salud y Farmacia",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-services",
+        "name": "Servicios Básicos",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-transport",
+        "name": "Transporte y Movilidad",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-entertainment",
+        "name": "Entretenimiento y Ocio",
+        "kind": "EXPENSE"
+      },
+      {
+        "id": "cat-salary",
+        "name": "Nómina y Salario",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-freelance",
+        "name": "Honorarios Profesionales",
+        "kind": "INCOME"
+      },
+      {
+        "id": "cat-sales",
+        "name": "Ventas y Comercio",
+        "kind": "INCOME"
+      }
+    ]
   },
   {
     "id": "ambiguous-banesco-balances-01",

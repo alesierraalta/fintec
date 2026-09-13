@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { scanReceiptWithAI } from '@/lib/ai/receipt-scanner/scanner-service';
 import type {
   AccountCandidate,
+  CategoryCandidate,
   ScannedReceiptType,
 } from '@/lib/ai/receipt-scanner/types';
 import { createServerAppRepository } from '@/repositories/factory';
@@ -42,6 +43,7 @@ export async function POST(req: Request) {
     // 3. Parse input (supports JSON or FormData)
     let image: string = '';
     let accounts: AccountCandidate[] = [];
+    let categories: CategoryCandidate[] = [];
     let expectedType: ScannedReceiptType | undefined;
 
     const contentType = req.headers.get('content-type') || '';
@@ -50,6 +52,7 @@ export async function POST(req: Request) {
       const formData = await req.formData();
       const file = formData.get('file') as File | null;
       const accountsJson = formData.get('accounts') as string | null;
+      const categoriesJson = formData.get('categories') as string | null;
       const expectedTypeRaw = formData.get('expectedType') as string | null;
 
       if (!file) {
@@ -95,6 +98,13 @@ export async function POST(req: Request) {
           // Ignore parse error and fall back to repository
         }
       }
+      if (categoriesJson) {
+        try {
+          categories = JSON.parse(categoriesJson);
+        } catch {
+          // Ignore parse error and fall back to repository
+        }
+      }
       if (expectedTypeRaw) {
         expectedType = expectedTypeRaw as ScannedReceiptType;
       }
@@ -111,6 +121,7 @@ export async function POST(req: Request) {
 
       image = json?.image;
       accounts = Array.isArray(json?.accounts) ? json.accounts : [];
+      categories = Array.isArray(json?.categories) ? json.categories : [];
       expectedType = json?.expectedType;
     }
 
@@ -157,10 +168,11 @@ export async function POST(req: Request) {
       expectedType = undefined;
     }
 
-    // 4. If accounts not provided by client, load active accounts from repository
+    // 4. If accounts or categories not provided by client, load active records from repository
+    let repo: ReturnType<typeof createServerAppRepository> | null = null;
     if (!accounts || accounts.length === 0) {
       try {
-        const repo = createServerAppRepository({ supabase });
+        repo = repo ?? createServerAppRepository({ supabase });
         const userAccounts = await repo.accounts.findByUserId(user.id);
         accounts = userAccounts
           .filter((a) => a.active)
@@ -178,10 +190,30 @@ export async function POST(req: Request) {
       }
     }
 
+    if (!categories || categories.length === 0) {
+      try {
+        repo = repo ?? createServerAppRepository({ supabase });
+        const userCategories = await repo.categories.findActive();
+        categories = (userCategories || []).map((c) => ({
+          id: c.id,
+          name: c.name,
+          kind: (c.kind === 'INCOME' ? 'INCOME' : 'EXPENSE') as
+            'INCOME' | 'EXPENSE',
+          icon: c.icon,
+        }));
+      } catch (err) {
+        logger.warn(
+          '[ReceiptScanner] Could not load categories from server repo:',
+          err
+        );
+      }
+    }
+
     // 5. Run AI Vision Scanner
     const scannedData = await scanReceiptWithAI({
       image,
       accounts,
+      categories,
       expectedType,
     });
 

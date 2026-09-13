@@ -2,6 +2,7 @@ import { chromium } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { ReceiptEvalCase } from '../types';
+import type { CategoryCandidate } from '@/lib/ai/receipt-scanner/types';
 import {
   renderBDVPagoMovil,
   renderBanescoPagoMovil,
@@ -25,6 +26,17 @@ import {
   renderAdversarialNonFinancial,
   renderAdversarialPromptInjection,
 } from './templates';
+
+const DEFAULT_CANDIDATE_CATEGORIES: CategoryCandidate[] = [
+  { id: 'cat-food', name: 'Alimentación y Comidas', kind: 'EXPENSE' },
+  { id: 'cat-health', name: 'Salud y Farmacia', kind: 'EXPENSE' },
+  { id: 'cat-services', name: 'Servicios Básicos', kind: 'EXPENSE' },
+  { id: 'cat-transport', name: 'Transporte y Movilidad', kind: 'EXPENSE' },
+  { id: 'cat-entertainment', name: 'Entretenimiento y Ocio', kind: 'EXPENSE' },
+  { id: 'cat-salary', name: 'Nómina y Salario', kind: 'INCOME' },
+  { id: 'cat-freelance', name: 'Honorarios Profesionales', kind: 'INCOME' },
+  { id: 'cat-sales', name: 'Ventas y Comercio', kind: 'INCOME' },
+];
 
 const DATASET_DIR = path.resolve(
   process.cwd(),
@@ -76,6 +88,7 @@ async function main() {
       imageFileName: 'pagomovil-bdv-01.png',
       description:
         'Banco de Venezuela standard mobile receipt for 1,450.00 VES',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 145000,
@@ -83,6 +96,8 @@ async function main() {
         referenceNumber: '0028491823',
         paymentMethod: 'Pago Móvil',
         bankName: 'Banco de Venezuela',
+        suggestedCategory: 'Alimentación',
+        expectedCategoryId: 'cat-food',
         isFinancial: true,
         difficulty: 'easy',
       },
@@ -94,6 +109,7 @@ async function main() {
       difficulty: 'easy',
       imageFileName: 'pagomovil-bdv-02.png',
       description: 'BDV Pago Móvil with decimals: 380.50 VES',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 38050,
@@ -101,6 +117,8 @@ async function main() {
         referenceNumber: '0019283741',
         paymentMethod: 'Pago Móvil',
         bankName: 'Banco de Venezuela',
+        suggestedCategory: 'Salud',
+        expectedCategoryId: 'cat-health',
         isFinancial: true,
         difficulty: 'easy',
       },
@@ -112,6 +130,7 @@ async function main() {
       difficulty: 'medium',
       imageFileName: 'pagomovil-banesco-fee-01.png',
       description: 'Banesco receipt with explicit 0.3% commission breakdown',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 320960,
@@ -121,6 +140,8 @@ async function main() {
         referenceNumber: '04928172',
         paymentMethod: 'Pago Móvil',
         bankName: 'Banesco',
+        suggestedCategory: 'Servicios',
+        expectedCategoryId: 'cat-services',
         isFinancial: true,
         difficulty: 'medium',
       },
@@ -291,6 +312,7 @@ async function main() {
       imageFileName: 'paper-thermal-pos-01.png',
       description:
         'Thermal paper fiscal receipt with 16% IVA and 324.80 VES total',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 32480,
@@ -299,6 +321,12 @@ async function main() {
         paymentMethod: 'Punto de Venta',
         bankName: null,
         suggestedCategory: 'Salud',
+        expectedCategoryId: 'cat-health',
+        subtotalMinor: 28000,
+        taxAmountMinor: 4480,
+        taxRate: 16,
+        invoiceNumber: '00049281',
+        taxId: 'J-00020202-1',
         itemsExpected: true,
         minItemCount: 3,
         isFinancial: true,
@@ -313,6 +341,7 @@ async function main() {
       imageFileName: 'paper-dual-currency-seniat-01.png',
       description:
         'Fiscal SENIAT invoice with USD ($23.80), IGTF 3%, and VES (Bs. 1.773,10)',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 177310,
@@ -322,6 +351,13 @@ async function main() {
         paymentMethod: 'Punto de Venta',
         bankName: null,
         suggestedCategory: 'Alimentación',
+        expectedCategoryId: 'cat-food',
+        subtotalMinor: 2000,
+        taxAmountMinor: 320,
+        taxRate: 16,
+        igtfAmountMinor: 60,
+        invoiceNumber: '00084920',
+        taxId: 'J-40192847-1',
         itemsExpected: true,
         minItemCount: 3,
         isFinancial: true,
@@ -336,6 +372,7 @@ async function main() {
       imageFileName: 'paper-generic-merchant-groceries-01.png',
       description:
         'Thermal paper receipt from generic merchant INVERSIONES Y COMERCIAL 2024 C.A. where category Alimentación must be inferred from products',
+      candidateCategories: DEFAULT_CANDIDATE_CATEGORIES,
       expected: {
         type: 'EXPENSE',
         amountMinor: 85000,
@@ -344,6 +381,11 @@ async function main() {
         paymentMethod: 'Punto de Venta',
         bankName: null,
         suggestedCategory: 'Alimentación',
+        expectedCategoryId: 'cat-food',
+        subtotalMinor: 73000,
+        taxAmountMinor: 12000,
+        invoiceNumber: '00091823',
+        taxId: 'J-50192847-9',
         itemsExpected: true,
         minItemCount: 4,
         isFinancial: true,

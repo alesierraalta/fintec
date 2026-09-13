@@ -1,4 +1,7 @@
-import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
+import type {
+  CategoryCandidate,
+  ScannedReceiptResult,
+} from '@/lib/ai/receipt-scanner/types';
 
 export type ReceiptEvalCategory =
   | 'pagomovil'
@@ -38,6 +41,22 @@ export interface ReceiptGroundTruthExpected {
   isRejected?: boolean;
   /** Expected category inferred from receipt/basket (e.g. "Alimentación", "Salud", etc.) */
   suggestedCategory?: string | null;
+  /** Expected category ID matched against candidate categories list */
+  expectedCategoryId?: string | null;
+  /** Expected subtotal (base imponible) in minor units */
+  subtotalMinor?: number | null;
+  /** Expected tax/IVA amount in minor units */
+  taxAmountMinor?: number | null;
+  /** Expected tax rate percentage (e.g. 16 for 16% IVA) */
+  taxRate?: number | null;
+  /** Expected IGTF tax amount in minor units (e.g. 3% for USD payments) */
+  igtfAmountMinor?: number | null;
+  /** Expected discount amount in minor units */
+  discountAmountMinor?: number | null;
+  /** Expected fiscal invoice or control number */
+  invoiceNumber?: string | null;
+  /** Expected fiscal tax ID (RIF in Venezuela, RFC, etc.) */
+  taxId?: string | null;
   /** Whether line items are expected to be extracted */
   itemsExpected?: boolean;
   /** Minimum number of line items expected */
@@ -53,6 +72,7 @@ export interface ReceiptEvalCase {
   imageFileName: string;
   description: string;
   difficulty: ReceiptEvalDifficulty;
+  candidateCategories?: CategoryCandidate[];
   expected: ReceiptGroundTruthExpected;
 }
 
@@ -107,6 +127,9 @@ export interface ReceiptEvalSummary {
     adversarialResistanceRate: number;
     itemizedReceiptAccuracy: number;
     categoryInferenceRate: number;
+    categoryMatchAccuracy: number;
+    taxExtractionAccuracy: number;
+    fiscalInvoiceAccuracy: number;
   };
   latency: {
     avgMs: number;

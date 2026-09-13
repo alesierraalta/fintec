@@ -51,7 +51,10 @@ jest.mock('@/components/receipts', () => ({
               currency: 'USD',
               suggestedDescription: 'Farmatodo',
               suggestedCategoryName: 'Salud',
+              suggestedCategoryId: 'cat-2',
               suggestedAccountId: 'acc-1',
+              taxAmount: 4.8,
+              taxRate: 16,
               date: '2026-09-11',
               referenceId: 'REF-776655',
               items: [
@@ -233,6 +236,10 @@ describe('MobileAddTransaction Scan-to-Confirm Fast Track', () => {
     expect(screen.getByDisplayValue('Farmatodo')).toBeInTheDocument();
     expect(screen.getByText(/2 artículos/i)).toBeInTheDocument();
     expect(screen.getByText('Ref: #REF-776655')).toBeInTheDocument();
+    expect(screen.getByTestId('fast-track-tax-badge')).toBeInTheDocument();
+    expect(screen.getByTestId('fast-track-tax-badge')).toHaveTextContent(
+      'IVA (16%): 4.80 USD'
+    );
 
     // The 16-key calculator keypad must be collapsed / hidden
     expect(screen.queryByLabelText('Limpiar')).not.toBeInTheDocument();

@@ -310,4 +310,45 @@ describe('ReceiptScannerDropzone', () => {
     expect(mockReset).toHaveBeenCalledTimes(1);
     expect(onResetMock).toHaveBeenCalledTimes(1);
   });
+
+  it('renders suggested category badge when category is detected', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 45.5,
+      currency: 'USD',
+      suggestedCategoryName: 'Alimentación',
+      categoryMatchReason: 'Coincidencia canasta básica',
+    };
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const categoryBadge = screen.getByTestId('detected-category-badge');
+    expect(categoryBadge).toBeInTheDocument();
+    expect(categoryBadge).toHaveTextContent('Alimentación');
+    expect(categoryBadge).toHaveTextContent('Coincidencia canasta básica');
+  });
+
+  it('renders fiscal invoice breakdown badge with subtotal, IVA, and IGTF', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 119.0,
+      currency: 'USD',
+      invoiceNumber: '00045892',
+      taxId: 'J-31415926-0',
+      subtotal: 100.0,
+      taxAmount: 16.0,
+      taxRate: 16,
+      igtfAmount: 3.0,
+    };
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    const fiscalBadge = screen.getByTestId('detected-fiscal-badge');
+    expect(fiscalBadge).toBeInTheDocument();
+    expect(fiscalBadge).toHaveTextContent('Factura Fiscal N° 00045892');
+    expect(fiscalBadge).toHaveTextContent('RIF: J-31415926-0');
+    expect(fiscalBadge).toHaveTextContent('Subtotal: 100.00 USD');
+    expect(fiscalBadge).toHaveTextContent('IVA (16%): 16.00 USD');
+    expect(fiscalBadge).toHaveTextContent('IGTF: 3.00 USD');
+  });
 });

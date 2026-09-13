@@ -126,7 +126,10 @@ async function runEvals() {
 
     try {
       actual = await scanReceiptWithRetry(() =>
-        scanReceiptWithAI({ image: dataUri })
+        scanReceiptWithAI({
+          image: dataUri,
+          categories: c.candidateCategories,
+        })
       );
     } catch (err) {
       errStr = err instanceof Error ? err.message : String(err);
@@ -309,6 +312,120 @@ async function runEvals() {
           passed: passedItems,
           expected: `>= ${minCount} items`,
           actual: `${items.length} items extracted`,
+        });
+      }
+
+      // 11. Category candidate match (auto-selected category from user list)
+      if (c.expected.expectedCategoryId) {
+        const passedCatMatch =
+          actual?.suggestedCategoryId === c.expected.expectedCategoryId;
+        fieldScores.push({
+          field: 'candidateCategoryMatch',
+          passed: passedCatMatch,
+          expected: c.expected.expectedCategoryId,
+          actual: actual?.suggestedCategoryId || 'None',
+        });
+      }
+
+      // 12. Subtotal (Base Imponible)
+      if (
+        c.expected.subtotalMinor !== undefined &&
+        c.expected.subtotalMinor !== null
+      ) {
+        const actualSubtotalMinor =
+          actual?.subtotal !== undefined && actual?.subtotal !== null
+            ? toMinorUnits(actual.subtotal, actual.currency || 'VES')
+            : null;
+        const passedSubtotal =
+          actualSubtotalMinor !== null &&
+          Math.abs(actualSubtotalMinor - c.expected.subtotalMinor) <= 2;
+        fieldScores.push({
+          field: 'subtotalMinor',
+          passed: passedSubtotal,
+          expected: c.expected.subtotalMinor,
+          actual: actualSubtotalMinor,
+        });
+      }
+
+      // 13. Tax / IVA Amount
+      if (
+        c.expected.taxAmountMinor !== undefined &&
+        c.expected.taxAmountMinor !== null
+      ) {
+        const actualTaxMinor =
+          actual?.taxAmount !== undefined && actual?.taxAmount !== null
+            ? toMinorUnits(actual.taxAmount, actual.currency || 'VES')
+            : null;
+        const passedTax =
+          actualTaxMinor !== null &&
+          Math.abs(actualTaxMinor - c.expected.taxAmountMinor) <= 2;
+        fieldScores.push({
+          field: 'taxAmountMinor',
+          passed: passedTax,
+          expected: c.expected.taxAmountMinor,
+          actual: actualTaxMinor,
+        });
+      }
+
+      // 14. Tax Rate (%)
+      if (c.expected.taxRate !== undefined && c.expected.taxRate !== null) {
+        const passedRate = actual?.taxRate === c.expected.taxRate;
+        fieldScores.push({
+          field: 'taxRate',
+          passed: passedRate,
+          expected: c.expected.taxRate,
+          actual: actual?.taxRate,
+        });
+      }
+
+      // 15. IGTF Amount
+      if (
+        c.expected.igtfAmountMinor !== undefined &&
+        c.expected.igtfAmountMinor !== null
+      ) {
+        const actualIgtfMinor =
+          actual?.igtfAmount !== undefined && actual?.igtfAmount !== null
+            ? toMinorUnits(actual.igtfAmount, actual.currency || 'VES')
+            : null;
+        const passedIgtf =
+          actualIgtfMinor !== null &&
+          Math.abs(actualIgtfMinor - c.expected.igtfAmountMinor) <= 2;
+        fieldScores.push({
+          field: 'igtfAmountMinor',
+          passed: passedIgtf,
+          expected: c.expected.igtfAmountMinor,
+          actual: actualIgtfMinor,
+        });
+      }
+
+      // 16. Invoice Number
+      if (c.expected.invoiceNumber) {
+        const expInv = c.expected.invoiceNumber.toLowerCase();
+        const actInv = (actual?.invoiceNumber || '').toLowerCase();
+        const passedInv = actInv.includes(expInv) || expInv.includes(actInv);
+        fieldScores.push({
+          field: 'invoiceNumber',
+          passed: passedInv,
+          expected: c.expected.invoiceNumber,
+          actual: actual?.invoiceNumber,
+        });
+      }
+
+      // 17. Tax ID / RIF
+      if (c.expected.taxId) {
+        const cleanExp = c.expected.taxId
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        const cleanAct = (actual?.taxId || '')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '');
+        const passedTaxId =
+          cleanAct.includes(cleanExp) || cleanExp.includes(cleanAct);
+        fieldScores.push({
+          field: 'taxId',
+          passed: passedTaxId,
+          expected: c.expected.taxId,
+          actual: actual?.taxId,
         });
       }
     }
@@ -541,6 +658,41 @@ async function runEvals() {
             1,
             results.filter((r) =>
               r.fieldScores.some((f) => f.field === 'basketCategoryInference')
+            ).length
+          )) *
+        100,
+      categoryMatchAccuracy:
+        (results.filter((r) =>
+          r.fieldScores.find(
+            (f) => f.field === 'candidateCategoryMatch' && f.passed
+          )
+        ).length /
+          Math.max(
+            1,
+            results.filter((r) =>
+              r.fieldScores.some((f) => f.field === 'candidateCategoryMatch')
+            ).length
+          )) *
+        100,
+      taxExtractionAccuracy:
+        (results.filter((r) =>
+          r.fieldScores.find((f) => f.field === 'taxAmountMinor' && f.passed)
+        ).length /
+          Math.max(
+            1,
+            results.filter((r) =>
+              r.fieldScores.some((f) => f.field === 'taxAmountMinor')
+            ).length
+          )) *
+        100,
+      fiscalInvoiceAccuracy:
+        (results.filter((r) =>
+          r.fieldScores.find((f) => f.field === 'invoiceNumber' && f.passed)
+        ).length /
+          Math.max(
+            1,
+            results.filter((r) =>
+              r.fieldScores.some((f) => f.field === 'invoiceNumber')
             ).length
           )) *
         100,

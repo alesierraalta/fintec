@@ -17,6 +17,7 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useReceiptScanner } from '@/hooks/use-receipt-scanner';
@@ -25,12 +26,14 @@ import { toMinorUnits } from '@/lib/money';
 import type { Transaction } from '@/types/domain';
 import type {
   AccountCandidate,
+  CategoryCandidate,
   ScannedReceiptResult,
   ScannedReceiptType,
 } from '@/lib/ai/receipt-scanner/types';
 
 export interface ReceiptScannerDropzoneProps {
   accounts?: AccountCandidate[];
+  categories?: CategoryCandidate[];
   expectedType?: ScannedReceiptType;
   existingTransactions?: Transaction[];
   onScanSuccess: (result: ScannedReceiptResult) => void;
@@ -43,6 +46,7 @@ export interface ReceiptScannerDropzoneProps {
 
 export function ReceiptScannerDropzone({
   accounts,
+  categories,
   expectedType,
   existingTransactions,
   onScanSuccess,
@@ -65,6 +69,7 @@ export function ReceiptScannerDropzone({
   const { isScanning, error, scannedResult, previewUrl, scanFile, reset } =
     useReceiptScanner({
       accounts,
+      categories,
       expectedType,
       onScanSuccess,
     });
@@ -434,6 +439,95 @@ export function ReceiptScannerDropzone({
                     )}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Category match badge */}
+          {scannedResult.suggestedCategoryName && (
+            <div
+              data-testid="detected-category-badge"
+              className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-700 dark:text-emerald-400"
+            >
+              <Tag className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                Categoría sugerida:{' '}
+                <strong className="font-semibold">
+                  {scannedResult.suggestedCategoryName}
+                </strong>
+                {scannedResult.categoryMatchReason
+                  ? ` (${scannedResult.categoryMatchReason})`
+                  : ''}
+              </span>
+            </div>
+          )}
+
+          {/* Fiscal invoice breakdown badge */}
+          {(scannedResult.taxAmount !== undefined ||
+            scannedResult.subtotal !== undefined ||
+            scannedResult.invoiceNumber) && (
+            <div
+              data-testid="detected-fiscal-badge"
+              className="mt-2 rounded-lg border border-border/70 bg-muted/40 p-2.5 text-xs text-muted-foreground"
+            >
+              <div className="flex items-center justify-between text-foreground">
+                <span className="inline-flex items-center gap-1.5 font-medium">
+                  <Receipt className="h-3.5 w-3.5 text-primary" />
+                  {scannedResult.invoiceNumber
+                    ? `Factura Fiscal N° ${scannedResult.invoiceNumber}`
+                    : 'Desglose Fiscal'}
+                </span>
+                {scannedResult.taxId && (
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    RIF: {scannedResult.taxId}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                {scannedResult.subtotal !== undefined &&
+                  scannedResult.subtotal !== null && (
+                    <span>
+                      Subtotal:{' '}
+                      <strong className="font-mono text-foreground">
+                        {scannedResult.subtotal.toFixed(2)}{' '}
+                        {scannedResult.currency}
+                      </strong>
+                    </span>
+                  )}
+                {scannedResult.taxAmount !== undefined &&
+                  scannedResult.taxAmount !== null && (
+                    <span>
+                      IVA
+                      {scannedResult.taxRate
+                        ? ` (${scannedResult.taxRate}%)`
+                        : ''}
+                      :{' '}
+                      <strong className="font-mono text-foreground">
+                        {scannedResult.taxAmount.toFixed(2)}{' '}
+                        {scannedResult.currency}
+                      </strong>
+                    </span>
+                  )}
+                {scannedResult.igtfAmount !== undefined &&
+                  scannedResult.igtfAmount !== null && (
+                    <span>
+                      IGTF:{' '}
+                      <strong className="font-mono text-foreground">
+                        {scannedResult.igtfAmount.toFixed(2)}{' '}
+                        {scannedResult.currency}
+                      </strong>
+                    </span>
+                  )}
+                {scannedResult.discountAmount !== undefined &&
+                  scannedResult.discountAmount !== null && (
+                    <span>
+                      Descuento:{' '}
+                      <strong className="font-mono text-foreground">
+                        -{scannedResult.discountAmount.toFixed(2)}{' '}
+                        {scannedResult.currency}
+                      </strong>
+                    </span>
+                  )}
               </div>
             </div>
           )}

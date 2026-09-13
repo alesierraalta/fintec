@@ -17,6 +17,14 @@ export interface AccountCandidate {
   bankName?: string;
 }
 
+export interface CategoryCandidate {
+  id: string;
+  name: string;
+  kind: 'EXPENSE' | 'INCOME';
+  description?: string;
+  icon?: string;
+}
+
 export interface CounterpartyInfo {
   name?: string;
   idNumber?: string; // Cédula (V-..., J-..., E-...) or Tax ID
@@ -50,6 +58,22 @@ export interface ScannedReceiptResult {
   /** Net amount after deducting fees (e.g. release quantity 42.66 USDT) */
   netAmount?: number;
 
+  /** Fiscal invoice breakdown & taxes */
+  /** Base amount / Subtotal before taxes */
+  subtotal?: number;
+  /** Tax amount / IVA (e.g. 16% IVA) */
+  taxAmount?: number;
+  /** Tax rate percentage (e.g. 16 for 16%, 8 for 8%) */
+  taxRate?: number;
+  /** IGTF (Impuesto a las Grandes Transacciones Financieras, e.g. 3%) */
+  igtfAmount?: number;
+  /** Discount applied */
+  discountAmount?: number;
+  /** Fiscal invoice / control number (e.g. Factura N° 00049281) */
+  invoiceNumber?: string;
+  /** Fiscal identification / RIF / Tax ID (e.g. J-31415926-5) */
+  taxId?: string;
+
   /** Extracted transaction date in YYYY-MM-DD */
   date: string;
   /** Extracted transaction time in HH:mm if available */
@@ -72,9 +96,14 @@ export interface ScannedReceiptResult {
   accountMatchReason?: string;
   matchingAccountCandidates?: string[]; // IDs of candidate accounts if ambiguous
 
+  /** Smart Category Resolution */
+  suggestedCategoryId?: string;
+  suggestedCategoryName?: string;
+  categoryMatchConfidence?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+  categoryMatchReason?: string;
+
   /** Helpers for prefilling user forms */
   suggestedDescription: string;
-  suggestedCategoryName?: string;
   formattedNotes: string;
   tags: string[];
 
@@ -95,6 +124,7 @@ export interface ReceiptLineItem {
 export interface ScanReceiptRequest {
   image: string; // Base64 data URL or public URL
   accounts?: AccountCandidate[];
+  categories?: CategoryCandidate[];
   expectedType?: ScannedReceiptType;
 }
 
