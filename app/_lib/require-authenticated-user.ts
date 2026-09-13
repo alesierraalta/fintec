@@ -8,6 +8,10 @@ const FRONTEND_AUTH_BYPASS_USER = {
 } as User;
 
 export async function requireAuthenticatedUser() {
+  if (isFrontendAuthBypassEnabled()) {
+    return FRONTEND_AUTH_BYPASS_USER;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -15,10 +19,6 @@ export async function requireAuthenticatedUser() {
   } = await supabase.auth.getUser();
 
   if (error || !user) {
-    if (isFrontendAuthBypassEnabled()) {
-      return FRONTEND_AUTH_BYPASS_USER;
-    }
-
     redirect('/auth/login');
   }
 
