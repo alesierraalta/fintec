@@ -128,8 +128,11 @@ function IncomeSourcesComponent({
       className={cn('space-y-6', className)}
       aria-labelledby="income-sources-title"
     >
-      <div className="flex items-center gap-2">
-        <ArrowDownToLine className="h-4 w-4 text-success" aria-hidden="true" />
+      <div className="flex items-start gap-2.5">
+        <ArrowDownToLine
+          className="mt-1 h-4 w-4 shrink-0 text-success"
+          aria-hidden="true"
+        />
         <div>
           <h3
             id="income-sources-title"
@@ -151,7 +154,7 @@ function IncomeSourcesComponent({
       ) : sources.length === 0 ? (
         <div className="py-12 text-center text-muted-foreground">
           <Package className="mx-auto mb-4 h-12 w-12" aria-hidden="true" />
-          <p className="text-ios-caption">
+          <p className="text-balance text-ios-caption">
             Todavía no hay ingresos registrados para {periodLabel.toLowerCase()}
             .
           </p>
@@ -183,8 +186,9 @@ function IncomeSourcesComponent({
                     onMouseEnter={(_, index) => setActiveIndex(index)}
                     onMouseLeave={() => setActiveIndex(selectedIndex)}
                     onClick={(_, index) => {
-                      setSelectedIndex(index);
-                      setActiveIndex(index);
+                      const nextIndex = selectedIndex === index ? null : index;
+                      setSelectedIndex(nextIndex);
+                      setActiveIndex(nextIndex);
                     }}
                   >
                     {sources.map((source, index) => (
@@ -201,19 +205,20 @@ function IncomeSourcesComponent({
                         }
                         stroke="hsl(var(--foreground))"
                         strokeWidth={activeIndex === index ? 3 : 1}
+                        className="cursor-pointer transition-all duration-200"
                       />
                     ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="bg-background/55 px-5 py-3 text-center">
+                <div className="flex flex-col items-center justify-center text-center">
                   <p className="text-ios-title font-bold text-foreground">
                     {currencyFormatter.format(
                       activeSource?.amount ?? totalIncome
                     )}
                   </p>
-                  <p className="max-w-[150px] truncate text-ios-caption text-muted-foreground">
+                  <p className="max-w-[130px] truncate text-ios-caption text-muted-foreground">
                     {activeSource
                       ? `${activeSource.name} · ${formatPercentage(activeSource.amount)}`
                       : 'Total de ingresos'}
@@ -221,36 +226,59 @@ function IncomeSourcesComponent({
                 </div>
               </div>
             </div>
+          </div>
 
-            <div
-              className="divide-y divide-border/30 sm:grid sm:grid-cols-2 sm:gap-x-4 sm:divide-y-0"
-              role="list"
-              aria-label="Detalle de fuentes de ingresos"
-            >
-              {sources.map((source) => (
+          <div
+            className="w-full divide-y divide-border/30 sm:grid sm:grid-cols-2 sm:gap-x-4 sm:gap-y-1 sm:divide-y-0"
+            role="list"
+            aria-label="Detalle de fuentes de ingresos"
+          >
+            {sources.map((source, index) => {
+              const isSelected = displayedIndex === index;
+              return (
                 <div
                   key={source.id}
-                  className="flex min-h-[44px] min-w-0 items-center justify-between px-2 py-3"
+                  onClick={() => {
+                    const nextIndex = selectedIndex === index ? null : index;
+                    setSelectedIndex(nextIndex);
+                    setActiveIndex(nextIndex);
+                  }}
+                  className={cn(
+                    'flex min-h-[44px] min-w-0 cursor-pointer items-center justify-between rounded-lg px-2 py-3 transition-colors',
+                    isSelected
+                      ? 'bg-primary/10'
+                      : 'hover:bg-muted/40 active:bg-muted/60'
+                  )}
                   role="listitem"
+                  tabIndex={0}
+                  aria-selected={isSelected}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      const nextIndex = selectedIndex === index ? null : index;
+                      setSelectedIndex(nextIndex);
+                      setActiveIndex(nextIndex);
+                    }
+                  }}
                 >
                   <div className="flex min-w-0 items-center gap-3">
                     <DollarSign
                       className="h-4 w-4 shrink-0 text-success"
                       aria-hidden="true"
                     />
-                    <span className="truncate text-ios-body text-foreground">
+                    <span className="truncate text-ios-body font-medium text-foreground">
                       {source.name}
                     </span>
                   </div>
-                  <span className="ml-3 min-w-0 break-words text-right text-base font-semibold tabular-nums text-foreground">
+                  <span className="ml-3 min-w-0 shrink-0 text-right text-base font-semibold tabular-nums text-foreground">
                     {currencyFormatter.format(source.amount)}
                     <span className="ml-1 text-ios-caption font-normal text-muted-foreground">
                       ({formatPercentage(source.amount)})
                     </span>
                   </span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </>
       )}
