@@ -364,91 +364,88 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
       {/* Free User Limit Warnings */}
       <FreeLimitWarning />
 
-      {/* iOS-style Header */}
-      <div className="py-6 text-center md:py-8">
-        <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-          <span className="text-ios-caption font-medium">Tus finanzas</span>
+      {/* Clean Dashboard Header */}
+      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            Dashboard
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Resumen general de tus cuentas y movimientos
+          </p>
         </div>
-
-        <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
-          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            Dashboard Financiero
-          </span>
-        </h1>
-        <p className="mb-4 font-light text-muted-foreground md:mb-6">
-          Controla todos tus ingresos y gastos
-        </p>
-
-        {/* Quick Actions Header */}
-        <div className="mb-4 flex items-center justify-center space-x-4">
-          <button
-            type="button"
-            onClick={scrollToQuickActions}
-            aria-label="Ir a acciones rápidas"
-            className="focus-ring transition-ios group relative min-h-[44px] rounded-xl bg-primary px-6 py-3 text-ios-body font-medium text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-[0.98]"
-          >
-            <span>Resumen Rápido</span>
-          </button>
+        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
+          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+          <span>Referencia: {getRateName(usdEquivalentType)}</span>
         </div>
       </div>
 
-      {/* Balance Total Card with Rate Selector */}
+      {/* Balance Total Card */}
       <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
+            <div className="h-2 w-2 rounded-full bg-primary"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
               Balance Total
             </h2>
           </div>
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setShowBalances(!showBalances)}
-              aria-pressed={showBalances}
-              className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              {showBalances ? (
-                <EyeOff className="h-4 w-4" />
-              ) : (
-                <Eye className="h-4 w-4" />
-              )}
-              <span>{showBalances ? 'Ocultar' : 'Mostrar'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setShowBalances(!showBalances)}
+            aria-pressed={showBalances}
+            className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {showBalances ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
+            <span>{showBalances ? 'Ocultar' : 'Mostrar'}</span>
+          </button>
         </div>
 
-        <div className="text-center">
+        <div className="py-2 text-center">
           {showBalances ? (
             <div className="space-y-2">
-              {totalBalanceVES > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold">
-                  Bs.{' '}
-                  {totalBalanceVES.toLocaleString('es-VE', {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-              )}
-              {totalBalanceUSD > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold">
+              {totalBalanceVES > 0 && totalBalanceUSD > 0 ? (
+                <>
+                  <p className="amount-emphasis-white text-4xl font-bold tabular-nums text-foreground sm:text-5xl">
+                    ${totalBalance.toFixed(2)}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Desglose: ${totalBalanceUSD.toFixed(2)} + Bs.{' '}
+                    {totalBalanceVES.toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    ({getRateName(usdEquivalentType)})
+                  </p>
+                </>
+              ) : totalBalanceVES > 0 ? (
+                <>
+                  <p className="amount-emphasis-white text-4xl font-bold tabular-nums text-foreground sm:text-5xl">
+                    Bs.{' '}
+                    {totalBalanceVES.toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    ≈ ${totalBalance.toFixed(2)} USD (
+                    {getRateName(usdEquivalentType)})
+                  </p>
+                </>
+              ) : (
+                <p className="amount-emphasis-white text-4xl font-bold tabular-nums text-foreground sm:text-5xl">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="amount-emphasis-white text-3xl font-semibold tabular-nums">
-                Total: ${totalBalance.toFixed(2)} (
-                {getRateName(usdEquivalentType)})
-              </p>
             </div>
           ) : (
             <p className="mb-2 text-4xl font-light text-foreground">••••••</p>
           )}
-
-          {/* Local rate selector removed; uses global header RateSelector */}
         </div>
       </div>
 
-      {/* iOS-style Summary Cards */}
+      {/* Summary Cards */}
       <div className="glass-card grid grid-cols-1 gap-4 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {showStatsSkeleton ? (
           <>
@@ -464,60 +461,82 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             {/* Monthly Income Card */}
             <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
                   Ingresos del Mes
                 </span>
               </div>
               <div className="space-y-1">
-                {monthlyIncomeVES > 0 && (
-                  <div className="amount-positive text-2xl tabular-nums">
-                    Bs.{' '}
-                    {monthlyIncomeVES.toLocaleString('es-VE', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </div>
-                )}
-                {(monthlyIncomeUSD > 0 ||
-                  (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
-                  <div className="amount-positive text-2xl tabular-nums">
+                {monthlyIncomeVES > 0 && monthlyIncomeUSD > 0 ? (
+                  <>
+                    <div className="amount-positive text-2xl font-bold tabular-nums">
+                      ${monthlyIncome.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ${monthlyIncomeUSD.toFixed(2)} + Bs.{' '}
+                      {monthlyIncomeVES.toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </>
+                ) : monthlyIncomeVES > 0 ? (
+                  <>
+                    <div className="amount-positive text-2xl font-bold tabular-nums">
+                      Bs.{' '}
+                      {monthlyIncomeVES.toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ≈ ${monthlyIncome.toFixed(2)} USD
+                    </div>
+                  </>
+                ) : (
+                  <div className="amount-positive text-2xl font-bold tabular-nums">
                     ${monthlyIncomeUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-2xl tabular-nums">
-                  Total: ${monthlyIncome.toFixed(2)} (
-                  {getRateName(usdEquivalentType)})
-                </div>
               </div>
             </div>
 
             {/* Monthly Expenses Card */}
             <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
+                <div className="h-2 w-2 rounded-full bg-red-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
                   Gastos del Mes
                 </span>
               </div>
               <div className="space-y-1">
-                {monthlyExpensesVES > 0 && (
-                  <div className="amount-negative text-2xl tabular-nums">
-                    Bs.{' '}
-                    {monthlyExpensesVES.toLocaleString('es-VE', {
-                      minimumFractionDigits: 2,
-                    })}
-                  </div>
-                )}
-                {(monthlyExpensesUSD > 0 ||
-                  (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
-                  <div className="amount-negative text-2xl tabular-nums">
+                {monthlyExpensesVES > 0 && monthlyExpensesUSD > 0 ? (
+                  <>
+                    <div className="amount-negative text-2xl font-bold tabular-nums">
+                      ${monthlyExpenses.toFixed(2)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ${monthlyExpensesUSD.toFixed(2)} + Bs.{' '}
+                      {monthlyExpensesVES.toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                  </>
+                ) : monthlyExpensesVES > 0 ? (
+                  <>
+                    <div className="amount-negative text-2xl font-bold tabular-nums">
+                      Bs.{' '}
+                      {monthlyExpensesVES.toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      ≈ ${monthlyExpenses.toFixed(2)} USD
+                    </div>
+                  </>
+                ) : (
+                  <div className="amount-negative text-2xl font-bold tabular-nums">
                     ${monthlyExpensesUSD.toFixed(2)}
                   </div>
                 )}
-                <div className="amount-emphasis-white text-2xl tabular-nums">
-                  Total: ${monthlyExpenses.toFixed(2)} (
-                  {getRateName(usdEquivalentType)})
-                </div>
               </div>
             </div>
 

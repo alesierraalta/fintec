@@ -59,7 +59,7 @@ export function MobileNav() {
                 />
                 <span
                   className={cn(
-                    'relative z-10 mt-1 w-full whitespace-normal break-words px-0.5 text-center text-[10px] font-medium leading-[1.1] tracking-tighter sm:text-xs',
+                    'relative z-10 mt-1 w-full truncate px-0.5 text-center text-[10.5px] font-medium leading-none tracking-tight sm:text-xs',
                     isActive && 'font-semibold'
                   )}
                 >

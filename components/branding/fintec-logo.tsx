@@ -19,7 +19,7 @@ export function FinTecLogo({
   className,
   alt = 'FinTec Logo',
   priority = false,
-  sizes = '100vw',
+  sizes = '(max-width: 768px) 128px, 160px',
   fallbackText = 'FinTec',
   fallbackClassName,
 }: FinTecLogoProps) {

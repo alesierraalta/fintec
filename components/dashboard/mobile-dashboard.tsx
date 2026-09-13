@@ -238,196 +238,176 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       {/* Free User Limit Warnings */}
       <FreeLimitWarning />
 
-      {/* iOS-style Header */}
-      <div className="py-6 text-center md:py-8">
-        <div className="mb-4 inline-flex items-center space-x-2 text-muted-foreground">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-          <span className="text-ios-caption font-medium">Tus finanzas</span>
-        </div>
-
-        <h1 className="mb-4 text-4xl font-bold tracking-tight sm:text-5xl md:mb-6 md:text-6xl lg:text-6xl">
-          <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+      {/* Compact Mobile Header */}
+      <div className="flex items-center justify-between pt-1">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             Dashboard
-          </span>
-        </h1>
-        <p className="mb-4 font-light text-muted-foreground md:mb-6">
-          Tu centro de control financiero
-        </p>
-
-        {/* Quick Actions Header */}
-        <div className="mb-4 flex items-center justify-center space-x-4">
-          <button
-            type="button"
-            onClick={scrollToQuickActions}
-            aria-label="Ir a acciones rápidas"
-            className="focus-ring transition-ios group relative min-h-[44px] rounded-xl bg-primary px-6 py-3 text-ios-body font-medium text-primary-foreground shadow-lg hover:bg-primary/90 active:scale-[0.98]"
-          >
-            <span>Resumen Rápido</span>
-          </button>
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Centro de control financiero
+          </p>
+        </div>
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/60 px-2.5 py-1 text-[11px] text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+          <span>{getRateName(usdEquivalentType)}</span>
         </div>
       </div>
 
-      {/* Balance Total Card with Rate Selector */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
-        <div className="mb-6 flex items-center justify-between">
+      {/* Balance Total Card */}
+      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-5 shadow-ios-md">
+        <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
-            <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
-              BALANCE TOTAL
-            </h3>
+            <div className="h-2 w-2 rounded-full bg-primary"></div>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Balance Total
+            </h2>
           </div>
           <button
             type="button"
             onClick={() => setShowBalances(!showBalances)}
             aria-pressed={showBalances}
-            className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-2 rounded-lg bg-muted/50 px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="focus-ring flex min-h-[44px] min-w-[44px] items-center space-x-1.5 rounded-lg bg-muted/50 px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             {showBalances ? (
-              <EyeOff className="h-4 w-4" />
+              <EyeOff className="h-3.5 w-3.5" />
             ) : (
-              <Eye className="h-4 w-4" />
+              <Eye className="h-3.5 w-3.5" />
             )}
             <span>{showBalances ? 'Ocultar' : 'Mostrar'}</span>
           </button>
         </div>
 
-        <div className="text-center">
+        <div className="py-1 text-center">
           {showBalances ? (
-            <div className="space-y-2">
-              {totalBalanceVES > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold text-foreground">
-                  Bs.{' '}
-                  {totalBalanceVES.toLocaleString('es-VE', {
-                    minimumFractionDigits: 2,
-                  })}
-                </p>
-              )}
-              {totalBalanceUSD > 0 && (
-                <p className="amount-emphasis-white text-2xl font-semibold text-foreground">
+            <div className="space-y-1.5">
+              {totalBalanceVES > 0 && totalBalanceUSD > 0 ? (
+                <>
+                  <p className="amount-emphasis-white text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
+                    ${totalBalance.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Desglose: ${totalBalanceUSD.toFixed(2)} + Bs.{' '}
+                    {totalBalanceVES.toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                    })}{' '}
+                    ({getRateName(usdEquivalentType)})
+                  </p>
+                </>
+              ) : totalBalanceVES > 0 ? (
+                <>
+                  <p className="amount-emphasis-white text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
+                    Bs.{' '}
+                    {totalBalanceVES.toLocaleString('es-VE', {
+                      minimumFractionDigits: 2,
+                    })}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ≈ ${totalBalance.toFixed(2)} USD (
+                    {getRateName(usdEquivalentType)})
+                  </p>
+                </>
+              ) : (
+                <p className="amount-emphasis-white text-3xl font-bold tabular-nums text-foreground sm:text-4xl">
                   ${totalBalanceUSD.toFixed(2)}
                 </p>
               )}
-              <p className="amount-emphasis-white break-words text-3xl tabular-nums text-foreground">
-                Total:{' '}
-                {
-                  liveProjection(
-                    totalBalance,
-                    getExchangeRate(usdEquivalentType)
-                  ).text
-                }{' '}
-                (
-                {
-                  liveProjection(
-                    totalBalance,
-                    getExchangeRate(usdEquivalentType)
-                  ).provenance
-                }
-                )
-              </p>
             </div>
           ) : (
             <p className="mb-2 text-3xl font-light text-foreground">••••••</p>
           )}
-
-          {/* Local rate selector removed; uses global header RateSelector */}
         </div>
       </div>
 
-      {/* iOS-style Summary Cards */}
-      <div className="glass-card grid grid-cols-1 gap-4 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
-        <div className="min-w-0 py-4">
-          <div className="mb-4 flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-            <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
-              INGRESOS MES
+      {/* Summary Cards */}
+      <div className="glass-card grid grid-cols-1 gap-3 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="min-w-0 py-2">
+          <div className="mb-2 flex items-center space-x-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Ingresos del Mes
             </h3>
           </div>
           <div className="space-y-1">
-            {monthlyIncomeVES > 0 && (
-              <p className="amount-positive text-2xl tabular-nums">
-                Bs.{' '}
-                {monthlyIncomeVES.toLocaleString('es-VE', {
-                  minimumFractionDigits: 2,
-                })}
-              </p>
-            )}
-            {(monthlyIncomeUSD > 0 ||
-              (monthlyIncomeVES === 0 && monthlyIncomeUSD === 0)) && (
-              <p className="amount-positive text-2xl tabular-nums">
+            {monthlyIncomeVES > 0 && monthlyIncomeUSD > 0 ? (
+              <>
+                <p className="amount-positive text-2xl font-bold tabular-nums">
+                  ${monthlyIncome.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ${monthlyIncomeUSD.toFixed(2)} + Bs.{' '}
+                  {monthlyIncomeVES.toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+              </>
+            ) : monthlyIncomeVES > 0 ? (
+              <>
+                <p className="amount-positive text-2xl font-bold tabular-nums">
+                  Bs.{' '}
+                  {monthlyIncomeVES.toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ≈ ${monthlyIncome.toFixed(2)} USD
+                </p>
+              </>
+            ) : (
+              <p className="amount-positive text-2xl font-bold tabular-nums">
                 ${monthlyIncomeUSD.toFixed(2)}
               </p>
             )}
-            <p className="break-words text-2xl tabular-nums text-muted-foreground">
-              Total:{' '}
-              {
-                liveProjection(
-                  monthlyIncome,
-                  getExchangeRate(usdEquivalentType)
-                ).text
-              }{' '}
-              (
-              {
-                liveProjection(
-                  monthlyIncome,
-                  getExchangeRate(usdEquivalentType)
-                ).provenance
-              }
-              )
-            </p>
           </div>
-          <div className="mt-2 flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4 text-green-600" />
-            <span className="text-ios-footnote font-medium text-green-600">
+          <div className="mt-2 flex items-center space-x-1.5">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-600" />
+            <span className="text-xs font-medium text-emerald-600">
               Ingresos
             </span>
           </div>
         </div>
 
-        <div className="min-w-0 py-4">
-          <div className="mb-4 flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
-            <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
-              GASTOS MES
+        <div className="min-w-0 py-2">
+          <div className="mb-2 flex items-center space-x-2">
+            <div className="h-2 w-2 rounded-full bg-red-500"></div>
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Gastos del Mes
             </h3>
           </div>
           <div className="space-y-1">
-            {monthlyExpensesVES > 0 && (
-              <p className="amount-negative text-2xl tabular-nums">
-                Bs.{' '}
-                {monthlyExpensesVES.toLocaleString('es-VE', {
-                  minimumFractionDigits: 2,
-                })}
-              </p>
-            )}
-            {(monthlyExpensesUSD > 0 ||
-              (monthlyExpensesVES === 0 && monthlyExpensesUSD === 0)) && (
-              <p className="amount-negative text-2xl tabular-nums">
+            {monthlyExpensesVES > 0 && monthlyExpensesUSD > 0 ? (
+              <>
+                <p className="amount-negative text-2xl font-bold tabular-nums">
+                  ${monthlyExpenses.toFixed(2)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ${monthlyExpensesUSD.toFixed(2)} + Bs.{' '}
+                  {monthlyExpensesVES.toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+              </>
+            ) : monthlyExpensesVES > 0 ? (
+              <>
+                <p className="amount-negative text-2xl font-bold tabular-nums">
+                  Bs.{' '}
+                  {monthlyExpensesVES.toLocaleString('es-VE', {
+                    minimumFractionDigits: 2,
+                  })}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  ≈ ${monthlyExpenses.toFixed(2)} USD
+                </p>
+              </>
+            ) : (
+              <p className="amount-negative text-2xl font-bold tabular-nums">
                 ${monthlyExpensesUSD.toFixed(2)}
               </p>
             )}
-            <p className="break-words text-2xl tabular-nums text-muted-foreground">
-              Total:{' '}
-              {
-                liveProjection(
-                  monthlyExpenses,
-                  getExchangeRate(usdEquivalentType)
-                ).text
-              }{' '}
-              (
-              {
-                liveProjection(
-                  monthlyExpenses,
-                  getExchangeRate(usdEquivalentType)
-                ).provenance
-              }
-              )
-            </p>
           </div>
-          <div className="mt-2 flex items-center space-x-2">
-            <TrendingDown className="h-4 w-4 text-red-600" />
-            <span className="text-ios-footnote font-medium text-red-600">
-              Gastos
-            </span>
+          <div className="mt-2 flex items-center space-x-1.5">
+            <TrendingDown className="h-3.5 w-3.5 text-red-600" />
+            <span className="text-xs font-medium text-red-600">Gastos</span>
           </div>
         </div>
 
@@ -441,46 +421,63 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
             </h3>
           </div>
           <div className="space-y-1">
-            {monthlyIncomeVES - monthlyExpensesVES !== 0 && (
-              <p
-                className={`text-2xl tabular-nums ${monthlyIncomeVES - monthlyExpensesVES >= 0 ? 'amount-positive' : 'amount-negative'}`}
-              >
-                {monthlyIncomeVES - monthlyExpensesVES >= 0 ? '+' : ''}Bs.{' '}
-                {Math.abs(monthlyIncomeVES - monthlyExpensesVES).toLocaleString(
-                  'es-VE',
-                  { minimumFractionDigits: 2 }
-                )}
-              </p>
-            )}
-            {(monthlyIncomeUSD - monthlyExpensesUSD !== 0 ||
-              (monthlyIncomeVES - monthlyExpensesVES === 0 &&
-                monthlyIncomeUSD - monthlyExpensesUSD === 0)) && (
-              <p
-                className={`text-2xl tabular-nums ${monthlyIncomeUSD - monthlyExpensesUSD >= 0 ? 'amount-positive' : 'amount-negative'}`}
-              >
-                {monthlyIncomeUSD - monthlyExpensesUSD > 0 ? '+' : ''}$
-                {Math.abs(monthlyIncomeUSD - monthlyExpensesUSD).toFixed(2)}
-              </p>
-            )}
-            <p
-              className={`break-words text-2xl tabular-nums ${monthlyIncome - monthlyExpenses >= 0 ? 'amount-positive' : 'amount-negative'}`}
-            >
-              Total:{' '}
-              {
-                liveProjection(
-                  monthlyIncome - monthlyExpenses,
-                  getExchangeRate(usdEquivalentType)
-                ).text
-              }{' '}
-              (
-              {
-                liveProjection(
-                  monthlyIncome - monthlyExpenses,
-                  getExchangeRate(usdEquivalentType)
-                ).provenance
+            {(() => {
+              const netTotal = monthlyIncome - monthlyExpenses;
+              const isPositive = netTotal >= 0;
+              const netVES = monthlyIncomeVES - monthlyExpensesVES;
+              const netUSD = monthlyIncomeUSD - monthlyExpensesUSD;
+              const hasMixed =
+                (monthlyIncomeVES > 0 || monthlyExpensesVES > 0) &&
+                (monthlyIncomeUSD > 0 || monthlyExpensesUSD > 0);
+              const onlyVES =
+                (monthlyIncomeVES > 0 || monthlyExpensesVES > 0) &&
+                monthlyIncomeUSD === 0 &&
+                monthlyExpensesUSD === 0;
+
+              if (hasMixed) {
+                return (
+                  <>
+                    <p
+                      className={`text-2xl font-bold tabular-nums ${isPositive ? 'amount-positive' : 'amount-negative'}`}
+                    >
+                      {netTotal > 0 ? '+' : ''}${netTotal.toFixed(2)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Desglose: {netUSD > 0 ? '+' : ''}${netUSD.toFixed(2)} +{' '}
+                      {netVES > 0 ? '+' : ''}Bs.{' '}
+                      {Math.abs(netVES).toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                  </>
+                );
               }
-              )
-            </p>
+              if (onlyVES) {
+                return (
+                  <>
+                    <p
+                      className={`text-2xl font-bold tabular-nums ${isPositive ? 'amount-positive' : 'amount-negative'}`}
+                    >
+                      {netVES > 0 ? '+' : ''}Bs.{' '}
+                      {Math.abs(netVES).toLocaleString('es-VE', {
+                        minimumFractionDigits: 2,
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      ≈ ${netTotal.toFixed(2)} USD (
+                      {getRateName(usdEquivalentType)})
+                    </p>
+                  </>
+                );
+              }
+              return (
+                <p
+                  className={`text-2xl font-bold tabular-nums ${isPositive ? 'amount-positive' : 'amount-negative'}`}
+                >
+                  {netUSD > 0 ? '+' : ''}${netUSD.toFixed(2)}
+                </p>
+              );
+            })()}
           </div>
           <div className="mt-2 flex items-center space-x-2">
             {monthlyIncome - monthlyExpenses >= 0 ? (

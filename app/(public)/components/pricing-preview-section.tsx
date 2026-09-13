@@ -41,7 +41,7 @@ export function PricingPreviewSection() {
       highlighted: true,
     },
     {
-      name: 'Premium IA',
+      name: 'Plan Pro',
       price: '$9.99',
       period: '/mes',
       description: 'Automatizado',

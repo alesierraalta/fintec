@@ -112,7 +112,7 @@ export const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
     highlighted: true,
   },
   premium: {
-    name: 'Premium IA',
+    name: 'Plan Pro',
     price: 999, // $9.99
     currency: 'USD',
     interval: 'month',

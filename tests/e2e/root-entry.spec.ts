@@ -1,49 +1,63 @@
 import { test, expect } from '@playwright/test';
 
+const isBypassMode = ['1', 'true', 'yes'].includes(
+  (process.env.FRONTEND_AUTH_BYPASS ?? '').toLowerCase()
+);
+
 test.describe('Root Entry (/)', () => {
-  test('/ renders landing without redirecting to login', async ({ page }) => {
+  test('/ renders root content without unexpected errors', async ({ page }) => {
     await page.goto('/');
 
     // Should NOT redirect to /auth/login
     await expect(page).toHaveURL('/');
 
-    // Should show landing content
-    await expect(
-      page.getByRole('heading', { name: /Controla tus Finanzas/i })
-    ).toBeVisible();
-
-    // Should show CTA buttons
-    await expect(page.getByRole('link', { name: /Iniciar Sesión/i })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Registrarse/i })).toBeVisible();
+    if (isBypassMode) {
+      // In bypass mode, / renders the authenticated dashboard
+      await expect(
+        page.getByRole('heading', { name: /Dashboard/i })
+      ).toBeVisible();
+    } else {
+      // Unauthenticated shows landing
+      await expect(
+        page.getByRole('heading', { name: /Tus finanzas, claras/i })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('link', { name: /Iniciar Sesión/i })
+      ).toBeVisible();
+      await expect(
+        page.getByRole('link', { name: /Registrarse/i })
+      ).toBeVisible();
+    }
   });
 
-  test('/landing renders landing page', async ({ page }) => {
+  test('/landing redirects to /', async ({ page }) => {
     await page.goto('/landing');
 
-    // Should NOT redirect
-    await expect(page).toHaveURL('/landing');
-
-    // Should show landing content
-    await expect(
-      page.getByRole('heading', { name: /Controla tus Finanzas/i })
-    ).toBeVisible();
+    // Should redirect to /
+    await expect(page).toHaveURL('/');
   });
 
-  test('/ with query params renders landing', async ({ page }) => {
+  test('/ with query params renders without error', async ({ page }) => {
     await page.goto('/?utm_source=google&utm_campaign=test');
 
-    // Should NOT redirect
+    // Should NOT redirect to /auth/login
     await expect(page).toHaveURL('/?utm_source=google&utm_campaign=test');
 
-    // Should show landing content
-    await expect(
-      page.getByRole('heading', { name: /Controla tus Finanzas/i })
-    ).toBeVisible();
+    if (isBypassMode) {
+      await expect(
+        page.getByRole('heading', { name: /Dashboard/i })
+      ).toBeVisible();
+    } else {
+      await expect(
+        page.getByRole('heading', { name: /Tus finanzas, claras/i })
+      ).toBeVisible();
+    }
   });
 
-  test('/ returns 200 with landing HTML for crawler user-agent', async ({
+  test('/ returns 200 with HTML for crawler user-agent', async ({
     browser,
   }) => {
+    test.skip(isBypassMode, 'Bypass mode activates dashboard session');
     const context = await browser.newContext({
       userAgent:
         'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
@@ -55,7 +69,7 @@ test.describe('Root Entry (/)', () => {
 
     // Should show landing content
     await expect(
-      page.getByRole('heading', { name: /Controla tus Finanzas/i })
+      page.getByRole('heading', { name: /Tus finanzas, claras/i })
     ).toBeVisible();
 
     await context.close();
@@ -90,6 +104,7 @@ test.describe('Root Entry (/)', () => {
 
 test.describe('Protected Routes', () => {
   test('/transactions redirects unauthenticated to login', async ({ page }) => {
+    test.skip(isBypassMode, 'Bypass mode allows transactions access');
     await page.goto('/transactions');
 
     // Should redirect to login

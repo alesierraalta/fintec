@@ -10,7 +10,11 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { FinTecLogo } from '@/components/branding/fintec-logo';
 import { UpgradeButton } from '@/components/subscription/upgrade-button';
 import { PremiumStatusCard } from '@/components/subscription/premium-status-card';
-import { mobilePrimaryNavigation, mobileSecondaryNavigation, mobileAdminNavigation } from './navigation';
+import {
+  mobilePrimaryNavigation,
+  mobileSecondaryNavigation,
+  mobileAdminNavigation,
+} from './navigation';
 import {
   Home,
   CreditCard,
@@ -31,8 +35,12 @@ import {
   Calculator,
 } from 'lucide-react';
 
-const navigation = [...mobilePrimaryNavigation, ...mobileSecondaryNavigation].map((item) => ({
-  ...item, name: item.desktopLabel ?? item.mobileLabel,
+const navigation = [
+  ...mobilePrimaryNavigation,
+  ...mobileSecondaryNavigation,
+].map((item) => ({
+  ...item,
+  name: item.desktopLabel ?? item.mobileLabel,
 }));
 
 export function Sidebar() {
@@ -148,27 +156,12 @@ export function Sidebar() {
 
       {/* User Profile & Theme Toggle */}
       {!isMinimized && (
-        <div className="mt-auto space-y-4 border-t border-border/10 p-4">
+        <div className="mt-auto border-t border-border/10 p-4">
           <div className="flex items-center justify-between px-2">
             <p className="text-ios-caption font-medium uppercase tracking-wider text-muted-foreground">
-              Preferencias
+              Tema
             </p>
             <ThemeToggle isMinimized={true} />
-          </div>
-
-          <div className="ios-card flex items-center space-x-3 rounded-2xl p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-ios-md">
-              {isPremium ? (
-                <BadgeCheck className="h-5 w-5 text-primary-foreground" />
-              ) : (
-                <DollarSign className="h-5 w-5 text-primary-foreground" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-ios-body font-semibold text-foreground">
-                ¡FinTec!
-              </p>
-            </div>
           </div>
         </div>
       )}

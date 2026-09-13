@@ -27,10 +27,10 @@ export function LandingNav({ links }: LandingNavProps) {
         <div className="flex h-16 items-center justify-between">
           <Link href="/" aria-label="FinTec - Inicio">
             <FinTecLogo
-              containerClassName="h-16 w-32 sm:h-20 sm:w-40"
+              containerClassName="h-10 w-28 sm:h-12 sm:w-36"
               priority
-              sizes="(max-width: 768px) 128px, 160px"
-              fallbackClassName="text-2xl"
+              sizes="(max-width: 768px) 112px, 144px"
+              fallbackClassName="text-xl"
             />
           </Link>
 
