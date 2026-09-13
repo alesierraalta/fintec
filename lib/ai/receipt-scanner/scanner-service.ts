@@ -230,9 +230,9 @@ Your goal is to accurately read and classify financial transaction screenshots, 
      "Crédito", "Abono", "Pago móvil recibido", "Has recibido un pago",
      "Transferencia recibida", "Ha recibido", "Abono a su cuenta",
      "Comprobante de depósito", "Pago recibido de", "Le han enviado".
-   - ⚠️ CRITICAL: A bank-to-bank transfer screenshot IS **INCOME** (if received) or **EXPENSE** (if sent).
-     It is NEVER a "TRANSFER" — TRANSFER is reserved exclusively for cross-currency exchanges
-     (e.g. Binance P2P, crypto conversions). Do NOT classify a Mercantil/BDV/Banesco wire as TRANSFER.
+   - ⚠️ CRITICAL: A bank-to-bank transfer screenshot IS INCOME (if received) or EXPENSE (if sent).
+     TRANSFER is reserved exclusively for cross-currency exchanges (Binance P2P, crypto conversions).
+     Do NOT classify a Mercantil/BDV/Banesco wire as TRANSFER.
    - Currency is usually VES (Bolívares / Bs.).
    - Look for: Número de referencia, Fecha y hora, Banco emisor, Banco destino, Cédula/RIF, Teléfono, Monto.
 
@@ -431,11 +431,32 @@ export async function scanReceiptWithAI(params: {
 
     const raw = result.object;
 
+    // ── Post-LLM TRANSFER sanity guard ──────────────────────────────────────
+    // If the LLM returns TRANSFER but provides NO cross-currency evidence
+    // (no targetCurrency AND no targetAmount), it almost certainly hallucinated
+    // a TRANSFER from a plain Venezuelan bank wire receipt. Downgrade to EXPENSE
+    // with LOW confidence so the user is prompted to confirm.
+    // This closes the gap where the Zod schema allows TRANSFER without targetCurrency.
+    if (
+      raw.type === 'TRANSFER' &&
+      !raw.targetCurrency &&
+      !raw.targetAmount
+    ) {
+      logger.warn(
+        '[ReceiptScanner] TRANSFER classified without cross-currency evidence ' +
+          '(no targetCurrency, no targetAmount). Downgrading to EXPENSE with LOW confidence.',
+        { bankOrPlatform: raw.bankOrPlatform, paymentMethod: raw.paymentMethod }
+      );
+      (raw as { type: string }).type = 'EXPENSE';
+      (raw as { confidence: string }).confidence = 'LOW';
+    }
+
     // Calculate exchange rate if missing but both amounts exist
     let exchangeRate = raw.exchangeRate;
     if (!exchangeRate && raw.amount && raw.targetAmount && raw.amount > 0) {
       exchangeRate = Number((raw.targetAmount / raw.amount).toFixed(6));
     }
+
 
     // Run smart account matching algorithm
     const match = matchReceiptAccounts(

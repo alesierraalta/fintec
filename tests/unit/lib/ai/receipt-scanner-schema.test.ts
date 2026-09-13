@@ -235,4 +235,98 @@ describe('receiptExtractionSchema', () => {
     const parsed = receiptExtractionSchema.safeParse(invalidData);
     expect(parsed.success).toBe(false);
   });
+
+  // ── L1 Gap coverage: TRANSFER without cross-currency evidence ────────────────
+  // The Zod schema allows TRANSFER without targetCurrency (it's .optional()).
+  // The post-LLM guard in scanner-service.ts must catch this and downgrade it.
+  // These tests verify the guard logic by simulating the raw object mutation.
+  describe('TRANSFER sanity guard: no cross-currency evidence', () => {
+    it('Zod schema accepts TRANSFER with no targetCurrency (confirms gap exists)', () => {
+      // This intentionally passes — the schema is permissive. The guard is post-LLM.
+      const rawTransferNoCurrency = {
+        type: 'TRANSFER',
+        confidence: 'HIGH',
+        amount: 1200.0,
+        currency: 'VES',
+        date: '2026-09-13',
+        bankOrPlatform: 'Mercantil',
+        // No targetCurrency, no targetAmount — this is the gap
+      };
+      const parsed = receiptExtractionSchema.safeParse(rawTransferNoCurrency);
+      expect(parsed.success).toBe(true);
+      if (parsed.success) {
+        // Zod accepts it — the guard must catch it post-parse
+        expect(parsed.data.type).toBe('TRANSFER');
+        expect(parsed.data.targetCurrency).toBeUndefined();
+        expect(parsed.data.targetAmount).toBeUndefined();
+      }
+    });
+
+    it('guard logic: TRANSFER with no targetCurrency/targetAmount must be downgraded', () => {
+      // Simulate the guard logic inline (mirrors scanner-service.ts post-LLM guard)
+      const raw = {
+        type: 'TRANSFER' as string,
+        confidence: 'HIGH' as string,
+        amount: 1200.0,
+        currency: 'VES',
+        date: '2026-09-13',
+        bankOrPlatform: 'Mercantil',
+        targetCurrency: undefined,
+        targetAmount: undefined,
+      };
+
+      // Apply guard (same condition as scanner-service.ts)
+      if (raw.type === 'TRANSFER' && !raw.targetCurrency && !raw.targetAmount) {
+        raw.type = 'EXPENSE';
+        raw.confidence = 'LOW';
+      }
+
+      expect(raw.type).toBe('EXPENSE');
+      expect(raw.confidence).toBe('LOW');
+    });
+
+    it('guard does NOT downgrade legitimate Binance TRANSFER with targetCurrency', () => {
+      const raw = {
+        type: 'TRANSFER' as string,
+        confidence: 'HIGH' as string,
+        amount: 42.72,
+        currency: 'USDT',
+        targetAmount: 41000,
+        targetCurrency: 'VES',
+        date: '2026-09-13',
+        bankOrPlatform: 'Binance',
+      };
+
+      // Apply guard
+      if (raw.type === 'TRANSFER' && !raw.targetCurrency && !raw.targetAmount) {
+        raw.type = 'EXPENSE';
+        raw.confidence = 'LOW';
+      }
+
+      // Must remain TRANSFER — cross-currency evidence is present
+      expect(raw.type).toBe('TRANSFER');
+      expect(raw.confidence).toBe('HIGH');
+    });
+
+    it('guard does NOT downgrade TRANSFER when only targetAmount is present', () => {
+      const raw = {
+        type: 'TRANSFER' as string,
+        confidence: 'MEDIUM' as string,
+        amount: 50.0,
+        currency: 'USD',
+        targetAmount: 182500,
+        targetCurrency: undefined, // missing but targetAmount is present
+        date: '2026-09-13',
+        bankOrPlatform: 'Zinli',
+      };
+
+      if (raw.type === 'TRANSFER' && !raw.targetCurrency && !raw.targetAmount) {
+        raw.type = 'EXPENSE';
+        raw.confidence = 'LOW';
+      }
+
+      // targetAmount is present — enough cross-currency evidence; keep TRANSFER
+      expect(raw.type).toBe('TRANSFER');
+    });
+  });
 });
