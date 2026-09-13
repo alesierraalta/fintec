@@ -273,6 +273,7 @@ Your goal is to accurately read and classify financial transaction screenshots, 
      * SYNTHESIZED DESCRIPTION: When items are present, provide a helpful descriptive motive, e.g. "Mercado en [Comercio] (X artículos)" or "Compra: [Producto 1], [Producto 2] y más".
 
 4. Category Selection from User's Categories:
+   - For TRANSFER transactions: Transfers are movements between accounts/currencies and do NOT have an expense/income category. Leave suggestedCategoryId and suggestedCategory null/undefined.
    - When the user provides a list of categories with their IDs, names, and kinds (EXPENSE / INCOME):
      * If this transaction is EXPENSE (money spent/debited), evaluate ONLY the EXPENSE categories and select the ID and name of the best matching category.
      * If this transaction is INCOME (money received/credited), evaluate ONLY the INCOME categories and select the ID and name of the best matching category.
@@ -483,14 +484,22 @@ export async function scanReceiptWithAI(params: {
       userCategories: categories,
     });
 
-    // Validate LLM category ID if directly supplied
-    let finalCategoryId = categoryMatch.suggestedCategoryId;
+    // Validate LLM category ID if directly supplied (unless it's a TRANSFER)
+    let finalCategoryId =
+      raw.type === 'TRANSFER' ? undefined : categoryMatch.suggestedCategoryId;
     let finalCategoryName =
-      categoryMatch.suggestedCategoryName || raw.suggestedCategory;
-    let categoryMatchConfidence = categoryMatch.confidence;
-    let categoryMatchReason = categoryMatch.reason;
+      raw.type === 'TRANSFER'
+        ? undefined
+        : categoryMatch.suggestedCategoryName || raw.suggestedCategory;
+    let categoryMatchConfidence =
+      raw.type === 'TRANSFER' ? 'NONE' : categoryMatch.confidence;
+    let categoryMatchReason =
+      raw.type === 'TRANSFER'
+        ? 'Las transferencias no requieren categoría'
+        : categoryMatch.reason;
 
     if (
+      raw.type !== 'TRANSFER' &&
       raw.suggestedCategoryId &&
       categories.some((c) => c.id === raw.suggestedCategoryId)
     ) {

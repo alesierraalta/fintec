@@ -328,6 +328,41 @@ describe('ReceiptScannerDropzone', () => {
     expect(categoryBadge).toHaveTextContent('Coincidencia canasta básica');
   });
 
+  it('does NOT render suggested category badge when transaction is a TRANSFER', () => {
+    mockHookState.scannedResult = {
+      type: 'TRANSFER',
+      amount: 100,
+      currency: 'VES',
+      suggestedCategoryName: 'Alimentación', // Even if provided somehow
+    };
+
+    render(<ReceiptScannerDropzone onScanSuccess={jest.fn()} />);
+
+    expect(
+      screen.queryByTestId('detected-category-badge')
+    ).not.toBeInTheDocument();
+  });
+
+  it('does NOT render suggested category badge when expectedType is TRANSFER', () => {
+    mockHookState.scannedResult = {
+      type: 'EXPENSE',
+      amount: 100,
+      currency: 'VES',
+      suggestedCategoryName: 'Alimentación',
+    };
+
+    render(
+      <ReceiptScannerDropzone
+        expectedType="TRANSFER"
+        onScanSuccess={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.queryByTestId('detected-category-badge')
+    ).not.toBeInTheDocument();
+  });
+
   it('renders fiscal invoice breakdown badge with subtotal, IVA, and IGTF', () => {
     mockHookState.scannedResult = {
       type: 'EXPENSE',

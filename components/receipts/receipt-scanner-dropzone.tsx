@@ -444,23 +444,25 @@ export function ReceiptScannerDropzone({
           )}
 
           {/* Category match badge */}
-          {scannedResult.suggestedCategoryName && (
-            <div
-              data-testid="detected-category-badge"
-              className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-700 dark:text-emerald-400"
-            >
-              <Tag className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">
-                Categoría sugerida:{' '}
-                <strong className="font-semibold">
-                  {scannedResult.suggestedCategoryName}
-                </strong>
-                {scannedResult.categoryMatchReason
-                  ? ` (${scannedResult.categoryMatchReason})`
-                  : ''}
-              </span>
-            </div>
-          )}
+          {scannedResult.type !== 'TRANSFER' &&
+            expectedType !== 'TRANSFER' &&
+            scannedResult.suggestedCategoryName && (
+              <div
+                data-testid="detected-category-badge"
+                className="mt-2 flex items-center gap-2 rounded-lg bg-emerald-500/10 px-2.5 py-1.5 text-xs text-emerald-700 dark:text-emerald-400"
+              >
+                <Tag className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">
+                  Categoría sugerida:{' '}
+                  <strong className="font-semibold">
+                    {scannedResult.suggestedCategoryName}
+                  </strong>
+                  {scannedResult.categoryMatchReason
+                    ? ` (${scannedResult.categoryMatchReason})`
+                    : ''}
+                </span>
+              </div>
+            )}
 
           {/* Fiscal invoice breakdown badge */}
           {(scannedResult.taxAmount !== undefined ||
