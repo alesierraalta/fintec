@@ -281,7 +281,7 @@ Your goal is to accurately read and classify financial transaction screenshots, 
 
 Always return clean, validated data. If a field is not present in the image, leave it null/undefined.`;
 
-function formatReceiptNotes(raw: RawReceiptExtraction): string {
+export function formatReceiptNotes(raw: RawReceiptExtraction): string {
   const lines: string[] = ['Comprobante procesado'];
 
   if (raw.referenceId) {

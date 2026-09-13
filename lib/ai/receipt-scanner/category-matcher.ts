@@ -229,31 +229,45 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
   remesas: ['remesa', 'apoyo', 'familiar', 'ayuda', 'regalo', 'zelle'],
 };
 
+export interface MatchCategoryParams {
+  transactionType?: ScannedReceiptType;
+  type?: ScannedReceiptType;
+  suggestedCategoryName?: string;
+  suggestedMotive?: string;
+  merchantOrCounterparty?: string;
+  merchantOrEntity?: string;
+  items?: ReceiptLineItem[];
+  userCategories?: CategoryCandidate[];
+}
+
 /**
  * Deterministic smart category matcher.
  * Evaluates candidate user categories against extracted receipt features.
  */
-export function matchReceiptCategory(params: {
-  transactionType: ScannedReceiptType;
-  suggestedCategoryName?: string;
-  suggestedMotive?: string;
-  merchantOrCounterparty?: string;
-  items?: ReceiptLineItem[];
-  userCategories: CategoryCandidate[];
-}): CategoryMatchResult {
-  const {
-    transactionType,
-    suggestedCategoryName,
-    suggestedMotive,
-    merchantOrCounterparty,
-    items = [],
-    userCategories = [],
-  } = params;
+export function matchReceiptCategory(
+  params: MatchCategoryParams,
+  secondArgCategories?: CategoryCandidate[]
+): CategoryMatchResult {
+  const transactionType = params.transactionType || params.type || 'EXPENSE';
+  const suggestedCategoryName = params.suggestedCategoryName;
+  const suggestedMotive = params.suggestedMotive;
+  const merchantOrCounterparty =
+    params.merchantOrCounterparty || params.merchantOrEntity;
+  const items = params.items || [];
+  const userCategories = secondArgCategories || params.userCategories || [];
 
   if (transactionType === 'TRANSFER') {
     return {
       confidence: 'NONE',
       reason: 'Transferencia no requiere categoría de gasto/ingreso',
+    };
+  }
+
+  if (userCategories.length === 0) {
+    return {
+      suggestedCategoryName,
+      confidence: 'NONE',
+      reason: 'No hay categorías registradas',
     };
   }
 
@@ -323,7 +337,10 @@ export function matchReceiptCategory(params: {
     let score = 0;
 
     // Direct mention of category name or individual words in text
-    const catWords = normCatName.split(/\s+/).filter((w) => w.length > 3);
+    const catWords = normCatName
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 3);
     for (const word of catWords) {
       const stem = word.endsWith('s') ? word.slice(0, -1) : word;
       if (
