@@ -22,10 +22,9 @@ interface FloatingActionButtonProps {
 }
 
 const positionClasses = {
-  'bottom-right': 'right-4 sm:right-6 bottom-mobile-chrome mb-4',
-  'bottom-center':
-    'left-1/2 transform -translate-x-1/2 bottom-mobile-chrome mb-4',
-  'bottom-left': 'left-4 sm:left-6 bottom-mobile-chrome mb-4',
+  'bottom-right': 'right-4 sm:right-6 bottom-mobile-chrome',
+  'bottom-center': 'left-1/2 transform -translate-x-1/2 bottom-mobile-chrome',
+  'bottom-left': 'left-4 sm:left-6 bottom-mobile-chrome',
 };
 
 const variantClasses = {
@@ -84,6 +83,27 @@ export function FloatingActionButton({
     return null;
   }
 
+  // Strip any z-index utility classes that would downgrade the FAB below footer's z-[45]
+  const safeClassName = className
+    .split(/\s+/)
+    .filter((cls) => {
+      if (!cls) return false;
+      const match = cls.match(/^!?z-(?:(\d+)|\[-?(\d+)(?:px)?\]|auto)$/);
+      if (match) {
+        const val = parseInt(match[1] || match[2] || '0', 10);
+        return val >= 45;
+      }
+      return true;
+    })
+    .join(' ');
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onClick();
+    }
+  };
+
   return (
     <AnimatePresence>
       {isVisible && (
@@ -95,9 +115,11 @@ export function FloatingActionButton({
           whileTap={{ scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           onClick={onClick}
+          onKeyDown={handleKeyDown}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
-          className={`fixed z-[40] ${positionClasses[position]} ${extended ? 'rounded-full px-5 py-4' : 'rounded-full p-4'} ${variantClasses[variant]} font-medium text-white shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 active:shadow-lg ${className} `}
+          className={`fixed z-50 min-h-[48px] min-w-[48px] ${positionClasses[position]} ${extended ? 'rounded-full px-5 py-4' : 'rounded-full p-4'} ${variantClasses[variant]} font-medium text-white shadow-xl transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-primary/50 active:shadow-lg ${safeClassName} `}
+          style={{ bottom: 'calc(var(--mobile-chrome-bottom, 68px) + 1rem)' }}
           aria-label={label}
         >
           <motion.div className="flex items-center space-x-2" layout>

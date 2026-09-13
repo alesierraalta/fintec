@@ -4,14 +4,6 @@ import { useEffect, useState } from 'react';
 
 const DEFAULT_NAV_HEIGHT = 68;
 
-function safeAreaBottom(): number {
-  const value = getComputedStyle(document.documentElement)
-    .getPropertyValue('--safe-area-bottom')
-    .trim();
-  const pixels = Number.parseFloat(value);
-  return Number.isFinite(pixels) ? pixels : 0;
-}
-
 /** Publishes the measured mobile navigation geometry for all shell consumers. */
 export function useMobileChromeGeometry(): {
   navHeight: number;
@@ -23,27 +15,62 @@ export function useMobileChromeGeometry(): {
   });
 
   useEffect(() => {
-    const nav = document.querySelector<HTMLElement>('[data-testid="mobile-nav"]');
-    if (!nav) return;
+    let observer: ResizeObserver | null = null;
+    let mutationObserver: MutationObserver | null = null;
 
-    const publish = () => {
-      const navHeight = Math.ceil(nav.getBoundingClientRect().height) || DEFAULT_NAV_HEIGHT;
-      const chromeBottom = navHeight + safeAreaBottom();
+    const publish = (navEl: HTMLElement) => {
+      const rect = navEl.getBoundingClientRect();
+      const rawHeight = Math.ceil(rect?.height);
+      const navHeight =
+        Number.isFinite(rawHeight) && rawHeight > 0
+          ? rawHeight
+          : DEFAULT_NAV_HEIGHT;
+      // getBoundingClientRect().height already includes rendered borders and padding
+      const chromeBottom = navHeight;
       setGeometry({ navHeight, chromeBottom });
       const root = document.documentElement;
       root.style.setProperty('--mobile-nav-height', `${navHeight}px`);
       root.style.setProperty('--mobile-chrome-bottom', `${chromeBottom}px`);
     };
 
-    publish();
-    const observer = new ResizeObserver(publish);
-    observer.observe(nav);
-    window.addEventListener('resize', publish);
+    const attach = (): boolean => {
+      const nav = document.querySelector<HTMLElement>(
+        '[data-testid="mobile-nav"]'
+      );
+      if (!nav) return false;
+      publish(nav);
+      if (typeof ResizeObserver !== 'undefined') {
+        observer = new ResizeObserver(() => publish(nav));
+        observer.observe(nav);
+      }
+      return true;
+    };
+
+    if (!attach() && typeof MutationObserver !== 'undefined') {
+      mutationObserver = new MutationObserver(() => {
+        if (attach()) {
+          mutationObserver?.disconnect();
+          mutationObserver = null;
+        }
+      });
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+    }
+
+    const onResize = () => {
+      const nav = document.querySelector<HTMLElement>(
+        '[data-testid="mobile-nav"]'
+      );
+      if (nav) publish(nav);
+    };
+
+    window.addEventListener('resize', onResize);
     return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', publish);
-      document.documentElement.style.removeProperty('--mobile-nav-height');
-      document.documentElement.style.removeProperty('--mobile-chrome-bottom');
+      observer?.disconnect();
+      mutationObserver?.disconnect();
+      window.removeEventListener('resize', onResize);
     };
   }, []);
 

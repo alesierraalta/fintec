@@ -111,10 +111,10 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
       {/* Mobile Navigation */}
       {!hideMobileChrome && (
-            <>
-              <MobileNav />
-            </>
-          )}
+        <>
+          <MobileNav />
+        </>
+      )}
 
       {/* Floating Add Transaction Button */}
       {showGlobalFab && (
@@ -125,7 +125,7 @@ function MainLayoutContent({ children }: MainLayoutProps) {
           mobileOnly={true}
           position="bottom-right"
           variant="success"
-          className="z-40"
+          className="z-50"
         />
       )}
 

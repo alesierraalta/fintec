@@ -41,10 +41,36 @@ export function getAppliedBuild(): number {
   }
 }
 
+function detectIsNative(): boolean {
+  if (Capacitor.isNativePlatform()) return true;
+  if (typeof window !== 'undefined') {
+    const win = window as any;
+    if (win.Capacitor?.isNativePlatform?.()) return true;
+    if (win.Capacitor?.isNative) return true;
+    if (
+      win.Capacitor?.getPlatform?.() === 'android' ||
+      win.Capacitor?.getPlatform?.() === 'ios'
+    )
+      return true;
+    if (window.location.protocol === 'capacitor:') return true;
+    if (
+      typeof navigator !== 'undefined' &&
+      /Android.*(wv|\.app|Version\/)/i.test(navigator.userAgent)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function isVersionDismissed(targetCode: number): boolean {
-  if (typeof window === 'undefined' || !window.localStorage) return false;
+  if (typeof window === 'undefined') return false;
   try {
-    const raw = window.localStorage.getItem(DISMISS_STORAGE_KEY);
+    const sessionVal = window.sessionStorage?.getItem(DISMISS_STORAGE_KEY);
+    if (sessionVal && parseInt(sessionVal, 10) === targetCode) {
+      return true;
+    }
+    const raw = window.localStorage?.getItem(DISMISS_STORAGE_KEY);
     if (!raw) return false;
     const parsed: DismissRecord = JSON.parse(raw);
     if (
@@ -77,7 +103,7 @@ export function useAppUpdate(): UseAppUpdateReturn {
     let isMounted = true;
 
     async function checkVersion() {
-      const native = Capacitor.isNativePlatform();
+      const native = detectIsNative();
       if (!isMounted) return;
       setIsNative(native);
 
@@ -90,11 +116,14 @@ export function useAppUpdate(): UseAppUpdateReturn {
             if (info?.version) setCurrentVersion(info.version);
             if (info?.build) {
               appBuild = parseInt(info.build, 10) || 0;
-              setCurrentBuild(appBuild);
             }
           } catch {
             // App.getInfo failed or not supported
           }
+          if (appBuild === 0) {
+            appBuild = 2;
+          }
+          setCurrentBuild(appBuild);
         }
 
         const res = await fetch('/api/app/version');
@@ -125,8 +154,15 @@ export function useAppUpdate(): UseAppUpdateReturn {
 
     checkVersion();
 
+    const retryTimer = setTimeout(() => {
+      if (isMounted) {
+        checkVersion();
+      }
+    }, 600);
+
     return () => {
       isMounted = false;
+      clearTimeout(retryTimer);
     };
   }, []);
 
@@ -225,7 +261,11 @@ export function useAppUpdate(): UseAppUpdateReturn {
   }, [apkUrl]);
 
   const updateAvailable = Boolean(
-    isNative && latestBuild > currentBuild && latestBuild > appliedBuild
+    isNative &&
+    latestBuild > 0 &&
+    currentBuild > 0 &&
+    latestBuild > currentBuild &&
+    latestBuild > appliedBuild
   );
   const hasUpdate = Boolean(updateAvailable && !isDismissed);
 

@@ -16,6 +16,7 @@ export function AppUpdateNotifier() {
     isUpdating,
     dismissUpdate,
     triggerUpdate,
+    downloadApkInApp,
   } = useAppUpdate();
 
   if (!hasUpdate || isDismissed) {
@@ -25,13 +26,17 @@ export function AppUpdateNotifier() {
   const handleUpdate = () => {
     toast.success(`Actualizando FinTec a la versión v${latestVersion}...`);
     triggerUpdate();
+    if (typeof downloadApkInApp === 'function') {
+      downloadApkInApp();
+    }
   };
 
   return (
     <div
       data-testid="app-update-notification"
       role="alert"
-      className="fixed bottom-4 left-4 right-4 z-50 mx-auto max-w-lg rounded-2xl border border-primary/30 bg-card/95 p-4 shadow-2xl backdrop-blur-xl transition-all sm:bottom-6 sm:left-auto sm:right-6"
+      className="animate-in fade-in slide-in-from-bottom-4 fixed left-4 right-4 z-[70] mx-auto max-w-lg rounded-2xl border border-primary/30 bg-card/95 p-4 shadow-2xl backdrop-blur-xl transition-all duration-300 sm:bottom-6 sm:left-auto sm:right-6"
+      style={{ bottom: 'calc(var(--mobile-chrome-bottom, 68px) + 1rem)' }}
     >
       <div className="flex items-start gap-3">
         <div className="shrink-0 rounded-xl bg-primary/10 p-2.5 text-primary">

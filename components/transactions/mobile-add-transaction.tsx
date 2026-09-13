@@ -1188,7 +1188,7 @@ export function MobileAddTransaction() {
       <div className="space-y-6 pb-32">{renderContent()}</div>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
         <div className="flex space-x-3">
           <button
             type="button"
