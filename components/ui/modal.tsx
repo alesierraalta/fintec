@@ -13,6 +13,9 @@ export interface ModalProps {
   children: React.ReactNode;
   className?: string;
   closeButtonClassName?: string;
+  mobileFullScreen?: boolean;
+  footer?: React.ReactNode;
+  contentClassName?: string;
 }
 
 export function Modal({
@@ -24,6 +27,9 @@ export function Modal({
   children,
   className,
   closeButtonClassName,
+  mobileFullScreen = false,
+  footer,
+  contentClassName,
 }: ModalProps) {
   const [mounted, setMounted] = React.useState(false);
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -33,7 +39,11 @@ export function Modal({
 
   React.useEffect(() => {
     if (!open) return;
-    return registerBack({ id: `modal-${backId}`, priority: 100, close: onClose });
+    return registerBack({
+      id: `modal-${backId}`,
+      priority: 100,
+      close: onClose,
+    });
   }, [open, onClose, registerBack, backId]);
 
   React.useEffect(() => {
@@ -118,7 +128,9 @@ export function Modal({
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             ref={modalRef}
             className={cn(
-              'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
+              mobileFullScreen
+                ? 'fixed inset-0 m-0 flex h-full max-h-none w-full flex-col overflow-hidden rounded-none border-0 bg-card/95 shadow-2xl backdrop-blur-xl sm:relative sm:mx-4 sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border sm:border-border/50'
+                : 'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
               sizeClasses[size],
               className
             )}
@@ -131,11 +143,11 @@ export function Modal({
           >
             {/* Header - solo si hay título */}
             {(title || description) && (
-              <div className="flex-shrink-0 border-b border-border/50 px-4 py-4 sm:px-6">
+              <div className="flex-shrink-0 border-b border-border/50 px-4 py-3.5 sm:px-6 sm:py-4">
                 {title && (
                   <h2
                     id="modal-title"
-                    className="text-lg font-semibold text-foreground"
+                    className="pr-10 text-base font-semibold text-foreground sm:text-lg"
                   >
                     {title}
                   </h2>
@@ -143,7 +155,7 @@ export function Modal({
                 {description && (
                   <p
                     id="modal-description"
-                    className="mt-1 text-sm text-muted-foreground"
+                    className="mt-1 pr-10 text-xs text-muted-foreground sm:text-sm"
                   >
                     {description}
                   </p>
@@ -156,7 +168,7 @@ export function Modal({
               <button
                 type="button"
                 className={cn(
-                  'focus-ring absolute right-4 top-4 rounded-full p-2 text-muted-foreground/70 transition-colors hover:bg-muted/20 hover:text-foreground',
+                  'focus-ring absolute right-2.5 top-2.5 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground active:scale-95 sm:right-4 sm:top-4',
                   closeButtonClassName
                 )}
                 onClick={onClose}
@@ -179,12 +191,21 @@ export function Modal({
             {/* Content - scrollable area */}
             <div
               className={cn(
-                'min-h-0 flex-1 overflow-y-auto overscroll-contain pb-safe-bottom',
-                title || description ? 'px-4 py-4 sm:px-6' : ''
+                'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+                footer ? '' : 'pb-safe-bottom',
+                title || description ? 'px-4 py-4 sm:px-6' : '',
+                contentClassName
               )}
             >
               {children}
             </div>
+
+            {/* Sticky footer outside scrollable body */}
+            {footer && (
+              <div className="flex-shrink-0 border-t border-border/50 bg-card/95 pb-safe-bottom backdrop-blur-md">
+                {footer}
+              </div>
+            )}
           </motion.div>
         </div>
       )}

@@ -24,6 +24,10 @@ import {
   Package,
   CopyCheck,
   Check,
+  Camera,
+  ChevronDown,
+  ChevronUp,
+  Edit3,
 } from 'lucide-react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { toast } from 'sonner';
@@ -323,6 +327,7 @@ export function BatchReceiptUploaderModal({
   const [submittingItemId, setSubmittingItemId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = useRef<HTMLInputElement | null>(null);
   const itemsRef = useRef<BatchReceiptItem[]>([]);
   itemsRef.current = items;
 
@@ -331,6 +336,44 @@ export function BatchReceiptUploaderModal({
 
   const rawInputId = useId();
   const fileInputId = `batch-receipt-input-${rawInputId.replace(/:/g, '')}`;
+  const cameraInputId = `batch-receipt-camera-${rawInputId.replace(/:/g, '')}`;
+
+  // Track user-expanded items on mobile accordion
+  const [expandedCardIds, setExpandedCardIds] = useState<
+    Record<string, boolean>
+  >({});
+
+  const isCardExpanded = useCallback(
+    (itemId: string, item: BatchReceiptItem) => {
+      if (expandedCardIds[itemId] !== undefined) {
+        return expandedCardIds[itemId];
+      }
+      // Expand by default if item needs user attention (missing fields, error, duplicate)
+      const isComplete =
+        item.status === 'done' &&
+        getBatchItemUiState(item).state === 'READY' &&
+        !item.isDuplicate;
+      return !isComplete;
+    },
+    [expandedCardIds]
+  );
+
+  const toggleCardExpanded = useCallback(
+    (itemId: string, item: BatchReceiptItem) => {
+      setExpandedCardIds((prev) => {
+        const current =
+          prev[itemId] !== undefined
+            ? prev[itemId]
+            : !(
+                item.status === 'done' &&
+                getBatchItemUiState(item).state === 'READY' &&
+                !item.isDuplicate
+              );
+        return { ...prev, [itemId]: !current };
+      });
+    },
+    []
+  );
 
   // Cleanup object URLs on unmount or reset
   const createdUrlsRef = useRef<Set<string>>(new Set());
@@ -905,12 +948,77 @@ export function BatchReceiptUploaderModal({
     onClose();
   };
 
+  const renderModalFooter = () => (
+    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center justify-between gap-2 sm:justify-start">
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={handleModalClose}
+          disabled={isSubmitting}
+          className="min-h-[44px] px-3.5 text-sm text-muted-foreground sm:h-9 sm:min-h-0 sm:px-3 sm:text-xs"
+        >
+          Cancelar
+        </Button>
+        {items.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              if (confirm('¿Vaciar todos los comprobantes?')) {
+                items.forEach((i) => revokePreviewUrl(i.previewUrl));
+                setItems([]);
+              }
+            }}
+            disabled={isSubmitting || isProcessing}
+            className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-destructive sm:h-8 sm:min-h-0"
+          >
+            Vaciar lista
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+        {itemsMissingAttention.length > 0 && (
+          <span className="text-center text-xs font-medium text-amber-600 dark:text-amber-400 sm:text-left">
+            {itemsMissingAttention.length} comprobante(s) necesitan cuenta o
+            motivo
+          </span>
+        )}
+        <Button
+          type="button"
+          onClick={handleBatchSubmit}
+          disabled={
+            isSubmitting || isProcessing || validItemsToSave.length === 0
+          }
+          className="ios-button-primary h-12 w-full text-base font-semibold sm:h-10 sm:w-auto sm:min-w-[170px] sm:text-sm"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin sm:h-4 sm:w-4" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <CheckCircle2 className="mr-2 h-5 w-5 sm:h-4 sm:w-4" />
+              Guardar {validItemsToSave.length}{' '}
+              {validItemsToSave.length === 1 ? 'Transacción' : 'Transacciones'}
+            </>
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Modal
         open={isOpen}
         onClose={handleModalClose}
         size="xl"
+        mobileFullScreen={true}
+        footer={renderModalFooter()}
         title={
           <div className="flex flex-wrap items-center gap-2 pr-8 sm:pr-0">
             <div className="flex items-center gap-2">
@@ -929,10 +1037,10 @@ export function BatchReceiptUploaderModal({
         }
         description="Sube hasta 20 capturas de pago o facturas. Extraeremos monto, fecha, motivo y cuenta automáticamente."
       >
-        <div className="flex max-h-[80vh] flex-col">
+        <div className="flex flex-col">
           {/* Scrollable Content Body */}
-          <div className="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
-            {/* Hidden Accessible File Input */}
+          <div className="space-y-4 p-4 sm:p-6">
+            {/* Hidden Accessible File Inputs */}
             <input
               ref={fileInputRef}
               id={fileInputId}
@@ -946,37 +1054,90 @@ export function BatchReceiptUploaderModal({
                 }
               }}
             />
+            <input
+              ref={cameraInputRef}
+              id={cameraInputId}
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/*"
+              capture="environment"
+              className="sr-only"
+              onChange={(e) => {
+                if (e.target.files) {
+                  handleAddFiles(e.target.files);
+                }
+              }}
+            />
 
-            {/* Empty State Dropzone */}
+            {/* Empty State Dropzone / Mobile Direct Buttons */}
             {items.length === 0 ? (
-              <label
-                htmlFor={fileInputId}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                className={`flex min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-all ${
-                  isDragOver
-                    ? 'scale-[0.99] border-indigo-500 bg-indigo-500/10'
-                    : 'border-border/60 bg-card/40 hover:border-indigo-400/60 hover:bg-card/60'
-                }`}
-              >
-                <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 shadow-inner">
-                  <UploadCloud className="h-8 w-8" aria-hidden="true" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground sm:text-lg">
-                  Arrastra hasta 20 comprobantes aquí
-                </h3>
-                <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                  Formatos soportados: PNG, JPG, WEBP. Analizaremos tus pagos
-                  móviles, transferencias o recibos simultáneamente.
-                </p>
-                <div className="mt-5">
-                  <span className="ios-button-primary inline-flex items-center gap-2 text-sm font-medium">
-                    <FileImage className="h-4 w-4" />
-                    Seleccionar imágenes
+              <>
+                {/* Mobile Touch-Friendly Hero */}
+                <div className="shadow-xs flex flex-col items-center justify-center rounded-3xl border border-border/60 bg-card/60 p-6 text-center sm:hidden">
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 shadow-inner">
+                    <Receipt className="h-8 w-8" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">
+                    Carga de comprobantes
+                  </h3>
+                  <p className="mt-1.5 max-w-xs text-xs text-muted-foreground">
+                    Sube capturas de tus pagos móviles, transferencias o
+                    facturas para procesarlos en lote automáticamente.
+                  </p>
+                  <div className="mt-6 flex w-full flex-col gap-3">
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="ios-button-primary flex h-12 w-full items-center justify-center gap-2 rounded-xl text-base font-semibold"
+                    >
+                      <FileImage className="h-5 w-5" />
+                      Elegir fotos
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => cameraInputRef.current?.click()}
+                      className="flex h-12 w-full items-center justify-center gap-2 rounded-xl border-border/80 bg-card text-base font-semibold hover:bg-muted"
+                    >
+                      <Camera className="h-5 w-5 text-indigo-500" />
+                      Tomar foto
+                    </Button>
+                  </div>
+                  <span className="mt-4 text-[11px] text-muted-foreground">
+                    Hasta {MAX_BATCH_RECEIPTS} fotos a la vez (PNG, JPG, WEBP)
                   </span>
                 </div>
-              </label>
+
+                {/* Desktop Drag and Drop Zone */}
+                <label
+                  htmlFor={fileInputId}
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`hidden min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-all sm:flex ${
+                    isDragOver
+                      ? 'scale-[0.99] border-indigo-500 bg-indigo-500/10'
+                      : 'border-border/60 bg-card/40 hover:border-indigo-400/60 hover:bg-card/60'
+                  }`}
+                >
+                  <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 shadow-inner">
+                    <UploadCloud className="h-8 w-8" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground sm:text-lg">
+                    Arrastra hasta 20 comprobantes aquí
+                  </h3>
+                  <p className="mt-1 max-w-md text-sm text-muted-foreground">
+                    Formatos soportados: PNG, JPG, WEBP. Analizaremos tus pagos
+                    móviles, transferencias o recibos simultáneamente.
+                  </p>
+                  <div className="mt-5">
+                    <span className="ios-button-primary inline-flex items-center gap-2 text-sm font-medium">
+                      <FileImage className="h-4 w-4" />
+                      Seleccionar imágenes
+                    </span>
+                  </div>
+                </label>
+              </>
             ) : (
               <>
                 {/* Progress & Stats Bar */}
@@ -1029,18 +1190,29 @@ export function BatchReceiptUploaderModal({
                       </div>
                     </div>
 
-                    {/* Add More Button if under cap */}
+                    {/* Add More Buttons if under cap */}
                     {items.length < MAX_BATCH_RECEIPTS && (
-                      <label
-                        htmlFor={fileInputId}
-                        className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                      >
-                        <Plus className="h-3.5 w-3.5" />
-                        <span>
-                          Agregar más ({MAX_BATCH_RECEIPTS - items.length}{' '}
-                          restantes)
-                        </span>
-                      </label>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label
+                          htmlFor={fileInputId}
+                          className="inline-flex min-h-[44px] cursor-pointer items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted sm:min-h-0 sm:py-1.5"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                          <span>
+                            Fotos ({MAX_BATCH_RECEIPTS - items.length}{' '}
+                            restantes)
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted sm:hidden"
+                          title="Tomar foto con cámara"
+                        >
+                          <Camera className="h-3.5 w-3.5 text-indigo-500" />
+                          <span>Cámara</span>
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -1247,8 +1419,8 @@ export function BatchReceiptUploaderModal({
                               </div>
 
                               {/* Item Action Buttons & Include Toggle */}
-                              <div className="flex items-center gap-2 sm:gap-3">
-                                <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+                              <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                                <label className="flex min-h-[44px] cursor-pointer select-none items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:min-h-0 sm:px-0">
                                   <input
                                     type="checkbox"
                                     checked={item.isIncluded !== false}
@@ -1287,14 +1459,14 @@ export function BatchReceiptUploaderModal({
                                     onClick={() =>
                                       handleConfirmSingleItem(item)
                                     }
-                                    className="ios-button-primary shadow-xs h-8 px-2.5 text-xs font-semibold"
+                                    className="ios-button-primary shadow-xs min-h-[44px] px-3.5 text-xs font-semibold sm:h-8 sm:min-h-0 sm:px-2.5"
                                     title="Guardar individualmente esta transacción"
                                     aria-label={`Confirmar comprobante ${index + 1}`}
                                   >
                                     {submittingItemId === item.id ? (
-                                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin sm:mr-1 sm:h-3.5 sm:w-3.5" />
                                     ) : (
-                                      <Check className="mr-1 h-3.5 w-3.5" />
+                                      <Check className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
                                     )}
                                     Confirmar
                                   </Button>
@@ -1306,10 +1478,10 @@ export function BatchReceiptUploaderModal({
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => handleRetryItem(item.id)}
-                                    className="h-8 px-2 text-xs text-indigo-600 hover:text-indigo-700"
+                                    className="min-h-[44px] px-3 text-xs text-indigo-600 hover:text-indigo-700 sm:h-8 sm:min-h-0 sm:px-2"
                                     title="Reintentar escaneo"
                                   >
-                                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                                    <RotateCcw className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
                                     Reintentar
                                   </Button>
                                 )}
@@ -1318,7 +1490,7 @@ export function BatchReceiptUploaderModal({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleRemoveItem(item.id)}
-                                  className="h-8 w-8 p-0 text-muted-foreground/70 transition-colors hover:text-destructive"
+                                  className="flex min-h-[44px] min-w-[44px] items-center justify-center p-0 text-muted-foreground/70 transition-colors hover:text-destructive sm:h-8 sm:min-h-0 sm:w-8 sm:min-w-0"
                                   title="Eliminar de la lista"
                                   aria-label={`Eliminar comprobante ${index + 1}`}
                                 >
@@ -1327,321 +1499,398 @@ export function BatchReceiptUploaderModal({
                               </div>
                             </div>
 
-                            {/* Extracted vs Missing Checklist */}
-                            {isDone && (
-                              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/40 bg-muted/25 px-2.5 py-1.5 text-xs">
+                            {/* Mobile Compact Card Summary & Inline Expansion Toggle */}
+                            <div className="space-y-2 rounded-xl border border-border/40 bg-muted/20 p-3 sm:hidden">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="truncate text-sm font-semibold text-foreground">
+                                  {item.description.trim() || 'Sin motivo aún'}
+                                </span>
                                 <span
-                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                  className={`text-sm font-bold ${
                                     item.amount > 0
-                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                      ? 'text-foreground'
+                                      : 'text-orange-600 dark:text-orange-400'
                                   }`}
                                 >
-                                  {item.amount > 0 ? (
-                                    <>
-                                      <Check className="h-3 w-3 text-emerald-600" />
-                                      Monto: {item.amount} {item.currency}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <X className="h-3 w-3 text-orange-600" />
-                                      Falta monto
-                                    </>
-                                  )}
-                                </span>
-
-                                <span
-                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                    item.description.trim()
-                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                  }`}
-                                >
-                                  {item.description.trim() ? (
-                                    <>
-                                      <Check className="h-3 w-3 text-emerald-600" />
-                                      Comercio:{' '}
-                                      {item.description.length > 20
-                                        ? `${item.description.slice(0, 20)}...`
-                                        : item.description}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <X className="h-3 w-3 text-orange-600" />
-                                      Falta comercio
-                                    </>
-                                  )}
-                                </span>
-
-                                <span
-                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                    item.date?.trim()
-                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                  }`}
-                                >
-                                  {item.date?.trim() ? (
-                                    <>
-                                      <Check className="h-3 w-3 text-emerald-600" />
-                                      Fecha: {item.date}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <X className="h-3 w-3 text-orange-600" />
-                                      Falta fecha
-                                    </>
-                                  )}
-                                </span>
-
-                                <span
-                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                    item.accountId?.trim()
-                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                  }`}
-                                >
-                                  {item.accountId?.trim() ? (
-                                    <>
-                                      <Check className="h-3 w-3 text-emerald-600" />
-                                      Cuenta asignada
-                                    </>
-                                  ) : (
-                                    <>
-                                      <X className="h-3 w-3 text-orange-600" />
-                                      Falta cuenta
-                                    </>
-                                  )}
+                                  {item.amount > 0
+                                    ? `${item.amount} ${item.currency}`
+                                    : 'Falta monto'}
                                 </span>
                               </div>
-                            )}
 
-                            {/* Duplicate Alert Details if detected */}
-                            {item.isDuplicate && (
-                              <div
-                                data-testid="duplicate-card-alert"
-                                className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-200"
-                              >
-                                <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-                                <div className="flex-1">
-                                  <span className="font-semibold">
-                                    {item.duplicateType === 'INTRA_BATCH'
-                                      ? 'Comprobante duplicado en este lote: '
-                                      : 'Comprobante ya registrado en historial: '}
-                                  </span>
-                                  <span>{item.duplicateReason}</span>
-                                  {item.isIncluded === false && (
-                                    <span className="mt-0.5 block text-[11px] italic text-amber-700/90 dark:text-amber-300/90">
-                                      Desmarcado por defecto para proteger tu
-                                      saldo. Marca &quot;Incluir de todos
-                                      modos&quot; arriba si deseas guardarlo.
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Error Details if any */}
-                            {isError && (
-                              <p className="text-xs text-destructive">
-                                {item.error || 'No se pudo leer la imagen.'}{' '}
-                                Puedes completar los datos manualmente o
-                                reintentar.
-                              </p>
-                            )}
-
-                            {/* Fast-Fill Form Grid */}
-                            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
-                              {/* Tipo (Gasto / Ingreso) */}
-                              <div className="sm:col-span-1 lg:col-span-2">
-                                <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Tipo
-                                </label>
-                                <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-0.5">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'type',
-                                        TransactionType.EXPENSE
-                                      )
-                                    }
-                                    disabled={isScanning}
-                                    className={`flex-1 rounded-lg px-1.5 py-1 text-xs font-semibold transition-all ${
-                                      item.type === TransactionType.EXPENSE
-                                        ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                  >
-                                    Gasto
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'type',
-                                        TransactionType.INCOME
-                                      )
-                                    }
-                                    disabled={isScanning}
-                                    className={`flex-1 rounded-lg px-1.5 py-1 text-xs font-semibold transition-all ${
-                                      item.type === TransactionType.INCOME
-                                        ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                        : 'text-muted-foreground hover:text-foreground'
-                                    }`}
-                                  >
-                                    Ingreso
-                                  </button>
-                                </div>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>{item.date || '⚠ Sin fecha'}</span>
+                                <span className="max-w-[160px] truncate">
+                                  {accounts.find((a) => a.id === item.accountId)
+                                    ?.name || '⚠ Sin cuenta'}
+                                </span>
                               </div>
 
-                              {/* Motivo (Descripción) - Required */}
-                              <div className="sm:col-span-2 lg:col-span-4">
-                                <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Motivo (Descripción){' '}
-                                  <span className="text-destructive">*</span>
-                                </label>
-                                <Input
-                                  value={item.description}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      item.id,
-                                      'description',
-                                      e.target.value
-                                    )
+                              <div className="flex items-center justify-between border-t border-border/30 pt-2">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    toggleCardExpanded(item.id, item)
                                   }
-                                  placeholder="Ej. Compra supermercado, Pago móvil..."
-                                  disabled={isScanning}
-                                  className={`text-sm ${
-                                    isDone && !item.description.trim()
-                                      ? 'border-amber-500/70 focus-visible:ring-amber-500'
-                                      : ''
+                                  className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary"
+                                  aria-expanded={isCardExpanded(item.id, item)}
+                                >
+                                  <Edit3 className="h-3.5 w-3.5" />
+                                  <span>
+                                    {isCardExpanded(item.id, item)
+                                      ? 'Ocultar campos'
+                                      : 'Editar / Ver campos'}
+                                  </span>
+                                  {isCardExpanded(item.id, item) ? (
+                                    <ChevronUp className="h-3.5 w-3.5" />
+                                  ) : (
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  )}
+                                </button>
+                                <span
+                                  className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                                    item.type === TransactionType.EXPENSE
+                                      ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                   }`}
-                                />
+                                >
+                                  {item.type === TransactionType.EXPENSE
+                                    ? 'Gasto'
+                                    : 'Ingreso'}
+                                </span>
                               </div>
+                            </div>
 
-                              {/* Fecha - Required */}
-                              <div className="sm:col-span-1 lg:col-span-2">
-                                <div className="mb-1 flex items-center justify-between">
-                                  <label className="block text-xs font-medium text-foreground">
-                                    Fecha{' '}
-                                    <span className="text-destructive">*</span>
+                            {/* Expandable Form & Checklist Container (Accordion on mobile, grid on desktop) */}
+                            <div
+                              className={`space-y-3 ${
+                                isCardExpanded(item.id, item)
+                                  ? 'block'
+                                  : 'hidden sm:block'
+                              }`}
+                            >
+                              {/* Extracted vs Missing Checklist */}
+                              {isDone && (
+                                <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/40 bg-muted/25 px-2.5 py-1.5 text-xs">
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                      item.amount > 0
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                    }`}
+                                  >
+                                    {item.amount > 0 ? (
+                                      <>
+                                        <Check className="h-3 w-3 text-emerald-600" />
+                                        Monto: {item.amount} {item.currency}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="h-3 w-3 text-orange-600" />
+                                        Falta monto
+                                      </>
+                                    )}
+                                  </span>
+
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                      item.description.trim()
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                    }`}
+                                  >
+                                    {item.description.trim() ? (
+                                      <>
+                                        <Check className="h-3 w-3 text-emerald-600" />
+                                        Comercio:{' '}
+                                        {item.description.length > 20
+                                          ? `${item.description.slice(0, 20)}...`
+                                          : item.description}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="h-3 w-3 text-orange-600" />
+                                        Falta comercio
+                                      </>
+                                    )}
+                                  </span>
+
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                      item.date?.trim()
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                    }`}
+                                  >
+                                    {item.date?.trim() ? (
+                                      <>
+                                        <Check className="h-3 w-3 text-emerald-600" />
+                                        Fecha: {item.date}
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="h-3 w-3 text-orange-600" />
+                                        Falta fecha
+                                      </>
+                                    )}
+                                  </span>
+
+                                  <span
+                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                      item.accountId?.trim()
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                    }`}
+                                  >
+                                    {item.accountId?.trim() ? (
+                                      <>
+                                        <Check className="h-3 w-3 text-emerald-600" />
+                                        Cuenta asignada
+                                      </>
+                                    ) : (
+                                      <>
+                                        <X className="h-3 w-3 text-orange-600" />
+                                        Falta cuenta
+                                      </>
+                                    )}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Duplicate Alert Details if detected */}
+                              {item.isDuplicate && (
+                                <div
+                                  data-testid="duplicate-card-alert"
+                                  className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-200"
+                                >
+                                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                                  <div className="flex-1">
+                                    <span className="font-semibold">
+                                      {item.duplicateType === 'INTRA_BATCH'
+                                        ? 'Comprobante duplicado en este lote: '
+                                        : 'Comprobante ya registrado en historial: '}
+                                    </span>
+                                    <span>{item.duplicateReason}</span>
+                                    {item.isIncluded === false && (
+                                      <span className="mt-0.5 block text-[11px] italic text-amber-700/90 dark:text-amber-300/90">
+                                        Desmarcado por defecto para proteger tu
+                                        saldo. Marca &quot;Incluir de todos
+                                        modos&quot; arriba si deseas guardarlo.
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Error Details if any */}
+                              {isError && (
+                                <p className="text-xs text-destructive">
+                                  {item.error || 'No se pudo leer la imagen.'}{' '}
+                                  Puedes completar los datos manualmente o
+                                  reintentar.
+                                </p>
+                              )}
+
+                              {/* Fast-Fill Form Grid */}
+                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+                                {/* Tipo (Gasto / Ingreso) */}
+                                <div className="sm:col-span-1 lg:col-span-2">
+                                  <label className="mb-1 block text-xs font-medium text-foreground">
+                                    Tipo
                                   </label>
-                                  {!item.date && (
+                                  <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-0.5">
                                     <button
                                       type="button"
                                       onClick={() =>
                                         handleFieldChange(
                                           item.id,
-                                          'date',
-                                          new Date().toISOString().split('T')[0]
+                                          'type',
+                                          TransactionType.EXPENSE
                                         )
                                       }
-                                      className="text-[10px] font-medium text-primary hover:underline"
+                                      disabled={isScanning}
+                                      className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                        item.type === TransactionType.EXPENSE
+                                          ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
+                                          : 'text-muted-foreground hover:text-foreground'
+                                      }`}
                                     >
-                                      Hoy
+                                      Gasto
                                     </button>
-                                  )}
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'type',
+                                          TransactionType.INCOME
+                                        )
+                                      }
+                                      disabled={isScanning}
+                                      className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                        item.type === TransactionType.INCOME
+                                          ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                          : 'text-muted-foreground hover:text-foreground'
+                                      }`}
+                                    >
+                                      Ingreso
+                                    </button>
+                                  </div>
                                 </div>
-                                <Input
-                                  type="date"
-                                  value={item.date || ''}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      item.id,
-                                      'date',
-                                      e.target.value
-                                    )
-                                  }
-                                  disabled={isScanning}
-                                  className={`text-sm ${
-                                    isDone && !item.date?.trim()
-                                      ? 'border-orange-500/80 bg-orange-500/5'
-                                      : ''
-                                  }`}
-                                />
-                              </div>
 
-                              {/* Monto y Moneda - Prefilled & Editable */}
-                              <div className="lg:col-span-2">
-                                <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Monto ({item.currency || 'VES'}){' '}
-                                  <span className="text-destructive">*</span>
-                                </label>
-                                <div className="relative">
+                                {/* Motivo (Descripción) - Required */}
+                                <div className="sm:col-span-2 lg:col-span-4">
+                                  <label className="mb-1 block text-xs font-medium text-foreground">
+                                    Motivo (Descripción){' '}
+                                    <span className="text-destructive">*</span>
+                                  </label>
                                   <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={item.amount || ''}
+                                    value={item.description}
                                     onChange={(e) =>
                                       handleFieldChange(
                                         item.id,
-                                        'amount',
-                                        parseFloat(e.target.value) || 0
+                                        'description',
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Ej. Compra supermercado, Pago móvil..."
+                                    disabled={isScanning}
+                                    className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
+                                      isDone && !item.description.trim()
+                                        ? 'border-amber-500/70 focus-visible:ring-amber-500'
+                                        : ''
+                                    }`}
+                                  />
+                                </div>
+
+                                {/* Fecha - Required */}
+                                <div className="sm:col-span-1 lg:col-span-2">
+                                  <div className="mb-1 flex items-center justify-between">
+                                    <label className="block text-xs font-medium text-foreground">
+                                      Fecha{' '}
+                                      <span className="text-destructive">
+                                        *
+                                      </span>
+                                    </label>
+                                    {!item.date && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleFieldChange(
+                                            item.id,
+                                            'date',
+                                            new Date()
+                                              .toISOString()
+                                              .split('T')[0]
+                                          )
+                                        }
+                                        className="inline-flex min-h-[44px] items-center px-2 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0 sm:p-0 sm:text-[10px]"
+                                      >
+                                        Hoy
+                                      </button>
+                                    )}
+                                  </div>
+                                  <Input
+                                    type="date"
+                                    value={item.date || ''}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'date',
+                                        e.target.value
                                       )
                                     }
                                     disabled={isScanning}
-                                    className="pr-12 text-sm font-medium"
+                                    className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
+                                      isDone && !item.date?.trim()
+                                        ? 'border-orange-500/80 bg-orange-500/5'
+                                        : ''
+                                    }`}
                                   />
-                                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                                    {item.currency}
-                                  </span>
                                 </div>
-                              </div>
 
-                              {/* Cuenta - Required (Highlighted if not detected) */}
-                              <div className="lg:col-span-3">
-                                <div className="mb-1 flex items-center justify-between">
-                                  <label className="block text-xs font-medium text-foreground">
-                                    Cuenta{' '}
+                                {/* Monto y Moneda - Prefilled & Editable */}
+                                <div className="lg:col-span-2">
+                                  <label className="mb-1 block text-xs font-medium text-foreground">
+                                    Monto ({item.currency || 'VES'}){' '}
                                     <span className="text-destructive">*</span>
                                   </label>
-                                  {item.accountNeedsAttention && isDone && (
-                                    <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                                      <AlertTriangle className="h-3 w-3" />
-                                      Indicar
+                                  <div className="relative">
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      min="0"
+                                      value={item.amount || ''}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'amount',
+                                          parseFloat(e.target.value) || 0
+                                        )
+                                      }
+                                      disabled={isScanning}
+                                      className="min-h-[44px] pr-12 text-base font-medium sm:min-h-0 sm:text-sm"
+                                    />
+                                    <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                                      {item.currency}
                                     </span>
-                                  )}
+                                  </div>
                                 </div>
-                                <Select
-                                  value={item.accountId}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      item.id,
-                                      'accountId',
-                                      e.target.value
-                                    )
-                                  }
-                                  options={accountOptions}
-                                  disabled={isScanning}
-                                  className={`text-sm transition-colors ${
-                                    item.accountNeedsAttention && isDone
-                                      ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/50'
-                                      : ''
-                                  }`}
-                                />
-                              </div>
 
-                              {/* Categoría - Required */}
-                              <div className="lg:col-span-3">
-                                <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Categoría
-                                </label>
-                                <Select
-                                  value={item.categoryId}
-                                  onChange={(e) =>
-                                    handleFieldChange(
-                                      item.id,
-                                      'categoryId',
-                                      e.target.value
-                                    )
-                                  }
-                                  options={categoryOptions}
-                                  disabled={isScanning}
-                                  className="text-sm"
-                                />
+                                {/* Cuenta - Required (Highlighted if not detected) */}
+                                <div className="lg:col-span-3">
+                                  <div className="mb-1 flex items-center justify-between">
+                                    <label className="block text-xs font-medium text-foreground">
+                                      Cuenta{' '}
+                                      <span className="text-destructive">
+                                        *
+                                      </span>
+                                    </label>
+                                    {item.accountNeedsAttention && isDone && (
+                                      <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        Indicar
+                                      </span>
+                                    )}
+                                  </div>
+                                  <Select
+                                    value={item.accountId}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'accountId',
+                                        e.target.value
+                                      )
+                                    }
+                                    options={accountOptions}
+                                    disabled={isScanning}
+                                    className={`min-h-[44px] text-base transition-colors sm:min-h-0 sm:text-sm ${
+                                      item.accountNeedsAttention && isDone
+                                        ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/50'
+                                        : ''
+                                    }`}
+                                  />
+                                </div>
+
+                                {/* Categoría - Required */}
+                                <div className="lg:col-span-3">
+                                  <label className="mb-1 block text-xs font-medium text-foreground">
+                                    Categoría
+                                  </label>
+                                  <Select
+                                    value={item.categoryId}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'categoryId',
+                                        e.target.value
+                                      )
+                                    }
+                                    options={categoryOptions}
+                                    disabled={isScanning}
+                                    className="min-h-[44px] text-base sm:min-h-0 sm:text-sm"
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1652,69 +1901,6 @@ export function BatchReceiptUploaderModal({
                 </div>
               </>
             )}
-          </div>
-
-          {/* Sticky Modal Footer */}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/50 bg-card/95 px-4 py-4 backdrop-blur-md sm:px-6">
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={handleModalClose}
-                disabled={isSubmitting}
-              >
-                Cancelar
-              </Button>
-              {items.length > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (confirm('¿Vaciar todos los comprobantes?')) {
-                      items.forEach((i) => revokePreviewUrl(i.previewUrl));
-                      setItems([]);
-                    }
-                  }}
-                  disabled={isSubmitting || isProcessing}
-                  className="text-xs text-muted-foreground hover:text-destructive"
-                >
-                  Vaciar lista
-                </Button>
-              )}
-            </div>
-
-            <div className="flex items-center gap-3">
-              {itemsMissingAttention.length > 0 && (
-                <span className="hidden text-xs text-amber-600 dark:text-amber-400 sm:inline">
-                  {itemsMissingAttention.length} comprobante(s) necesitan cuenta
-                  o motivo
-                </span>
-              )}
-              <Button
-                type="button"
-                onClick={handleBatchSubmit}
-                disabled={
-                  isSubmitting || isProcessing || validItemsToSave.length === 0
-                }
-                className="ios-button-primary min-w-[170px]"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    Guardar {validItemsToSave.length}{' '}
-                    {validItemsToSave.length === 1
-                      ? 'Transacción'
-                      : 'Transacciones'}
-                  </>
-                )}
-              </Button>
-            </div>
           </div>
         </div>
       </Modal>

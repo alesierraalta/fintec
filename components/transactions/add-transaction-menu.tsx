@@ -257,9 +257,6 @@ export function AddTransactionMenu({
                 paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))',
               }}
             >
-              {/* Drag Pill Handle */}
-              <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-muted-foreground/30" />
-
               <div className="mb-4 flex items-center justify-between">
                 <div>
                   <h3
@@ -275,10 +272,10 @@ export function AddTransactionMenu({
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
                   aria-label="Cerrar opciones"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-5 w-5" />
                 </button>
               </div>
 
