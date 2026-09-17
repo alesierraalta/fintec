@@ -10,6 +10,25 @@ jest.mock('next/navigation', () => ({
   }),
 }));
 
+jest.mock('framer-motion', () => ({
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  motion: {
+    div: React.forwardRef<HTMLDivElement, any>(
+      (
+        { children, drag, dragConstraints, dragElastic, onDragEnd, ...props },
+        ref
+      ) => (
+        <div ref={ref} {...props}>
+          {children}
+        </div>
+      )
+    ),
+  },
+  useReducedMotion: () => false,
+}));
+
 describe('AddTransactionMenu Component', () => {
   beforeEach(() => {
     jest.clearAllMocks();

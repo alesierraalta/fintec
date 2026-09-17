@@ -2,7 +2,10 @@ import { useSyncExternalStore } from 'react';
 
 export function useMediaQuery(query: string): boolean {
   const subscribe = (callback: () => void) => {
-    if (typeof window === 'undefined') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return () => {};
     }
 
@@ -19,7 +22,10 @@ export function useMediaQuery(query: string): boolean {
   };
 
   const getSnapshot = () => {
-    if (typeof window === 'undefined') {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.matchMedia !== 'function'
+    ) {
       return false;
     }
 

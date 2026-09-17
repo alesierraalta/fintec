@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { useNativeBackNavigation } from '@/components/providers/native-back-navigation';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { ModalSize } from '@/types';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 
 export interface ModalProps {
   open: boolean;
@@ -36,6 +37,9 @@ export function Modal({
   const lastActiveElementRef = React.useRef<HTMLElement | null>(null);
   const registerBack = useNativeBackNavigation();
   const backId = React.useId();
+  const shouldReduceMotion =
+    typeof useReducedMotion === 'function' ? useReducedMotion() : false;
+  const isMobile = useMediaQuery('(max-width: 639px)');
 
   React.useEffect(() => {
     if (!open) return;
@@ -105,6 +109,32 @@ export function Modal({
     xl: 'max-w-6xl',
   };
 
+  const isSlideUp = mobileFullScreen && isMobile;
+
+  const modalVariants = {
+    initial: shouldReduceMotion
+      ? { opacity: 0 }
+      : isSlideUp
+        ? { y: '100%', opacity: 0.9 }
+        : { opacity: 0, scale: 0.96, y: 10 },
+    animate: shouldReduceMotion
+      ? { opacity: 1 }
+      : isSlideUp
+        ? { y: 0, opacity: 1 }
+        : { opacity: 1, scale: 1, y: 0 },
+    exit: shouldReduceMotion
+      ? { opacity: 0 }
+      : isSlideUp
+        ? { y: '100%', opacity: 0.9 }
+        : { opacity: 0, scale: 0.96, y: 10 },
+  };
+
+  const modalTransition = shouldReduceMotion
+    ? { duration: 0.1 }
+    : isSlideUp
+      ? { type: 'spring' as const, damping: 28, stiffness: 320, mass: 0.85 }
+      : { type: 'spring' as const, damping: 25, stiffness: 300 };
+
   return (
     <AnimatePresence>
       {open && (
@@ -114,7 +144,7 @@ export function Modal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: shouldReduceMotion ? 0.05 : 0.2 }}
             className="fixed inset-0 bg-background/60 backdrop-blur-sm"
             onClick={onClose}
             aria-hidden="true"
@@ -122,14 +152,15 @@ export function Modal({
 
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            variants={modalVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            transition={modalTransition}
             ref={modalRef}
             className={cn(
               mobileFullScreen
-                ? 'fixed inset-0 m-0 flex h-full max-h-none w-full flex-col overflow-hidden rounded-none border-0 bg-card/95 shadow-2xl backdrop-blur-xl sm:relative sm:mx-4 sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border sm:border-border/50'
+                ? 'fixed inset-0 m-0 flex h-[100dvh] h-screen max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-card/95 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] shadow-2xl backdrop-blur-xl sm:relative sm:mx-4 sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border sm:border-border/50 sm:pl-0 sm:pr-0'
                 : 'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
               sizeClasses[size],
               className
@@ -143,11 +174,18 @@ export function Modal({
           >
             {/* Header - solo si hay título */}
             {(title || description) && (
-              <div className="flex-shrink-0 border-b border-border/50 px-4 py-3.5 sm:px-6 sm:py-4">
+              <div
+                className={cn(
+                  'flex-shrink-0 border-b border-border/50 px-4 pb-3.5 sm:px-6 sm:py-4',
+                  mobileFullScreen
+                    ? 'pt-[calc(env(safe-area-inset-top,0px)+0.875rem)] sm:pt-4'
+                    : 'py-3.5'
+                )}
+              >
                 {title && (
                   <h2
                     id="modal-title"
-                    className="pr-10 text-base font-semibold text-foreground sm:text-lg"
+                    className="pr-12 text-base font-semibold text-foreground sm:pr-10 sm:text-lg"
                   >
                     {title}
                   </h2>
@@ -155,7 +193,7 @@ export function Modal({
                 {description && (
                   <p
                     id="modal-description"
-                    className="mt-1 pr-10 text-xs text-muted-foreground sm:text-sm"
+                    className="mt-1 pr-12 text-xs text-muted-foreground sm:pr-10 sm:text-sm"
                   >
                     {description}
                   </p>
@@ -168,7 +206,10 @@ export function Modal({
               <button
                 type="button"
                 className={cn(
-                  'focus-ring absolute right-2.5 top-2.5 flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground active:scale-95 sm:right-4 sm:top-4',
+                  'focus-ring absolute flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground active:scale-95',
+                  mobileFullScreen
+                    ? 'right-[calc(env(safe-area-inset-right,0px)+0.625rem)] top-[calc(env(safe-area-inset-top,0px)+0.625rem)] sm:right-4 sm:top-4'
+                    : 'right-2.5 top-2.5 sm:right-4 sm:top-4',
                   closeButtonClassName
                 )}
                 onClick={onClose}
@@ -192,7 +233,14 @@ export function Modal({
             <div
               className={cn(
                 'min-h-0 flex-1 overflow-y-auto overscroll-contain',
-                footer ? '' : 'pb-safe-bottom',
+                !title && !description && mobileFullScreen
+                  ? 'pt-[calc(env(safe-area-inset-top,0px)+1rem)]'
+                  : '',
+                footer
+                  ? ''
+                  : mobileFullScreen
+                    ? 'pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]'
+                    : 'pb-safe-bottom',
                 title || description ? 'px-4 py-4 sm:px-6' : '',
                 contentClassName
               )}
@@ -202,7 +250,14 @@ export function Modal({
 
             {/* Sticky footer outside scrollable body */}
             {footer && (
-              <div className="flex-shrink-0 border-t border-border/50 bg-card/95 pb-safe-bottom backdrop-blur-md">
+              <div
+                className={cn(
+                  'flex-shrink-0 border-t border-border/50 bg-card/95 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4',
+                  mobileFullScreen
+                    ? 'pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:pb-4'
+                    : 'pb-safe-bottom'
+                )}
+              >
                 {footer}
               </div>
             )}

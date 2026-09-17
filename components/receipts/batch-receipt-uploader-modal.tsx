@@ -30,6 +30,8 @@ import {
   Edit3,
 } from 'lucide-react';
 import { Button, Input, Select, Modal } from '@/components/ui';
+import { cn } from '@/lib/utils';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
@@ -949,14 +951,14 @@ export function BatchReceiptUploaderModal({
   };
 
   const renderModalFooter = () => (
-    <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex items-center justify-between gap-2 sm:justify-start">
         <Button
           type="button"
           variant="ghost"
           onClick={handleModalClose}
           disabled={isSubmitting}
-          className="min-h-[44px] px-3.5 text-sm text-muted-foreground sm:h-9 sm:min-h-0 sm:px-3 sm:text-xs"
+          className="min-h-[44px] flex-1 px-3.5 text-sm text-muted-foreground sm:h-9 sm:min-h-0 sm:flex-initial sm:px-3 sm:text-xs"
         >
           Cancelar
         </Button>
@@ -972,7 +974,7 @@ export function BatchReceiptUploaderModal({
               }
             }}
             disabled={isSubmitting || isProcessing}
-            className="min-h-[44px] px-3 text-xs text-muted-foreground hover:text-destructive sm:h-8 sm:min-h-0"
+            className="min-h-[44px] flex-1 px-3 text-xs text-muted-foreground hover:text-destructive sm:h-8 sm:min-h-0 sm:flex-initial"
           >
             Vaciar lista
           </Button>
@@ -1020,8 +1022,8 @@ export function BatchReceiptUploaderModal({
         mobileFullScreen={true}
         footer={renderModalFooter()}
         title={
-          <div className="flex flex-wrap items-center gap-2 pr-8 sm:pr-0">
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <div className="flex min-w-0 items-center gap-2">
               <Receipt
                 className="h-5 w-5 shrink-0 text-indigo-500"
                 aria-hidden="true"
@@ -1039,7 +1041,7 @@ export function BatchReceiptUploaderModal({
       >
         <div className="flex flex-col">
           {/* Scrollable Content Body */}
-          <div className="space-y-4 p-4 sm:p-6">
+          <div className="space-y-4">
             {/* Hidden Accessible File Inputs */}
             <input
               ref={fileInputRef}
@@ -1072,7 +1074,7 @@ export function BatchReceiptUploaderModal({
             {items.length === 0 ? (
               <>
                 {/* Mobile Touch-Friendly Hero */}
-                <div className="shadow-xs flex flex-col items-center justify-center rounded-3xl border border-border/60 bg-card/60 p-6 text-center sm:hidden">
+                <div className="shadow-xs flex flex-col items-center justify-center rounded-2xl border border-border/60 bg-card/60 p-4 text-center xs:rounded-3xl xs:p-6 sm:hidden">
                   <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-500 shadow-inner">
                     <Receipt className="h-8 w-8" aria-hidden="true" />
                   </div>
@@ -1419,7 +1421,7 @@ export function BatchReceiptUploaderModal({
                               </div>
 
                               {/* Item Action Buttons & Include Toggle */}
-                              <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-3">
+                              <div className="flex w-full flex-wrap items-center justify-between gap-2 border-t border-border/40 pt-2 sm:w-auto sm:justify-end sm:gap-3 sm:border-0 sm:pt-0">
                                 <label className="flex min-h-[44px] cursor-pointer select-none items-center gap-1.5 px-1 text-xs font-medium text-muted-foreground hover:text-foreground sm:min-h-0 sm:px-0">
                                   <input
                                     type="checkbox"
@@ -1447,55 +1449,57 @@ export function BatchReceiptUploaderModal({
                                   </span>
                                 </label>
 
-                                {isDone && (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="primary"
-                                    disabled={
-                                      isSubmitting ||
-                                      submittingItemId === item.id
-                                    }
-                                    onClick={() =>
-                                      handleConfirmSingleItem(item)
-                                    }
-                                    className="ios-button-primary shadow-xs min-h-[44px] px-3.5 text-xs font-semibold sm:h-8 sm:min-h-0 sm:px-2.5"
-                                    title="Guardar individualmente esta transacción"
-                                    aria-label={`Confirmar comprobante ${index + 1}`}
-                                  >
-                                    {submittingItemId === item.id ? (
-                                      <Loader2 className="mr-1.5 h-4 w-4 animate-spin sm:mr-1 sm:h-3.5 sm:w-3.5" />
-                                    ) : (
-                                      <Check className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
-                                    )}
-                                    Confirmar
-                                  </Button>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {isDone && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="primary"
+                                      disabled={
+                                        isSubmitting ||
+                                        submittingItemId === item.id
+                                      }
+                                      onClick={() =>
+                                        handleConfirmSingleItem(item)
+                                      }
+                                      className="ios-button-primary shadow-xs min-h-[44px] px-3.5 text-xs font-semibold sm:h-8 sm:min-h-0 sm:px-2.5"
+                                      title="Guardar individualmente esta transacción"
+                                      aria-label={`Confirmar comprobante ${index + 1}`}
+                                    >
+                                      {submittingItemId === item.id ? (
+                                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin sm:mr-1 sm:h-3.5 sm:w-3.5" />
+                                      ) : (
+                                        <Check className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
+                                      )}
+                                      Confirmar
+                                    </Button>
+                                  )}
 
-                                {isError && (
+                                  {isError && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleRetryItem(item.id)}
+                                      className="min-h-[44px] px-3 text-xs text-indigo-600 hover:text-indigo-700 sm:h-8 sm:min-h-0 sm:px-2"
+                                      title="Reintentar escaneo"
+                                    >
+                                      <RotateCcw className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
+                                      Reintentar
+                                    </Button>
+                                  )}
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleRetryItem(item.id)}
-                                    className="min-h-[44px] px-3 text-xs text-indigo-600 hover:text-indigo-700 sm:h-8 sm:min-h-0 sm:px-2"
-                                    title="Reintentar escaneo"
+                                    onClick={() => handleRemoveItem(item.id)}
+                                    className="flex min-h-[44px] min-w-[44px] items-center justify-center p-0 text-muted-foreground/70 transition-colors hover:text-destructive sm:h-8 sm:min-h-0 sm:w-8 sm:min-w-0"
+                                    title="Eliminar de la lista"
+                                    aria-label={`Eliminar comprobante ${index + 1}`}
                                   >
-                                    <RotateCcw className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
-                                    Reintentar
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
-                                )}
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveItem(item.id)}
-                                  className="flex min-h-[44px] min-w-[44px] items-center justify-center p-0 text-muted-foreground/70 transition-colors hover:text-destructive sm:h-8 sm:min-h-0 sm:w-8 sm:min-w-0"
-                                  title="Eliminar de la lista"
-                                  aria-label={`Eliminar comprobante ${index + 1}`}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                                </div>
                               </div>
                             </div>
 
@@ -1541,11 +1545,13 @@ export function BatchReceiptUploaderModal({
                                       ? 'Ocultar campos'
                                       : 'Editar / Ver campos'}
                                   </span>
-                                  {isCardExpanded(item.id, item) ? (
-                                    <ChevronUp className="h-3.5 w-3.5" />
-                                  ) : (
-                                    <ChevronDown className="h-3.5 w-3.5" />
-                                  )}
+                                  <ChevronDown
+                                    className={cn(
+                                      'h-3.5 w-3.5 transition-transform duration-200',
+                                      isCardExpanded(item.id, item) &&
+                                        'rotate-180'
+                                    )}
+                                  />
                                 </button>
                                 <span
                                   className={`rounded px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
@@ -1563,333 +1569,341 @@ export function BatchReceiptUploaderModal({
 
                             {/* Expandable Form & Checklist Container (Accordion on mobile, grid on desktop) */}
                             <div
-                              className={`space-y-3 ${
+                              className={cn(
+                                'grid transition-[grid-template-rows,opacity] duration-200 ease-out sm:!grid-rows-[1fr] sm:!opacity-100',
                                 isCardExpanded(item.id, item)
-                                  ? 'block'
-                                  : 'hidden sm:block'
-                              }`}
+                                  ? 'grid-rows-[1fr] opacity-100'
+                                  : 'grid-rows-[0fr] opacity-0'
+                              )}
                             >
-                              {/* Extracted vs Missing Checklist */}
-                              {isDone && (
-                                <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/40 bg-muted/25 px-2.5 py-1.5 text-xs">
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                      item.amount > 0
-                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                    }`}
-                                  >
-                                    {item.amount > 0 ? (
-                                      <>
-                                        <Check className="h-3 w-3 text-emerald-600" />
-                                        Monto: {item.amount} {item.currency}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <X className="h-3 w-3 text-orange-600" />
-                                        Falta monto
-                                      </>
-                                    )}
-                                  </span>
-
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                      item.description.trim()
-                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                    }`}
-                                  >
-                                    {item.description.trim() ? (
-                                      <>
-                                        <Check className="h-3 w-3 text-emerald-600" />
-                                        Comercio:{' '}
-                                        {item.description.length > 20
-                                          ? `${item.description.slice(0, 20)}...`
-                                          : item.description}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <X className="h-3 w-3 text-orange-600" />
-                                        Falta comercio
-                                      </>
-                                    )}
-                                  </span>
-
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                      item.date?.trim()
-                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                    }`}
-                                  >
-                                    {item.date?.trim() ? (
-                                      <>
-                                        <Check className="h-3 w-3 text-emerald-600" />
-                                        Fecha: {item.date}
-                                      </>
-                                    ) : (
-                                      <>
-                                        <X className="h-3 w-3 text-orange-600" />
-                                        Falta fecha
-                                      </>
-                                    )}
-                                  </span>
-
-                                  <span
-                                    className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
-                                      item.accountId?.trim()
-                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                        : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
-                                    }`}
-                                  >
-                                    {item.accountId?.trim() ? (
-                                      <>
-                                        <Check className="h-3 w-3 text-emerald-600" />
-                                        Cuenta asignada
-                                      </>
-                                    ) : (
-                                      <>
-                                        <X className="h-3 w-3 text-orange-600" />
-                                        Falta cuenta
-                                      </>
-                                    )}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Duplicate Alert Details if detected */}
-                              {item.isDuplicate && (
-                                <div
-                                  data-testid="duplicate-card-alert"
-                                  className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-200"
-                                >
-                                  <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
-                                  <div className="flex-1">
-                                    <span className="font-semibold">
-                                      {item.duplicateType === 'INTRA_BATCH'
-                                        ? 'Comprobante duplicado en este lote: '
-                                        : 'Comprobante ya registrado en historial: '}
+                              <div className="space-y-3 overflow-hidden">
+                                {/* Extracted vs Missing Checklist */}
+                                {isDone && (
+                                  <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/40 bg-muted/25 px-2.5 py-1.5 text-xs">
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                        item.amount > 0
+                                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                          : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                      }`}
+                                    >
+                                      {item.amount > 0 ? (
+                                        <>
+                                          <Check className="h-3 w-3 text-emerald-600" />
+                                          Monto: {item.amount} {item.currency}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <X className="h-3 w-3 text-orange-600" />
+                                          Falta monto
+                                        </>
+                                      )}
                                     </span>
-                                    <span>{item.duplicateReason}</span>
-                                    {item.isIncluded === false && (
-                                      <span className="mt-0.5 block text-[11px] italic text-amber-700/90 dark:text-amber-300/90">
-                                        Desmarcado por defecto para proteger tu
-                                        saldo. Marca &quot;Incluir de todos
-                                        modos&quot; arriba si deseas guardarlo.
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
 
-                              {/* Error Details if any */}
-                              {isError && (
-                                <p className="text-xs text-destructive">
-                                  {item.error || 'No se pudo leer la imagen.'}{' '}
-                                  Puedes completar los datos manualmente o
-                                  reintentar.
-                                </p>
-                              )}
-
-                              {/* Fast-Fill Form Grid */}
-                              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
-                                {/* Tipo (Gasto / Ingreso) */}
-                                <div className="sm:col-span-1 lg:col-span-2">
-                                  <label className="mb-1 block text-xs font-medium text-foreground">
-                                    Tipo
-                                  </label>
-                                  <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-0.5">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleFieldChange(
-                                          item.id,
-                                          'type',
-                                          TransactionType.EXPENSE
-                                        )
-                                      }
-                                      disabled={isScanning}
-                                      className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
-                                        item.type === TransactionType.EXPENSE
-                                          ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
-                                          : 'text-muted-foreground hover:text-foreground'
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                        item.description.trim()
+                                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                          : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
                                       }`}
                                     >
-                                      Gasto
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        handleFieldChange(
-                                          item.id,
-                                          'type',
-                                          TransactionType.INCOME
-                                        )
-                                      }
-                                      disabled={isScanning}
-                                      className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
-                                        item.type === TransactionType.INCOME
-                                          ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                                          : 'text-muted-foreground hover:text-foreground'
+                                      {item.description.trim() ? (
+                                        <>
+                                          <Check className="h-3 w-3 text-emerald-600" />
+                                          Comercio:{' '}
+                                          {item.description.length > 20
+                                            ? `${item.description.slice(0, 20)}...`
+                                            : item.description}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <X className="h-3 w-3 text-orange-600" />
+                                          Falta comercio
+                                        </>
+                                      )}
+                                    </span>
+
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                        item.date?.trim()
+                                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                          : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
                                       }`}
                                     >
-                                      Ingreso
-                                    </button>
+                                      {item.date?.trim() ? (
+                                        <>
+                                          <Check className="h-3 w-3 text-emerald-600" />
+                                          Fecha: {item.date}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <X className="h-3 w-3 text-orange-600" />
+                                          Falta fecha
+                                        </>
+                                      )}
+                                    </span>
+
+                                    <span
+                                      className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                        item.accountId?.trim()
+                                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                          : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                      }`}
+                                    >
+                                      {item.accountId?.trim() ? (
+                                        <>
+                                          <Check className="h-3 w-3 text-emerald-600" />
+                                          Cuenta asignada
+                                        </>
+                                      ) : (
+                                        <>
+                                          <X className="h-3 w-3 text-orange-600" />
+                                          Falta cuenta
+                                        </>
+                                      )}
+                                    </span>
                                   </div>
-                                </div>
+                                )}
 
-                                {/* Motivo (Descripción) - Required */}
-                                <div className="sm:col-span-2 lg:col-span-4">
-                                  <label className="mb-1 block text-xs font-medium text-foreground">
-                                    Motivo (Descripción){' '}
-                                    <span className="text-destructive">*</span>
-                                  </label>
-                                  <Input
-                                    value={item.description}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'description',
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="Ej. Compra supermercado, Pago móvil..."
-                                    disabled={isScanning}
-                                    className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
-                                      isDone && !item.description.trim()
-                                        ? 'border-amber-500/70 focus-visible:ring-amber-500'
-                                        : ''
-                                    }`}
-                                  />
-                                </div>
-
-                                {/* Fecha - Required */}
-                                <div className="sm:col-span-1 lg:col-span-2">
-                                  <div className="mb-1 flex items-center justify-between">
-                                    <label className="block text-xs font-medium text-foreground">
-                                      Fecha{' '}
-                                      <span className="text-destructive">
-                                        *
+                                {/* Duplicate Alert Details if detected */}
+                                {item.isDuplicate && (
+                                  <div
+                                    data-testid="duplicate-card-alert"
+                                    className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-2.5 text-xs text-amber-800 dark:text-amber-200"
+                                  >
+                                    <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500" />
+                                    <div className="flex-1">
+                                      <span className="font-semibold">
+                                        {item.duplicateType === 'INTRA_BATCH'
+                                          ? 'Comprobante duplicado en este lote: '
+                                          : 'Comprobante ya registrado en historial: '}
                                       </span>
+                                      <span>{item.duplicateReason}</span>
+                                      {item.isIncluded === false && (
+                                        <span className="mt-0.5 block text-[11px] italic text-amber-700/90 dark:text-amber-300/90">
+                                          Desmarcado por defecto para proteger
+                                          tu saldo. Marca &quot;Incluir de todos
+                                          modos&quot; arriba si deseas
+                                          guardarlo.
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Error Details if any */}
+                                {isError && (
+                                  <p className="text-xs text-destructive">
+                                    {item.error || 'No se pudo leer la imagen.'}{' '}
+                                    Puedes completar los datos manualmente o
+                                    reintentar.
+                                  </p>
+                                )}
+
+                                {/* Fast-Fill Form Grid */}
+                                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+                                  {/* Tipo (Gasto / Ingreso) */}
+                                  <div className="sm:col-span-1 lg:col-span-2">
+                                    <label className="mb-1 block text-xs font-medium text-foreground">
+                                      Tipo
                                     </label>
-                                    {!item.date && (
+                                    <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-0.5">
                                       <button
                                         type="button"
                                         onClick={() =>
                                           handleFieldChange(
                                             item.id,
-                                            'date',
-                                            new Date()
-                                              .toISOString()
-                                              .split('T')[0]
+                                            'type',
+                                            TransactionType.EXPENSE
                                           )
                                         }
-                                        className="inline-flex min-h-[44px] items-center px-2 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0 sm:p-0 sm:text-[10px]"
+                                        disabled={isScanning}
+                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                          item.type === TransactionType.EXPENSE
+                                            ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                        }`}
                                       >
-                                        Hoy
+                                        Gasto
                                       </button>
-                                    )}
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleFieldChange(
+                                            item.id,
+                                            'type',
+                                            TransactionType.INCOME
+                                          )
+                                        }
+                                        disabled={isScanning}
+                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                          item.type === TransactionType.INCOME
+                                            ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                            : 'text-muted-foreground hover:text-foreground'
+                                        }`}
+                                      >
+                                        Ingreso
+                                      </button>
+                                    </div>
                                   </div>
-                                  <Input
-                                    type="date"
-                                    value={item.date || ''}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'date',
-                                        e.target.value
-                                      )
-                                    }
-                                    disabled={isScanning}
-                                    className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
-                                      isDone && !item.date?.trim()
-                                        ? 'border-orange-500/80 bg-orange-500/5'
-                                        : ''
-                                    }`}
-                                  />
-                                </div>
 
-                                {/* Monto y Moneda - Prefilled & Editable */}
-                                <div className="lg:col-span-2">
-                                  <label className="mb-1 block text-xs font-medium text-foreground">
-                                    Monto ({item.currency || 'VES'}){' '}
-                                    <span className="text-destructive">*</span>
-                                  </label>
-                                  <div className="relative">
-                                    <Input
-                                      type="number"
-                                      step="0.01"
-                                      min="0"
-                                      value={item.amount || ''}
-                                      onChange={(e) =>
-                                        handleFieldChange(
-                                          item.id,
-                                          'amount',
-                                          parseFloat(e.target.value) || 0
-                                        )
-                                      }
-                                      disabled={isScanning}
-                                      className="min-h-[44px] pr-12 text-base font-medium sm:min-h-0 sm:text-sm"
-                                    />
-                                    <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                                      {item.currency}
-                                    </span>
-                                  </div>
-                                </div>
-
-                                {/* Cuenta - Required (Highlighted if not detected) */}
-                                <div className="lg:col-span-3">
-                                  <div className="mb-1 flex items-center justify-between">
-                                    <label className="block text-xs font-medium text-foreground">
-                                      Cuenta{' '}
+                                  {/* Motivo (Descripción) - Required */}
+                                  <div className="sm:col-span-2 lg:col-span-4">
+                                    <label className="mb-1 block text-xs font-medium text-foreground">
+                                      Motivo (Descripción){' '}
                                       <span className="text-destructive">
                                         *
                                       </span>
                                     </label>
-                                    {item.accountNeedsAttention && isDone && (
-                                      <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Indicar
-                                      </span>
-                                    )}
+                                    <Input
+                                      value={item.description}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'description',
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Ej. Compra supermercado, Pago móvil..."
+                                      disabled={isScanning}
+                                      className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
+                                        isDone && !item.description.trim()
+                                          ? 'border-amber-500/70 focus-visible:ring-amber-500'
+                                          : ''
+                                      }`}
+                                    />
                                   </div>
-                                  <Select
-                                    value={item.accountId}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'accountId',
-                                        e.target.value
-                                      )
-                                    }
-                                    options={accountOptions}
-                                    disabled={isScanning}
-                                    className={`min-h-[44px] text-base transition-colors sm:min-h-0 sm:text-sm ${
-                                      item.accountNeedsAttention && isDone
-                                        ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/50'
-                                        : ''
-                                    }`}
-                                  />
-                                </div>
 
-                                {/* Categoría - Required */}
-                                <div className="lg:col-span-3">
-                                  <label className="mb-1 block text-xs font-medium text-foreground">
-                                    Categoría
-                                  </label>
-                                  <Select
-                                    value={item.categoryId}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'categoryId',
-                                        e.target.value
-                                      )
-                                    }
-                                    options={categoryOptions}
-                                    disabled={isScanning}
-                                    className="min-h-[44px] text-base sm:min-h-0 sm:text-sm"
-                                  />
+                                  {/* Fecha - Required */}
+                                  <div className="sm:col-span-1 lg:col-span-2">
+                                    <div className="mb-1 flex items-center justify-between">
+                                      <label className="block text-xs font-medium text-foreground">
+                                        Fecha{' '}
+                                        <span className="text-destructive">
+                                          *
+                                        </span>
+                                      </label>
+                                      {!item.date && (
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            handleFieldChange(
+                                              item.id,
+                                              'date',
+                                              new Date()
+                                                .toISOString()
+                                                .split('T')[0]
+                                            )
+                                          }
+                                          className="inline-flex min-h-[44px] items-center px-2 py-1 text-xs font-medium text-primary hover:underline sm:min-h-0 sm:p-0 sm:text-[10px]"
+                                        >
+                                          Hoy
+                                        </button>
+                                      )}
+                                    </div>
+                                    <Input
+                                      type="date"
+                                      value={item.date || ''}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'date',
+                                          e.target.value
+                                        )
+                                      }
+                                      disabled={isScanning}
+                                      className={`min-h-[44px] text-base sm:min-h-0 sm:text-sm ${
+                                        isDone && !item.date?.trim()
+                                          ? 'border-orange-500/80 bg-orange-500/5'
+                                          : ''
+                                      }`}
+                                    />
+                                  </div>
+
+                                  {/* Monto y Moneda - Prefilled & Editable */}
+                                  <div className="lg:col-span-2">
+                                    <label className="mb-1 block text-xs font-medium text-foreground">
+                                      Monto ({item.currency || 'VES'}){' '}
+                                      <span className="text-destructive">
+                                        *
+                                      </span>
+                                    </label>
+                                    <div className="relative">
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={item.amount || ''}
+                                        onChange={(e) =>
+                                          handleFieldChange(
+                                            item.id,
+                                            'amount',
+                                            parseFloat(e.target.value) || 0
+                                          )
+                                        }
+                                        disabled={isScanning}
+                                        className="min-h-[44px] pr-12 text-base font-medium sm:min-h-0 sm:text-sm"
+                                      />
+                                      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                                        {item.currency}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Cuenta - Required (Highlighted if not detected) */}
+                                  <div className="lg:col-span-3">
+                                    <div className="mb-1 flex items-center justify-between">
+                                      <label className="block text-xs font-medium text-foreground">
+                                        Cuenta{' '}
+                                        <span className="text-destructive">
+                                          *
+                                        </span>
+                                      </label>
+                                      {item.accountNeedsAttention && isDone && (
+                                        <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                                          <AlertTriangle className="h-3 w-3" />
+                                          Indicar
+                                        </span>
+                                      )}
+                                    </div>
+                                    <Select
+                                      value={item.accountId}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'accountId',
+                                          e.target.value
+                                        )
+                                      }
+                                      options={accountOptions}
+                                      disabled={isScanning}
+                                      className={`min-h-[44px] text-base transition-colors sm:min-h-0 sm:text-sm ${
+                                        item.accountNeedsAttention && isDone
+                                          ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/50'
+                                          : ''
+                                      }`}
+                                    />
+                                  </div>
+
+                                  {/* Categoría - Required */}
+                                  <div className="lg:col-span-3">
+                                    <label className="mb-1 block text-xs font-medium text-foreground">
+                                      Categoría
+                                    </label>
+                                    <Select
+                                      value={item.categoryId}
+                                      onChange={(e) =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'categoryId',
+                                          e.target.value
+                                        )
+                                      }
+                                      options={categoryOptions}
+                                      disabled={isScanning}
+                                      className="min-h-[44px] text-base sm:min-h-0 sm:text-sm"
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             </div>

@@ -15,6 +15,27 @@ jest.mock('framer-motion', () => ({
   MotionConfig: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
+  motion: {
+    div: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+      ({ children, ...props }, ref) => (
+        <div ref={ref} {...props}>
+          {children}
+        </div>
+      )
+    ),
+    button: React.forwardRef<
+      HTMLButtonElement,
+      React.ButtonHTMLAttributes<HTMLButtonElement>
+    >(({ children, ...props }, ref) => (
+      <button ref={ref} {...props}>
+        {children}
+      </button>
+    )),
+  },
+  useReducedMotion: () => false,
 }));
 
 jest.mock('@/contexts/sidebar-context', () => ({

@@ -149,6 +149,23 @@ body {
   .bottom-mobile-chrome { bottom: calc(var(--mobile-chrome-bottom, 68px) + 1rem); }
   .mb-mobile-chrome { margin-bottom: var(--mobile-chrome-bottom); }
   .pb-safe-bottom { padding-bottom: var(--safe-area-bottom); }
+
+  /* Reusable Safe Area Utilities */
+  .pt-safe { padding-top: var(--safe-area-top); }
+  .pb-safe { padding-bottom: var(--safe-area-bottom); }
+  .pl-safe { padding-left: var(--safe-area-left); }
+  .pr-safe { padding-right: var(--safe-area-right); }
+  .px-safe { padding-left: var(--safe-area-left); padding-right: var(--safe-area-right); }
+  .py-safe { padding-top: var(--safe-area-top); padding-bottom: var(--safe-area-bottom); }
+
+  .pt-safe-offset-3 { padding-top: calc(var(--safe-area-top) + 0.75rem); }
+  .pt-safe-offset-4 { padding-top: calc(var(--safe-area-top) + 1rem); }
+  .pb-safe-offset-3 { padding-bottom: calc(var(--safe-area-bottom) + 0.75rem); }
+  .pb-safe-offset-4 { padding-bottom: calc(var(--safe-area-bottom) + 1rem); }
+  .top-safe-offset-2 { top: calc(var(--safe-area-top) + 0.5rem); }
+  .top-safe-offset-3 { top: calc(var(--safe-area-top) + 0.75rem); }
+  .right-safe-offset-2 { right: calc(var(--safe-area-right) + 0.5rem); }
+  .right-safe-offset-3 { right: calc(var(--safe-area-right) + 0.75rem); }
 }
 
 /* Utility Classes */
