@@ -1012,4 +1012,252 @@ describe('BatchReceiptUploaderModal Component', () => {
       });
     });
   });
+
+  describe('Batch UI states, checklist, and individual confirmation', () => {
+    it('displays Ready status and extracted checklist when all fields are complete', async () => {
+      const mockScanData: ScannedReceiptResult = {
+        type: 'EXPENSE',
+        confidence: 'HIGH',
+        amount: 85.0,
+        currency: 'USD',
+        date: '2026-09-15',
+        suggestedDescription: 'Walmart Express',
+        suggestedCategoryName: 'Alimentación',
+        suggestedAccountId: 'acc-usd-1',
+        accountMatchConfidence: 'HIGH',
+        formattedNotes: '',
+        tags: [],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: mockScanData,
+        }),
+      });
+
+      render(
+        <BatchReceiptUploaderModal
+          isOpen={true}
+          onClose={jest.fn()}
+          accounts={mockAccounts}
+          categories={mockCategories}
+        />
+      );
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = new File(['walmart'], 'walmart.jpg', { type: 'image/jpeg' });
+
+      await act(async () => {
+        fireEvent.change(input, { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByTestId('status-badge-ready')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Ready')).toBeInTheDocument();
+      expect(screen.getByText(/Monto: 85 USD/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Comercio: Walmart Express/i)
+      ).toBeInTheDocument();
+      expect(screen.getByText(/Fecha: 2026-09-15/i)).toBeInTheDocument();
+      expect(screen.getByText(/Cuenta asignada/i)).toBeInTheDocument();
+    });
+
+    it('displays Missing information status when date or amount is missing', async () => {
+      const mockIncompleteScan: ScannedReceiptResult = {
+        type: 'EXPENSE',
+        confidence: 'MEDIUM',
+        amount: 52.3,
+        currency: 'USD',
+        date: '', // Missing date
+        suggestedDescription: 'Shell',
+        suggestedCategoryName: 'Alimentación',
+        suggestedAccountId: 'acc-usd-1',
+        accountMatchConfidence: 'HIGH',
+        formattedNotes: '',
+        tags: [],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: mockIncompleteScan,
+        }),
+      });
+
+      render(
+        <BatchReceiptUploaderModal
+          isOpen={true}
+          onClose={jest.fn()}
+          accounts={mockAccounts}
+          categories={mockCategories}
+        />
+      );
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = new File(['shell'], 'shell.jpg', { type: 'image/jpeg' });
+
+      await act(async () => {
+        fireEvent.change(input, { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByTestId('status-badge-missing-info')
+        ).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/Missing information/i)).toBeInTheDocument();
+      expect(screen.getByText(/Falta fecha/i)).toBeInTheDocument();
+
+      // Click "Hoy" to fill date
+      const hoyBtn = screen.getByText('Hoy');
+      fireEvent.click(hoyBtn);
+
+      // Now status transitions to Ready
+      await waitFor(() => {
+        expect(screen.getByTestId('status-badge-ready')).toBeInTheDocument();
+      });
+    });
+
+    it('allows toggling between Gasto and Ingreso', async () => {
+      const mockScanData: ScannedReceiptResult = {
+        type: 'EXPENSE',
+        confidence: 'HIGH',
+        amount: 100,
+        currency: 'USD',
+        date: '2026-09-14',
+        suggestedDescription: 'Cobro Cliente',
+        suggestedCategoryName: 'Salario',
+        suggestedAccountId: 'acc-usd-1',
+        accountMatchConfidence: 'HIGH',
+        formattedNotes: '',
+        tags: [],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: mockScanData,
+        }),
+      });
+
+      render(
+        <BatchReceiptUploaderModal
+          isOpen={true}
+          onClose={jest.fn()}
+          accounts={mockAccounts}
+          categories={mockCategories}
+        />
+      );
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = new File(['doc'], 'receipt.jpg', { type: 'image/jpeg' });
+
+      await act(async () => {
+        fireEvent.change(input, { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Cobro Cliente')).toBeInTheDocument();
+      });
+
+      const ingresoBtn = screen.getByRole('button', { name: 'Ingreso' });
+      fireEvent.click(ingresoBtn);
+
+      expect(ingresoBtn.className).toContain('text-emerald-600');
+    });
+
+    it('allows confirming an individual transaction from its card', async () => {
+      const mockScanData: ScannedReceiptResult = {
+        type: 'EXPENSE',
+        confidence: 'HIGH',
+        amount: 43.21,
+        currency: 'USD',
+        date: '2026-09-15',
+        suggestedDescription: 'Walmart',
+        suggestedCategoryName: 'Alimentación',
+        suggestedAccountId: 'acc-usd-1',
+        accountMatchConfidence: 'HIGH',
+        formattedNotes: '',
+        tags: [],
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: mockScanData,
+        }),
+      });
+
+      const mockOnSuccess = jest.fn();
+
+      render(
+        <BatchReceiptUploaderModal
+          isOpen={true}
+          onClose={jest.fn()}
+          onSuccess={mockOnSuccess}
+          accounts={mockAccounts}
+          categories={mockCategories}
+        />
+      );
+
+      const input = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      const file = new File(['img'], 'walmart.jpg', { type: 'image/jpeg' });
+
+      await act(async () => {
+        fireEvent.change(input, { target: { files: [file] } });
+      });
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Walmart')).toBeInTheDocument();
+      });
+
+      // Find the card's Confirmar button
+      const confirmCardBtn = screen.getByRole('button', {
+        name: 'Confirmar comprobante 1',
+      });
+      expect(confirmCardBtn).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(confirmCardBtn);
+      });
+
+      await waitFor(() => {
+        expect(runFinancialMutation).toHaveBeenCalled();
+        expect(mockCreateTransaction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: TransactionType.EXPENSE,
+            accountId: 'acc-usd-1',
+            description: 'Walmart',
+            amountMinor: 4321,
+            date: '2026-09-15',
+          })
+        );
+      });
+
+      expect(toast.success).toHaveBeenCalledWith(
+        expect.stringContaining('Transacción guardada exitosamente')
+      );
+      expect(mockOnSuccess).toHaveBeenCalled();
+    });
+  });
 });

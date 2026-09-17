@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 
 import dynamic from 'next/dynamic';
@@ -13,6 +14,7 @@ import { useModal, useViewportHeight, useMobileInputAutoScroll } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { Plus } from 'lucide-react';
 import { TransactionType } from '@/types';
+import { AddTransactionMenu } from '@/components/transactions/add-transaction-menu';
 
 const TransactionForm = dynamic(
   () =>
@@ -37,6 +39,7 @@ interface MainLayoutProps {
 function MainLayoutContent({ children }: MainLayoutProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const { isOpen, isMobile, closeSidebar, toggleSidebar } = useSidebar();
   const { isOpen: isModalOpen, closeModal } = useModal();
   useViewportHeight();
@@ -118,15 +121,24 @@ function MainLayoutContent({ children }: MainLayoutProps) {
 
       {/* Floating Add Transaction Button */}
       {showGlobalFab && (
-        <FloatingActionButton
-          onClick={() => router.push('/transactions/add')}
-          label="Nueva"
-          icon={<Plus className="h-6 w-6" />}
-          mobileOnly={true}
-          position="bottom-right"
-          variant="success"
-          className="z-50"
-        />
+        <>
+          <FloatingActionButton
+            onClick={() => setIsAddMenuOpen(true)}
+            label="Nueva"
+            icon={<Plus className="h-6 w-6" />}
+            mobileOnly={true}
+            position="bottom-right"
+            variant="success"
+            className="z-50"
+          />
+          <AddTransactionMenu
+            isOpen={isAddMenuOpen}
+            onOpenChange={setIsAddMenuOpen}
+            customTrigger={() => null}
+            onAddSingle={() => router.push('/transactions/add')}
+            onAddBatch={() => router.push('/transactions?action=batch')}
+          />
+        </>
       )}
 
       {/* Transaction Form Modal */}

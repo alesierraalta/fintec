@@ -23,6 +23,7 @@ import {
   Receipt,
   Package,
   CopyCheck,
+  Check,
 } from 'lucide-react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { toast } from 'sonner';
@@ -75,6 +76,66 @@ export interface BatchReceiptItem {
   duplicateType?: 'INTRA_BATCH' | 'HISTORY';
   duplicateReason?: string;
   isIncluded?: boolean; // Defaults to true; false if duplicate is detected
+}
+
+export type BatchItemUiState =
+  'READY' | 'NEEDS_REVIEW' | 'MISSING_INFO' | 'ERROR';
+
+export function getBatchItemUiState(item: BatchReceiptItem): {
+  state: BatchItemUiState;
+  missingFields: string[];
+  reviewReasons: string[];
+} {
+  if (item.status === 'error') {
+    return {
+      state: 'ERROR',
+      missingFields: [],
+      reviewReasons: [item.error || 'Error al procesar el comprobante'],
+    };
+  }
+
+  const missingFields: string[] = [];
+  if (!item.amount || item.amount <= 0) missingFields.push('Monto');
+  if (!item.description?.trim()) missingFields.push('Comercio/Motivo');
+  if (!item.date?.trim()) missingFields.push('Fecha');
+  if (!item.accountId?.trim()) missingFields.push('Cuenta');
+
+  if (missingFields.length > 0) {
+    return {
+      state: 'MISSING_INFO',
+      missingFields,
+      reviewReasons: [],
+    };
+  }
+
+  const reviewReasons: string[] = [];
+  if (item.isDuplicate) {
+    reviewReasons.push(
+      item.duplicateType === 'INTRA_BATCH'
+        ? 'Posible duplicado en el lote'
+        : 'Posible duplicado en historial'
+    );
+  }
+  if (item.result?.confidence === 'LOW') {
+    reviewReasons.push('Baja confianza de lectura');
+  }
+  if (item.accountNeedsAttention) {
+    reviewReasons.push('Verificar cuenta asignada');
+  }
+
+  if (reviewReasons.length > 0) {
+    return {
+      state: 'NEEDS_REVIEW',
+      missingFields: [],
+      reviewReasons,
+    };
+  }
+
+  return {
+    state: 'READY',
+    missingFields: [],
+    reviewReasons: [],
+  };
 }
 
 export interface BatchReceiptUploaderModalProps {
@@ -259,6 +320,7 @@ export function BatchReceiptUploaderModal({
   const [isDragOver, setIsDragOver] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewItem, setPreviewItem] = useState<BatchReceiptItem | null>(null);
+  const [submittingItemId, setSubmittingItemId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const itemsRef = useRef<BatchReceiptItem[]>([]);
@@ -396,7 +458,7 @@ export function BatchReceiptUploaderModal({
           result,
           amount: result.amount || 0,
           currency: detectedCurrency,
-          date: result.date || new Date().toISOString().split('T')[0],
+          date: result.date || '',
           type:
             result.type === 'INCOME'
               ? TransactionType.INCOME
@@ -638,26 +700,100 @@ export function BatchReceiptUploaderModal({
   const errorCount = items.filter((i) => i.status === 'error').length;
   const isProcessing = scanningCount > 0 || pendingCount > 0;
 
-  // Validation: items ready to save (must be included)
-  const validItemsToSave = useMemo(() => {
+  const readyCount = useMemo(() => {
     return items.filter(
-      (item) =>
-        item.isIncluded !== false &&
-        item.status === 'done' &&
-        item.amount > 0 &&
-        item.description.trim().length > 0 &&
-        item.accountId.trim().length > 0
-    );
+      (i) => i.status === 'done' && getBatchItemUiState(i).state === 'READY'
+    ).length;
+  }, [items]);
+
+  const missingCount = useMemo(() => {
+    return items.filter(
+      (i) =>
+        i.status === 'done' && getBatchItemUiState(i).state === 'MISSING_INFO'
+    ).length;
+  }, [items]);
+
+  const needsReviewCount = useMemo(() => {
+    return items.filter(
+      (i) =>
+        i.status === 'done' && getBatchItemUiState(i).state === 'NEEDS_REVIEW'
+    ).length;
+  }, [items]);
+
+  // Validation: items ready to save (must be included and have no missing fields)
+  const validItemsToSave = useMemo(() => {
+    return items.filter((item) => {
+      if (item.isIncluded === false || item.status !== 'done') return false;
+      const { missingFields } = getBatchItemUiState(item);
+      return missingFields.length === 0;
+    });
   }, [items]);
 
   const itemsMissingAttention = useMemo(() => {
-    return items.filter(
-      (item) =>
-        item.isIncluded !== false &&
-        item.status === 'done' &&
-        (!item.accountId.trim() || !item.description.trim() || item.amount <= 0)
-    );
+    return items.filter((item) => {
+      if (item.isIncluded === false || item.status !== 'done') return false;
+      const { missingFields, reviewReasons } = getBatchItemUiState(item);
+      return missingFields.length > 0 || reviewReasons.length > 0;
+    });
   }, [items]);
+
+  // Single item confirmation handler
+  const handleConfirmSingleItem = useCallback(
+    async (item: BatchReceiptItem) => {
+      const { missingFields } = getBatchItemUiState(item);
+      if (missingFields.length > 0) {
+        toast.warning(
+          `Completa los campos faltantes: ${missingFields.join(', ')}`
+        );
+        return;
+      }
+
+      setSubmittingItemId(item.id);
+      try {
+        const selectedAccount = accounts.find((a) => a.id === item.accountId);
+        const currencyCode =
+          selectedAccount?.currencyCode || item.currency || 'USD';
+        const isVesCurrency = currencyCode === 'VES';
+        const exchangeRate = isVesCurrency ? activeUsdVes : undefined;
+
+        const txDto: CreateTransactionDTO = {
+          type: item.type,
+          accountId: item.accountId,
+          categoryId: item.categoryId || undefined,
+          currencyCode,
+          amountMinor: toMinorUnits(item.amount, currencyCode),
+          exchangeRate,
+          date: item.date || new Date().toISOString().split('T')[0],
+          description: item.description.trim(),
+          note: item.referenceId
+            ? `Comprobante Ref: ${item.referenceId}`
+            : undefined,
+          tags: ['comprobante-ia', 'batch-single'],
+        };
+
+        await runFinancialMutation({
+          userId: user?.id,
+          repository,
+          domains: ['transactions', 'accounts', 'budgets'],
+          mutation: async () => {
+            return await repository.transactions.create(txDto);
+          },
+        });
+
+        toast.success(
+          `Transacción guardada exitosamente (${item.description.trim()})`
+        );
+        revokePreviewUrl(item.previewUrl);
+        setItems((prev) => prev.filter((i) => i.id !== item.id));
+        onSuccess?.();
+      } catch (err: any) {
+        toast.error(err?.message || 'Error al guardar la transacción');
+      } finally {
+        setSubmittingItemId(null);
+      }
+    },
+    [accounts, activeUsdVes, onSuccess, repository, revokePreviewUrl, user?.id]
+  );
 
   // Batch submit handler
   const handleBatchSubmit = async () => {
@@ -868,8 +1004,18 @@ export function BatchReceiptUploaderModal({
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          {doneCount} listos
+                          {readyCount} listos (Ready)
                         </span>
+                        {needsReviewCount > 0 && (
+                          <span className="font-medium text-amber-600 dark:text-amber-400">
+                            • {needsReviewCount} por revisar (Needs review)
+                          </span>
+                        )}
+                        {missingCount > 0 && (
+                          <span className="font-medium text-orange-600 dark:text-orange-400">
+                            • {missingCount} falta info (Missing info)
+                          </span>
+                        )}
                         {isProcessing && (
                           <span>
                             • {pendingCount + scanningCount} en proceso
@@ -952,6 +1098,7 @@ export function BatchReceiptUploaderModal({
                     const isScanning = item.status === 'scanning';
                     const isPending = item.status === 'pending';
                     const isError = item.status === 'error';
+                    const itemUi = getBatchItemUiState(item);
 
                     return (
                       <div
@@ -959,11 +1106,13 @@ export function BatchReceiptUploaderModal({
                         className={`group relative rounded-2xl border p-4 shadow-sm transition-all duration-200 ${
                           item.isDuplicate
                             ? 'border-amber-500/60 bg-amber-500/[0.04] dark:bg-amber-950/[0.15]'
-                            : item.accountNeedsAttention && isDone
-                              ? 'border-amber-500/50 bg-amber-500/[0.03] dark:bg-amber-950/[0.1]'
-                              : isError
-                                ? 'border-destructive/40 bg-destructive/[0.02]'
-                                : 'border-border/50 bg-card/70 hover:border-border'
+                            : itemUi.state === 'MISSING_INFO' && isDone
+                              ? 'border-orange-500/50 bg-orange-500/[0.03] dark:bg-orange-950/[0.1]'
+                              : item.accountNeedsAttention && isDone
+                                ? 'border-amber-500/50 bg-amber-500/[0.03] dark:bg-amber-950/[0.1]'
+                                : isError
+                                  ? 'border-destructive/40 bg-destructive/[0.02]'
+                                  : 'border-border/50 bg-card/70 hover:border-border'
                         } ${item.isIncluded === false ? 'opacity-80' : ''}`}
                       >
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
@@ -995,10 +1144,40 @@ export function BatchReceiptUploaderModal({
                             {/* Top Status & Meta Row */}
                             <div className="flex flex-wrap items-center justify-between gap-2">
                               <div className="flex flex-wrap items-center gap-2">
-                                {isDone && (
-                                  <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                {isDone && itemUi.state === 'READY' && (
+                                  <span
+                                    data-testid="status-badge-ready"
+                                    className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
+                                  >
                                     <CheckCircle2 className="h-3 w-3" />
-                                    Listo
+                                    <span>Ready</span>
+                                    <span className="text-[11px] font-normal opacity-85">
+                                      Listo
+                                    </span>
+                                  </span>
+                                )}
+                                {isDone && itemUi.state === 'NEEDS_REVIEW' && (
+                                  <span
+                                    data-testid="status-badge-needs-review"
+                                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300"
+                                  >
+                                    <AlertTriangle className="h-3 w-3" />
+                                    <span>Needs review</span>
+                                    <span className="text-[11px] font-normal opacity-85">
+                                      Por revisar
+                                    </span>
+                                  </span>
+                                )}
+                                {isDone && itemUi.state === 'MISSING_INFO' && (
+                                  <span
+                                    data-testid="status-badge-missing-info"
+                                    className="inline-flex items-center gap-1 rounded-md border border-orange-500/30 bg-orange-500/15 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-300"
+                                  >
+                                    <AlertCircle className="h-3 w-3" />
+                                    <span>Missing information</span>
+                                    <span className="text-[11px] font-normal opacity-85">
+                                      Falta info
+                                    </span>
                                   </span>
                                 )}
                                 {isScanning && (
@@ -1013,9 +1192,12 @@ export function BatchReceiptUploaderModal({
                                   </span>
                                 )}
                                 {isError && (
-                                  <span className="inline-flex items-center gap-1 rounded-md border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+                                  <span
+                                    data-testid="status-badge-error"
+                                    className="inline-flex items-center gap-1 rounded-md border border-destructive/20 bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive"
+                                  >
                                     <AlertCircle className="h-3 w-3" />
-                                    Error
+                                    <span>Error</span>
                                   </span>
                                 )}
 
@@ -1065,7 +1247,7 @@ export function BatchReceiptUploaderModal({
                               </div>
 
                               {/* Item Action Buttons & Include Toggle */}
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-2 sm:gap-3">
                                 <label className="flex cursor-pointer select-none items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
                                   <input
                                     type="checkbox"
@@ -1093,6 +1275,31 @@ export function BatchReceiptUploaderModal({
                                   </span>
                                 </label>
 
+                                {isDone && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="primary"
+                                    disabled={
+                                      isSubmitting ||
+                                      submittingItemId === item.id
+                                    }
+                                    onClick={() =>
+                                      handleConfirmSingleItem(item)
+                                    }
+                                    className="ios-button-primary shadow-xs h-8 px-2.5 text-xs font-semibold"
+                                    title="Guardar individualmente esta transacción"
+                                    aria-label={`Confirmar comprobante ${index + 1}`}
+                                  >
+                                    {submittingItemId === item.id ? (
+                                      <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                                    ) : (
+                                      <Check className="mr-1 h-3.5 w-3.5" />
+                                    )}
+                                    Confirmar
+                                  </Button>
+                                )}
+
                                 {isError && (
                                   <Button
                                     type="button"
@@ -1119,6 +1326,94 @@ export function BatchReceiptUploaderModal({
                                 </Button>
                               </div>
                             </div>
+
+                            {/* Extracted vs Missing Checklist */}
+                            {isDone && (
+                              <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border/40 bg-muted/25 px-2.5 py-1.5 text-xs">
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                    item.amount > 0
+                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                  }`}
+                                >
+                                  {item.amount > 0 ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-emerald-600" />
+                                      Monto: {item.amount} {item.currency}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="h-3 w-3 text-orange-600" />
+                                      Falta monto
+                                    </>
+                                  )}
+                                </span>
+
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                    item.description.trim()
+                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                  }`}
+                                >
+                                  {item.description.trim() ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-emerald-600" />
+                                      Comercio:{' '}
+                                      {item.description.length > 20
+                                        ? `${item.description.slice(0, 20)}...`
+                                        : item.description}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="h-3 w-3 text-orange-600" />
+                                      Falta comercio
+                                    </>
+                                  )}
+                                </span>
+
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                    item.date?.trim()
+                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                  }`}
+                                >
+                                  {item.date?.trim() ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-emerald-600" />
+                                      Fecha: {item.date}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="h-3 w-3 text-orange-600" />
+                                      Falta fecha
+                                    </>
+                                  )}
+                                </span>
+
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] font-medium ${
+                                    item.accountId?.trim()
+                                      ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                                      : 'border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-300'
+                                  }`}
+                                >
+                                  {item.accountId?.trim() ? (
+                                    <>
+                                      <Check className="h-3 w-3 text-emerald-600" />
+                                      Cuenta asignada
+                                    </>
+                                  ) : (
+                                    <>
+                                      <X className="h-3 w-3 text-orange-600" />
+                                      Falta cuenta
+                                    </>
+                                  )}
+                                </span>
+                              </div>
+                            )}
 
                             {/* Duplicate Alert Details if detected */}
                             {item.isDuplicate && (
@@ -1156,6 +1451,51 @@ export function BatchReceiptUploaderModal({
 
                             {/* Fast-Fill Form Grid */}
                             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12">
+                              {/* Tipo (Gasto / Ingreso) */}
+                              <div className="sm:col-span-1 lg:col-span-2">
+                                <label className="mb-1 block text-xs font-medium text-foreground">
+                                  Tipo
+                                </label>
+                                <div className="flex items-center rounded-xl border border-border/60 bg-muted/20 p-0.5">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'type',
+                                        TransactionType.EXPENSE
+                                      )
+                                    }
+                                    disabled={isScanning}
+                                    className={`flex-1 rounded-lg px-1.5 py-1 text-xs font-semibold transition-all ${
+                                      item.type === TransactionType.EXPENSE
+                                        ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                  >
+                                    Gasto
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'type',
+                                        TransactionType.INCOME
+                                      )
+                                    }
+                                    disabled={isScanning}
+                                    className={`flex-1 rounded-lg px-1.5 py-1 text-xs font-semibold transition-all ${
+                                      item.type === TransactionType.INCOME
+                                        ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                                        : 'text-muted-foreground hover:text-foreground'
+                                    }`}
+                                  >
+                                    Ingreso
+                                  </button>
+                                </div>
+                              </div>
+
                               {/* Motivo (Descripción) - Required */}
                               <div className="sm:col-span-2 lg:col-span-4">
                                 <label className="mb-1 block text-xs font-medium text-foreground">
@@ -1181,24 +1521,74 @@ export function BatchReceiptUploaderModal({
                                 />
                               </div>
 
-                              {/* Categoría - Required */}
-                              <div className="lg:col-span-3">
-                                <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Categoría
-                                </label>
-                                <Select
-                                  value={item.categoryId}
+                              {/* Fecha - Required */}
+                              <div className="sm:col-span-1 lg:col-span-2">
+                                <div className="mb-1 flex items-center justify-between">
+                                  <label className="block text-xs font-medium text-foreground">
+                                    Fecha{' '}
+                                    <span className="text-destructive">*</span>
+                                  </label>
+                                  {!item.date && (
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleFieldChange(
+                                          item.id,
+                                          'date',
+                                          new Date().toISOString().split('T')[0]
+                                        )
+                                      }
+                                      className="text-[10px] font-medium text-primary hover:underline"
+                                    >
+                                      Hoy
+                                    </button>
+                                  )}
+                                </div>
+                                <Input
+                                  type="date"
+                                  value={item.date || ''}
                                   onChange={(e) =>
                                     handleFieldChange(
                                       item.id,
-                                      'categoryId',
+                                      'date',
                                       e.target.value
                                     )
                                   }
-                                  options={categoryOptions}
                                   disabled={isScanning}
-                                  className="text-sm"
+                                  className={`text-sm ${
+                                    isDone && !item.date?.trim()
+                                      ? 'border-orange-500/80 bg-orange-500/5'
+                                      : ''
+                                  }`}
                                 />
+                              </div>
+
+                              {/* Monto y Moneda - Prefilled & Editable */}
+                              <div className="lg:col-span-2">
+                                <label className="mb-1 block text-xs font-medium text-foreground">
+                                  Monto ({item.currency || 'VES'}){' '}
+                                  <span className="text-destructive">*</span>
+                                </label>
+                                <div className="relative">
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={item.amount || ''}
+                                    onChange={(e) =>
+                                      handleFieldChange(
+                                        item.id,
+                                        'amount',
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                    disabled={isScanning}
+                                    className="pr-12 text-sm font-medium"
+                                  />
+                                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
+                                    {item.currency}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Cuenta - Required (Highlighted if not detected) */}
@@ -1234,31 +1624,24 @@ export function BatchReceiptUploaderModal({
                                 />
                               </div>
 
-                              {/* Monto y Moneda - Prefilled & Editable */}
-                              <div className="lg:col-span-2">
+                              {/* Categoría - Required */}
+                              <div className="lg:col-span-3">
                                 <label className="mb-1 block text-xs font-medium text-foreground">
-                                  Monto ({item.currency || 'VES'})
+                                  Categoría
                                 </label>
-                                <div className="relative">
-                                  <Input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={item.amount || ''}
-                                    onChange={(e) =>
-                                      handleFieldChange(
-                                        item.id,
-                                        'amount',
-                                        parseFloat(e.target.value) || 0
-                                      )
-                                    }
-                                    disabled={isScanning}
-                                    className="pr-12 text-sm font-medium"
-                                  />
-                                  <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs font-semibold text-muted-foreground">
-                                    {item.currency}
-                                  </span>
-                                </div>
+                                <Select
+                                  value={item.categoryId}
+                                  onChange={(e) =>
+                                    handleFieldChange(
+                                      item.id,
+                                      'categoryId',
+                                      e.target.value
+                                    )
+                                  }
+                                  options={categoryOptions}
+                                  disabled={isScanning}
+                                  className="text-sm"
+                                />
                               </div>
                             </div>
                           </div>

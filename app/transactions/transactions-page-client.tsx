@@ -65,6 +65,8 @@ const BatchReceiptUploaderModal = dynamic(
   { ssr: false }
 );
 
+import { AddTransactionMenu } from '@/components/transactions/add-transaction-menu';
+
 const ITEMS_PER_PAGE = 50;
 const TRANSACTION_TYPES = new Set<string>(Object.values(TransactionType));
 
@@ -101,7 +103,15 @@ export default function TransactionsPage() {
       ? (typeParam as TransactionType)
       : null;
   const { isOpen, openModal, closeModal } = useModal();
-  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(
+    searchParams.get('action') === 'batch'
+  );
+
+  useEffect(() => {
+    if (searchParams.get('action') === 'batch') {
+      setIsBatchModalOpen(true);
+    }
+  }, [searchParams]);
   const {
     transactions,
     accounts,
@@ -527,26 +537,12 @@ export default function TransactionsPage() {
             title="Transacciones"
             subtitle="Controla todos tus ingresos y gastos"
             actions={
-              <div className="flex flex-wrap items-center gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsBatchModalOpen(true)}
-                  className="ios-button-secondary flex items-center gap-2"
-                  aria-label="Cargar lote de comprobantes"
-                >
-                  <Receipt className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Lote de Comprobantes</span>
-                  <span className="sm:hidden">Lote</span>
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handleNewTransaction}
-                  className="ios-button-primary"
-                >
-                  <Plus className="h-5 w-5" aria-hidden="true" />
-                  <span>Nueva Transacción</span>
-                </Button>
+              <div className="flex items-center gap-2">
+                <AddTransactionMenu
+                  label="Agregar"
+                  onAddSingle={handleNewTransaction}
+                  onAddBatch={() => setIsBatchModalOpen(true)}
+                />
               </div>
             }
           />

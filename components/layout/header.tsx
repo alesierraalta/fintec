@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Plus,
   RefreshCw,
+  Receipt,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from 'next-themes';
@@ -398,7 +399,26 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                       <div className="flex flex-col text-left">
                         <span className="font-medium">Nueva Transacción</span>
                         <span className="text-[10px] text-muted-foreground">
-                          Ingreso o Gasto
+                          Ingreso o Gasto individual
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddMenu(false);
+                        router.push('/transactions?action=batch');
+                      }}
+                      className="flex w-full items-center px-4 py-3 text-sm text-foreground transition-colors hover:bg-foreground/5"
+                    >
+                      <div className="mr-3 flex h-8 w-8 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                        <Receipt className="h-4 w-4" />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="font-medium">Agregar en lote</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          Varios comprobantes con IA
                         </span>
                       </div>
                     </button>
