@@ -101,6 +101,17 @@ Non-goals:
 - The production build compiles the application but fails its repository-wide TypeScript gate on 51 existing test errors across unrelated modules and existing batch test fixtures.
 - Required next step: create a separate bounded testing/type-health task; do not expand the UI pilot to repair unrelated test debt.
 
+## Delivery evidence
+
+Pilot work-unit commits pushed to `origin/main`:
+
+- `df196739` — `feat(ui): establish motion and navigation foundations`
+- `52c3ab3f` — `feat(ui): clarify dashboard hierarchy`
+- `955c644f` — `fix(transactions): distinguish filtered empty states`
+- `b7aa57ca` — `feat(batch): add semantic review progress`
+- `1624966e` — `fix(ui): harden modal focus and safe areas`
+- `0d4616a5` — `docs(ui): record modernization pilot evidence`
+
 ## Acceptance criteria
 
 - No financial or persistence behavior changes.
