@@ -162,6 +162,7 @@ export default function TransactionsPage() {
     categoryId: categoryIdQuery || undefined,
     type: typeQuery || undefined,
   });
+  const [filterResetVersion, setFilterResetVersion] = useState(0);
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [transactionToDelete, setTransactionToDelete] =
@@ -372,6 +373,12 @@ export default function TransactionsPage() {
     [router, pathname, searchParams]
   );
 
+  const clearTransactionFilters = useCallback(() => {
+    setFilterResetVersion((version) => version + 1);
+    setFilters({});
+    router.replace(pathname, { scroll: false });
+  }, [pathname, router]);
+
   // Optimized sorting handler
   const sortTransactions = useCallback(
     (sortBy: string) => {
@@ -528,6 +535,24 @@ export default function TransactionsPage() {
 
   const showTransactionsLoading =
     loading && filteredTransactionsMemo.length === 0;
+  const hasActiveFilters = Boolean(
+    searchQuery ||
+    categoryIdQuery ||
+    typeQuery ||
+    filters.search?.trim() ||
+    filters.accountId ||
+    filters.categoryId ||
+    filters.dateFrom ||
+    filters.dateTo ||
+    filters.amountMin ||
+    filters.amountMax ||
+    filters.tags?.trim() ||
+    (filters.debtMode && filters.debtMode !== 'ALL')
+  );
+  const showNoResults =
+    !showTransactionsLoading &&
+    filteredTransactionsMemo.length === 0 &&
+    (transactions.length > 0 || hasActiveFilters);
 
   return (
     <>
@@ -549,9 +574,8 @@ export default function TransactionsPage() {
 
           {/* iOS-style Summary Cards */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
+            <div className="surface-metric group p-6">
               <div className="mb-4 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
                   TOTAL INGRESOS
                 </h3>
@@ -608,9 +632,8 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
+            <div className="surface-metric group p-6">
               <div className="mb-4 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
                   TOTAL GASTOS
                 </h3>
@@ -667,11 +690,8 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
+            <div className="surface-metric group p-6">
               <div className="mb-4 flex items-center space-x-2">
-                <div
-                  className={`h-2 w-2 ${totalesEnUSD.net >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
-                ></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
                   BALANCE NETO
                 </h3>
@@ -740,9 +760,8 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-shadow duration-300 hover:shadow-xl">
+            <div className="surface-metric group p-6">
               <div className="mb-4 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
                 <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
                   TRANSACCIONES
                 </h3>
@@ -768,10 +787,11 @@ export default function TransactionsPage() {
             icon={<Filter className="h-5 w-5" />}
           >
             <TransactionFilters
+              key={filterResetVersion}
               onFiltersChange={handleFiltersChange}
-              initialSearch={searchQuery}
-              initialCategoryId={categoryIdQuery}
-              initialType={typeQuery || ''}
+              initialSearch={filterResetVersion ? '' : searchQuery}
+              initialCategoryId={filterResetVersion ? '' : categoryIdQuery}
+              initialType={filterResetVersion ? '' : typeQuery || ''}
             />
           </CollapsibleSection>
 
@@ -805,7 +825,6 @@ export default function TransactionsPage() {
           <div className="space-y-4">
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
                 <h3 className="text-ios-title font-semibold text-foreground">
                   Todas las Transacciones{' '}
                   <span className="ml-1 text-sm font-normal text-muted-foreground">
@@ -827,6 +846,14 @@ export default function TransactionsPage() {
                     Cargando transacciones...
                   </p>
                 </div>
+              ) : showNoResults ? (
+                <EmptyState
+                  title="Sin resultados"
+                  description="No encontramos transacciones con los filtros actuales. Prueba con otros criterios o limpia los filtros."
+                  icon={<Search className="h-10 w-10 text-muted-foreground" />}
+                  actionLabel="Limpiar filtros"
+                  onAction={clearTransactionFilters}
+                />
               ) : filteredTransactionsMemo.length === 0 ? (
                 <EmptyState
                   title="¡Comienza tu Gestión Financiera!"
