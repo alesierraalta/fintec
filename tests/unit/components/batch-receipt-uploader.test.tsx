@@ -997,7 +997,10 @@ describe('BatchReceiptUploaderModal Component', () => {
       );
 
       // Because it's a duplicate and unchecked, valid items is 0
-      expect(screen.getByRole('button', { name: /Guardar 0/i })).toBeDisabled();
+      const saveButton = screen.getByRole('button', { name: /Guardar 0/i });
+      expect(saveButton).toBeDisabled();
+      expect(saveButton).toHaveClass('disabled:bg-muted');
+      expect(saveButton).toHaveClass('disabled:opacity-100');
 
       // If user manually checks "Incluir de todos modos", it becomes valid to submit
       const includeCheckbox = screen.getByLabelText('Incluir comprobante 1');
@@ -1014,7 +1017,7 @@ describe('BatchReceiptUploaderModal Component', () => {
   });
 
   describe('Batch UI states, checklist, and individual confirmation', () => {
-    it('displays Ready status and extracted checklist when all fields are complete', async () => {
+    it('displays the Spanish ready status and extracted checklist when all fields are complete', async () => {
       const mockScanData: ScannedReceiptResult = {
         type: 'EXPENSE',
         confidence: 'HIGH',
@@ -1060,8 +1063,18 @@ describe('BatchReceiptUploaderModal Component', () => {
         expect(screen.getByTestId('status-badge-ready')).toBeInTheDocument();
       });
 
-      expect(screen.getByText('Ready')).toBeInTheDocument();
+      expect(screen.getByText('Listo')).toBeInTheDocument();
       expect(screen.getByText(/Monto: 85 USD/i)).toBeInTheDocument();
+
+      const accordionToggle = screen.getByRole('button', {
+        name: /editar \/ ver campos|ocultar campos/i,
+      });
+      const fieldsId = accordionToggle.getAttribute('aria-controls');
+      expect(fieldsId).toBeTruthy();
+      expect(document.getElementById(fieldsId!)).toHaveAttribute(
+        'aria-labelledby',
+        accordionToggle.id
+      );
       expect(
         screen.getByText(/Comercio: Walmart Express/i)
       ).toBeInTheDocument();
@@ -1069,7 +1082,7 @@ describe('BatchReceiptUploaderModal Component', () => {
       expect(screen.getByText(/Cuenta asignada/i)).toBeInTheDocument();
     });
 
-    it('displays Missing information status when date or amount is missing', async () => {
+    it('displays missing information status in Spanish when date or amount is missing', async () => {
       const mockIncompleteScan: ScannedReceiptResult = {
         type: 'EXPENSE',
         confidence: 'MEDIUM',
@@ -1117,14 +1130,20 @@ describe('BatchReceiptUploaderModal Component', () => {
         ).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/Missing information/i)).toBeInTheDocument();
+      expect(screen.getByTestId('status-badge-missing-info')).toHaveTextContent(
+        'Falta información'
+      );
       expect(screen.getByText(/Falta fecha/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/requieren información adicional/i)
+      ).toBeInTheDocument();
+      expect(document.body.textContent).not.toContain('⚠');
 
       // Click "Hoy" to fill date
       const hoyBtn = screen.getByText('Hoy');
       fireEvent.click(hoyBtn);
 
-      // Now status transitions to Ready
+      // Now status transitions to ready
       await waitFor(() => {
         expect(screen.getByTestId('status-badge-ready')).toBeInTheDocument();
       });

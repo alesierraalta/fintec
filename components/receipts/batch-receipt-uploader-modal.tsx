@@ -31,7 +31,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Select, Modal } from '@/components/ui';
 import { cn } from '@/lib/utils';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useReducedMotion } from 'framer-motion';
 import { toast } from 'sonner';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
@@ -316,6 +316,8 @@ export function BatchReceiptUploaderModal({
     transactions: storeTransactions,
   } = useOptimizedData();
   const activeUsdVes = useActiveUsdVesRate();
+  const shouldReduceMotion =
+    typeof useReducedMotion === 'function' ? useReducedMotion() : false;
 
   const accounts = propAccounts || storeAccounts || [];
   const categories = propCategories || storeCategories || [];
@@ -765,6 +767,14 @@ export function BatchReceiptUploaderModal({
     ).length;
   }, [items]);
 
+  const liveStatusMessage = isProcessing
+    ? `Procesando ${pendingCount + scanningCount} de ${totalCount} comprobantes.`
+    : missingCount > 0
+      ? `${missingCount} comprobante(s) requieren información adicional.`
+      : totalCount > 0
+        ? `Procesamiento finalizado. ${readyCount} comprobante(s) listos.`
+        : '';
+
   // Validation: items ready to save (must be included and have no missing fields)
   const validItemsToSave = useMemo(() => {
     return items.filter((item) => {
@@ -994,11 +1004,16 @@ export function BatchReceiptUploaderModal({
           disabled={
             isSubmitting || isProcessing || validItemsToSave.length === 0
           }
-          className="ios-button-primary h-12 w-full text-base font-semibold sm:h-10 sm:w-auto sm:min-w-[170px] sm:text-sm"
+          className="ios-button-primary h-12 w-full text-base font-semibold disabled:cursor-not-allowed disabled:border-border/60 disabled:bg-muted disabled:bg-none disabled:text-muted-foreground disabled:opacity-100 disabled:shadow-none sm:h-10 sm:w-auto sm:min-w-[170px] sm:text-sm"
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin sm:h-4 sm:w-4" />
+              <Loader2
+                className={cn(
+                  'mr-2 h-5 w-5 sm:h-4 sm:w-4',
+                  !shouldReduceMotion && 'animate-spin'
+                )}
+              />
               Guardando...
             </>
           ) : (
@@ -1039,6 +1054,14 @@ export function BatchReceiptUploaderModal({
         }
         description="Sube hasta 20 capturas de pago o facturas. Extraeremos monto, fecha, motivo y cuenta automáticamente."
       >
+        <p
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveStatusMessage}
+        </p>
         <div className="flex flex-col">
           {/* Scrollable Content Body */}
           <div className="space-y-4">
@@ -1116,7 +1139,7 @@ export function BatchReceiptUploaderModal({
                   onDragOver={handleDragOver}
                   onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
-                  className={`hidden min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-all sm:flex ${
+                  className={`hidden min-h-[260px] cursor-pointer flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center transition-[background-color,border-color,transform] sm:flex ${
                     isDragOver
                       ? 'scale-[0.99] border-indigo-500 bg-indigo-500/10'
                       : 'border-border/60 bg-card/40 hover:border-indigo-400/60 hover:bg-card/60'
@@ -1149,7 +1172,12 @@ export function BatchReceiptUploaderModal({
                       <div className="flex items-center gap-2">
                         {isProcessing ? (
                           <>
-                            <Loader2 className="h-4 w-4 animate-spin text-indigo-500" />
+                            <Loader2
+                              className={cn(
+                                'h-4 w-4 text-indigo-500',
+                                !shouldReduceMotion && 'animate-spin'
+                              )}
+                            />
                             <span className="text-sm font-medium text-foreground">
                               Analizando {doneCount + scanningCount} de{' '}
                               {totalCount}...
@@ -1167,16 +1195,16 @@ export function BatchReceiptUploaderModal({
                       </div>
                       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                         <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                          {readyCount} listos (Ready)
+                          {readyCount} listos
                         </span>
                         {needsReviewCount > 0 && (
                           <span className="font-medium text-amber-600 dark:text-amber-400">
-                            • {needsReviewCount} por revisar (Needs review)
+                            • {needsReviewCount} por revisar
                           </span>
                         )}
                         {missingCount > 0 && (
                           <span className="font-medium text-orange-600 dark:text-orange-400">
-                            • {missingCount} falta info (Missing info)
+                            • {missingCount} falta información
                           </span>
                         )}
                         {isProcessing && (
@@ -1222,7 +1250,11 @@ export function BatchReceiptUploaderModal({
                   {totalCount > 0 && (
                     <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
                       <div
-                        className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+                        className={cn(
+                          'h-full bg-indigo-500',
+                          !shouldReduceMotion &&
+                            'transition-[width] duration-300 ease-out'
+                        )}
                         style={{
                           width: `${Math.round(((doneCount + errorCount) / totalCount) * 100)}%`,
                         }}
@@ -1273,11 +1305,16 @@ export function BatchReceiptUploaderModal({
                     const isPending = item.status === 'pending';
                     const isError = item.status === 'error';
                     const itemUi = getBatchItemUiState(item);
+                    const isExpanded = isCardExpanded(item.id, item);
+                    const accordionBaseId = `batch-receipt-${item.id.replace(
+                      /[^a-zA-Z0-9_-]/g,
+                      '-'
+                    )}`;
 
                     return (
                       <div
                         key={item.id}
-                        className={`group relative rounded-2xl border p-4 shadow-sm transition-all duration-200 ${
+                        className={`group relative rounded-2xl border p-4 shadow-sm transition-[background-color,border-color,box-shadow] duration-200 ${
                           item.isDuplicate
                             ? 'border-amber-500/60 bg-amber-500/[0.04] dark:bg-amber-950/[0.15]'
                             : itemUi.state === 'MISSING_INFO' && isDone
@@ -1295,7 +1332,7 @@ export function BatchReceiptUploaderModal({
                             <button
                               type="button"
                               onClick={() => setPreviewItem(item)}
-                              className="group/img relative block h-20 w-20 overflow-hidden rounded-xl border border-border/60 bg-muted/30 focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:h-24 sm:w-24"
+                              className="group/img relative block h-20 w-20 overflow-hidden rounded-xl border border-border/60 bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 sm:h-24 sm:w-24"
                               title="Haz clic para ver la imagen completa"
                               aria-label={`Ver comprobante ${index + 1}`}
                             >
@@ -1324,10 +1361,7 @@ export function BatchReceiptUploaderModal({
                                     className="inline-flex items-center gap-1 rounded-md border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:text-emerald-300"
                                   >
                                     <CheckCircle2 className="h-3 w-3" />
-                                    <span>Ready</span>
-                                    <span className="text-[11px] font-normal opacity-85">
-                                      Listo
-                                    </span>
+                                    <span>Listo</span>
                                   </span>
                                 )}
                                 {isDone && itemUi.state === 'NEEDS_REVIEW' && (
@@ -1336,10 +1370,7 @@ export function BatchReceiptUploaderModal({
                                     className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:text-amber-300"
                                   >
                                     <AlertTriangle className="h-3 w-3" />
-                                    <span>Needs review</span>
-                                    <span className="text-[11px] font-normal opacity-85">
-                                      Por revisar
-                                    </span>
+                                    <span>Por revisar</span>
                                   </span>
                                 )}
                                 {isDone && itemUi.state === 'MISSING_INFO' && (
@@ -1348,15 +1379,22 @@ export function BatchReceiptUploaderModal({
                                     className="inline-flex items-center gap-1 rounded-md border border-orange-500/30 bg-orange-500/15 px-2 py-0.5 text-xs font-semibold text-orange-700 dark:text-orange-300"
                                   >
                                     <AlertCircle className="h-3 w-3" />
-                                    <span>Missing information</span>
-                                    <span className="text-[11px] font-normal opacity-85">
-                                      Falta info
-                                    </span>
+                                    <span>Falta información</span>
                                   </span>
                                 )}
                                 {isScanning && (
-                                  <span className="inline-flex animate-pulse items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-400">
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-xs font-medium text-indigo-600 dark:text-indigo-400',
+                                      !shouldReduceMotion && 'animate-pulse'
+                                    )}
+                                  >
+                                    <Loader2
+                                      className={cn(
+                                        'h-3 w-3',
+                                        !shouldReduceMotion && 'animate-spin'
+                                      )}
+                                    />
                                     Analizando...
                                   </span>
                                 )}
@@ -1467,7 +1505,13 @@ export function BatchReceiptUploaderModal({
                                       aria-label={`Confirmar comprobante ${index + 1}`}
                                     >
                                       {submittingItemId === item.id ? (
-                                        <Loader2 className="mr-1.5 h-4 w-4 animate-spin sm:mr-1 sm:h-3.5 sm:w-3.5" />
+                                        <Loader2
+                                          className={cn(
+                                            'mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5',
+                                            !shouldReduceMotion &&
+                                              'animate-spin'
+                                          )}
+                                        />
                                       ) : (
                                         <Check className="mr-1.5 h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
                                       )}
@@ -1523,10 +1567,24 @@ export function BatchReceiptUploaderModal({
                               </div>
 
                               <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>{item.date || '⚠ Sin fecha'}</span>
-                                <span className="max-w-[160px] truncate">
+                                <span className="inline-flex items-center gap-1">
+                                  {!item.date && (
+                                    <AlertTriangle
+                                      className="h-3 w-3 text-orange-500"
+                                      aria-hidden="true"
+                                    />
+                                  )}
+                                  {item.date || 'Sin fecha'}
+                                </span>
+                                <span className="inline-flex max-w-[160px] items-center gap-1 truncate">
+                                  {!item.accountId && (
+                                    <AlertTriangle
+                                      className="h-3 w-3 shrink-0 text-orange-500"
+                                      aria-hidden="true"
+                                    />
+                                  )}
                                   {accounts.find((a) => a.id === item.accountId)
-                                    ?.name || '⚠ Sin cuenta'}
+                                    ?.name || 'Sin cuenta'}
                                 </span>
                               </div>
 
@@ -1536,20 +1594,23 @@ export function BatchReceiptUploaderModal({
                                   onClick={() =>
                                     toggleCardExpanded(item.id, item)
                                   }
-                                  className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary"
-                                  aria-expanded={isCardExpanded(item.id, item)}
+                                  className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                                  id={`${accordionBaseId}-toggle`}
+                                  aria-expanded={isExpanded}
+                                  aria-controls={`${accordionBaseId}-fields`}
                                 >
                                   <Edit3 className="h-3.5 w-3.5" />
                                   <span>
-                                    {isCardExpanded(item.id, item)
+                                    {isExpanded
                                       ? 'Ocultar campos'
                                       : 'Editar / Ver campos'}
                                   </span>
                                   <ChevronDown
                                     className={cn(
-                                      'h-3.5 w-3.5 transition-transform duration-200',
-                                      isCardExpanded(item.id, item) &&
-                                        'rotate-180'
+                                      'h-3.5 w-3.5',
+                                      !shouldReduceMotion &&
+                                        'transition-transform duration-200',
+                                      isExpanded && 'rotate-180'
                                     )}
                                   />
                                 </button>
@@ -1569,9 +1630,13 @@ export function BatchReceiptUploaderModal({
 
                             {/* Expandable Form & Checklist Container (Accordion on mobile, grid on desktop) */}
                             <div
+                              id={`${accordionBaseId}-fields`}
+                              aria-labelledby={`${accordionBaseId}-toggle`}
                               className={cn(
-                                'grid transition-[grid-template-rows,opacity] duration-200 ease-out sm:!grid-rows-[1fr] sm:!opacity-100',
-                                isCardExpanded(item.id, item)
+                                'grid sm:!grid-rows-[1fr] sm:!opacity-100',
+                                !shouldReduceMotion &&
+                                  'transition-[grid-template-rows,opacity] duration-200 ease-out',
+                                isExpanded
                                   ? 'grid-rows-[1fr] opacity-100'
                                   : 'grid-rows-[0fr] opacity-0'
                               )}
@@ -1718,7 +1783,7 @@ export function BatchReceiptUploaderModal({
                                           )
                                         }
                                         disabled={isScanning}
-                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:min-h-0 sm:py-1 ${
                                           item.type === TransactionType.EXPENSE
                                             ? 'border border-red-500/20 bg-red-500/15 text-red-600 dark:text-red-400'
                                             : 'text-muted-foreground hover:text-foreground'
@@ -1736,7 +1801,7 @@ export function BatchReceiptUploaderModal({
                                           )
                                         }
                                         disabled={isScanning}
-                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-all sm:min-h-0 sm:py-1 ${
+                                        className={`flex min-h-[44px] flex-1 items-center justify-center rounded-lg px-2 text-xs font-semibold transition-[background-color,border-color,color] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:min-h-0 sm:py-1 ${
                                           item.type === TransactionType.INCOME
                                             ? 'border border-emerald-500/20 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
                                             : 'text-muted-foreground hover:text-foreground'
@@ -1922,7 +1987,10 @@ export function BatchReceiptUploaderModal({
       {/* Lightbox Preview Modal */}
       {previewItem && (
         <div
-          className="animate-in fade-in fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm duration-200"
+          className={cn(
+            'fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm',
+            !shouldReduceMotion && 'animate-in fade-in duration-200'
+          )}
           onClick={() => setPreviewItem(null)}
           role="dialog"
           aria-label="Vista previa de comprobante"

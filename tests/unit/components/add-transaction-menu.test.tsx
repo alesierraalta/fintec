@@ -59,6 +59,7 @@ describe('AddTransactionMenu Component', () => {
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const menu = screen.getByRole('menu', { name: /opciones para agregar/i });
     expect(menu).toBeInTheDocument();
+    expect(menu).toHaveAttribute('id', trigger.getAttribute('aria-controls'));
 
     expect(
       screen.getByRole('menuitem', { name: /agregar transacción/i })

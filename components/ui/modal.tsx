@@ -206,7 +206,7 @@ export function Modal({
               <button
                 type="button"
                 className={cn(
-                  'focus-ring absolute flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground active:scale-95',
+                  'focus-ring absolute flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95',
                   mobileFullScreen
                     ? 'right-[calc(env(safe-area-inset-right,0px)+0.625rem)] top-[calc(env(safe-area-inset-top,0px)+0.625rem)] sm:right-4 sm:top-4'
                     : 'right-2.5 top-2.5 sm:right-4 sm:top-4',
@@ -231,6 +231,7 @@ export function Modal({
 
             {/* Content - scrollable area */}
             <div
+              data-testid="modal-scroll-content"
               className={cn(
                 'min-h-0 flex-1 overflow-y-auto overscroll-contain',
                 !title && !description && mobileFullScreen
@@ -251,6 +252,7 @@ export function Modal({
             {/* Sticky footer outside scrollable body */}
             {footer && (
               <div
+                data-testid="modal-footer"
                 className={cn(
                   'flex-shrink-0 border-t border-border/50 bg-card/95 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4',
                   mobileFullScreen

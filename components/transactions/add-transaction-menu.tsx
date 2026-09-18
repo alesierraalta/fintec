@@ -152,7 +152,7 @@ export function AddTransactionMenu({
           aria-haspopup="menu"
           aria-controls={menuId}
           className={cn(
-            'ios-button-primary flex items-center gap-2 font-medium shadow-md transition-all active:scale-95',
+            'ios-button-primary flex items-center gap-2 font-medium shadow-md transition-[background-color,border-color,box-shadow,color,transform] active:scale-95',
             className
           )}
         >
@@ -192,7 +192,11 @@ export function AddTransactionMenu({
                 ? { opacity: 0 }
                 : { opacity: 0, scale: 0.96, y: -6 }
             }
-            transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+            transition={
+              shouldReduceMotion
+                ? { duration: 0.1 }
+                : { duration: 0.15, ease: [0.16, 1, 0.3, 1] }
+            }
             className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-border/50 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl focus:outline-none"
           >
             <div className="border-b border-border/40 px-3 py-2">
@@ -206,7 +210,7 @@ export function AddTransactionMenu({
                 type="button"
                 role="menuitem"
                 onClick={handleSelectSingle}
-                className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-primary/10 focus:bg-primary/10 focus:outline-none active:scale-[0.98]"
+                className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition-[background-color,transform] hover:bg-primary/10 focus:bg-primary/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98]"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                   <FileText className="h-4 w-4" aria-hidden="true" />
@@ -225,7 +229,7 @@ export function AddTransactionMenu({
                 type="button"
                 role="menuitem"
                 onClick={handleSelectBatch}
-                className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-indigo-500/10 focus:bg-indigo-500/10 focus:outline-none active:scale-[0.98]"
+                className="group flex w-full items-start gap-3 rounded-xl p-2.5 text-left transition-[background-color,transform] hover:bg-indigo-500/10 focus:bg-indigo-500/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98]"
               >
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white dark:text-indigo-400">
                   <Receipt className="h-4 w-4" aria-hidden="true" />
@@ -280,20 +284,30 @@ export function AddTransactionMenu({
                   initial={shouldReduceMotion ? { opacity: 0 } : { y: '100%' }}
                   animate={shouldReduceMotion ? { opacity: 1 } : { y: 0 }}
                   exit={shouldReduceMotion ? { opacity: 0 } : { y: '100%' }}
-                  transition={{
-                    type: 'spring',
-                    damping: 28,
-                    stiffness: 320,
-                    mass: 0.8,
-                  }}
+                  transition={
+                    shouldReduceMotion
+                      ? { duration: 0.1 }
+                      : {
+                          type: 'spring',
+                          damping: 28,
+                          stiffness: 320,
+                          mass: 0.8,
+                        }
+                  }
                   drag={shouldReduceMotion ? false : 'y'}
-                  dragConstraints={{ top: 0 }}
-                  dragElastic={{ top: 0, bottom: 0.5 }}
-                  onDragEnd={(_e, info) => {
-                    if (info.offset.y > 100 || info.velocity.y > 500) {
-                      setIsOpen(false);
-                    }
-                  }}
+                  dragConstraints={shouldReduceMotion ? undefined : { top: 0 }}
+                  dragElastic={
+                    shouldReduceMotion ? undefined : { top: 0, bottom: 0.5 }
+                  }
+                  onDragEnd={
+                    shouldReduceMotion
+                      ? undefined
+                      : (_e, info) => {
+                          if (info.offset.y > 100 || info.velocity.y > 500) {
+                            setIsOpen(false);
+                          }
+                        }
+                  }
                   className="relative z-10 w-full touch-pan-y rounded-t-3xl border-t border-border/40 bg-card/95 p-5 shadow-2xl backdrop-blur-2xl"
                   style={{
                     paddingBottom:
@@ -321,7 +335,7 @@ export function AddTransactionMenu({
                     <button
                       type="button"
                       onClick={() => setIsOpen(false)}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-muted/60 text-muted-foreground hover:bg-muted hover:text-foreground active:scale-95"
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-muted/60 text-muted-foreground transition-[background-color,color,transform] hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95"
                       aria-label="Cerrar opciones"
                     >
                       <X className="h-5 w-5" />
@@ -334,7 +348,7 @@ export function AddTransactionMenu({
                       type="button"
                       role="menuitem"
                       onClick={handleSelectSingle}
-                      className="flex w-full items-center gap-3.5 rounded-2xl border border-border/50 bg-background/80 p-3.5 text-left transition-all hover:border-primary/40 hover:bg-primary/[0.04] active:scale-[0.98]"
+                      className="flex w-full items-center gap-3.5 rounded-2xl border border-border/50 bg-background/80 p-3.5 text-left transition-[background-color,border-color,transform] hover:border-primary/40 hover:bg-primary/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98]"
                     >
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                         <FileText className="h-5 w-5" aria-hidden="true" />
@@ -359,7 +373,7 @@ export function AddTransactionMenu({
                       type="button"
                       role="menuitem"
                       onClick={handleSelectBatch}
-                      className="flex w-full items-center gap-3.5 rounded-2xl border border-border/50 bg-background/80 p-3.5 text-left transition-all hover:border-indigo-500/40 hover:bg-indigo-500/[0.04] active:scale-[0.98]"
+                      className="flex w-full items-center gap-3.5 rounded-2xl border border-border/50 bg-background/80 p-3.5 text-left transition-[background-color,border-color,transform] hover:border-indigo-500/40 hover:bg-indigo-500/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98]"
                     >
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
                         <Receipt className="h-5 w-5" aria-hidden="true" />
@@ -393,7 +407,7 @@ export function AddTransactionMenu({
                       type="button"
                       variant="ghost"
                       onClick={() => setIsOpen(false)}
-                      className="h-11 w-full rounded-xl text-sm font-medium text-muted-foreground"
+                      className="h-11 w-full rounded-xl text-sm font-medium text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     >
                       Cancelar
                     </Button>

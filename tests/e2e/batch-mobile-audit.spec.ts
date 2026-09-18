@@ -201,6 +201,17 @@ test.describe('Mobile Batch Receipt Experience Audit & Safe Areas', () => {
       path: path.join(SCREENSHOTS_DIR, '04-batch-review-375.png'),
     });
 
+    // Footer stays outside the scroll viewport so review content cannot render beneath it.
+    const scrollContent = page.getByTestId('modal-scroll-content');
+    const modalFooter = page.getByTestId('modal-footer');
+    const scrollContentBox = await scrollContent.boundingBox();
+    const modalFooterBox = await modalFooter.boundingBox();
+    expect(scrollContentBox).not.toBeNull();
+    expect(modalFooterBox).not.toBeNull();
+    expect(scrollContentBox!.y + scrollContentBox!.height).toBeLessThanOrEqual(
+      modalFooterBox!.y + 1
+    );
+
     // 1.4 Test accordion expansion / collapse
     const toggleBtn = page
       .getByRole('button', { name: /(ocultar campos|editar \/ ver campos)/i })
