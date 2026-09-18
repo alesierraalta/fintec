@@ -148,7 +148,7 @@ test.describe('Mobile Batch Receipt Experience Audit & Safe Areas', () => {
     });
 
     // Verify Safe Area Clearance in Modal
-    const modalTitle = page.locator('#modal-title');
+    const modalTitle = page.locator('[id^="modal-title-"]');
     const modalCloseBtn = page.locator('button[aria-label="Cerrar modal"]');
     const titleBox = await modalTitle.boundingBox();
     const closeBox = await modalCloseBtn.boundingBox();

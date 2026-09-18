@@ -1,12 +1,18 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 
 // Mock framer-motion
 jest.mock('framer-motion', () => ({
-  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => (
+    <>{children}</>
+  ),
   motion: {
     div: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-      ({ children, ...props }, ref) => <div ref={ref} {...props}>{children}</div>
+      ({ children, ...props }, ref) => (
+        <div ref={ref} {...props}>
+          {children}
+        </div>
+      )
     ),
   },
 }));
@@ -48,6 +54,84 @@ describe('Modal - Dynamic Import', () => {
 
     rerender(<Modal {...defaultProps} size="lg" />);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('uses unique title and description IDs for each modal instance', () => {
+    render(
+      <>
+        <Modal
+          open={true}
+          onClose={jest.fn()}
+          title="First modal"
+          description="First description"
+        >
+          <div>First content</div>
+        </Modal>
+        <Modal
+          open={true}
+          onClose={jest.fn()}
+          title="Second modal"
+          description="Second description"
+        >
+          <div>Second content</div>
+        </Modal>
+      </>
+    );
+
+    const dialogs = screen.getAllByRole('dialog');
+    const labelledBy = dialogs.map((dialog) =>
+      dialog.getAttribute('aria-labelledby')
+    );
+    const describedBy = dialogs.map((dialog) =>
+      dialog.getAttribute('aria-describedby')
+    );
+
+    expect(new Set(labelledBy).size).toBe(2);
+    expect(new Set(describedBy).size).toBe(2);
+    labelledBy.forEach((id) =>
+      expect(id && document.getElementById(id)).toBeTruthy()
+    );
+    describedBy.forEach((id) =>
+      expect(id && document.getElementById(id)).toBeTruthy()
+    );
+  });
+
+  it('contains tab focus and returns focus to the opener when closed', async () => {
+    const { rerender } = render(
+      <button type="button" data-testid="modal-opener">
+        Open modal
+      </button>
+    );
+    const opener = screen.getByTestId('modal-opener');
+    opener.focus();
+
+    rerender(
+      <>
+        <button type="button" data-testid="modal-opener">
+          Open modal
+        </button>
+        <Modal open={true} onClose={jest.fn()} title="Focusable modal">
+          <button type="button">First action</button>
+          <button type="button">Last action</button>
+        </Modal>
+      </>
+    );
+
+    const dialog = screen.getByRole('dialog');
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    const lastAction = screen.getByRole('button', { name: 'Last action' });
+    const closeButton = screen.getByRole('button', { name: 'Cerrar modal' });
+    lastAction.focus();
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(closeButton).toHaveFocus();
+
+    rerender(
+      <button type="button" data-testid="modal-opener">
+        Open modal
+      </button>
+    );
+    expect(screen.getByTestId('modal-opener')).toHaveFocus();
   });
 
   it('should render without title', () => {

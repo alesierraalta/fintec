@@ -36,19 +36,21 @@ export function Modal({
   const modalRef = React.useRef<HTMLDivElement>(null);
   const lastActiveElementRef = React.useRef<HTMLElement | null>(null);
   const registerBack = useNativeBackNavigation();
-  const backId = React.useId();
+  const modalId = React.useId().replace(/:/g, '');
+  const modalTitleId = `modal-title-${modalId}`;
+  const modalDescriptionId = `modal-description-${modalId}`;
   const shouldReduceMotion =
     typeof useReducedMotion === 'function' ? useReducedMotion() : false;
-  const isMobile = useMediaQuery('(max-width: 639px)');
+  const isMobile = useMediaQuery('(max-width: 1023px)');
 
   React.useEffect(() => {
     if (!open) return;
     return registerBack({
-      id: `modal-${backId}`,
+      id: `modal-${modalId}`,
       priority: 100,
       close: onClose,
     });
-  }, [open, onClose, registerBack, backId]);
+  }, [open, onClose, registerBack, modalId]);
 
   React.useEffect(() => {
     setMounted(true);
@@ -88,12 +90,68 @@ export function Modal({
     lastActiveElementRef.current =
       active instanceof HTMLElement ? active : null;
 
-    requestAnimationFrame(() => {
+    const getFocusableElements = () => {
+      if (!modalRef.current) return [];
+
+      return Array.from(
+        modalRef.current.querySelectorAll<HTMLElement>(
+          [
+            'a[href]',
+            'area[href]',
+            'button:not([disabled])',
+            'input:not([disabled]):not([type="hidden"])',
+            'select:not([disabled])',
+            'textarea:not([disabled])',
+            '[contenteditable="true"]',
+            '[tabindex]:not([tabindex="-1"])',
+          ].join(',')
+        )
+      ).filter((element) => element.getAttribute('aria-hidden') !== 'true');
+    };
+
+    const focusFrame = requestAnimationFrame(() => {
       modalRef.current?.focus();
     });
 
+    const handleTab = (event: KeyboardEvent) => {
+      if (event.key !== 'Tab' || !modalRef.current) return;
+
+      const focusableElements = getFocusableElements();
+      if (focusableElements.length === 0) {
+        event.preventDefault();
+        modalRef.current.focus();
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+      const activeElement = document.activeElement;
+
+      if (
+        activeElement === modalRef.current ||
+        !modalRef.current.contains(activeElement)
+      ) {
+        event.preventDefault();
+        (event.shiftKey ? lastElement : firstElement).focus();
+      } else if (event.shiftKey && activeElement === firstElement) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (!event.shiftKey && activeElement === lastElement) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleTab);
+
     return () => {
-      lastActiveElementRef.current?.focus?.();
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', handleTab);
+
+      const returnTarget = lastActiveElementRef.current;
+      if (returnTarget?.isConnected) {
+        returnTarget.focus();
+      }
       lastActiveElementRef.current = null;
     };
   }, [open]);
@@ -167,8 +225,8 @@ export function Modal({
             )}
             role="dialog"
             aria-modal="true"
-            aria-labelledby={title ? 'modal-title' : undefined}
-            aria-describedby={description ? 'modal-description' : undefined}
+            aria-labelledby={title ? modalTitleId : undefined}
+            aria-describedby={description ? modalDescriptionId : undefined}
             onClick={(e) => e.stopPropagation()}
             tabIndex={-1}
           >
@@ -177,14 +235,12 @@ export function Modal({
               <div
                 className={cn(
                   'flex-shrink-0 border-b border-border/50 px-4 pb-3.5 sm:px-6 sm:py-4',
-                  mobileFullScreen
-                    ? 'pt-[calc(env(safe-area-inset-top,0px)+0.875rem)] sm:pt-4'
-                    : 'py-3.5'
+                  mobileFullScreen ? 'pt-safe-offset-3 sm:pt-4' : 'py-3.5'
                 )}
               >
                 {title && (
                   <h2
-                    id="modal-title"
+                    id={modalTitleId}
                     className="pr-12 text-base font-semibold text-foreground sm:pr-10 sm:text-lg"
                   >
                     {title}
@@ -192,7 +248,7 @@ export function Modal({
                 )}
                 {description && (
                   <p
-                    id="modal-description"
+                    id={modalDescriptionId}
                     className="mt-1 pr-12 text-xs text-muted-foreground sm:pr-10 sm:text-sm"
                   >
                     {description}
@@ -208,7 +264,7 @@ export function Modal({
                 className={cn(
                   'focus-ring absolute flex h-11 w-11 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-muted/30 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-95',
                   mobileFullScreen
-                    ? 'right-[calc(env(safe-area-inset-right,0px)+0.625rem)] top-[calc(env(safe-area-inset-top,0px)+0.625rem)] sm:right-4 sm:top-4'
+                    ? 'right-safe-offset-2 top-safe-offset-2 sm:right-4 sm:top-4'
                     : 'right-2.5 top-2.5 sm:right-4 sm:top-4',
                   closeButtonClassName
                 )}
