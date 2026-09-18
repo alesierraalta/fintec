@@ -6,7 +6,7 @@
 
 ## Status
 
-Committed locally; pending push to `origin/main`
+Pushed to `origin/main`
 
 ## Commit evidence
 
@@ -56,4 +56,4 @@ Validate the transaction entry menu and batch receipt review on real mobile view
 - Final real browser validation: 2/2 `batch-mobile-audit` tests passed; no horizontal overflow at 320/360px, safe-area clearance passed, footer geometry passed, and reduced-motion journey passed.
 - Final static checks: TypeScript, focused Oxlint, Prettier, and `git diff --check` passed.
 - Native review was not completed: START returned an expired consent binding, created no lineage, and performed no mutation. No review authority was burned.
-- The validated implementation is committed as `a86217f`; push to `origin/main` is the remaining delivery step.
+- The validated implementation is committed as `a86217f` and is present on `origin/main`.
