@@ -31,6 +31,7 @@ import type { DashboardPeriodControllerProps } from './dashboard-period-props';
 export function DesktopDashboard(props: DashboardPeriodControllerProps) {
   const {
     accounts: rawAccounts,
+    categories: rawCategories,
     transactions: rawTransactions,
     loading,
     loadAllData,
@@ -374,17 +375,15 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             Resumen general de tus cuentas y movimientos
           </p>
         </div>
-        <div className="inline-flex items-center gap-2 rounded-full border border-border/50 bg-card/60 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <div className="surface-subtle inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs text-muted-foreground">
           <span>Referencia: {getRateName(usdEquivalentType)}</span>
         </div>
       </div>
 
       {/* Balance Total Card */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6 shadow-ios-md">
+      <div className="glass-card surface-panel rounded-2xl p-6">
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-primary"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
               Balance Total
             </h2>
@@ -446,7 +445,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="glass-card grid grid-cols-1 gap-4 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="glass-card surface-metric grid grid-cols-1 gap-4 p-4 sm:grid-cols-2 xl:grid-cols-3">
         {showStatsSkeleton ? (
           <>
             {[1, 2, 3].map((item) => (
@@ -461,7 +460,6 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             {/* Monthly Income Card */}
             <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
                   Ingresos del Mes
                 </span>
@@ -502,7 +500,6 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             {/* Monthly Expenses Card */}
             <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
-                <div className="h-2 w-2 rounded-full bg-red-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
                   Gastos del Mes
                 </span>
@@ -543,7 +540,6 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
             {/* Total Transactions Card */}
             <div className="min-w-0 py-4">
               <div className="mb-2 flex items-center space-x-2">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
                 <span className="text-sm font-medium text-muted-foreground">
                   Transacciones
                 </span>
@@ -563,7 +559,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
         {/* Recent Transactions */}
         <div className="lg:col-span-2 xl:col-span-2">
           <div
-            className="glass-card h-full rounded-3xl border border-border/40 bg-card/90 p-6"
+            className="surface-panel h-full rounded-3xl p-6"
             data-tutorial="recent-transactions"
           >
             <RecentTransactions
@@ -571,6 +567,7 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
               bcvRates={bcvRates}
               binanceRates={binanceRates}
               accounts={rawAccounts}
+              categories={rawCategories}
             />
           </div>
         </div>
@@ -579,11 +576,10 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
         <div className="lg:col-span-1 xl:col-span-1">
           <div
             id="quick-actions"
-            className="glass-card h-full rounded-3xl border border-border/40 bg-card/90 p-6"
+            className="surface-panel h-full rounded-3xl p-6"
             data-tutorial="quick-actions"
           >
             <div className="mb-6 flex items-center space-x-2">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
               <h2 className="text-ios-title font-semibold text-foreground">
                 Acciones Rápidas
               </h2>
@@ -598,12 +594,12 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
         <div className="space-y-6">
           {/* Spending Chart */}
           <div
-            className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
+            className="surface-panel rounded-3xl p-6"
             data-tutorial="spending-chart"
           >
             <LazySpendingChart {...props} />
           </div>
-          <div className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6">
+          <div className="surface-panel rounded-3xl p-6">
             <IncomeSources
               period={props.period}
               referenceNow={props.referenceNow}
@@ -613,11 +609,10 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
 
         {/* Accounts Overview */}
         <div
-          className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
+          className="surface-panel rounded-3xl p-6"
           data-tutorial="accounts-overview"
         >
           <div className="mb-6 flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
               Tus Cuentas
             </h2>
@@ -627,7 +622,6 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
           {/* Tips Card integrated */}
           <div className="mt-6 border-t border-border/30 pt-6">
             <div className="mb-4 flex items-center space-x-2">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
               <h3 className="text-ios-title font-semibold text-foreground">
                 Tip del Día
               </h3>
@@ -673,12 +667,11 @@ export function DesktopDashboard(props: DashboardPeriodControllerProps) {
 
       {/* iOS-style Goals Section */}
       <div
-        className="glass-card rounded-3xl border border-border/40 bg-card/90 p-6"
+        className="surface-panel rounded-3xl p-6"
         data-tutorial="goals-progress"
       >
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
               Metas
             </h2>

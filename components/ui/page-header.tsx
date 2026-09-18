@@ -21,29 +21,30 @@ export function PageHeader({
   icon,
 }: PageHeaderProps) {
   return (
-    <div className={cn('mb-8 space-y-4', className)}>
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            {icon && <div className="text-primary">{icon}</div>}
-            <h1 className="text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+    <div className={cn('mb-8 space-y-3', className)}>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div className="flex items-start gap-3">
+            {icon && <div className="mt-1 shrink-0 text-primary">{icon}</div>}
+            <h1 className="min-w-0 text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl md:text-4xl">
               {title}
             </h1>
-            <div className="mt-1.5 hidden h-2 w-2 rounded-full bg-primary md:block" />
           </div>
           {subtitle && (
-            <p className="max-w-2xl text-lg leading-relaxed text-muted-foreground">
+            <p className="max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
               {subtitle}
             </p>
           )}
           {metadata && (
-            <div className="flex items-center gap-3 text-sm text-muted-foreground/60">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground/70">
               {metadata}
             </div>
           )}
         </div>
         {actions && (
-          <div className="flex items-center gap-3 pt-2 md:pt-0">{actions}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-3 rounded-xl p-1 pt-0 focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
+            {actions}
+          </div>
         )}
       </div>
     </div>

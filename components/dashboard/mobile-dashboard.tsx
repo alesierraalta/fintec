@@ -30,6 +30,7 @@ import {
 export function MobileDashboard(props: DashboardPeriodControllerProps) {
   const {
     accounts: rawAccounts,
+    categories: rawCategories,
     transactions: rawTransactions,
     loading,
     loadAllData,
@@ -248,17 +249,15 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
             Centro de control financiero
           </p>
         </div>
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-border/50 bg-card/60 px-2.5 py-1 text-[11px] text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <div className="surface-subtle inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] text-muted-foreground">
           <span>{getRateName(usdEquivalentType)}</span>
         </div>
       </div>
 
       {/* Balance Total Card */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-5 shadow-ios-md">
+      <div className="glass-card surface-panel rounded-2xl p-5">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-primary"></div>
             <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Balance Total
             </h2>
@@ -320,10 +319,9 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="glass-card grid grid-cols-1 gap-3 rounded-2xl border border-border/50 bg-card/80 p-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="glass-card surface-metric grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="min-w-0 py-2">
           <div className="mb-2 flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Ingresos del Mes
             </h3>
@@ -369,7 +367,6 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
 
         <div className="min-w-0 py-2">
           <div className="mb-2 flex items-center space-x-2">
-            <div className="h-2 w-2 rounded-full bg-red-500"></div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Gastos del Mes
             </h3>
@@ -413,9 +410,6 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
 
         <div className="min-w-0 py-4">
           <div className="mb-4 flex items-center space-x-2">
-            <div
-              className={`h-2 w-2 ${monthlyIncome - monthlyExpenses >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
-            ></div>
             <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
               BALANCE MES
             </h3>
@@ -495,12 +489,8 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Quick Actions */}
-      <div
-        id="quick-actions"
-        className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6"
-      >
+      <div id="quick-actions" className="surface-panel rounded-2xl p-6">
         <div className="mb-6 flex items-center space-x-2">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
             ACCIONES RÁPIDAS
           </h3>
@@ -510,10 +500,10 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
 
       {/* Spending and income sources */}
       <div className="space-y-6">
-        <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-4 sm:p-6">
+        <div className="surface-panel rounded-2xl p-4 sm:p-6">
           <LazySpendingChart {...props} />
         </div>
-        <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-4 sm:p-6">
+        <div className="surface-panel rounded-2xl p-4 sm:p-6">
           <IncomeSources
             period={props.period}
             referenceNow={props.referenceNow}
@@ -522,19 +512,19 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Recent Transactions */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
+      <div className="surface-panel rounded-2xl p-6">
         <RecentTransactions
           transactions={rawTransactions}
           bcvRates={bcvRates}
           binanceRates={binanceRates}
           accounts={rawAccounts}
+          categories={rawCategories}
         />
       </div>
 
       {/* iOS-style Accounts Overview */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
+      <div className="surface-panel rounded-2xl p-6">
         <div className="mb-6 flex items-center space-x-2">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
             RESUMEN DE CUENTAS
           </h3>
@@ -543,9 +533,8 @@ export function MobileDashboard(props: DashboardPeriodControllerProps) {
       </div>
 
       {/* iOS-style Mobile Insights */}
-      <div className="glass-card rounded-2xl border border-border/50 bg-card/80 p-6">
+      <div className="surface-panel rounded-2xl p-6">
         <div className="mb-4 flex items-center space-x-2">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-gradient-to-r from-primary to-blue-500"></div>
           <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
             PERSPECTIVA FINANCIERA
           </h3>

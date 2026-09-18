@@ -2,7 +2,12 @@
 
 import { memo, useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
-import { Transaction, TransactionType, Account } from '@/types/domain';
+import {
+  Transaction,
+  TransactionType,
+  Account,
+  Category,
+} from '@/types/domain';
 import { formatCurrency } from '@/lib/money';
 import { getTransactionDisplayName } from '@/lib/transactions/display';
 import { Button } from '@/components/ui/button';
@@ -24,6 +29,7 @@ interface RecentTransactionsProps {
   bcvRates?: { usd: number; eur: number };
   binanceRates?: { usd_ves: number };
   accounts?: Account[];
+  categories?: Category[];
 }
 
 export const RecentTransactions = memo(function RecentTransactions({
@@ -34,6 +40,7 @@ export const RecentTransactions = memo(function RecentTransactions({
   bcvRates,
   binanceRates,
   accounts,
+  categories,
 }: RecentTransactionsProps) {
   const [hoveredTransaction, setHoveredTransaction] = useState<string | null>(
     null
@@ -49,6 +56,18 @@ export const RecentTransactions = memo(function RecentTransactions({
     });
     return map;
   }, [accounts]);
+
+  // Resolve category names when the dashboard has the category catalog available.
+  const categoryIdToName = useMemo(() => {
+    const map: Record<string, string> = {};
+    (categories || []).forEach((category) => {
+      map[category.id] = category.name;
+    });
+    return map;
+  }, [categories]);
+
+  const getCategoryName = (categoryId?: string) =>
+    categoryIdToName[categoryId || ''] || 'Categoría no disponible';
 
   // Helper function to get exchange rate
   const getExchangeRate = useMemo(() => {
@@ -256,7 +275,9 @@ export const RecentTransactions = memo(function RecentTransactions({
                       {transaction.categoryId && (
                         <>
                           <span>•</span>
-                          <span className="break-words">Categoría</span>
+                          <span className="break-words">
+                            {getCategoryName(transaction.categoryId)}
+                          </span>
                         </>
                       )}
                     </div>
@@ -305,7 +326,9 @@ export const RecentTransactions = memo(function RecentTransactions({
                         {transaction.categoryId && (
                           <>
                             <span>•</span>
-                            <span>Categoría</span>
+                            <span>
+                              {getCategoryName(transaction.categoryId)}
+                            </span>
                           </>
                         )}
                       </div>

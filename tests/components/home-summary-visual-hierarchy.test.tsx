@@ -91,6 +91,7 @@ describe.each(branches)('%s Home visual hierarchy', (_name, Dashboard) => {
 
     expect(surface).not.toBeNull();
     expect(surface).toHaveClass(
+      'surface-metric',
       'grid',
       'grid-cols-1',
       'sm:grid-cols-2',
