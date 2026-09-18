@@ -11,6 +11,18 @@
   --mobile-nav-height: 68px;
   --mobile-chrome-bottom: calc(var(--mobile-nav-height) + var(--safe-area-bottom));
 
+  /* Semantic motion tokens keep interaction timing consistent across surfaces. */
+  --motion-duration-micro: 120ms;
+  --motion-duration-popover: 180ms;
+  --motion-duration-sheet: 320ms;
+  --motion-duration-modal: var(--motion-duration-sheet);
+  --motion-duration-navigation: 400ms;
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-ease-popover: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+  --motion-ease-modal: var(--motion-ease-sheet);
+  --motion-ease-navigation: cubic-bezier(0.22, 1, 0.36, 1);
+
   /* iOS Light Theme - System Colors */
   --background: 240 5% 96%;   /* System Background (Grayish) */
   --foreground: 0 0% 0%;
@@ -175,11 +187,43 @@ body {
 
 /* Foundation utilities (FinTec) */
 .transition-ios {
-  @apply transition-colors transition-shadow transition-transform duration-200 ease-out;
+  @apply transition-colors transition-shadow transition-transform;
+  transition-duration: var(--motion-duration-micro);
+  transition-timing-function: var(--motion-ease-standard);
 }
 
 .transition-smooth {
   @apply transition-ios;
+}
+
+.motion-micro {
+  transition-property: color, background-color, border-color, box-shadow, opacity, transform;
+  transition-duration: var(--motion-duration-micro);
+  transition-timing-function: var(--motion-ease-standard);
+}
+
+.motion-popover {
+  transition-property: opacity, transform;
+  transition-duration: var(--motion-duration-popover);
+  transition-timing-function: var(--motion-ease-popover);
+}
+
+.motion-sheet {
+  transition-property: opacity, transform;
+  transition-duration: var(--motion-duration-sheet);
+  transition-timing-function: var(--motion-ease-sheet);
+}
+
+.motion-modal {
+  transition-property: opacity, transform;
+  transition-duration: var(--motion-duration-modal);
+  transition-timing-function: var(--motion-ease-modal);
+}
+
+.motion-navigation {
+  transition-property: opacity, transform;
+  transition-duration: var(--motion-duration-navigation);
+  transition-timing-function: var(--motion-ease-navigation);
 }
 
 .focus-ring {
@@ -190,12 +234,36 @@ body {
   @apply focus-ring;
 }
 
+/*
+ * The glass utilities intentionally declare no backdrop-filter.
+ *
+ * Measured on Android (Capacitor + WebView, Xiaomi 11T Pro): stacked backdrop
+ * filters saturated the RenderThread, which consumed 20.8s of CPU against 7.8s
+ * on the main thread, and produced a 6% frame deadline miss rate at 800
+transactions (0.2% with an empty account). The glass look is carried by the
+ * translucent background declared at each call site, so dropping the filter
+ * keeps the visual language and removes the read-back cost.
+ * Reintroduce only on a single, non-repeated surface, and measure again.
+ */
 .glass-card {
-  @apply backdrop-blur-xl;
+  @apply bg-card/60;
+}
+
+/* Semantic surface hierarchy keeps primary content elevated without making every section a card. */
+.surface-panel {
+  @apply border border-border/40 bg-card/80 shadow-ios-sm;
+}
+
+.surface-metric {
+  @apply rounded-2xl border border-border/30 bg-card/50;
+}
+
+.surface-subtle {
+  @apply border border-border/30 bg-muted/20;
 }
 
 .glass-light {
-  @apply backdrop-blur-md;
+  @apply bg-white/10;
 }
 
 .hover-lift {
@@ -355,6 +423,14 @@ select:disabled {
  * the app (see tailwind.config.ts keyframes + the animate-* utilities). Keep this
  * in sync when adding new animations. */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-micro: 0.01ms;
+    --motion-duration-popover: 0.01ms;
+    --motion-duration-sheet: 0.01ms;
+    --motion-duration-modal: 0.01ms;
+    --motion-duration-navigation: 0.01ms;
+  }
+
   *,
   *::before,
   *::after {
@@ -383,7 +459,12 @@ select:disabled {
   .transition-colors,
   .transition-shadow,
   .transition-transform,
-  .transition-all {
+  .transition-all,
+  .motion-micro,
+  .motion-popover,
+  .motion-sheet,
+  .motion-modal,
+  .motion-navigation {
     transition: none !important;
   }
 

@@ -74,7 +74,7 @@ export function AddTransactionMenu({
   // Check viewport on mount and resize
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -112,6 +112,9 @@ export function AddTransactionMenu({
   }, [isOpen, setIsOpen]);
 
   const handleSelectSingle = useCallback(() => {
+    // Keep focus on the stable trigger before the menu item unmounts so the
+    // next screen/modal can return focus to a meaningful control.
+    triggerRef.current?.focus();
     setIsOpen(false);
     if (onAddSingle) {
       onAddSingle();
@@ -121,6 +124,9 @@ export function AddTransactionMenu({
   }, [onAddSingle, router, setIsOpen]);
 
   const handleSelectBatch = useCallback(() => {
+    // Keep focus on the stable trigger before the menu item unmounts so the
+    // uploader modal can return focus after it closes.
+    triggerRef.current?.focus();
     setIsOpen(false);
     if (onAddBatch) {
       onAddBatch();

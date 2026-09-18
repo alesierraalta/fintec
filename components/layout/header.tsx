@@ -389,7 +389,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                       type="button"
                       onClick={() => {
                         setShowAddMenu(false);
-                        router.push('/transactions?action=add');
+                        router.push('/transactions/add');
                       }}
                       className="flex w-full items-center px-4 py-3 text-sm text-foreground transition-colors hover:bg-foreground/5"
                     >

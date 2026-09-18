@@ -150,8 +150,8 @@ describe('AddTransactionMenu Component', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders mobile action sheet on mobile viewport', () => {
-    window.innerWidth = 500;
+  it('renders mobile action sheet below the 1024px shell breakpoint', () => {
+    window.innerWidth = 800;
     render(<AddTransactionMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /agregar/i }));

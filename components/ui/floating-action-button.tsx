@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Plus, X } from 'lucide-react';
 import { useState, useEffect, ReactNode } from 'react';
 
@@ -53,6 +53,8 @@ export function FloatingActionButton({
   const [isVisible, setIsVisible] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const shouldReduceMotion =
+    typeof useReducedMotion === 'function' ? useReducedMotion() : false;
 
   // Check if mobile
   useEffect(() => {
@@ -145,19 +147,21 @@ export function FloatingActionButton({
             </AnimatePresence>
           </motion.div>
 
-          {/* Pulse ring effect */}
-          <motion.div
-            className="absolute inset-0 rounded-full bg-white/20"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0, 0.5],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
+          {/* Pulse ring effect is omitted when the user prefers reduced motion. */}
+          {!shouldReduceMotion && (
+            <motion.div
+              className="absolute inset-0 rounded-full bg-white/20"
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.5, 0, 0.5],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+            />
+          )}
         </motion.button>
       )}
     </AnimatePresence>
