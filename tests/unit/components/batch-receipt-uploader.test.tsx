@@ -277,6 +277,211 @@ describe('BatchReceiptUploaderModal Component', () => {
     expect(input).toHaveClass('sr-only');
     expect(input).not.toHaveAttribute('capture');
     expect(input.getAttribute('accept')).toContain('image/');
+    expect(screen.getByLabelText('Seleccionar imágenes')).toBe(input);
+    expect(screen.getByLabelText('Tomar foto con cámara')).toHaveAttribute(
+      'capture',
+      'environment'
+    );
+  });
+
+  it('shows the current batch stage from selection through processing to review', async () => {
+    let resolveScan: (value: unknown) => void = () => undefined;
+    (global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveScan = resolve;
+        })
+    );
+
+    render(
+      <BatchReceiptUploaderModal
+        isOpen={true}
+        onClose={jest.fn()}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    expect(screen.getByTestId('batch-progress-select')).toHaveAttribute(
+      'aria-current',
+      'step'
+    );
+
+    const input = screen.getByLabelText('Seleccionar imágenes');
+    await act(async () => {
+      fireEvent.change(input, {
+        target: {
+          files: [new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' })],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-progress-process')).toHaveAttribute(
+        'aria-current',
+        'step'
+      );
+    });
+
+    await act(async () => {
+      resolveScan({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            type: 'EXPENSE',
+            confidence: 'HIGH',
+            amount: 50,
+            currency: 'VES',
+            date: '2026-09-11',
+            suggestedDescription: 'Comprobante',
+            suggestedCategoryName: 'Alimentación',
+            suggestedAccountId: 'acc-ves-1',
+            accountMatchConfidence: 'HIGH',
+            formattedNotes: '',
+            tags: [],
+          },
+        }),
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-progress-review')).toHaveAttribute(
+        'aria-current',
+        'step'
+      );
+    });
+  });
+
+  it('does not prompt when closing an empty batch', () => {
+    const onClose = jest.fn();
+    const confirmSpy = jest.spyOn(window, 'confirm');
+
+    render(
+      <BatchReceiptUploaderModal
+        isOpen={true}
+        onClose={onClose}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(confirmSpy).not.toHaveBeenCalled();
+    expect(onClose).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('warns before closing a batch with loaded review edits', async () => {
+    const onClose = jest.fn();
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(
+      <BatchReceiptUploaderModal
+        isOpen={true}
+        onClose={onClose}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Seleccionar imágenes'), {
+        target: {
+          files: [new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' })],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-progress-review')).toHaveAttribute(
+        'aria-current',
+        'step'
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      expect.stringContaining('cambios de revisión se descartarán')
+    );
+    expect(onClose).toHaveBeenCalledTimes(1);
+    confirmSpy.mockRestore();
+  });
+
+  it('keeps the active-processing close confirmation', async () => {
+    let resolveScan: (value: unknown) => void = () => undefined;
+    (global.fetch as jest.Mock).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveScan = resolve;
+        })
+    );
+    const onClose = jest.fn();
+    const confirmSpy = jest.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(
+      <BatchReceiptUploaderModal
+        isOpen={true}
+        onClose={onClose}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.change(screen.getByLabelText('Seleccionar imágenes'), {
+        target: {
+          files: [new File(['receipt'], 'receipt.jpg', { type: 'image/jpeg' })],
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-progress-process')).toHaveAttribute(
+        'aria-current',
+        'step'
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Hay comprobantes analizándose. ¿Estás seguro de que deseas salir?'
+    );
+    expect(onClose).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveScan({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            type: 'EXPENSE',
+            confidence: 'HIGH',
+            amount: 50,
+            currency: 'VES',
+            date: '2026-09-11',
+            suggestedDescription: 'Comprobante',
+            suggestedCategoryName: 'Alimentación',
+            suggestedAccountId: 'acc-ves-1',
+            accountMatchConfidence: 'HIGH',
+            formattedNotes: '',
+            tags: [],
+          },
+        }),
+      });
+    });
+    await waitFor(() => {
+      expect(screen.getByTestId('batch-progress-review')).toHaveAttribute(
+        'aria-current',
+        'step'
+      );
+    });
+    confirmSpy.mockRestore();
   });
 
   it('enforces 20 receipts hard cap and warns with toast when user selects more', async () => {

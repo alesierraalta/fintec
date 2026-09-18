@@ -60,6 +60,14 @@ import type {
 export const MAX_BATCH_RECEIPTS = 20;
 export const CONCURRENCY_LIMIT = 2;
 
+const BATCH_PROGRESS_STAGES = [
+  { id: 'select', label: 'Seleccionar' },
+  { id: 'process', label: 'Procesar' },
+  { id: 'review', label: 'Revisar' },
+] as const;
+
+type BatchProgressStage = (typeof BATCH_PROGRESS_STAGES)[number]['id'];
+
 export interface BatchReceiptItem {
   id: string;
   file: File;
@@ -775,6 +783,12 @@ export function BatchReceiptUploaderModal({
         ? `Procesamiento finalizado. ${readyCount} comprobante(s) listos.`
         : '';
 
+  const currentProgressStage: BatchProgressStage =
+    items.length === 0 ? 'select' : isProcessing ? 'process' : 'review';
+  const currentProgressStageIndex = BATCH_PROGRESS_STAGES.findIndex(
+    (stage) => stage.id === currentProgressStage
+  );
+
   // Validation: items ready to save (must be included and have no missing fields)
   const validItemsToSave = useMemo(() => {
     return items.filter((item) => {
@@ -956,6 +970,14 @@ export function BatchReceiptUploaderModal({
       ) {
         return;
       }
+    } else if (items.length > 0) {
+      if (
+        !confirm(
+          'Los comprobantes cargados y los cambios de revisión se descartarán. ¿Estás seguro de que deseas salir?'
+        )
+      ) {
+        return;
+      }
     }
     onClose();
   };
@@ -1062,6 +1084,49 @@ export function BatchReceiptUploaderModal({
         >
           {liveStatusMessage}
         </p>
+        <ol
+          data-testid="batch-progress"
+          aria-label="Progreso de carga de comprobantes"
+          className="mb-4 grid grid-cols-3 gap-1.5 rounded-xl border border-border/50 bg-muted/20 p-1.5 sm:mb-5 sm:p-2"
+        >
+          {BATCH_PROGRESS_STAGES.map((stage, index) => {
+            const isCurrent = stage.id === currentProgressStage;
+            const isComplete = index < currentProgressStageIndex;
+
+            return (
+              <li
+                key={stage.id}
+                data-testid={`batch-progress-${stage.id}`}
+                aria-current={isCurrent ? 'step' : undefined}
+                className={cn(
+                  'flex min-w-0 items-center justify-center gap-1.5 rounded-lg px-1 py-1.5 text-[11px] font-semibold sm:gap-2 sm:text-xs',
+                  isCurrent
+                    ? 'bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                    : isComplete
+                      ? 'text-foreground'
+                      : 'text-muted-foreground'
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    'flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] sm:h-6 sm:w-6 sm:text-[11px]',
+                    isCurrent
+                      ? 'border-indigo-500 bg-indigo-500 text-white'
+                      : isComplete
+                        ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                        : 'border-border/70 text-muted-foreground'
+                  )}
+                >
+                  {index + 1}
+                </span>
+                <span className="truncate whitespace-nowrap">
+                  {stage.label}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
         <div className="flex flex-col">
           {/* Scrollable Content Body */}
           <div className="space-y-4">
@@ -1072,6 +1137,7 @@ export function BatchReceiptUploaderModal({
               type="file"
               multiple
               accept="image/png,image/jpeg,image/webp,image/*"
+              aria-label="Seleccionar imágenes"
               className="sr-only"
               onChange={(e) => {
                 if (e.target.files) {
@@ -1085,6 +1151,7 @@ export function BatchReceiptUploaderModal({
               type="file"
               accept="image/png,image/jpeg,image/webp,image/*"
               capture="environment"
+              aria-label="Tomar foto con cámara"
               className="sr-only"
               onChange={(e) => {
                 if (e.target.files) {
@@ -1246,17 +1313,16 @@ export function BatchReceiptUploaderModal({
                     )}
                   </div>
 
-                  {/* Visual Progress Track */}
+                  {/* Visual Progress Track: scaleX avoids layout work while scanning. */}
                   {totalCount > 0 && (
                     <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
                       <div
-                        className={cn(
-                          'h-full bg-indigo-500',
-                          !shouldReduceMotion &&
-                            'transition-[width] duration-300 ease-out'
-                        )}
+                        className="h-full origin-left bg-indigo-500"
                         style={{
-                          width: `${Math.round(((doneCount + errorCount) / totalCount) * 100)}%`,
+                          transform: `scaleX(${(doneCount + errorCount) / totalCount})`,
+                          transition: shouldReduceMotion
+                            ? 'none'
+                            : 'transform var(--motion-duration-popover) var(--motion-ease-popover)',
                         }}
                       />
                     </div>
