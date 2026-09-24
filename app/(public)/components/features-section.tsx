@@ -1,5 +1,6 @@
 import { BarChart3, Shield, Smartphone, Zap } from 'lucide-react';
 import { features } from './data';
+import { Reveal } from './reveal';
 
 const iconMap: Record<string, React.ElementType> = {
   BarChart3,
@@ -16,11 +17,11 @@ export function FeaturesSection() {
   return (
     <section
       id="caracteristicas"
-      className="relative px-4 py-24 sm:px-6 lg:px-8"
+      className="relative px-4 py-20 sm:px-6 sm:py-24 lg:px-8"
     >
       {/* subtle top divider */}
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
-      <div className="mx-auto max-w-7xl">
+      <Reveal className="mx-auto max-w-7xl">
         <div className="mb-14 text-center">
           <div className="mb-3 inline-flex items-center rounded-full border border-border/40 bg-muted/40 px-3 py-1 text-xs font-semibold tracking-widest text-muted-foreground">
             FUNCIONALIDADES
@@ -42,7 +43,7 @@ export function FeaturesSection() {
             return (
               <div
                 key={feature.title}
-                className="group relative overflow-hidden rounded-2xl border border-border/40 bg-card/80 p-8 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-border/60 hover:shadow-xl hover:shadow-black/5"
+                className="group relative overflow-hidden rounded-2xl border border-border/40 bg-card/80 p-8 transition-all duration-300 hover:-translate-y-1 hover:border-border/60 hover:shadow-xl hover:shadow-black/5"
               >
                 {/* subtle gradient accent on hover */}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
@@ -61,7 +62,7 @@ export function FeaturesSection() {
             );
           })}
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

@@ -76,12 +76,9 @@ export function RateCockpit() {
       className="scroll-mt-28 px-4 pb-16 sm:px-6 lg:px-8"
       aria-labelledby="rate-cockpit-title"
     >
-      <div className="mx-auto max-w-7xl rounded-3xl border border-border/20 bg-card/50 p-5 shadow-2xl backdrop-blur-sm sm:p-6">
+      <div className="mx-auto max-w-7xl rounded-2xl border border-border/20 bg-card/50 p-5 shadow-2xl sm:p-6">
         <div className="mb-6 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-              Utilidad integrada
-            </p>
             <h2
               id="rate-cockpit-title"
               className="text-2xl font-bold text-foreground sm:text-3xl"

@@ -9,6 +9,10 @@ import { CTASection } from './cta-section';
 import { LandingFooter } from './landing-footer';
 import { navLinks } from './data';
 
+// Radius system (design rule, Cycle 1): surfaces/containers use `rounded-2xl`;
+// interactive controls (buttons, tabs, icon tiles) use `rounded-xl`;
+// pills/badges use `rounded-full`. Keep every landing surface consistent
+// with this three-level scale.
 export function LandingPage() {
   return (
     <div className="min-h-dynamic-screen bg-gradient-to-br from-background via-background to-muted/20">
