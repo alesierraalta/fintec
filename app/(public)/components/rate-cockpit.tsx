@@ -103,6 +103,7 @@ export function RateCockpit() {
           className="mb-6 grid grid-cols-2 gap-2 rounded-2xl bg-muted/40 p-1.5"
         >
           <button
+            id="rate-tab-bcv"
             role="tab"
             aria-selected={source === 'BCV'}
             aria-controls="rate-panel-bcv"
@@ -112,6 +113,7 @@ export function RateCockpit() {
             BCV
           </button>
           <button
+            id="rate-tab-p2p"
             role="tab"
             aria-selected={source === 'P2P'}
             aria-controls="rate-panel-p2p"
@@ -121,13 +123,22 @@ export function RateCockpit() {
             P2P
           </button>
         </div>
-        {!shouldLoad ? (
-          <Skeleton />
-        ) : source === 'BCV' ? (
-          <BCVPanel />
-        ) : (
-          <P2PPanel />
-        )}
+        <div
+          id="rate-panel-bcv"
+          role="tabpanel"
+          aria-labelledby="rate-tab-bcv"
+          hidden={source !== 'BCV'}
+        >
+          {source === 'BCV' ? shouldLoad ? <BCVPanel /> : <Skeleton /> : null}
+        </div>
+        <div
+          id="rate-panel-p2p"
+          role="tabpanel"
+          aria-labelledby="rate-tab-p2p"
+          hidden={source !== 'P2P'}
+        >
+          {source === 'P2P' ? shouldLoad ? <P2PPanel /> : <Skeleton /> : null}
+        </div>
       </div>
     </section>
   );
@@ -177,12 +188,7 @@ function BCVPanel() {
   const age = ageLabel(rates.lastUpdated);
   const fallback = rates.fallback === true;
   return (
-    <div
-      id="rate-panel-bcv"
-      role="tabpanel"
-      aria-labelledby="rate-cockpit-title"
-      className="min-w-0"
-    >
+    <div className="min-w-0">
       <div className="mb-5 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold text-foreground">
@@ -248,11 +254,7 @@ function RateValue({ label, value }: { label: string; value: number }) {
 function P2PPanel() {
   const snapshot = useBinanceRates({ enabled: true });
   return (
-    <div
-      id="rate-panel-p2p"
-      role="tabpanel"
-      aria-labelledby="rate-cockpit-title"
-    >
+    <div>
       <BinanceRatesComponent snapshot={snapshot} />
     </div>
   );
