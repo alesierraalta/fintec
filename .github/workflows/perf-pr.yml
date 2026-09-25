@@ -13,11 +13,7 @@ jobs:
   lighthouse-ci:
     name: Lighthouse CI Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,6 +26,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Start local Supabase stack
+        uses: ./.github/actions/local-supabase
 
       - name: Build
         run: npm run build
@@ -49,15 +48,15 @@ jobs:
           path: tests/performance/reports/lighthouse/
           retention-days: 14
 
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
+
   # ─── k6 Smoke Test ─────────────────────────────────────────
   k6-smoke:
     name: k6 Smoke Test
     runs-on: ubuntu-latest
-    timeout-minutes: 8
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,6 +69,12 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Start local Supabase stack
+        uses: ./.github/actions/local-supabase
+
+      - name: Provision canonical local auth user
+        run: npx tsx scripts/testing/prepare-local-supabase-ci.ts --provision-canonical-auth-user
 
       - name: Build
         run: npm run build
@@ -93,10 +98,6 @@ jobs:
             --summary-export=tests/performance/reports/k6-smoke-summary.json
         env:
           BASE_URL: http://localhost:3000
-          SUPABASE_URL: ${{ secrets.PERF_SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.PERF_SUPABASE_ANON_KEY }}
-          TEST_USER_EMAIL: ${{ secrets.PERF_TEST_USER_EMAIL }}
-          TEST_USER_PASSWORD: ${{ secrets.PERF_TEST_USER_PASSWORD }}
 
       - name: Upload k6 Results
         uses: actions/upload-artifact@v4
@@ -105,3 +106,7 @@ jobs:
           name: k6-smoke-results
           path: tests/performance/reports/
           retention-days: 14
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup

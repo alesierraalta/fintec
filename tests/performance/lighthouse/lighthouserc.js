@@ -12,9 +12,9 @@ module.exports = {
     collect: {
       url: [
         `http://localhost:${process.env.PORT || 3000}/`,
-        `http://localhost:${process.env.PORT || 3000}/dashboard`,
-        `http://localhost:${process.env.PORT || 3000}/transactions`,
-        `http://localhost:${process.env.PORT || 3000}/accounts`,
+        `http://localhost:${process.env.PORT || 3000}/privacy`,
+        `http://localhost:${process.env.PORT || 3000}/terms`,
+        `http://localhost:${process.env.PORT || 3000}/waitlist`,
       ],
       startServerCommand: `npm run start -- -p ${process.env.PORT || 3000}`,
       startServerReadyPattern: 'ready on',
