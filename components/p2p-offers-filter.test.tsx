@@ -235,15 +235,44 @@ describe('P2POffersFilter', () => {
     }
   );
 
-  it('does not show a conversion hint under the amount field', () => {
+  it('shows a reference hint for a VES amount', () => {
+    renderWithState({});
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), {
+      target: { value: '1000' },
+    });
+
+    expect(screen.getByText(/≈ 1,07 USDT/)).toBeInTheDocument();
+  });
+
+  it('shows a reference hint for a USDT amount', () => {
     renderWithState({});
 
     fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
     fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
-      target: { value: '10.05' },
+      target: { value: '10' },
     });
 
-    expect(screen.queryByText(/tasa Binance/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/≈ Bs\. 9305,00/)).toBeInTheDocument();
+  });
+
+  it('does not show a reference hint for an empty amount', () => {
+    renderWithState({});
+
+    expect(screen.queryByText(/Referencia:/)).toBeNull();
+  });
+
+  it('states that the hint is a Binance reference and each offer sets the applicable price', () => {
+    renderWithState({});
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), {
+      target: { value: '1000' },
+    });
+
+    expect(screen.getByText(/tasa Binance P2P/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/el precio aplicable es el de cada oferta/)
+    ).toBeInTheDocument();
   });
 
   it('re-searches automatically when the operation side changes', () => {
