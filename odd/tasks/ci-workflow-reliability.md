@@ -42,7 +42,7 @@ PR #88 exposed existing baseline failures on `main` (`8458b23e`): auth-required 
 - [x] T4. Wire the local stack into Performance PR checks; keep the k6 smoke assertions and target only reachable Lighthouse routes.
 - [x] T5a. Run local `dom/node` suites, helper tests, type-check, lint, Prettier, diff-check, and `rdd-plus plan check`; record evidence.
 - [ ] T5b. Run required DB/RLS, auth E2E, k6, and Lighthouse on GitHub Actions; local Docker/Supabase was intentionally not started.
-- [ ] T6. Review the isolated diff, run native review on the work-unit/PR slice, and open a separate PR to `main`.
+- [x] T6. Review the isolated diff, run native review on the work-unit/PR slice, and open separate PR #89 to `main`; native review approved (lineage `review-135a08d06f795762`).
 
 ## Acceptance Criteria
 
@@ -68,3 +68,4 @@ PR #88 exposed existing baseline failures on `main` (`8458b23e`): auth-required 
 - Implemented the local Supabase action, loopback-only environment export/provisioning guard, CI lane wiring, and reachable Lighthouse route list; thresholds are unchanged.
 - Local verification: 293 `dom/node` suites passed, 2,092 tests passed (3 suites and 12 tests skipped); helper 5/5; oxlint, type-check, Prettier, diff-check, and `rdd-plus plan check` passed.
 - The helper CLI completed with `GITHUB_ENV=/dev/null`; no Docker/Supabase was started locally. DB/Auth/k6/Lighthouse integration remains pending the ephemeral GitHub runner.
+- Native review approved; CI-only [PR #89](https://github.com/alesierraalta/fintec/pull/89) is open and unmerged. GitHub Actions remains the full runtime gate.
