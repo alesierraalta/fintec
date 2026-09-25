@@ -2,7 +2,6 @@ import { test, expect, type Page } from '@playwright/test';
 import { getCanonicalTestUserConfig } from './support/auth/canonical-user';
 
 const canonicalUser = getCanonicalTestUserConfig();
-const APP_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:3000';
 
 async function openUserMenu(page: Page): Promise<void> {
   const userMenuButton = page
@@ -18,14 +17,14 @@ async function openUserMenu(page: Page): Promise<void> {
 }
 
 async function ensureLoginPage(page: Page): Promise<void> {
-  await page.goto(`${APP_URL}/auth/login`, { waitUntil: 'networkidle' });
+  await page.goto('/auth/login', { waitUntil: 'networkidle' });
 
   const emailInput = page.locator('input[name="email"]');
   if (await emailInput.isVisible()) {
     return;
   }
 
-  await page.goto(`${APP_URL}/`, { waitUntil: 'networkidle' });
+  await page.goto('/', { waitUntil: 'networkidle' });
   await expect(page).not.toHaveURL(/\/auth\//);
   await openUserMenu(page);
   await page.getByRole('button', { name: /cerrar sesi[oó]n/i }).click();
@@ -100,7 +99,7 @@ test.describe('Session Persistence @auth-required', () => {
       )
       .toBeNull();
 
-    await page.goto(`${APP_URL}/transactions`, { waitUntil: 'networkidle' });
+    await page.goto('/transactions', { waitUntil: 'networkidle' });
     await expect(page).toHaveURL(/\/auth\//);
   });
 

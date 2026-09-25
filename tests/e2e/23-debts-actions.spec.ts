@@ -67,7 +67,9 @@ test.describe('Debts Management Actions @auth-required', () => {
       .click();
 
     // Confirm dialog should appear
-    await expect(page.getByText('Confirmar liquidacion')).toBeVisible();
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Saldar Deuda' })
+    ).toBeVisible();
     await expect(page.getByText(description)).toBeVisible();
 
     // Confirm
@@ -115,13 +117,17 @@ test.describe('Debts Management Actions @auth-required', () => {
     await page
       .getByRole('button', { name: `Saldar deuda: ${description}` })
       .click();
-    await expect(page.getByText('Confirmar liquidacion')).toBeVisible();
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Saldar Deuda' })
+    ).toBeVisible();
 
     // Cancel
     await page.getByRole('button', { name: 'Cancelar' }).click();
 
     // Dialog should close, debt should remain OPEN
-    await expect(page.getByText('Confirmar liquidacion')).not.toBeVisible();
+    await expect(
+      page.getByRole('dialog').getByRole('heading', { name: 'Saldar Deuda' })
+    ).not.toBeVisible();
     await expect(page.getByText('Abierta')).toBeVisible();
     await expect(
       page.getByText('Deuda saldada exitosamente')
@@ -151,7 +157,7 @@ test.describe('Debts Management Actions @auth-required', () => {
     await page.getByLabel('Monto').fill('150.00');
 
     // Select account
-    await page.getByLabel('Cuenta').click();
+    await page.getByLabel('Cuenta', { exact: true }).click();
     await page.getByRole('option').first().click();
 
     // Select category

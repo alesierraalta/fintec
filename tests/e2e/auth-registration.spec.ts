@@ -12,7 +12,7 @@ test.describe('Registration Flow', () => {
     await expect(page.getByLabel(/Nombre Completo/i)).toBeVisible();
     await expect(page.getByLabel(/Email/i)).toBeVisible();
     await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
-    await expect(page.getByLabel(/Confirmar Contraseña/i)).toBeVisible();
+    await expect(page.getByLabel('Confirmar', { exact: true })).toBeVisible();
     await expect(
       page.getByRole('button', { name: /Crear Cuenta/i })
     ).toBeVisible();
@@ -40,7 +40,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('Test1!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Test1!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     await expect(page.getByText(/al menos 8 caracteres/i)).toBeVisible();
@@ -50,7 +50,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('test1234!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('test1234!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('test1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     await expect(page.getByText(/al menos una letra mayúscula/i)).toBeVisible();
@@ -60,7 +60,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('TEST1234!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('TEST1234!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('TEST1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     await expect(page.getByText(/al menos una letra minúscula/i)).toBeVisible();
@@ -70,7 +70,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Testabcd!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('Testabcd!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Testabcd!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     await expect(page.getByText(/al menos un número/i)).toBeVisible();
@@ -80,7 +80,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('Test1234@');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Test1234@');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     await expect(page.getByText(/Las contraseñas no coinciden/i)).toBeVisible();
@@ -92,7 +92,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('newuser@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('Test1234!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     // Should show email verification screen (requires Supabase connection)
@@ -127,7 +127,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('sessiontest@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
-    await page.getByLabel(/Confirmar Contraseña/i).fill('Test1234!');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
     // Wait for verification screen to appear (requires Supabase connection)
