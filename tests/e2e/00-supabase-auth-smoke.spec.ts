@@ -19,7 +19,7 @@ test.describe('Supabase Auth Smoke @auth-required', () => {
     expect(bootstrap.profile.email).toBe(canonicalUser.email);
     expect(bootstrap.profile.displayName).toBe(canonicalUser.displayName);
 
-    await page.goto('/transactions', { waitUntil: 'networkidle' });
+    await page.goto('/transactions', { waitUntil: 'domcontentloaded' });
 
     await expect(page).not.toHaveURL(/\/auth\//);
     await expect(page.getByText(/Transacciones/i).first()).toBeVisible();

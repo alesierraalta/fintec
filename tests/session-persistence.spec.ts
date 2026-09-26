@@ -52,7 +52,7 @@ async function login(page: Page, rememberMe: boolean): Promise<void> {
     await expect(rememberMeCheckbox).not.toBeChecked();
   }
 
-  await page.getByRole('button', { name: /iniciar sesi[oó]n/i }).click();
+  await page.getByRole('button', { name: /entrar/i }).click();
   await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), {
     timeout: 20_000,
   });
@@ -107,9 +107,7 @@ test.describe('Session Persistence @auth-required', () => {
     page,
   }) => {
     await ensureLoginPage(page);
-    await expect(
-      page.getByRole('button', { name: /iniciar sesi[oó]n/i })
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /entrar/i })).toBeVisible();
     await expect(page.locator('input#remember-me')).toBeVisible();
   });
 });

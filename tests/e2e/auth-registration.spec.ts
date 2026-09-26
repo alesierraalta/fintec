@@ -7,14 +7,14 @@ test.describe('Registration Flow', () => {
 
   test('displays registration form with correct elements', async ({ page }) => {
     await expect(
-      page.getByRole('heading', { name: /Crear Cuenta/i })
+      page.getByRole('heading', { name: /Forma parte de FinTec/i })
     ).toBeVisible();
     await expect(page.getByLabel(/Nombre Completo/i)).toBeVisible();
     await expect(page.getByLabel(/Email/i)).toBeVisible();
     await expect(page.getByLabel('Contraseña', { exact: true })).toBeVisible();
     await expect(page.getByLabel('Confirmar', { exact: true })).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /Crear Cuenta/i })
+      page.getByRole('button', { name: /Registrarme/i })
     ).toBeVisible();
     await expect(page.getByText(/Mínimo 6 caracteres/i)).toBeVisible();
   });
@@ -37,7 +37,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
+    await page.getByRole('button', { name: /Registrarme/i }).click();
 
     await expect(page.getByText(/al menos 6 caracteres/i)).toBeVisible();
   });
@@ -50,7 +50,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1!');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1!');
 
-    const submitButton = page.getByRole('button', { name: /Crear Cuenta/i });
+    const submitButton = page.getByRole('button', { name: /Registrarme/i });
     await expect(submitButton).toBeEnabled();
     await submitButton.click();
 
@@ -66,7 +66,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1234@');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
+    await page.getByRole('button', { name: /Registrarme/i }).click();
 
     await expect(page.getByText(/Las contraseñas no coinciden/i)).toBeVisible();
   });
@@ -78,7 +78,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Email/i).fill('newuser@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
+    await page.getByRole('button', { name: /Registrarme/i }).click();
 
     const verificationHeading = page.getByRole('heading', {
       name: /Revisá tu Correo/i,
@@ -114,7 +114,7 @@ test.describe('Registration Flow', () => {
     await page.getByLabel(/Email/i).fill('sessiontest@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1234!');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
+    await page.getByRole('button', { name: /Registrarme/i }).click();
 
     const verificationHeading = page.getByRole('heading', {
       name: /Revisá tu Correo/i,
