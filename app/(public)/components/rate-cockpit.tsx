@@ -41,6 +41,7 @@ function Skeleton() {
 export function RateCockpit() {
   const [source, setSource] = useState<Source>('BCV');
   const [shouldLoad, setShouldLoad] = useState(false);
+  const [online, setOnline] = useState(true);
   const ref = useRef<HTMLElement>(null);
   useEffect(() => {
     if (shouldLoad) return;
@@ -60,6 +61,20 @@ export function RateCockpit() {
     observer.observe(ref.current);
     return () => observer.disconnect();
   }, [shouldLoad]);
+
+  useEffect(() => {
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+
+    setOnline(window.navigator.onLine);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const selectSource = (next: Source) => {
     if (next === source) return;
@@ -93,9 +108,20 @@ export function RateCockpit() {
               cotización garantizada.
             </p>
           </div>
-          <span className="inline-flex min-h-[44px] items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
-            Frescura: ≤15 minutos
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex min-h-[44px] items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+              Frescura: ≤15 minutos
+            </span>
+            <span
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+              aria-label="Estado de conexión"
+              className={`inline-flex items-center rounded-full border px-3 py-2 text-xs font-semibold ${online ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'}`}
+            >
+              {online ? 'Conectado' : 'Desconectado'}
+            </span>
+          </div>
         </div>
         <div
           role="tablist"

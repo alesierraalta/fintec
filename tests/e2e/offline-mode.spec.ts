@@ -1,32 +1,50 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 
 test.describe('Offline Mode Resilience', () => {
-  test('should display disconnected state when network goes offline', async ({ page, context }) => {
-    // 1. Go to dashboard (online)
-    await page.goto('/');
-    
-    // Wait for rates to load initially
-    await expect(page.locator('text=Tasas de Cambio')).toBeVisible();
-    await expect(page.locator('text=Conectado')).toBeVisible();
+  test('preserves loaded BCV rates across a network disconnect', async ({
+    page,
+    context,
+  }) => {
+    await page.route('**/api/bcv-rates', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            usd: 123.45,
+            eur: 134.56,
+            lastUpdated: '2025-01-01T00:00:00.000Z',
+            source: 'BCV',
+          },
+          cached: false,
+          cacheAge: 0,
+          fallback: false,
+        }),
+      });
+    });
 
-    // 2. Simulate offline
+    await page.goto('/');
+
+    const ratesSection = page.locator('#tasas-en-vivo');
+    const connectionStatus = ratesSection.getByRole('status', {
+      name: 'Estado de conexión',
+    });
+    const usdRate = ratesSection.getByText('Bs. 123.45', { exact: true });
+
+    await ratesSection.scrollIntoViewIfNeeded();
+    await expect(
+      ratesSection.getByRole('heading', { name: 'Tasas de referencia' })
+    ).toBeVisible();
+    await expect(connectionStatus).toHaveText('Conectado');
+    await expect(usdRate).toBeVisible();
+
     await context.setOffline(true);
 
-    // 3. Verify UI update
-    // The "Disconnected" badge should appear
-    await expect(page.locator('text=Desconectado')).toBeVisible({ timeout: 10000 });
-    
-    // 4. Verify data persists
-    // Rates should still be visible
-    await expect(page.locator('text=USD/VES')).toBeVisible();
-    // Check for a rate value (assuming format like "45.50")
-    const rateValue = page.locator('text=USD/VES').locator('..').locator('div').nth(1);
-    await expect(rateValue).not.toBeEmpty();
+    await expect(connectionStatus).toHaveText('Desconectado');
+    await expect(usdRate).toBeVisible();
 
-    // 5. Simulate online
     await context.setOffline(false);
-
-    // 6. Verify reconnection
-    await expect(page.locator('text=Conectado')).toBeVisible({ timeout: 10000 });
+    await expect(connectionStatus).toHaveText('Conectado');
   });
 });
