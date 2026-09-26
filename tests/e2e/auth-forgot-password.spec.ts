@@ -9,14 +9,14 @@ test.describe('Forgot Password Flow', () => {
     page,
   }) => {
     await expect(
-      page.getByRole('heading', { name: /¿Olvidaste tu contraseña\?/i })
+      page.getByRole('heading', { name: /¿Olvidaste la clave\?/i })
     ).toBeVisible();
     await expect(page.getByLabel(/Email/i)).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /Enviar link de restablecimiento/i })
+      page.getByRole('button', { name: /Mandar Link/i })
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: /Iniciar sesión/i })
+      page.getByRole('button', { name: /Iniciá sesión/i })
     ).toBeVisible();
   });
 
@@ -34,44 +34,48 @@ test.describe('Forgot Password Flow', () => {
     page,
   }) => {
     await page.getByLabel(/Email/i).fill('test@example.com');
-    await page
-      .getByRole('button', { name: /Enviar link de restablecimiento/i })
-      .click();
+    await page.getByRole('button', { name: /Mandar Link/i }).click();
 
     const successHeading = page.getByRole('heading', {
       name: /Email Enviado/i,
     });
-    const successVisible = await successHeading
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const serverError = page.locator('p.text-red-400');
+    const submissionOutcome = successHeading.or(serverError).first();
 
-    if (successVisible) {
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await successHeading.isVisible()) {
       await expect(successHeading).toBeVisible();
       await expect(page.getByText(/test@example.com/i).first()).toBeVisible();
       await expect(
         page.getByRole('button', { name: /Volver al inicio de sesión/i })
       ).toBeVisible();
+    } else {
+      await expect(serverError).toBeVisible();
+      await expect(serverError).toHaveText(/\S+/);
     }
   });
 
   test('success page has return to login button', async ({ page }) => {
     await page.getByLabel(/Email/i).fill('test@example.com');
-    await page
-      .getByRole('button', { name: /Enviar link de restablecimiento/i })
-      .click();
+    await page.getByRole('button', { name: /Mandar Link/i }).click();
 
     const successHeading = page.getByRole('heading', {
       name: /Email Enviado/i,
     });
-    const successVisible = await successHeading
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const serverError = page.locator('p.text-red-400');
+    const submissionOutcome = successHeading.or(serverError).first();
 
-    if (successVisible) {
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await successHeading.isVisible()) {
       await page
         .getByRole('button', { name: /Volver al inicio de sesión/i })
         .click();
       await expect(page).toHaveURL(/\/auth\/login/);
+    } else {
+      await expect(serverError).toBeVisible();
+      await expect(serverError).toHaveText(/\S+/);
     }
   });
 

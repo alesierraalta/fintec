@@ -38,7 +38,7 @@ function getInitialEmailConfirmationMessage(): EmailConfirmationMessage | null {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter();
-  const { signIn, authError, clearAuthError } = useAuth();
+  const { signIn, resendVerification, authError, clearAuthError } = useAuth();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -48,11 +48,14 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [resendingVerification, setResendingVerification] = useState(false);
+  const [verificationResent, setVerificationResent] = useState(false);
+  const [resendError, setResendError] = useState<string | null>(null);
   const [emailConfirmationMessage] = useState<EmailConfirmationMessage | null>(
     getInitialEmailConfirmationMessage
   );
 
-  const visibleError = authError ?? submitError;
+  const visibleError = authError ?? submitError ?? resendError;
 
   useEffect(() => {
     if (emailConfirmationMessage?.show) {
@@ -86,6 +89,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
+    setResendError(null);
     clearAuthError();
 
     const validationError = getValidationError();
@@ -131,6 +135,38 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
 
     // Clear error when user starts typing
     if (authError) clearAuthError();
+  };
+
+  const handleResendVerification = async () => {
+    if (
+      !emailConfirmationMessage?.show ||
+      resendingVerification ||
+      verificationResent
+    ) {
+      return;
+    }
+
+    setResendingVerification(true);
+    setResendError(null);
+
+    try {
+      const result = await resendVerification(emailConfirmationMessage.email);
+
+      if (result.error) {
+        setResendError(
+          'No pudimos reenviar el correo de verificación. Intentá nuevamente.'
+        );
+        return;
+      }
+
+      setVerificationResent(true);
+    } catch {
+      setResendError(
+        'No pudimos reenviar el correo de verificación. Intentá nuevamente.'
+      );
+    } finally {
+      setResendingVerification(false);
+    }
   };
 
   return (
@@ -211,6 +247,33 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
                       Confirmá tu email antes de ingresar
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendingVerification || verificationResent}
+                    aria-busy={resendingVerification}
+                    className="mt-4 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-lg border border-primary/30 px-4 py-2 text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Mail className="h-4 w-4" aria-hidden="true" />
+                    <span>
+                      {resendingVerification
+                        ? 'Enviando...'
+                        : verificationResent
+                          ? '¡Correo reenviado!'
+                          : 'Reenviar correo de verificación'}
+                    </span>
+                  </button>
+                  {(resendingVerification || verificationResent) && (
+                    <p
+                      className="mt-2 text-xs text-primary/80"
+                      role="status"
+                      aria-live="polite"
+                    >
+                      {resendingVerification
+                        ? 'Enviando correo de verificación...'
+                        : '¡Correo reenviado!'}
+                    </p>
+                  )}
                 </div>
               </div>
             </motion.div>

@@ -52,7 +52,7 @@ export function LandingNav({ links }: LandingNavProps) {
                 className={`rounded-xl px-6 py-2 font-medium transition-all duration-200 ${
                   link.href === '/auth/register'
                     ? 'border border-border hover:bg-muted/50'
-                    : 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90'
+                    : 'bg-primary-700 text-white shadow-lg shadow-primary-700/20 hover:bg-primary-800'
                 }`}
               >
                 {link.label}
@@ -66,7 +66,7 @@ export function LandingNav({ links }: LandingNavProps) {
               <Link
                 href="/download"
                 aria-label="Descargar APK Android Beta"
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg ring-1 ring-primary/20 transition-all hover:bg-primary/90 active:scale-95 md:hidden"
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-700 text-white shadow-lg ring-1 ring-primary-700/20 transition-all hover:bg-primary-800 active:scale-95 md:hidden"
               >
                 <Download className="h-6 w-6" />
               </Link>

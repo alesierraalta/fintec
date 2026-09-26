@@ -121,8 +121,9 @@ export function WaitlistForm({ onSuccess, className }: WaitlistFormProps) {
           />
           <button
             type="submit"
+            aria-label="Registrarme en la lista de espera"
             disabled={isSubmitting}
-            className="flex min-w-[3rem] items-center justify-center rounded-lg bg-primary p-3 text-white transition-all duration-200 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex min-w-[3rem] items-center justify-center rounded-lg bg-primary-700 p-3 text-white transition-all duration-200 hover:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? (
               <Loader2 className="h-5 w-5 animate-spin" />
