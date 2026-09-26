@@ -46,8 +46,8 @@ The user authorized fixing these red checks and chose the **stacked follow-up** 
 - [x] T1. Fix the E2E harness defects: session-persistence base URL/port, stale auth copy/selectors, debts strict-mode locators, and fragile waits; keep every existing assertion meaningful.
 - [x] T2. Fix the UI/Lighthouse defects: gate Vercel telemetry off-Vercel, resolvable tab `aria-controls`, waitlist accessibility (submit name, nested interactive, logo alt, touch targets, contrast) and landing CTA contrast.
 - [x] T3. Run local verification: relevant Jest `dom/node` suites (11 tests, 2 suites), type-check, scoped Oxlint, Prettier on changed files, Markdownlint, `git diff --check`, and the scoped `rdd-plus plan check` all pass.
-- [ ] T4. Run `gentle-ai-verify` over the follow-up diff and record the result, keeping Playwright/Lighthouse runtime lanes explicitly pending GitHub Actions.
-- [ ] T5. Commit work units, push `fix/e2e-lighthouse-followup`, and open the stacked PR against `fix/ci-local-supabase`; keep both PRs open and unmerged.
+- [x] T4. Run `gentle-ai-verify` over the follow-up diff and record the result: first pass BLOCKED (registration expectations vs shipped validation, silent success probes); corrective commit `7305f131` fixed both; second pass READY with no remaining blocker. Playwright/Lighthouse runtime lanes stay pending GitHub Actions.
+- [x] T5. Commit work units, push `fix/e2e-lighthouse-followup`, and open stacked PR #91 against `fix/ci-local-supabase`; both PRs remain open and unmerged.
 - [ ] T6. Report GitHub Actions runtime evidence from the stacked PR; update the CI reliability test plan rows for the E2E/Lighthouse targets.
 
 ## Acceptance Criteria
@@ -69,9 +69,10 @@ The user authorized fixing these red checks and chose the **stacked follow-up** 
 - Routing: mapping and log analysis delegated (gentle-ai-explore `muhemxd1-g-02se`); implementation delegated to `gentle-ai-worker` (multi-file write trigger); verification delegated to `gentle-ai-verify` (verification trigger).
 - T1 implementation complete: relative Playwright navigation, shipped auth copy/labels, exact debt account locator, and current settlement dialog heading. Runtime lane execution remains pending per environment constraints; local dependency-backed checks are blocked by missing workspace packages.
 - T2 implementation complete: Vercel telemetry is gated off-Vercel, rate-cockpit tab panels remain resolvable while preserving lazy loading, and the reported waitlist/landing accessibility and contrast defects are corrected. Runtime Lighthouse evidence remains pending in GitHub Actions.
-- T3 evidence: `npm ci` installed the worktree dependencies; `npx playwright test --list` lists 360 tests (85 target); Jest related suites `tests/node/app/page.test.tsx` and `tests/node/landing-revamp.test.tsx` pass (11 tests); `npm run type-check` clean; scoped Oxlint 0 errors (3 non-blocking warnings); Prettier clean on every changed file; Markdownlint 0 errors; `git diff --check` clean; `rdd-plus plan check --path docs/testing/test-plan-ci-reliability.md` well formed.
-- Known pre-existing condition: `app/(public)/components/hero-section.tsx` fails `prettier --check` on the base branch too (verified in `ci-local-supabase`), so the follow-up keeps the pre-existing formatting and only its own edit formatted.
+- T3 evidence: `npm ci` installed the worktree dependencies; `npx playwright test --list` lists 350 tests after the corrective pass; Jest related suites `tests/node/app/page.test.tsx` and `tests/node/landing-revamp.test.tsx` pass (11 tests); `npm run type-check` clean; scoped Oxlint 0 errors; Prettier clean on every changed file; Markdownlint 0 errors; `git diff --check` clean; `rdd-plus plan check --path docs/testing/test-plan-ci-reliability.md` well formed.
+- Known pre-existing condition: `app/(public)/components/hero-section.tsx` failed `prettier --check` on the base branch too; the repo's lint-staged hook normalized it in commit `2526e132`.
+- T5: work-unit commits `f530b545` (e2e harness), `2526e132` (ui/lighthouse), `b779b135` (docs), `7305f131` (corrective e2e expectations); stacked PR #91 open against `fix/ci-local-supabase`.
 
 ## Next step
 
-Run T4 independent verification, then commit, push and open the stacked PR.
+Run T6: read GitHub Actions evidence from stacked PR #91 (`E2E no-auth`, `E2E auth-required`, `Lighthouse CI Audit`, Required checks and k6 regression) and update the CI reliability test plan rows for the E2E/Lighthouse targets.
