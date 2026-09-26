@@ -8,6 +8,7 @@ const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
 const mockSignIn = jest.fn();
 const mockClearAuthError = jest.fn();
 const mockSignInWithGoogle = jest.fn();
+const mockResendVerification = jest.fn();
 
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -46,11 +47,7 @@ jest.mock('@/components/auth/google-sign-in-button', () => ({
     disabled?: boolean;
     next?: string;
   }) => (
-    <button
-      type="button"
-      aria-label="Continue with Google"
-      disabled={disabled}
-    >
+    <button type="button" aria-label="Continue with Google" disabled={disabled}>
       Continue with Google
     </button>
   ),
@@ -93,13 +90,16 @@ jest.mock('@/components/ui', () => ({
 describe('LoginForm', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
     mockSignIn.mockResolvedValue({ error: null });
     mockSignInWithGoogle.mockResolvedValue({ error: null });
+    mockResendVerification.mockResolvedValue({ error: null });
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
+      resendVerification: mockResendVerification,
       updatePassword: jest.fn(),
       signInWithGoogle: mockSignInWithGoogle,
       user: null,
@@ -136,6 +136,7 @@ describe('LoginForm', () => {
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
+      resendVerification: mockResendVerification,
       updatePassword: jest.fn(),
       user: null,
       session: null,
@@ -182,6 +183,47 @@ describe('LoginForm', () => {
       'Ocurrió un error inesperado al iniciar sesión. Intentá de nuevo.'
     );
   });
+
+  it('resends the pending confirmation email and announces success', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem('emailConfirmationPending', 'true');
+    sessionStorage.setItem('pendingEmail', 'pending@example.com');
+
+    render(<LoginForm />);
+
+    const resendButton = screen.getByRole('button', {
+      name: /reenviar correo de verificación/i,
+    });
+    await user.click(resendButton);
+
+    expect(mockResendVerification).toHaveBeenCalledWith('pending@example.com');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      '¡Correo reenviado!'
+    );
+    expect(resendButton).toBeDisabled();
+  });
+
+  it('shows a fallback error without false success and allows retry after resend failure', async () => {
+    const user = userEvent.setup();
+    sessionStorage.setItem('emailConfirmationPending', 'true');
+    sessionStorage.setItem('pendingEmail', 'pending@example.com');
+    mockResendVerification.mockResolvedValueOnce({
+      error: { message: 'rate limit reached' },
+    });
+
+    render(<LoginForm />);
+
+    const resendButton = screen.getByRole('button', {
+      name: /reenviar correo de verificación/i,
+    });
+    await user.click(resendButton);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'No pudimos reenviar el correo de verificación. Intentá nuevamente.'
+    );
+    expect(screen.queryByText('¡Correo reenviado!')).not.toBeInTheDocument();
+    expect(resendButton).toBeEnabled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -191,13 +233,16 @@ describe('LoginForm', () => {
 describe('LoginForm — Google sign-in button (T1.6)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.clear();
     mockSignIn.mockResolvedValue({ error: null });
     mockSignInWithGoogle.mockResolvedValue({ error: null });
+    mockResendVerification.mockResolvedValue({ error: null });
     mockUseAuth.mockReturnValue({
       signIn: mockSignIn,
       signUp: jest.fn(),
       signOut: jest.fn(),
       resetPassword: jest.fn(),
+      resendVerification: mockResendVerification,
       updatePassword: jest.fn(),
       signInWithGoogle: mockSignInWithGoogle,
       user: null,

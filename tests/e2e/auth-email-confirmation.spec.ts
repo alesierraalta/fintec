@@ -13,31 +13,21 @@ test.describe('Email Confirmation on Login Page', () => {
 
     await page.reload();
 
-    await expect(page.getByText(/Verifica tu correo electrónico/i)).toBeVisible(
-      { timeout: 10000 }
-    );
+    await expect(
+      page.getByRole('heading', { name: '¡Verifica tu correo!' })
+    ).toBeVisible({ timeout: 10000 });
+
+    await expect(page.getByText('Hemos enviado un correo a:')).toBeVisible();
+
+    // The pending email is surfaced in the banner address chip
+    await expect(page.getByText('test@example.com').first()).toBeVisible();
 
     await expect(
-      page
-        .locator('p')
-        .filter({ hasText: /^test@example\.com$/ })
-        .first()
+      page.getByText('Revisa tu bandeja de entrada').first()
     ).toBeVisible();
-
-    // Use .first() to avoid strict mode violations
+    await expect(page.getByText('Verifica la carpeta de spam')).toBeVisible();
     await expect(
-      page
-        .locator('li')
-        .filter({ hasText: /Revisa tu bandeja de entrada/ })
-        .first()
-    ).toBeVisible();
-    // "carpeta de spam" and "enlace de verificación" appear in <p> tags in the login form banner
-    await expect(page.getByText(/carpeta de spam/i).first()).toBeVisible();
-    await expect(
-      page.getByText(/enlace de verificación/i).first()
-    ).toBeVisible();
-    await expect(
-      page.getByText(/No podrás iniciar sesión hasta que confirmes tu email/i)
+      page.getByText('Confirmá tu email antes de ingresar')
     ).toBeVisible();
   });
 
@@ -53,9 +43,9 @@ test.describe('Email Confirmation on Login Page', () => {
 
     await page.reload();
 
-    await expect(page.getByText(/Verifica tu correo electrónico/i)).toBeVisible(
-      { timeout: 10000 }
-    );
+    await expect(
+      page.getByRole('heading', { name: '¡Verifica tu correo!' })
+    ).toBeVisible({ timeout: 10000 });
 
     await expect(
       page.getByRole('button', { name: /Reenviar correo de verificación/i })
@@ -72,12 +62,11 @@ test.describe('Email Confirmation on Login Page', () => {
 
     await page.reload();
 
-    await expect(page.getByText(/Verifica tu correo electrónico/i)).toBeVisible(
-      { timeout: 10000 }
-    );
+    await expect(
+      page.getByRole('heading', { name: '¡Verifica tu correo!' })
+    ).toBeVisible({ timeout: 10000 });
 
-    // Use .first() to avoid strict mode
-    await expect(page.getByText(/carpeta de spam/i).first()).toBeVisible();
+    await expect(page.getByText('Verifica la carpeta de spam')).toBeVisible();
   });
 
   test('does not show confirmation banner without sessionStorage flags', async ({
@@ -92,7 +81,7 @@ test.describe('Email Confirmation on Login Page', () => {
     await page.reload();
 
     await expect(
-      page.getByText(/Verifica tu correo electrónico/i)
+      page.getByRole('heading', { name: '¡Verifica tu correo!' })
     ).not.toBeVisible({ timeout: 5000 });
   });
 });
