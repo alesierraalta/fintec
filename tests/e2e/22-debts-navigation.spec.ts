@@ -24,7 +24,7 @@ test.describe('Debts Navigation and Totals @auth-required', () => {
       .first()
       .click();
     await expect(page).toHaveURL(/\/debts/);
-    await expect(page.getByText('Deudas')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Deudas' })).toBeVisible();
 
     await page.locator('input[type="date"]').first().fill('2100-01-01');
     await page.locator('input[type="date"]').nth(1).fill('2100-01-01');
@@ -71,9 +71,20 @@ test.describe('Debts Navigation and Totals @auth-required', () => {
     await page.locator('select').first().selectOption('ALL');
     await page.locator('select').nth(1).selectOption('ALL');
 
-    await expect(page.getByText(openDescription)).toBeVisible();
-    await expect(page.getByText(settledDescription)).toBeVisible();
-    await expect(page.getByText('Saldada')).toBeVisible();
-    await expect(page.getByText('Abierta')).toBeVisible();
+    const openDebtCard = page
+      .getByText(openDescription, { exact: true })
+      .locator('xpath=../..');
+    const settledDebtCard = page
+      .getByText(settledDescription, { exact: true })
+      .locator('xpath=../..');
+
+    await expect(openDebtCard).toBeVisible();
+    await expect(settledDebtCard).toBeVisible();
+    await expect(
+      settledDebtCard.getByText('Saldada', { exact: true })
+    ).toBeVisible();
+    await expect(
+      openDebtCard.getByText('Abierta', { exact: true })
+    ).toBeVisible();
   });
 });

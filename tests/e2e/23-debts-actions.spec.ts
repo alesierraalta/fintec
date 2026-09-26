@@ -58,8 +58,11 @@ test.describe('Debts Management Actions @auth-required', () => {
     await page.locator('input[type="date"]').nth(1).fill(date);
     await page.locator('select').nth(1).selectOption('ALL');
 
-    await expect(page.getByText(description)).toBeVisible();
-    await expect(page.getByText('Abierta')).toBeVisible();
+    const debtCard = page
+      .getByText(description, { exact: true })
+      .locator('xpath=../..');
+    await expect(debtCard).toBeVisible();
+    await expect(debtCard.getByText('Abierta', { exact: true })).toBeVisible();
 
     // Click settle button
     await page
@@ -72,14 +75,23 @@ test.describe('Debts Management Actions @auth-required', () => {
     ).toBeVisible();
     await expect(page.getByText(description)).toBeVisible();
 
+    // The shipped settlement form requires a payment account before submitting
+    await page
+      .getByRole('dialog')
+      .getByLabel('Cuenta de pago/cobro')
+      .selectOption({ index: 1 });
+
     // Confirm
-    await page.getByRole('button', { name: 'Confirmar' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Saldar', exact: true })
+      .click();
 
     // Wait for the dialog to close and toast to appear
     await expect(page.getByText('Deuda saldada exitosamente')).toBeVisible();
 
     // Verify the debt now shows as Saldada
-    await expect(page.getByText('Saldada')).toBeVisible();
+    await expect(debtCard.getByText('Saldada', { exact: true })).toBeVisible();
   });
 
   test('settle cancel: open confirm, cancel, verify no change', async ({
@@ -113,6 +125,10 @@ test.describe('Debts Management Actions @auth-required', () => {
     await page.locator('input[type="date"]').nth(1).fill(date);
     await page.locator('select').nth(1).selectOption('ALL');
 
+    const debtCard = page
+      .getByText(description, { exact: true })
+      .locator('xpath=../..');
+
     // Click settle
     await page
       .getByRole('button', { name: `Saldar deuda: ${description}` })
@@ -122,13 +138,16 @@ test.describe('Debts Management Actions @auth-required', () => {
     ).toBeVisible();
 
     // Cancel
-    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Cancelar' })
+      .click();
 
     // Dialog should close, debt should remain OPEN
     await expect(
       page.getByRole('dialog').getByRole('heading', { name: 'Saldar Deuda' })
     ).not.toBeVisible();
-    await expect(page.getByText('Abierta')).toBeVisible();
+    await expect(debtCard.getByText('Abierta', { exact: true })).toBeVisible();
     await expect(
       page.getByText('Deuda saldada exitosamente')
     ).not.toBeVisible();
@@ -146,34 +165,38 @@ test.describe('Debts Management Actions @auth-required', () => {
 
     await page.goto('/debts');
 
+    const debtDialog = page.getByRole('dialog');
+
     // Click "Nueva Deuda" button
     await page.getByRole('button', { name: /Nueva Deuda/i }).click();
 
     // Form should open with "Nueva Deuda" title
-    await expect(page.getByText('Nueva Deuda')).toBeVisible();
+    await expect(
+      debtDialog.getByRole('heading', { name: 'Nueva Deuda' })
+    ).toBeVisible();
 
     // Fill the form
     // Type should already be EXPENSE (default for debt create)
-    await page.getByLabel('Monto').fill('150.00');
+    await debtDialog.getByLabel('Monto').fill('150.00');
 
-    // Select account
-    await page.getByLabel('Cuenta', { exact: true }).click();
-    await page.getByRole('option').first().click();
+    // Select account (native select labelled "Cuenta")
+    await debtDialog
+      .getByLabel('Cuenta', { exact: true })
+      .selectOption({ index: 1 });
 
-    // Select category
-    await page.getByLabel('Categoría').click();
-    await page.getByRole('option').first().click();
+    // Select category (the category control has no associated label)
+    await debtDialog
+      .locator('select:has(option:text-is("Seleccionar categoría"))')
+      .selectOption({ index: 1 });
 
     // Description
-    await page.getByLabel('Descripción').fill('E2E created debt');
+    await debtDialog.getByLabel('Descripción').fill('E2E created debt');
 
     // Select debt direction
-    const directionSelect = page.getByLabel('Direccion');
-    await directionSelect.click();
-    await page.getByRole('option', { name: 'Debo' }).click();
+    await debtDialog.getByLabel('Direccion').selectOption('OWE');
 
     // Submit
-    await page.getByRole('button', { name: /Guardar/i }).click();
+    await debtDialog.getByRole('button', { name: /Guardar/i }).click();
 
     // Wait for success toast
     await expect(page.getByText('Deuda creada exitosamente')).toBeVisible({
@@ -181,7 +204,9 @@ test.describe('Debts Management Actions @auth-required', () => {
     });
 
     // Form should close
-    await expect(page.getByText('Nueva Deuda')).not.toBeVisible();
+    await expect(
+      debtDialog.getByRole('heading', { name: 'Nueva Deuda' })
+    ).not.toBeVisible();
   });
 
   test('delete debt: click delete, confirm, verify debt removed', async ({
@@ -226,7 +251,10 @@ test.describe('Debts Management Actions @auth-required', () => {
     await expect(page.getByText('Eliminar deuda')).toBeVisible();
 
     // Confirm
-    await page.getByRole('button', { name: 'Eliminar' }).click();
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Eliminar', exact: true })
+      .click();
 
     // Wait for toast
     await expect(page.getByText('Deuda eliminada')).toBeVisible();
@@ -265,8 +293,11 @@ test.describe('Debts Management Actions @auth-required', () => {
     await page.locator('input[type="date"]').nth(1).fill(date);
     await page.locator('select').nth(1).selectOption('ALL');
 
-    await expect(page.getByText(description)).toBeVisible();
-    await expect(page.getByText('Saldada')).toBeVisible();
+    const debtCard = page
+      .getByText(description, { exact: true })
+      .locator('xpath=../..');
+    await expect(debtCard).toBeVisible();
+    await expect(debtCard.getByText('Saldada', { exact: true })).toBeVisible();
 
     // Settle button should NOT be visible for settled debts
     await expect(
@@ -363,7 +394,10 @@ test.describe('Debts Management Actions @auth-required', () => {
     await expect(page.getByText('Eliminar deuda')).toBeVisible();
 
     // Cancel
-    await page.getByRole('button', { name: 'Cancelar' }).click();
+    await page
+      .getByRole('alertdialog')
+      .getByRole('button', { name: 'Cancelar' })
+      .click();
 
     // Dialog should close, debt should remain
     await expect(page.getByText('Eliminar deuda')).not.toBeVisible();
