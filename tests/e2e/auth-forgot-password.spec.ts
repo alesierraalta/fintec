@@ -39,16 +39,20 @@ test.describe('Forgot Password Flow', () => {
     const successHeading = page.getByRole('heading', {
       name: /Email Enviado/i,
     });
-    const successVisible = await successHeading
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const serverError = page.locator('p.text-red-400');
+    const submissionOutcome = successHeading.or(serverError).first();
 
-    if (successVisible) {
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await successHeading.isVisible()) {
       await expect(successHeading).toBeVisible();
       await expect(page.getByText(/test@example.com/i).first()).toBeVisible();
       await expect(
         page.getByRole('button', { name: /Volver al inicio de sesión/i })
       ).toBeVisible();
+    } else {
+      await expect(serverError).toBeVisible();
+      await expect(serverError).toHaveText(/\S+/);
     }
   });
 
@@ -59,15 +63,19 @@ test.describe('Forgot Password Flow', () => {
     const successHeading = page.getByRole('heading', {
       name: /Email Enviado/i,
     });
-    const successVisible = await successHeading
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const serverError = page.locator('p.text-red-400');
+    const submissionOutcome = successHeading.or(serverError).first();
 
-    if (successVisible) {
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await successHeading.isVisible()) {
       await page
         .getByRole('button', { name: /Volver al inicio de sesión/i })
         .click();
       await expect(page).toHaveURL(/\/auth\/login/);
+    } else {
+      await expect(serverError).toBeVisible();
+      await expect(serverError).toHaveText(/\S+/);
     }
   });
 

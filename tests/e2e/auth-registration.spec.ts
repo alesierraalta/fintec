@@ -16,11 +16,7 @@ test.describe('Registration Flow', () => {
     await expect(
       page.getByRole('button', { name: /Crear Cuenta/i })
     ).toBeVisible();
-    await expect(
-      page.getByText(
-        /Mínimo 8 caracteres, incluyendo mayúsculas, minúsculas y números/i
-      )
-    ).toBeVisible();
+    await expect(page.getByText(/Mínimo 6 caracteres/i)).toBeVisible();
   });
 
   test('HTML5 validation prevents empty name submission', async ({ page }) => {
@@ -34,46 +30,35 @@ test.describe('Registration Flow', () => {
     await expect(emailInput).toHaveAttribute('type', 'email');
   });
 
-  test('shows error when password is too short (< 8 chars)', async ({
+  test('shows error when password is too short (< 6 chars)', async ({
+    page,
+  }) => {
+    await page.getByLabel(/Nombre Completo/i).fill('Test User');
+    await page.getByLabel(/Email/i).fill('test@example.com');
+    await page.getByLabel('Contraseña', { exact: true }).fill('Test1');
+    await page.getByLabel('Confirmar', { exact: true }).fill('Test1');
+    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
+
+    await expect(page.getByText(/al menos 6 caracteres/i)).toBeVisible();
+  });
+
+  test('accepts a 6+ character password with mixed case and a digit', async ({
     page,
   }) => {
     await page.getByLabel(/Nombre Completo/i).fill('Test User');
     await page.getByLabel(/Email/i).fill('test@example.com');
     await page.getByLabel('Contraseña', { exact: true }).fill('Test1!');
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
-    await expect(page.getByText(/al menos 8 caracteres/i)).toBeVisible();
-  });
+    const submitButton = page.getByRole('button', { name: /Crear Cuenta/i });
+    await expect(submitButton).toBeEnabled();
+    await submitButton.click();
 
-  test('shows error when password lacks uppercase', async ({ page }) => {
-    await page.getByLabel(/Nombre Completo/i).fill('Test User');
-    await page.getByLabel(/Email/i).fill('test@example.com');
-    await page.getByLabel('Contraseña', { exact: true }).fill('test1234!');
-    await page.getByLabel('Confirmar', { exact: true }).fill('test1234!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
-
-    await expect(page.getByText(/al menos una letra mayúscula/i)).toBeVisible();
-  });
-
-  test('shows error when password lacks lowercase', async ({ page }) => {
-    await page.getByLabel(/Nombre Completo/i).fill('Test User');
-    await page.getByLabel(/Email/i).fill('test@example.com');
-    await page.getByLabel('Contraseña', { exact: true }).fill('TEST1234!');
-    await page.getByLabel('Confirmar', { exact: true }).fill('TEST1234!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
-
-    await expect(page.getByText(/al menos una letra minúscula/i)).toBeVisible();
-  });
-
-  test('shows error when password lacks digit', async ({ page }) => {
-    await page.getByLabel(/Nombre Completo/i).fill('Test User');
-    await page.getByLabel(/Email/i).fill('test@example.com');
-    await page.getByLabel('Contraseña', { exact: true }).fill('Testabcd!');
-    await page.getByLabel('Confirmar', { exact: true }).fill('Testabcd!');
-    await page.getByRole('button', { name: /Crear Cuenta/i }).click();
-
-    await expect(page.getByText(/al menos un número/i)).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({
+        hasText: /al menos 6 caracteres|Las contraseñas no coinciden/i,
+      })
+    ).not.toBeVisible();
   });
 
   test('shows error when passwords do not match', async ({ page }) => {
@@ -95,29 +80,30 @@ test.describe('Registration Flow', () => {
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
-    // Should show email verification screen (requires Supabase connection)
-    const verificationVisible = await page
-      .getByText(/Revisa tu Correo/i)
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const verificationHeading = page.getByRole('heading', {
+      name: /Revisá tu Correo/i,
+    });
+    const registrationError = page.getByRole('alert');
+    const submissionOutcome = verificationHeading.or(registrationError).first();
 
-    if (verificationVisible) {
-      await expect(page.getByText(/Revisa tu Correo/i)).toBeVisible();
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await verificationHeading.isVisible()) {
+      await expect(verificationHeading).toBeVisible();
       await expect(page.getByText(/newuser@example.com/i)).toBeVisible();
       await expect(
-        page.locator('li').filter({ hasText: /Revisa tu bandeja de entrada/i })
+        page.getByText(/Revisá tu bandeja de entrada/i)
+      ).toBeVisible();
+      await expect(page.getByText(/Chequeá la carpeta de Spam/i)).toBeVisible();
+      await expect(
+        page.getByText(/Confirmá el enlace para entrar/i)
       ).toBeVisible();
       await expect(
-        page.locator('li').filter({ hasText: /Verifica la carpeta de spam/i })
+        page.getByRole('button', { name: /Ir al login ahora/i })
       ).toBeVisible();
-      await expect(
-        page
-          .locator('li')
-          .filter({ hasText: /Haz clic en el enlace de verificación/i })
-      ).toBeVisible();
-      await expect(
-        page.getByText(/No podrás iniciar sesión hasta confirmar tu email/i)
-      ).toBeVisible();
+    } else {
+      await expect(registrationError).toBeVisible();
+      await expect(registrationError).toHaveText(/\S+/);
     }
   });
 
@@ -130,13 +116,15 @@ test.describe('Registration Flow', () => {
     await page.getByLabel('Confirmar', { exact: true }).fill('Test1234!');
     await page.getByRole('button', { name: /Crear Cuenta/i }).click();
 
-    // Wait for verification screen to appear (requires Supabase connection)
-    const verificationVisible = await page
-      .getByText(/Revisa tu Correo/i)
-      .isVisible({ timeout: 10000 })
-      .catch(() => false);
+    const verificationHeading = page.getByRole('heading', {
+      name: /Revisá tu Correo/i,
+    });
+    const registrationError = page.getByRole('alert');
+    const submissionOutcome = verificationHeading.or(registrationError).first();
 
-    if (verificationVisible) {
+    await expect(submissionOutcome).toBeVisible({ timeout: 10000 });
+
+    if (await verificationHeading.isVisible()) {
       const emailConfirmationPending = await page.evaluate(() =>
         sessionStorage.getItem('emailConfirmationPending')
       );
@@ -146,15 +134,18 @@ test.describe('Registration Flow', () => {
 
       expect(emailConfirmationPending).toBe('true');
       expect(pendingEmail).toBe('sessiontest@example.com');
+    } else {
+      await expect(registrationError).toBeVisible();
+      await expect(registrationError).toHaveText(/\S+/);
     }
   });
 
   test('has link to login page', async ({ page }) => {
     await expect(
-      page.getByRole('button', { name: /Inicia sesión aquí/i })
+      page.getByRole('button', { name: /Iniciá sesión/i })
     ).toBeVisible();
 
-    await page.getByRole('button', { name: /Inicia sesión aquí/i }).click();
+    await page.getByRole('button', { name: /Iniciá sesión/i }).click();
     await expect(page).toHaveURL(/\/auth\/login/);
   });
 });
