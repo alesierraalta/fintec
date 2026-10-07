@@ -3,7 +3,6 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { MainLayout } from '@/components/layout/main-layout';
 import { LazyDashboardContent } from '@/components/dashboard/lazy-dashboard-content';
-import { LocalProvidersForRootDashboard } from '@/app/_lib/local-providers-for-root-dashboard';
 import { getRootAuthState } from '@/app/_lib/root-auth-state';
 import { LandingPage } from '@/app/(public)/components/landing-page';
 
@@ -85,11 +84,9 @@ export default async function HomePage() {
 
   if (authState === 'authenticated') {
     return (
-      <LocalProvidersForRootDashboard>
-        <MainLayout>
-          <LazyDashboardContent />
-        </MainLayout>
-      </LocalProvidersForRootDashboard>
+      <MainLayout>
+        <LazyDashboardContent />
+      </MainLayout>
     );
   }
 

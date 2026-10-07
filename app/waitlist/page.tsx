@@ -82,7 +82,7 @@ export default function WaitlistPage() {
           ].map((feature, idx) => (
             <div
               key={idx}
-              className="rounded-2xl border border-border/50 bg-card/50 p-6 backdrop-blur-sm transition-colors hover:bg-card/80"
+              className="rounded-2xl border border-border/50 bg-card/50 p-6 transition-colors hover:bg-card/80"
             >
               <feature.icon className="mb-4 h-8 w-8 text-primary" />
               <h3 className="mb-2 text-lg font-semibold">{feature.title}</h3>

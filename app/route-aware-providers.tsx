@@ -19,11 +19,13 @@ interface RouteAwareProvidersProps {
 }
 
 function shouldBypassAppProviders(pathname: string | null) {
+  // Keep the public landing route provider-free, but keep `/` inside the
+  // authenticated app provider tree. The root route can render either landing
+  // or dashboard on the server; retaining providers at `/` prevents the
+  // dashboard from remounting Auth/Repository/Subscription when the user
+  // navigates to and from `/transactions`.
   return (
-    !!pathname &&
-    (pathname === '/' ||
-      pathname === '/landing' ||
-      pathname.startsWith('/landing/'))
+    !!pathname && (pathname === '/landing' || pathname.startsWith('/landing/'))
   );
 }
 

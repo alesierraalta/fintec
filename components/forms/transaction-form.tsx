@@ -40,10 +40,21 @@ interface TransactionFormProps {
   isOpen: boolean;
   onClose: () => void;
   transaction?: Transaction | null;
-  onSuccess?: () => void;
+  onSuccess?: (transaction: Transaction) => void;
   type?: TransactionType;
   /** When set, locks isDebt checkbox to checked and restricts type to INCOME/EXPENSE */
   debtMode?: 'create' | 'edit';
+  /**
+   * Seed values for a NEW transaction (ignored when editing). Lets callers
+   * open the form pre-filled (e.g. from a pending item) without duplicating
+   * entry work.
+   */
+  prefill?: {
+    type?: TransactionType;
+    description?: string;
+    amountMinor?: number;
+    currencyCode?: string;
+  };
 }
 
 const transactionTypes = [
@@ -89,6 +100,7 @@ export function TransactionForm({
   onSuccess,
   type = TransactionType.EXPENSE,
   debtMode,
+  prefill,
 }: TransactionFormProps) {
   const router = useRouter();
   const repository = useRepository();
@@ -106,7 +118,7 @@ export function TransactionForm({
   const [loadingData, setLoadingData] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [formData, setFormData] = useState({
-    type: transaction?.type || type,
+    type: transaction?.type || prefill?.type || type,
     accountId: transaction?.accountId || '',
     categoryId: transaction?.categoryId || '',
     amount: transaction
@@ -114,8 +126,13 @@ export function TransactionForm({
           transaction.amountMinor,
           transaction.currencyCode
         ).toString()
-      : '',
-    description: transaction?.description || '',
+      : prefill?.amountMinor != null
+        ? fromMinorUnits(
+            prefill.amountMinor,
+            prefill.currencyCode || 'USD'
+          ).toString()
+        : '',
+    description: transaction?.description || prefill?.description || '',
     date: transaction?.date || new Date().toISOString().split('T')[0],
     note: transaction?.note || '',
     tags: transaction?.tags?.join(', ') || '',
@@ -162,7 +179,11 @@ export function TransactionForm({
     }
   }, [isOpen, user, repository]);
 
-  // Update form data when transaction changes or debtMode is set
+  // Update form data when transaction changes or debtMode is set.
+  // f-06: the blank "create" branch must seed the same values as the
+  // useState initializer above (including `prefill`). Wiping prefill here
+  // broke /pending conversions — and a "skip first run" guard does not
+  // survive React StrictMode, which double-invokes mount effects.
   useEffect(() => {
     if (transaction) {
       setFormData({
@@ -207,12 +228,20 @@ export function TransactionForm({
         sourceAccountId: '',
       });
     } else {
+      // Mirrors the useState initializer for the no-transaction case so a
+      // mount-time run is a no-op (idempotent under StrictMode double-runs).
       setFormData({
-        type: type,
+        type: prefill?.type || type,
         accountId: '',
         categoryId: '',
-        amount: '',
-        description: '',
+        amount:
+          prefill?.amountMinor != null
+            ? fromMinorUnits(
+                prefill.amountMinor,
+                prefill.currencyCode || 'USD'
+              ).toString()
+            : '',
+        description: prefill?.description || '',
         date: new Date().toISOString().split('T')[0],
         note: '',
         tags: '',
@@ -450,10 +479,11 @@ export function TransactionForm({
             : undefined,
       };
 
+      let savedTransaction: Transaction;
       if (transaction) {
         // Update existing transaction
         const updateData = { ...transactionData, id: transaction.id };
-        await runFinancialMutation({
+        savedTransaction = await runFinancialMutation({
           userId: user?.id,
           repository,
           domains: ['transactions', 'accounts', 'budgets'],
@@ -462,7 +492,7 @@ export function TransactionForm({
         });
       } else {
         // Create new transaction
-        await runFinancialMutation({
+        savedTransaction = await runFinancialMutation({
           userId: user?.id,
           repository,
           domains: ['transactions', 'accounts', 'budgets'],
@@ -500,7 +530,7 @@ export function TransactionForm({
       onClose();
 
       try {
-        await onSuccess?.();
+        await onSuccess?.(savedTransaction);
       } catch (callbackError) {
         logger.error('Error in onSuccess callback:', callbackError);
       }
@@ -539,8 +569,8 @@ export function TransactionForm({
   if (loadingData) {
     return (
       <Modal open={isOpen} onClose={onClose} title="Cargando…" size="md">
-        <div className="rounded-2xl border border-border/20 bg-card/30 p-8 text-center backdrop-blur-sm">
-          <div className="mx-auto mb-3 w-fit rounded-xl bg-muted/50 p-3 backdrop-blur-sm">
+        <div className="rounded-2xl border border-border/20 bg-card/30 p-8 text-center">
+          <div className="mx-auto mb-3 w-fit rounded-xl bg-muted/50 p-3">
             <DollarSign
               className="mx-auto h-8 w-8 animate-pulse text-muted-foreground"
               aria-hidden="true"
@@ -679,7 +709,7 @@ export function TransactionForm({
                         type: typeOption.value,
                       }));
                     }}
-                    className={`transition-ios rounded-2xl border p-4 backdrop-blur-sm hover:scale-[1.02] ${
+                    className={`transition-ios rounded-2xl border p-4 hover:scale-[1.02] ${
                       isSelected
                         ? `${typeOption.borderColor} ${typeOption.bgColor} ${typeOption.color} shadow-ios-sm`
                         : 'border-border/20 bg-card/30 text-muted-foreground hover:border-border/30 hover:bg-card/50'
@@ -741,7 +771,7 @@ export function TransactionForm({
               variant="outline"
               size="sm"
               onClick={openCategoryModal}
-              className="transition-ios rounded-xl border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-ios-caption text-blue-600 backdrop-blur-sm hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-700"
+              className="transition-ios rounded-xl border-blue-500/20 bg-blue-500/5 px-3 py-1.5 text-ios-caption text-blue-600 hover:border-blue-500/30 hover:bg-blue-500/10 hover:text-blue-700"
             >
               <Plus className="mr-1 h-3 w-3 flex-shrink-0" />
               <span className="whitespace-nowrap">Nueva Categoría</span>
@@ -977,7 +1007,7 @@ export function TransactionForm({
               setFormData((prev) => ({ ...prev, note: e.target.value }))
             }
             rows={3}
-            className="transition-ios w-full resize-none rounded-2xl border border-border/20 bg-card/60 px-4 py-3 text-foreground placeholder-muted-foreground backdrop-blur-sm focus:border-blue-500/30 focus:ring-2 focus:ring-blue-500/20"
+            className="transition-ios w-full resize-none rounded-2xl border border-border/20 bg-card/60 px-4 py-3 text-foreground placeholder-muted-foreground focus:border-blue-500/30 focus:ring-2 focus:ring-blue-500/20"
           />
         </div>
 
@@ -1004,7 +1034,7 @@ export function TransactionForm({
             variant="ghost"
             onClick={onClose}
             disabled={loading}
-            className="transition-ios rounded-xl border border-border/20 bg-card/30 backdrop-blur-sm hover:bg-card/50"
+            className="transition-ios rounded-xl border border-border/20 bg-card/30 hover:bg-card/50"
           >
             Cancelar
           </Button>

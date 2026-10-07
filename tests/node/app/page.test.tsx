@@ -159,10 +159,8 @@ describe('HomePage (app/page.tsx)', () => {
     const result = await HomePage();
 
     expect(result).toBeDefined();
-    // Should be wrapped in LocalProvidersForRootDashboard
-    expect(result.type.name).toBe('LocalProvidersForRootDashboard');
-    // Check that MainLayout is in the children
-    expect(result.props.children.type.name).toBe('MockMainLayout');
+    // Should render MainLayout directly under the stable root provider tree
+    expect(result.type.name).toBe('MockMainLayout');
   });
 
   it('renders landing when getUser returns null', async () => {
@@ -208,7 +206,7 @@ describe('HomePage (app/page.tsx)', () => {
     const result = await HomePage();
 
     expect(result).toBeDefined();
-    expect(result.type.name).toBe('LocalProvidersForRootDashboard');
+    expect(result.type.name).toBe('MockMainLayout');
   });
 
   it('page is a server component (no use client)', () => {

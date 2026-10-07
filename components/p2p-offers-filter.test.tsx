@@ -10,8 +10,12 @@ import type {
 
 jest.mock('@/hooks/use-binance-p2p-offers');
 
+const mockUsdtVesRate = { current: 930.5 };
+
 jest.mock('@/hooks/use-binance-rates', () => ({
-  useBinanceRates: () => ({ rates: { usdt_ves: 930.5 } }),
+  useBinanceRates: () => ({
+    rates: { usdt_ves: mockUsdtVesRate.current },
+  }),
 }));
 
 const mockUseBinanceP2POffers = useBinanceP2POffers as jest.Mock;
@@ -65,6 +69,7 @@ function renderWithState(
 
 describe('P2POffersFilter', () => {
   beforeEach(() => {
+    mockUsdtVesRate.current = 930.5;
     mockUseBinanceP2POffers.mockReturnValue({
       status: 'idle',
       result: null,
@@ -235,15 +240,59 @@ describe('P2POffersFilter', () => {
     }
   );
 
-  it('does not show a conversion hint under the amount field', () => {
+  it('shows a reference hint for a VES amount', () => {
+    renderWithState({});
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), {
+      target: { value: '1000' },
+    });
+
+    expect(screen.getByText(/≈ 1,07 USDT/)).toBeInTheDocument();
+  });
+
+  it('shows a reference hint for a USDT amount', () => {
     renderWithState({});
 
     fireEvent.click(screen.getByRole('button', { name: 'USDT' }));
     fireEvent.change(screen.getByLabelText('Cantidad en USDT'), {
-      target: { value: '10.05' },
+      target: { value: '10' },
     });
 
-    expect(screen.queryByText(/tasa Binance/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/≈ Bs\. 9305,00/)).toBeInTheDocument();
+  });
+
+  it('does not show a reference hint for an empty amount', () => {
+    renderWithState({});
+
+    expect(screen.queryByText(/Referencia:/)).toBeNull();
+  });
+
+  it.each([
+    ['a zero rate', 0],
+    ['a non-finite rate', Number.NaN],
+    ['a negative rate', -1],
+  ])('does not show a reference hint for %s', (_label, rate) => {
+    mockUsdtVesRate.current = rate;
+    renderWithState({});
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), {
+      target: { value: '1000' },
+    });
+
+    expect(screen.queryByText(/Referencia:/)).toBeNull();
+  });
+
+  it('states that the hint is a Binance reference and each offer sets the applicable price', () => {
+    renderWithState({});
+
+    fireEvent.change(screen.getByPlaceholderText('1000'), {
+      target: { value: '1000' },
+    });
+
+    expect(screen.getByText(/tasa Binance P2P/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/el precio aplicable es el de cada oferta/)
+    ).toBeInTheDocument();
   });
 
   it('re-searches automatically when the operation side changes', () => {

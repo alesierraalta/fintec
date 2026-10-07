@@ -207,7 +207,7 @@ export function MobileAddTransaction() {
         {isScanFastTrack && scannedResult && (
           <div
             data-testid="scan-to-confirm-card"
-            className="animate-in fade-in space-y-4 rounded-2xl border border-primary/40 bg-card/90 p-5 shadow-2xl backdrop-blur-xl duration-200"
+            className="animate-in fade-in space-y-4 rounded-2xl border border-primary/40 bg-card/90 p-5 shadow-2xl duration-200"
           >
             {/* Header badge */}
             <div className="flex items-center justify-between">
@@ -376,7 +376,7 @@ export function MobileAddTransaction() {
                   onChange={(e) =>
                     setFormData({ ...formData, categoryId: e.target.value })
                   }
-                  className="w-full rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 text-sm font-medium text-foreground backdrop-blur-md focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                  className="w-full rounded-xl border border-border/70 bg-card/80 px-3 py-2.5 text-sm font-medium text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 >
                   <option value="" className="bg-card text-foreground">
                     Seleccionar categoría
@@ -481,7 +481,7 @@ export function MobileAddTransaction() {
         {(!scannedResult || isDetailedFormOpen) && (
           <>
             {/* Transaction Type */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
                 <Repeat
                   className="mr-2 h-5 w-5 text-blue-400"
@@ -508,7 +508,7 @@ export function MobileAddTransaction() {
                       className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                         isSelected
                           ? `bg-gradient-to-r ${type.color} border-0 shadow-xl`
-                          : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                          : 'border border-white/10 bg-white/5 hover:bg-white/10'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
@@ -538,7 +538,7 @@ export function MobileAddTransaction() {
 
             {/* Account Selection */}
             {formData.type && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl">
                 <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
                   <Wallet
                     className="mr-2 h-5 w-5 text-green-400"
@@ -570,7 +570,7 @@ export function MobileAddTransaction() {
                           className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                             isSelected
                               ? 'border border-success/40 bg-success/90 shadow-xl'
-                              : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                              : 'border border-white/10 bg-white/5 hover:bg-white/10'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
@@ -604,7 +604,7 @@ export function MobileAddTransaction() {
 
             {/* Category Selection */}
             {formData.type && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="flex items-center text-xl font-semibold text-white">
                     <Tag
@@ -653,7 +653,7 @@ export function MobileAddTransaction() {
                             className={`relative rounded-xl p-3 transition-all duration-300 ${
                               isSelected
                                 ? 'border-0 shadow-xl'
-                                : 'border border-white/10 bg-white/5 backdrop-blur-md hover:bg-white/10'
+                                : 'border border-white/10 bg-white/5 hover:bg-white/10'
                             }`}
                             style={
                               isSelected
@@ -687,7 +687,7 @@ export function MobileAddTransaction() {
             )}
 
             {/* Visual Calculator */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
                 <DollarSign
                   className="mr-2 h-5 w-5 text-yellow-400"
@@ -810,7 +810,7 @@ export function MobileAddTransaction() {
             </div>
 
             {/* Details */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-md">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-white">
                 <FileText
                   className="mr-2 h-5 w-5 text-cyan-400"
@@ -841,7 +841,7 @@ export function MobileAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -859,7 +859,7 @@ export function MobileAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, date: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -878,7 +878,7 @@ export function MobileAddTransaction() {
                       setFormData({ ...formData, note: e.target.value })
                     }
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full resize-none rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -897,7 +897,7 @@ export function MobileAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, tags: e.target.value })
                     }
-                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -962,7 +962,7 @@ export function MobileAddTransaction() {
                                 debtDirection: e.target.value as DebtDirection,
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           >
                             <option value="" className="bg-gray-800">
                               Selecciona una opcion
@@ -996,7 +996,7 @@ export function MobileAddTransaction() {
                                     : '',
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           >
                             <option
                               value={DebtStatus.OPEN}
@@ -1031,7 +1031,7 @@ export function MobileAddTransaction() {
                                   settledAt: e.target.value,
                                 })
                               }
-                              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             />
                           </div>
                         )}
@@ -1054,7 +1054,7 @@ export function MobileAddTransaction() {
                                 counterpartyName: e.target.value,
                               })
                             }
-                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                            className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                           />
                         </div>
                       </div>
@@ -1104,7 +1104,7 @@ export function MobileAddTransaction() {
                                 'weekly' | 'monthly' | 'yearly',
                             })
                           }
-                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         >
                           <option value="weekly" className="bg-gray-800">
                             Semanal
@@ -1135,7 +1135,7 @@ export function MobileAddTransaction() {
                               endDate: e.target.value,
                             })
                           }
-                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         />
                         <p className="mt-1 text-xs text-gray-400">
                           Deja vacío para que continúe indefinidamente
@@ -1171,7 +1171,7 @@ export function MobileAddTransaction() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground backdrop-blur-md transition-all duration-300 hover:bg-card/60"
+          className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground transition-all duration-300 hover:bg-card/60"
         >
           <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           <span>Volver</span>
@@ -1188,12 +1188,12 @@ export function MobileAddTransaction() {
       <div className="space-y-6 pb-32">{renderContent()}</div>
 
       {/* Fixed Bottom Actions */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4 backdrop-blur-xl">
+      <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/40 bg-background/90 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-4">
         <div className="flex space-x-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="focus-ring flex min-h-[44px] flex-1 items-center justify-center space-x-2 rounded-xl border border-border/60 bg-muted/30 px-6 py-3 font-medium text-foreground backdrop-blur-md transition-colors hover:bg-muted/50"
+            className="focus-ring flex min-h-[44px] flex-1 items-center justify-center space-x-2 rounded-xl border border-border/60 bg-muted/30 px-6 py-3 font-medium text-foreground transition-colors hover:bg-muted/50"
           >
             <X className="h-5 w-5" aria-hidden="true" />
             <span>Cancelar</span>

@@ -186,6 +186,8 @@ toml/test.toml
 .playwright-mcp/
 .serena/cache/
 .serena/memories/
+# Local tgrep search index
+.tgrep/
 .swc/
 *.tsbuildinfo
 

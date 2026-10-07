@@ -3,13 +3,14 @@
 import type { AppRepository } from '@/repositories/contracts';
 import {
   batchOptimizedDataUpdates,
-  invalidateOptimizedDataCache,
+  markOptimizedDataCacheStale,
   updateOptimizedDataCache,
   type OptimizedDataDomain,
 } from '@/lib/cache/optimized-data-cache';
 import { logger } from '@/lib/utils/logger';
 
-export type FinancialDataDomain = 'transactions' | 'accounts' | 'budgets' | 'categories';
+export type FinancialDataDomain =
+  'transactions' | 'accounts' | 'budgets' | 'categories';
 export interface FinancialDataEvent {
   userId: string;
   domains: FinancialDataDomain[];
@@ -32,11 +33,14 @@ function uniqueDomains(domains: FinancialDataDomain[]): FinancialDataDomain[] {
 
 function cacheDomains(domains: FinancialDataDomain[]): OptimizedDataDomain[] {
   return uniqueDomains(domains).filter(
-    (domain): domain is OptimizedDataDomain => domain !== 'budgets',
+    (domain): domain is OptimizedDataDomain => domain !== 'budgets'
   );
 }
 
-export function subscribeFinancialData(userId: string, listener: Listener): () => void {
+export function subscribeFinancialData(
+  userId: string,
+  listener: Listener
+): () => void {
   const scopedListeners = eventListeners.get(userId) ?? new Set<Listener>();
   scopedListeners.add(listener);
   eventListeners.set(userId, scopedListeners);
@@ -48,7 +52,7 @@ export function subscribeFinancialData(userId: string, listener: Listener): () =
 
 export async function emitFinancialDataChange(
   userId: string,
-  domains: FinancialDataDomain[],
+  domains: FinancialDataDomain[]
 ): Promise<void> {
   const event: FinancialDataEvent = { userId, domains: uniqueDomains(domains) };
   const listeners = [...(eventListeners.get(userId) ?? [])];
@@ -63,7 +67,7 @@ export async function emitFinancialDataChange(
           domains: event.domains,
         });
       }
-    }),
+    })
   );
 }
 
@@ -76,7 +80,7 @@ interface ReloadEntry {
 export async function reloadFinancialData(
   repository: AppRepository,
   userId: string,
-  domains: FinancialDataDomain[] = ['transactions', 'accounts', 'categories'],
+  domains: FinancialDataDomain[] = ['transactions', 'accounts', 'categories']
 ): Promise<void> {
   const existing = activeReloads.get(userId);
   if (existing) {
@@ -130,7 +134,7 @@ function scheduleRetry(
   repository: AppRepository,
   userId: string,
   domains: FinancialDataDomain[],
-  attempt = 0,
+  attempt = 0
 ): void {
   if (attempt >= 3) return;
   const delay = 500 * (attempt + 1);
@@ -144,7 +148,9 @@ function scheduleRetry(
 }
 const pendingRetries = new Map<string, ReturnType<typeof setTimeout>>();
 
-export async function runFinancialMutation<T>(options: FinancialMutationOptions<T>): Promise<T> {
+export async function runFinancialMutation<T>(
+  options: FinancialMutationOptions<T>
+): Promise<T> {
   if (!options.userId) throw new Error('Authentication required');
 
   const userId = options.userId;
@@ -154,23 +160,31 @@ export async function runFinancialMutation<T>(options: FinancialMutationOptions<
     const domains = uniqueDomains(options.domains);
     const invalidated = cacheDomains(domains);
     batchOptimizedDataUpdates(() => {
-      invalidated.forEach((domain) => invalidateOptimizedDataCache(userId, domain));
+      invalidated.forEach((domain) =>
+        markOptimizedDataCacheStale(userId, domain)
+      );
     });
 
     try {
       await reloadFinancialData(options.repository, userId, domains);
       await emitFinancialDataChange(userId, domains);
     } catch (error) {
-      logger.error('[financial-data-sync] authoritative refresh failed after committed mutation', {
-        error: error instanceof Error ? error.message : String(error),
-        userId,
-        domains,
-      });
+      logger.error(
+        '[financial-data-sync] authoritative refresh failed after committed mutation',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          userId,
+          domains,
+        }
+      );
       scheduleRetry(options.repository, userId, domains);
     }
     return result;
   });
-  const queued = current.then(() => undefined, () => undefined);
+  const queued = current.then(
+    () => undefined,
+    () => undefined
+  );
   mutationQueues.set(userId, queued);
   void queued.then(() => {
     if (mutationQueues.get(userId) === queued) mutationQueues.delete(userId);
@@ -189,7 +203,7 @@ export function scheduleFinancialRealtimeRefresh(
   repository: AppRepository,
   userId: string,
   domains: FinancialDataDomain[],
-  delay = 50,
+  delay = 50
 ): void {
   const current = pendingRealtime.get(userId);
   if (current) {
@@ -206,7 +220,10 @@ export function scheduleFinancialRealtimeRefresh(
       void reloadFinancialData(repository, userId, requested)
         .then(() => emitFinancialDataChange(userId, requested))
         .catch((error) => {
-          logger.warn('[financial-data-sync] realtime authoritative refresh failed', { error, userId });
+          logger.warn(
+            '[financial-data-sync] realtime authoritative refresh failed',
+            { error, userId }
+          );
           scheduleRetry(repository, userId, requested);
         });
     }, delay),

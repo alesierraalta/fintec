@@ -23,7 +23,7 @@ export function TestimonialsSection() {
           {testimonials.map((testimonial, index) => (
             <figure
               key={index}
-              className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
               <div className="mb-4 flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (

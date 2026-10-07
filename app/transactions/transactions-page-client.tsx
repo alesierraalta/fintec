@@ -1071,7 +1071,7 @@ export default function TransactionsPage() {
 
         {/* Delete Confirmation Modal */}
         {showDeleteModal && transactionToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             {/* * Modal with max-height for mobile scrolling */}
             <div
               role="dialog"

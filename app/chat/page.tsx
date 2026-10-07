@@ -22,7 +22,7 @@ export default async function ChatPage() {
     <MainLayout>
       <div className="flex min-h-0 flex-1 flex-col">
         {/* Premium Header */}
-        <div className="border-b border-border/60 bg-card/80 px-4 py-3 backdrop-blur-xl sm:px-6">
+        <div className="border-b border-border/60 bg-card/80 px-4 py-3 sm:px-6">
           <div className="mx-auto flex max-w-3xl items-center gap-3">
             <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
               <MessageSquare

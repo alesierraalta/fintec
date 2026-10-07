@@ -2,8 +2,7 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { ButtonVariant, ButtonSize } from '@/types';
 
-export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
@@ -26,7 +25,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-ios ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus:outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none micro-bounce hover-lift shadow-sm hover:shadow-lg backdrop-blur-sm';
+      // No backdrop-blur here. Every button carried a backdrop filter, and buttons
+      // that also use a glass utility stacked a second one. Measured on Android,
+      // stacked backdrop filters saturated the RenderThread (20.8s CPU against
+      // 7.8s on the main thread) and produced 6% frame deadline misses at 800
+      // transactions. The glass look comes from the translucent backgrounds.
+      'inline-flex items-center justify-center font-medium transition-ios ease-[cubic-bezier(0.25,0.46,0.45,0.94)] focus:outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none micro-bounce hover-lift shadow-sm hover:shadow-lg';
 
     const variants = {
       primary:
@@ -40,9 +44,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       danger:
         'bg-gradient-to-r from-destructive to-destructive/90 text-destructive-foreground hover:from-destructive/90 hover:to-destructive/80 shadow-lg hover:shadow-xl',
       ghost:
-        'hover:bg-muted/50 hover:text-foreground glass-card backdrop-blur-sm border border-border/20 hover:border-border/40',
+        'hover:bg-muted/50 hover:text-foreground glass-card border border-border/20 hover:border-border/40',
       outline:
-        'border-2 border-primary bg-background/70 hover:bg-primary/10 hover:text-primary glass-light backdrop-blur-md hover:border-primary/50',
+        'border-2 border-primary bg-background/70 hover:bg-primary/10 hover:text-primary glass-light hover:border-primary/50',
     };
 
     const sizes = {

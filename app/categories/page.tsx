@@ -356,7 +356,7 @@ export default function CategoriesPage() {
 
         {/* iOS-style Summary Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -384,7 +384,7 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -413,7 +413,7 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-purple-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -433,7 +433,7 @@ export default function CategoriesPage() {
         </div>
 
         {/* iOS-style Filters and Search */}
-        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-lg backdrop-blur-xl">
+        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-lg">
           <div className="mb-6 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-primary"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
@@ -555,7 +555,7 @@ export default function CategoriesPage() {
       )}
 
       {categoryToDelete && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"

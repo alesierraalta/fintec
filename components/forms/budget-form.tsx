@@ -26,17 +26,94 @@ interface BudgetFormProps {
 
 // Mock categories for the form
 const mockCategories: Category[] = [
-  { id: '1', name: 'Alimentación', kind: CategoryKind.EXPENSE, color: '#10b981', icon: 'UtensilsCrossed', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
-  { id: '2', name: 'Transporte', kind: CategoryKind.EXPENSE, color: '#f59e0b', icon: 'Car', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
-  { id: '3', name: 'Entretenimiento', kind: CategoryKind.EXPENSE, color: '#8b5cf6', icon: 'Gamepad2', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
-  { id: '4', name: 'Salud', kind: CategoryKind.EXPENSE, color: '#ef4444', icon: 'Heart', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
-  { id: '5', name: 'Educación', kind: CategoryKind.EXPENSE, color: '#3b82f6', icon: 'GraduationCap', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
-  { id: '6', name: 'Hogar', kind: CategoryKind.EXPENSE, color: '#06b6d4', icon: 'Home', parentId: undefined, active: true, userId: null, isDefault: true, createdAt: '', updatedAt: '' },
+  {
+    id: '1',
+    name: 'Alimentación',
+    kind: CategoryKind.EXPENSE,
+    color: '#10b981',
+    icon: 'UtensilsCrossed',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: '2',
+    name: 'Transporte',
+    kind: CategoryKind.EXPENSE,
+    color: '#f59e0b',
+    icon: 'Car',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: '3',
+    name: 'Entretenimiento',
+    kind: CategoryKind.EXPENSE,
+    color: '#8b5cf6',
+    icon: 'Gamepad2',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: '4',
+    name: 'Salud',
+    kind: CategoryKind.EXPENSE,
+    color: '#ef4444',
+    icon: 'Heart',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: '5',
+    name: 'Educación',
+    kind: CategoryKind.EXPENSE,
+    color: '#3b82f6',
+    icon: 'GraduationCap',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
+  {
+    id: '6',
+    name: 'Hogar',
+    kind: CategoryKind.EXPENSE,
+    color: '#06b6d4',
+    icon: 'Home',
+    parentId: undefined,
+    active: true,
+    userId: null,
+    isDefault: true,
+    createdAt: '',
+    updatedAt: '',
+  },
 ];
 
-export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps) {
+export function BudgetForm({
+  isOpen,
+  onClose,
+  budget,
+  onSave,
+}: BudgetFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const {
     register,
     handleSubmit,
@@ -57,21 +134,21 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
   const generateMonthOptions = () => {
     const months = [];
     const now = new Date();
-    
+
     for (let i = 0; i < 12; i++) {
       const date = new Date(now.getFullYear(), now.getMonth() + i, 1);
       const monthKey = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2, '0')}`;
-      const monthLabel = date.toLocaleDateString('es-ES', { 
-        year: 'numeric', 
-        month: 'long' 
+      const monthLabel = date.toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
       });
-      
+
       months.push({
         value: monthKey,
         label: monthLabel.charAt(0).toUpperCase() + monthLabel.slice(1),
       });
     }
-    
+
     return months;
   };
 
@@ -92,7 +169,7 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
 
   const onSubmit = async (data: BudgetFormData) => {
     setIsLoading(true);
-    
+
     try {
       const budgetData: Partial<Budget> = {
         ...data,
@@ -101,7 +178,7 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
       };
 
       onSave?.(budgetData);
-      
+
       reset();
       onClose();
     } catch (error) {
@@ -115,12 +192,14 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
     onClose();
   };
 
-  const selectedCategory = mockCategories.find(cat => cat.id === watch('categoryId'));
+  const selectedCategory = mockCategories.find(
+    (cat) => cat.id === watch('categoryId')
+  );
 
   return (
     <Modal open={isOpen} onClose={handleClose}>
-      <div className="bg-card/60 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md mx-4 border border-white/20">
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+      <div className="mx-4 w-full max-w-md rounded-3xl border border-white/20 bg-card/60 shadow-2xl">
+        <div className="flex items-center justify-between border-b border-gray-700 p-6">
           <h2 className="text-xl font-semibold text-white">
             {budget ? 'Editar Presupuesto' : 'Nuevo Presupuesto'}
           </h2>
@@ -134,10 +213,10 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-6">
           {/* Category Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Categoría *
             </label>
             <Select
@@ -146,18 +225,18 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
               className="w-full"
               placeholder="Seleccionar categoría"
               options={[
-                { value: "", label: "Seleccionar categoría" },
+                { value: '', label: 'Seleccionar categoría' },
                 ...mockCategories.map((category) => ({
                   value: category.id,
-                  label: category.name
-                }))
+                  label: category.name,
+                })),
               ]}
             />
           </div>
 
           {/* Month Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Mes *
             </label>
             <Select
@@ -166,19 +245,19 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
               className="w-full"
               placeholder="Seleccionar mes"
               options={[
-                { value: "", label: "Seleccionar mes" },
-                ...monthOptions
+                { value: '', label: 'Seleccionar mes' },
+                ...monthOptions,
               ]}
             />
           </div>
 
           {/* Amount */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="mb-2 block text-sm font-medium text-gray-300">
               Monto Presupuestado *
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                 <DollarSign className="h-5 w-5 text-gray-400" />
               </div>
               <Input
@@ -194,24 +273,31 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
                 placeholder="0.00"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="mt-1 text-xs text-gray-500">
               Ingrese el monto en su moneda base
             </p>
           </div>
 
           {/* Preview */}
           {selectedCategory && (
-            <div className="p-4 bg-gray-800 rounded-lg border border-gray-700">
-              <h4 className="text-sm font-medium text-gray-300 mb-2">Vista Previa</h4>
+            <div className="rounded-lg border border-gray-700 bg-gray-800 p-4">
+              <h4 className="mb-2 text-sm font-medium text-gray-300">
+                Vista Previa
+              </h4>
               <div className="flex items-center space-x-3">
-                <div 
-                  className="w-4 h-4 rounded-full"
+                <div
+                  className="h-4 w-4 rounded-full"
                   style={{ backgroundColor: selectedCategory.color }}
                 />
                 <div>
-                  <p className="text-white font-medium">{selectedCategory.name}</p>
+                  <p className="font-medium text-white">
+                    {selectedCategory.name}
+                  </p>
                   <p className="text-sm text-gray-400">
-                    {monthOptions.find(m => m.value === watch('monthYYYYMM'))?.label}
+                    {
+                      monthOptions.find((m) => m.value === watch('monthYYYYMM'))
+                        ?.label
+                    }
                   </p>
                 </div>
               </div>
@@ -233,7 +319,11 @@ export function BudgetForm({ isOpen, onClose, budget, onSave }: BudgetFormProps)
               disabled={isLoading}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isLoading ? 'Guardando...' : budget ? 'Actualizar' : 'Crear Presupuesto'}
+              {isLoading
+                ? 'Guardando...'
+                : budget
+                  ? 'Actualizar'
+                  : 'Crear Presupuesto'}
             </Button>
           </div>
         </form>

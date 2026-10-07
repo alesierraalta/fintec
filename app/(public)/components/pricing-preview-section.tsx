@@ -1,5 +1,6 @@
 import { CheckCircle } from 'lucide-react';
 import Link from 'next/link';
+import { Reveal } from './reveal';
 
 /**
  * Pricing preview section — honest preview of 3 real tiers.
@@ -19,7 +20,7 @@ export function PricingPreviewSection() {
         'Reportes básicos',
         'Historial 6 meses',
       ],
-      cta: 'Comenzar Gratis',
+      cta: 'Crear cuenta gratis',
       ctaHref: '/auth/register',
       highlighted: false,
     },
@@ -36,7 +37,7 @@ export function PricingPreviewSection() {
         'Respaldos diarios',
         'Soporte prioritario',
       ],
-      cta: 'Ver Planes',
+      cta: 'Ver planes',
       ctaHref: '/pricing',
       highlighted: true,
     },
@@ -53,15 +54,16 @@ export function PricingPreviewSection() {
         'Acceso a API',
         'Soporte premium 24h',
       ],
-      cta: 'Ver Planes',
+      cta: 'Ver planes',
       ctaHref: '/pricing',
       highlighted: false,
     },
   ];
 
   return (
-    <section className="bg-muted/20 px-4 py-20 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <section className="relative bg-muted/20 px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border/60 to-transparent" />
+      <Reveal className="mx-auto max-w-7xl">
         <div className="mb-12 text-center">
           <h2 className="mb-4 text-3xl font-bold text-foreground sm:text-4xl">
             Planes para cada necesidad
@@ -76,7 +78,7 @@ export function PricingPreviewSection() {
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`rounded-3xl border p-8 transition-all duration-300 hover:shadow-xl ${
+              className={`rounded-2xl border p-8 transition-all duration-300 hover:shadow-xl ${
                 plan.highlighted
                   ? 'border-primary/50 bg-card shadow-lg ring-2 ring-primary/20'
                   : 'border-border/40 bg-card/90'
@@ -109,7 +111,7 @@ export function PricingPreviewSection() {
 
               <Link
                 href={plan.ctaHref}
-                className={`inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 ${
+                className={`inline-flex w-full items-center justify-center rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${
                   plan.highlighted
                     ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                     : 'border border-border hover:bg-muted/50'
@@ -130,7 +132,7 @@ export function PricingPreviewSection() {
             <span aria-hidden="true">→</span>
           </Link>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }

@@ -13,6 +13,7 @@ import {
   BinanceP2PSide,
 } from '@/types/binance-p2p-offers';
 import { useBinanceP2POffers } from '@/hooks/use-binance-p2p-offers';
+import { useBinanceRates } from '@/hooks/use-binance-rates';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { BinanceMarketLink } from '@/components/p2p-offers/binance-market-link';
@@ -65,6 +66,27 @@ function parseAmountMinor(value: string): number {
   return Number.isSafeInteger(parsed) ? parsed : 0;
 }
 
+// The hint is reference-only; searches still use the native amount and unit.
+function buildReferenceHint(
+  amountMajor: number,
+  amountUnit: BinanceP2PAmountUnit,
+  usdtVesRate: number
+): string | null {
+  if (
+    !Number.isFinite(amountMajor) ||
+    amountMajor <= 0 ||
+    !Number.isFinite(usdtVesRate) ||
+    usdtVesRate <= 0
+  ) {
+    return null;
+  }
+  if (amountUnit === 'USDT') {
+    const referenceVes = formatVes(Math.round(amountMajor * usdtVesRate * 100));
+    return `≈ Bs. ${referenceVes} · tasa Binance P2P; el precio aplicable es el de cada oferta.`;
+  }
+  return `≈ ${(amountMajor / usdtVesRate).toLocaleString('es-VE', { maximumFractionDigits: 2 })} USDT · tasa Binance P2P; el precio aplicable es el de cada oferta.`;
+}
+
 export default function P2POffersFilter() {
   const [filterState, setFilterState] = useState<FilterState>({
     tradeType: 'BUY',
@@ -77,6 +99,8 @@ export default function P2POffersFilter() {
 
   const { status, result, error, retryAfterSeconds, loading, search } =
     useBinanceP2POffers();
+  const { rates: binanceRateSnapshot } = useBinanceRates();
+  const usdtVesRate = binanceRateSnapshot.usdt_ves;
 
   const buildQuery = (state: FilterState): BinanceP2POffersQuery => {
     const shared = {
@@ -129,6 +153,12 @@ export default function P2POffersFilter() {
   };
 
   const isBuy = filterState.tradeType === 'BUY';
+  const amountMajor = parseAmountMinor(filterState.amount) / 100;
+  const referenceHint = buildReferenceHint(
+    amountMajor,
+    filterState.amountUnit,
+    usdtVesRate
+  );
   const hasOffers =
     !loading &&
     (status === 'live' || status === 'stale') &&
@@ -229,6 +259,12 @@ export default function P2POffersFilter() {
                 ))}
               </div>
             </div>
+            {referenceHint ? (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Referencia:</span>{' '}
+                {referenceHint}
+              </p>
+            ) : null}
           </div>
 
           <div className="relative min-w-0 flex-1 md:col-span-2 lg:col-span-1">

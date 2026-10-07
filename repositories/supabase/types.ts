@@ -13,7 +13,7 @@ export type SupabaseAccount = {
   alert_enabled?: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseTransaction = {
   id: string;
@@ -40,7 +40,7 @@ export type SupabaseTransaction = {
   settled_at?: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseCategory = {
   id: string;
@@ -54,7 +54,7 @@ export type SupabaseCategory = {
   is_default: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseBudget = {
   id: string;
@@ -67,7 +67,7 @@ export type SupabaseBudget = {
   active: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseGoal = {
   id: string;
@@ -81,7 +81,7 @@ export type SupabaseGoal = {
   active: boolean;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseGoalContribution = {
   id: string;
@@ -92,7 +92,7 @@ export type SupabaseGoalContribution = {
   source?: string | null;
   related_transaction_id?: string | null;
   created_at: string;
-}
+};
 
 export type SupabaseExchangeRate = {
   id: string;
@@ -102,7 +102,7 @@ export type SupabaseExchangeRate = {
   date: string;
   provider: string;
   created_at: string;
-}
+};
 
 export type SupabaseTransfer = {
   id: string;
@@ -110,7 +110,7 @@ export type SupabaseTransfer = {
   to_transaction_id: string;
   fee_minor?: number | null;
   created_at: string;
-}
+};
 
 export type SupabaseUser = {
   id: string;
@@ -123,7 +123,7 @@ export type SupabaseUser = {
   subscription_id?: string;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabasePaymentOrder = {
   id: string;
@@ -140,7 +140,7 @@ export type SupabasePaymentOrder = {
   transaction_id?: string;
   created_at: string;
   updated_at: string;
-}
+};
 
 export type SupabaseOrder = {
   id: string;
@@ -150,7 +150,7 @@ export type SupabaseOrder = {
   sender_reference: string;
   status: 'pending' | 'paid';
   created_at: string;
-}
+};
 
 export type SupabaseScrapeAttempt = {
   id: string;
@@ -165,7 +165,7 @@ export type SupabaseScrapeAttempt = {
   extracted_currencies: string[] | null;
   metadata: Record<string, unknown> | null;
   created_at: string;
-}
+};
 
 export type SupabaseFeedback = {
   id: string;
@@ -175,7 +175,19 @@ export type SupabaseFeedback = {
   sentiment: 'up' | 'down' | 'neutral';
   comment: string | null;
   created_at: string;
-}
+};
+
+export type SupabasePendingItem = {
+  id: string;
+  user_id: string;
+  kind: 'purchase' | 'payment';
+  name: string;
+  amount_base_minor: number | null;
+  done: boolean;
+  done_at: string | null;
+  converted_transaction_id: string | null;
+  created_at: string;
+};
 
 export type SupabaseNotification = {
   id: string;
@@ -187,7 +199,7 @@ export type SupabaseNotification = {
   action_url: string | null;
   created_at: string;
   updated_at: string;
-}
+};
 
 // Database interface for TypeScript with Supabase
 export interface Database {
@@ -287,9 +299,48 @@ export interface Database {
         };
         Relationships: [];
       };
+      pending_items: {
+        Row: SupabasePendingItem;
+        Insert: {
+          id?: string;
+          user_id: string;
+          kind: 'purchase' | 'payment';
+          name: string;
+          amount_base_minor?: number | null;
+          done?: boolean;
+          done_at?: string | null;
+          converted_transaction_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          kind?: 'purchase' | 'payment';
+          name?: string;
+          amount_base_minor?: number | null;
+          done?: boolean;
+          done_at?: string | null;
+          converted_transaction_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       page_visits: {
-        Row: { id: string; visited_at: string; visit_date: string; path: string; ip_hash: string; country_code: string | null };
-        Insert: { id?: string; visited_at?: string; path: string; ip_hash: string; country_code?: string | null };
+        Row: {
+          id: string;
+          visited_at: string;
+          visit_date: string;
+          path: string;
+          ip_hash: string;
+          country_code: string | null;
+        };
+        Insert: {
+          id?: string;
+          visited_at?: string;
+          path: string;
+          ip_hash: string;
+          country_code?: string | null;
+        };
         Update: never;
         Relationships: [];
       };
@@ -323,17 +374,15 @@ export interface Database {
     Views: {
       [_ in never]: never;
     };
-        Functions: {
-          aggregate_page_visits: { Args: { start_date: string; end_date: string }; Returns: unknown };
-        };
+    Functions: {
+      aggregate_page_visits: {
+        Args: { start_date: string; end_date: string };
+        Returns: unknown;
+      };
+    };
     Enums: {
       account_type:
-        | 'CASH'
-        | 'BANK'
-        | 'CARD'
-        | 'INVESTMENT'
-        | 'SAVINGS'
-        | 'CRYPTO';
+        'CASH' | 'BANK' | 'CARD' | 'INVESTMENT' | 'SAVINGS' | 'CRYPTO';
       transaction_type: 'INCOME' | 'EXPENSE' | 'TRANSFER_OUT' | 'TRANSFER_IN';
       category_kind: 'INCOME' | 'EXPENSE';
       debt_direction: 'OWE' | 'OWED_TO_ME';

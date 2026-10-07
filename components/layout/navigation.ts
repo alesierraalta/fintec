@@ -5,6 +5,7 @@ import {
   CreditCard,
   HandCoins,
   Home,
+  ListTodo,
   MessageSquare,
   PieChart,
   Repeat,
@@ -27,9 +28,24 @@ export type NavigationItem = {
 
 export const mobilePrimaryNavigation: NavigationItem[] = [
   { href: '/', mobileLabel: 'Inicio', desktopLabel: 'Inicio', icon: Home },
-  { href: '/accounts', mobileLabel: 'Cuentas', desktopLabel: 'Cuentas', icon: Wallet },
-  { href: '/transactions', mobileLabel: 'Transacciones', desktopLabel: 'Gastos', icon: ArrowUpDown },
-  { href: '/transfers', mobileLabel: 'Transferir', desktopLabel: 'Transferir', icon: ArrowRightLeft },
+  {
+    href: '/accounts',
+    mobileLabel: 'Cuentas',
+    desktopLabel: 'Cuentas',
+    icon: Wallet,
+  },
+  {
+    href: '/transactions',
+    mobileLabel: 'Transacciones',
+    desktopLabel: 'Gastos',
+    icon: ArrowUpDown,
+  },
+  {
+    href: '/transfers',
+    mobileLabel: 'Transferir',
+    desktopLabel: 'Transferir',
+    icon: ArrowRightLeft,
+  },
   { href: '/goals', mobileLabel: 'Metas', desktopLabel: 'Metas', icon: Target },
 ];
 
@@ -37,6 +53,7 @@ export const mobileSecondaryNavigation: NavigationItem[] = [
   { href: '/recurring', mobileLabel: 'Recurrentes', icon: Repeat },
   { href: '/categories', mobileLabel: 'Categorías', icon: PieChart },
   { href: '/budgets', mobileLabel: 'Presupuestos', icon: CreditCard },
+  { href: '/pending', mobileLabel: 'Pendientes', icon: ListTodo },
   { href: '/reports', mobileLabel: 'Reportes', icon: TrendingUp },
   { href: '/calculator', mobileLabel: 'Calculadora', icon: Calculator },
   { href: '/debts', mobileLabel: 'Deudas', icon: HandCoins },
@@ -47,5 +64,7 @@ export const mobileSecondaryNavigation: NavigationItem[] = [
 ];
 
 export const mobileAdminNavigation: NavigationItem = {
-  href: '/admin', mobileLabel: 'Admin', icon: Shield,
+  href: '/admin',
+  mobileLabel: 'Admin',
+  icon: Shield,
 };

@@ -99,7 +99,7 @@ function ProfileContent() {
           </div>
 
           {/* iOS-style Profile Information */}
-          <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg">
             <div className="mb-8 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-indigo-500"></div>
               <h2 className="text-ios-title font-semibold text-foreground">

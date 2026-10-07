@@ -22,7 +22,7 @@ export function LandingNav({ links }: LandingNavProps) {
   const downloadLink = links.find((l) => l.href === '/download');
 
   return (
-    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border/20 bg-background/80 pt-safe-top backdrop-blur-xl">
+    <nav className="fixed left-0 right-0 top-0 z-50 border-b border-border/20 bg-background/80 pt-safe-top">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <Link href="/" aria-label="FinTec - Inicio">
@@ -39,7 +39,7 @@ export function LandingNav({ links }: LandingNavProps) {
             {!isNative && downloadLink && (
               <Link
                 href={downloadLink.href}
-                className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 py-2 font-medium text-primary transition-all duration-200 hover:bg-primary/20"
+                className="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/10 px-5 py-2 font-medium text-primary transition-all duration-200 hover:bg-primary/20 active:scale-[0.98]"
               >
                 <Download className="h-4 w-4" />
                 {downloadLink.label}
@@ -49,7 +49,7 @@ export function LandingNav({ links }: LandingNavProps) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`rounded-xl px-6 py-2 font-medium transition-all duration-200 ${
+                className={`rounded-xl px-6 py-2 font-medium transition-all duration-200 active:scale-[0.98] ${
                   link.href === '/auth/register'
                     ? 'border border-border hover:bg-muted/50'
                     : 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90'
