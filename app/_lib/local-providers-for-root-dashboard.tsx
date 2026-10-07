@@ -1,35 +1,18 @@
 'use client';
 
-import { AuthProvider } from '@/contexts/auth-context';
-import { RepositoryProvider } from '@/providers';
-import { SubscriptionProvider } from '@/providers/subscription-provider';
-import { FinancialRealtimeSync } from '@/components/providers/financial-realtime-sync';
-
 interface LocalProvidersForRootDashboardProps {
   children: React.ReactNode;
 }
 
 /**
- * Local providers wrapper for the root dashboard branch.
+ * Legacy compatibility wrapper for callers that still import this module.
  *
- * When `/` renders dashboard (authenticated), RouteAwareProviders bypasses
- * providers for the `/` path. This component re-mounts them locally so the
- * dashboard tree has access to auth, repository, and subscription context.
- *
- * When `/` renders landing (unauthenticated), this component is NOT rendered,
- * keeping the landing bundle free of auth/repository/subscription code (NFR4).
+ * The root route now stays inside RouteAwareProviders so navigation between `/`
+ * and `/transactions` keeps one Auth/Repository/Subscription/Realtime tree.
+ * This component is intentionally a passthrough and must not add another tree.
  */
 export function LocalProvidersForRootDashboard({
   children,
 }: LocalProvidersForRootDashboardProps) {
-  return (
-    <AuthProvider>
-      <RepositoryProvider>
-        <SubscriptionProvider>
-            <FinancialRealtimeSync />
-            {children}
-          </SubscriptionProvider>
-      </RepositoryProvider>
-    </AuthProvider>
-  );
+  return children;
 }
