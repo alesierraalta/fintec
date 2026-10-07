@@ -203,7 +203,7 @@ export function AddTransactionMenu({
                 ? { duration: 0.1 }
                 : { duration: 0.15, ease: [0.16, 1, 0.3, 1] }
             }
-            className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-border/50 bg-card/95 p-1.5 shadow-2xl backdrop-blur-xl focus:outline-none"
+            className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right rounded-2xl border border-border/50 bg-card/95 p-1.5 shadow-2xl focus:outline-none"
           >
             <div className="border-b border-border/40 px-3 py-2">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -277,7 +277,7 @@ export function AddTransactionMenu({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: shouldReduceMotion ? 0.05 : 0.2 }}
-                  className="fixed inset-0 bg-black/60 backdrop-blur-sm"
+                  className="fixed inset-0 bg-black/60"
                   onClick={() => setIsOpen(false)}
                   aria-hidden="true"
                 />
@@ -314,7 +314,7 @@ export function AddTransactionMenu({
                           }
                         }
                   }
-                  className="relative z-10 w-full touch-pan-y rounded-t-3xl border-t border-border/40 bg-card/95 p-5 shadow-2xl backdrop-blur-2xl"
+                  className="relative z-10 w-full touch-pan-y rounded-t-3xl border-t border-border/40 bg-card/95 p-5 shadow-2xl"
                   style={{
                     paddingBottom:
                       'max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem))',

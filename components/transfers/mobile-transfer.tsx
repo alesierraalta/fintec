@@ -1321,7 +1321,7 @@ export function MobileTransfer() {
             <p className="text-sm text-muted-foreground">Revisa los datos</p>
           </div>
 
-          <div className="rounded-xl border border-white/50 bg-white/80 p-4 backdrop-blur-sm dark:border-neutral-700/50 dark:bg-neutral-800/80">
+          <div className="rounded-xl border border-white/50 bg-white/80 p-4 dark:border-neutral-700/50 dark:bg-neutral-800/80">
             <div className="space-y-4">
               {/* From Account */}
               <div className="text-center">

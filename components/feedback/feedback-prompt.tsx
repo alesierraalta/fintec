@@ -17,11 +17,19 @@ interface FeedbackPromptProps {
   className?: string;
 }
 
-function storageKey(userId: string, targetType: string, targetId: string): string {
+function storageKey(
+  userId: string,
+  targetType: string,
+  targetId: string
+): string {
   return `fb:${userId}:${targetType}:${targetId}`;
 }
 
-export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPromptProps) {
+export function FeedbackPrompt({
+  target_type,
+  target_id,
+  className,
+}: FeedbackPromptProps) {
   const supabase = useMemo(() => createClient(), []);
   const [userId, setUserId] = useState<string | null>(null);
   const [state, setState] = useState<PromptState>({ status: 'prompt' });
@@ -36,7 +44,9 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
       setUserId(id);
       if (id) {
         try {
-          const stored = localStorage.getItem(storageKey(id, target_type, target_id));
+          const stored = localStorage.getItem(
+            storageKey(id, target_type, target_id)
+          );
           if (stored === 'up' || stored === 'down') {
             setState({ status: 'reacted', sentiment: stored });
           } else if (stored === '1') {
@@ -54,7 +64,9 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
       setUserId((prev) => (prev === id ? prev : id));
       if (id) {
         try {
-          const stored = localStorage.getItem(storageKey(id, target_type, target_id));
+          const stored = localStorage.getItem(
+            storageKey(id, target_type, target_id)
+          );
           if (stored === 'up' || stored === 'down') {
             setState({ status: 'reacted', sentiment: stored });
           } else if (stored === '1') {
@@ -78,11 +90,21 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
   useEffect(() => {
     if (!userId) return;
     try {
-      const stored = localStorage.getItem(storageKey(userId, target_type, target_id));
+      const stored = localStorage.getItem(
+        storageKey(userId, target_type, target_id)
+      );
       if (stored === 'up' || stored === 'down') {
-        setState((prev) => (prev.status === 'reacted' && prev.sentiment === stored ? prev : { status: 'reacted', sentiment: stored }));
+        setState((prev) =>
+          prev.status === 'reacted' && prev.sentiment === stored
+            ? prev
+            : { status: 'reacted', sentiment: stored }
+        );
       } else if (stored === '1') {
-        setState((prev) => (prev.status === 'reacted' && prev.sentiment === 'up' ? prev : { status: 'reacted', sentiment: 'up' }));
+        setState((prev) =>
+          prev.status === 'reacted' && prev.sentiment === 'up'
+            ? prev
+            : { status: 'reacted', sentiment: 'up' }
+        );
       } else if (state.status === 'reacted') {
         setState({ status: 'prompt' });
       }
@@ -134,7 +156,10 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
         throw new Error(msg);
       }
       try {
-        localStorage.setItem(storageKey(uid, target_type, target_id), sentiment);
+        localStorage.setItem(
+          storageKey(uid, target_type, target_id),
+          sentiment
+        );
       } catch {
         // ignore storage write failure
       }
@@ -142,7 +167,8 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
       setComment('');
       toast.success('¡Gracias por tu feedback!');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'No se pudo enviar tu feedback';
+      const message =
+        err instanceof Error ? err.message : 'No se pudo enviar tu feedback';
       toast.error(message);
     } finally {
       setSubmitting(false);
@@ -151,19 +177,39 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
 
   if (state.status === 'reacted') {
     return (
-      <div className={cn('glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm backdrop-blur-xl', className)}>
+      <div
+        className={cn(
+          'glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm',
+          className
+        )}
+      >
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Check className="h-4 w-4" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-medium text-foreground">
-              {state.sentiment === 'up' ? '¡Gracias! Nos alegra que te haya servido.' : 'Gracias por tu feedback.'}
+              {state.sentiment === 'up'
+                ? '¡Gracias! Nos alegra que te haya servido.'
+                : 'Gracias por tu feedback.'}
             </p>
-            <p className="text-xs text-muted-foreground">Tu reacción ha sido registrada.</p>
+            <p className="text-xs text-muted-foreground">
+              Tu reacción ha sido registrada.
+            </p>
           </div>
-          <span className={cn('flex h-9 w-9 items-center justify-center rounded-full border', state.sentiment === 'up' ? 'border-primary/20 bg-primary/10 text-primary' : 'border-border/40 bg-secondary text-muted-foreground')}>
-            {state.sentiment === 'up' ? <ThumbsUp className="h-4 w-4" /> : <ThumbsDown className="h-4 w-4" />}
+          <span
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-full border',
+              state.sentiment === 'up'
+                ? 'border-primary/20 bg-primary/10 text-primary'
+                : 'border-border/40 bg-secondary text-muted-foreground'
+            )}
+          >
+            {state.sentiment === 'up' ? (
+              <ThumbsUp className="h-4 w-4" />
+            ) : (
+              <ThumbsDown className="h-4 w-4" />
+            )}
           </span>
         </div>
       </div>
@@ -172,20 +218,38 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
 
   if (state.status === 'commenting') {
     return (
-      <div className={cn('glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm backdrop-blur-xl', className)}>
+      <div
+        className={cn(
+          'glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm',
+          className
+        )}
+      >
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-medium text-foreground">
-            {state.sentiment === 'up' ? '¡Genial! ¿Quieres añadir un comentario?' : '¿Qué podemos mejorar?'}
+            {state.sentiment === 'up'
+              ? '¡Genial! ¿Quieres añadir un comentario?'
+              : '¿Qué podemos mejorar?'}
           </p>
           <div className="flex items-center gap-2">
-            <span className={cn('flex h-8 w-8 items-center justify-center rounded-full', state.sentiment === 'up' ? 'bg-primary/10 text-primary' : 'bg-secondary text-muted-foreground')}>
-              {state.sentiment === 'up' ? <ThumbsUp className="h-4 w-4" /> : <ThumbsDown className="h-4 w-4" />}
+            <span
+              className={cn(
+                'flex h-8 w-8 items-center justify-center rounded-full',
+                state.sentiment === 'up'
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-secondary text-muted-foreground'
+              )}
+            >
+              {state.sentiment === 'up' ? (
+                <ThumbsUp className="h-4 w-4" />
+              ) : (
+                <ThumbsDown className="h-4 w-4" />
+              )}
             </span>
             <button
               type="button"
               aria-label="Cerrar"
               onClick={handleCancel}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-ring"
+              className="focus-ring flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -200,13 +264,15 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
           aria-label="Comentario opcional"
           className="min-h-[80px] w-full resize-none rounded-xl border border-border/40 bg-background/60 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-ring/30"
         />
-        <div className="mt-1 text-right text-[11px] text-muted-foreground">{comment.length}/2000</div>
+        <div className="mt-1 text-right text-[11px] text-muted-foreground">
+          {comment.length}/2000
+        </div>
         <div className="mt-3 flex gap-2">
           <button
             type="button"
             onClick={handleCancel}
             disabled={submitting}
-            className="min-h-[44px] flex-1 rounded-xl border border-border/40 bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground transition-smooth hover:bg-secondary/80 active:scale-[0.98] disabled:opacity-50"
+            className="transition-smooth min-h-[44px] flex-1 rounded-xl border border-border/40 bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98] disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -214,9 +280,11 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="min-h-[44px] flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-ios-sm transition-smooth hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="transition-smooth inline-flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-ios-sm hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {submitting && (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            )}
             Enviar
           </button>
         </div>
@@ -225,15 +293,22 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
   }
 
   return (
-    <div className={cn('glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm backdrop-blur-xl', className)}>
+    <div
+      className={cn(
+        'glass-card rounded-2xl border border-border/40 bg-card/60 p-4 shadow-ios-sm',
+        className
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm font-medium text-foreground">¿Esto te ha servido?</p>
+        <p className="text-sm font-medium text-foreground">
+          ¿Esto te ha servido?
+        </p>
         <div className="flex items-center gap-2">
           <button
             type="button"
             aria-label="Sí, me ha servido"
             onClick={() => handleThumb('up')}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/40 bg-card px-3 text-muted-foreground shadow-ios-sm transition-smooth hover:bg-primary/10 hover:text-primary hover:border-primary/20 active:scale-[0.98] focus-ring"
+            className="transition-smooth focus-ring flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/40 bg-card px-3 text-muted-foreground shadow-ios-sm hover:border-primary/20 hover:bg-primary/10 hover:text-primary active:scale-[0.98]"
           >
             <ThumbsUp className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -241,7 +316,7 @@ export function FeedbackPrompt({ target_type, target_id, className }: FeedbackPr
             type="button"
             aria-label="No me ha servido"
             onClick={() => handleThumb('down')}
-            className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/40 bg-card px-3 text-muted-foreground shadow-ios-sm transition-smooth hover:bg-secondary hover:text-foreground active:scale-[0.98] focus-ring"
+            className="transition-smooth focus-ring flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-border/40 bg-card px-3 text-muted-foreground shadow-ios-sm hover:bg-secondary hover:text-foreground active:scale-[0.98]"
           >
             <ThumbsDown className="h-5 w-5" aria-hidden="true" />
           </button>

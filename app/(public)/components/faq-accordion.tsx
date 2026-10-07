@@ -54,7 +54,7 @@ export function FAQAccordion({ items }: FAQAccordionProps) {
         return (
           <div
             key={index}
-            className="overflow-hidden rounded-2xl border border-border/40 bg-card/90 backdrop-blur-xl transition-all duration-300"
+            className="overflow-hidden rounded-2xl border border-border/40 bg-card/90 transition-all duration-300"
           >
             <h3 id={`faq-question-${index}`}>
               <button

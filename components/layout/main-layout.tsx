@@ -62,6 +62,12 @@ function MainLayoutContent({ children }: MainLayoutProps) {
   // Pages that manage their own scroll and pin content to the viewport
   // bottom (e.g. the chat composer) opt out of the padded content wrapper
   const isFullHeightPage = pathname === '/chat';
+  const routeEnterClass =
+    pathname === '/'
+      ? 'route-enter-home'
+      : pathname === '/transactions'
+        ? 'route-enter-transactions'
+        : '';
 
   return (
     <div
@@ -102,7 +108,8 @@ function MainLayoutContent({ children }: MainLayoutProps) {
                 className={cn(
                   isMobile
                     ? 'no-horizontal-scroll px-4 py-6' // Mobile app-like padding
-                    : 'no-horizontal-scroll mx-auto max-w-6xl px-6 py-8' // Desktop padding
+                    : 'no-horizontal-scroll mx-auto max-w-6xl px-6 py-8', // Desktop padding
+                  routeEnterClass
                 )}
               >
                 {children}

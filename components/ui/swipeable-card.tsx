@@ -14,6 +14,10 @@ import { cn } from '@/lib/utils';
 
 const DRAG_INTENT_THRESHOLD_PX = 8;
 const POST_DRAG_CLICK_SUPPRESSION_MS = 180;
+const ACTION_GAP_PX = 4;
+const ACTION_TRAY_RIGHT_PADDING_PX = 4;
+const MIN_ACTION_WIDTH_PX = 70;
+const MIN_ACTION_TOUCH_TARGET_PX = 44;
 
 export interface SwipeAction {
   label: string;
@@ -134,23 +138,30 @@ function SwipeableCardComponent({
     action();
   }, []);
 
-  const maxDrag = -(actionWidth * actions.length + (actions.length - 1) * 4);
+  const resolvedActionWidth = Math.max(actionWidth, MIN_ACTION_WIDTH_PX);
+  const maxDrag =
+    actions.length === 0
+      ? 0
+      : -(
+          resolvedActionWidth * actions.length +
+          ACTION_GAP_PX * (actions.length - 1) +
+          ACTION_TRAY_RIGHT_PADDING_PX
+        );
 
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden will-change-transform',
-        className
-      )}
-    >
+    <div className={cn('relative overflow-hidden', className)}>
       {/* Action buttons revealed on swipe */}
       <motion.div
         className={cn(
-          'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch gap-1 py-1 pr-1 transition-opacity duration-200',
+          'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch py-1 transition-opacity duration-200',
           isRevealed || isDragging
             ? 'opacity-100'
             : 'pointer-events-none opacity-0'
         )}
+        style={{
+          gap: ACTION_GAP_PX,
+          paddingRight: ACTION_TRAY_RIGHT_PADDING_PX,
+        }}
       >
         {actions.map((action, index) => (
           <motion.button
@@ -161,14 +172,18 @@ function SwipeableCardComponent({
               handleAction(action.onClick);
             }}
             className={cn(
-              'z-10 flex flex-col items-center justify-center rounded-xl px-4 text-white shadow-lg transition-all duration-150',
+              'z-10 flex flex-col items-center justify-center rounded-xl px-4 text-white shadow-lg transition-colors duration-150',
               colorClasses[action.color]
             )}
-            style={{ minWidth: actionWidth }}
+            style={{
+              width: resolvedActionWidth,
+              flex: '0 0 auto',
+              minHeight: MIN_ACTION_TOUCH_TARGET_PX,
+            }}
             whileTap={{ scale: 0.92 }}
             aria-label={action.label}
           >
-            <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm">
+            <div className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
               {action.icon}
             </div>
             <span className="text-[11px] font-semibold tracking-wide">
@@ -198,10 +213,6 @@ function SwipeableCardComponent({
         role={onClick ? 'button' : undefined}
         tabIndex={onClick ? 0 : undefined}
         onKeyDown={handleKeyDown}
-        whileDrag={{
-          scale: 1.02,
-          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-        }}
       >
         {children}
 

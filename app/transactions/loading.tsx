@@ -1,5 +1,4 @@
-import { TransactionsSkeleton } from "@/components/skeletons/transactions-skeleton";
-
 export default function Loading() {
-  return <TransactionsSkeleton />;
+  // Keep soft navigation non-blocking; in-page data loaders own cold starts.
+  return null;
 }

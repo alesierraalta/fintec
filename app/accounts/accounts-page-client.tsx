@@ -378,7 +378,7 @@ export default function AccountsPage() {
               ></motion.div>
               <motion.div
                 aria-hidden="true"
-                className="rounded-full border border-primary/30 bg-gradient-to-r from-primary/20 to-blue-500/20 p-2 backdrop-blur-sm"
+                className="rounded-full border border-primary/30 bg-gradient-to-r from-primary/20 to-blue-500/20 p-2"
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ duration: 0.6, delay: 1 }}
@@ -409,7 +409,7 @@ export default function AccountsPage() {
             {/* Quick Stats Badges */}
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <motion.div
-                className="inline-flex items-center space-x-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-blue-500/10 px-4 py-2 backdrop-blur-sm"
+                className="inline-flex items-center space-x-2 rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-blue-500/10 px-4 py-2"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.6 }}
@@ -421,7 +421,7 @@ export default function AccountsPage() {
               </motion.div>
 
               <motion.div
-                className="inline-flex items-center space-x-2 rounded-full border border-green-500/20 bg-gradient-to-r from-green-500/10 to-emerald-500/10 px-4 py-2 backdrop-blur-sm"
+                className="inline-flex items-center space-x-2 rounded-full border border-green-500/20 bg-gradient-to-r from-green-500/10 to-emerald-500/10 px-4 py-2"
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.8 }}
@@ -474,7 +474,7 @@ export default function AccountsPage() {
           {/* Achievement Badge */}
           {accounts.length > 0 && (
             <motion.div
-              className="inline-flex items-center space-x-2 rounded-2xl border border-border/40 bg-card/80 px-4 py-2 backdrop-blur-sm"
+              className="inline-flex items-center space-x-2 rounded-2xl border border-border/40 bg-card/80 px-4 py-2"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.5 }}
@@ -807,7 +807,7 @@ export default function AccountsPage() {
         createPortal(
           <div
             id={`account-dropdown-${openDropdown}`}
-            className="fixed z-[10000] w-48 rounded-2xl border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl"
+            className="fixed z-[10000] w-48 rounded-2xl border border-border/40 bg-card/95 shadow-2xl"
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -858,7 +858,7 @@ export default function AccountsPage() {
 
       {/* Delete Account Confirmation Modal */}
       {accountToDelete && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div
             role="dialog"
             aria-modal="true"

@@ -24,7 +24,14 @@ const categoryKinds = [
   { value: 'EXPENSE', label: 'Gasto' },
 ];
 
-export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSave, defaultKind }: CategoryFormProps) {
+export function CategoryForm({
+  isOpen,
+  onClose,
+  category,
+  parentCategoryId,
+  onSave,
+  defaultKind,
+}: CategoryFormProps) {
   const repository = useRepository();
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -44,14 +51,22 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
       try {
         const categories = await repository.categories.findAll();
         const parentOptions = [
-          { value: '', label: 'Sin categoría padre (crear categoría principal)' },
+          {
+            value: '',
+            label: 'Sin categoría padre (crear categoría principal)',
+          },
           ...categories
-            .filter(cat => !cat.parentId) // Only root categories
-            .map(cat => ({ value: cat.id, label: cat.name }))
+            .filter((cat) => !cat.parentId) // Only root categories
+            .map((cat) => ({ value: cat.id, label: cat.name })),
         ];
         setParentCategories(parentOptions);
       } catch (error) {
-        setParentCategories([{ value: '', label: 'Sin categoría padre (crear categoría principal)' }]);
+        setParentCategories([
+          {
+            value: '',
+            label: 'Sin categoría padre (crear categoría principal)',
+          },
+        ]);
       }
     };
 
@@ -82,7 +97,7 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
 
     setLoading(true);
     setError(null);
-    
+
     try {
       const createdCategory = await runFinancialMutation({
         userId: user.id,
@@ -106,10 +121,10 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
                 parentId: formData.parentId || undefined,
               }),
       });
-      
+
       onSave?.(createdCategory);
       onClose();
-      
+
       // Reset form for new category
       if (!category) {
         setFormData({
@@ -121,7 +136,11 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         });
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Error al crear/actualizar la categoría');
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Error al crear/actualizar la categoría'
+      );
     } finally {
       setLoading(false);
     }
@@ -129,20 +148,28 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
 
   if (error) {
     return (
-      <div className="p-4 bg-red-50 border border-red-200 rounded">
+      <div className="rounded border border-red-200 bg-red-50 p-4">
         <p className="text-red-700">Error: {error}</p>
-        <button onClick={() => setError(null)} className="mt-2 text-blue-600">Reintentar</button>
+        <button onClick={() => setError(null)} className="mt-2 text-blue-600">
+          Reintentar
+        </button>
       </div>
     );
   }
 
   return (
-    <Modal open={isOpen} onClose={onClose} title={category ? 'Editar Categoría' : 'Nueva Categoría'}>
+    <Modal
+      open={isOpen}
+      onClose={onClose}
+      title={category ? 'Editar Categoría' : 'Nueva Categoría'}
+    >
       <form onSubmit={handleSubmit} className="space-y-6">
         <Input
           label="Nombre de la categoría"
           value={formData.name}
-          onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, name: e.target.value }))
+          }
           placeholder="Ej: Alimentación, Transporte..."
           required
         />
@@ -150,31 +177,35 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
         <Select
           label="Tipo"
           value={formData.kind}
-          onChange={(e) => setFormData(prev => ({ ...prev, kind: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, kind: e.target.value }))
+          }
           options={categoryKinds}
         />
 
         <Select
           label="Categoría padre"
           value={formData.parentId}
-          onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, parentId: e.target.value }))
+          }
           options={parentCategories}
         />
 
         <ColorPicker
           label="Color"
           selectedColor={formData.color}
-          onColorChange={(color) => setFormData(prev => ({ ...prev, color }))}
+          onColorChange={(color) => setFormData((prev) => ({ ...prev, color }))}
         />
 
         <IconPicker
           label="Icono"
           selectedIcon={formData.icon}
-          onIconChange={(icon) => setFormData(prev => ({ ...prev, icon }))}
+          onIconChange={(icon) => setFormData((prev) => ({ ...prev, icon }))}
         />
 
-        <div 
-          className="sticky bottom-0 left-0 right-0 flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-4 pb-4 sm:pb-4 -mx-4 sm:-mx-6 px-4 sm:px-6 mt-6 bg-card/95 backdrop-blur-md border-t border-border/20 z-10" 
+        <div
+          className="sticky bottom-0 left-0 right-0 z-10 -mx-4 mt-6 flex flex-col justify-end space-y-3 border-t border-border/20 bg-card/95 px-4 pb-4 pt-4 sm:-mx-6 sm:flex-row sm:space-x-3 sm:space-y-0 sm:px-6 sm:pb-4"
           style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
         >
           <Button
@@ -191,7 +222,7 @@ export function CategoryForm({ isOpen, onClose, category, parentCategoryId, onSa
             disabled={loading || !formData.name.trim()}
             className="w-full sm:w-auto"
           >
-            {loading ? 'Guardando...' : (category ? 'Actualizar' : 'Crear')}
+            {loading ? 'Guardando...' : category ? 'Actualizar' : 'Crear'}
           </Button>
         </div>
       </form>

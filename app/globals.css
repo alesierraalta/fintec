@@ -305,6 +305,27 @@ transactions (0.2% with an empty account). The glass look is carried by the
   }
 }
 
+@keyframes routeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.route-enter-home,
+.route-enter-transactions {
+  animation: routeEnter 180ms ease-out;
+}
+
+.route-enter-transactions > .animate-fade-in {
+  animation: none;
+}
+
 /* Enhanced Animation Classes */
 .animate-slide-in-right {
   animation: slideInRight 0.3s ease-out;
@@ -450,7 +471,9 @@ select:disabled {
   .animate-pulse-soft,
   .animate-pulse,
   .animate-glow,
-  .animate-gradient {
+  .animate-gradient,
+  .route-enter-home,
+  .route-enter-transactions {
     animation: none !important;
   }
 

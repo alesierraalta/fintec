@@ -23,7 +23,11 @@ export function MobileMenuToggle({ links }: MobileMenuProps) {
 
   useEffect(() => {
     if (!isOpen) return;
-    return registerBack({ id: 'public-mobile-menu', priority: 95, close: closeMenu });
+    return registerBack({
+      id: 'public-mobile-menu',
+      priority: 95,
+      close: closeMenu,
+    });
   }, [isOpen, registerBack, closeMenu]);
 
   // Focus trap
@@ -112,7 +116,7 @@ export function MobileMenuToggle({ links }: MobileMenuProps) {
       {/* Overlay */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
           aria-hidden="true"
         />
       )}

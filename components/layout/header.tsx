@@ -333,7 +333,7 @@ export default function Header({ onMenuClick, isMobileMenuOpen }: HeaderProps) {
                 </div>
               </motion.div>
               <div
-                className="fixed inset-0 z-[59] bg-black/40 backdrop-blur-sm"
+                className="fixed inset-0 z-[59] bg-black/40"
                 onClick={() => setShowUserMenu(false)}
               />
             </>,

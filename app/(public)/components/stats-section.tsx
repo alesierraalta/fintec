@@ -51,7 +51,7 @@ export function StatsSection() {
             return (
               <article
                 key={indicator.eyebrow}
-                className="group rounded-2xl border border-border/50 bg-card/70 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-lg hover:shadow-black/5"
+                className="group rounded-2xl border border-border/50 bg-card/70 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-lg hover:shadow-black/5"
               >
                 <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl border border-primary/15 bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-105">
                   <Icon className="h-5 w-5" />

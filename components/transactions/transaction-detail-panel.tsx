@@ -258,7 +258,11 @@ export function TransactionDetailPanel({
 
   useEffect(() => {
     if (!isOpen) return;
-    return registerBack({ id: `transaction-detail-${transaction.id}`, priority: 105, close: onClose });
+    return registerBack({
+      id: `transaction-detail-${transaction.id}`,
+      priority: 105,
+      close: onClose,
+    });
   }, [isOpen, onClose, registerBack, transaction.id]);
 
   // Handle ESC key
@@ -351,13 +355,13 @@ export function TransactionDetailPanel({
       <div className="fixed inset-0 z-[60] flex flex-col">
         {/* Backdrop - click to close */}
         <div
-          className="fixed inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 bg-background/60 transition-opacity"
           onClick={onClose}
           aria-hidden="true"
         />
 
         {/* Modal Panel - full screen with iOS-style rounded top corners */}
-        <div className="glass-card relative mt-auto flex flex-1 animate-fade-in flex-col overflow-hidden rounded-t-3xl border-t border-border/50 bg-card/80 shadow-ios-lg backdrop-blur-xl">
+        <div className="glass-card relative mt-auto flex flex-1 animate-fade-in flex-col overflow-hidden rounded-t-3xl border-t border-border/50 bg-card/80 shadow-ios-lg">
           {/* Header */}
           <div className="flex-shrink-0 border-b border-border/20 p-6">
             <div className="flex items-center justify-between">
@@ -506,13 +510,13 @@ export function TransactionDetailPanel({
     <div className="fixed inset-0 z-50 flex">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-background/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-background/60 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
-      <div className="animate-slide-in-right glass-card ml-auto w-full max-w-md border-l border-border/50 bg-card/80 shadow-ios-lg backdrop-blur-xl">
+      <div className="animate-slide-in-right glass-card ml-auto w-full max-w-md border-l border-border/50 bg-card/80 shadow-ios-lg">
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="border-b border-border/20 p-6">

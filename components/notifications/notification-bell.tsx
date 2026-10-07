@@ -99,99 +99,99 @@ export function NotificationBell({
   const isHeader = variant === 'header';
 
   const panelElement = (
-<div
-          ref={panelRef}
-          role="dialog"
-          aria-label="Notificaciones"
-          className={`${isHeader ? 'fixed inset-x-4 top-[4.5rem] z-[60] mx-auto max-h-[70vh] w-auto max-w-[360px] lg:inset-x-auto lg:left-auto lg:right-4 lg:w-[360px]' : 'absolute bottom-full right-0 mb-3 max-h-[70vh] w-[min(360px,calc(100vw-2rem))]'} overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg backdrop-blur-xl`}
-        >
-          <div className="flex items-center justify-between border-b border-border/30 px-4 py-3">
-            <h2 className="text-sm font-semibold text-popover-foreground">
-              Notificaciones
-            </h2>
-            <div className="flex items-center gap-1">
-              {unreadList.length > 0 && (
-                <button
-                  type="button"
-                  onClick={markAllAsRead}
-                  className="focus-ring inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
-                >
-                  <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                  Marcar todo
-                </button>
-              )}
-              <button
-                type="button"
-                aria-label="Cerrar"
-                onClick={() => setOpen(false)}
-                className="focus-ring rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
-            </div>
-          </div>
+    <div
+      ref={panelRef}
+      role="dialog"
+      aria-label="Notificaciones"
+      className={`${isHeader ? 'fixed inset-x-4 top-[4.5rem] z-[60] mx-auto max-h-[70vh] w-auto max-w-[360px] lg:inset-x-auto lg:left-auto lg:right-4 lg:w-[360px]' : 'absolute bottom-full right-0 mb-3 max-h-[70vh] w-[min(360px,calc(100vw-2rem))]'} overflow-hidden rounded-2xl border border-border/40 bg-popover/95 shadow-ios-lg`}
+    >
+      <div className="flex items-center justify-between border-b border-border/30 px-4 py-3">
+        <h2 className="text-sm font-semibold text-popover-foreground">
+          Notificaciones
+        </h2>
+        <div className="flex items-center gap-1">
+          {unreadList.length > 0 && (
+            <button
+              type="button"
+              onClick={markAllAsRead}
+              className="focus-ring inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+            >
+              <CheckCheck className="h-3.5 w-3.5" aria-hidden="true" />
+              Marcar todo
+            </button>
+          )}
+          <button
+            type="button"
+            aria-label="Cerrar"
+            onClick={() => setOpen(false)}
+            className="focus-ring rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
 
-          <div className="max-h-[50vh] overflow-y-auto">
-            {isLoading ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                Cargando…
-              </p>
-            ) : unreadList.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-                No tienes notificaciones nuevas
-              </p>
-            ) : (
-              <ul className="divide-y divide-border/30">
-                {unreadList.map((n) => (
-                  <li
-                    key={n.id}
-                    className="flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-foreground">
-                        {n.title}
-                      </p>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">
-                        {n.message}
-                      </p>
-                      <div className="mt-1 flex items-center gap-2">
-                        <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
-                          {n.type}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground">
-                          {new Date(n.created_at).toLocaleDateString('es-ES', {
-                            day: '2-digit',
-                            month: 'short',
-                          })}
-                        </span>
-                      </div>
-                      {n.action_url && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setOpen(false);
-                            router.push(n.action_url!);
-                          }}
-                          className="focus-ring mt-1 inline-block rounded text-xs font-medium text-primary hover:underline"
-                        >
-                          Ver detalle
-                        </button>
-                      )}
-                    </div>
+      <div className="max-h-[50vh] overflow-y-auto">
+        {isLoading ? (
+          <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+            Cargando…
+          </p>
+        ) : unreadList.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+            No tienes notificaciones nuevas
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/30">
+            {unreadList.map((n) => (
+              <li
+                key={n.id}
+                className="flex gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {n.title}
+                  </p>
+                  <p className="line-clamp-2 text-xs text-muted-foreground">
+                    {n.message}
+                  </p>
+                  <div className="mt-1 flex items-center gap-2">
+                    <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-secondary-foreground">
+                      {n.type}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {new Date(n.created_at).toLocaleDateString('es-ES', {
+                        day: '2-digit',
+                        month: 'short',
+                      })}
+                    </span>
+                  </div>
+                  {n.action_url && (
                     <button
                       type="button"
-                      aria-label={`Marcar "${n.title}" como leída`}
-                      onClick={() => markAsRead(n.id)}
-                      className="focus-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/40 bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                      onClick={() => {
+                        setOpen(false);
+                        router.push(n.action_url!);
+                      }}
+                      className="focus-ring mt-1 inline-block rounded text-xs font-medium text-primary hover:underline"
                     >
-                      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                      Ver detalle
                     </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  aria-label={`Marcar "${n.title}" como leída`}
+                  onClick={() => markAsRead(n.id)}
+                  className="focus-ring flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border/40 bg-card text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                >
+                  <Check className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
   );
 
   return (
@@ -205,36 +205,36 @@ export function NotificationBell({
       <div className="relative flex flex-col items-end">
         <button
           type="button"
-        aria-label={
-          count > 0 ? `Notificaciones, ${count} sin leer` : 'Notificaciones'
-        }
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-        className={`transition-ios focus-ring relative flex items-center justify-center border border-border/30 bg-card/90 backdrop-blur-xl hover:bg-card hover:shadow-ios-lg ${
-          isHeader
-            ? 'h-10 w-10 rounded-xl shadow-ios-md'
-            : 'h-12 w-12 rounded-full shadow-ios-md'
-        }`}
-      >
-        <Bell
-          className="h-5 w-5 text-foreground md:h-6 md:w-6"
-          aria-hidden="true"
-        />
-        {count > 0 && (
-          <span
+          aria-label={
+            count > 0 ? `Notificaciones, ${count} sin leer` : 'Notificaciones'
+          }
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          onClick={() => setOpen((v) => !v)}
+          className={`transition-ios focus-ring relative flex items-center justify-center border border-border/30 bg-card/90 hover:bg-card hover:shadow-ios-lg ${
+            isHeader
+              ? 'h-10 w-10 rounded-xl shadow-ios-md'
+              : 'h-12 w-12 rounded-full shadow-ios-md'
+          }`}
+        >
+          <Bell
+            className="h-5 w-5 text-foreground md:h-6 md:w-6"
             aria-hidden="true"
-            className="absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold leading-none text-destructive-foreground shadow-sm"
-          >
-            {count > 99 ? '99+' : count}
-          </span>
-        )}
-      </button>
+          />
+          {count > 0 && (
+            <span
+              aria-hidden="true"
+              className="absolute -right-1 -top-1 flex min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-destructive px-1 text-[11px] font-semibold leading-none text-destructive-foreground shadow-sm"
+            >
+              {count > 99 ? '99+' : count}
+            </span>
+          )}
+        </button>
 
-      {open &&
-        (isHeader
-          ? overlayHost && createPortal(panelElement, overlayHost)
-          : panelElement)}
+        {open &&
+          (isHeader
+            ? overlayHost && createPortal(panelElement, overlayHost)
+            : panelElement)}
       </div>
     </div>
   );

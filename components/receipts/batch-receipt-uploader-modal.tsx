@@ -1233,7 +1233,7 @@ export function BatchReceiptUploaderModal({
             ) : (
               <>
                 {/* Progress & Stats Bar */}
-                <div className="rounded-2xl border border-border/50 bg-card/80 p-4 shadow-sm backdrop-blur-md">
+                <div className="rounded-2xl border border-border/50 bg-card/80 p-4 shadow-sm">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -2054,7 +2054,7 @@ export function BatchReceiptUploaderModal({
       {previewItem && (
         <div
           className={cn(
-            'fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm',
+            'fixed inset-0 z-[70] flex items-center justify-center bg-black/80 p-4',
             !shouldReduceMotion && 'animate-in fade-in duration-200'
           )}
           onClick={() => setPreviewItem(null)}

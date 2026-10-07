@@ -29,7 +29,7 @@ export function TransferContent() {
   return (
     <div className="space-y-6">
       {/* Tab Navigation */}
-      <div className="rounded-2xl border border-border/40 bg-card/90 p-2 shadow-sm backdrop-blur-xl">
+      <div className="rounded-2xl border border-border/40 bg-card/90 p-2 shadow-sm">
         <div className="flex space-x-2">
           {tabs.map((tab) => {
             const Icon = tab.icon;

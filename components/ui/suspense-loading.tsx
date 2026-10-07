@@ -10,20 +10,20 @@ interface SuspenseLoadingProps {
   message?: string;
 }
 
-export function SuspenseLoading({ 
-  className = '', 
-  size = 'md', 
+export function SuspenseLoading({
+  className = '',
+  size = 'md',
   overlay = false,
-  message = 'Cargando...'
+  message = 'Cargando...',
 }: SuspenseLoadingProps) {
   const sizeClasses = {
     sm: 'h-4 w-4',
     md: 'h-8 w-8',
-    lg: 'h-12 w-12'
+    lg: 'h-12 w-12',
   };
 
-  const containerClasses = overlay 
-    ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm'
+  const containerClasses = overlay
+    ? 'fixed inset-0 z-50 flex items-center justify-center bg-black/50'
     : 'flex items-center justify-center p-4';
 
   return (
@@ -35,7 +35,7 @@ export function SuspenseLoading({
       >
         <Loader2 className={`${sizeClasses[size]} animate-spin text-primary`} />
         {message && (
-          <p className="text-sm text-muted-foreground animate-pulse">
+          <p className="animate-pulse text-sm text-muted-foreground">
             {message}
           </p>
         )}
@@ -47,50 +47,44 @@ export function SuspenseLoading({
 // Specific loading components for different contexts
 export function FormLoading() {
   return (
-    <SuspenseLoading 
-      overlay 
-      message="Cargando formulario..." 
-      className="bg-black/30" 
+    <SuspenseLoading
+      overlay
+      message="Cargando formulario..."
+      className="bg-black/30"
     />
   );
 }
 
 export function ChartLoading() {
   return (
-    <SuspenseLoading 
-      size="lg" 
-      message="Cargando gráfico..." 
-      className="min-h-[300px]" 
+    <SuspenseLoading
+      size="lg"
+      message="Cargando gráfico..."
+      className="min-h-[300px]"
     />
   );
 }
 
 export function PageLoading() {
-  return (
-    <SuspenseLoading 
-      overlay 
-      size="lg" 
-      message="Cargando página..." 
-    />
-  );
+  return <SuspenseLoading overlay size="lg" message="Cargando página..." />;
 }
 
 export function DashboardLoading() {
   return (
-    <SuspenseLoading 
-      size="lg" 
-      message="Cargando dashboard..." 
-      className="min-h-[400px]" 
+    <SuspenseLoading
+      size="lg"
+      message="Cargando dashboard..."
+      className="min-h-[400px]"
     />
   );
 }
 
 export function ReportsLoading() {
   return (
-    <SuspenseLoading 
-      size="lg" 
-      message="Cargando reportes..." 
-      className="min-h-[500px]" 
+    <SuspenseLoading
+      size="lg"
+      message="Cargando reportes..."
+      className="min-h-[500px]"
     />
   );
 }

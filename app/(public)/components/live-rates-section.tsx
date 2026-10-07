@@ -5,7 +5,7 @@ import { useBinanceRates } from '@/hooks/use-binance-rates';
 
 function RatesCardSkeleton() {
   return (
-    <div className="animate-pulse rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl">
+    <div className="animate-pulse rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg">
       <div className="mb-4 h-4 w-36 rounded bg-muted/30" />
       <div className="h-8 w-28 rounded bg-muted/30" />
     </div>
@@ -64,7 +64,7 @@ export function LiveRatesSection() {
   return (
     <section id="tasas-en-vivo" className="px-4 pb-16 sm:px-6 lg:px-8">
       <div ref={liveRatesRef} className="mx-auto max-w-7xl scroll-mt-28">
-        <div className="rounded-3xl border border-border/20 bg-card/50 p-6 shadow-2xl backdrop-blur-sm sm:p-8 lg:p-10">
+        <div className="rounded-3xl border border-border/20 bg-card/50 p-6 shadow-2xl sm:p-8 lg:p-10">
           <div className="mb-8 text-center">
             <h2 className="mb-2 text-2xl font-bold text-foreground">
               Tasas en Vivo

@@ -24,7 +24,7 @@ export function BalanceAlertSettings({
   account,
 }: BalanceAlertSettingsProps) {
   const repository = useRepository();
-      const { user } = useAuth();
+  const { user } = useAuth();
   const [alertEnabled, setAlertEnabled] = useState(false);
   const [minimumBalance, setMinimumBalance] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -115,7 +115,7 @@ export function BalanceAlertSettings({
   if (!isOpen || !account) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       {/* * Modal container with max-height and flex layout for mobile scrolling */}
       <div className="flex max-h-[85dvh] w-full max-w-md flex-col rounded-2xl border border-border/40 bg-card shadow-ios">
         {/* Header - fixed at top */}

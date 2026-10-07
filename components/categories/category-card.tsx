@@ -67,7 +67,7 @@ export function CategoryCard({
 
   if (viewMode === 'list') {
     return (
-      <div className="relative flex h-[70px] items-center justify-between rounded-xl border border-border/40 bg-card/90 p-4 backdrop-blur-xl">
+      <div className="relative flex h-[70px] items-center justify-between rounded-xl border border-border/40 bg-card/90 p-4">
         <div className="flex min-w-0 flex-1 items-center space-x-3">
           <div
             className="rounded-lg p-2"
