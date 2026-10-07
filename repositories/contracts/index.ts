@@ -20,6 +20,7 @@ export * from './rates-history-repository';
 export * from './scrape-attempts-repository';
 export * from './bcv-rate-writer';
 export * from './users-profile-repository';
+export * from './pending-items-repository';
 
 // Main repository interface that combines all repositories
 import { AccountsRepository } from './accounts-repository';
@@ -35,6 +36,7 @@ import { RatesHistoryRepository } from './rates-history-repository';
 import { NotificationsRepository } from './notifications-repository';
 import { FeedbacksRepository } from './feedback-repository';
 import { UsersProfileRepository } from './users-profile-repository';
+import { PendingItemsRepository } from './pending-items-repository';
 import { WaitlistRepository } from './waitlist-repository';
 import { SubscriptionsRepository } from './subscriptions-repository';
 import { ApprovalRequestsRepository } from './approval-requests-repository';
@@ -63,4 +65,5 @@ export interface AppRepository extends Repository {
   approvalRequests: ApprovalRequestsRepository;
   aiInfra: AIInfraRepository;
   orders: OrdersRepository;
+  pendingItems: PendingItemsRepository;
 }
