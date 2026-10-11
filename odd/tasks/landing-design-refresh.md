@@ -74,7 +74,7 @@ Elevar la calidad de diseño de la landing pública de FinTec (`app/(public)/com
 - [x] Auditoría inicial con hallazgos duros.
 - [x] Ciclo 1 completo: commit `adb9aa86` en main.
 - [x] Ciclo 2 completo: commit `20d53706` en main (extiende tokens a app surfaces; absorbe la remoción de backdrop-blur de button.tsx/globals.css del plan android-render-performance).
-- Backlog T2.x–T4.x en curso (sesión 2026-10-11).
+- [x] Backlog T2.x–T4.x completado (sesión 2026-10-11). Commit `d5b8f845` en rama `feat/landing-backlog-t2-t4`: token `--primary`/`--accent` light 50%→42% (AA 5.31:1), jerarquía CTA nav invertida, features en lista editorial, copy de registro directo en cta-section sin gradiente. Verificado: jest landing-revamp 4/4, tsc clean, revisión visual Playwright light+dark (hero/nav/features/CTA/pricing/footer).
 
 ## Verification evidence
 
