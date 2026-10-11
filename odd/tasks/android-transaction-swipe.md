@@ -18,7 +18,7 @@ Make the Edit and Delete actions fully visible and usable on transaction rows at
 
 ## Tasks
 
-- [x] T1 — Fix the shared row geometry and drag paint cost; add focused behavioral regression coverage for two actions, partial/fast/repeated swipes, row isolation and action callbacks. Checks: focused Jest, type-check and lint passed after removing the unused permanent `will-change` hint.
+- [x] T1 — Fix the shared row geometry and drag paint cost; add focused behavioral regression coverage for two actions, partial/fast/repeated swipes, row isolation and action callbacks. Checks: focused Jest, type-check and lint passed after removing the unused permanent `will-change` hint. **Committed in main via `20d53706` (verified 2026-10-11): `maxDrag` incluye `ACTION_TRAY_RIGHT_PADDING_PX` (swipeable-card.tsx:142-149), `minHeight: MIN_ACTION_TOUCH_TARGET_PX` (44px, :181), sin `whileDrag` shadow/scale.**
 - [ ] T2 — Validate actual browser layout at multiple mobile widths, repeated/partial/fast swipe and Edit/Delete routing/confirmation, recording observed versus untested interactions. Checks: browser/Playwright where environment permits.
 - [ ] T3 — On a connected Android APK containing this patch, run the same swipe scenarios and measure frame deadlines at 120 Hz and 60 Hz (target 8.3/16.7 ms); report measured results or the exact environment blocker, never assume FPS from source/tests.
 - [ ] B1 — Restore a safe real-row verification path: an ADB-authorized device running a patched APK or an isolated authenticated test browser with at least two transactions. Do not substitute production account data.
@@ -35,7 +35,7 @@ Both actions fit the exposed area without clipping and remain independently clic
 - T3 preflight after the user's reconnection: `adb devices -l` still returned an empty device list, so no installed APK or display refresh rate could be inspected, and no Perfetto trace was taken.
 - Native review preflight is blocked by intended-untracked selection and a workspace projection containing dozens of unrelated tracked edits; do not freeze this broad candidate as if it were the isolated swipe fix.
 - Working tree contained many unrelated changes, preserved. Engram mirror unavailable (`session has already ended`), local task document is current.
-- Commits: none; user has not explicitly requested one.
+- Commits: T1 landed in `main` inside `20d53706` (ciclo 2 de landing-design-refresh, que absorbió el fix). Rama `fix/android-transaction-swipe` quedó en `8458b23e`, desactualizada y sin commits propios; puede eliminarse.
 
 ## Next step
 

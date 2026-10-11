@@ -35,29 +35,27 @@ export function FeaturesSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
+        {/* Editorial two-column list instead of a repeated card grid */}
+        <div className="grid grid-cols-1 gap-x-12 gap-y-10 sm:grid-cols-2">
           {features.map((feature) => {
             const IconComponent = iconMap[feature.icon];
             if (!IconComponent) return null;
 
             return (
-              <div
-                key={feature.title}
-                className="group relative overflow-hidden rounded-2xl border border-border/40 bg-card/80 p-8 transition-all duration-300 hover:-translate-y-1 hover:border-border/60 hover:shadow-xl hover:shadow-black/5"
-              >
-                {/* subtle gradient accent on hover */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/[0.04] via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div key={feature.title} className="flex items-start gap-5">
                 <div
-                  className={`relative mb-6 flex h-12 w-12 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-105 ${feature.bgColor} ${feature.borderColor}`}
+                  className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl border ${feature.bgColor} ${feature.borderColor}`}
                 >
                   <IconComponent className={`h-6 w-6 ${feature.color}`} />
                 </div>
-                <h3 className="relative mb-3 text-lg font-semibold tracking-tight text-foreground">
-                  {feature.title}
-                </h3>
-                <p className="relative text-sm leading-relaxed text-muted-foreground">
-                  {feature.description}
-                </p>
+                <div className="min-w-0">
+                  <h3 className="text-lg font-semibold tracking-tight text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                    {feature.description}
+                  </p>
+                </div>
               </div>
             );
           })}
