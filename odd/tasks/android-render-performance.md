@@ -60,7 +60,10 @@ deployment, and any change to financial logic.
 4. [ ] Re-measure on the same device with the same 35-second script and the same
        800-transaction dataset, then compare deadline-miss rate and RenderThread
        CPU time against the recorded baseline. **Pendiente: dispositivo Android
-       (Xiaomi 11T Pro) no visible por ADB (2026-10-11).**
+       (Xiaomi 11T Pro) no visible por ADB (2026-10-11). Medición indicativa en
+       Chromium host 60 Hz tras la remoción (2026-10-11): 0 % deadline misses
+       (341 frames en scroll de /transactions), p95=16.8 ms, max=16.8 ms, vs
+       baseline APK 6.0 %. Confirmación idéntica al baseline aún requiere el APK.**
 
 ## Progress
 
