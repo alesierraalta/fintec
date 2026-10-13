@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Mock framer-motion to avoid AnimatePresence timing issues in jsdom
@@ -155,7 +155,6 @@ describe('GoalForm', () => {
     const onClose = jest.fn();
     const onSave = jest.fn().mockResolvedValue(undefined);
 
-    const user = userEvent.setup();
     render(
       <GoalForm
         isOpen={true}
@@ -166,11 +165,16 @@ describe('GoalForm', () => {
     );
 
     const nameInput = screen.getByPlaceholderText(/casa nueva/i);
-    await user.type(nameInput, 'Mi meta');
+    fireEvent.change(nameInput, { target: { value: 'Mi meta' } });
     const amountInput = screen.getByPlaceholderText('0.00');
-    await user.type(amountInput, '50');
+    fireEvent.change(amountInput, { target: { value: '50' } });
 
-    await user.click(screen.getByRole('button', { name: /crear meta/i }));
+    await waitFor(() => {
+      expect(nameInput).toHaveValue('Mi meta');
+      expect(amountInput).toHaveValue(50);
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /crear meta/i }));
 
     await waitFor(() => {
       expect(onSave).toHaveBeenCalledTimes(1);
