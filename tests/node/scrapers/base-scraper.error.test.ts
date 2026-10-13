@@ -1,5 +1,9 @@
 import { BaseScraper } from '@/lib/scrapers/base-scraper';
-import { ScraperConfig, ScraperError, ScraperResult } from '@/lib/scrapers/types';
+import {
+  ScraperConfig,
+  ScraperError,
+  ScraperResult,
+} from '@/lib/scrapers/types';
 
 // Concrete implementation for testing
 class TestScraper extends BaseScraper<any> {
@@ -29,12 +33,15 @@ class TestScraper extends BaseScraper<any> {
     return this.transformDataMock(data);
   }
 
-  protected createErrorResult(error: ScraperError, startTime: number): ScraperResult<any> {
+  protected createErrorResult(
+    error: ScraperError,
+    startTime: number
+  ): ScraperResult<any> {
     return {
       success: false,
       data: null,
       error: error.message,
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 }
@@ -51,8 +58,8 @@ describe('BaseScraper Error Handling', () => {
       failureThreshold: 5,
       timeout: 1000,
       successThreshold: 2,
-      name: 'TestBreaker'
-    }
+      name: 'TestBreaker',
+    },
   };
 
   beforeEach(() => {
@@ -61,10 +68,14 @@ describe('BaseScraper Error Handling', () => {
 
   it('should handle malformed HTML/data during parsing gracefully', async () => {
     // Simulate successful fetch but malformed data
-    scraper.fetchDataMock.mockResolvedValue('<html><body>Bad Data</body></html>');
-    
+    scraper.fetchDataMock.mockResolvedValue(
+      '<html><body>Bad Data</body></html>'
+    );
+
     // Parse throws error
-    scraper.parseDataMock.mockRejectedValue(new Error('Unexpected token < in JSON at position 0'));
+    scraper.parseDataMock.mockRejectedValue(
+      new Error('Unexpected token < in JSON at position 0')
+    );
 
     const result = await scraper.scrape();
 
@@ -76,9 +87,11 @@ describe('BaseScraper Error Handling', () => {
   it('should handle empty responses', async () => {
     scraper.fetchDataMock.mockResolvedValue(null);
     scraper.parseDataMock.mockResolvedValue(null);
-    
+
     // Validation returns error
-    scraper.validateDataMock.mockReturnValue(new ScraperError('Data is empty', 'EMPTY_DATA'));
+    scraper.validateDataMock.mockReturnValue(
+      new ScraperError('Data is empty', 'EMPTY_DATA')
+    );
 
     const result = await scraper.scrape();
 
@@ -110,12 +123,33 @@ describe('BaseScraper Error Handling', () => {
 
     // Next attempt should be blocked by circuit breaker immediately
     const result = await scraper.scrape();
-    
+
     expect(result.success).toBe(false);
     expect(result.error).toContain('Circuit breaker is OPEN');
-    
+
     // Should have been called at least once
     expect(scraper.fetchDataMock).toHaveBeenCalled();
     expect(attempts).toBeGreaterThan(0);
+  });
+
+  it('uses a cron retry override without changing the configured default', async () => {
+    scraper.fetchDataMock
+      .mockRejectedValueOnce(new Error('first'))
+      .mockRejectedValueOnce(new Error('second'))
+      .mockResolvedValueOnce('ok');
+    scraper.parseDataMock.mockResolvedValue('parsed');
+    scraper.validateDataMock.mockReturnValue(null);
+    scraper.transformDataMock.mockReturnValue('result');
+
+    await expect(scraper.scrape({ maxRetries: 2 })).resolves.toMatchObject({
+      success: true,
+    });
+    expect(scraper.fetchDataMock).toHaveBeenCalledTimes(3);
+
+    scraper.fetchDataMock
+      .mockClear()
+      .mockRejectedValue(new Error('default fail'));
+    await scraper.scrape();
+    expect(scraper.fetchDataMock).toHaveBeenCalledTimes(2);
   });
 });

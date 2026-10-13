@@ -15,6 +15,10 @@ import { healthMonitor } from './health-monitor';
 import { withRetry, RetryOptions } from '@/lib/scrapers/retry-handler';
 import { logger } from '@/lib/utils/logger';
 
+export interface ScrapeOptions {
+  maxRetries?: number;
+}
+
 /**
  * Abstract base class for all scrapers
  */
@@ -35,7 +39,7 @@ export abstract class BaseScraper<T> {
   /**
    * Main scrape method with circuit breaker and retry
    */
-  async scrape(): Promise<ScraperResult<T>> {
+  async scrape(options: ScrapeOptions = {}): Promise<ScraperResult<T>> {
     const startTime = Date.now();
 
     try {
@@ -53,7 +57,7 @@ export abstract class BaseScraper<T> {
 
       // Execute with retry
       const retryOptions: RetryOptions = {
-        maxRetries: this.config.maxRetries,
+        maxRetries: options.maxRetries ?? this.config.maxRetries,
         baseDelay: this.config.baseDelay,
         maxDelay: this.config.maxDelay,
         timeoutMs: this.config.timeout,
