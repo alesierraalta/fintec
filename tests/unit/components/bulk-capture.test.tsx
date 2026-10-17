@@ -13,7 +13,13 @@ import {
 import { toast } from 'sonner';
 
 const mockCreate = jest.fn();
-const mockRepository = { transactions: { create: mockCreate } };
+const mockFindByDateRange = jest.fn().mockResolvedValue({ data: [] });
+const mockRepository = {
+  transactions: {
+    create: mockCreate,
+    findByDateRange: mockFindByDateRange,
+  },
+};
 jest.mock('@/providers', () => ({ useRepository: () => mockRepository }));
 jest.mock('@/hooks/use-auth', () => ({
   useAuth: () => ({ user: { id: 'user' } }),
@@ -164,6 +170,50 @@ it('leaves history duplicates unchecked and imports only checked statement rows'
       note: 'Ref: TX1234',
     })
   );
+});
+
+it('queries repository.transactions.findByDateRange to detect duplicates outside existingTransactions', async () => {
+  mockFindByDateRange.mockResolvedValueOnce({
+    data: [
+      {
+        id: 'historical-old',
+        accountId: account.id,
+        currencyCode: 'USD',
+        amountMinor: 200,
+        date: '2026-01-15',
+      },
+    ],
+    total: 1,
+    page: 1,
+    limit: 1,
+    totalPages: 1,
+  });
+
+  render(<StatementImportModal {...base} existingTransactions={[]} />);
+  const file = new File([''], 'extracto-antiguo.csv', { type: 'text/csv' });
+  Object.defineProperty(file, 'text', {
+    value: async () =>
+      'fecha,descripcion,monto\n2026-01-15,café,-2\n2026-01-16,taxi,-5',
+  });
+  fireEvent.change(screen.getByLabelText('Archivo CSV'), {
+    target: { files: [file] },
+  });
+  await screen.findByText('café');
+  fireEvent.change(screen.getByLabelText('Cuenta'), {
+    target: { value: account.id },
+  });
+
+  await waitFor(() => {
+    expect(mockFindByDateRange).toHaveBeenCalledWith(
+      '2026-01-15',
+      '2026-01-16'
+    );
+  });
+
+  await waitFor(() => {
+    expect(screen.getByLabelText('Importar fila 2')).not.toBeChecked();
+  });
+  expect(screen.getByLabelText('Importar fila 3')).toBeChecked();
 });
 
 it('refuses VES without a rate and stops a partially failing batch without attempting later rows', async () => {

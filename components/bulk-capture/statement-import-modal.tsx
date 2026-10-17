@@ -1,8 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Modal, Button } from '@/components/ui';
+import { useRepository } from '@/providers';
 import type { Transaction } from '@/types/domain';
 import { toMinorUnits, formatCurrency } from '@/lib/money';
 import {
@@ -35,6 +36,7 @@ export function StatementImportModal({
   accounts,
   existingTransactions,
 }: CaptureProps & { existingTransactions: Transaction[] }) {
+  const repository = useRepository();
   const [csv, setCsv] = useState<string[][]>([]);
   const [mapping, setMapping] = useState<StatementColumnMapping>(() =>
     guessColumnMapping([])
@@ -44,12 +46,77 @@ export function StatementImportModal({
   const [accountId, setAccountId] = useState('');
   const [selection, setSelection] = useState<Record<number, boolean>>({});
   const [reading, setReading] = useState(false);
+  const [fetchedTransactions, setFetchedTransactions] = useState<Transaction[]>(
+    []
+  );
   const { saving, save } = useCaptureSave(onClose, onSuccess);
   const account = accounts.find((a) => a.id === accountId);
   const preview = useMemo(
     () => mapStatementRows(csv, mapping, { hasHeader, invertSign }),
     [csv, mapping, hasHeader, invertSign]
   );
+
+  useEffect(() => {
+    if (
+      preview.rows.length === 0 ||
+      !repository?.transactions?.findByDateRange
+    ) {
+      setFetchedTransactions([]);
+      return;
+    }
+    const dates = preview.rows
+      .map((r) => r.date)
+      .filter(Boolean)
+      .sort();
+    if (dates.length === 0) {
+      setFetchedTransactions([]);
+      return;
+    }
+    const startDate = dates[0];
+    const endDate = dates[dates.length - 1];
+
+    let cancelled = false;
+    try {
+      const promise = repository.transactions.findByDateRange(
+        startDate,
+        endDate
+      );
+      if (promise && typeof promise.then === 'function') {
+        promise
+          .then((result) => {
+            if (!cancelled && result?.data) {
+              setFetchedTransactions(result.data);
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {
+      // Ignored: defensive fallback
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [preview.rows, repository]);
+
+  const allTransactions = useMemo(() => {
+    if (fetchedTransactions.length === 0) return existingTransactions;
+    const byKey = new Map<string, Transaction>();
+    for (const tx of existingTransactions) {
+      const key =
+        tx.id ||
+        `${tx.accountId}-${tx.date}-${tx.amountMinor}-${tx.note || ''}-${tx.description || ''}`;
+      byKey.set(key, tx);
+    }
+    for (const tx of fetchedTransactions) {
+      const key =
+        tx.id ||
+        `${tx.accountId}-${tx.date}-${tx.amountMinor}-${tx.note || ''}-${tx.description || ''}`;
+      byKey.set(key, tx);
+    }
+    return Array.from(byKey.values());
+  }, [existingTransactions, fetchedTransactions]);
+
   const rows = useMemo(
     () =>
       preview.rows.map((row) => {
@@ -63,11 +130,11 @@ export function StatementImportModal({
             accountId: account?.id,
             date: row.date,
           },
-          existingTransactions
+          allTransactions
         );
         return { ...row, duplicate };
       }),
-    [preview, account, existingTransactions]
+    [preview, account, allTransactions]
   );
   const selected = rows.filter(
     (row) => selection[row.rowNumber] ?? !row.duplicate.isDuplicate
