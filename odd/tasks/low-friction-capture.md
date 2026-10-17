@@ -14,10 +14,10 @@ log many small expenses at once, and import bank statements in bulk. No schema c
 ## Tasks
 
 - T0 S1-S4 pure domain: `lib/finance/reconciliation.ts`, `lib/finance/quick-entry.ts`, `lib/finance/statement-import.ts` + `tests/node/lib/finance/low-friction-capture.test.ts` (31 tests GREEN) — inline — commit: `3253de1b` (feat(finance): add low-friction capture domain)
-- T1 S1-S2 `components/bulk-capture/reconcile-balance-modal.tsx` + entry "Conciliar saldo" in the account dropdown of `app/accounts/accounts-page-client.tsx` — complete
-- T2 S3 `components/bulk-capture/quick-entry-modal.tsx` + menu option "Registro rápido" — complete
-- T3 S4 `components/bulk-capture/statement-import-modal.tsx` + menu option "Importar extracto" — complete
-- T4 verify: unit tests (48 tests passing across 3 suites), type-check (0 errors), lint clean — complete
+- T1 S1-S2 `components/bulk-capture/reconcile-balance-modal.tsx` + entry "Conciliar saldo" in the account dropdown of `app/accounts/accounts-page-client.tsx` — worker — commit: `222b559b`
+- T2 S3 `components/bulk-capture/quick-entry-modal.tsx` + menu option "Registro rápido" — worker — commit: `222b559b`
+- T3 S4 `components/bulk-capture/statement-import-modal.tsx` + menu option "Importar extracto" — worker — commit: `222b559b`
+- T4 verify — inline — done: jest dom+node 2239 passed / 12 skipped; tsc exit 0; oxlint exit 0; prettier clean. One run showed a single transient bulk-capture failure under parallel load, not reproduced in 3 reruns. `db` project not run (needs local Supabase).
 
 ## UI contract (T1-T3)
 
@@ -34,3 +34,4 @@ log many small expenses at once, and import bank statements in bulk. No schema c
 - L1 (user, original): "Necesito encontrar una forma en la cual yo pueda mejorar la fricción. No sé si, si simplemente poner un historial de gastos, así sea para simplemente convalidar las cuentas de cuánto dinero tengo, indistintamente de en qué me lo gasté. [...] llevo como dos meses que no lo utilizo porque hay mucha fricción. [...] hago muchos gastos pequeños. [...] qué otra forma yo puedo hacer para quitar fricción a lotes grandes de gastos para, para la aplicación."
 - L2 (user): "hazlo todo y que cuente como estadistica"
 - L3 (decision): branched from feat/landing-backlog-t2-t4 HEAD (dirty globals.css blocks switching from main); reuse runFinancialMutation + repository.transactions.create; no migration.
+- L4 (evidence): worker built UI; parent reformatted with Prettier and added the failing-row error message to the partial-save toast. Unrelated working-tree changes from another session (globals.css, receipt-scanner files/tests) left unstaged.
