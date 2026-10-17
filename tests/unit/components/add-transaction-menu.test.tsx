@@ -35,6 +35,13 @@ describe('AddTransactionMenu Component', () => {
     window.innerWidth = 1024;
   });
 
+  it('navigates to voice capture by default', () => {
+    render(<AddTransactionMenu />);
+    fireEvent.click(screen.getByRole('button', { name: /agregar/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Capturas + voz' }));
+    expect(mockPush).toHaveBeenCalledWith('/transactions?action=voice');
+  });
+
   it('renders trigger button with default label "Agregar"', () => {
     render(<AddTransactionMenu />);
     const button = screen.getByRole('button', { name: /agregar/i });

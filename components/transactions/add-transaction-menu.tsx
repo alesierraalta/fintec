@@ -28,6 +28,7 @@ export interface AddTransactionMenuProps {
   onAddBatch?: () => void;
   onQuickEntry?: () => void;
   onImportStatement?: () => void;
+  onVoiceCapture?: () => void;
   /** Optional custom trigger renderer */
   customTrigger?: (props: {
     isOpen: boolean;
@@ -48,6 +49,7 @@ export function AddTransactionMenu({
   onAddBatch,
   onQuickEntry,
   onImportStatement,
+  onVoiceCapture,
   customTrigger,
   isOpen: controlledIsOpen,
   onOpenChange,
@@ -145,6 +147,7 @@ export function AddTransactionMenu({
         [
           ['Registro rápido', 'quick', onQuickEntry],
           ['Importar extracto', 'import', onImportStatement],
+          ['Capturas + voz', 'voice', onVoiceCapture],
         ] as const
       ).map(([title, action, callback]) => (
         <button
