@@ -14,10 +14,10 @@ reviews the list before saving. Builds on `components/bulk-capture/*` (feat/low-
 
 ## Tasks
 
-- T1 S2,S5 pure normalizer `lib/ai/voice-capture/normalize.ts` + tests — inline — commit: pending
-- T2 S1,S2,S5 service `lib/ai/voice-capture/capture-service.ts` + route `app/api/ai/capture-batch/route.ts` + route tests — inline — commit: pending
-- T3 S1,S3,S4 `components/bulk-capture/voice-capture-modal.tsx` + menu option + page wiring (`?action=voice`) + Android RECORD_AUDIO + tests — worker — commit: pending
-- T4 verify: suite, type-check, lint — inline — commit: pending
+- T1 S2,S5 pure normalizer `lib/ai/voice-capture/normalize.ts` + tests — inline — commit: `538bb84d`
+- T2 S1,S2,S5 service `lib/ai/voice-capture/capture-service.ts` + route `app/api/ai/capture-batch/route.ts` + route tests — inline — commit: `538bb84d` (route RED not observed: test and route written in one step)
+- T3 S1,S3,S4 `components/bulk-capture/voice-capture-modal.tsx` + menu option + page wiring (`?action=voice`) + Android RECORD_AUDIO + tests — worker + parent fixes (image compression, currency-mismatch warning, non-JSON error) — commit: `4e59c7d0`
+- T4 verify — inline — done: jest dom+node 2278 passed / 12 skipped; tsc 0; oxlint 0; prettier clean; negative control (compression/warning removed → 2 tests red, restored). Real run against Gemini with a synthetic Binance screenshot + Spanish TTS audio: 4/4 movements, balance and cancelled row skipped, descriptions/categories from the audio, 36 s latency.
 
 ## Log
 
