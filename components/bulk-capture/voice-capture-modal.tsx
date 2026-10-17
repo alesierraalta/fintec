@@ -148,6 +148,30 @@ export function VoiceCaptureModal({
       ? toMinorUnits(row.amount, account.currencyCode)
       : 0;
   };
+  // Each warning is independent: one must never hide another.
+  const rowWarnings = (row: Row): string[] => {
+    const account = accounts.find((item) => item.id === row.accountId);
+    const warnings: string[] = [];
+    if (row.date > today()) {
+      warnings.push('Fecha futura: revisa el año antes de guardar.');
+    }
+    if (!account) return warnings;
+    if (row.amount > 0 && minorAmount(row) === 0) {
+      warnings.push(
+        'Monto demasiado pequeño para esta cuenta: no se guardará.'
+      );
+    }
+    if (!row.currency) {
+      warnings.push(
+        'No se pudo leer la moneda de la captura: revisa el monto antes de guardar.'
+      );
+    } else if (account.currencyCode !== row.currency) {
+      warnings.push(
+        `La captura está en ${row.currency} y la cuenta en ${account.currencyCode}: revisa el monto antes de guardar.`
+      );
+    }
+    return warnings;
+  };
   const selected = (rows || []).filter(
     (row) =>
       (row.selected ?? !duplicate(row).isDuplicate) &&
@@ -389,38 +413,11 @@ export function VoiceCaptureModal({
               {!row.accountId && (
                 <p>Selecciona una cuenta para guardar este movimiento.</p>
               )}
-              {(() => {
-                const account = accounts.find((a) => a.id === row.accountId);
-                if (row.date > today()) {
-                  return (
-                    <p role="alert">
-                      Fecha futura: revisa el año antes de guardar.
-                    </p>
-                  );
-                }
-                if (!account) return null;
-                if (row.amount > 0 && minorAmount(row) === 0) {
-                  return (
-                    <p role="alert">
-                      Monto demasiado pequeño para esta cuenta: no se guardará.
-                    </p>
-                  );
-                }
-                if (!row.currency) {
-                  return (
-                    <p role="alert">
-                      No se pudo leer la moneda de la captura: revisa el monto
-                      antes de guardar.
-                    </p>
-                  );
-                }
-                return account.currencyCode !== row.currency ? (
-                  <p role="alert">
-                    La captura está en {row.currency} y la cuenta en{' '}
-                    {account.currencyCode}: revisa el monto antes de guardar.
-                  </p>
-                ) : null;
-              })()}
+              {rowWarnings(row).map((warning) => (
+                <p key={warning} role="alert">
+                  {warning}
+                </p>
+              ))}
               <CategorySelect
                 categories={categories}
                 kind={row.type}

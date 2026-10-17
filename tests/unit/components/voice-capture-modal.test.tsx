@@ -2,6 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { VoiceCaptureModal } from '@/components/bulk-capture/voice-capture-modal';
+import { today } from '@/components/bulk-capture/capture-controls';
 import type { Account, Transaction } from '@/types/domain';
 const mockCreate = jest.fn();
 const mockRepository = { transactions: { create: mockCreate } };
@@ -184,6 +185,36 @@ it('flags a future date as a probable misread year', async () => {
   await analyze();
   expect(screen.getAllByRole('alert')).toHaveLength(1);
   expect(screen.getByRole('alert')).toHaveTextContent('Fecha futura');
+});
+it('does not flag today as a future date', async () => {
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      success: true,
+      data: [{ ...movement, currency: 'USD', date: today() }],
+    }),
+  });
+  render(<VoiceCaptureModal {...base} />);
+  await analyze();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+it('shows the currency warning even when the date is also in the future', async () => {
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      success: true,
+      data: [{ ...movement, currency: 'VES', date: '2999-01-01' }],
+    }),
+  });
+  render(<VoiceCaptureModal {...base} />);
+  await analyze();
+  const alerts = screen.getAllByRole('alert').map((a) => a.textContent);
+  expect(alerts).toEqual(
+    expect.arrayContaining([
+      expect.stringContaining('Fecha futura'),
+      expect.stringContaining('La captura está en VES y la cuenta en USD'),
+    ])
+  );
 });
 it('excludes rows without an account from saving', async () => {
   mockFetch.mockResolvedValue({
