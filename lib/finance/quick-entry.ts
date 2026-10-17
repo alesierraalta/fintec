@@ -11,7 +11,11 @@ export interface QuickEntryParseResult {
   invalid: string[];
 }
 
-const AMOUNT_TOKEN = /^[-+]?[$€]?\d[\d.,]*$/;
+const AMOUNT_TOKEN =
+  /^(?:\((?:[$€£]|bs\.?|ves|usd|eur|ref\.?)?\s*[-+]?\d[\d.,]*\s*(?:[$€£]|bs\.?|ves|usd|eur|ref\.?)?\)|[-+]?(?:[$€£]|bs\.?|ves|usd|eur|ref\.?)?\s*\d[\d.,]*\s*(?:[$€£]|bs\.?|ves|usd|eur|ref\.?)?)$/i;
+
+const CURRENCY_PREFIX = /^(?:[$€£]|bs\.?|ves|usd|eur|ref\.?)\s*/i;
+const CURRENCY_SUFFIX = /\s*(?:[$€£]|bs\.?|ves|usd|eur|ref\.?)$/i;
 
 /** True when parts form valid thousands groups: "1" "234" "567". */
 function isThousandsGrouping(parts: string[]): boolean {
@@ -23,16 +27,40 @@ function isThousandsGrouping(parts: string[]): boolean {
 
 /**
  * Parses a user-typed amount accepting both "1.234,56" and "1,234.56".
+ * Also supports accounting parentheses "(12.50)" for negative amounts,
+ * and currency symbols/prefixes/suffixes (Bs., VES, USD, EUR, Ref, $, €, £).
  * A lone separator followed by exactly three digits is a thousands separator
  * ("1.500" -> 1500), matching how amounts are written in Venezuela.
  * Malformed grouping ("1.2.3", "1,234,56") is rejected rather than guessed.
  */
 export function parseAmountInput(raw: string): number | null {
-  const cleaned = raw.trim().replace(/[$€\s]/g, '');
-  if (!/^[-+]?\d[\d.,]*$/.test(cleaned)) return null;
+  let str = raw.trim();
+  let sign = 1;
 
-  const sign = cleaned.startsWith('-') ? -1 : 1;
-  const body = cleaned.replace(/^[-+]/, '');
+  if (str.startsWith('(') && str.endsWith(')')) {
+    str = str.slice(1, -1).trim();
+    sign = -1;
+  }
+  if (str.includes('(') || str.includes(')')) return null;
+
+  // Strip prefix currency symbol/code (e.g., "$", "Bs.", "USD")
+  str = str.replace(CURRENCY_PREFIX, '').trim();
+
+  if (str.startsWith('-')) {
+    if (sign === -1) return null; // reject double negation like (- -12)
+    sign = -1;
+    str = str.slice(1).trim();
+  } else if (str.startsWith('+')) {
+    str = str.slice(1).trim();
+  }
+
+  // Strip currency if prefix appeared after sign (e.g. "-$12") or suffix (e.g. "12 USD")
+  str = str.replace(CURRENCY_PREFIX, '').trim();
+  str = str.replace(CURRENCY_SUFFIX, '').trim();
+
+  if (!/^\d[\d.,]*$/.test(str)) return null;
+
+  const body = str;
   const lastDot = body.lastIndexOf('.');
   const lastComma = body.lastIndexOf(',');
 

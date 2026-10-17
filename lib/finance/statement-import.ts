@@ -110,7 +110,9 @@ export function parseStatementDate(raw: string): string | null {
   let month: number;
   let day: number;
 
-  const iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  const iso = value.match(
+    /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[\sT]+\d{1,2}:\d{2}.*)?$/
+  );
   const local = value.match(
     /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})(?:[\sT]+\d{1,2}:\d{2}.*)?$/
   );
@@ -131,11 +133,12 @@ export function parseStatementDate(raw: string): string | null {
 
 const HEADER_PATTERNS: Record<keyof StatementColumnMapping, RegExp> = {
   date: /fecha|date/,
-  reference: /referencia|ref\b|ref\.|nro|n[uú]mero|reference/,
-  description: /descrip|concepto|detalle|memo|description|payee/,
+  reference:
+    /referencia|ref\b|ref\.|nro|n[uú]mero|reference|comprobante|secuencia|control/,
+  description: /descrip|concepto|detalle|memo|description|payee|motivo/,
   debit: /d[eé]bito|cargo|retiro|egreso|debit|withdraw/,
   credit: /cr[eé]dito|abono|dep[oó]sito|ingreso|credit|deposit/,
-  amount: /monto|importe|amount|valor/,
+  amount: /monto|importe|amount|valor|total\b/,
 };
 
 export function guessColumnMapping(headers: string[]): StatementColumnMapping {

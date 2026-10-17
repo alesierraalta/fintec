@@ -372,4 +372,55 @@ describe('TSP pinned defects', () => {
   it('reads a dd/mm/yyyy date that carries a time, like ISO datetimes', () => {
     expect(parseStatementDate('01/09/2026 10:30')).toBe('2026-09-01');
   });
+
+  it('parses negative amounts formatted with accounting parentheses', () => {
+    expect(parseAmountInput('(12.50)')).toBe(-12.5);
+    expect(parseAmountInput('(1.234,56)')).toBe(-1234.56);
+    expect(parseAmountInput('($50.00)')).toBe(-50);
+    expect(parseAmountInput('(Bs. 1.250,00)')).toBe(-1250);
+    expect(parseAmountInput('( 12.50 )')).toBe(-12.5);
+    expect(parseAmountInput('(12.50')).toBeNull();
+    expect(parseAmountInput('12.50)')).toBeNull();
+  });
+
+  it('parses amounts with multi-currency prefixes and suffixes (Bs., VES, USD, EUR, Ref, £)', () => {
+    expect(parseAmountInput('Bs. 1.250,00')).toBe(1250);
+    expect(parseAmountInput('1.250,00 Bs.')).toBe(1250);
+    expect(parseAmountInput('150,00 VES')).toBe(150);
+    expect(parseAmountInput('USD 45.00')).toBe(45);
+    expect(parseAmountInput('45.00 USD')).toBe(45);
+    expect(parseAmountInput('EUR 100')).toBe(100);
+    expect(parseAmountInput('REF 25.5')).toBe(25.5);
+    expect(parseAmountInput('£ 99.99')).toBe(99.99);
+  });
+
+  it('parses ISO dates formatted with slashes or dots and optional timestamps', () => {
+    expect(parseStatementDate('2026/09/01')).toBe('2026-09-01');
+    expect(parseStatementDate('2026.09.01')).toBe('2026-09-01');
+    expect(parseStatementDate('2026/09/01 15:30:00')).toBe('2026-09-01');
+  });
+
+  it('recognizes bank statement headers with Comprobante, Secuencia, Motivo, and Total', () => {
+    const mapping1 = guessColumnMapping([
+      'Fecha',
+      'Secuencia',
+      'Motivo',
+      'Total',
+    ]);
+    expect(mapping1.date).toBe(0);
+    expect(mapping1.reference).toBe(1);
+    expect(mapping1.description).toBe(2);
+    expect(mapping1.amount).toBe(3);
+
+    const mapping2 = guessColumnMapping([
+      'Fecha Operación',
+      'Comprobante',
+      'Concepto',
+      'Total Operación',
+    ]);
+    expect(mapping2.date).toBe(0);
+    expect(mapping2.reference).toBe(1);
+    expect(mapping2.description).toBe(2);
+    expect(mapping2.amount).toBe(3);
+  });
 });
