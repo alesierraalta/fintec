@@ -7,6 +7,7 @@ import type { Transaction } from '@/types/domain';
 import { toMinorUnits, formatCurrency } from '@/lib/money';
 import {
   parseCsv,
+  firstRecord,
   guessColumnMapping,
   mapStatementRows,
   type StatementColumnMapping,
@@ -121,7 +122,7 @@ export function StatementImportModal({
               try {
                 const data = parseCsv(await file.text());
                 setCsv(data);
-                setMapping(guessColumnMapping(data[0] ?? []));
+                setMapping(guessColumnMapping(firstRecord(data)));
               } catch {
                 toast.error('No se pudo leer el archivo CSV.');
               } finally {
@@ -159,7 +160,7 @@ export function StatementImportModal({
                   }}
                 >
                   <option value="">Sin columna</option>
-                  {(csv[0] ?? []).map((header, i) => (
+                  {firstRecord(csv).map((header, i) => (
                     <option key={i} value={i}>
                       {hasHeader ? header : `Columna ${i + 1}`}
                     </option>

@@ -40,7 +40,11 @@ function detectDelimiter(firstLine: string): string {
   return best;
 }
 
-/** RFC 4180-style CSV parser with delimiter detection and BOM stripping. */
+/**
+ * RFC 4180-style CSV parser with delimiter detection and BOM stripping.
+ * Blank lines are kept as empty rows so row indexes stay aligned with file
+ * lines; a quote that does not open a field is kept as a literal character.
+ */
 export function parseCsv(text: string): string[][] {
   const source = text.replace(/^\uFEFF/, '');
   const delimiter = detectDelimiter(source.split(/\r?\n/, 1)[0] ?? '');
@@ -51,9 +55,11 @@ export function parseCsv(text: string): string[][] {
 
   const pushRow = () => {
     row.push(field);
-    if (row.some((cell) => cell.trim() !== '')) {
-      rows.push(row.map((cell) => cell.trim()));
-    }
+    rows.push(
+      row.some((cell) => cell.trim() !== '')
+        ? row.map((cell) => cell.trim())
+        : []
+    );
     row = [];
     field = '';
   };
@@ -69,7 +75,7 @@ export function parseCsv(text: string): string[][] {
       } else {
         field += char;
       }
-    } else if (char === '"') {
+    } else if (char === '"' && field === '') {
       inQuotes = true;
     } else if (char === delimiter) {
       row.push(field);
@@ -94,7 +100,10 @@ function isValidDate(year: number, month: number, day: number): boolean {
   );
 }
 
-/** Accepts dd/mm/yyyy, dd-mm-yy and ISO dates; returns yyyy-mm-dd or null. */
+/**
+ * Accepts dd/mm/yyyy, dd-mm-yy and ISO dates, optionally followed by a time;
+ * returns yyyy-mm-dd or null.
+ */
 export function parseStatementDate(raw: string): string | null {
   const value = raw.trim();
   let year: number;
@@ -102,7 +111,9 @@ export function parseStatementDate(raw: string): string | null {
   let day: number;
 
   const iso = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  const local = value.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})$/);
+  const local = value.match(
+    /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2}|\d{4})(?:[\sT]+\d{1,2}:\d{2}.*)?$/
+  );
   if (iso) {
     [year, month, day] = [Number(iso[1]), Number(iso[2]), Number(iso[3])];
   } else if (local) {
@@ -130,9 +141,16 @@ const HEADER_PATTERNS: Record<keyof StatementColumnMapping, RegExp> = {
 export function guessColumnMapping(headers: string[]): StatementColumnMapping {
   const normalized = headers.map((header) => header.toLowerCase().trim());
   const taken = new Set<number>();
+  // "Fecha valor" is a date column: never let it match amount/other patterns.
+  const isDateHeader = normalized.map((header) =>
+    HEADER_PATTERNS.date.test(header)
+  );
   const find = (pattern: RegExp): number | null => {
     const index = normalized.findIndex(
-      (header, i) => !taken.has(i) && pattern.test(header)
+      (header, i) =>
+        !taken.has(i) &&
+        (pattern === HEADER_PATTERNS.date || !isDateHeader[i]) &&
+        pattern.test(header)
     );
     if (index < 0) return null;
     taken.add(index);
@@ -147,6 +165,11 @@ export function guessColumnMapping(headers: string[]): StatementColumnMapping {
   const amount = find(HEADER_PATTERNS.amount);
 
   return { date, reference, description, amount, debit, credit };
+}
+
+/** First non-blank row: the header when the file has one. */
+export function firstRecord(rows: string[][]): string[] {
+  return rows.find((row) => row.length > 0) ?? [];
 }
 
 function cellAmount(row: string[], index: number | null): number | null {
@@ -166,10 +189,13 @@ export function mapStatementRows(
 ): { rows: StatementRow[]; invalidRows: number[] } {
   const result: StatementRow[] = [];
   const invalidRows: number[] = [];
-  const offset = options.hasHeader ? 1 : 0;
+  const offset = options.hasHeader
+    ? rows.findIndex((row) => row.length > 0) + 1
+    : 0;
 
   rows.slice(offset).forEach((row, i) => {
     const rowNumber = i + offset + 1;
+    if (row.length === 0) return;
     const date =
       mapping.date === null
         ? null

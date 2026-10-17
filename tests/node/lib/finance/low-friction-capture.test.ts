@@ -5,6 +5,7 @@ import {
 } from '@/lib/finance/reconciliation';
 import { parseAmountInput, parseQuickEntries } from '@/lib/finance/quick-entry';
 import {
+  firstRecord,
   guessColumnMapping,
   mapStatementRows,
   parseCsv,
@@ -288,5 +289,87 @@ describe('statement import (S4)', () => {
       [TransactionType.EXPENSE, 12.5, '001'],
       [TransactionType.INCOME, 40, '002'],
     ]);
+  });
+});
+
+describe('TSP pinned defects', () => {
+  it('splits on a comma followed by a non-digit even without a space', () => {
+    expect(
+      parseQuickEntries('café 2,taxi 5').entries.map((e) => [
+        e.description,
+        e.amount,
+      ])
+    ).toEqual([
+      ['café', 2],
+      ['taxi', 5],
+    ]);
+    expect(
+      parseQuickEntries('café 2,50,taxi 5').entries.map((e) => [
+        e.description,
+        e.amount,
+      ])
+    ).toEqual([
+      ['café', 2.5],
+      ['taxi', 5],
+    ]);
+  });
+
+  it.each(['1..2', '1.2.3', '1,234,56', '1.23.456', '1234.567'])(
+    'rejects malformed digit grouping %p instead of reading another amount',
+    (input) => {
+      expect(parseAmountInput(input)).toBeNull();
+    }
+  );
+
+  it('does not take a "Fecha valor" column as the amount column', () => {
+    expect(
+      guessColumnMapping([
+        'Fecha operación',
+        'Fecha valor',
+        'Concepto',
+        'Importe',
+        'Saldo',
+      ]).amount
+    ).toBe(3);
+  });
+
+  it('reports row numbers as lines of the original file when it has blank lines', () => {
+    const result = mapStatementRows(
+      parseCsv('Fecha,Concepto,Monto\n\n01/09/2026,Bodega,-5\nxx,Roto,5'),
+      {
+        date: 0,
+        description: 1,
+        amount: 2,
+        reference: null,
+        debit: null,
+        credit: null,
+      },
+      { hasHeader: true }
+    );
+    expect(result.rows.map((r) => r.rowNumber)).toEqual([3]);
+    expect(result.invalidRows).toEqual([4]);
+  });
+
+  it('still finds the header when the file starts with blank lines', () => {
+    const rows = parseCsv('\n\nFecha,Concepto,Monto\n01/09/2026,Bodega,-5');
+    const mapping = guessColumnMapping(firstRecord(rows));
+    expect(mapping.date).toBe(0);
+    const result = mapStatementRows(rows, mapping, { hasHeader: true });
+    expect(result.rows.map((r) => [r.rowNumber, r.description])).toEqual([
+      [4, 'Bodega'],
+    ]);
+    expect(result.invalidRows).toEqual([]);
+  });
+
+  it('keeps a quote inside an unquoted field literal instead of swallowing later rows', () => {
+    expect(parseCsv('a,b,c\nx,Tubo 2" pulg,3\ny,z,4')).toEqual([
+      ['a', 'b', 'c'],
+      ['x', 'Tubo 2" pulg', '3'],
+      ['y', 'z', '4'],
+    ]);
+  });
+
+  it('reads a dd/mm/yyyy date that carries a time, like ISO datetimes', () => {
+    expect(parseStatementDate('01/09/2026 10:30')).toBe('2026-09-01');
   });
 });
