@@ -148,6 +148,27 @@ it('does not warn when currencies match', async () => {
   await analyze();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
+it('does not let a dust amount that rounds to zero abort the batch', async () => {
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      success: true,
+      data: [
+        { ...movement, currency: 'USD', amount: 0.0004, description: 'Dust' },
+        { ...movement, currency: 'USD', amount: 5 },
+      ],
+    }),
+  });
+  render(<VoiceCaptureModal {...base} />);
+  await analyze();
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Guardar 1 movimientos' })
+  );
+  await waitFor(() => expect(mockCreate).toHaveBeenCalledTimes(1));
+  expect(mockCreate).toHaveBeenCalledWith(
+    expect.objectContaining({ amountMinor: 500 })
+  );
+});
 it('excludes rows without an account from saving', async () => {
   mockFetch.mockResolvedValue({
     ok: true,

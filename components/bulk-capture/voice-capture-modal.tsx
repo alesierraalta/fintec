@@ -140,12 +140,18 @@ export function VoiceCaptureModal({
       existingTransactions
     );
   };
+  // Amounts below the account's precision (Binance "dust") round to zero and
+  // would be rejected on save, aborting the rest of the batch.
+  const minorAmount = (row: Row) => {
+    const account = accounts.find((item) => item.id === row.accountId);
+    return account && Number.isFinite(row.amount) && row.amount > 0
+      ? toMinorUnits(row.amount, account.currencyCode)
+      : 0;
+  };
   const selected = (rows || []).filter(
     (row) =>
       (row.selected ?? !duplicate(row).isDuplicate) &&
-      accounts.some((account) => account.id === row.accountId) &&
-      Number.isFinite(row.amount) &&
-      row.amount > 0 &&
+      minorAmount(row) > 0 &&
       /^\d{4}-\d{2}-\d{2}$/.test(row.date)
   );
   const update = (index: number, patch: Partial<Row>) =>
@@ -385,7 +391,23 @@ export function VoiceCaptureModal({
               )}
               {(() => {
                 const account = accounts.find((a) => a.id === row.accountId);
-                return account && account.currencyCode !== row.currency ? (
+                if (!account) return null;
+                if (row.amount > 0 && minorAmount(row) === 0) {
+                  return (
+                    <p role="alert">
+                      Monto demasiado pequeño para esta cuenta: no se guardará.
+                    </p>
+                  );
+                }
+                if (!row.currency) {
+                  return (
+                    <p role="alert">
+                      No se pudo leer la moneda de la captura: revisa el monto
+                      antes de guardar.
+                    </p>
+                  );
+                }
+                return account.currencyCode !== row.currency ? (
                   <p role="alert">
                     La captura está en {row.currency} y la cuenta en{' '}
                     {account.currencyCode}: revisa el monto antes de guardar.

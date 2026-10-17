@@ -40,6 +40,26 @@ export interface NormalizeContext {
   imageCount: number;
 }
 
+const CURRENCY_ALIASES: Record<string, string> = {
+  BS: 'VES',
+  'BS.': 'VES',
+  'BS.S': 'VES',
+  'BS.D': 'VES',
+  BSS: 'VES',
+  BSD: 'VES',
+  VEF: 'VES',
+  VED: 'VES',
+  $: 'USD',
+  US$: 'USD',
+  '€': 'EUR',
+};
+
+function normalizeCurrency(raw: string | null | undefined): string | null {
+  const code = (raw ?? '').trim().toUpperCase().replace(/\s+/g, '');
+  if (CURRENCY_ALIASES[code]) return CURRENCY_ALIASES[code];
+  return /^[A-Z]{3,5}$/.test(code) ? code : null;
+}
+
 /**
  * Turns untrusted model output into reviewable movements: drops non-positive
  * amounts, keeps only account/category ids owned by the user (and categories
@@ -63,16 +83,17 @@ export function normalizeCapturedTransactions(
         : null;
     const ownAccount = ctx.accounts.find((a) => a.id === ownAccountId);
 
-    let currency = (item.currency ?? '').trim().toUpperCase();
-    if (!/^[A-Z]{3,5}$/.test(currency)) {
-      currency = ownAccount?.currencyCode ?? 'USD';
-    }
+    // Unreadable currency stays empty: guessing one would move money between
+    // currencies silently and hide the UI's currency-mismatch warning.
+    const currency =
+      normalizeCurrency(item.currency) ?? ownAccount?.currencyCode ?? '';
 
     const sameCurrency = ctx.accounts.filter(
       (a) => a.currencyCode === currency
     );
     const accountId =
-      ownAccountId ?? (sameCurrency.length === 1 ? sameCurrency[0].id : null);
+      ownAccountId ??
+      (currency && sameCurrency.length === 1 ? sameCurrency[0].id : null);
 
     const categoryId =
       item.suggestedCategoryId &&

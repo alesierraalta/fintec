@@ -110,6 +110,36 @@ describe('normalizeCapturedTransactions', () => {
     expect(tx.currency).toBe('USDT');
   });
 
+  it('reads bolívar symbols as VES instead of assuming USD', () => {
+    const vesCtx = {
+      ...ctx,
+      accounts: [
+        { id: 'usd', currencyCode: 'USD' },
+        { id: 'ves', currencyCode: 'VES' },
+      ],
+    };
+    const result = normalizeCapturedTransactions(
+      [
+        raw({ currency: 'Bs', suggestedAccountId: null }),
+        raw({ currency: 'Bs.', suggestedAccountId: null }),
+      ],
+      vesCtx
+    );
+    expect(result.map((t) => [t.currency, t.accountId])).toEqual([
+      ['VES', 'ves'],
+      ['VES', 'ves'],
+    ]);
+  });
+
+  it('does not assign an account when the currency is unreadable', () => {
+    const usdCtx = { ...ctx, accounts: [{ id: 'usd', currencyCode: 'USD' }] };
+    const [tx] = normalizeCapturedTransactions(
+      [raw({ currency: '', suggestedAccountId: null })],
+      usdCtx
+    );
+    expect(tx.accountId).toBeNull();
+  });
+
   it(`keeps at most ${MAX_CAPTURED_TRANSACTIONS} movements`, () => {
     const many = Array.from({ length: MAX_CAPTURED_TRANSACTIONS + 25 }, () =>
       raw()
