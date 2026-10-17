@@ -111,6 +111,7 @@ export async function extractCapturedTransactions(params: {
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
   today: string;
+  abortSignal?: AbortSignal;
 }): Promise<CapturedTransaction[]> {
   const { images, audio, accounts, categories, today } = params;
   const model = audio
@@ -133,6 +134,7 @@ export async function extractCapturedTransactions(params: {
 
   const result = await generateObject({
     model,
+    abortSignal: params.abortSignal,
     schema: captureSchema,
     system: SYSTEM_INSTRUCTION,
     messages: [

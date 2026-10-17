@@ -1,4 +1,8 @@
-import { POST } from '@/app/api/ai/capture-batch/route';
+import {
+  ANALYSIS_TIMEOUT_MS,
+  POST,
+  maxDuration,
+} from '@/app/api/ai/capture-batch/route';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import {
@@ -141,6 +145,31 @@ describe('POST /api/ai/capture-batch', () => {
     expect(res.status).toBe(503);
     expect(mockExtract).not.toHaveBeenCalled();
   });
+
+  it('allows well over the slowest observed analysis (58 s) and stops before the platform kills it', () => {
+    expect(maxDuration).toBeGreaterThanOrEqual(120);
+    expect(maxDuration).toBeLessThanOrEqual(300); // Vercel Hobby + Fluid max
+    expect(ANALYSIS_TIMEOUT_MS).toBeLessThan(maxDuration * 1000);
+    expect(ANALYSIS_TIMEOUT_MS).toBeGreaterThanOrEqual(110_000);
+  });
+
+  // AbortError is what a real aborted Gemini call raised in the TSP run.
+  it.each(['TimeoutError', 'AbortError'])(
+    'passes an abort signal and answers 504 with a clear message on %s',
+    async (errorName) => {
+      mockExtract.mockImplementation(async () => {
+        throw new DOMException('timed out', errorName);
+      });
+      const res = await POST(request({ images: [image()] }));
+      expect(res.status).toBe(504);
+      const body = await res.json();
+      expect(body.success).toBe(false);
+      expect(body.error).toMatch(/menos capturas/);
+      expect(mockExtract.mock.calls[0][0].abortSignal).toBeInstanceOf(
+        AbortSignal
+      );
+    }
+  );
 
   it('uses only the server-side accounts and categories, ignoring client ones', async () => {
     const res = await POST(

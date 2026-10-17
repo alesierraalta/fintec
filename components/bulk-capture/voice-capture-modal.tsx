@@ -391,6 +391,13 @@ export function VoiceCaptureModal({
               )}
               {(() => {
                 const account = accounts.find((a) => a.id === row.accountId);
+                if (row.date > today()) {
+                  return (
+                    <p role="alert">
+                      Fecha futura: revisa el año antes de guardar.
+                    </p>
+                  );
+                }
                 if (!account) return null;
                 if (row.amount > 0 && minorAmount(row) === 0) {
                   return (

@@ -169,6 +169,22 @@ it('does not let a dust amount that rounds to zero abort the batch', async () =>
     expect.objectContaining({ amountMinor: 500 })
   );
 });
+it('flags a future date as a probable misread year', async () => {
+  mockFetch.mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      success: true,
+      data: [
+        { ...movement, currency: 'USD', date: '2999-01-01' },
+        { ...movement, currency: 'USD', description: 'Normal' },
+      ],
+    }),
+  });
+  render(<VoiceCaptureModal {...base} />);
+  await analyze();
+  expect(screen.getAllByRole('alert')).toHaveLength(1);
+  expect(screen.getByRole('alert')).toHaveTextContent('Fecha futura');
+});
 it('excludes rows without an account from saving', async () => {
   mockFetch.mockResolvedValue({
     ok: true,

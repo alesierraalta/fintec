@@ -8,7 +8,12 @@ import {
 import { createServerAppRepository } from '@/repositories/factory';
 import { logger } from '@/lib/utils/logger';
 
-export const maxDuration = 60;
+// Real runs took 15-58 s for one screenshot plus audio; the project runs on
+// Vercel Hobby with Fluid compute, whose ceiling is 300 s.
+export const maxDuration = 300;
+// Stop the model ourselves before the platform kills the function, so the
+// client gets a readable error instead of an opaque gateway timeout.
+export const ANALYSIS_TIMEOUT_MS = 280_000;
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -111,10 +116,19 @@ export async function POST(req: Request) {
         kind: c.kind === 'INCOME' ? ('INCOME' as const) : ('EXPENSE' as const),
       })),
       today: todayInCaracas(),
+      abortSignal: AbortSignal.timeout(ANALYSIS_TIMEOUT_MS),
     });
 
     return Response.json({ success: true, data });
   } catch (error) {
+    const name = (error as { name?: string } | null)?.name;
+    if (name === 'TimeoutError' || name === 'AbortError') {
+      logger.warn('[VoiceCapture] Analysis timed out');
+      return fail(
+        504,
+        'El análisis tardó demasiado. Prueba con menos capturas o un audio más corto.'
+      );
+    }
     logger.error('[VoiceCapture API Error]:', error);
     return fail(500, 'No se pudieron analizar las capturas.');
   }
