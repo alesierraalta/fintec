@@ -117,6 +117,20 @@ describe('AddTransactionMenu Component', () => {
     expect(mockPush).toHaveBeenCalledWith('/transactions?action=batch');
   });
 
+  it.each([
+    ['Registro rápido', '/transactions?action=quick'],
+    ['Importar extracto', '/transactions?action=import'],
+  ])('navigates by default for %s on desktop and mobile', (name, route) => {
+    for (const width of [1024, 800]) {
+      window.innerWidth = width;
+      const view = render(<AddTransactionMenu />);
+      fireEvent.click(screen.getByRole('button', { name: /agregar/i }));
+      fireEvent.click(screen.getByRole('menuitem', { name }));
+      expect(mockPush).toHaveBeenLastCalledWith(route);
+      view.unmount();
+    }
+  });
+
   it('closes menu when Escape key is pressed', () => {
     render(<AddTransactionMenu />);
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo, useState } from 'react';
+import type { Account } from '@/types/domain';
 import dynamic from 'next/dynamic';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,6 +24,7 @@ import {
   DollarSign,
   Target,
   Settings,
+  Scale,
 } from 'lucide-react';
 import { RatesHistory } from '@/components/currency/rates-history';
 import { BalanceAlertSettings } from '@/components/forms/balance-alert-settings';
@@ -43,6 +45,14 @@ const AccountForm = dynamic(
   () =>
     import('@/components/forms/account-form').then((mod) => mod.AccountForm),
   { loading: () => <FormLoading />, ssr: false }
+);
+
+const ReconcileBalanceModal = dynamic(
+  () =>
+    import('@/components/bulk-capture/reconcile-balance-modal').then(
+      (mod) => mod.ReconcileBalanceModal
+    ),
+  { ssr: false }
 );
 
 import { NumberTicker } from '@/components/ui/number-ticker';
@@ -85,6 +95,9 @@ const cardHover = {
 
 export default function AccountsPage() {
   const { user } = useAuth();
+  const [reconcileAccount, setReconcileAccount] = useState<Account | null>(
+    null
+  );
   const repository = useRepository();
   const bcvRates = useBCVRates();
   const binanceRatesState = useBinanceRates();
@@ -796,6 +809,16 @@ export default function AccountsPage() {
         />
       )}
 
+      {reconcileAccount && (
+        <ReconcileBalanceModal
+          isOpen
+          account={reconcileAccount}
+          categories={categories}
+          onClose={() => setReconcileAccount(null)}
+          onSuccess={loadAccounts}
+        />
+      )}
+
       <RatesHistory
         isOpen={showRatesHistory}
         onClose={() => setShowRatesHistory(false)}
@@ -832,6 +855,17 @@ export default function AccountsPage() {
                   >
                     <Edit className="mr-3 h-4 w-4" />
                     Editar cuenta
+                  </button>
+                  <button
+                    onClick={() => {
+                      setReconcileAccount(account);
+                      closeDropdown();
+                    }}
+                    className="flex w-full items-center px-4 py-3 text-sm text-foreground transition-colors hover:bg-muted/20"
+                    role="menuitem"
+                  >
+                    <Scale className="mr-3 h-4 w-4" />
+                    Conciliar saldo
                   </button>
                   <button
                     onClick={() => handleAlertSettings(account)}

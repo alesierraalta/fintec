@@ -26,6 +26,8 @@ export interface AddTransactionMenuProps {
   onAddSingle?: () => void;
   /** Callback when user selects batch upload */
   onAddBatch?: () => void;
+  onQuickEntry?: () => void;
+  onImportStatement?: () => void;
   /** Optional custom trigger renderer */
   customTrigger?: (props: {
     isOpen: boolean;
@@ -44,6 +46,8 @@ export function AddTransactionMenu({
   className,
   onAddSingle,
   onAddBatch,
+  onQuickEntry,
+  onImportStatement,
   customTrigger,
   isOpen: controlledIsOpen,
   onOpenChange,
@@ -135,6 +139,32 @@ export function AddTransactionMenu({
     }
   }, [onAddBatch, router, setIsOpen]);
 
+  const captureOptions = (
+    <>
+      {(
+        [
+          ['Registro rápido', 'quick', onQuickEntry],
+          ['Importar extracto', 'import', onImportStatement],
+        ] as const
+      ).map(([title, action, callback]) => (
+        <button
+          key={action}
+          type="button"
+          role="menuitem"
+          className="flex min-h-11 w-full items-center rounded-xl p-3 text-left text-sm font-semibold hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          onClick={() => {
+            triggerRef.current?.focus();
+            setIsOpen(false);
+            if (callback) callback();
+            else router.push(`/transactions?action=${action}`);
+          }}
+        >
+          {title}
+        </button>
+      ))}
+    </>
+  );
+
   const overlayHost =
     typeof document !== 'undefined'
       ? (document.getElementById('modal-root') ?? document.body)
@@ -212,6 +242,7 @@ export function AddTransactionMenu({
             </div>
 
             <div className="space-y-1 py-1">
+              {captureOptions}
               <button
                 type="button"
                 role="menuitem"
@@ -350,6 +381,7 @@ export function AddTransactionMenu({
 
                   {/* Action Cards */}
                   <div className="space-y-2.5">
+                    {captureOptions}
                     <button
                       type="button"
                       role="menuitem"
