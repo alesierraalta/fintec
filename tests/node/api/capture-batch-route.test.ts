@@ -1,5 +1,6 @@
 import {
   ANALYSIS_TIMEOUT_MS,
+  HISTORY_LOOKBACK,
   POST,
   maxDuration,
 } from '@/app/api/ai/capture-batch/route';
@@ -29,6 +30,7 @@ const mockRateLimit = checkRateLimit as jest.Mock;
 const mockExtract = extractCapturedTransactions as jest.Mock;
 const mockAudioAvailable = isAudioCaptureAvailable as jest.Mock;
 const mockRepo = createServerAppRepository as jest.Mock;
+const mockFindAll = jest.fn();
 
 const image = (name = 'shot.png', type = 'image/png', size = 10) =>
   new File([new Uint8Array(size)], name, { type });
@@ -67,7 +69,12 @@ beforeEach(() => {
         .fn()
         .mockResolvedValue([{ id: 'cine', name: 'Cine', kind: 'EXPENSE' }]),
     },
+    transactions: { findAll: mockFindAll },
   });
+  mockFindAll.mockResolvedValue([
+    { description: 'Cinex Líder', categoryId: 'cine' },
+    { description: 'Sin categoría', categoryId: undefined },
+  ]);
   mockExtract.mockResolvedValue([{ amount: 5 }]);
 });
 
@@ -196,5 +203,16 @@ describe('POST /api/ai/capture-batch', () => {
     expect(args.images[1].mediaType).toBe('image/jpeg');
     expect(args.audio.mediaType).toBe('audio/webm');
     expect(args.note).toBe('lo del 3 fue el cine');
+    expect(args.history).toEqual([
+      { description: 'Cinex Líder', category: 'Cine' },
+    ]);
+    expect(mockFindAll).toHaveBeenCalledWith(HISTORY_LOOKBACK);
+  });
+
+  it('still analyzes without history when loading past transactions fails', async () => {
+    mockFindAll.mockRejectedValue(new Error('db down'));
+    const res = await POST(request({ images: [image()] }));
+    expect(res.status).toBe(200);
+    expect(mockExtract.mock.calls[0][0].history).toEqual([]);
   });
 });

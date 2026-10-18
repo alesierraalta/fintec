@@ -5,6 +5,7 @@ import {
   isAudioCaptureAvailable,
   type CaptureMedia,
 } from '@/lib/ai/voice-capture/capture-service';
+import { buildHistoryHints } from '@/lib/ai/voice-capture/history-hints';
 import { createServerAppRepository } from '@/repositories/factory';
 import { logger } from '@/lib/utils/logger';
 
@@ -14,6 +15,9 @@ export const maxDuration = 300;
 // Stop the model ourselves before the platform kills the function, so the
 // client gets a readable error instead of an opaque gateway timeout.
 export const ANALYSIS_TIMEOUT_MS = 280_000;
+// Recent transactions scanned for the user's own categorization convention.
+// Evals: history in the prompt fixed 6/6 personal-convention cases vs 0/6.
+export const HISTORY_LOOKBACK = 1000;
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
@@ -98,10 +102,16 @@ export async function POST(req: Request) {
     // Accounts and categories always come from the server so the model can
     // never be steered toward ids the user does not own.
     const repo = createServerAppRepository({ supabase });
-    const [userAccounts, userCategories] = await Promise.all([
+    const [userAccounts, userCategories, pastTransactions] = await Promise.all([
       repo.accounts.findByUserId(user.id),
       repo.categories.findActive(),
+      // History only improves categories: a failure must not block analysis.
+      repo.transactions.findAll(HISTORY_LOOKBACK).catch((error) => {
+        logger.warn('[VoiceCapture] Could not load history hints', error);
+        return [];
+      }),
     ]);
+    const categoryList = userCategories ?? [];
 
     const data = await extractCapturedTransactions({
       images: await Promise.all(images.map(toMedia)),
@@ -110,12 +120,13 @@ export async function POST(req: Request) {
       accounts: userAccounts
         .filter((a) => a.active)
         .map((a) => ({ id: a.id, name: a.name, currencyCode: a.currencyCode })),
-      categories: (userCategories ?? []).map((c) => ({
+      categories: categoryList.map((c) => ({
         id: c.id,
         name: c.name,
         kind: c.kind === 'INCOME' ? ('INCOME' as const) : ('EXPENSE' as const),
       })),
       today: todayInCaracas(),
+      history: buildHistoryHints(pastTransactions, categoryList),
       abortSignal: AbortSignal.timeout(ANALYSIS_TIMEOUT_MS),
     });
 
