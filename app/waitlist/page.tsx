@@ -19,28 +19,33 @@ export default function WaitlistPage() {
 
       {/* Nav */}
       <nav className="z-10 mx-auto flex w-full max-w-7xl items-center justify-between p-6">
-        <Link href="/" className="flex items-center space-x-2">
+        <Link
+          href="/"
+          aria-label="FinTec - Inicio"
+          className="flex items-center space-x-2"
+        >
           <FinTecLogo
             containerClassName="w-8 h-8 md:w-10 md:h-10"
             className="rounded-lg"
-            alt="FinTec"
+            alt=""
             sizes="40px"
           />
           <span className="hidden text-xl font-bold tracking-tight sm:block">
             FinTec
           </span>
         </Link>
-        <Link href="/auth/login">
-          <button className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
-            Iniciar Sesión
-          </button>
+        <Link
+          href="/auth/login"
+          className="inline-flex min-h-[44px] items-center rounded-xl px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Iniciar Sesión
         </Link>
       </nav>
 
       {/* Main Content */}
       <main className="relative z-10 flex flex-grow flex-col items-center justify-center px-4 py-12 sm:px-6 md:py-20 lg:px-8">
         <div className="mx-auto mb-12 max-w-4xl text-center md:mb-16">
-          <div className="mb-6 inline-flex animate-fade-in-up items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <div className="mb-6 inline-flex animate-fade-in-up items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary-700">
             <span className="mr-2 flex h-2 w-2 animate-pulse rounded-full bg-primary"></span>
             Acceso Anticipado Limitado
           </div>

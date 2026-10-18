@@ -5,8 +5,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Scrapers - Real Data Extraction', () => {
-  test('BCV scraper should return REAL data from BCV website', async ({ request }) => {
-    const response = await request.get('http://localhost:3000/api/bcv-rates');
+  test('BCV scraper should return REAL data from BCV website', async ({
+    request,
+  }) => {
+    const response = await request.get('/api/bcv-rates');
     expect(response.ok()).toBeTruthy();
 
     const data = await response.json();
@@ -35,8 +37,10 @@ test.describe('Scrapers - Real Data Extraction', () => {
     });
   });
 
-  test('Binance scraper should return REAL data from Binance P2P API', async ({ request }) => {
-    const response = await request.get('http://localhost:3000/api/binance-rates');
+  test('Binance scraper should return REAL data from Binance P2P API', async ({
+    request,
+  }) => {
+    const response = await request.get('/api/binance-rates');
     expect(response.ok()).toBeTruthy();
 
     const data = await response.json();
@@ -60,9 +64,11 @@ test.describe('Scrapers - Real Data Extraction', () => {
     });
   });
 
-  test('BCV vs Binance comparison should be realistic (< 100% difference)', async ({ request }) => {
-    const bcvResponse = await request.get('http://localhost:3000/api/bcv-rates');
-    const binanceResponse = await request.get('http://localhost:3000/api/binance-rates');
+  test('BCV vs Binance comparison should be realistic (< 100% difference)', async ({
+    request,
+  }) => {
+    const bcvResponse = await request.get('/api/bcv-rates');
+    const binanceResponse = await request.get('/api/binance-rates');
 
     const bcvData = await bcvResponse.json();
     const binanceData = await binanceResponse.json();

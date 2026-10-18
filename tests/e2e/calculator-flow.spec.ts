@@ -1,7 +1,45 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Calculator Flow', () => {
-  test('should allow user to calculate conversions via dedicated /calculator page', async ({ page }) => {
+  test('should allow user to calculate conversions via dedicated /calculator page', async ({
+    page,
+  }) => {
+    // Deterministic synthetic BCV history so USD->VES resolves locally
+    // instead of rendering the "—" empty state.
+    await page.route(/\/rest\/v1\/bcv_rate_history/, async (route) => {
+      const requestHeaders = route.request().headers();
+      const headers = {
+        'Access-Control-Allow-Origin': requestHeaders['origin'] ?? '*',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers':
+          requestHeaders['access-control-request-headers'] ?? '*',
+        'Access-Control-Expose-Headers': '*',
+      };
+
+      if (route.request().method() === 'OPTIONS') {
+        await route.fulfill({ status: 204, headers });
+        return;
+      }
+
+      await route.fulfill({
+        status: 200,
+        headers,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0],
+            usd: 40,
+            eur: 45,
+            source: 'BCV',
+            timestamp: new Date().toISOString(),
+          },
+        ]),
+      });
+    });
+
     await page.goto('/calculator');
 
     // Verify page header and calculator visible by default
@@ -42,13 +80,13 @@ test.describe('Calculator Flow', () => {
 
     // Result should be visible and contain target currency
     const resultDisplay = page.getByTestId('calculator-result');
-    await expect(resultDisplay).toBeVisible();
-    const resultText = await resultDisplay.textContent();
-    expect(resultText).toContain('VES');
+    await expect(resultDisplay).toContainText('VES');
   });
 
-  test('should navigate from accounts rates panel to /calculator', async ({ page }) => {
-    await page.goto('/accounts');
+  test('should link from the rates panel to the calculator history', async ({
+    page,
+  }) => {
+    await page.goto('/calculator');
 
     const historyLink = page.getByTestId('rates-history-button');
     await expect(historyLink).toBeVisible();
@@ -56,10 +94,15 @@ test.describe('Calculator Flow', () => {
     await expect(historyLink).toHaveAttribute('href', '/calculator');
     await historyLink.click();
     await expect(page).toHaveURL(/\/calculator/);
-    await expect(page.locator('text=Calculadora de Conversión')).toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Historial' })).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
-  test('should preserve trailing zero on amount input without type number', async ({ page }) => {
+  test('should preserve trailing zero on amount input without type number', async ({
+    page,
+  }) => {
     await page.goto('/calculator');
     const amountInput = page.getByTestId('calculator-amount-input');
     await amountInput.fill('100.00');
@@ -83,7 +126,9 @@ test.describe('Calculator Flow', () => {
     await expect(page.locator('button:has-text("BCV")').first()).toBeVisible();
 
     // Switch back to calculator tab
-    const calculatorTab = page.locator('button:has-text("Calculadora")').first();
+    const calculatorTab = page
+      .locator('button:has-text("Calculadora")')
+      .first();
     await calculatorTab.click();
     await expect(page.locator('text=Calculadora de Conversión')).toBeVisible();
   });

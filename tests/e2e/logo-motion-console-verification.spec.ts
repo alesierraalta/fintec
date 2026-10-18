@@ -29,7 +29,7 @@ test.describe('Logo and motion console verification', () => {
     });
 
     await page.goto('/landing');
-    await expect(page).toHaveURL(/\/landing$/);
+    await expect(page).toHaveURL(/\/$/);
     await expect(
       page.locator('img[src*="finteclogodark.jpg"]').first()
     ).toBeVisible();

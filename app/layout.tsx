@@ -58,14 +58,17 @@ export default async function RootLayout({
         <AppNavigationProvider>
           <NativeBackNavigation>
             <RouteAwareProviders isAdmin={isAdmin}>
-              <div id="root" className="h-dynamic-screen w-full overflow-x-hidden">
+              <div
+                id="root"
+                className="h-dynamic-screen w-full overflow-x-hidden"
+              >
                 {children}
               </div>
             </RouteAwareProviders>
           </NativeBackNavigation>
         </AppNavigationProvider>
-        <Analytics />
-        <SpeedInsights />
+        {process.env.VERCEL ? <Analytics /> : null}
+        {process.env.VERCEL ? <SpeedInsights /> : null}
         <Toaster position="top-right" richColors />
         <ServiceWorkerRegistration />
         <div id="modal-root" />

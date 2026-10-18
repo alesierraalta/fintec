@@ -22,7 +22,12 @@ module.exports = {
       numberOfRuns: 3, // 3 runs per URL for statistical stability
       settings: {
         preset: 'desktop',
-        onlyCategories: ['performance', 'accessibility', 'best-practices'],
+        onlyCategories: [
+          'performance',
+          'accessibility',
+          'best-practices',
+          'seo',
+        ],
         // Throttle to simulate real-world conditions
         throttling: {
           cpuSlowdownMultiplier: 1, // Desktop baseline (no throttle)

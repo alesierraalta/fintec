@@ -71,14 +71,20 @@ test.describe('Transactions Debt Detailed @auth-required', () => {
 
     await page.goto('/transactions');
 
-    await page.locator('button:has-text("Mostrar Filtros")').click();
-    await page.locator('select').nth(1).selectOption('ONLY_DEBT');
+    await page.getByRole('button', { name: 'Filtros', exact: true }).click();
+    await page
+      .locator('select:has(option[value="ONLY_DEBT"])')
+      .selectOption('ONLY_DEBT');
 
     await expect(page.getByText(incomeDescription)).toBeVisible();
     await expect(page.getByText(expenseDescription)).toBeVisible();
     await expect(page.getByText(/Me deben/)).toBeVisible();
     await expect(page.getByText(/Debo/)).toBeVisible();
-    await expect(page.getByText(/Saldada/)).toBeVisible();
+    const settledTransactionRow = page
+      .locator('h4')
+      .filter({ hasText: expenseDescription })
+      .locator('xpath=../..');
+    await expect(settledTransactionRow.getByText('Saldada')).toBeVisible();
 
     await page.reload();
 
@@ -140,15 +146,19 @@ test.describe('Transactions Debt Detailed @auth-required', () => {
     const hintBox = await listHint.boundingBox();
     const currencyBox = await currencyLabel.boundingBox();
 
-    if (hintBox && currencyBox) {
-      const overlapX =
-        hintBox.x < currencyBox.x + currencyBox.width &&
-        hintBox.x + hintBox.width > currencyBox.x;
-      const overlapY =
-        hintBox.y < currencyBox.y + currencyBox.height &&
-        hintBox.y + hintBox.height > currencyBox.y;
-      expect(overlapX && overlapY).toBeFalsy();
+    if (!hintBox || !currencyBox) {
+      throw new Error(
+        'Expected the list hint and currency label to have layout boxes'
+      );
     }
+
+    const overlapX =
+      hintBox.x < currencyBox.x + currencyBox.width &&
+      hintBox.x + hintBox.width > currencyBox.x;
+    const overlapY =
+      hintBox.y < currencyBox.y + currencyBox.height &&
+      hintBox.y + hintBox.height > currencyBox.y;
+    expect(overlapX && overlapY).toBeFalsy();
   });
 
   test('desktop non-regression keeps transaction row click and swipe functional', async ({
@@ -182,9 +192,13 @@ test.describe('Transactions Debt Detailed @auth-required', () => {
     await expect(targetRow).toBeVisible();
 
     await targetRow.click();
-    await expect(page.getByRole('button', { name: 'Cerrar' })).toBeVisible();
+    const closeButton = page.getByRole('button', {
+      name: 'Cerrar',
+      exact: true,
+    });
+    await expect(closeButton).toBeVisible();
 
-    await page.getByRole('button', { name: 'Cerrar' }).first().click();
+    await closeButton.click();
 
     await swipeLeft(page, targetRow);
     await expect(
