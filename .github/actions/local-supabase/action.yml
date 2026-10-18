@@ -1,0 +1,13 @@
+name: Local Supabase
+description: Start the repository-local Supabase stack and export its CI environment
+
+runs:
+  using: composite
+  steps:
+    - name: Start local Supabase stack
+      shell: bash
+      run: npx supabase start
+
+    - name: Prepare local Supabase CI environment
+      shell: bash
+      run: npx tsx scripts/testing/prepare-local-supabase-ci.ts

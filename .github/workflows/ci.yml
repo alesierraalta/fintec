@@ -9,10 +9,6 @@ jobs:
     name: Required checks
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
 
     steps:
       - name: Checkout repository
@@ -27,17 +23,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start local Supabase stack
+        uses: ./.github/actions/local-supabase
+
       - name: Type check
         run: npm run type-check
 
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test -- --runInBand
+      - name: Test unit and node projects
+        run: npm run test:ci -- --selectProjects dom node
+        env:
+          # Leave these empty so jest.setup.js installs the mocked values for
+          # dom/node projects; the real Supabase URL is isolated to the db project.
+          NEXT_PUBLIC_SUPABASE_URL: ''
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ''
+          SUPABASE_SERVICE_ROLE_KEY: ''
+
+      - name: Test database and RLS project
+        run: npm run test:db
 
       - name: Build
         run: npm run build
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
 
   eval-gate:
     name: Eval harness gate
@@ -82,10 +94,6 @@ jobs:
     name: E2E no-auth
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
 
     steps:
       - name: Checkout repository
@@ -99,6 +107,9 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Start local Supabase stack
+        uses: ./.github/actions/local-supabase
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox webkit
@@ -113,14 +124,14 @@ jobs:
       - name: Run Playwright no-auth lane
         run: npm run e2e:ci:no-auth
 
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
+
   e2e-auth-required:
     name: E2E auth-required
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY || 'test-service-role-key' }}
 
     steps:
       - name: Checkout repository
@@ -135,6 +146,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Start local Supabase stack
+        uses: ./.github/actions/local-supabase
+
+      - name: Provision canonical local auth user
+        run: npx tsx scripts/testing/prepare-local-supabase-ci.ts --provision-canonical-auth-user
+
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
@@ -145,3 +162,7 @@ jobs:
 
       - name: Run Playwright auth-required lane
         run: npm run e2e:ci:auth-required
+
+      - name: Stop local Supabase stack
+        if: always()
+        run: npx supabase stop --no-backup
