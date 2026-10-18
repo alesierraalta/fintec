@@ -152,11 +152,12 @@ function SwipeableCardComponent({
     <div className={cn('relative overflow-hidden', className)}>
       {/* Action buttons revealed on swipe */}
       <motion.div
+        aria-hidden={!isRevealed && !isDragging}
         className={cn(
           'absolute bottom-0 right-0 top-0 z-0 flex h-full items-stretch py-1 transition-opacity duration-200',
           isRevealed || isDragging
-            ? 'opacity-100'
-            : 'pointer-events-none opacity-0'
+            ? 'visible opacity-100'
+            : 'pointer-events-none invisible opacity-0'
         )}
         style={{
           gap: ACTION_GAP_PX,
