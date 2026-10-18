@@ -82,6 +82,13 @@ const StatementImportModal = dynamic(
   { ssr: false }
 );
 
+const VoiceCaptureModal = dynamic(
+  () =>
+    import('@/components/bulk-capture/voice-capture-modal').then(
+      (mod) => mod.VoiceCaptureModal
+    ),
+  { ssr: false }
+);
 const ITEMS_PER_PAGE = 50;
 const TRANSACTION_TYPES = new Set<string>(Object.values(TransactionType));
 
@@ -124,11 +131,14 @@ export default function TransactionsPage() {
 
   const [captureAction, setCaptureAction] = useState<string | null>(() => {
     const action = searchParams.get('action');
-    return action === 'quick' || action === 'import' ? action : null;
+    return action === 'quick' || action === 'import' || action === 'voice'
+      ? action
+      : null;
   });
   useEffect(() => {
     const action = searchParams.get('action');
-    if (action === 'quick' || action === 'import') setCaptureAction(action);
+    if (action === 'quick' || action === 'import' || action === 'voice')
+      setCaptureAction(action);
     if (searchParams.get('action') === 'batch') {
       setIsBatchModalOpen(true);
     }
@@ -590,6 +600,7 @@ export default function TransactionsPage() {
                   onAddBatch={() => setIsBatchModalOpen(true)}
                   onQuickEntry={() => setCaptureAction('quick')}
                   onImportStatement={() => setCaptureAction('import')}
+                  onVoiceCapture={() => setCaptureAction('voice')}
                 />
               </div>
             }
@@ -1102,6 +1113,16 @@ export default function TransactionsPage() {
           />
         )}
 
+        {captureAction === 'voice' && (
+          <VoiceCaptureModal
+            isOpen
+            onClose={() => setCaptureAction(null)}
+            onSuccess={loadAllData}
+            accounts={accounts}
+            categories={categories}
+            existingTransactions={transactions}
+          />
+        )}
         {isBatchModalOpen && (
           <BatchReceiptUploaderModal
             isOpen={isBatchModalOpen}
