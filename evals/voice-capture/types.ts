@@ -6,8 +6,11 @@ export interface ExpectedMovement {
   amount: number; // positive, major units
   currency: string;
   type: CapturedType;
-  /** Category name from the case's category list, or null when any is fine. */
-  category: string | null;
+  /**
+   * Category name from the case's list; an array when several are equally
+   * valid (e.g. "Café" and "Alimentación"); null when any is fine.
+   */
+  category: string | string[] | null;
   /** Words (lowercase) a good description should contain, taken from the explanation. */
   keywords: string[];
 }

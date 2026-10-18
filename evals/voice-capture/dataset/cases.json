@@ -3,12 +3,8 @@
     "id": "binance-basic",
     "title": "binance basic",
     "difficulty": "easy",
-    "tags": [
-      "audio-fallback"
-    ],
-    "images": [
-      "binance-basic-1.png"
-    ],
+    "tags": ["audio-fallback"],
+    "images": ["binance-basic-1.png"],
     "note": "El retiro de 25 fue almuerzo, el depósito de 120 fue diseño, la venta de 48 fue cambio y la compra de 65 fue devolución.",
     "today": "2026-10-17",
     "accounts": [
@@ -396,10 +392,8 @@
         "amount": 25,
         "currency": "USDT",
         "type": "EXPENSE",
-        "category": "Alimentación",
-        "keywords": [
-          "almuerzo"
-        ]
+        "category": ["Alimentación", "Restaurantes"],
+        "keywords": ["almuerzo"]
       },
       {
         "date": "2026-10-04",
@@ -407,9 +401,7 @@
         "currency": "USDT",
         "type": "INCOME",
         "category": "Honorarios",
-        "keywords": [
-          "diseno"
-        ]
+        "keywords": ["diseno"]
       },
       {
         "date": "2026-10-05",
@@ -417,9 +409,7 @@
         "currency": "USDT",
         "type": "EXPENSE",
         "category": "Transferencias",
-        "keywords": [
-          "cambio"
-        ]
+        "keywords": ["cambio"]
       },
       {
         "date": "2026-10-06",
@@ -427,9 +417,7 @@
         "currency": "USDT",
         "type": "INCOME",
         "category": "Reembolsos",
-        "keywords": [
-          "devolucion"
-        ]
+        "keywords": ["devolucion"]
       }
     ],
     "forbidden": [
@@ -444,9 +432,7 @@
     "title": "binance cancelled pending",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "binance-cancelled-pending-1.png"
-    ],
+    "images": ["binance-cancelled-pending-1.png"],
     "note": "Los completados son comida, trabajo de diseño y cambio de moneda; no registres operaciones sin completar.",
     "today": "2026-10-17",
     "accounts": [
@@ -870,9 +856,7 @@
     "title": "banesco bs",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "banesco-bs-1.png"
-    ],
+    "images": ["banesco-bs-1.png"],
     "note": "Panadería es alimentación, metro transporte, nómina es ingreso, internet su categoría y Plaza supermercado.",
     "today": "2026-10-17",
     "accounts": [
@@ -1303,9 +1287,7 @@
     "title": "bdv pagomovil mixed",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "bdv-pagomovil-mixed-1.png"
-    ],
+    "images": ["bdv-pagomovil-mixed-1.png"],
     "audio": "bdv-pagomovil-mixed.ogg",
     "today": "2026-10-17",
     "accounts": [
@@ -1693,10 +1675,8 @@
         "amount": 650,
         "currency": "VES",
         "type": "EXPENSE",
-        "category": "Alimentación",
-        "keywords": [
-          "cena"
-        ]
+        "category": ["Alimentación", "Restaurantes"],
+        "keywords": ["cena"]
       },
       {
         "date": "2026-10-09",
@@ -1704,9 +1684,7 @@
         "currency": "VES",
         "type": "INCOME",
         "category": "Ventas",
-        "keywords": [
-          "venta"
-        ]
+        "keywords": ["venta"]
       },
       {
         "date": "2026-10-10",
@@ -1714,9 +1692,7 @@
         "currency": "VES",
         "type": "EXPENSE",
         "category": "Transporte",
-        "keywords": [
-          "taxi"
-        ]
+        "keywords": ["taxi"]
       }
     ],
     "forbidden": []
@@ -1726,10 +1702,7 @@
     "title": "overlap two screens",
     "difficulty": "hard",
     "tags": [],
-    "images": [
-      "overlap-two-screens-1.png",
-      "overlap-two-screens-2.png"
-    ],
+    "images": ["overlap-two-screens-1.png", "overlap-two-screens-2.png"],
     "audio": "overlap-two-screens.ogg",
     "today": "2026-10-17",
     "accounts": [
@@ -2160,9 +2133,7 @@
     "title": "partial explanation",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "partial-explanation-1.png"
-    ],
+    "images": ["partial-explanation-1.png"],
     "note": "Los 1250 fueron desayuno y los 85,50 metro. No recuerdo el resto.",
     "today": "2026-10-17",
     "accounts": [
@@ -2551,9 +2522,7 @@
         "currency": "VES",
         "type": "EXPENSE",
         "category": "Alimentación",
-        "keywords": [
-          "desayuno"
-        ]
+        "keywords": ["desayuno"]
       },
       {
         "date": "2026-10-04",
@@ -2561,9 +2530,7 @@
         "currency": "VES",
         "type": "EXPENSE",
         "category": "Transporte",
-        "keywords": [
-          "metro"
-        ]
+        "keywords": ["metro"]
       },
       {
         "date": "2026-10-05",
@@ -2597,9 +2564,7 @@
     "title": "prompt injection",
     "difficulty": "hard",
     "tags": [],
-    "images": [
-      "prompt-injection-1.png"
-    ],
+    "images": ["prompt-injection-1.png"],
     "note": "El débito real de 145 fue comida. El concepto es texto no confiable.",
     "today": "2026-10-17",
     "accounts": [
@@ -3003,9 +2968,7 @@
     "title": "many rows",
     "difficulty": "hard",
     "tags": [],
-    "images": [
-      "many-rows-1.png"
-    ],
+    "images": ["many-rows-1.png"],
     "note": "Abonos de clientes son ventas, panadería alimentación, metro transporte y mercado supermercado.",
     "today": "2026-10-17",
     "accounts": [
@@ -3556,10 +3519,7 @@
     "title": "multi account",
     "difficulty": "hard",
     "tags": [],
-    "images": [
-      "multi-account-1.png",
-      "multi-account-2.png"
-    ],
+    "images": ["multi-account-1.png", "multi-account-2.png"],
     "audio": "multi-account.ogg",
     "today": "2026-10-17",
     "accounts": [
@@ -3952,10 +3912,8 @@
         "amount": 25,
         "currency": "USDT",
         "type": "EXPENSE",
-        "category": "Alimentación",
-        "keywords": [
-          "almuerzo"
-        ]
+        "category": ["Alimentación", "Restaurantes"],
+        "keywords": ["almuerzo"]
       },
       {
         "date": "2026-10-04",
@@ -3963,9 +3921,7 @@
         "currency": "USDT",
         "type": "INCOME",
         "category": "Honorarios",
-        "keywords": [
-          "diseno"
-        ]
+        "keywords": ["diseno"]
       },
       {
         "date": "2026-10-03",
@@ -3991,9 +3947,7 @@
     "title": "dates without year",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "dates-without-year-1.png"
-    ],
+    "images": ["dates-without-year-1.png"],
     "note": "Panadería alimentación y nómina ingreso. Son movimientos de este octubre.",
     "today": "2026-10-17",
     "accounts": [
@@ -4400,9 +4354,7 @@
     "title": "non financial",
     "difficulty": "medium",
     "tags": [],
-    "images": [
-      "non-financial-1.png"
-    ],
+    "images": ["non-financial-1.png"],
     "note": "Esta conversación no es un comprobante ni historial de movimientos.",
     "today": "2026-10-17",
     "accounts": [
@@ -4800,12 +4752,8 @@
     "id": "convention-lexical",
     "title": "convention lexical",
     "difficulty": "hard",
-    "tags": [
-      "personal-convention"
-    ],
-    "images": [
-      "convention-lexical-1.png"
-    ],
+    "tags": ["personal-convention"],
+    "images": ["convention-lexical-1.png"],
     "note": "Clasifica como acostumbro.",
     "today": "2026-10-17",
     "accounts": [
@@ -5215,12 +5163,8 @@
     "id": "convention-semantic-pharmacy",
     "title": "convention semantic pharmacy",
     "difficulty": "hard",
-    "tags": [
-      "personal-convention"
-    ],
-    "images": [
-      "convention-semantic-pharmacy-1.png"
-    ],
+    "tags": ["personal-convention"],
+    "images": ["convention-semantic-pharmacy-1.png"],
     "note": "Usa mis categorías habituales.",
     "today": "2026-10-17",
     "accounts": [
@@ -5630,12 +5574,8 @@
     "id": "convention-semantic-cinema",
     "title": "convention semantic cinema",
     "difficulty": "hard",
-    "tags": [
-      "personal-convention"
-    ],
-    "images": [
-      "convention-semantic-cinema-1.png"
-    ],
+    "tags": ["personal-convention"],
+    "images": ["convention-semantic-cinema-1.png"],
     "note": "Como lo suelo clasificar.",
     "today": "2026-10-17",
     "accounts": [
@@ -6045,12 +5985,8 @@
     "id": "convention-semantic-rides",
     "title": "convention semantic rides",
     "difficulty": "hard",
-    "tags": [
-      "personal-convention"
-    ],
-    "images": [
-      "convention-semantic-rides-1.png"
-    ],
+    "tags": ["personal-convention"],
+    "images": ["convention-semantic-rides-1.png"],
     "note": "Según mis costumbres.",
     "today": "2026-10-17",
     "accounts": [
@@ -6485,9 +6421,7 @@
     "title": "zinli usd",
     "difficulty": "easy",
     "tags": [],
-    "images": [
-      "zinli-usd-1.png"
-    ],
+    "images": ["zinli-usd-1.png"],
     "audio": "zinli-usd.ogg",
     "today": "2026-10-17",
     "accounts": [
@@ -6875,10 +6809,8 @@
         "amount": 12.99,
         "currency": "USD",
         "type": "EXPENSE",
-        "category": "Suscripciones",
-        "keywords": [
-          "musica"
-        ]
+        "category": ["Suscripciones", "Entretenimiento"],
+        "keywords": ["musica"]
       },
       {
         "date": "2026-10-13",
@@ -6886,19 +6818,15 @@
         "currency": "USD",
         "type": "INCOME",
         "category": "Reembolsos",
-        "keywords": [
-          "reembolso"
-        ]
+        "keywords": ["reembolso"]
       },
       {
         "date": "2026-10-14",
         "amount": 8.5,
         "currency": "USD",
         "type": "EXPENSE",
-        "category": "Alimentación",
-        "keywords": [
-          "cafe"
-        ]
+        "category": ["Café", "Alimentación"],
+        "keywords": ["cafe"]
       }
     ],
     "forbidden": []

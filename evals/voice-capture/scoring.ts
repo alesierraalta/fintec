@@ -64,7 +64,8 @@ export function scoreCase(
     p.date === e.date && sameAmount(p.amount, e.amount);
   const categoryMatches = (e: ExpectedMovement, p: CapturedTransaction) =>
     e.category === null ||
-    (p.categoryId !== null && categoryName.get(p.categoryId) === e.category);
+    (p.categoryId !== null &&
+      [e.category].flat().includes(categoryName.get(p.categoryId) ?? ''));
   const keywordMatches = (e: ExpectedMovement, p: CapturedTransaction) =>
     e.keywords.some((k) => fold(p.description).includes(fold(k)));
   // Weights keep priorities strict for groups up to EXACT_GROUP_LIMIT pairs.

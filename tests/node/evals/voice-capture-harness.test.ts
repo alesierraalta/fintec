@@ -131,3 +131,81 @@ describe('checkGate', () => {
     expect(checkGate(summary, { recal: 0.5 }).ok).toBe(false);
   });
 });
+
+describe('rescoreRawRuns', () => {
+  it('rescores stored predictions, applies retrieval, keeps errors and drops unknown cases', () => {
+    const { rescoreRawRuns } = jest.requireActual(
+      '@/evals/voice-capture/harness'
+    );
+    const wrong = { ...movement, categoryId: null };
+    const neighbors = [
+      [{ description: 'Farmacia SAAS', category: 'Salud', score: 0.9 }],
+    ];
+    const runs = rescoreRawRuns(
+      [
+        {
+          caseId: 'c1',
+          variant: 'none',
+          run: 0,
+          latencyMs: 1,
+          predicted: [wrong],
+        },
+        {
+          caseId: 'c1',
+          variant: 'lexical',
+          run: 0,
+          latencyMs: 1,
+          predicted: [wrong],
+          neighbors,
+        },
+        {
+          caseId: 'c1',
+          variant: 'embedding',
+          run: 0,
+          latencyMs: 0,
+          error: 'quota',
+        },
+        {
+          caseId: 'gone',
+          variant: 'none',
+          run: 0,
+          latencyMs: 1,
+          predicted: [wrong],
+        },
+      ],
+      [evalCase],
+      { lexical: 0.5, embedding: 0.75 }
+    );
+    expect(
+      runs.map((r: any) => [r.variant, r.score?.categoryCorrect ?? r.error])
+    ).toEqual([
+      ['none', 0],
+      ['lexical', 1],
+      ['embedding', 'quota'],
+    ]);
+  });
+});
+
+describe('rescoreRawRuns token accounting', () => {
+  it('keeps the stored token usage of each run', () => {
+    const { rescoreRawRuns } = jest.requireActual(
+      '@/evals/voice-capture/harness'
+    );
+    const [run] = rescoreRawRuns(
+      [
+        {
+          caseId: 'c1',
+          variant: 'none',
+          run: 0,
+          latencyMs: 1,
+          predicted: [movement],
+          inputTokens: 2107,
+          outputTokens: 90,
+        },
+      ],
+      [evalCase],
+      { lexical: 0.5, embedding: 0.75 }
+    );
+    expect([run.inputTokens, run.outputTokens]).toEqual([2107, 90]);
+  });
+});

@@ -2,7 +2,9 @@
  * Voice capture evals against the real model.
  *
  *   npx tsx --env-file=.env.local evals/voice-capture/run-evals.ts \
- *     [--k=2] [--cases=id1,id2] [--concurrency=3] [--gate]
+ *     [--k=2] [--cases=id1,id2] [--concurrency=3] [--gate] [--rescore]
+ *
+ * --rescore rebuilds the report from the stored raw predictions (no model calls).
  *
  * Variants (paired: lexical/embedding re-categorize the same extraction as none):
  *   none          current behaviour, no user history
@@ -22,6 +24,7 @@ import { recategorize } from '@/lib/ai/voice-capture/history-retrieval';
 import {
   checkGate,
   evaluateJob,
+  rescoreRawRuns,
   type GateThresholds,
   type StoredRun,
   type Variant,
@@ -120,18 +123,29 @@ async function main() {
     `Running ${cases.length} cases x ${k} runs (concurrency ${concurrency})`
   );
 
-  await pool(jobs, concurrency, async ({ c, run }) => {
-    if (!docCaches.has(c.id)) docCaches.set(c.id, new Map());
-    const results = await evaluateJob(c, run, {
-      extract,
-      embed: timedEmbed,
-      documentCache: docCaches.get(c.id)!,
-      lexicalThreshold: LEXICAL_THRESHOLD,
-      embeddingThreshold: EMBEDDING_THRESHOLD,
+  if (arg('rescore')) {
+    // Rebuild from the last report's raw predictions: no model calls.
+    const previous = JSON.parse(fs.readFileSync(REPORT_PATH, 'utf8'));
+    runs.push(
+      ...rescoreRawRuns(previous.rawRuns, cases, {
+        lexical: LEXICAL_THRESHOLD,
+        embedding: EMBEDDING_THRESHOLD,
+      })
+    );
+    console.log(`Rescored ${runs.length} stored runs from ${REPORT_PATH}`);
+  } else
+    await pool(jobs, concurrency, async ({ c, run }) => {
+      if (!docCaches.has(c.id)) docCaches.set(c.id, new Map());
+      const results = await evaluateJob(c, run, {
+        extract,
+        embed: timedEmbed,
+        documentCache: docCaches.get(c.id)!,
+        lexicalThreshold: LEXICAL_THRESHOLD,
+        embeddingThreshold: EMBEDDING_THRESHOLD,
+      });
+      runs.push(...results);
+      process.stdout.write(results.map((r) => (r.score ? '.' : 'E')).join(''));
     });
-    runs.push(...results);
-    process.stdout.write(results.map((r) => (r.score ? '.' : 'E')).join(''));
-  });
   console.log('');
 
   const variants: Variant[] = ['none', 'full-history', 'lexical', 'embedding'];
@@ -187,7 +201,7 @@ async function main() {
     sweep: { lexical: sweep('lexical'), embedding: sweep('embedding') },
     // Raw predictions and neighbours: rescoring needs no new model calls.
     rawRuns: runs.map(
-      ({ caseId, variant, run, latencyMs, predicted, neighbors, error }) => ({
+      ({
         caseId,
         variant,
         run,
@@ -195,6 +209,18 @@ async function main() {
         predicted,
         neighbors,
         error,
+        inputTokens,
+        outputTokens,
+      }) => ({
+        caseId,
+        variant,
+        run,
+        latencyMs,
+        predicted,
+        neighbors,
+        error,
+        inputTokens,
+        outputTokens,
       })
     ),
     perCase: cases.map((c) => ({

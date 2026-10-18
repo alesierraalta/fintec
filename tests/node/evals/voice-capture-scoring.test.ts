@@ -261,6 +261,19 @@ describe('TSP pinned defects', () => {
     }
   });
 
+  it('accepts any category from a set of equally valid ones', () => {
+    const expected = [exp({ category: ['X', 'Y'] })];
+    const ok = scoreCase({ expected, forbidden: [], categories: cats }, [
+      tx({ categoryId: 'y' }),
+    ]);
+    const wrong = scoreCase({ expected, forbidden: [], categories: cats }, [
+      tx({ categoryId: 'i' }),
+    ]);
+    expect(ok.categoryCorrect).toBe(1);
+    expect(ok.perfect).toBe(true);
+    expect(wrong.categoryCorrect).toBe(0);
+  });
+
   it('reports accuracies with nothing to measure as null, not 0', () => {
     const none = scoreCase(
       { expected: [exp({ keywords: [] })], forbidden: [], categories: cats },

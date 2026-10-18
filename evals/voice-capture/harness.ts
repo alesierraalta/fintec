@@ -184,3 +184,45 @@ export function checkGate(
     });
   return { ok: failures.length === 0, failures };
 }
+
+export interface RawRun {
+  caseId: string;
+  variant: Variant;
+  run: number;
+  latencyMs: number;
+  predicted?: CapturedTransaction[];
+  neighbors?: Neighbor[][];
+  error?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
+/**
+ * Rebuilds scored runs from a previous report's raw predictions, so scoring
+ * or label fixes never need new model calls. Unknown cases are dropped.
+ */
+export function rescoreRawRuns(
+  raw: RawRun[],
+  cases: CaptureEvalCase[],
+  thresholds: { lexical: number; embedding: number }
+): StoredRun[] {
+  const byId = new Map(cases.map((c) => [c.id, c]));
+  return raw.flatMap((r): StoredRun[] => {
+    const c = byId.get(r.caseId);
+    if (!c) return [];
+    if (r.error || !r.predicted) {
+      return [{ ...r, score: null, error: r.error ?? 'missing predictions' }];
+    }
+    const retrieval = r.variant === 'lexical' || r.variant === 'embedding';
+    const predicted =
+      retrieval && r.neighbors
+        ? recategorize(
+            r.predicted,
+            r.neighbors,
+            c.categories,
+            thresholds[r.variant as 'lexical' | 'embedding']
+          )
+        : r.predicted;
+    return [{ ...r, score: scoreCase(c, predicted) }];
+  });
+}

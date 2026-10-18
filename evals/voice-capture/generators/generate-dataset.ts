@@ -75,7 +75,7 @@ type Row = {
   amount: number;
   day: number;
   income?: boolean;
-  category?: string | null;
+  category?: string | string[] | null;
   keywords?: string[];
   status?: string;
   dateText?: string;
@@ -95,12 +95,14 @@ const row = (
   concept: string,
   amount: number,
   day: number,
-  category: string | null,
+  category: string | string[] | null,
   income = false,
   keywords: string[] = []
 ): Row => ({ concept, amount, day, category, income, keywords });
 const basic = [
-  row('Retiro USDT', 25, 3, 'Alimentación', false, ['almuerzo']),
+  row('Retiro USDT', 25, 3, ['Alimentación', 'Restaurantes'], false, [
+    'almuerzo',
+  ]),
   row('Depósito USDT', 120, 4, 'Honorarios', true, ['diseno']),
   row('Venta P2P', 48, 5, 'Transferencias', false, ['cambio']),
   row('Compra P2P', 65, 6, 'Reembolsos', true, ['devolucion']),
@@ -156,9 +158,14 @@ const definitions: Definition[] = [
       {
         bank: 'BDV',
         rows: [
-          row('PAGO MOVIL ENVIADO Ref. 104729', 650, 8, 'Alimentación', false, [
-            'cena',
-          ]),
+          row(
+            'PAGO MOVIL ENVIADO Ref. 104729',
+            650,
+            8,
+            ['Alimentación', 'Restaurantes'],
+            false,
+            ['cena']
+          ),
           row('PAGO MOVIL RECIBIDO Ref. 104812', 3400, 9, 'Ventas', true, [
             'venta',
           ]),
@@ -353,9 +360,18 @@ const definitions: Definition[] = [
       {
         bank: 'Zinli',
         rows: [
-          row('Compra online', 12.99, 12, 'Suscripciones', false, ['musica']),
+          row(
+            'Compra online',
+            12.99,
+            12,
+            ['Suscripciones', 'Entretenimiento'],
+            false,
+            ['musica']
+          ),
           row('Dinero recibido', 55, 13, 'Reembolsos', true, ['reembolso']),
-          row('Pago comercio', 8.5, 14, 'Alimentación', false, ['cafe']),
+          row('Pago comercio', 8.5, 14, ['Café', 'Alimentación'], false, [
+            'cafe',
+          ]),
         ],
       },
     ],
@@ -480,7 +496,7 @@ export function validate(cases: CaptureEvalCase[]): void {
         !m.keywords.every(
           (k) => typeof k === 'string' && k === k.toLowerCase()
         ) ||
-        (m.category !== null && !cats.has(m.category))
+        (m.category !== null && ![m.category].flat().every((n) => cats.has(n)))
       )
         fail('invalid expected movement');
       if (c.forbidden.some((f) => Math.abs(f.amount - m.amount) <= 0.005))
