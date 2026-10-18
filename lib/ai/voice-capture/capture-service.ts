@@ -45,6 +45,12 @@ const captureSchema = z.object({
         .describe(
           "Short Spanish description, taken from the user's explanation when it covers this movement"
         ),
+      merchant: z
+        .string()
+        .nullable()
+        .describe(
+          'Counterparty, merchant or concept exactly as written in the screenshot, or null'
+        ),
       suggestedCategoryId: z
         .string()
         .nullable()
@@ -74,13 +80,22 @@ export function isAudioCaptureAvailable(): boolean {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 }
 
-function buildPrompt(params: {
+/** A past transaction of the user and the category they chose for it. */
+export interface CaptureHistoryHint {
+  description: string;
+  category: string;
+}
+
+export const MAX_HISTORY_HINTS = 300;
+
+export function buildPrompt(params: {
   today: string;
   imageCount: number;
   hasAudio: boolean;
   note?: string;
   accounts: CaptureAccount[];
   categories: CaptureCategory[];
+  history?: CaptureHistoryHint[];
 }): string {
   const lines = [
     `Today is ${params.today}. There are ${params.imageCount} screenshot(s), indexed from 0 in the order given.`,
@@ -101,6 +116,20 @@ function buildPrompt(params: {
         .map((c) => `- id=${c.id} name="${c.name}" kind=${c.kind}`)
         .join('\n')
   );
+  const hints = [
+    ...new Map(
+      (params.history ?? []).map((h) => [
+        `"${h.description}" -> ${h.category}`,
+        true,
+      ])
+    ).keys(),
+  ].slice(0, MAX_HISTORY_HINTS);
+  if (hints.length > 0) {
+    lines.push(
+      "The user's past transactions and the category they chose. When a movement matches one of them, follow the user's convention over a generic category:\n" +
+        hints.map((hint) => `- ${hint}`).join('\n')
+    );
+  }
   return lines.join('\n\n');
 }
 
@@ -112,6 +141,8 @@ export async function extractCapturedTransactions(params: {
   categories: CaptureCategory[];
   today: string;
   abortSignal?: AbortSignal;
+  history?: CaptureHistoryHint[];
+  onUsage?: (usage: { inputTokens?: number; outputTokens?: number }) => void;
 }): Promise<CapturedTransaction[]> {
   const { images, audio, accounts, categories, today } = params;
   const model = audio
@@ -150,6 +181,7 @@ export async function extractCapturedTransactions(params: {
               note: params.note,
               accounts,
               categories,
+              history: params.history,
             }),
           },
           ...imageParts,
@@ -157,6 +189,10 @@ export async function extractCapturedTransactions(params: {
         ],
       },
     ],
+  });
+  params.onUsage?.({
+    inputTokens: result.usage?.inputTokens,
+    outputTokens: result.usage?.outputTokens,
   });
 
   return normalizeCapturedTransactions(result.object.transactions, {

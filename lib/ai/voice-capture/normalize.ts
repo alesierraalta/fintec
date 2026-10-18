@@ -17,6 +17,8 @@ export interface RawCapturedTransaction {
   suggestedAccountId: string | null;
   sourceImage: number | null;
   confidence: CapturedConfidence;
+  /** Counterparty or concept exactly as shown in the screenshot. */
+  merchant?: string | null;
 }
 
 export interface CapturedTransaction {
@@ -31,6 +33,7 @@ export interface CapturedTransaction {
   accountId: string | null;
   sourceImage: number | null;
   confidence: CapturedConfidence;
+  merchant: string | null;
 }
 
 export interface NormalizeContext {
@@ -120,6 +123,7 @@ export function normalizeCapturedTransactions(
       accountId,
       sourceImage,
       confidence: item.confidence,
+      merchant: item.merchant?.trim() || null,
     });
   }
 
