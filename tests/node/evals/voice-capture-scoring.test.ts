@@ -191,6 +191,107 @@ describe('aggregateRuns', () => {
   });
 });
 
+describe('TSP pinned defects', () => {
+  const cats = [
+    { id: 'x', name: 'X', kind: 'EXPENSE' as const },
+    { id: 'y', name: 'Y', kind: 'EXPENSE' as const },
+    { id: 'i', name: 'I', kind: 'INCOME' as const },
+  ];
+  const exp = (o: Partial<CaptureEvalCase['expected'][0]>) => ({
+    date: '2026-10-03',
+    amount: 12,
+    currency: 'USDT',
+    type: 'EXPENSE' as const,
+    category: null,
+    keywords: [],
+    ...o,
+  });
+
+  it('does not depend on the order of expected movements', () => {
+    const predicted = [tx({ type: 'INCOME', categoryId: 'i' })];
+    const a = exp({});
+    const b = exp({ type: 'INCOME' });
+    const forward = scoreCase(
+      { expected: [a, b], forbidden: [], categories: cats },
+      predicted
+    );
+    const backward = scoreCase(
+      { expected: [b, a], forbidden: [], categories: cats },
+      predicted
+    );
+    expect(forward).toEqual(backward);
+    expect(forward.typeAccuracy).toBe(1);
+  });
+
+  it('is invariant to shuffling expected and predicted (seeded property)', () => {
+    let seed = 42;
+    const rand = () =>
+      (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
+    const pick = <T>(xs: T[]) => xs[Math.floor(rand() * xs.length)];
+    const shuffle = <T>(xs: T[]) =>
+      xs
+        .map((v) => [rand(), v] as const)
+        .sort((p, q) => p[0] - q[0])
+        .map(([, v]) => v);
+    for (let trial = 0; trial < 300; trial++) {
+      const n = 1 + Math.floor(rand() * 5);
+      const expected = Array.from({ length: n }, () =>
+        exp({
+          amount: pick([12, 20]),
+          type: pick(['EXPENSE', 'INCOME'] as const),
+          category: pick(['X', 'Y', null]),
+        })
+      );
+      const predicted = Array.from({ length: 1 + Math.floor(rand() * 5) }, () =>
+        tx({
+          amount: pick([12, 20]),
+          type: pick(['EXPENSE', 'INCOME'] as const),
+          categoryId: pick(['x', 'y', 'i', null]),
+        })
+      );
+      const base = scoreCase(
+        { expected, forbidden: [], categories: cats },
+        predicted
+      );
+      const shuffled = scoreCase(
+        { expected: shuffle(expected), forbidden: [], categories: cats },
+        shuffle(predicted)
+      );
+      expect(shuffled).toEqual(base);
+    }
+  });
+
+  it('reports accuracies with nothing to measure as null, not 0', () => {
+    const none = scoreCase(
+      { expected: [exp({ keywords: [] })], forbidden: [], categories: cats },
+      []
+    );
+    const agg = aggregateRuns([{ caseId: 'a', score: none, latencyMs: 1 }]);
+    expect(agg.keywordHitRate).toBeNull();
+    expect(agg.typeAccuracy).toBeNull();
+    expect(agg.recall).toBe(0);
+  });
+
+  it('aggregates accuracies over matched movements, not vacuously over empty runs', () => {
+    const expected = [exp({ category: 'X' })];
+    const unmatched = scoreCase(
+      { expected, forbidden: [], categories: cats },
+      []
+    );
+    const wrongCategory = scoreCase(
+      { expected, forbidden: [], categories: cats },
+      [tx({ categoryId: 'y' })]
+    );
+    const agg = aggregateRuns([
+      { caseId: 'a', score: unmatched, latencyMs: 1 },
+      { caseId: 'a', score: wrongCategory, latencyMs: 1 },
+    ]);
+    expect(agg.categoryAccuracy).toBe(0);
+    expect(agg.typeAccuracy).toBe(1);
+    expect(agg.recall).toBe(0.5);
+  });
+});
+
 describe('percentile', () => {
   it('interpolates linearly', () => {
     expect(percentile([10, 20, 30, 40], 0.5)).toBe(25);

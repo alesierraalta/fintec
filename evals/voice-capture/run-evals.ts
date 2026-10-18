@@ -18,14 +18,15 @@ import {
   extractCapturedTransactions,
   type CaptureMedia,
 } from '@/lib/ai/voice-capture/capture-service';
+import { recategorize } from '@/lib/ai/voice-capture/history-retrieval';
 import {
-  embeddingNeighbors,
-  lexicalNeighbors,
-  recategorize,
-  type Neighbor,
-} from '@/lib/ai/voice-capture/history-retrieval';
-import type { CapturedTransaction } from '@/lib/ai/voice-capture/normalize';
-import { aggregateRuns, scoreCase, type RunResult } from './scoring';
+  checkGate,
+  evaluateJob,
+  type GateThresholds,
+  type StoredRun,
+  type Variant,
+} from './harness';
+import { aggregateRuns, scoreCase } from './scoring';
 import type { CaptureEvalCase } from './types';
 
 const DATASET_DIR = path.join(__dirname, 'dataset');
@@ -34,15 +35,6 @@ const THRESHOLDS_PATH = path.join(__dirname, 'thresholds.json');
 const LEXICAL_THRESHOLD = 0.5; // fixed a priori; the sweep below is diagnostic
 const EMBEDDING_THRESHOLD = 0.75;
 const SWEEP = [0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9];
-
-type Variant = 'none' | 'full-history' | 'lexical' | 'embedding';
-
-interface StoredRun extends RunResult {
-  variant: Variant;
-  run: number;
-  predicted?: CapturedTransaction[];
-  neighbors?: Neighbor[][];
-}
 
 function arg(name: string): string | undefined {
   const hit = process.argv.find((a) => a.startsWith(`--${name}`));
@@ -129,113 +121,16 @@ async function main() {
   );
 
   await pool(jobs, concurrency, async ({ c, run }) => {
-    // none + derived lexical/embedding (paired on the same extraction)
-    try {
-      const base = await extract(c, false);
-      const tokens = {
-        inputTokens: base.usage.inputTokens,
-        outputTokens: base.usage.outputTokens,
-      };
-      runs.push({
-        caseId: c.id,
-        variant: 'none',
-        run,
-        latencyMs: base.latencyMs,
-        score: scoreCase(c, base.predicted),
-        predicted: base.predicted,
-        ...tokens,
-      });
-
-      const queries = base.predicted.map((p) => p.merchant ?? p.description);
-      const lexNeighbors = queries.map((q) =>
-        lexicalNeighbors(q, c.history, 3)
-      );
-      const lexical = recategorize(
-        base.predicted,
-        lexNeighbors,
-        c.categories,
-        LEXICAL_THRESHOLD
-      );
-      runs.push({
-        caseId: c.id,
-        variant: 'lexical',
-        run,
-        latencyMs: base.latencyMs,
-        score: scoreCase(c, lexical),
-        predicted: base.predicted,
-        neighbors: lexNeighbors,
-        ...tokens,
-      });
-
-      if (!docCaches.has(c.id)) docCaches.set(c.id, new Map());
-      const t0 = Date.now();
-      const embNeighbors: Neighbor[][] = [];
-      for (const q of queries) {
-        embNeighbors.push(
-          await embeddingNeighbors(
-            q,
-            c.history,
-            3,
-            timedEmbed,
-            docCaches.get(c.id)!
-          )
-        );
-      }
-      const embedded = recategorize(
-        base.predicted,
-        embNeighbors,
-        c.categories,
-        EMBEDDING_THRESHOLD
-      );
-      runs.push({
-        caseId: c.id,
-        variant: 'embedding',
-        run,
-        latencyMs: base.latencyMs + (Date.now() - t0),
-        score: scoreCase(c, embedded),
-        predicted: base.predicted,
-        neighbors: embNeighbors,
-        ...tokens,
-      });
-      process.stdout.write('.');
-    } catch (error) {
-      for (const variant of ['none', 'lexical', 'embedding'] as Variant[]) {
-        runs.push({
-          caseId: c.id,
-          variant,
-          run,
-          latencyMs: 0,
-          score: null,
-          error: String(error),
-        });
-      }
-      process.stdout.write('E');
-    }
-
-    try {
-      const withHistory = await extract(c, true);
-      runs.push({
-        caseId: c.id,
-        variant: 'full-history',
-        run,
-        latencyMs: withHistory.latencyMs,
-        score: scoreCase(c, withHistory.predicted),
-        predicted: withHistory.predicted,
-        inputTokens: withHistory.usage.inputTokens,
-        outputTokens: withHistory.usage.outputTokens,
-      });
-      process.stdout.write('.');
-    } catch (error) {
-      runs.push({
-        caseId: c.id,
-        variant: 'full-history',
-        run,
-        latencyMs: 0,
-        score: null,
-        error: String(error),
-      });
-      process.stdout.write('E');
-    }
+    if (!docCaches.has(c.id)) docCaches.set(c.id, new Map());
+    const results = await evaluateJob(c, run, {
+      extract,
+      embed: timedEmbed,
+      documentCache: docCaches.get(c.id)!,
+      lexicalThreshold: LEXICAL_THRESHOLD,
+      embeddingThreshold: EMBEDDING_THRESHOLD,
+    });
+    runs.push(...results);
+    process.stdout.write(results.map((r) => (r.score ? '.' : 'E')).join(''));
   });
   console.log('');
 
@@ -290,6 +185,18 @@ async function main() {
     summary,
     byTag,
     sweep: { lexical: sweep('lexical'), embedding: sweep('embedding') },
+    // Raw predictions and neighbours: rescoring needs no new model calls.
+    rawRuns: runs.map(
+      ({ caseId, variant, run, latencyMs, predicted, neighbors, error }) => ({
+        caseId,
+        variant,
+        run,
+        latencyMs,
+        predicted,
+        neighbors,
+        error,
+      })
+    ),
     perCase: cases.map((c) => ({
       id: c.id,
       difficulty: c.difficulty,
@@ -311,7 +218,8 @@ async function main() {
   };
   fs.writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
 
-  const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+  const pct = (x: number | null) =>
+    x === null ? 'n/a' : `${(x * 100).toFixed(1)}%`;
   console.log(
     '\n| variant | pass@1 | pass^k | recall | precision | forbidden | type | currency | category | keywords | p50 ms | p95 ms | in tok |'
   );
@@ -326,20 +234,13 @@ async function main() {
     `\nEmbeddings: ${embedCalls} calls, ${embedMs} ms total. Report: ${REPORT_PATH}`
   );
 
-  if (arg('gate') && fs.existsSync(THRESHOLDS_PATH)) {
-    const gate = JSON.parse(fs.readFileSync(THRESHOLDS_PATH, 'utf8')) as Record<
-      string,
-      number
-    >;
-    const s = summary.none as Record<string, number>;
-    const failures = Object.entries(gate).filter(([key, min]) =>
-      key === 'maxForbiddenHits' ? s.forbiddenHits > min : (s[key] ?? 0) < min
-    );
-    for (const [key, min] of failures)
-      console.error(
-        `GATE FAIL ${key}: ${s[key === 'maxForbiddenHits' ? 'forbiddenHits' : key]} vs ${min}`
-      );
-    if (failures.length) process.exit(1);
+  if (arg('gate')) {
+    const thresholds = fs.existsSync(THRESHOLDS_PATH)
+      ? (JSON.parse(fs.readFileSync(THRESHOLDS_PATH, 'utf8')) as GateThresholds)
+      : null;
+    const gate = checkGate(summary.none as Record<string, number>, thresholds);
+    for (const failure of gate.failures) console.error(`GATE FAIL ${failure}`);
+    if (!gate.ok) process.exit(1);
     console.log('Gate passed.');
   }
 }
