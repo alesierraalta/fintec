@@ -87,6 +87,21 @@ export interface CaptureHistoryHint {
 }
 
 export const MAX_HISTORY_HINTS = 300;
+export const MAX_HINT_CHARS = 80;
+
+/**
+ * History text is user data (imported statements, earlier captures): it is
+ * flattened to one line, capped, and JSON-quoted so it can never add prompt
+ * lines or forge another "description -> category" mapping.
+ */
+function hintText(text: string): string {
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return JSON.stringify(
+    flat.length > MAX_HINT_CHARS
+      ? `${flat.slice(0, MAX_HINT_CHARS - 1)}…`
+      : flat
+  );
+}
 
 export function buildPrompt(params: {
   today: string;
@@ -117,12 +132,11 @@ export function buildPrompt(params: {
         .join('\n')
   );
   const hints = [
-    ...new Map(
-      (params.history ?? []).map((h) => [
-        `"${h.description}" -> ${h.category}`,
-        true,
-      ])
-    ).keys(),
+    ...new Set(
+      (params.history ?? []).map(
+        (h) => `${hintText(h.description)} -> ${hintText(h.category)}`
+      )
+    ),
   ].slice(0, MAX_HISTORY_HINTS);
   if (hints.length > 0) {
     lines.push(
