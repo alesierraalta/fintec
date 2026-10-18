@@ -46,8 +46,17 @@ describe('normalizeCapturedTransactions', () => {
         accountId: 'binance',
         sourceImage: 0,
         confidence: 'HIGH',
+        merchant: null,
       },
     ]);
+  });
+
+  it('keeps the merchant text as shown, trimmed, or null when blank', () => {
+    const result = normalizeCapturedTransactions(
+      [raw({ merchant: '  CINEX LIDER ' }), raw({ merchant: '  ' })],
+      ctx
+    );
+    expect(result.map((t) => t.merchant)).toEqual(['CINEX LIDER', null]);
   });
 
   it.each([0, -3, Number.NaN, Number.POSITIVE_INFINITY])(

@@ -1,0 +1,8 @@
+{
+  "recall": 0.95,
+  "precision": 0.95,
+  "typeAccuracy": 0.95,
+  "currencyAccuracy": 0.95,
+  "categoryAccuracy": 0.85,
+  "maxForbiddenHits": 0
+}

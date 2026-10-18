@@ -223,3 +223,6 @@ reports-verification.png
 /testLocales/
 
 .local-audit/
+
+# voice-capture eval: TTS intermediates
+evals/voice-capture/dataset/audio/*.wav
