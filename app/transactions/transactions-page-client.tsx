@@ -67,6 +67,28 @@ const BatchReceiptUploaderModal = dynamic(
 
 import { AddTransactionMenu } from '@/components/transactions/add-transaction-menu';
 
+const QuickEntryModal = dynamic(
+  () =>
+    import('@/components/bulk-capture/quick-entry-modal').then(
+      (mod) => mod.QuickEntryModal
+    ),
+  { ssr: false }
+);
+const StatementImportModal = dynamic(
+  () =>
+    import('@/components/bulk-capture/statement-import-modal').then(
+      (mod) => mod.StatementImportModal
+    ),
+  { ssr: false }
+);
+
+const VoiceCaptureModal = dynamic(
+  () =>
+    import('@/components/bulk-capture/voice-capture-modal').then(
+      (mod) => mod.VoiceCaptureModal
+    ),
+  { ssr: false }
+);
 const ITEMS_PER_PAGE = 50;
 const TRANSACTION_TYPES = new Set<string>(Object.values(TransactionType));
 
@@ -107,7 +129,16 @@ export default function TransactionsPage() {
     searchParams.get('action') === 'batch'
   );
 
+  const [captureAction, setCaptureAction] = useState<string | null>(() => {
+    const action = searchParams.get('action');
+    return action === 'quick' || action === 'import' || action === 'voice'
+      ? action
+      : null;
+  });
   useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'quick' || action === 'import' || action === 'voice')
+      setCaptureAction(action);
     if (searchParams.get('action') === 'batch') {
       setIsBatchModalOpen(true);
     }
@@ -567,6 +598,9 @@ export default function TransactionsPage() {
                   label="Agregar"
                   onAddSingle={handleNewTransaction}
                   onAddBatch={() => setIsBatchModalOpen(true)}
+                  onQuickEntry={() => setCaptureAction('quick')}
+                  onImportStatement={() => setCaptureAction('import')}
+                  onVoiceCapture={() => setCaptureAction('voice')}
                 />
               </div>
             }
@@ -1059,6 +1093,36 @@ export default function TransactionsPage() {
           />
         )}
 
+        {captureAction === 'quick' && (
+          <QuickEntryModal
+            isOpen
+            onClose={() => setCaptureAction(null)}
+            onSuccess={loadAllData}
+            accounts={accounts}
+            categories={categories}
+          />
+        )}
+        {captureAction === 'import' && (
+          <StatementImportModal
+            isOpen
+            onClose={() => setCaptureAction(null)}
+            onSuccess={loadAllData}
+            accounts={accounts}
+            categories={categories}
+            existingTransactions={transactions}
+          />
+        )}
+
+        {captureAction === 'voice' && (
+          <VoiceCaptureModal
+            isOpen
+            onClose={() => setCaptureAction(null)}
+            onSuccess={loadAllData}
+            accounts={accounts}
+            categories={categories}
+            existingTransactions={transactions}
+          />
+        )}
         {isBatchModalOpen && (
           <BatchReceiptUploaderModal
             isOpen={isBatchModalOpen}

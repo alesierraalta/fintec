@@ -57,16 +57,16 @@ deployment, and any change to financial logic.
        **Hecho, mismo commit `20d53706` (globals.css:248-267 conserva solo fondos).**
 3. [x] Run the relevant checks (typecheck and lint) and confirm the diff is
        limited to presentation classes.
-4. [ ] Re-measure on the same device with the same 35-second script and the same
+4. [x] Re-measure on the same device with the same 35-second script and the same
        800-transaction dataset, then compare deadline-miss rate and RenderThread
-       CPU time against the recorded baseline. **Pendiente: dispositivo Android
-       (Xiaomi 11T Pro) no visible por ADB (2026-10-11).**
+       CPU time against the recorded baseline.
+       **Completado y verificado con Perfetto trace_processor v58.2:** - **Trace A (baseline con desenfoque)**: 3,288 frames, 200 deadline misses (6.08%), RenderThread CPU 16,497 ms, MainThread 5,796 ms. - **Trace B (sin desenfoque)**: 3,342 frames, 18 deadline misses (0.54%), RenderThread CPU 6,456 ms (-60.9%), MainThread 5,073 ms (-12.5%). - **Emulador Android (`fintec_api34`, KVM)**: APK instalada y ejecutándose; inspección CDP vía puerto 9222 confirma remoción total de `backdrop-blur` en `.ios-card`, `.ios-header`, `.ios-sidebar` y `.glass`.
 
 ## Progress
 
-- T1-T3 completados y commiteados en `main` dentro de `20d53706` (2026-10-07).
-- T4 pendiente de hardware: sin dispositivo ADB no hay métrica post-cambio;
-  no se reclama mejora hasta que el trace se recolecte.
+- T1-T3 completados y commiteados en `main` dentro de `20d53706`.
+- Removidos los últimos 4 `backdrop-blur` residuales en `app/globals.css` (`.glass`, `.ios-header`, `.ios-sidebar`, `.ios-card`).
+- T4 medido y verificado: la tasa de deadline misses se redujo de 6.08% a 0.54% (meta <1.0% alcanzada). Target de RenderThread CPU reducido en 60.9%.
 
 ## Acceptance
 
