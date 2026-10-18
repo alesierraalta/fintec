@@ -106,7 +106,7 @@ function BinanceRateAdvancedImpl({
   return (
     <div
       data-testid="binance-rate-advanced"
-      className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl lg:p-8"
+      className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl lg:p-8"
     >
       <div className="mb-4 flex flex-col gap-3">
         <div className="flex items-center justify-between">
@@ -205,7 +205,7 @@ function BinanceRateAdvancedImpl({
         />
       </div>
 
-      <div className="mb-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-center backdrop-blur-sm">
+      <div className="mb-4 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/10 to-primary/5 p-4 text-center">
         <p className="text-xs font-bold text-primary">Tasa estimada</p>
         <p
           data-testid="binance-rate-adjusted"

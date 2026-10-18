@@ -4,6 +4,8 @@ import {
   loadOptimizedDataCache,
   persistOptimizedDataCache,
   clearAllOptimizedDataCaches,
+  markOptimizedDataCacheStale,
+  updateOptimizedDataCache,
   MAX_CACHED_TRANSACTIONS,
 } from '@/lib/cache/optimized-data-cache';
 
@@ -112,6 +114,28 @@ describe('optimized data cache projection and bounds', () => {
     expect(loaded?.transactions).toEqual([
       { id: 'tx-legacy', type: 'EXPENSE', updatedAt: 'keep-me' },
     ]);
+  });
+});
+
+describe('optimized data cache freshness', () => {
+  beforeEach(() => {
+    clearAllOptimizedDataCaches();
+    localStorage.clear();
+  });
+
+  it('marks a domain stale without dropping cached rows', () => {
+    updateOptimizedDataCache('user-a', { transactions: [{ id: 'tx-1' }] }, [
+      'transactions',
+    ]);
+
+    const stale = markOptimizedDataCacheStale('user-a', 'transactions');
+
+    expect(stale.transactions).toEqual([{ id: 'tx-1' }]);
+    expect(stale.lastUpdated.transactions).toBe(0);
+    expect(loadOptimizedDataCache('user-a')?.transactions).toEqual([
+      { id: 'tx-1' },
+    ]);
+    expect(loadOptimizedDataCache('user-a')?.lastUpdated.transactions).toBe(0);
   });
 });
 

@@ -166,7 +166,7 @@ export function ResetPasswordForm({
       transition={{ duration: 0.5 }}
       className="mx-auto w-full max-w-md"
     >
-      <div className="rounded-3xl border border-white/20 bg-card/60 p-8 shadow-2xl backdrop-blur-xl">
+      <div className="rounded-3xl border border-white/20 bg-card/60 p-8 shadow-2xl">
         <div className="mb-8 text-center">
           <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Key className="h-8 w-8 text-primary" />

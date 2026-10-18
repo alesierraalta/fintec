@@ -13,6 +13,7 @@ import {
   CategoryKind,
   DebtSettlement,
 } from '@/types';
+import type { PendingItem } from '@/types/pending-item';
 
 // Dexie database schema
 export class FinanceDB extends Dexie {
@@ -28,6 +29,7 @@ export class FinanceDB extends Dexie {
   exchangeRates!: Table<ExchangeRate>;
   recurringRules!: Table<RecurringRule>;
   debtSettlements!: Table<DebtSettlement>;
+  pendingItems!: Table<PendingItem>;
 
   constructor() {
     super('FinanceDB');
@@ -135,9 +137,35 @@ export class FinanceDB extends Dexie {
       debtSettlements:
         'id, debtTransactionId, settlementTransactionId, accountId, userId, settledAt, [debtTransactionId+settledAt]',
     });
+
+    // v5: pending items checklists (compras / pagos sin fechas)
+    this.version(5).stores({
+      users: 'id, email, baseCurrency, createdAt',
+      accounts:
+        'id, userId, name, type, currencyCode, balance, active, createdAt, [type+active], [currencyCode+active], [userId+active]',
+      transactions:
+        'id, type, accountId, categoryId, currencyCode, date, amountMinor, amountBaseMinor, transferId, isDebt, debtDirection, debtStatus, settledAt, createdAt, [accountId+date], [categoryId+date], [type+date], [date+type], [isDebt+debtStatus], [isDebt+debtDirection+date]',
+      transfers: 'id, fromTransactionId, toTransactionId, createdAt',
+      categories:
+        'id, name, kind, parentId, active, createdAt, [kind+active], [parentId+active]',
+      budgets:
+        'id, categoryId, monthYear, amountBaseMinor, active, createdAt, [categoryId+monthYear], [monthYear+active]',
+      goals:
+        'id, name, targetBaseMinor, currentBaseMinor, targetDate, accountId, active, createdAt, [active+targetDate]',
+      goalContributions:
+        'id, goalId, createdAt, source, relatedTransactionId, [goalId+createdAt]',
+      exchangeRates:
+        'id, baseCurrency, quoteCurrency, date, rate, provider, createdAt, [baseCurrency+quoteCurrency+date], [baseCurrency+quoteCurrency]',
+      recurringRules:
+        'id, name, frequency, nextRunDate, active, createdAt, [active+nextRunDate]',
+      debtSettlements:
+        'id, debtTransactionId, settlementTransactionId, accountId, userId, settledAt, [debtTransactionId+settledAt]',
+      pendingItems: 'id, userId, kind, done, createdAt, [userId+done]',
+    });
   }
 
   // Initialize database with default data
+
   async initialize(): Promise<void> {
     let retryCount = 0;
     const maxRetries = 3;

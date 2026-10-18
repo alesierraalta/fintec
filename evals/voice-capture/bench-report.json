@@ -1,0 +1,118 @@
+{
+  "timestamp": "2026-10-18T05:17:49.891Z",
+  "node": "v24.14.1",
+  "results": [
+    {
+      "name": "statement csv: parse+map",
+      "size": 1000,
+      "medianMs": 2.758,
+      "p95Ms": 3.784,
+      "perItemUs": 2.758,
+      "sink": 15000
+    },
+    {
+      "name": "statement csv: parse+map",
+      "size": 10000,
+      "medianMs": 29.575,
+      "p95Ms": 41.53,
+      "perItemUs": 2.958,
+      "sink": 150000
+    },
+    {
+      "name": "statement csv: parse+map",
+      "size": 50000,
+      "medianMs": 137.37,
+      "p95Ms": 180.505,
+      "perItemUs": 2.747,
+      "sink": 250000
+    },
+    {
+      "name": "quick entry: parse",
+      "size": 100,
+      "medianMs": 0.238,
+      "p95Ms": 0.299,
+      "perItemUs": 2.382,
+      "sink": 1500
+    },
+    {
+      "name": "quick entry: parse",
+      "size": 1000,
+      "medianMs": 1.089,
+      "p95Ms": 1.437,
+      "perItemUs": 1.089,
+      "sink": 15000
+    },
+    {
+      "name": "quick entry: parse",
+      "size": 10000,
+      "medianMs": 11.087,
+      "p95Ms": 15.565,
+      "perItemUs": 1.109,
+      "sink": 149985
+    },
+    {
+      "name": "capture normalize",
+      "size": 200,
+      "medianMs": 0.194,
+      "p95Ms": 0.402,
+      "perItemUs": 0.97,
+      "sink": 3000
+    },
+    {
+      "name": "capture normalize",
+      "size": 10000,
+      "medianMs": 0.219,
+      "p95Ms": 0.388,
+      "perItemUs": 0.022,
+      "sink": 3000
+    },
+    {
+      "name": "lexical neighbours (1 query)",
+      "size": 100,
+      "medianMs": 0.402,
+      "p95Ms": 0.804,
+      "perItemUs": 4.023,
+      "sink": 45
+    },
+    {
+      "name": "lexical re-categorize 20 movements",
+      "size": 100,
+      "medianMs": 4.556,
+      "p95Ms": 6.108,
+      "perItemUs": 45.564,
+      "sink": 225
+    },
+    {
+      "name": "lexical neighbours (1 query)",
+      "size": 1000,
+      "medianMs": 3.274,
+      "p95Ms": 4.175,
+      "perItemUs": 3.274,
+      "sink": 45
+    },
+    {
+      "name": "lexical re-categorize 20 movements",
+      "size": 1000,
+      "medianMs": 50.371,
+      "p95Ms": 69.654,
+      "perItemUs": 50.371,
+      "sink": 225
+    },
+    {
+      "name": "lexical neighbours (1 query)",
+      "size": 10000,
+      "medianMs": 38.252,
+      "p95Ms": 41.481,
+      "perItemUs": 3.825,
+      "sink": 45
+    },
+    {
+      "name": "lexical re-categorize 20 movements",
+      "size": 10000,
+      "medianMs": 617.326,
+      "p95Ms": 762.36,
+      "perItemUs": 61.733,
+      "sink": 75
+    }
+  ]
+}

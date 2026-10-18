@@ -564,7 +564,7 @@ export function DesktopAddTransaction() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground backdrop-blur-md transition-all duration-300 hover:bg-card/60"
+            className="focus-ring flex min-h-[44px] items-center space-x-2 rounded-xl border border-border/60 bg-card/40 px-4 py-2 text-foreground transition-all duration-300 hover:bg-card/60"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
             <span>Volver</span>
@@ -578,7 +578,7 @@ export function DesktopAddTransaction() {
         </div>
 
         {error && (
-          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400 backdrop-blur-md">
+          <div className="mb-6 rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-400">
             {error}
           </div>
         )}
@@ -637,7 +637,7 @@ export function DesktopAddTransaction() {
           {/* Left Column - Transaction Type & Account */}
           <div className="space-y-6">
             {/* Transaction Type */}
-            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <Repeat
                   className="mr-2 h-5 w-5 text-blue-400"
@@ -668,7 +668,7 @@ export function DesktopAddTransaction() {
                       className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                         isSelected
                           ? `bg-gradient-to-r ${type.color} border-0 shadow-xl`
-                          : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
+                          : 'border border-border/40 bg-muted/10 hover:bg-muted/20'
                       }`}
                     >
                       <div className="flex items-center space-x-3">
@@ -698,7 +698,7 @@ export function DesktopAddTransaction() {
 
             {/* Account Selection */}
             {formData.type && (
-              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg">
                 <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                   <Wallet
                     className="mr-2 h-5 w-5 text-green-400"
@@ -735,7 +735,7 @@ export function DesktopAddTransaction() {
                           className={`w-full transform rounded-xl p-4 transition-all duration-300 ${
                             isSelected
                               ? 'border border-success/40 bg-success/90 shadow-xl'
-                              : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
+                              : 'border border-border/40 bg-muted/10 hover:bg-muted/20'
                           }`}
                         >
                           <div className="flex items-center space-x-3">
@@ -774,7 +774,7 @@ export function DesktopAddTransaction() {
           <div className="space-y-6">
             {/* Category Selection */}
             {formData.type && (
-              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+              <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="flex items-center text-xl font-semibold text-foreground">
                     <Tag
@@ -823,7 +823,7 @@ export function DesktopAddTransaction() {
                             className={`relative rounded-xl p-3 transition-all duration-300 ${
                               isSelected
                                 ? 'border-0 shadow-xl'
-                                : 'border border-border/40 bg-muted/10 backdrop-blur-md hover:bg-muted/20'
+                                : 'border border-border/40 bg-muted/10 hover:bg-muted/20'
                             }`}
                             style={
                               isSelected
@@ -859,7 +859,7 @@ export function DesktopAddTransaction() {
             )}
 
             {/* Visual Calculator */}
-            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <DollarSign
                   className="mr-2 h-5 w-5 text-yellow-400"
@@ -983,7 +983,7 @@ export function DesktopAddTransaction() {
             {scannedResult && (
               <div
                 data-testid="desktop-scan-confirm-banner"
-                className="transition-ios animate-in fade-in space-y-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 shadow-ios-lg backdrop-blur-xl duration-200"
+                className="transition-ios animate-in fade-in space-y-3 rounded-2xl border border-primary/40 bg-primary/10 p-4 shadow-ios-lg duration-200"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
@@ -1054,7 +1054,7 @@ export function DesktopAddTransaction() {
               </div>
             )}
 
-            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg backdrop-blur-xl">
+            <div className="transition-ios rounded-2xl border border-border/40 bg-muted/10 p-6 shadow-ios-lg">
               <h3 className="mb-4 flex items-center text-xl font-semibold text-foreground">
                 <FileText
                   className="mr-2 h-5 w-5 text-cyan-400"
@@ -1085,7 +1085,7 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, description: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -1103,7 +1103,7 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, date: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -1122,7 +1122,7 @@ export function DesktopAddTransaction() {
                       setFormData({ ...formData, note: e.target.value })
                     }
                     rows={3}
-                    className="w-full resize-none rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full resize-none rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
                 <div>
@@ -1140,7 +1140,7 @@ export function DesktopAddTransaction() {
                     onChange={(e) =>
                       setFormData({ ...formData, tags: e.target.value })
                     }
-                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                    className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                   />
                 </div>
 
@@ -1208,7 +1208,7 @@ export function DesktopAddTransaction() {
                                     .value as DebtDirection,
                                 })
                               }
-                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             >
                               <option value="" className="bg-background">
                                 Selecciona una opcion
@@ -1245,7 +1245,7 @@ export function DesktopAddTransaction() {
                                       : '',
                                 })
                               }
-                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             >
                               <option
                                 value={DebtStatus.OPEN}
@@ -1280,7 +1280,7 @@ export function DesktopAddTransaction() {
                                     settledAt: e.target.value,
                                   })
                                 }
-                                className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                                className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                               />
                             </div>
                           )}
@@ -1303,7 +1303,7 @@ export function DesktopAddTransaction() {
                                   counterpartyName: e.target.value,
                                 })
                               }
-                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                              className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground placeholder-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                             />
                           </div>
                         </div>
@@ -1354,7 +1354,7 @@ export function DesktopAddTransaction() {
                                 'weekly' | 'monthly' | 'yearly',
                             })
                           }
-                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         >
                           <option value="weekly" className="bg-background">
                             Semanal
@@ -1385,7 +1385,7 @@ export function DesktopAddTransaction() {
                               endDate: e.target.value,
                             })
                           }
-                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
+                          className="w-full rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-foreground focus:border-transparent focus:ring-2 focus:ring-blue-500/50"
                         />
                         <p className="mt-1 text-xs text-muted-foreground/80">
                           Deja vacío para que continúe indefinidamente
@@ -1446,7 +1446,7 @@ export function DesktopAddTransaction() {
 
         {/* Summary Card (if form is partially filled) */}
         {(formData.type || formData.amount) && (
-          <div className="transition-ios fixed right-8 top-20 z-40 max-w-sm rounded-2xl border border-border/50 bg-card/80 p-4 shadow-ios-lg backdrop-blur-xl">
+          <div className="transition-ios fixed right-8 top-20 z-40 max-w-sm rounded-2xl border border-border/50 bg-card/80 p-4 shadow-ios-lg">
             <h4 className="mb-2 font-semibold text-foreground">Resumen</h4>
             <div className="space-y-1 text-sm text-muted-foreground">
               {formData.type && (

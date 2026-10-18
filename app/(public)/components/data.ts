@@ -46,7 +46,7 @@ export const navLinks: NavLink[] = [
   { label: 'Pricing', href: '/pricing' },
   { label: 'Descargar', href: '/download' },
   { label: 'Iniciar Sesión', href: '/auth/login' },
-  { label: 'Registrarse', href: '/auth/register' },
+  { label: 'Crear cuenta gratis', href: '/auth/register' },
 ];
 
 // Testimonials — REMOVED for honesty (2025-08-25): no verified user feedback yet.

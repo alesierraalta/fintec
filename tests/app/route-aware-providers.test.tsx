@@ -23,11 +23,19 @@ const mockMotionConfig = jest.fn(
   )
 );
 
-const mockAuthProvider = jest.fn(
-  ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="auth-provider">{children}</div>
-  )
-);
+const mockAuthProviderMount = jest.fn();
+const mockAuthProviderUnmount = jest.fn();
+function MockAuthProvider({ children }: { children: React.ReactNode }) {
+  React.useEffect(() => {
+    mockAuthProviderMount();
+    return () => mockAuthProviderUnmount();
+  }, []);
+
+  return <div data-testid="auth-provider">{children}</div>;
+}
+const mockAuthProvider = jest.fn((props: { children: React.ReactNode }) => (
+  <MockAuthProvider {...props} />
+));
 
 const mockRepositoryProvider = jest.fn(
   ({ children }: { children: React.ReactNode }) => (
@@ -118,25 +126,38 @@ describe('RouteAwareProviders', () => {
     expect(mockSubscriptionProvider).toHaveBeenCalledTimes(1);
   });
 
-  it('bypasses providers for root path /', () => {
+  it('keeps app providers stable on the root path /', () => {
     mockUsePathname.mockReturnValue('/');
 
-    render(
+    const { rerender } = render(
       <RouteAwareProviders>
         <div>Root content</div>
       </RouteAwareProviders>
     );
 
     expect(screen.getByText('Root content')).toBeInTheDocument();
-    expect(screen.queryByTestId('auth-provider')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('repository-provider')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('subscription-provider')
-    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('auth-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('repository-provider')).toBeInTheDocument();
+    expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
-    expect(mockAuthProvider).not.toHaveBeenCalled();
-    expect(mockRepositoryProvider).not.toHaveBeenCalled();
-    expect(mockSubscriptionProvider).not.toHaveBeenCalled();
+    expect(mockAuthProvider).toHaveBeenCalledTimes(1);
+    expect(mockRepositoryProvider).toHaveBeenCalledTimes(1);
+    expect(mockSubscriptionProvider).toHaveBeenCalledTimes(1);
+    expect(mockAuthProviderMount).toHaveBeenCalledTimes(1);
+    expect(mockAuthProviderUnmount).not.toHaveBeenCalled();
+
+    rerender(
+      <RouteAwareProviders>
+        <div>Updated root content</div>
+      </RouteAwareProviders>
+    );
+
+    expect(screen.getByText('Updated root content')).toBeInTheDocument();
+    expect(mockAuthProvider).toHaveBeenCalledTimes(2);
+    expect(mockRepositoryProvider).toHaveBeenCalledTimes(2);
+    expect(mockSubscriptionProvider).toHaveBeenCalledTimes(2);
+    expect(mockAuthProviderMount).toHaveBeenCalledTimes(1);
+    expect(mockAuthProviderUnmount).not.toHaveBeenCalled();
   });
 
   it('handles null pathname safely', () => {
@@ -154,7 +175,6 @@ describe('RouteAwareProviders', () => {
     expect(screen.getByTestId('subscription-provider')).toBeInTheDocument();
     expect(screen.queryByTestId('motion-config')).not.toBeInTheDocument();
   });
-
 
   it('does NOT render MotionConfig globally anymore (perf-page-transitions requirement)', () => {
     mockUsePathname.mockReturnValue('/dashboard');

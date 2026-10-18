@@ -203,7 +203,7 @@ export function Modal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: shouldReduceMotion ? 0.05 : 0.2 }}
-            className="fixed inset-0 bg-background/60 backdrop-blur-sm"
+            className="fixed inset-0 bg-background/60"
             onClick={onClose}
             aria-hidden="true"
           />
@@ -218,8 +218,8 @@ export function Modal({
             ref={modalRef}
             className={cn(
               mobileFullScreen
-                ? 'fixed inset-0 m-0 flex h-[100dvh] h-screen max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-card/95 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] shadow-2xl backdrop-blur-xl sm:relative sm:mx-4 sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border sm:border-border/50 sm:pl-0 sm:pr-0'
-                : 'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl backdrop-blur-xl',
+                ? 'fixed inset-0 m-0 flex h-[100dvh] h-screen max-h-[100dvh] w-full flex-col overflow-hidden rounded-none border-0 bg-card/95 pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] shadow-2xl sm:relative sm:mx-4 sm:h-auto sm:max-h-[90dvh] sm:rounded-3xl sm:border sm:border-border/50 sm:pl-0 sm:pr-0'
+                : 'relative mx-4 flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-3xl border border-border/50 bg-card/80 shadow-2xl',
               sizeClasses[size],
               className
             )}
@@ -310,7 +310,7 @@ export function Modal({
               <div
                 data-testid="modal-footer"
                 className={cn(
-                  'flex-shrink-0 border-t border-border/50 bg-card/95 px-4 py-3 backdrop-blur-md sm:px-6 sm:py-4',
+                  'flex-shrink-0 border-t border-border/50 bg-card/95 px-4 py-3 sm:px-6 sm:py-4',
                   mobileFullScreen
                     ? 'pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:pb-4'
                     : 'pb-safe-bottom'

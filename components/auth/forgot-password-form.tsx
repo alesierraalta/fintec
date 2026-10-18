@@ -61,7 +61,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
         transition={{ type: 'spring', duration: 0.5 }}
         className="mx-auto w-full max-w-md"
       >
-        <div className="rounded-[2.5rem] border border-white/10 bg-card/40 p-10 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+        <div className="rounded-[2.5rem] border border-white/10 bg-card/40 p-10 text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -119,7 +119,7 @@ export function ForgotPasswordForm({ onSuccess }: ForgotPasswordFormProps) {
     >
       <motion.div
         layout
-        className="group relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-card/40 p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+        className="group relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-card/40 p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
       >
         {/* Decorative elements */}
         <div className="absolute -right-24 -top-24 h-48 w-48 rounded-full bg-primary/20 blur-[80px]" />

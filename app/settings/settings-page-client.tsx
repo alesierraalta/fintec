@@ -83,7 +83,7 @@ export default function SettingsPage() {
 
         {/* * Subscription Section */}
         <div
-          className={`mb-6 rounded-3xl border bg-card/90 p-6 shadow-lg backdrop-blur-xl ${
+          className={`mb-6 rounded-3xl border bg-card/90 p-6 shadow-lg ${
             isPremium ? 'border-amber-400/40' : 'border-border/40'
           }`}
         >
@@ -179,7 +179,7 @@ export default function SettingsPage() {
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* iOS-style Auto Backup Settings */}
-          <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg">
             <div className="mb-6 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
               <h2 className="text-ios-title font-semibold text-foreground">

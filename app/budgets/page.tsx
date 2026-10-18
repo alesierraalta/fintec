@@ -290,7 +290,7 @@ export default function BudgetsPage() {
         </div>
 
         {/* iOS-style Month Selector */}
-        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-lg backdrop-blur-xl">
+        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-lg">
           <div className="mb-4 flex items-center space-x-2">
             <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
             <h2 className="text-ios-title font-semibold text-foreground">
@@ -332,7 +332,7 @@ export default function BudgetsPage() {
 
         {/* iOS-style Summary Cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -350,7 +350,7 @@ export default function BudgetsPage() {
             </div>
           </div>
 
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-red-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">
@@ -368,7 +368,7 @@ export default function BudgetsPage() {
             </div>
           </div>
 
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div
                 className={`h-2 w-2 ${remaining >= 0 ? 'bg-green-500' : 'bg-red-500'} animate-pulse rounded-full`}
@@ -394,7 +394,7 @@ export default function BudgetsPage() {
             </div>
           </div>
 
-          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl">
+          <div className="group rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl">
             <div className="mb-4 flex items-center space-x-2">
               <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500"></div>
               <h3 className="text-ios-caption font-medium tracking-wide text-muted-foreground">

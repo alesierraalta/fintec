@@ -28,7 +28,7 @@ export function ReportsSkeleton() {
         {[1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="rounded-2xl border border-border/20 bg-card/60 p-4 shadow-sm backdrop-blur-xl"
+            className="rounded-2xl border border-border/20 bg-card/60 p-4 shadow-sm"
           >
             <div className="mb-2 flex items-start justify-between">
               <Skeleton className="h-4 w-20" />
@@ -42,7 +42,7 @@ export function ReportsSkeleton() {
 
       {/* Main Chart Skeleton */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="min-h-[400px] rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm backdrop-blur-xl lg:col-span-2">
+        <div className="min-h-[400px] rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm lg:col-span-2">
           <div className="mb-8 flex items-center justify-between">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-8 w-32 rounded-lg" />
@@ -59,7 +59,7 @@ export function ReportsSkeleton() {
         </div>
 
         {/* Side Panel Skeleton (Categories/Donut) */}
-        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm backdrop-blur-xl lg:col-span-1">
+        <div className="rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm lg:col-span-1">
           <Skeleton className="mb-6 h-8 w-40" />
           <div className="flex justify-center py-8">
             <Skeleton className="h-48 w-48 rounded-full" />

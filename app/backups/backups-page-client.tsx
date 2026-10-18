@@ -594,7 +594,7 @@ export default function BackupsPage() {
 
       {/* Clear Account Confirmation Modal */}
       {showClearModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           {/* * Modal with max-height for mobile scrolling */}
           <div className="max-h-[90dvh] w-full max-w-lg overflow-y-auto rounded-xl border border-red-500/30 bg-card p-6 shadow-2xl">
             <div className="mb-4 flex items-center space-x-3">

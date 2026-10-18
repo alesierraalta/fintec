@@ -45,7 +45,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        'transition-ios group cursor-pointer rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm backdrop-blur-xl hover:scale-[1.02] hover:bg-card/80 hover:shadow-ios-lg',
+        'transition-ios group cursor-pointer rounded-3xl border border-border/20 bg-card/60 p-6 shadow-ios-sm hover:scale-[1.02] hover:bg-card/80 hover:shadow-ios-lg',
         className
       )}
     >
@@ -54,7 +54,7 @@ export function StatCard({
         <div className="flex items-center justify-between">
           <div
             className={cn(
-              'transition-ios rounded-2xl border p-3 backdrop-blur-sm group-hover:scale-105',
+              'transition-ios rounded-2xl border p-3 group-hover:scale-105',
               getIconBg()
             )}
           >
@@ -62,7 +62,7 @@ export function StatCard({
           </div>
           <div
             className={cn(
-              'transition-ios rounded-full px-3 py-1.5 text-ios-caption font-semibold backdrop-blur-sm',
+              'transition-ios rounded-full px-3 py-1.5 text-ios-caption font-semibold',
               changeType === 'positive' &&
                 'bg-gradient-to-r from-primary to-primary/80 text-white shadow-ios-sm',
               changeType === 'negative' &&

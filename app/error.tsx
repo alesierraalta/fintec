@@ -17,12 +17,12 @@ export default function Error({
   }, [error]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-background text-foreground">
-      <div className="max-w-md w-full text-center space-y-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 text-foreground">
+      <div className="w-full max-w-md space-y-6 text-center">
         {/* Icon Container */}
         <div className="relative mx-auto h-24 w-24">
-          <div className="absolute inset-0 bg-destructive/20 rounded-full animate-pulse-soft" />
-          <div className="relative flex h-full w-full items-center justify-center rounded-full bg-card/50 border border-destructive/30 backdrop-blur-xl shadow-xl">
+          <div className="absolute inset-0 animate-pulse-soft rounded-full bg-destructive/20" />
+          <div className="relative flex h-full w-full items-center justify-center rounded-full border border-destructive/30 bg-card/50 shadow-xl">
             <AlertTriangle className="h-10 w-10 text-destructive" />
           </div>
         </div>
@@ -30,11 +30,12 @@ export default function Error({
         {/* Text Content */}
         <div className="space-y-2">
           <h2 className="text-2xl font-bold tracking-tight">Algo salió mal</h2>
-          <p className="text-muted-foreground text-sm leading-relaxed">
-            Hemos encontrado un error inesperado. Nuestro equipo ha sido notificado.
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Hemos encontrado un error inesperado. Nuestro equipo ha sido
+            notificado.
             <br />
             {error.digest && (
-              <span className="text-xs font-mono text-muted-foreground/50 mt-2 block">
+              <span className="mt-2 block font-mono text-xs text-muted-foreground/50">
                 Error ID: {error.digest}
               </span>
             )}
@@ -42,19 +43,19 @@ export default function Error({
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
+        <div className="flex flex-col justify-center gap-3 pt-4 sm:flex-row">
           <Button
             onClick={reset}
             variant="primary"
             size="lg"
-            className="w-full sm:w-auto shadow-lg hover:shadow-primary/25"
+            className="w-full shadow-lg hover:shadow-primary/25 sm:w-auto"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Reintentar
           </Button>
-          
+
           <Button
-            onClick={() => window.location.href = '/'}
+            onClick={() => (window.location.href = '/')}
             variant="outline"
             size="lg"
             className="w-full sm:w-auto"

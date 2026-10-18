@@ -1,8 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 
-export interface InputProps
-  extends React.InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
@@ -50,7 +49,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
               'text-base font-medium ring-offset-background file:border-0 file:bg-transparent md:text-sm',
               'file:text-sm file:font-medium',
               'focus-glow disabled:cursor-not-allowed disabled:opacity-50',
-              'transition-smooth backdrop-blur-sm',
+              'transition-smooth',
 
               // Text color with high contrast for filled values
               'text-foreground dark:text-white/95',

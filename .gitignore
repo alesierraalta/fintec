@@ -186,6 +186,8 @@ toml/test.toml
 .playwright-mcp/
 .serena/cache/
 .serena/memories/
+# Local tgrep search index
+.tgrep/
 .swc/
 *.tsbuildinfo
 
@@ -221,3 +223,6 @@ reports-verification.png
 /testLocales/
 
 .local-audit/
+
+# voice-capture eval: TTS intermediates
+evals/voice-capture/dataset/audio/*.wav

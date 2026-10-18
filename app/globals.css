@@ -34,7 +34,7 @@
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 0%;
 
-  --primary: 211 100% 50%;    /* iOS Blue */
+  --primary: 211 100% 42%;    /* iOS Blue — darkened to pass AA (5.31:1) with white foreground */
   --primary-foreground: 0 0% 100%;
   
   --secondary: 0 0% 92%;      /* System Gray 6 */
@@ -43,7 +43,7 @@
   --muted: 0 0% 85%;          /* System Gray 5 */
   --muted-foreground: 0 0% 40%;
   
-  --accent: 211 100% 50%;
+  --accent: 211 100% 42%;
   --accent-foreground: 0 0% 100%;
 
   --destructive: 0 84% 60%;
@@ -182,7 +182,7 @@ body {
 
 /* Utility Classes */
 .glass {
-  @apply border border-white/20 bg-white/10 backdrop-blur-md;
+  @apply border border-white/20 bg-white/10;
 }
 
 /* Foundation utilities (FinTec) */
@@ -305,6 +305,27 @@ transactions (0.2% with an empty account). The glass look is carried by the
   }
 }
 
+@keyframes routeEnter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.route-enter-home,
+.route-enter-transactions {
+  animation: routeEnter 180ms ease-out;
+}
+
+.route-enter-transactions > .animate-fade-in {
+  animation: none;
+}
+
 /* Enhanced Animation Classes */
 .animate-slide-in-right {
   animation: slideInRight 0.3s ease-out;
@@ -328,15 +349,15 @@ transactions (0.2% with an empty account). The glass look is carried by the
 
 /* iOS-style Material Utilities */
 .ios-header {
-  @apply bg-background/80 border-b border-border/50 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60;
+  @apply bg-background/80 border-b border-border/50;
 }
 
 .ios-sidebar {
-  @apply bg-background/80 border-r border-border/50 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60;
+  @apply bg-background/80 border-r border-border/50;
 }
 
 .ios-card {
-  @apply bg-card/60 border border-border/40 backdrop-blur-xl shadow-ios-sm transition-ios hover:shadow-ios-md;
+  @apply bg-card/60 border border-border/40 shadow-ios-sm transition-ios hover:shadow-ios-md;
 }
 
 .black-theme-header { @apply ios-header; }
@@ -450,7 +471,9 @@ select:disabled {
   .animate-pulse-soft,
   .animate-pulse,
   .animate-glow,
-  .animate-gradient {
+  .animate-gradient,
+  .route-enter-home,
+  .route-enter-transactions {
     animation: none !important;
   }
 

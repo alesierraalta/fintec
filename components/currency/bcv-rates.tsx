@@ -220,7 +220,7 @@ export function BCVRates() {
   if (!rates) {
     return (
       <motion.div
-        className="animate-pulse rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl"
+        className="animate-pulse rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
@@ -233,7 +233,7 @@ export function BCVRates() {
 
   return (
     <motion.div
-      className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg backdrop-blur-xl transition-all duration-300 hover:shadow-xl lg:p-8"
+      className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-lg transition-all duration-300 hover:shadow-xl lg:p-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -300,7 +300,7 @@ export function BCVRates() {
       {/* Simple Binance Comparison */}
       {usdRateComparison && (
         <motion.div
-          className="mb-6 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-orange-100 p-3 backdrop-blur-sm dark:border-orange-600 dark:from-orange-900/20 dark:to-orange-800/20 sm:p-4"
+          className="mb-6 rounded-2xl border-2 border-orange-300 bg-gradient-to-r from-orange-50 to-orange-100 p-3 dark:border-orange-600 dark:from-orange-900/20 dark:to-orange-800/20 sm:p-4"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -337,7 +337,7 @@ export function BCVRates() {
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* USD Rate */}
         <motion.div
-          className="rounded-2xl border border-border/20 bg-muted/10 p-4 backdrop-blur-sm transition-all duration-200 hover:border-success-500/30"
+          className="rounded-2xl border border-border/20 bg-muted/10 p-4 transition-all duration-200 hover:border-success-500/30"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
         >
@@ -399,7 +399,7 @@ export function BCVRates() {
 
         {/* EUR Rate */}
         <motion.div
-          className="rounded-2xl border border-border/20 bg-muted/10 p-4 backdrop-blur-sm transition-all duration-200 hover:border-blue-500/30"
+          className="rounded-2xl border border-border/20 bg-muted/10 p-4 transition-all duration-200 hover:border-blue-500/30"
           variants={fadeInUp}
           whileHover={{ scale: 1.02 }}
         >
@@ -433,7 +433,7 @@ export function BCVRates() {
       {/* Currency Converter */}
       {showConverter && (
         <motion.div
-          className="mb-6 rounded-2xl border border-border/20 bg-muted/5 p-4 backdrop-blur-sm"
+          className="mb-6 rounded-2xl border border-border/20 bg-muted/5 p-4"
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}

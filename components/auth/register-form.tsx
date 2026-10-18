@@ -126,7 +126,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           }}
           className="mx-auto w-full max-w-md px-4"
         >
-          <div className="black-theme-card relative overflow-hidden rounded-3xl p-8 text-center shadow-ios-lg backdrop-blur-2xl">
+          <div className="black-theme-card relative overflow-hidden rounded-3xl p-8 text-center shadow-ios-lg">
             <motion.div
               initial={{ scale: 0, rotate: -45 }}
               animate={{ scale: 1, rotate: 0 }}
@@ -252,7 +252,7 @@ export function RegisterForm({ onSuccess }: RegisterFormProps) {
           hidden: { opacity: 0, y: 20 },
           visible: { opacity: 1, y: 0 },
         }}
-        className="black-theme-card relative overflow-hidden rounded-3xl p-8 shadow-2xl backdrop-blur-2xl"
+        className="black-theme-card relative overflow-hidden rounded-3xl p-8 shadow-2xl"
       >
         {/* Decorative elements */}
         <div className="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl" />

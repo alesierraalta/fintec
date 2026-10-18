@@ -25,7 +25,9 @@ test.describe('Root Entry (/)', () => {
         page.getByRole('link', { name: /Iniciar Sesión/i })
       ).toBeVisible();
       await expect(
-        page.getByRole('link', { name: /Registrarse/i })
+        page
+          .getByRole('navigation')
+          .getByRole('link', { name: /Crear cuenta gratis/i })
       ).toBeVisible();
     }
   });

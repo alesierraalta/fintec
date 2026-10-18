@@ -739,7 +739,7 @@ export function DesktopTransfer() {
 
       {/* Main Transfer Form */}
       <div className="space-y-8">
-        <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg backdrop-blur-xl">
+        <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg">
           <h2 className="mb-6 text-2xl font-semibold text-foreground">
             Seleccionar Cuentas
           </h2>
@@ -907,7 +907,7 @@ export function DesktopTransfer() {
 
         {/* Amount and Description */}
         {transferData.fromAccountId && transferData.toAccountId && (
-          <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg backdrop-blur-xl">
+          <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg">
             <h2 className="mb-6 text-2xl font-semibold text-foreground">
               Detalles de la Transferencia
             </h2>
@@ -1249,7 +1249,7 @@ export function DesktopTransfer() {
         {getFromAccount() &&
           getToAccount() &&
           getFromAccount()!.currencyCode !== getToAccount()!.currencyCode && (
-            <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg backdrop-blur-xl">
+            <div className="rounded-3xl border border-border/40 bg-card/90 p-8 shadow-lg">
               <h2 className="mb-6 text-2xl font-semibold text-foreground">
                 Tasa de Cambio
               </h2>
@@ -1373,7 +1373,7 @@ export function DesktopTransfer() {
             </div>
 
             <div className="mx-auto max-w-2xl">
-              <div className="rounded-2xl border border-white/50 bg-white/80 p-6 backdrop-blur-sm dark:border-neutral-700/50 dark:bg-neutral-800/80">
+              <div className="rounded-2xl border border-white/50 bg-white/80 p-6 dark:border-neutral-700/50 dark:bg-neutral-800/80">
                 <div className="flex items-center justify-between">
                   {/* From Account */}
                   <div className="flex-1 text-center">

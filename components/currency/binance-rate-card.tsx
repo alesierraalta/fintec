@@ -57,7 +57,7 @@ function BinanceRateCardImpl({
   return (
     <div
       data-testid="binance-rate-card"
-      className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-yellow-500/5 p-4 backdrop-blur-sm"
+      className="rounded-2xl border border-orange-500/20 bg-gradient-to-br from-orange-500/5 to-yellow-500/5 p-4"
     >
       <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">

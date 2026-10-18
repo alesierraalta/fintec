@@ -83,7 +83,7 @@ export function Sidebar() {
         <div className="p-4">
           <button
             onClick={() => router.push('/transactions/add')}
-            className="transition-ios flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground shadow-ios-lg backdrop-blur-sm hover:scale-105 hover:bg-primary/90 active:scale-95"
+            className="transition-ios flex w-full items-center justify-center space-x-2 rounded-2xl bg-primary px-4 py-3 text-ios-body font-semibold text-primary-foreground shadow-ios-lg hover:scale-105 hover:bg-primary/90 active:scale-95"
             style={{ zIndex: 9999 }}
           >
             <Plus className="h-4 w-4" />
@@ -98,7 +98,7 @@ export function Sidebar() {
           <ThemeToggle isMinimized={true} />
           <button
             onClick={() => router.push('/transactions/add')}
-            className="transition-ios flex h-12 w-full items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-ios-md backdrop-blur-sm hover:scale-105 hover:bg-primary/90 active:scale-95"
+            className="transition-ios flex h-12 w-full items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-ios-md hover:scale-105 hover:bg-primary/90 active:scale-95"
             title="Agregar Transacción"
           >
             <Plus className="h-5 w-5" />
@@ -128,7 +128,7 @@ export function Sidebar() {
                 'transition-ios focus-ring group flex items-center rounded-xl text-ios-body font-medium lg:rounded-2xl',
                 isMinimized ? 'justify-center px-3 py-3' : 'px-4 py-3',
                 isActive
-                  ? 'border border-primary/30 bg-primary/20 text-primary shadow-ios-sm backdrop-blur-sm'
+                  ? 'border border-primary/30 bg-primary/20 text-primary shadow-ios-sm'
                   : 'text-muted-foreground hover:scale-[1.02] hover:bg-secondary hover:text-foreground hover:shadow-ios-sm'
               )}
               title={isMinimized ? item.name : undefined}

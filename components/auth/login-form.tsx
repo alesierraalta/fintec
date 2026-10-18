@@ -154,7 +154,7 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           hidden: { opacity: 0, y: 20, scale: 0.95 },
           visible: { opacity: 1, y: 0, scale: 1 },
         }}
-        className="black-theme-card relative overflow-hidden rounded-3xl p-8 shadow-2xl backdrop-blur-2xl"
+        className="black-theme-card relative overflow-hidden rounded-3xl p-8 shadow-2xl"
       >
         {/* Decorative background elements */}
         <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-primary/10 blur-3xl" />

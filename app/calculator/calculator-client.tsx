@@ -377,7 +377,7 @@ export default function CalculatorClient() {
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex overflow-hidden rounded-2xl border border-border/20 bg-card/50 backdrop-blur-sm">
+        <div className="mb-6 flex overflow-hidden rounded-2xl border border-border/20 bg-card/50">
           <button
             type="button"
             onClick={() => setActiveTab('calculator')}

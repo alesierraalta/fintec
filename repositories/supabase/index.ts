@@ -20,6 +20,7 @@ export { SupabaseOrdersRepository } from './orders-repository-impl';
 export { SupabaseRatesHistoryRepository } from './rates-history-repository-impl';
 export { SupabaseScrapeAttemptsRepository } from './scrape-attempts-repository-impl';
 export { SupabaseUsersProfileRepository } from './users-profile-repository-impl';
+export { SupabasePendingItemsRepository } from './pending-items-repository-impl';
 
 export * from './types';
 export * from './mappers';
@@ -52,6 +53,7 @@ import { SupabaseApprovalRequestsRepository } from './approval-requests-reposito
 import { SupabaseAIInfraRepository } from './ai-infra-repository-impl';
 import { SupabaseOrdersRepository } from './orders-repository-impl';
 import { SupabaseScrapeAttemptsRepository } from './scrape-attempts-repository-impl';
+import { SupabasePendingItemsRepository } from './pending-items-repository-impl';
 
 export class SupabaseAppRepository implements AppRepository {
   public readonly accounts: SupabaseAccountsRepository;
@@ -73,6 +75,7 @@ export class SupabaseAppRepository implements AppRepository {
   public readonly aiInfra: SupabaseAIInfraRepository;
   public readonly orders: SupabaseOrdersRepository;
   public readonly scrapeAttempts: SupabaseScrapeAttemptsRepository;
+  public readonly pendingItems: SupabasePendingItemsRepository;
   private readonly client: SupabaseClient;
 
   constructor(
@@ -102,7 +105,10 @@ export class SupabaseAppRepository implements AppRepository {
       this.client,
       requestContext
     );
-    this.feedbacks = new SupabaseFeedbacksRepository(this.client, requestContext);
+    this.feedbacks = new SupabaseFeedbacksRepository(
+      this.client,
+      requestContext
+    );
     this.recurringTransactions = new SupabaseRecurringTransactionsRepository(
       this.client,
       requestContext
@@ -136,7 +142,10 @@ export class SupabaseAppRepository implements AppRepository {
     this.aiInfra = new SupabaseAIInfraRepository(this.client, requestContext);
     this.orders = new SupabaseOrdersRepository(this.client, requestContext);
     this.scrapeAttempts = new SupabaseScrapeAttemptsRepository(this.client);
-
+    this.pendingItems = new SupabasePendingItemsRepository(
+      this.client,
+      requestContext
+    );
   }
 
   async isHealthy(): Promise<boolean> {

@@ -25,7 +25,7 @@ export function MobileNav() {
     <nav
       aria-label="Navegación móvil principal"
       data-testid="mobile-nav"
-      className="pointer-events-auto fixed inset-x-0 bottom-0 z-[45] border-t border-border-primary/30 bg-background-primary/95 pb-safe-bottom backdrop-blur-lg lg:hidden"
+      className="pointer-events-auto fixed inset-x-0 bottom-0 z-[45] border-t border-border-primary/30 bg-background-primary/95 pb-safe-bottom lg:hidden"
       style={{
         paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
         paddingLeft: 'max(0.5rem, env(safe-area-inset-left))',

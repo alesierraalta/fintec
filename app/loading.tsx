@@ -1,5 +1,4 @@
-import { DashboardSkeleton } from "@/components/skeletons/dashboard-skeleton";
-
 export default function Loading() {
-  return <DashboardSkeleton />;
+  // Keep soft navigation non-blocking; in-page data loaders own cold starts.
+  return null;
 }
