@@ -49,14 +49,24 @@ deployment, and any change to financial logic.
 
 ## Tasks
 
-1. Remove `backdrop-blur-sm` from `baseStyles` in `components/ui/button.tsx`.
-2. Remove the backdrop filter from `.glass-card` and `.glass-light` in
-   `app/globals.css`, keeping their background treatment.
-3. Run the relevant checks (typecheck and lint) and confirm the diff is
-   limited to presentation classes.
-4. Re-measure on the same device with the same 35-second script and the same
-   800-transaction dataset, then compare deadline-miss rate and RenderThread
-   CPU time against the recorded baseline.
+1. [x] Remove `backdrop-blur-sm` from `baseStyles` in `components/ui/button.tsx`.
+       **Hecho, commitado en main vía `20d53706` (verificado 2026-10-11: button.tsx:28
+       documenta la ausencia de backdrop-blur).**
+2. [x] Remove the backdrop filter from `.glass-card` and `.glass-light` in
+       `app/globals.css`, keeping their background treatment.
+       **Hecho, mismo commit `20d53706` (globals.css:248-267 conserva solo fondos).**
+3. [x] Run the relevant checks (typecheck and lint) and confirm the diff is
+       limited to presentation classes.
+4. [ ] Re-measure on the same device with the same 35-second script and the same
+       800-transaction dataset, then compare deadline-miss rate and RenderThread
+       CPU time against the recorded baseline. **Pendiente: dispositivo Android
+       (Xiaomi 11T Pro) no visible por ADB (2026-10-11).**
+
+## Progress
+
+- T1-T3 completados y commiteados en `main` dentro de `20d53706` (2026-10-07).
+- T4 pendiente de hardware: sin dispositivo ADB no hay métrica post-cambio;
+  no se reclama mejora hasta que el trace se recolecte.
 
 ## Acceptance
 

@@ -51,8 +51,8 @@ export function LandingNav({ links }: LandingNavProps) {
                 href={link.href}
                 className={`rounded-xl px-6 py-2 font-medium transition-all duration-200 active:scale-[0.98] ${
                   link.href === '/auth/register'
-                    ? 'border border-border hover:bg-muted/50'
-                    : 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90'
+                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90'
+                    : 'border border-border hover:bg-muted/50'
                 }`}
               >
                 {link.label}

@@ -20,14 +20,14 @@ export function CTASection() {
           ¿Listo para tomar control de tus finanzas?
         </h2>
         <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-          Únete en beta y gestiona tu dinero de forma inteligente con FinTec.
-          Gratis para empezar.
+          FinTec está en beta abierta. Crea tu cuenta, registra tus cuentas y
+          revisa tus movimientos sin costo.
         </p>
 
         <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
             href="/auth/register"
-            className="group inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-primary/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98]"
+            className="group inline-flex items-center gap-2 rounded-xl bg-primary px-8 py-4 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/25 active:scale-[0.98]"
           >
             <span>Crear cuenta gratis</span>
             <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -41,7 +41,8 @@ export function CTASection() {
           </Link>
         </div>
         <p className="mt-6 text-xs text-muted-foreground/70">
-          Sin tarjeta requerida · Cancela cuando quieras · Producto en beta
+          Sin tarjeta de crédito. Estás en una beta: algunas funciones pueden
+          cambiar.
         </p>
       </Reveal>
     </section>

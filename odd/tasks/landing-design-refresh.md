@@ -57,8 +57,8 @@ Elevar la calidad de diseño de la landing pública de FinTec (`app/(public)/com
 
 ### Ciclo 1 — deuda detectada (para cerrar)
 
-- [ ] T1.8 Actualizar selector E2E `tests/e2e/root-entry.spec.ts:28` (`/Registrarse/i` → `/Crear cuenta gratis/i`) por el rename intencional de T1.2.
-- [ ] T1.9 Commit work-unit en rama feature (el árbol trae ~95 archivos sucios de otros features: NO se tocan).
+- [x] T1.8 Actualizar selector E2E `tests/e2e/root-entry.spec.ts:30` (`/Registrarse/i` → `/Crear cuenta gratis/i`) por el rename intencional de T1.2. Hecho en commit `adb9aa86` ("Scope the E2E register selector to the nav after the label rename").
+- [x] T1.9 Commit work-unit. Hecho: `adb9aa86` (ciclo 1) y `20d53706` (ciclo 2, extensión a app surfaces) — ambos en `main`. Verificado 2026-10-11.
 
 ### Ciclos siguientes (backlog)
 
@@ -72,11 +72,14 @@ Elevar la calidad de diseño de la landing pública de FinTec (`app/(public)/com
 
 - [x] Exploración: 9 componentes + tokens + tailwind + layout mapeados.
 - [x] Auditoría inicial con hallazgos duros.
-- Ciclo 1 en curso.
+- [x] Ciclo 1 completo: commit `adb9aa86` en main.
+- [x] Ciclo 2 completo: commit `20d53706` en main (extiende tokens a app surfaces; absorbe la remoción de backdrop-blur de button.tsx/globals.css del plan android-render-performance).
+- [x] Backlog T2.x–T4.x completado (sesión 2026-10-11). Commit `d5b8f845` en rama `feat/landing-backlog-t2-t4`: token `--primary`/`--accent` light 50%→42% (AA 5.31:1), jerarquía CTA nav invertida, features en lista editorial, copy de registro directo en cta-section sin gradiente. Verificado: jest landing-revamp 4/4, tsc clean, revisión visual Playwright light+dark (hero/nav/features/CTA/pricing/footer).
 
 ## Verification evidence
 
-- (pendiente tras T1.7)
+- Ciclo 1 (`adb9aa86`): lint exit 0; landing-revamp 4/4; page.test 7/7; tsc sin errores (T1.7).
+- Ciclo 2 (`20d53706`): commit en main con los cambios de app surfaces.
 
 ## Route declaration
 
