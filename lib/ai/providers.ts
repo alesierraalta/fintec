@@ -59,11 +59,11 @@ export interface ProviderAdapter {
 export function getGoogleModelFallbackChain(): ModelFallbackChain {
   const chainString = process.env.GOOGLE_MODEL_FALLBACK_CHAIN;
 
-  // Default fallback chain if not configured: primary is the rock-solid 2.5-flash, fallback 2.5-pro
+  // Default fallback chain: primary is the highly efficient 3.1-flash-lite, fallback 2.5-flash
   if (!chainString) {
     return {
-      primary: process.env.GOOGLE_MODEL || 'gemini-2.5-flash',
-      fallbacks: ['gemini-2.5-pro'],
+      primary: process.env.GOOGLE_MODEL || 'gemini-3.1-flash-lite',
+      fallbacks: ['gemini-2.5-flash', 'gemini-2.5-pro'],
     };
   }
 
@@ -74,8 +74,8 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
 
   if (models.length === 0) {
     return {
-      primary: 'gemini-2.5-flash',
-      fallbacks: [],
+      primary: 'gemini-3.1-flash-lite',
+      fallbacks: ['gemini-2.5-flash'],
     };
   }
 
@@ -86,7 +86,7 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
 }
 
 /**
- * Check if the error is due to quota exhaustion or rate limiting.
+ * Check if the error is due to quota exhaustion, rate limiting, or transient service spikes.
  * Handles AI SDK errors and raw provider errors.
  */
 export function isQuotaExceededError(error: any): boolean {
@@ -95,8 +95,8 @@ export function isQuotaExceededError(error: any): boolean {
   const message = (error.message || '').toLowerCase();
   const code = error.status || error.statusCode || error.code;
 
-  // Check for standard HTTP 429 or 403 (often used for quota)
-  if (code === 429) return true;
+  // Check for standard HTTP 429, 403, or 503 (temporary high demand / unavailable)
+  if (code === 429 || code === 503) return true;
 
   // Google/Gemini specific quota errors often come as 403 with specific message
   if (
@@ -111,7 +111,12 @@ export function isQuotaExceededError(error: any): boolean {
     message.includes('too many requests') ||
     message.includes('resource exhausted') ||
     message.includes('quota exceeded') ||
-    message.includes('rate limit')
+    message.includes('rate limit') ||
+    message.includes('high demand') ||
+    message.includes('spikes in demand') ||
+    message.includes('unavailable') ||
+    message.includes('overloaded') ||
+    message.includes('service unavailable')
   ) {
     return true;
   }

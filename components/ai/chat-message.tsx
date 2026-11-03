@@ -23,6 +23,12 @@ interface ChatMessageProps {
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const hasTextPart = message.parts?.some(
+    (p: any) => p.type === 'text' && p.text?.trim()?.length > 0
+  );
+  const hasToolPart = message.parts?.some((p: any) =>
+    p.type?.startsWith('tool-')
+  );
 
   return (
     <motion.div
@@ -183,6 +189,16 @@ export function ChatMessage({ message }: ChatMessageProps) {
             <span className="whitespace-pre-wrap">
               {(message as any).content}
             </span>
+          )}
+
+          {/* Notice when only retrieval tools ran without an assistant text body */}
+          {!isUser && hasToolPart && !hasTextPart && (
+            <div
+              data-testid="chat-tool-only-notice"
+              className="mt-1 text-xs italic text-muted-foreground/80"
+            >
+              Consultas de datos completadas.
+            </div>
           )}
         </div>
 

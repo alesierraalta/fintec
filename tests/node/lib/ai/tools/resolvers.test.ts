@@ -315,6 +315,56 @@ describe('lib/ai/tools/resolvers — queryTransactions', () => {
     expect(result).toContain('Total');
   });
 
+  it('filters by type when aggregate=groupBy is requested with args.type', async () => {
+    const mockRpc = jest.fn();
+    const repository = makeRepository({
+      transactions: {
+        findByFilters: jest.fn().mockResolvedValue({
+          data: [
+            {
+              id: 'tx-1',
+              type: 'EXPENSE',
+              amountBaseMinor: 4500,
+              categoryId: 'cat-1',
+              categoryName: 'Comida',
+            },
+          ],
+          total: 1,
+        }),
+      },
+      categories: {
+        findAll: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'cat-1', name: 'Comida', userId: 'user-1' },
+          ]),
+      },
+    });
+
+    const result = await queryTransactions(
+      {
+        type: 'EXPENSE',
+        aggregate: 'groupBy',
+        groupByField: 'category',
+        dateFrom: '2026-09-01',
+        dateTo: '2026-11-01',
+      } as any,
+      {
+        userId: 'user-1',
+        repository: repository as any,
+        supabase: { rpc: mockRpc } as any,
+      }
+    );
+
+    // It must filter by EXPENSE and must not call untyped RPC query_transactions
+    expect(mockRpc).not.toHaveBeenCalled();
+    expect(repository.transactions.findByFilters).toHaveBeenCalledWith(
+      expect.objectContaining({ types: ['EXPENSE'] }),
+      expect.anything()
+    );
+    expect(result).toContain('Comida');
+  });
+
   it('passes p_group_by_field through for groupBy aggregate mode (triangulation)', async () => {
     const rpc = jest.fn().mockResolvedValue({
       data: [

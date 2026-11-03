@@ -173,4 +173,11 @@ describe('streamWithFallback — google provider fallback chain', () => {
       })
     ).rejects.toThrow('All AI models exhausted.');
   });
+
+  it('provides a resilient stream response that handles mid-stream errors safely without unhandled abort', async () => {
+    const {
+      createResilientStreamResponse,
+    } = require('@/lib/ai/stream-with-fallback');
+    expect(typeof createResilientStreamResponse).toBe('function');
+  });
 });

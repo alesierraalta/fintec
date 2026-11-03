@@ -118,4 +118,28 @@ describe('ChatMessage — tool-createTransaction rendering', () => {
       screen.getByText('Búsqueda de transacciones realizada')
     ).toBeInTheDocument();
   });
+
+  it('renders a notice or fallback when assistant message only has tool chips and no text response', () => {
+    const message: UIMessage = {
+      id: 'msg-6',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-queryTransactions',
+          state: 'output-available',
+          output: '📊 Total: $500.00',
+        } as any,
+        {
+          type: 'tool-queryTransactions',
+          state: 'output-available',
+          output: '📊 Total: $1200.00',
+        } as any,
+      ],
+    };
+
+    render(<ChatMessage message={message} />);
+
+    expect(screen.getAllByText('Transacciones consultadas')).toHaveLength(2);
+    expect(screen.getByTestId('chat-tool-only-notice')).toBeInTheDocument();
+  });
 });
