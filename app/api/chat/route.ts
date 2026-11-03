@@ -75,61 +75,67 @@ export async function POST(req: Request) {
     const { messages, threadId: reqThreadId } = await req.json();
     threadId = reqThreadId || `thread_${user.id}_${Date.now()}`;
 
-    // Load Checkpoint (Resume State)
-    const checkpoint = await checkpointer.load(threadId, user.id);
+    // 4. Concurrently load checkpoint, accounts, and base_currency to minimize TTFT
+    const repository = createServerAppRepository({ supabase });
+    const DEFAULT_BASE_CURRENCY = 'USD';
+
+    const fetchBaseCurrency = async () => {
+      try {
+        if (typeof supabase?.from !== 'function') {
+          return { data: null, error: null };
+        }
+        return await supabase
+          .from('users')
+          .select('base_currency')
+          .eq('id', user.id)
+          .single();
+      } catch (thrownError) {
+        logger.warn(
+          '[AI Chat] base_currency lookup threw; falling back to USD',
+          thrownError
+        );
+        return { data: null, error: thrownError };
+      }
+    };
+
+    const [checkpoint, accounts, profileResult] = await Promise.all([
+      checkpointer.load(threadId, user.id).catch((err) => {
+        logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
+        return null;
+      }),
+      repository.accounts.findByUserId(user.id).catch((err) => {
+        logger.warn('[AI Chat] Accounts lookup failed', err);
+        return [];
+      }),
+      fetchBaseCurrency(),
+    ]);
+
     if (checkpoint) {
       logger.info('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
-      // In a real agent loop, we would restore context from checkpoint.
-      // For this implementation, we just log it and proceed with provided messages
-      // as the frontend sends full history.
     }
 
-    // 4. Build user context
-    const repository = createServerAppRepository({ supabase });
-    const accounts = await repository.accounts.findByUserId(user.id);
     const userContext = {
       userId: user.id,
-      accounts: accounts.map((a) => ({
+      accounts: (accounts || []).map((a) => ({
         name: a.name,
         currencyCode: a.currencyCode,
       })),
     };
 
-    // Base currency (profile `base_currency`, defaults to 'USD' — mirrors
-    // contexts/auth-context.tsx:93,117-122's client-side equivalent fetch).
-    // A lookup failure must not fail the whole chat request, but it must never
-    // pass unnoticed either: base currency drives minor-unit conversion for
-    // query filter bounds and goal targets, so a wrong fallback silently
-    // misconverts amounts for any user whose base currency is not USD.
-    // `supabase-js` resolves with `{ data, error }` instead of throwing, so the
-    // error is inspected explicitly rather than relying on the catch block.
-    const DEFAULT_BASE_CURRENCY = 'USD';
     let baseCurrencyCode = DEFAULT_BASE_CURRENCY;
-    try {
-      const { data: profileRow, error: profileError } = await supabase
-        .from('users')
-        .select('base_currency')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        logger.warn(
-          '[AI Chat] base_currency lookup failed; falling back to USD',
-          profileError
-        );
-      } else if (!profileRow?.base_currency) {
-        logger.warn(
-          '[AI Chat] base_currency missing on profile; falling back to USD',
-          { userId: user.id }
-        );
-      } else {
-        baseCurrencyCode = profileRow.base_currency;
-      }
-    } catch (thrownError) {
+    const { data: profileRow, error: profileError } = profileResult || {};
+    if (profileError) {
       logger.warn(
-        '[AI Chat] base_currency lookup threw; falling back to USD',
-        thrownError
+        '[AI Chat] base_currency lookup failed; falling back to USD',
+        profileError
       );
+    } else if (!profileRow?.base_currency) {
+      logger.warn(
+        '[AI Chat] base_currency missing on profile; falling back to USD',
+        { userId: user.id }
+      );
+    } else {
+      baseCurrencyCode = profileRow.base_currency;
     }
 
     // 5. Define tools with HITL wrappers (production default: real
