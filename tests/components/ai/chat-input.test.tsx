@@ -46,9 +46,10 @@ describe('ChatInput', () => {
       />
     );
 
-    expect(screen.getByLabelText('Mensaje para el asistente')).toHaveValue(
-      'Hola'
-    );
+    const textarea = screen.getByLabelText('Mensaje para el asistente');
+    expect(textarea).toHaveValue('Hola');
+    expect(textarea).not.toHaveAttribute('placeholder');
+    expect(textarea).toHaveClass('overflow-hidden');
     expect(screen.getByLabelText('Enviar mensaje')).toBeEnabled();
   });
 
