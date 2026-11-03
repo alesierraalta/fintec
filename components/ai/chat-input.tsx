@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useRef, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import { ArrowUp, Loader2, Mic, MicOff, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -27,6 +27,21 @@ export function ChatInput({
 }: ChatInputProps) {
   const [speechError, setSpeechError] = useState<string | null>(null);
   const baseInputRef = useRef('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const scrollH = el.scrollHeight;
+    if (scrollH > 120) {
+      el.style.height = '120px';
+      el.style.overflowY = 'auto';
+    } else {
+      el.style.height = `${Math.max(scrollH, 52)}px`;
+      el.style.overflowY = 'hidden';
+    }
+  }, [input]);
 
   const { isSupported, isListening, startListening, stopListening } =
     useSpeechRecognition({
@@ -137,15 +152,15 @@ export function ChatInput({
 
       <div className="relative">
         <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Pregunta o di: 'Gasté $20 en comida de Cartera'…"
           disabled={isLoading}
           rows={1}
           aria-label="Mensaje para el asistente"
           className={cn(
-            'w-full resize-none rounded-3xl border border-border bg-secondary/60 py-3.5 pl-5',
+            'w-full resize-none overflow-hidden rounded-3xl border border-border bg-secondary/60 py-3.5 pl-5',
             isSupported ? 'pr-24' : 'pr-14',
             'text-[16px] placeholder:text-muted-foreground md:text-sm',
             'shadow-ios-sm',
