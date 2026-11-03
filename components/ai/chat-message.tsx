@@ -2,7 +2,7 @@
 
 import { UIMessage } from 'ai';
 import { MessageSquare, Wrench, Check } from 'lucide-react';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { BalanceCard } from './balance-card';
 import { TransactionCard } from './transaction-card';
@@ -22,16 +22,14 @@ interface ChatMessageProps {
  */
 export function ChatMessage({ message }: ChatMessageProps) {
   const isUser = message.role === 'user';
-  // Retire the entrance animation after the first play so streaming updates
-  // never replay it on the same message node.
-  const [entranceDone, setEntranceDone] = useState(false);
 
   return (
-    <div
-      onAnimationEnd={() => setEntranceDone(true)}
+    <motion.div
+      initial={{ opacity: 0, y: 8, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
         'flex w-full items-end gap-2.5',
-        !entranceDone && 'animate-fade-in-up',
         isUser ? 'justify-end' : 'justify-start'
       )}
     >
@@ -179,6 +177,6 @@ export function ChatMessage({ message }: ChatMessageProps) {
             </div>
           )}
       </div>
-    </div>
+    </motion.div>
   );
 }

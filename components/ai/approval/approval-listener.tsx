@@ -36,38 +36,48 @@ export function ApprovalListener() {
         if (status === 'SUBSCRIBED') {
           console.log('[HITL] Realtime ready for approval requests');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('[HITL] Realtime subscription failed');
-          toast.error(
-            'Failed to connect to approval system. Please refresh the page.'
+          // Graceful degradation: do not disrupt the user with an error toast on page load.
+          // Realtime failure gracefully falls back to periodic polling.
+          console.warn(
+            '[HITL] Realtime subscription unavailable; using polling fallback'
           );
         }
       });
 
     // Check for existing pending requests on mount
     const checkPending = async () => {
-      const response = await fetch('/api/hitl/approvals', {
-        method: 'GET',
-        credentials: 'include',
-      });
+      try {
+        const response = await fetch('/api/hitl/approvals', {
+          method: 'GET',
+          credentials: 'include',
+        });
 
-      if (!response.ok) {
-        return;
-      }
+        if (!response.ok) {
+          return;
+        }
 
-      const approvals = await response.json();
-      if (!Array.isArray(approvals)) {
-        return;
-      }
+        const approvals = await response.json();
+        if (!Array.isArray(approvals)) {
+          return;
+        }
 
-      const pending = approvals.find((item: any) => item.status === 'pending');
-      if (pending) {
-        setRequest(pending);
+        const pending = approvals.find(
+          (item: any) => item.status === 'pending'
+        );
+        if (pending) {
+          setRequest(pending);
+        }
+      } catch (err) {
+        // Silent error on polling check
+        console.warn('[HITL] Error checking pending approvals:', err);
       }
     };
 
     checkPending();
+    const pollInterval = setInterval(checkPending, 10000);
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(channel);
     };
   }, []);
