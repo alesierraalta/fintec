@@ -216,10 +216,18 @@ describe('getProviderAdapter — configuration errors', () => {
     );
   });
 
-  it('uses openai as the default provider', () => {
+  it('uses openai as the default provider when no google key is present', () => {
     delete process.env.AI_PROVIDER;
+    delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     process.env.OPENAI_API_KEY = 'sk-test';
 
     expect(getProviderAdapter().id).toBe('openai');
+  });
+
+  it('auto-detects google when AI_PROVIDER is unset but google key is present', () => {
+    delete process.env.AI_PROVIDER;
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'gg-auto-key';
+
+    expect(getProviderAdapter().id).toBe('google');
   });
 });

@@ -4,6 +4,7 @@ import {
   Wallet,
   CheckCircle2,
 } from 'lucide-react';
+import { motion } from 'framer-motion';
 import {
   formatCurrency,
   formatDate,
@@ -37,7 +38,12 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
   );
 
   return (
-    <div className="mt-2.5 w-full min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-ios-sm">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+      className="mt-2.5 w-full min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-ios-sm"
+    >
       {/* Header status */}
       <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
         <div className="flex items-center gap-1.5">
@@ -100,6 +106,6 @@ export function TransactionCard({ transaction }: TransactionCardProps) {
           </span>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

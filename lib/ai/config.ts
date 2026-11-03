@@ -1,4 +1,7 @@
-import { type AIProviderId } from '@/lib/ai/providers';
+import {
+  type AIProviderId,
+  resolveDefaultProviderId,
+} from '@/lib/ai/providers';
 
 // Backwards-compatible re-exports. The source of truth for provider selection
 // and model construction is the provider factory in `lib/ai/providers.ts`.
@@ -11,13 +14,16 @@ export {
   getGoogleModelFallbackChain,
   getModelDisplayName,
   isQuotaExceededError,
+  resolveDefaultProviderId,
 } from '@/lib/ai/providers';
 
 /**
  * AI Configuration
  */
 export const AI_CONFIG = {
-  provider: (process.env.AI_PROVIDER || 'openai') as AIProviderId,
+  get provider(): AIProviderId {
+    return resolveDefaultProviderId();
+  },
   temperature: 0.7,
 } as const;
 

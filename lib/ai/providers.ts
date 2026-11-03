@@ -202,12 +202,37 @@ function createNvidiaAdapter(): ProviderAdapter {
 }
 
 /**
+ * Detect the default AI provider ID based on environment configuration.
+ * If `AI_PROVIDER` is set, it is returned directly (validation occurs in getProviderAdapter).
+ * If unset, checks for available API keys in order of availability:
+ * Google -> OpenAI -> Anthropic -> Nvidia. Defaults to 'openai'.
+ */
+export function resolveDefaultProviderId(): AIProviderId {
+  const envProvider = process.env.AI_PROVIDER;
+  if (envProvider) {
+    return envProvider as AIProviderId;
+  }
+  if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    return 'google';
+  }
+  if (process.env.OPENAI_API_KEY) {
+    return 'openai';
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return 'anthropic';
+  }
+  if (process.env.NVIDIA_API_KEY) {
+    return 'nvidia';
+  }
+  return 'openai';
+}
+
+/**
  * Resolve the active provider adapter from `AI_PROVIDER` (defaults to
- * 'openai'). Source of truth for provider construction.
+ * auto-detected key or 'openai'). Source of truth for provider construction.
  */
 export function getProviderAdapter(provider?: AIProviderId): ProviderAdapter {
-  const id =
-    provider ?? ((process.env.AI_PROVIDER || 'openai') as AIProviderId);
+  const id = provider ?? resolveDefaultProviderId();
 
   if (!AI_PROVIDER_IDS.includes(id)) {
     throw new AIConfigurationError(
