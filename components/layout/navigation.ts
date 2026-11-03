@@ -59,7 +59,12 @@ export const mobileSecondaryNavigation: NavigationItem[] = [
   { href: '/debts', mobileLabel: 'Deudas', icon: HandCoins },
   { href: '/p2p-offers', mobileLabel: 'Ofertas P2P', icon: DollarSign },
   { href: '/backups', mobileLabel: 'Respaldos', icon: Shield },
-  { href: '/chat', mobileLabel: 'Chat', icon: MessageSquare, premium: true },
+  {
+    href: '/chat',
+    mobileLabel: 'Chat',
+    desktopLabel: 'Chat IA',
+    icon: MessageSquare,
+  },
   { href: '/settings', mobileLabel: 'Ajustes', icon: Settings },
 ];
 

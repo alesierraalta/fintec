@@ -63,7 +63,7 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
   if (!chainString) {
     return {
       primary: process.env.GOOGLE_MODEL || 'gemini-3.1-flash-lite',
-      fallbacks: ['gemini-2.5-flash-lite'],
+      fallbacks: ['gemini-3.5-flash-lite'],
     };
   }
 

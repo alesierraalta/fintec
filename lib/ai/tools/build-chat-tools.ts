@@ -4,7 +4,7 @@ import type { AppRepository } from '@/repositories/contracts';
 import type { Account } from '@/types/domain';
 import { toolsResolvers } from './resolvers';
 import * as schemas from './schemas';
-import { formatAccountBalance } from './formatters';
+import { formatAccountBalance, formatTransactionCreated } from './formatters';
 import {
   shouldRequestApproval,
   requestApproval as productionRequestApproval,
@@ -57,6 +57,7 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
     createTransaction: tool({
       description: 'Create a new financial transaction (expense or income).',
       inputSchema: schemas.createTransactionSchema,
+      outputSchema: schemas.createTransactionResultSchema,
       execute: async (args: any) => {
         // HITL Check
         if (shouldRequestApproval('createTransaction', args)) {
@@ -82,6 +83,22 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
           repository,
         });
       },
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value:
+          typeof output === 'string'
+            ? output
+            : output.status === 'success'
+              ? formatTransactionCreated({
+                  description: output.transaction.description,
+                  amountBaseMinor: output.transaction.amountMinor,
+                  currencyCode: output.transaction.currencyCode,
+                  type: output.transaction.type,
+                  categoryName: output.transaction.categoryName,
+                  date: output.transaction.date,
+                })
+              : output.message,
+      }),
     }),
     queryTransactions: tool({
       description:

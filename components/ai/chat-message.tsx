@@ -5,7 +5,11 @@ import { MessageSquare, Wrench, Check } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { BalanceCard } from './balance-card';
-import { accountBalanceResultSchema } from '@/lib/ai/tools/schemas';
+import { TransactionCard } from './transaction-card';
+import {
+  accountBalanceResultSchema,
+  createTransactionResultSchema,
+} from '@/lib/ai/tools/schemas';
 
 interface ChatMessageProps {
   message: UIMessage;
@@ -82,6 +86,33 @@ export function ChatMessage({ message }: ChatMessageProps) {
                           className="mt-2 rounded-xl border border-border/50 bg-muted/40 p-3"
                         >
                           <p className="text-sm text-muted-foreground">
+                            {parsed.data.message}
+                          </p>
+                        </div>
+                      );
+                    }
+                  }
+
+                  // Known transaction creation tool: dispatch validated structured output.
+                  if (part.type === 'tool-createTransaction') {
+                    const parsed = createTransactionResultSchema.safeParse(
+                      part.output
+                    );
+                    if (parsed.success) {
+                      if (parsed.data.status === 'success') {
+                        return (
+                          <TransactionCard
+                            key={index}
+                            transaction={parsed.data.transaction}
+                          />
+                        );
+                      }
+                      return (
+                        <div
+                          key={index}
+                          className="mt-2 rounded-xl border border-destructive/40 bg-destructive/10 p-3"
+                        >
+                          <p className="text-sm text-destructive">
                             {parsed.data.message}
                           </p>
                         </div>

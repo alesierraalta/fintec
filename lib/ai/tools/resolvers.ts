@@ -52,7 +52,7 @@ interface ToolContext {
 export async function createTransaction(
   args: CreateTransactionArgs,
   ctx: ToolContext
-): Promise<string> {
+): Promise<schemas.CreateTransactionResult> {
   try {
     const accountsRepo = ctx.repository.accounts;
     const categoriesRepo = ctx.repository.categories;
@@ -62,61 +62,55 @@ export async function createTransaction(
     const accounts = await accountsRepo.findByUserId(ctx.userId);
 
     if (accounts.length === 0) {
-      throw new Error('No accounts found. Please create an account first.');
+      return {
+        status: 'error',
+        message: 'No accounts found. Please create an account first.',
+      };
     }
 
-    let accountId = accounts.find(
+    let account = accounts.find(
       (a) => a.name.toLowerCase() === args.accountName?.toLowerCase()
-    )?.id;
+    );
 
-    if (!accountId) {
-      // Default to first account
-      accountId = accounts[0].id;
+    if (!account) {
+      account = accounts[0];
       console.log(`[AI] Defaulting to account: ${accounts[0].name}`);
     }
+    const accountId = account.id;
 
     // 2. Resolve Category
     const categories = await categoriesRepo.findAll();
     const userCategories = categories.filter((c) => c.userId === ctx.userId);
 
-    let categoryId = userCategories.find(
+    let category = userCategories.find(
       (c) => c.name.toLowerCase() === args.category?.toLowerCase()
-    )?.id;
+    );
 
-    if (!categoryId) {
-      // Fallback to "General" or first category
+    if (!category) {
       const fallback = userCategories.find(
         (c) => c.name === 'General' || c.name === 'Uncategorized'
       );
-      categoryId = fallback?.id || userCategories[0]?.id;
+      category = fallback || userCategories[0];
 
-      if (!categoryId) {
-        console.log('[AI] Defaulting to first category found for user');
-        categoryId = userCategories[0]?.id; // Ensure we have SOME category
-        if (!categoryId) {
-          // Check if global categories exist
-          const allCats = await categoriesRepo.findAll();
-          const globalFallback = allCats.find(
-            (c) => c.name === 'General' || c.name === 'Uncategorized'
-          );
-          categoryId = globalFallback?.id;
-        }
-        if (!categoryId)
-          throw new Error(
-            'No categories found. Please create a category first.'
-          );
-      } else {
-        console.log(
-          `[AI] Defaulting to category: ${userCategories.find((c) => c.id === categoryId)?.name}`
+      if (!category) {
+        const allCats = await categoriesRepo.findAll();
+        const globalFallback = allCats.find(
+          (c) => c.name === 'General' || c.name === 'Uncategorized'
         );
+        category = globalFallback;
       }
     }
 
-    // 3. Create Transaction
-    const account = accounts.find((a) => a.id === accountId);
-    const category = userCategories.find((c) => c.id === categoryId);
+    const categoryId = category?.id;
+    if (!categoryId) {
+      return {
+        status: 'error',
+        message: 'No categories found. Please create a category first.',
+      };
+    }
 
-    const currencyCode = account?.currencyCode || 'USD';
+    // 3. Create Transaction
+    const currencyCode = account.currencyCode || 'USD';
     const newTransaction = {
       amountMinor: toMinorUnits(args.amount, currencyCode),
       description: args.description,
@@ -129,21 +123,24 @@ export async function createTransaction(
 
     const transaction = await transactionsRepo.create(newTransaction);
 
-    return formatTransactionCreated({
-      description: args.description,
-      amountBaseMinor: newTransaction.amountMinor,
-      currencyCode: newTransaction.currencyCode,
-      type: args.type,
-      categoryName: category?.name || 'Unknown',
-      date: args.date || new Date().toISOString().split('T')[0],
-    });
+    return {
+      status: 'success',
+      transaction: {
+        id: transaction.id,
+        description: args.description,
+        amountMinor: newTransaction.amountMinor,
+        currencyCode: newTransaction.currencyCode,
+        type: args.type,
+        categoryName: category?.name || 'General',
+        accountName: account.name,
+        date: newTransaction.date,
+      },
+    };
   } catch (error) {
-    if (error instanceof Error && error.message.includes('No accounts found')) {
-      throw error;
-    }
-    throw new Error(
-      `Failed to create transaction: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
+    return {
+      status: 'error',
+      message: `Failed to create transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
   }
 }
 
