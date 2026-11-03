@@ -103,12 +103,12 @@ describe('getProviderAdapter — google', () => {
     process.env.AI_PROVIDER = 'google';
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'gg-test';
     delete process.env.GOOGLE_MODEL_FALLBACK_CHAIN;
-    process.env.GOOGLE_MODEL = 'gemini-2.5-flash';
+    delete process.env.GOOGLE_MODEL;
 
     const adapter = getProviderAdapter();
 
-    expect(adapter.modelId).toBe('gemini-2.5-flash');
-    expect(adapter.fallbackModels).toEqual(['gemini-3.5-flash-lite']);
+    expect(adapter.modelId).toBe('gemini-3.5-flash-lite');
+    expect(adapter.fallbackModels).toEqual(['gemini-2.5-flash']);
   });
 });
 
