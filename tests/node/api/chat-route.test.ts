@@ -376,4 +376,33 @@ describe('chat route', () => {
       );
     });
   });
+
+  describe('trimMessageHistory', () => {
+    it('returns full array when message count is within limit', async () => {
+      const { trimMessageHistory } = await import('@/app/api/chat/route');
+      const messages = [
+        { role: 'user', content: 'hello' },
+        { role: 'assistant', content: 'hi' },
+      ];
+      expect(trimMessageHistory(messages, 10)).toEqual(messages);
+    });
+
+    it('trims to sliding window starting on a user turn', async () => {
+      const { trimMessageHistory } = await import('@/app/api/chat/route');
+      const messages = [
+        { role: 'user', content: '1' },
+        { role: 'assistant', content: '2' },
+        { role: 'user', content: '3' },
+        { role: 'assistant', content: '4' },
+        { role: 'user', content: '5' },
+        { role: 'assistant', content: '6' },
+      ];
+      // Limit 3 takes last 3: [assistant 4, user 5, assistant 6], but drops assistant 4 to start on user 5
+      const trimmed = trimMessageHistory(messages, 3);
+      expect(trimmed).toEqual([
+        { role: 'user', content: '5' },
+        { role: 'assistant', content: '6' },
+      ]);
+    });
+  });
 });

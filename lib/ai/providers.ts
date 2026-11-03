@@ -1,5 +1,5 @@
 import { openai } from '@ai-sdk/openai';
-import { google } from '@ai-sdk/google';
+import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { anthropic } from '@ai-sdk/anthropic';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { ProviderOptions } from '@ai-sdk/provider-utils';
@@ -135,17 +135,62 @@ function createOpenAIAdapter(): ProviderAdapter {
   };
 }
 
+/**
+ * Parses and returns all configured Google API keys (supports single key or comma-separated list).
+ */
+export function getGoogleApiKeys(): string[] {
+  const raw = process.env.GOOGLE_GENERATIVE_AI_API_KEY || '';
+  return raw
+    .split(',')
+    .map((k) => k.trim())
+    .filter(Boolean);
+}
+
+let googleKeyRotationCounter = 0;
+
+/**
+ * Gets the next Google API key using round-robin rotation across available keys.
+ */
+export function getNextGoogleApiKey(): string {
+  const keys = getGoogleApiKeys();
+  if (keys.length === 0) return '';
+  const key = keys[googleKeyRotationCounter % keys.length];
+  googleKeyRotationCounter = (googleKeyRotationCounter + 1) % keys.length;
+  return key;
+}
+
+/**
+ * Resets the Google key rotation counter (used in unit tests).
+ */
+export function resetGoogleKeyRotation(): void {
+  googleKeyRotationCounter = 0;
+}
+
 function createGoogleAdapter(): ProviderAdapter {
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  const keys = getGoogleApiKeys();
+  if (keys.length === 0) {
     throw new AIConfigurationError(
       'GOOGLE_GENERATIVE_AI_API_KEY is not configured. Set it in your environment or .env.local.'
     );
   }
   const chain = getGoogleModelFallbackChain();
+
+  const createModelWithKey = (modelId?: string): LanguageModel => {
+    const targetModelId = modelId ?? chain.primary;
+    // When multiple keys are configured in the pool, rotate through them
+    if (keys.length > 1) {
+      const activeKey = getNextGoogleApiKey();
+      const customGoogle = createGoogleGenerativeAI({ apiKey: activeKey });
+      return customGoogle(targetModelId);
+    }
+    // Single key: standard instance
+    return google(targetModelId);
+  };
+
   return {
     id: 'google',
     modelId: chain.primary,
-    createModel: (id?: string) => google(id ?? chain.primary),
+    createModel: createModelWithKey,
     fallbackModels: chain.fallbacks,
     isTransient: isQuotaExceededError,
   };

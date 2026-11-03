@@ -3,6 +3,7 @@ import {
   convertToModelMessages,
   NoSuchToolError,
   InvalidToolInputError,
+  type UIMessage,
 } from 'ai';
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import { streamWithFallback } from '@/lib/ai/stream-with-fallback';
@@ -28,6 +29,26 @@ const checkpointer = new SupabaseCheckpointer();
 
 // Allow longer timeout for AI responses (and HITL polling)
 export const maxDuration = 60;
+
+/**
+ * Trims message history to a sliding window of the most recent messages,
+ * ensuring the window starts on a user message for coherent dialogue context.
+ * Drastically reduces input token consumption and speeds up TTFT on long sessions.
+ */
+export function trimMessageHistory<T>(
+  messages: T[],
+  maxMessages: number = 10
+): T[] {
+  if (!Array.isArray(messages) || messages.length <= maxMessages) {
+    return messages;
+  }
+  const slice = messages.slice(-maxMessages);
+  const firstUserIdx = slice.findIndex((m: any) => m?.role === 'user');
+  if (firstUserIdx > 0) {
+    return slice.slice(firstUserIdx);
+  }
+  return slice;
+}
 
 /**
  * POST /api/ai/chat
@@ -74,6 +95,7 @@ export async function POST(req: Request) {
     // 3. Parse request & Initialize State
     const { messages, threadId: reqThreadId } = await req.json();
     threadId = reqThreadId || `thread_${user.id}_${Date.now()}`;
+    const recentMessages = trimMessageHistory(messages as UIMessage[], 10);
 
     // 4. Concurrently load checkpoint, accounts, and base_currency to minimize TTFT
     const repository = createServerAppRepository({ supabase });
@@ -156,7 +178,7 @@ export async function POST(req: Request) {
           const streamResult = await streamWithFallback({
             model: getAIModel(),
             system: buildSystemPrompt(userContext),
-            messages: await convertToModelMessages(messages),
+            messages: await convertToModelMessages(recentMessages),
             tools,
             temperature: AI_CONFIG.temperature,
             userId: user.id,

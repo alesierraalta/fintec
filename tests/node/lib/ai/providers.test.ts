@@ -14,6 +14,13 @@ const mockGoogle = jest.fn((modelId: string) => ({
   provider: 'google',
   model: modelId,
 }));
+const mockGoogleGenerativeAIInstance = jest.fn((modelId: string) => ({
+  provider: 'google',
+  model: modelId,
+}));
+const mockCreateGoogleGenerativeAI = jest.fn(
+  (_opts?: { apiKey?: string }) => mockGoogleGenerativeAIInstance
+);
 const mockAnthropic = jest.fn((modelId: string) => ({
   provider: 'anthropic',
   model: modelId,
@@ -30,6 +37,8 @@ jest.mock('@ai-sdk/openai', () => ({
 }));
 jest.mock('@ai-sdk/google', () => ({
   google: (...args: unknown[]) => mockGoogle(...(args as [string])),
+  createGoogleGenerativeAI: (...args: unknown[]) =>
+    mockCreateGoogleGenerativeAI(...args),
 }));
 jest.mock('@ai-sdk/anthropic', () => ({
   anthropic: (...args: unknown[]) => mockAnthropic(...(args as [string])),
@@ -39,13 +48,20 @@ jest.mock('@ai-sdk/openai-compatible', () => ({
     mockCreateOpenAICompatible(...args),
 }));
 
-import { AIConfigurationError, getProviderAdapter } from '@/lib/ai/providers';
+import {
+  AIConfigurationError,
+  getProviderAdapter,
+  getGoogleApiKeys,
+  getNextGoogleApiKey,
+  resetGoogleKeyRotation,
+} from '@/lib/ai/providers';
 
 const originalEnv = process.env;
 
 beforeEach(() => {
   jest.clearAllMocks();
   process.env = { ...originalEnv };
+  resetGoogleKeyRotation();
 });
 
 afterAll(() => {
@@ -109,6 +125,34 @@ describe('getProviderAdapter — google', () => {
 
     expect(adapter.modelId).toBe('gemini-2.5-flash');
     expect(adapter.fallbackModels).toEqual(['gemini-2.5-pro']);
+  });
+
+  it('parses multiple comma-separated keys and rotates round-robin', () => {
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY =
+      ' key-alpha , key-beta,   key-gamma ';
+
+    expect(getGoogleApiKeys()).toEqual(['key-alpha', 'key-beta', 'key-gamma']);
+    expect(getNextGoogleApiKey()).toBe('key-alpha');
+    expect(getNextGoogleApiKey()).toBe('key-beta');
+    expect(getNextGoogleApiKey()).toBe('key-gamma');
+    expect(getNextGoogleApiKey()).toBe('key-alpha');
+  });
+
+  it('uses createGoogleGenerativeAI with rotating keys when multiple keys exist', () => {
+    process.env.AI_PROVIDER = 'google';
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'key-one,key-two';
+
+    const adapter = getProviderAdapter();
+
+    adapter.createModel('gemini-2.5-flash');
+    expect(mockCreateGoogleGenerativeAI).toHaveBeenCalledWith({
+      apiKey: 'key-one',
+    });
+
+    adapter.createModel('gemini-2.5-pro');
+    expect(mockCreateGoogleGenerativeAI).toHaveBeenCalledWith({
+      apiKey: 'key-two',
+    });
   });
 });
 
