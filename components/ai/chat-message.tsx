@@ -124,6 +124,31 @@ export function ChatMessage({ message }: ChatMessageProps) {
                     );
                   }
                 }
+
+                // Query and search tools: display clean status chips instead of raw debug dumps
+                if (
+                  part.type === 'tool-queryTransactions' ||
+                  part.type === 'tool-searchTransactions'
+                ) {
+                  return (
+                    <div
+                      key={index}
+                      className="my-1.5 inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-secondary/50 px-2.5 py-1 text-xs text-muted-foreground"
+                    >
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10">
+                        <Check
+                          className="h-2.5 w-2.5 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      <span>
+                        {part.type === 'tool-queryTransactions'
+                          ? 'Transacciones consultadas'
+                          : 'Búsqueda de transacciones realizada'}
+                      </span>
+                    </div>
+                  );
+                }
                 // Unknown tool or malformed output: safe generic fallback.
                 return (
                   <div

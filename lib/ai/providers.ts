@@ -59,11 +59,11 @@ export interface ProviderAdapter {
 export function getGoogleModelFallbackChain(): ModelFallbackChain {
   const chainString = process.env.GOOGLE_MODEL_FALLBACK_CHAIN;
 
-  // Default fallback chain if not configured: primary is the fast 3.5-flash-lite, fallback 2.5-flash
+  // Default fallback chain if not configured: primary is the rock-solid 2.5-flash, fallback 2.5-pro
   if (!chainString) {
     return {
-      primary: process.env.GOOGLE_MODEL || 'gemini-3.5-flash-lite',
-      fallbacks: ['gemini-2.5-flash'],
+      primary: process.env.GOOGLE_MODEL || 'gemini-2.5-flash',
+      fallbacks: ['gemini-2.5-pro'],
     };
   }
 
@@ -74,7 +74,7 @@ export function getGoogleModelFallbackChain(): ModelFallbackChain {
 
   if (models.length === 0) {
     return {
-      primary: 'gemini-3.5-flash-lite',
+      primary: 'gemini-2.5-flash',
       fallbacks: [],
     };
   }

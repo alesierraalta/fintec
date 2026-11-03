@@ -80,4 +80,42 @@ describe('ChatMessage — tool-createTransaction rendering', () => {
       screen.getByText('Gasto registrado en texto plano')
     ).toBeInTheDocument();
   });
+
+  it('renders sleek status chip for tool-queryTransactions', () => {
+    const message: UIMessage = {
+      id: 'msg-4',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-queryTransactions',
+          state: 'output-available',
+          output: '📊 Total: $500.00\n📄 Transacciones consideradas: 5',
+        } as any,
+      ],
+    };
+
+    render(<ChatMessage message={message} />);
+
+    expect(screen.getByText('Transacciones consultadas')).toBeInTheDocument();
+  });
+
+  it('renders sleek status chip for tool-searchTransactions', () => {
+    const message: UIMessage = {
+      id: 'msg-5',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-searchTransactions',
+          state: 'output-available',
+          output: '• 01 Ene 2026 | 🍽️ Cena | -$40.00',
+        } as any,
+      ],
+    };
+
+    render(<ChatMessage message={message} />);
+
+    expect(
+      screen.getByText('Búsqueda de transacciones realizada')
+    ).toBeInTheDocument();
+  });
 });

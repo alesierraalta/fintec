@@ -286,6 +286,35 @@ describe('lib/ai/tools/resolvers — queryTransactions', () => {
     expect(result).toContain('4');
   });
 
+  it('uses repository.transactions.getTotalByType when args.type is provided for a sum query', async () => {
+    const repository = makeRepository({
+      transactions: {
+        getTotalByType: jest.fn().mockResolvedValue(150000),
+      },
+    });
+
+    const result = await queryTransactions(
+      {
+        type: 'INCOME',
+        dateFrom: '2026-09-01',
+        dateTo: '2026-11-01',
+        aggregate: 'sum',
+      } as any,
+      {
+        userId: 'user-1',
+        repository: repository as any,
+        supabase: { rpc: jest.fn() } as any,
+      }
+    );
+
+    expect(repository.transactions.getTotalByType).toHaveBeenCalledWith(
+      'INCOME',
+      '2026-09-01',
+      '2026-11-01'
+    );
+    expect(result).toContain('Total');
+  });
+
   it('passes p_group_by_field through for groupBy aggregate mode (triangulation)', async () => {
     const rpc = jest.fn().mockResolvedValue({
       data: [
