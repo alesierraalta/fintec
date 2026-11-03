@@ -30,7 +30,7 @@ describe('AI Config', () => {
       const chain = getGoogleModelFallbackChain();
 
       expect(chain.primary).toBe('gemini-custom');
-      expect(chain.fallbacks).toEqual(['gemini-2.5-pro']);
+      expect(chain.fallbacks).toEqual(['gemini-2.5-flash', 'gemini-2.5-pro']);
     });
 
     it('should parse comma-separated chain correctly', () => {
@@ -56,8 +56,8 @@ describe('AI Config', () => {
 
       const chain = getGoogleModelFallbackChain();
 
-      expect(chain.primary).toBe('gemini-2.5-flash');
-      expect(chain.fallbacks).toEqual(['gemini-2.5-pro']);
+      expect(chain.primary).toBe('gemini-3.1-flash-lite');
+      expect(chain.fallbacks).toEqual(['gemini-2.5-flash', 'gemini-2.5-pro']);
     });
   });
 

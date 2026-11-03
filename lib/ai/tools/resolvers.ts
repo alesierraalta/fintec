@@ -180,32 +180,121 @@ export async function queryTransactions(
       accountId = match?.id ?? null;
     }
 
-    // When type is specified (e.g. INCOME or EXPENSE) for a sum aggregate without grouping or extra filters,
-    // use the repository's getTotalByType to get accurate typed sums.
-    if (
-      args.type &&
-      (!args.aggregate || args.aggregate === 'sum') &&
-      !args.groupByField &&
-      !categoryId &&
-      !accountId &&
-      args.amountMin === undefined &&
-      args.amountMax === undefined
-    ) {
-      const totalMinor = await ctx.repository.transactions.getTotalByType(
-        args.type as TransactionType,
-        args.dateFrom,
-        args.dateTo
+    // When type is specified (e.g. INCOME or EXPENSE), ensure accurate typed querying
+    // (since query_transactions RPC lacks p_type).
+    if (args.type) {
+      if (
+        (!args.aggregate || args.aggregate === 'sum') &&
+        !args.groupByField &&
+        !categoryId &&
+        !accountId &&
+        args.amountMin === undefined &&
+        args.amountMax === undefined
+      ) {
+        const totalMinor = await ctx.repository.transactions.getTotalByType(
+          args.type as TransactionType,
+          args.dateFrom,
+          args.dateTo
+        );
+
+        return formatQueryResult(
+          [
+            {
+              group_key: null,
+              result_value: totalMinor,
+              row_count: totalMinor > 0 ? 1 : 0,
+            },
+          ],
+          'sum'
+        );
+      }
+
+      const groupBy = args.groupByField;
+      const baseCurrencyCode = ctx.baseCurrencyCode ?? 'USD';
+      const amountMinMinor =
+        args.amountMin !== undefined
+          ? toBaseMinor(args.amountMin, { baseCurrencyCode })
+          : undefined;
+      const amountMaxMinor =
+        args.amountMax !== undefined
+          ? toBaseMinor(args.amountMax, { baseCurrencyCode })
+          : undefined;
+
+      const { data: txList } = await ctx.repository.transactions.findByFilters(
+        {
+          types: [args.type as TransactionType],
+          dateFrom: args.dateFrom,
+          dateTo: args.dateTo,
+          categoryIds: categoryId ? [categoryId] : undefined,
+          accountIds: accountId ? [accountId] : undefined,
+          amountMin: amountMinMinor,
+          amountMax: amountMaxMinor,
+        },
+        { page: 1, limit: 1000 }
       );
+
+      if (groupBy || args.aggregate === 'groupBy') {
+        const field = groupBy || 'category';
+        const groups = new Map<string, { total: number; count: number }>();
+        const categories = await ctx.repository.categories.findAll();
+        const catMap = new Map(categories.map((c) => [c.id, c.name]));
+        const accounts = await ctx.repository.accounts.findByUserId(ctx.userId);
+        const accMap = new Map(accounts.map((a) => [a.id, a.name]));
+
+        for (const tx of txList) {
+          let key: string;
+          if (field === 'category') {
+            key =
+              (tx.categoryId ? catMap.get(tx.categoryId) : undefined) ??
+              (tx as any).categoryName ??
+              'Sin categoría';
+          } else {
+            key =
+              (tx.accountId ? accMap.get(tx.accountId) : undefined) ??
+              (tx as any).accountName ??
+              'Sin cuenta';
+          }
+
+          const current = groups.get(key) || { total: 0, count: 0 };
+          current.total += tx.amountBaseMinor ?? tx.amountMinor ?? 0;
+          current.count += 1;
+          groups.set(key, current);
+        }
+
+        const rows: QueryTransactionsRow[] = Array.from(groups.entries()).map(
+          ([group_key, val]) => ({
+            group_key,
+            result_value: val.total,
+            row_count: val.count,
+          })
+        );
+
+        return formatQueryResult(rows, 'groupBy');
+      }
+
+      const count = txList.length;
+      const sum = txList.reduce(
+        (acc, tx) => acc + (tx.amountBaseMinor ?? tx.amountMinor ?? 0),
+        0
+      );
+      const val =
+        args.aggregate === 'count'
+          ? count
+          : args.aggregate === 'avg'
+            ? count > 0
+              ? Math.round(sum / count)
+              : 0
+            : sum;
 
       return formatQueryResult(
         [
           {
             group_key: null,
-            result_value: totalMinor,
-            row_count: totalMinor > 0 ? 1 : 0,
+            result_value: val,
+            row_count: count,
           },
         ],
-        'sum'
+        args.aggregate || 'sum'
       );
     }
 

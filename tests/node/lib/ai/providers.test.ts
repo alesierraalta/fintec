@@ -123,8 +123,11 @@ describe('getProviderAdapter — google', () => {
 
     const adapter = getProviderAdapter();
 
-    expect(adapter.modelId).toBe('gemini-2.5-flash');
-    expect(adapter.fallbackModels).toEqual(['gemini-2.5-pro']);
+    expect(adapter.modelId).toBe('gemini-3.1-flash-lite');
+    expect(adapter.fallbackModels).toEqual([
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+    ]);
   });
 
   it('parses multiple comma-separated keys and rotates round-robin', () => {
@@ -273,5 +276,15 @@ describe('getProviderAdapter — configuration errors', () => {
     process.env.GOOGLE_GENERATIVE_AI_API_KEY = 'gg-auto-key';
 
     expect(getProviderAdapter().id).toBe('google');
+  });
+
+  it('classifies 503 high demand / model unavailable as a transient error', () => {
+    const { isQuotaExceededError } = require('@/lib/ai/providers');
+    const transientError = {
+      statusCode: 503,
+      message:
+        'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.',
+    };
+    expect(isQuotaExceededError(transientError)).toBe(true);
   });
 });

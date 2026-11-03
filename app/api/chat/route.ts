@@ -6,7 +6,10 @@ import {
   type UIMessage,
 } from 'ai';
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
-import { streamWithFallback } from '@/lib/ai/stream-with-fallback';
+import {
+  streamWithFallback,
+  createResilientStreamResponse,
+} from '@/lib/ai/stream-with-fallback';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import {
   AI_CONFIG,
@@ -220,7 +223,7 @@ export async function POST(req: Request) {
       )
     );
 
-    return result.toUIMessageStreamResponse({
+    return createResilientStreamResponse(result, {
       onError: (error) => {
         logger.error('[AI Chat] Stream Error:', error);
         if (NoSuchToolError.isInstance(error)) {
