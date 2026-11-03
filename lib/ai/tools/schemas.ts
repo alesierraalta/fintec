@@ -66,6 +66,12 @@ export type CreateTransactionResult = z.infer<
 export const queryTransactionsSchema = z.object({
   dateFrom: z.string().optional().describe('Start date (YYYY-MM-DD)'),
   dateTo: z.string().optional().describe('End date (YYYY-MM-DD)'),
+  type: z
+    .enum(['INCOME', 'EXPENSE'])
+    .optional()
+    .describe(
+      'Filter by transaction type: INCOME for earnings/salary/gains, EXPENSE for spending/costs'
+    ),
   amountMin: z
     .number()
     .optional()

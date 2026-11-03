@@ -107,8 +107,8 @@ describe('getProviderAdapter — google', () => {
 
     const adapter = getProviderAdapter();
 
-    expect(adapter.modelId).toBe('gemini-3.5-flash-lite');
-    expect(adapter.fallbackModels).toEqual(['gemini-2.5-flash']);
+    expect(adapter.modelId).toBe('gemini-2.5-flash');
+    expect(adapter.fallbackModels).toEqual(['gemini-2.5-pro']);
   });
 });
 

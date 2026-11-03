@@ -180,6 +180,35 @@ export async function queryTransactions(
       accountId = match?.id ?? null;
     }
 
+    // When type is specified (e.g. INCOME or EXPENSE) for a sum aggregate without grouping or extra filters,
+    // use the repository's getTotalByType to get accurate typed sums.
+    if (
+      args.type &&
+      (!args.aggregate || args.aggregate === 'sum') &&
+      !args.groupByField &&
+      !categoryId &&
+      !accountId &&
+      args.amountMin === undefined &&
+      args.amountMax === undefined
+    ) {
+      const totalMinor = await ctx.repository.transactions.getTotalByType(
+        args.type as TransactionType,
+        args.dateFrom,
+        args.dateTo
+      );
+
+      return formatQueryResult(
+        [
+          {
+            group_key: null,
+            result_value: totalMinor,
+            row_count: totalMinor > 0 ? 1 : 0,
+          },
+        ],
+        'sum'
+      );
+    }
+
     const baseCurrencyCode = ctx.baseCurrencyCode ?? 'USD';
     const { data, error } = await ctx.supabase.rpc('query_transactions', {
       p_date_from: args.dateFrom ?? null,
