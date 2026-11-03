@@ -30,6 +30,30 @@ export const createTransactionSchema = z.object({
 });
 
 /**
+ * Structured `createTransaction` result for validated UI card rendering.
+ */
+export const createTransactionResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('success'),
+    transaction: z.object({
+      id: z.string().optional(),
+      description: z.string(),
+      amountMinor: z.number().int(),
+      currencyCode: z.string(),
+      type: z.enum(['INCOME', 'EXPENSE']),
+      categoryName: z.string().optional(),
+      accountName: z.string().optional(),
+      date: z.string(),
+    }),
+  }),
+  z.object({ status: z.literal('error'), message: z.string() }),
+]);
+
+export type CreateTransactionResult = z.infer<
+  typeof createTransactionResultSchema
+>;
+
+/**
  * Schema for parameterized filter + aggregate transaction queries
  * (`query_transactions` RPC). Use this for questions like "how much did I
  * spend on food in June" or "break down my spending by category" —

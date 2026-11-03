@@ -48,7 +48,7 @@
     "guard:db-access": "node scripts/guardrails/check-direct-db-access.mjs",
     "prepare": "husky",
     "precommit:staged": "lint-staged",
-    "test:staged": "jest --findRelatedTests --bail --passWithNoTests",
+    "test:staged": "jest --selectProjects dom node --findRelatedTests --bail --passWithNoTests",
     "test:supabase": "cross-env BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true jest --selectProjects node --runInBand --passWithNoTests",
     "test:db": "cross-env BASELINE_BROWSER_MAPPING_IGNORE_OLD_DATA=true BROWSERSLIST_IGNORE_OLD_DATA=true jest --selectProjects db --runInBand --passWithNoTests",
     "eval:baseline": "tsx evals/baseline/run-baseline.ts",
