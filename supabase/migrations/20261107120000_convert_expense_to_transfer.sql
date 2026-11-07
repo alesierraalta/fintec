@@ -22,6 +22,7 @@ DECLARE
   v_user_id uuid := auth.uid();
   v_tx public.transactions;
   v_currency text;
+  v_to_currency text;
   v_decimals integer;
   v_amount_major numeric;
   v_transfer json;
@@ -43,11 +44,38 @@ BEGIN
     RAISE EXCEPTION 'Only a plain expense can be converted into a transfer';
   END IF;
 
+  -- Debt deductions carry debt-linked / debt:<id> tags, and
+  -- delete_transaction_and_adjust_balance also deletes every row tagged
+  -- debt:<this id>. Either case would delete or orphan more than this expense.
+  IF EXISTS (
+    SELECT 1 FROM unnest(COALESCE(v_tx.tags, ARRAY[]::text[])) AS tag
+    WHERE tag = 'debt-linked' OR tag LIKE 'debt:%'
+  ) OR EXISTS (
+    SELECT 1 FROM public.transactions
+    WHERE tags @> ARRAY['debt:' || v_tx.id::text]::text[]
+  ) THEN
+    RAISE EXCEPTION 'Expenses linked to a debt cannot be converted into a transfer';
+  END IF;
+
   IF v_tx.account_id = p_to_account_id THEN
     RAISE EXCEPTION 'Source and destination accounts must differ';
   END IF;
 
   SELECT currency_code INTO v_currency FROM public.accounts WHERE id = v_tx.account_id;
+  SELECT currency_code INTO v_to_currency FROM public.accounts
+  WHERE id = p_to_account_id AND user_id = v_user_id;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Destination account not found or does not belong to user';
+  END IF;
+  IF v_currency <> v_to_currency AND (p_exchange_rate IS NULL OR p_exchange_rate <= 0) THEN
+    RAISE EXCEPTION 'An exchange rate is required between % and %', v_currency, v_to_currency;
+  END IF;
+  -- create_transfer scales every currency except JPY/CLP/COP by 2 decimals,
+  -- which would misstate 8-decimal crypto amounts (BTC, ETH).
+  IF v_currency IN ('BTC', 'ETH') OR v_to_currency IN ('BTC', 'ETH') THEN
+    RAISE EXCEPTION 'Conversion is not supported for % accounts yet', CASE WHEN v_currency IN ('BTC', 'ETH') THEN v_currency ELSE v_to_currency END;
+  END IF;
+
   v_decimals := CASE WHEN v_currency IN ('JPY', 'CLP', 'COP') THEN 0 ELSE 2 END;
   v_amount_major := v_tx.amount_minor::numeric / power(10, v_decimals);
 
