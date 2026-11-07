@@ -51,6 +51,8 @@ describe('agent v2 evaluation dataset (#116)', () => {
       ).length
     );
     expect(Object.keys(report.resolver.byCategory)).toContain('Carros');
+    // Without the model's category the resolver asks; it never misfiles money.
+    expect(report.resolver.wrongGuesses).toBe(0);
   });
 
   it('fails a transfer that the agent recorded as an expense', () => {

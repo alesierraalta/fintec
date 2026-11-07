@@ -32,7 +32,7 @@ receipt matching and a redesigned chat.
 
 - T1 [S1] #113 inline — category resolution fix + categories in the system prompt — done, commit: 05495755
 - T2 [S2,S3] #114 — createTransfer tool, intent routing, reclassify expense as transfer — done, commits: 6992b985, 0a9aeec1, review fixes (see L6-L7)
-- T3 [S4] #115 — architecture v2, shared resolver, embeddings kNN layer — commit: pending
+- T3 [S4] #115 — architecture v2: history conventions in the chat prompt, model-hint-only fallback, receipt kind validation, docs/ai-agent-architecture.md — branch feat/115-agent-architecture-v2
 - T4 [S5] #116 — evaluation dataset and runner — done (474 cases, keyword resolver alone 46.2%)
 - T5 [S6] #117 — deferred expenses and receipt matching — commit: pending
 - T6 [S7] #118 — chat redesign — commit: pending
@@ -76,3 +76,9 @@ receipt matching and a redesigned chat.
   never recorded as expenses; expense category 7/8; income accountName dropped 3/5; "anota 20" /
   "gasté 30" filed under Otros Gastos instead of asking; Yummy filed as food. Prompt rules added
   for all three; re-measure when the provider quota resets (most runs failed with quota errors).
+- L8 (decision, T3): no embedding kNN for categories. Evidence: evals/voice-capture/REPORT.md
+  (history in prompt 98.9% vs embedding 97.4% vs lexical 96.7%; conventions 6/6 vs 3/6) and the
+  agent v2 fallback measurement (description-only keyword scoring: 132 right / 92 wrong / 62 ask;
+  HIGH-only: 52 / 32 / 202). Chat now gets the user's history conventions; the keyword fallback
+  only reads the model's category name (deterministic eval: 0 wrong, 286 ask without a hint);
+  receipt scanner trusts a model category id only when its kind matches.

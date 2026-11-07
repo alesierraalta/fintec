@@ -191,6 +191,27 @@ describe('createTransaction category resolution (#113)', () => {
     expect(repository.transactions.create).not.toHaveBeenCalled();
   });
 
+  it('asks instead of trusting a description-only keyword guess', async () => {
+    const repository = makeRepository();
+
+    // "la compra del abasto" used to score "Compras" from the description alone.
+    const result = await createTransaction(
+      {
+        amount: 74,
+        description: 'la compra del abasto',
+        category: 'Varios',
+        type: 'EXPENSE',
+      } as any,
+      ctx(repository)
+    );
+
+    expect(result).toMatchObject({
+      status: 'needs_clarification',
+      field: 'category',
+    });
+    expect(repository.transactions.create).not.toHaveBeenCalled();
+  });
+
   it('asks for the account when the named account does not exist, and creates nothing', async () => {
     const repository = makeRepository();
 

@@ -2,6 +2,9 @@ import { createClient } from '@/lib/supabase/server';
 import { streamText } from 'ai';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { createServerAppRepository } from '@/repositories/factory';
+
+const buildSystemPromptMock = () =>
+  jest.requireMock('@/lib/ai/config').buildSystemPrompt as jest.Mock;
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import { logger } from '@/lib/utils/logger';
 import { getAIModel, AIConfigurationError } from '@/lib/ai/config';
@@ -288,6 +291,16 @@ describe('chat route', () => {
       accounts: {
         findByUserId: mockFindByUserId,
       },
+      transactions: {
+        findAll: jest.fn().mockResolvedValue([
+          { description: 'Almuerzo oficina', categoryId: 'usr-cars' },
+          {
+            description: 'Transferencia',
+            categoryId: 'usr-cars',
+            transferId: 't-1',
+          },
+        ]),
+      },
       categories: {
         findAll: jest.fn().mockResolvedValue([
           {
@@ -359,6 +372,12 @@ describe('chat route', () => {
         messages: [{ role: 'user', content: 'How much do I have?' }],
       })
     );
+    // The user's own conventions reach the prompt as history hints.
+    expect(buildSystemPromptMock()).toHaveBeenCalledWith(
+      expect.objectContaining({
+        history: [{ description: 'Almuerzo oficina', category: 'Carros' }],
+      })
+    );
     // The model sees default and own active categories, never other users'.
     const { buildSystemPrompt } = jest.requireMock('@/lib/ai/config');
     expect(buildSystemPrompt).toHaveBeenCalledWith(
@@ -369,6 +388,37 @@ describe('chat route', () => {
           { id: 'def-salary', name: 'Salario', kind: 'INCOME' },
         ],
       })
+    );
+  });
+
+  it('still answers when the history lookup fails, without history hints', async () => {
+    mockCreateServerAppRepository.mockReturnValue({
+      accounts: { findByUserId: jest.fn().mockResolvedValue([]) },
+      categories: { findAll: jest.fn().mockResolvedValue([]) },
+      transactions: {
+        findAll: jest.fn().mockRejectedValue(new Error('db down')),
+      },
+    } as any);
+    mockStreamText.mockReturnValue({
+      toUIMessageStreamResponse: jest.fn(() =>
+        Response.json({ ok: true }, { status: 200 })
+      ),
+    } as any);
+
+    const { POST } = await import('@/app/api/chat/route');
+    const response = await POST(
+      new Request('http://localhost/api/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ role: 'user', content: 'hola' }],
+          threadId: 't-2',
+        }),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(buildSystemPromptMock()).toHaveBeenLastCalledWith(
+      expect.objectContaining({ history: [] })
     );
   });
 

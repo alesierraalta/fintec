@@ -7,6 +7,10 @@ import {
 } from 'ai';
 import { buildChatTools } from '@/lib/ai/tools/build-chat-tools';
 import {
+  buildHistoryHints,
+  HISTORY_LOOKBACK,
+} from '@/lib/ai/voice-capture/history-hints';
+import {
   streamWithFallback,
   createResilientStreamResponse,
 } from '@/lib/ai/stream-with-fallback';
@@ -123,8 +127,8 @@ export async function POST(req: Request) {
       }
     };
 
-    const [checkpoint, accounts, categories, profileResult] = await Promise.all(
-      [
+    const [checkpoint, accounts, categories, pastTransactions, profileResult] =
+      await Promise.all([
         checkpointer.load(threadId, user.id).catch((err) => {
           logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
           return null;
@@ -137,9 +141,15 @@ export async function POST(req: Request) {
           logger.warn('[AI Chat] Categories lookup failed', err);
           return [];
         }),
+        // History only improves categories: a failure must not block the chat.
+        Promise.resolve()
+          .then(() => repository.transactions.findAll(HISTORY_LOOKBACK))
+          .catch((err) => {
+            logger.warn('[AI Chat] History lookup failed', err);
+            return [];
+          }),
         fetchBaseCurrency(),
-      ]
-    );
+      ]);
 
     if (checkpoint) {
       logger.info('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
@@ -157,6 +167,7 @@ export async function POST(req: Request) {
             c.active !== false && (c.userId === null || c.userId === user.id)
         )
         .map((c) => ({ id: c.id, name: c.name, kind: c.kind })),
+      history: buildHistoryHints(pastTransactions || [], categories || []),
     };
 
     let baseCurrencyCode = DEFAULT_BASE_CURRENCY;
