@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat FinTec — Conversación con tarjetas</title>
+<style>
+  :root {
+    --background: 240 5% 96%; --foreground: 0 0% 0%; --card: 0 0% 100%;
+    --primary: 211 100% 42%; --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 92%; --muted: 0 0% 85%; --muted-foreground: 0 0% 40%;
+    --border: 0 0% 80%; --ring: 211 100% 50%;
+    --success: 142 70% 45%; --error: 354 84% 60%; --warning: 38 92% 50%;
+    --radius: 0.75rem;
+    --shadow-soft: 0 2px 15px -3px rgba(0,0,0,.07), 0 10px 20px -2px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: hsl(var(--background)); color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 1rem; line-height: 1.5; }
+  .app { width: 390px; height: 844px; display: flex; flex-direction: column; margin: 0 auto; background: hsl(var(--background)); }
+  header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: hsl(var(--primary)); color: #fff; display: grid; place-items: center; font-weight: 700; }
+  header h1 { font-size: 1.125rem; line-height: 1.3; margin: 0; }
+  header p { margin: 0; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+  .thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 82%; padding: 10px 14px; border-radius: 18px; font-size: .9375rem; }
+  .me { align-self: flex-end; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-bottom-right-radius: 6px; }
+  .bot { align-self: flex-start; background: hsl(var(--card)); box-shadow: var(--shadow-soft); border-bottom-left-radius: 6px; }
+  .card { align-self: flex-start; width: 86%; background: hsl(var(--card)); border-radius: var(--radius); box-shadow: var(--shadow-soft); padding: 14px; }
+  .card h2 { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 8px; color: hsl(var(--muted-foreground)); font-weight: 600; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+  .big { font-size: 1.5rem; font-weight: 700; letter-spacing: -.01em; }
+  .exp { color: hsl(var(--error)); } .inc { color: hsl(var(--success)); } .trf { color: hsl(var(--primary)); }
+  .meta { font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+  .route { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-weight: 600; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; background: hsl(var(--secondary)); font-size: .8125rem; }
+  .actions { display: flex; gap: 8px; margin-top: 12px; }
+  button { font: inherit; border: 0; border-radius: var(--radius); padding: 9px 14px; font-weight: 600; cursor: pointer; font-size: .875rem; }
+  button:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+  .primary { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); flex: 1; }
+  .ghost { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
+  .warn { border-left: 4px solid hsl(var(--warning)); }
+  .slots { display: grid; gap: 8px; margin-top: 8px; }
+  .slot { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 10px; background: hsl(var(--background)); }
+  .thumb { width: 40px; height: 48px; border-radius: 6px; background: repeating-linear-gradient(0deg, hsl(var(--card)) 0 4px, hsl(var(--secondary)) 4px 6px); border: 1px solid hsl(var(--border)); }
+  .empty { border: 2px dashed hsl(var(--border)); background: transparent; }
+  .slot b { display: block; font-size: .875rem; }
+  .ok { margin-left: auto; color: hsl(var(--success)); font-weight: 700; font-size: .8125rem; }
+  .wait { margin-left: auto; color: hsl(var(--muted-foreground)); font-size: .8125rem; }
+  .drop { margin-top: 10px; border: 2px dashed hsl(var(--primary)); border-radius: var(--radius); padding: 12px; text-align: center; color: hsl(var(--primary)); font-weight: 600; font-size: .875rem; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chips button { background: hsl(var(--secondary)); padding: 6px 12px; border-radius: 999px; font-weight: 500; }
+  footer { padding: 10px 12px 14px; background: hsl(var(--card)); border-top: 1px solid hsl(var(--border)); }
+  .composer { display: flex; align-items: center; gap: 8px; }
+  .icon { width: 40px; height: 40px; border-radius: 50%; padding: 0; display: grid; place-items: center; background: hsl(var(--secondary)); }
+  .field { flex: 1; border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 10px 14px; color: hsl(var(--muted-foreground)); font-size: .9375rem; }
+  .send { background: hsl(var(--primary)); color: #fff; }
+  @media (prefers-reduced-motion: no-preference) { .card { animation: up .32s cubic-bezier(.32,.72,0,1) both; } @keyframes up { from { opacity: 0; transform: translateY(8px); } } }
+</style>
+</head>
+<body>
+<div class="app" role="application" aria-label="Asistente FinTec">
+  <header>
+    <div class="avatar" aria-hidden="true">F</div>
+    <div><h1>Asistente FinTec</h1><p>Registra gastos, ingresos y transferencias hablando</p></div>
+  </header>
+
+  <main class="thread" aria-live="polite">
+    <p class="msg me">pasa 7000 de Zelle a Binance</p>
+    <article class="card" aria-label="Confirmar transferencia">
+      <h2>Transferencia entre tus cuentas</h2>
+      <div class="big trf">7.000,00 $</div>
+      <div class="route"><span class="pill">Zelle</span><span aria-hidden="true">→</span><span class="pill">Binance</span></div>
+      <p class="meta" style="margin:0">No es un gasto: tu saldo total no cambia.</p>
+      <div class="actions"><button class="primary" type="button">Confirmar</button><button class="ghost" type="button">Cancelar</button></div>
+    </article>
+
+    <p class="msg me">gasté 12 en almuerzo</p>
+    <article class="card" aria-label="Gasto registrado">
+      <h2>Gasto registrado</h2>
+      <div class="line"><span>Almuerzo</span><span class="big exp">−12,00 $</span></div>
+      <div class="chips"><span class="pill">🍽️ Alimentación</span><span class="pill">Zelle</span><span class="pill">Hoy</span></div>
+      <div class="actions"><button class="ghost" type="button">Cambiar categoría</button><button class="ghost" type="button">Deshacer</button></div>
+    </article>
+
+    <p class="msg me">hice 3 gastos hoy, te paso los tickets</p>
+    <article class="card warn" aria-label="Gastos sin ticket">
+      <h2>3 gastos esperan su ticket</h2>
+      <div class="slots">
+        <div class="slot"><div class="thumb" aria-hidden="true"></div><div><b>Farmacia</b><span class="meta">Farmatodo · 18,40 $</span></div><span class="ok">Listo</span></div>
+        <div class="slot"><div class="thumb" aria-hidden="true"></div><div><b>Mercado</b><span class="meta">Central Madeirense · 46,10 $</span></div><span class="ok">Listo</span></div>
+        <div class="slot"><div class="thumb empty" aria-hidden="true"></div><div><b>Gasto 3</b><span class="meta">Sin foto todavía</span></div><span class="wait">Pendiente</span></div>
+      </div>
+      <div class="drop" role="button" tabindex="0">Pega o sube las fotos de los tickets</div>
+      <div class="actions"><button class="primary" type="button">Registrar los 2 listos</button></div>
+    </article>
+
+    <p class="msg me">anota 20</p>
+    <div class="msg bot">¿En qué fueron esos 20 $?
+      <div class="chips"><button type="button">Alimentación</button><button type="button">Transporte</button><button type="button">Salud</button><button type="button">Otra…</button></div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="composer">
+      <button class="icon" type="button" aria-label="Adjuntar ticket">📎</button>
+      <div class="field">Escribe o dicta un gasto…</div>
+      <button class="icon" type="button" aria-label="Dictar por voz">🎙️</button>
+      <button class="icon send" type="button" aria-label="Enviar">↑</button>
+    </div>
+  </footer>
+</div>
+</body>
+</html>

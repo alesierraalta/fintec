@@ -1,0 +1,28 @@
+{
+  "title": "Rediseño del chat de IA",
+  "brief": "Chat de IA de FinTec (móvil): registrar gastos, ingresos y transferencias hablando; confirmar transferencias; aclarar cuando falta información; y pegar fotos de tickets para gastos anunciados sin monto.",
+  "feature": "odd/tasks/ai-finance-agent-v2.md",
+  "artboards": [
+    {
+      "file": "01-conversation-cards.html",
+      "title": "Conversación con tarjetas",
+      "tradeoff": "Familiar y explícito: cada acción es una tarjeta en el hilo con su confirmación y el panel de tickets en línea; el hilo se alarga y lo pendiente puede quedar arriba, fuera de vista.",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "02-actions-first.html",
+      "title": "Acciones primero",
+      "tradeoff": "Lo más rápido para el uso diario: accesos directos (Gasto, Ingreso, Transferir, Tickets), registro compacto y emparejamiento de tickets en una hoja inferior; se siente menos conversacional.",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "file": "03-pending-tray.html",
+      "title": "Bandeja de pendientes",
+      "tradeoff": "Nada se pierde: una bandeja fija arriba reúne lo que espera tu confirmación, tickets o una aclaración; agrega una capa de interfaz fija que ocupa altura en pantallas chicas.",
+      "width": 390,
+      "height": 844
+    }
+  ]
+}

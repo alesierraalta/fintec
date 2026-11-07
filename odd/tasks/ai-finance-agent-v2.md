@@ -87,3 +87,6 @@ receipt matching and a redesigned chat.
   createPendingExpenses stores N named or "Gasto N" placeholders; matchReceiptsToPending pairs
   receipts to named items by word similarity (trigram >= 0.6, greedy, never twice) and fills
   placeholders in upload order; /pending shows a "Gastos sin ticket" section only when needed.
+- L10 (design, T6): design system synced to design/system.md + design/system.html from
+  app/globals.css and tailwind.config.ts. Chat directions in design/ai-chat-redesign/:
+  01-conversation-cards, 02-actions-first, 03-pending-tray (390x844), awaiting the user's choice.
