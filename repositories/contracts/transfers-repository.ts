@@ -43,6 +43,11 @@ export interface CreateTransferResult {
   totalDebitMinor?: number;
 }
 
+export interface ConvertExpenseToTransferResult {
+  transferId: string;
+  convertedTransactionId: string;
+}
+
 export interface TransfersRepository {
   listByUserId(
     userId: string,
@@ -53,4 +58,13 @@ export interface TransfersRepository {
     input: CreateTransferInput
   ): Promise<CreateTransferResult>;
   delete(userId: string, transferId: string): Promise<void>;
+  /**
+   * Atomically replaces a plain expense with a transfer from its account to
+   * `toAccountId` (RPC convert_expense_to_transfer), repairing both balances.
+   */
+  convertExpenseToTransfer(
+    transactionId: string,
+    toAccountId: string,
+    exchangeRate?: number
+  ): Promise<ConvertExpenseToTransferResult>;
 }
