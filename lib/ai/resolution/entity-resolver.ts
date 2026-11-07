@@ -7,7 +7,7 @@ export type Resolution<T> =
   | { status: 'resolved'; value: T }
   | {
       status: 'needs_clarification';
-      field: 'category' | 'account';
+      field: 'category' | 'account' | 'exchangeRate' | 'transaction';
       message: string;
       options: string[];
     };

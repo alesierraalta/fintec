@@ -28,6 +28,12 @@ jest.mock('@/lib/ai/hitl', () => ({
 jest.mock('@/lib/ai/tools/resolvers', () => ({
   toolsResolvers: {
     createTransaction: jest.fn().mockResolvedValue('tx created'),
+    createTransfer: jest
+      .fn()
+      .mockResolvedValue({ status: 'error', message: 'x' }),
+    reclassifyExpenseAsTransfer: jest
+      .fn()
+      .mockResolvedValue({ status: 'error', message: 'x' }),
     queryTransactions: jest.fn().mockResolvedValue('query result'),
     searchTransactions: jest.fn().mockResolvedValue('search result'),
     getAccountBalance: jest.fn().mockResolvedValue('balance result'),
@@ -55,12 +61,14 @@ describe('buildChatTools — returns the same five wrapped tools', () => {
     jest.clearAllMocks();
   });
 
-  it('returns createTransaction, queryTransactions, searchTransactions, getAccountBalance, createGoal', () => {
+  it('returns the transaction, transfer, retrieval, balance and goal tools', () => {
     const tools = buildChatTools(makeDeps());
 
     expect(Object.keys(tools).sort()).toEqual(
       [
         'createTransaction',
+        'createTransfer',
+        'reclassifyExpenseAsTransfer',
         'queryTransactions',
         'searchTransactions',
         'getAccountBalance',

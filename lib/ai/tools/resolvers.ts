@@ -15,6 +15,7 @@ import {
   normalizeName,
   resolveAccount,
   resolveCategory,
+  type Resolution,
 } from '../resolution/entity-resolver';
 import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
 import { toMinorUnits, toBaseMinor } from '@/lib/money';
@@ -28,6 +29,10 @@ type GetAccountBalanceArgs = z.infer<typeof schemas.getAccountBalanceSchema>;
 type CreateGoalArgs = z.infer<typeof schemas.createGoalSchema>;
 type QueryTransactionsArgs = z.infer<typeof schemas.queryTransactionsSchema>;
 type SearchTransactionsArgs = z.infer<typeof schemas.searchTransactionsSchema>;
+type CreateTransferArgs = z.infer<typeof schemas.createTransferSchema>;
+type ReclassifyExpenseAsTransferArgs = z.infer<
+  typeof schemas.reclassifyExpenseAsTransferSchema
+>;
 
 interface ToolContext {
   userId: string;
@@ -125,6 +130,173 @@ export async function createTransaction(
     return {
       status: 'error',
       message: `Failed to create transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+type AccountPair =
+  | { status: 'resolved'; from: Account; to: Account }
+  | Exclude<Resolution<Account>, { status: 'resolved' }>;
+
+async function resolveOwnAccountPair(
+  ctx: ToolContext,
+  fromAccountName: string,
+  toAccountName: string
+): Promise<AccountPair> {
+  const accounts = await ctx.repository.accounts.findByUserId(ctx.userId);
+  const from = resolveAccount({ accounts, accountName: fromAccountName });
+  if (from.status !== 'resolved') return from;
+  const to = resolveAccount({ accounts, accountName: toAccountName });
+  if (to.status !== 'resolved') return to;
+  if (from.value.id === to.value.id) {
+    return {
+      status: 'needs_clarification',
+      field: 'account',
+      message: `El origen y el destino son la misma cuenta (${from.value.name}). ¿A cuál cuenta va el dinero?`,
+      options: accounts
+        .filter((a) => a.id !== from.value.id)
+        .map((a) => a.name),
+    };
+  }
+  return { status: 'resolved', from: from.value, to: to.value };
+}
+
+function missingRate(from: Account, to: Account) {
+  return {
+    status: 'needs_clarification' as const,
+    field: 'exchangeRate' as const,
+    message: `${from.name} está en ${from.currencyCode} y ${to.name} en ${to.currencyCode}. ¿A qué tasa se hizo el cambio (o cuánto llegó a ${to.name})?`,
+    options: [],
+  };
+}
+
+/**
+ * Moves money between two of the user's own accounts through the atomic
+ * `create_transfer` RPC. Never records an expense (#114).
+ */
+export async function createTransfer(
+  args: CreateTransferArgs,
+  ctx: ToolContext
+): Promise<schemas.CreateTransferResult> {
+  try {
+    const pair = await resolveOwnAccountPair(
+      ctx,
+      args.fromAccountName,
+      args.toAccountName
+    );
+    if (pair.status !== 'resolved') return pair;
+    const { from, to } = pair;
+    if (from.currencyCode !== to.currencyCode && !args.exchangeRate) {
+      return missingRate(from, to);
+    }
+
+    const result = await ctx.repository.transfers.create(ctx.userId, {
+      fromAccountId: from.id,
+      toAccountId: to.id,
+      amountMajor: args.amount,
+      description:
+        args.description ?? `Transferencia de ${from.name} a ${to.name}`,
+      date: args.date,
+      exchangeRate: args.exchangeRate,
+    });
+
+    return {
+      status: 'success',
+      transfer: {
+        id: result.transferId,
+        fromAccountName: from.name,
+        toAccountName: to.name,
+        fromAmountMinor: result.fromAmount,
+        toAmountMinor: result.toAmount,
+        fromCurrency: result.fromCurrency,
+        toCurrency: result.toCurrency,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: `Failed to create transfer: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+/**
+ * Repairs an own-account transfer that was recorded as an expense: finds the
+ * expense on the source account by amount (and date when given) and converts
+ * it atomically into a transfer (`convert_expense_to_transfer` RPC).
+ */
+export async function reclassifyExpenseAsTransfer(
+  args: ReclassifyExpenseAsTransferArgs,
+  ctx: ToolContext
+): Promise<schemas.ReclassifyExpenseAsTransferResult> {
+  try {
+    const pair = await resolveOwnAccountPair(
+      ctx,
+      args.fromAccountName,
+      args.toAccountName
+    );
+    if (pair.status !== 'resolved') return pair;
+    const { from, to } = pair;
+    if (from.currencyCode !== to.currencyCode && !args.exchangeRate) {
+      return missingRate(from, to);
+    }
+
+    const amountMinor = toMinorUnits(args.amount, from.currencyCode);
+    const { data } = await ctx.repository.transactions.findByFilters(
+      {
+        accountIds: [from.id],
+        types: [TransactionType.EXPENSE],
+        ...(args.date ? { dateFrom: args.date, dateTo: args.date } : {}),
+      },
+      { page: 1, limit: 200, sortBy: 'date', sortOrder: 'desc' }
+    );
+    const candidates = data.filter(
+      (t) => t.amountMinor === amountMinor && !t.transferId && !t.isDebt
+    );
+    const target = args.transactionId
+      ? candidates.find((t) => t.id === args.transactionId)
+      : candidates.length === 1
+        ? candidates[0]
+        : undefined;
+
+    if (!target) {
+      return {
+        status: 'needs_clarification',
+        field: 'transaction',
+        message:
+          candidates.length === 0
+            ? `No encontré un gasto de ${args.amount} ${from.currencyCode} en ${from.name}${args.date ? ` el ${args.date}` : ''}. ¿De qué fecha o monto exacto era?`
+            : `Encontré ${candidates.length} gastos de ${args.amount} ${from.currencyCode} en ${from.name}. ¿Cuál convierto en transferencia?`,
+        options: candidates.map(
+          (t) =>
+            `${t.date} · ${t.description ?? 'Sin descripción'} [id: ${t.id}]`
+        ),
+      };
+    }
+
+    const result = await ctx.repository.transfers.convertExpenseToTransfer(
+      target.id,
+      to.id,
+      args.exchangeRate
+    );
+
+    return {
+      status: 'success',
+      converted: {
+        transactionId: target.id,
+        transferId: result.transferId,
+        description: target.description,
+        date: target.date,
+        amountMinor: target.amountMinor,
+        currencyCode: from.currencyCode,
+        fromAccountName: from.name,
+        toAccountName: to.name,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: `Failed to convert expense: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
@@ -477,6 +649,8 @@ export async function createGoal(
  */
 export const toolsResolvers = {
   createTransaction,
+  createTransfer,
+  reclassifyExpenseAsTransfer,
   queryTransactions,
   searchTransactions,
   getAccountBalance,

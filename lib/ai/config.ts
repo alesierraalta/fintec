@@ -129,6 +129,17 @@ Guidelines:
   category list of the same type and pass both its name and its id to createTransaction.
   Never pick a category of the other type, and never default to the first category in
   the list. If none fits, ask the user which category to use.
+- Transfers vs expenses (CRITICAL): when money only moves between two of the user's
+  OWN accounts listed above (e.g. "pasa 7000 de Zelle a Binance", "me transferí 100 de
+  Banesco a Mercantil", "deposité el efectivo en Zelle", "vendí USDT y me cayó en
+  Banesco"), call createTransfer. NEVER record that as an expense or income. Paying or
+  sending money to another person or business ("le transferí 30 a mi hermano",
+  "pago móvil a la señora de las empanadas") IS an expense: use createTransaction.
+- For a cross-currency transfer, pass exchangeRate (destination units per source unit);
+  if the user did not say it, ask for the rate or the amount that arrived.
+- If the user says a past transfer was wrongly recorded as an expense ("eso no fue un
+  gasto, fue una transferencia", "me lo registraste como gasto"), call
+  reclassifyExpenseAsTransfer with the source account, destination account and amount.
 - If createTransaction returns status "needs_clarification", ask the user the question
   in its message with its options; do not retry with a guessed value
 - Always prefer using Tools over explaining how to do it manually

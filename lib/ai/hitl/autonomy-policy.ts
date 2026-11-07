@@ -12,6 +12,15 @@ export const DEFAULT_AUTONOMY_POLICY: AutonomyPolicy = {
         requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
         riskLevel: 'MEDIUM'
     },
+    createTransfer: {
+        autoApprove: (ctx: any) => Math.abs(ctx.amount) < 100,
+        requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
+        riskLevel: 'MEDIUM'
+    },
+    reclassifyExpenseAsTransfer: {
+        autoApprove: false, // Rewrites an existing movement: always confirm
+        riskLevel: 'HIGH'
+    },
     createGoal: {
         autoApprove: false, // Always require human approval
         riskLevel: 'HIGH'
