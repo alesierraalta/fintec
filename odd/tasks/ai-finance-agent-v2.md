@@ -34,7 +34,7 @@ receipt matching and a redesigned chat.
 - T2 [S2,S3] #114 — createTransfer tool, intent routing, reclassify expense as transfer — done, commits: 6992b985, 0a9aeec1, review fixes (see L6-L7)
 - T3 [S4] #115 — architecture v2: history conventions in the chat prompt, model-hint-only fallback, receipt kind validation, docs/ai-agent-architecture.md — branch feat/115-agent-architecture-v2
 - T4 [S5] #116 — evaluation dataset and runner — done (474 cases, keyword resolver alone 46.2%)
-- T5 [S6] #117 — deferred expenses and receipt matching — commit: pending
+- T5 [S6] #117 — deferred expenses and receipt matching — data + agent done on feat/117-deferred-receipts; in-chat upload panel ships with T6
 - T6 [S7] #118 — chat redesign — commit: pending
 
 ## Log
@@ -82,3 +82,8 @@ receipt matching and a redesigned chat.
   HIGH-only: 52 / 32 / 202). Chat now gets the user's history conventions; the keyword fallback
   only reads the model's category name (deterministic eval: 0 wrong, 286 ask without a hint);
   receipt scanner trusts a model category id only when its kind matches.
+- L9 (evidence, T5): pending_items gains kind 'receipt' (migration verified on the scratch DB:
+  rejected before, accepted after, invalid kinds still rejected, existing rows intact).
+  createPendingExpenses stores N named or "Gasto N" placeholders; matchReceiptsToPending pairs
+  receipts to named items by word similarity (trigram >= 0.6, greedy, never twice) and fills
+  placeholders in upload order; /pending shows a "Gastos sin ticket" section only when needed.

@@ -180,6 +180,44 @@ export type ReclassifyExpenseAsTransferResult = z.infer<
   typeof reclassifyExpenseAsTransferResultSchema
 >;
 
+export const MAX_PENDING_EXPENSES = 50;
+
+/**
+ * Schema for expenses the user already made but cannot price yet (#117):
+ * "hice 3 gastos hoy, te paso los tickets". Each becomes a pending item that
+ * waits for its receipt photo; no money moves.
+ *
+ * @example
+ * { count: 3, descriptions: ["Farmacia", "Mercado"] }
+ */
+export const createPendingExpensesSchema = z.object({
+  count: z
+    .number()
+    .int()
+    .describe('How many expenses the user announced without amounts'),
+  descriptions: z
+    .array(z.string().min(1).max(200))
+    .optional()
+    .describe(
+      'What each expense was, in order, only when the user said it (e.g. "Farmacia"). Omit unknown ones.'
+    ),
+});
+
+export const createPendingExpensesResultSchema = z.discriminatedUnion(
+  'status',
+  [
+    z.object({
+      status: z.literal('success'),
+      pending: z.array(z.object({ id: z.string(), name: z.string() })),
+    }),
+    z.object({ status: z.literal('error'), message: z.string() }),
+  ]
+);
+
+export type CreatePendingExpensesResult = z.infer<
+  typeof createPendingExpensesResultSchema
+>;
+
 /**
  * Schema for parameterized filter + aggregate transaction queries
  * (`query_transactions` RPC). Use this for questions like "how much did I

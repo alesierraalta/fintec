@@ -29,6 +29,9 @@ type CreateGoalArgs = z.infer<typeof schemas.createGoalSchema>;
 type QueryTransactionsArgs = z.infer<typeof schemas.queryTransactionsSchema>;
 type SearchTransactionsArgs = z.infer<typeof schemas.searchTransactionsSchema>;
 type CreateTransferArgs = z.infer<typeof schemas.createTransferSchema>;
+type CreatePendingExpensesArgs = z.infer<
+  typeof schemas.createPendingExpensesSchema
+>;
 type ReclassifyExpenseAsTransferArgs = z.infer<
   typeof schemas.reclassifyExpenseAsTransferSchema
 >;
@@ -275,9 +278,7 @@ export async function reclassifyExpenseAsTransfer(
     }
 
     const amountMinor = toMinorUnits(args.amount, from.currencyCode);
-    const candidates = (
-      await findAllExpenses(ctx, from.id, args.date)
-    ).filter(
+    const candidates = (await findAllExpenses(ctx, from.id, args.date)).filter(
       (t) =>
         t.amountMinor === amountMinor &&
         !t.transferId &&
@@ -679,9 +680,48 @@ export async function createGoal(
 /**
  * Exported resolvers object for use in AI route.
  */
+/**
+ * Stores expenses the user made but cannot price yet as receipt-pending
+ * items (#117). They persist outside the chat until a receipt photo is
+ * matched to each one; no money moves here.
+ */
+export async function createPendingExpenses(
+  args: CreatePendingExpensesArgs,
+  ctx: ToolContext
+): Promise<schemas.CreatePendingExpensesResult> {
+  if (
+    !Number.isInteger(args.count) ||
+    args.count < 1 ||
+    args.count > schemas.MAX_PENDING_EXPENSES
+  ) {
+    return {
+      status: 'error',
+      message: `Puedo guardar entre 1 y ${schemas.MAX_PENDING_EXPENSES} gastos pendientes a la vez.`,
+    };
+  }
+  try {
+    const pending = [];
+    for (let i = 0; i < args.count; i++) {
+      const name = args.descriptions?.[i]?.trim() || `Gasto ${i + 1}`;
+      const item = await ctx.repository.pendingItems.create(ctx.userId, {
+        kind: 'receipt',
+        name,
+      });
+      pending.push({ id: item.id, name: item.name });
+    }
+    return { status: 'success', pending };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: `Failed to save pending expenses: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
 export const toolsResolvers = {
   createTransaction,
   createTransfer,
+  createPendingExpenses,
   reclassifyExpenseAsTransfer,
   queryTransactions,
   searchTransactions,

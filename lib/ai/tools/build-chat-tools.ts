@@ -165,6 +165,21 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
             : output.message,
       }),
     }),
+    createPendingExpenses: tool({
+      description:
+        'Register expenses the user ALREADY made but whose amounts they do not know yet ("hice 3 gastos, te paso los tickets"). Creates one pending expense each; the user then uploads receipt photos to price them. Never invent amounts.',
+      inputSchema: schemas.createPendingExpensesSchema,
+      outputSchema: schemas.createPendingExpensesResultSchema,
+      execute: async (args: any) =>
+        toolsResolvers.createPendingExpenses(args, { userId, repository }),
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value:
+          output.status === 'success'
+            ? `Saved ${output.pending.length} pending expenses (${output.pending.map((p) => p.name).join(', ')}). Ask the user to upload the receipt photos in the panel shown under this message.`
+            : output.message,
+      }),
+    }),
     queryTransactions: tool({
       description:
         'Filter and aggregate transactions by date range, amount range, category, or account (sum, count, average, or group-by breakdown). Use this for questions like "how much did I spend on X" or "break down my spending by category" — NOT for fuzzy/typo-tolerant lookups.',

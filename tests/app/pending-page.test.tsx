@@ -138,6 +138,36 @@ describe('PendingPage', () => {
     expect(screen.getByText('~$20,00')).toBeInTheDocument();
   });
 
+  it('lists expenses waiting for their receipt in their own section, only when there are any (#117)', async () => {
+    setupRepository([
+      ...items,
+      makeItem({ id: 'r1', kind: 'receipt', name: 'Farmacia' }),
+      makeItem({ id: 'r2', kind: 'receipt', name: 'Gasto 2' }),
+    ]);
+
+    render(<PendingPage />);
+
+    await screen.findByRole('heading', { name: 'Gastos sin ticket' });
+    const section = getSection('Gastos sin ticket');
+    expect(within(section).getByText('Farmacia')).toBeInTheDocument();
+    expect(within(section).getByText('Gasto 2')).toBeInTheDocument();
+    // Receipt-pending expenses never leak into the purchase checklist.
+    expect(
+      within(getSection('Compras pendientes')).queryByText('Farmacia')
+    ).not.toBeInTheDocument();
+  });
+
+  it('hides the receipt section when nothing waits for a receipt', async () => {
+    setupRepository(items);
+
+    render(<PendingPage />);
+
+    await screen.findByText('Leche');
+    expect(
+      screen.queryByRole('heading', { name: 'Gastos sin ticket' })
+    ).not.toBeInTheDocument();
+  });
+
   it('adds a purchase with an optional approximate amount', async () => {
     const repository = setupRepository(items);
     repository.pendingItems.create.mockResolvedValue(

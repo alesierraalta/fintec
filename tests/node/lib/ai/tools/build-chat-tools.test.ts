@@ -69,6 +69,7 @@ describe('buildChatTools — returns the same five wrapped tools', () => {
         'createTransaction',
         'createTransfer',
         'reclassifyExpenseAsTransfer',
+        'createPendingExpenses',
         'queryTransactions',
         'searchTransactions',
         'getAccountBalance',

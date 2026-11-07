@@ -81,8 +81,12 @@ function formatApproxAmount(amountBaseMinor: number): string {
   return `~${formatCurrency(amountBaseMinor, 'USD', { locale: 'es-ES' })}`;
 }
 
-const doneLabel = (kind: PendingItemKind) =>
-  kind === 'purchase' ? 'Comprado ✓' : 'Pagado ✓';
+const DONE_LABELS: Record<PendingItemKind, string> = {
+  purchase: 'Comprado ✓',
+  payment: 'Pagado ✓',
+  receipt: 'Registrado ✓',
+};
+const doneLabel = (kind: PendingItemKind) => DONE_LABELS[kind];
 
 export default function PendingPage() {
   const { user } = useAuth();
@@ -266,6 +270,26 @@ export default function PendingPage() {
               onClearCompleted={handleClearCompleted}
               onConvert={setConvertTarget}
             />
+            {items.some((i) => i.kind === 'receipt') && (
+              <ChecklistCard
+                kind="receipt"
+                title="Gastos sin ticket"
+                subtitle="Ya los hiciste: registra cada uno con la foto de su ticket"
+                placeholder="Ej: Farmacia"
+                icon={<ReceiptText className="h-5 w-5 text-emerald-500" />}
+                activeItems={items.filter(
+                  (i) => i.kind === 'receipt' && !i.done
+                )}
+                completedItems={items.filter(
+                  (i) => i.kind === 'receipt' && i.done
+                )}
+                onAdd={handleAdd}
+                onToggle={handleToggle}
+                onDelete={handleDelete}
+                onClearCompleted={handleClearCompleted}
+                onConvert={setConvertTarget}
+              />
+            )}
           </div>
         )}
       </div>

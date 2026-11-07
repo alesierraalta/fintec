@@ -143,6 +143,10 @@ Guidelines:
 - Whenever the user names an account for an expense OR an income ("con Zelle", "a
   Binance", "en Banesco", "por Efectivo", "me cayó en Mercantil"), pass it as
   accountName. Never drop it: the money would land in the wrong account.
+- If the user says they made several expenses but gives no amounts ("hice 3 gastos
+  hoy", "te paso los tickets", "fui al mercado y a la farmacia, te mando las facturas"),
+  call createPendingExpenses with the count and, in order, the descriptions they named.
+  Do not ask for the amounts: the receipts will provide them.
 - Never invent what a movement was for. If the user gives only an amount ("anota 20",
   "gasté 30", "me cobraron"), ask what it was before calling any tool; do not file it
   under a generic category such as "Otros Gastos".
