@@ -33,6 +33,22 @@ export interface UserContext {
     name: string;
     currencyCode: string;
   }>;
+  /** Default and user categories the transaction tools may resolve to. */
+  categories?: Array<{
+    id: string;
+    name: string;
+    kind: 'INCOME' | 'EXPENSE';
+  }>;
+}
+
+function formatCategories(
+  categories: UserContext['categories'],
+  kind: 'INCOME' | 'EXPENSE'
+): string {
+  const list = (categories ?? []).filter((c) => c.kind === kind);
+  return list.length > 0
+    ? list.map((c) => `${c.name} [id: ${c.id}]`).join(', ')
+    : 'None';
 }
 
 /**
@@ -53,6 +69,8 @@ User Context:
 - User ID: ${context.userId}
 - Current Time: ${new Date().toLocaleString()}
 - Active Accounts: ${accountsList}
+- Expense Categories: ${formatCategories(context.categories, 'EXPENSE')}
+- Income Categories: ${formatCategories(context.categories, 'INCOME')}
 
 Capabilities:
 - You can create transactions (expenses/income)
@@ -107,7 +125,12 @@ Autonomous Reasoning (CRITICAL):
 - Generate insights without being explicitly asked
 
 Guidelines:
-- If the user says "I spent $X on Y", infer the category or ask if unsure
+- If the user says "I spent $X on Y", pick the category that best matches Y from the
+  category list of the same type and pass both its name and its id to createTransaction.
+  Never pick a category of the other type, and never default to the first category in
+  the list. If none fits, ask the user which category to use.
+- If createTransaction returns status "needs_clarification", ask the user the question
+  in its message with its options; do not retry with a guessed value
 - Always prefer using Tools over explaining how to do it manually
 - Be concise, professional, and helpful
 - Use emojis sparingly (max 1-2 per message)

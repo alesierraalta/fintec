@@ -11,6 +11,11 @@ import type { AppRepository } from '@/repositories/contracts';
 import { TransactionType } from '@/types/domain';
 import type { Account } from '@/types/domain';
 import { embedText } from '../rag/embeddings';
+import {
+  normalizeName,
+  resolveAccount,
+  resolveCategory,
+} from '../resolution/entity-resolver';
 import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
 import { toMinorUnits, toBaseMinor } from '@/lib/money';
 import type { z } from 'zod';
@@ -68,46 +73,26 @@ export async function createTransaction(
       };
     }
 
-    let account = accounts.find(
-      (a) => a.name.toLowerCase() === args.accountName?.toLowerCase()
-    );
-
-    if (!account) {
-      account = accounts[0];
-      console.log(`[AI] Defaulting to account: ${accounts[0].name}`);
-    }
+    const accountResolution = resolveAccount({
+      accounts,
+      accountName: args.accountName,
+    });
+    if (accountResolution.status !== 'resolved') return accountResolution;
+    const account = accountResolution.value;
     const accountId = account.id;
 
-    // 2. Resolve Category
-    const categories = await categoriesRepo.findAll();
-    const userCategories = categories.filter((c) => c.userId === ctx.userId);
-
-    let category = userCategories.find(
-      (c) => c.name.toLowerCase() === args.category?.toLowerCase()
-    );
-
-    if (!category) {
-      const fallback = userCategories.find(
-        (c) => c.name === 'General' || c.name === 'Uncategorized'
-      );
-      category = fallback || userCategories[0];
-
-      if (!category) {
-        const allCats = await categoriesRepo.findAll();
-        const globalFallback = allCats.find(
-          (c) => c.name === 'General' || c.name === 'Uncategorized'
-        );
-        category = globalFallback;
-      }
-    }
-
-    const categoryId = category?.id;
-    if (!categoryId) {
-      return {
-        status: 'error',
-        message: 'No categories found. Please create a category first.',
-      };
-    }
+    // 2. Resolve Category among defaults and user categories of the same kind
+    const categoryResolution = resolveCategory({
+      categories: await categoriesRepo.findAll(),
+      userId: ctx.userId,
+      kind: args.type,
+      categoryId: args.categoryId,
+      categoryName: args.category,
+      description: args.description,
+    });
+    if (categoryResolution.status !== 'resolved') return categoryResolution;
+    const category = categoryResolution.value;
+    const categoryId = category.id;
 
     // 3. Create Transaction
     const currencyCode = account.currencyCode || 'USD';
@@ -131,7 +116,7 @@ export async function createTransaction(
         amountMinor: newTransaction.amountMinor,
         currencyCode: newTransaction.currencyCode,
         type: args.type,
-        categoryName: category?.name || 'General',
+        categoryName: category.name,
         accountName: account.name,
         date: newTransaction.date,
       },
@@ -161,11 +146,11 @@ export async function queryTransactions(
     let categoryId: string | null = null;
     if (args.category) {
       const categories = await ctx.repository.categories.findAll();
-      const normalized = args.category.trim().toLowerCase();
+      const normalized = normalizeName(args.category);
       const match = categories.find(
         (c) =>
-          (c as { userId?: string }).userId === ctx.userId &&
-          c.name.trim().toLowerCase() === normalized
+          (c.userId === null || c.userId === ctx.userId) &&
+          normalizeName(c.name) === normalized
       );
       categoryId = match?.id ?? null;
     }

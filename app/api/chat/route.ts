@@ -123,17 +123,23 @@ export async function POST(req: Request) {
       }
     };
 
-    const [checkpoint, accounts, profileResult] = await Promise.all([
-      checkpointer.load(threadId, user.id).catch((err) => {
-        logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
-        return null;
-      }),
-      repository.accounts.findByUserId(user.id).catch((err) => {
-        logger.warn('[AI Chat] Accounts lookup failed', err);
-        return [];
-      }),
-      fetchBaseCurrency(),
-    ]);
+    const [checkpoint, accounts, categories, profileResult] = await Promise.all(
+      [
+        checkpointer.load(threadId, user.id).catch((err) => {
+          logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
+          return null;
+        }),
+        repository.accounts.findByUserId(user.id).catch((err) => {
+          logger.warn('[AI Chat] Accounts lookup failed', err);
+          return [];
+        }),
+        repository.categories.findAll().catch((err) => {
+          logger.warn('[AI Chat] Categories lookup failed', err);
+          return [];
+        }),
+        fetchBaseCurrency(),
+      ]
+    );
 
     if (checkpoint) {
       logger.info('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
@@ -145,6 +151,12 @@ export async function POST(req: Request) {
         name: a.name,
         currencyCode: a.currencyCode,
       })),
+      categories: (categories || [])
+        .filter(
+          (c) =>
+            c.active !== false && (c.userId === null || c.userId === user.id)
+        )
+        .map((c) => ({ id: c.id, name: c.name, kind: c.kind })),
     };
 
     let baseCurrencyCode = DEFAULT_BASE_CURRENCY;

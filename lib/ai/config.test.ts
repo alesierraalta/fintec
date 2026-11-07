@@ -8,7 +8,30 @@ jest.mock('@ai-sdk/openai-compatible', () => ({
 // Mock ai package if needed, though language model type is just a type
 jest.mock('ai', () => ({ LanguageModel: jest.fn() }));
 
-import { getGoogleModelFallbackChain, isQuotaExceededError } from './config';
+import {
+  buildSystemPrompt,
+  getGoogleModelFallbackChain,
+  isQuotaExceededError,
+} from './config';
+
+describe('buildSystemPrompt categories (#113)', () => {
+  it('lists expense and income categories with their ids, split by type', () => {
+    const prompt = buildSystemPrompt({
+      userId: 'user-1',
+      accounts: [],
+      categories: [
+        { id: 'def-food', name: 'Alimentación', kind: 'EXPENSE' },
+        { id: 'usr-cars', name: 'Carros', kind: 'EXPENSE' },
+        { id: 'def-salary', name: 'Salario', kind: 'INCOME' },
+      ],
+    });
+
+    expect(prompt).toContain(
+      '- Expense Categories: Alimentación [id: def-food], Carros [id: usr-cars]'
+    );
+    expect(prompt).toContain('- Income Categories: Salario [id: def-salary]');
+  });
+});
 
 describe('AI Config', () => {
   const originalEnv = process.env;

@@ -12,7 +12,17 @@ export const createTransactionSchema = z.object({
     .positive()
     .describe('Amount in major currency units (e.g., 50.00 for $50)'),
   description: z.string().min(1).describe('Transaction description'),
-  category: z.string().describe('Category name (e.g., Food, Transport)'),
+  category: z
+    .string()
+    .describe(
+      'Category name, copied from the user categories listed in the system prompt for this type'
+    ),
+  categoryId: z
+    .string()
+    .optional()
+    .describe(
+      'Id of the chosen category from the system prompt list. Must belong to the same type (INCOME or EXPENSE).'
+    ),
   accountName: z
     .string()
     .optional()
@@ -45,6 +55,12 @@ export const createTransactionResultSchema = z.discriminatedUnion('status', [
       accountName: z.string().optional(),
       date: z.string(),
     }),
+  }),
+  z.object({
+    status: z.literal('needs_clarification'),
+    field: z.enum(['category', 'account']),
+    message: z.string(),
+    options: z.array(z.string()),
   }),
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);

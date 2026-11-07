@@ -41,7 +41,9 @@ function makeRepository(overrides: Partial<any> = {}) {
     categories: {
       findAll: jest
         .fn()
-        .mockResolvedValue([{ id: 'cat-1', name: 'Food', userId: 'user-1' }]),
+        .mockResolvedValue([
+          { id: 'cat-1', name: 'Food', kind: 'EXPENSE', userId: 'user-1' },
+        ]),
     },
     transactions: {
       create: jest.fn().mockResolvedValue({ id: 'tx-1' }),
