@@ -1,0 +1,5470 @@
+[
+  {
+    "id": "gen-0001",
+    "hard": false,
+    "utterance": "me cobraron 23687 bolos por el almuerzo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 23687,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0002",
+    "hard": false,
+    "utterance": "gaste 178$ en harina pan y arroz por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Efectivo",
+      "amount": 178,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0003",
+    "hard": false,
+    "utterance": "gaste 74$ en la compra del abasto",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 74,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0004",
+    "hard": false,
+    "utterance": "pagué el mercado en el Central Madeirense, 222 USDT",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 222,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0005",
+    "hard": false,
+    "utterance": "se me fueron 290 USDT en café y cachitos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 290,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0006",
+    "hard": false,
+    "utterance": "se me fueron 8.763 bs en la compra del abasto",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 8763,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0007",
+    "hard": false,
+    "utterance": "gaste $98.44 en la comida del Gama por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Zelle",
+      "amount": 98.44,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0008",
+    "hard": false,
+    "utterance": "gasté 338 tether en la comida del Gama",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 338,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0009",
+    "hard": false,
+    "utterance": "compré unas arepas por 1.974 Bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 1974,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0010",
+    "hard": false,
+    "utterance": "se me fueron 153.86 verdes en el almuerzo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 153.86,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0011",
+    "hard": false,
+    "utterance": "registra un gasto de 106.06 dolares en pan y queso en la panadería desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Zelle",
+      "amount": 106.06,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0012",
+    "hard": false,
+    "utterance": "compré café y cachitos por 20476 bs con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Mercantil",
+      "amount": 20476,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0013",
+    "hard": false,
+    "utterance": "17027bs de la compra del abasto con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Mercantil",
+      "amount": 17027,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0014",
+    "hard": false,
+    "utterance": "pagué la charcutería, 17.481,32 Bs por Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Mercantil",
+      "amount": 17481.32,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0015",
+    "hard": false,
+    "utterance": "me cobraron 161 dolares por el mercado en el Central Madeirense desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "account": "Zelle",
+      "amount": 161,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0016",
+    "hard": false,
+    "utterance": "202 dolares de un Yummy",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 202,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0017",
+    "hard": false,
+    "utterance": "202 dólares de el estacionamiento desde Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Efectivo",
+      "amount": 202,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0018",
+    "hard": false,
+    "utterance": "registra un gasto de 114 dolares en un Ridery",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 114,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0019",
+    "hard": false,
+    "utterance": "me cobraron Bs. 6.572 por un Ridery por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Banesco",
+      "amount": 6572,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0020",
+    "hard": false,
+    "utterance": "hoy pague el pasaje del bus Bs. 18872 con Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Banesco",
+      "amount": 18872,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0021",
+    "hard": false,
+    "utterance": "hoy pague un mototaxi 17.856,51 Bs con Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Banesco",
+      "amount": 17856.51,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0022",
+    "hard": false,
+    "utterance": "15273 bolos de un Ridery",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 15273,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0023",
+    "hard": false,
+    "utterance": "se me fueron Bs. 22228.81 en un Yummy con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Mercantil",
+      "amount": 22228.81,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0024",
+    "hard": false,
+    "utterance": "compré el peaje por 169.26 verdes desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Zelle",
+      "amount": 169.26,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0025",
+    "hard": false,
+    "utterance": "gaste 118 dólares en el pasaje del bus por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Efectivo",
+      "amount": 118,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0026",
+    "hard": false,
+    "utterance": "pagué gasolina, $134 con Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Zelle",
+      "amount": 134,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0027",
+    "hard": false,
+    "utterance": "gaste 110 tether en el estacionamiento",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 110,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0028",
+    "hard": false,
+    "utterance": "gaste 372.05 USDT en el pasaje del bus por Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "account": "Binance",
+      "amount": 372.05,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0029",
+    "hard": false,
+    "utterance": "gaste 102 usdt en un Yummy",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 102,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0030",
+    "hard": false,
+    "utterance": "pagué el taxi, 304 usdt",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 304,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0031",
+    "hard": false,
+    "utterance": "pagué pintura para la casa, $233.28 desde Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Efectivo",
+      "amount": 233.28,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0032",
+    "hard": false,
+    "utterance": "hoy pague pintura para la casa 3.657 bolos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 3657,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0033",
+    "hard": false,
+    "utterance": "se me fueron 15.460 Bs en el plomero que arregló la tubería",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 15460,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0034",
+    "hard": false,
+    "utterance": "gaste 7.933bs en la reparación del techo por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Banesco",
+      "amount": 7933,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0035",
+    "hard": false,
+    "utterance": "anota 108.54 verdes de el plomero que arregló la tubería con Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Efectivo",
+      "amount": 108.54,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0036",
+    "hard": false,
+    "utterance": "pagué pintura para la casa, 221 tether",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 221,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0037",
+    "hard": false,
+    "utterance": "compré la reparación del techo por 5727 bolos por Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Mercantil",
+      "amount": 5727,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0038",
+    "hard": false,
+    "utterance": "hoy pague el condominio Bs. 3.148,19 desde Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Banesco",
+      "amount": 3148.19,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0039",
+    "hard": false,
+    "utterance": "gasté 3.336 Bs en el plomero que arregló la tubería",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 3336,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0040",
+    "hard": false,
+    "utterance": "pagué pintura para la casa, 17.327,32 bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 17327.32,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0041",
+    "hard": false,
+    "utterance": "me cobraron 218 tether por el alquiler con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Binance",
+      "amount": 218,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0042",
+    "hard": false,
+    "utterance": "hoy pague el alquiler 197.32 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 197.32,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0043",
+    "hard": false,
+    "utterance": "compré la reparación del techo por 10591 bolívares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 10591,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0044",
+    "hard": false,
+    "utterance": "3$ de pintura para la casa desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Zelle",
+      "amount": 3,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0045",
+    "hard": false,
+    "utterance": "registra un gasto de 207$ en el plomero que arregló la tubería por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "account": "Zelle",
+      "amount": 207,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0046",
+    "hard": false,
+    "utterance": "gaste 20.704bs en la luz de Corpoelec con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Mercantil",
+      "amount": 20704,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0047",
+    "hard": false,
+    "utterance": "registra un gasto de 132 dolares en la recarga de Digitel",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 132,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0048",
+    "hard": false,
+    "utterance": "registra un gasto de 332 usdt en el agua desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Binance",
+      "amount": 332,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0049",
+    "hard": false,
+    "utterance": "anota $217 de la recarga de Digitel por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Efectivo",
+      "amount": 217,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0050",
+    "hard": false,
+    "utterance": "anota 10.190 bs de el plan de Movistar",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 10190,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0051",
+    "hard": false,
+    "utterance": "registra un gasto de 12689 bolos en el gas con Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Banesco",
+      "amount": 12689,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0052",
+    "hard": false,
+    "utterance": "gasté 228.19$ en el internet de Inter por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Zelle",
+      "amount": 228.19,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0053",
+    "hard": false,
+    "utterance": "me cobraron 45 dolares por el agua",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 45,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0054",
+    "hard": false,
+    "utterance": "gaste 77 dólares en el agua por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Efectivo",
+      "amount": 77,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0055",
+    "hard": false,
+    "utterance": "gaste 238 dólares en la luz de Corpoelec",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 238,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0056",
+    "hard": false,
+    "utterance": "me cobraron 240.43 usdt por el internet de Inter",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 240.43,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0057",
+    "hard": false,
+    "utterance": "gasté 169$ en el plan de Movistar",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 169,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0058",
+    "hard": false,
+    "utterance": "pagué el agua, 155 verdes desde Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Efectivo",
+      "amount": 155,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0059",
+    "hard": false,
+    "utterance": "compré el gas por $110 por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Zelle",
+      "amount": 110,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0060",
+    "hard": false,
+    "utterance": "anota 223 verdes de el plan de Movistar por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "account": "Zelle",
+      "amount": 223,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0061",
+    "hard": false,
+    "utterance": "se me fueron 131$ en la rumba del sábado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 131,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0062",
+    "hard": false,
+    "utterance": "35 dólares de unas birras con los panas",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 35,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0063",
+    "hard": false,
+    "utterance": "hoy pague PlayStation Plus 178.07 USDT con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Binance",
+      "amount": 178.07,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0064",
+    "hard": false,
+    "utterance": "me cobraron 20.026,14 bolos por el concierto con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Mercantil",
+      "amount": 20026.14,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0065",
+    "hard": false,
+    "utterance": "registra un gasto de 186 USDT en PlayStation Plus desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Binance",
+      "amount": 186,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0066",
+    "hard": false,
+    "utterance": "27.22 usdt de el cine",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 27.22,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0067",
+    "hard": false,
+    "utterance": "348 tether de PlayStation Plus",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 348,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0068",
+    "hard": false,
+    "utterance": "gasté 3.561 bolívares en el cine desde Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Banesco",
+      "amount": 3561,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0069",
+    "hard": false,
+    "utterance": "4776 bs de unas birras con los panas desde Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Mercantil",
+      "amount": 4776,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0070",
+    "hard": false,
+    "utterance": "compré la rumba del sábado por 24513.04bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 24513.04,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0071",
+    "hard": false,
+    "utterance": "pagué la rumba del sábado, 46 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 46,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0072",
+    "hard": false,
+    "utterance": "anota $47.51 de Netflix",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 47.51,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0073",
+    "hard": false,
+    "utterance": "me cobraron 375 tether por el concierto",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 375,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0074",
+    "hard": false,
+    "utterance": "se me fueron 4.65 verdes en Spotify",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 4.65,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0075",
+    "hard": false,
+    "utterance": "registra un gasto de 148.96 dolares en PlayStation Plus desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "account": "Zelle",
+      "amount": 148.96,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0076",
+    "hard": false,
+    "utterance": "131.03 usdt de exámenes de laboratorio",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 131.03,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0077",
+    "hard": false,
+    "utterance": "gasté 20947 bolos en Farmatodo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 20947,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0078",
+    "hard": false,
+    "utterance": "compré la farmacia por 117 usdt por Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "account": "Binance",
+      "amount": 117,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0079",
+    "hard": false,
+    "utterance": "me cobraron 17585bs por la consulta con el médico",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 17585,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0080",
+    "hard": false,
+    "utterance": "compré la farmacia por $109",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 109,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0081",
+    "hard": false,
+    "utterance": "gasté 178.23 USDT en la farmacia",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 178.23,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0082",
+    "hard": false,
+    "utterance": "compré el dentista por Bs. 14.018 desde Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "account": "Mercantil",
+      "amount": 14018,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0083",
+    "hard": false,
+    "utterance": "hoy pague la consulta con el médico $163",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 163,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0084",
+    "hard": false,
+    "utterance": "gaste 3.199,19 bs en la consulta con el médico",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 3199.19,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0085",
+    "hard": false,
+    "utterance": "86 dólares de las pastillas de la tensión",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 86,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0086",
+    "hard": false,
+    "utterance": "registra un gasto de 129 verdes en la consulta con el médico por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "account": "Efectivo",
+      "amount": 129,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0087",
+    "hard": false,
+    "utterance": "pagué Farmatodo, $78",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 78,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0088",
+    "hard": false,
+    "utterance": "compré la farmacia por 224 verdes",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 224,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0089",
+    "hard": false,
+    "utterance": "compré Farmatodo por Bs. 4.362,39 con Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "account": "Banesco",
+      "amount": 4362.39,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0090",
+    "hard": false,
+    "utterance": "anota 201 usdt de la consulta con el médico",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 201,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0091",
+    "hard": false,
+    "utterance": "gasté 107.94 usdt en los libros de la universidad con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Binance",
+      "amount": 107.94,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0092",
+    "hard": false,
+    "utterance": "pagué el curso de inglés, Bs. 14.005 por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Banesco",
+      "amount": 14005,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0093",
+    "hard": false,
+    "utterance": "registra un gasto de 99 dólares en la mensualidad del colegio",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 99,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0094",
+    "hard": false,
+    "utterance": "gasté 9148.68 bolos en la matrícula de la uni",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 9148.68,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0095",
+    "hard": false,
+    "utterance": "291 tether de la mensualidad del colegio desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Binance",
+      "amount": 291,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0096",
+    "hard": false,
+    "utterance": "$57.67 de el curso de inglés por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Zelle",
+      "amount": 57.67,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0097",
+    "hard": false,
+    "utterance": "hoy pague la matrícula de la uni 126 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 126,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0098",
+    "hard": false,
+    "utterance": "anota 270 USDT de el curso de inglés",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 270,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0099",
+    "hard": false,
+    "utterance": "registra un gasto de 357.55 usdt en la mensualidad del colegio desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Binance",
+      "amount": 357.55,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0100",
+    "hard": false,
+    "utterance": "pagué la mensualidad del colegio, 207 verdes desde Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Efectivo",
+      "amount": 207,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0101",
+    "hard": false,
+    "utterance": "hoy pague Platzi 77 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 77,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0102",
+    "hard": false,
+    "utterance": "gaste 168$ en el curso de inglés por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Zelle",
+      "amount": 168,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0103",
+    "hard": false,
+    "utterance": "$34 de la matrícula de la uni",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 34,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0104",
+    "hard": false,
+    "utterance": "registra un gasto de $238 en Platzi con Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "account": "Zelle",
+      "amount": 238,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0105",
+    "hard": false,
+    "utterance": "pagué la mensualidad del colegio, 63 tether",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 63,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0106",
+    "hard": false,
+    "utterance": "registra un gasto de 246$ en un regalo de cumpleaños con Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Zelle",
+      "amount": 246,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0107",
+    "hard": false,
+    "utterance": "anota 86.44 tether de unos audífonos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 86.44,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0108",
+    "hard": false,
+    "utterance": "se me fueron 140 verdes en unos zapatos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 140,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0109",
+    "hard": false,
+    "utterance": "me cobraron 71 verdes por unos zapatos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 71,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0110",
+    "hard": false,
+    "utterance": "compré ropa en el Sambil por 24.223 bolívares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 24223,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0111",
+    "hard": false,
+    "utterance": "282.8 USDT de unos audífonos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 282.8,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0112",
+    "hard": false,
+    "utterance": "registra un gasto de 165 usdt en unos zapatos desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Binance",
+      "amount": 165,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0113",
+    "hard": false,
+    "utterance": "gasté 356 usdt en un regalo de cumpleaños",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 356,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0114",
+    "hard": false,
+    "utterance": "gaste 64 dólares en una franela por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Zelle",
+      "amount": 64,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0115",
+    "hard": false,
+    "utterance": "registra un gasto de 3.844,55 Bs en unos zapatos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 3844.55,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0116",
+    "hard": false,
+    "utterance": "gaste 58 dólares en unos audífonos por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Efectivo",
+      "amount": 58,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0117",
+    "hard": false,
+    "utterance": "registra un gasto de 29 usdt en unos audífonos con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Binance",
+      "amount": 29,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0118",
+    "hard": false,
+    "utterance": "hoy pague unos audífonos 8.367,06bs por Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "account": "Mercantil",
+      "amount": 8367.06,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0119",
+    "hard": false,
+    "utterance": "compré unos zapatos por 220$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 220,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0120",
+    "hard": false,
+    "utterance": "gasté 100$ en unos audífonos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 100,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0121",
+    "hard": false,
+    "utterance": "compré la batería del carro por $24",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 24,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0122",
+    "hard": false,
+    "utterance": "hoy pague el cambio de aceite del carro 19.915,66 bolos por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Banesco",
+      "amount": 19915.66,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0123",
+    "hard": false,
+    "utterance": "compré el lavado del carro por 5548 bs por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Banesco",
+      "amount": 5548,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0124",
+    "hard": false,
+    "utterance": "gaste 20.948,82bs en la batería del carro desde Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Banesco",
+      "amount": 20948.82,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0125",
+    "hard": false,
+    "utterance": "se me fueron 8040 bolívares en el cambio de aceite del carro por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Banesco",
+      "amount": 8040,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0126",
+    "hard": false,
+    "utterance": "anota 4.649 bolos de los cauchos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 4649,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0127",
+    "hard": false,
+    "utterance": "me cobraron 91 verdes por el cambio de aceite del carro",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 91,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0128",
+    "hard": false,
+    "utterance": "registra un gasto de 208 dólares en el cambio de aceite del carro con Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Efectivo",
+      "amount": 208,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0129",
+    "hard": false,
+    "utterance": "anota 9.806bs de el lavado del carro",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 9806,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0130",
+    "hard": false,
+    "utterance": "anota $200 de el mecánico",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 200,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0131",
+    "hard": false,
+    "utterance": "gasté 17.215 bolos en los cauchos por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Banesco",
+      "amount": 17215,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0132",
+    "hard": false,
+    "utterance": "se me fueron 104 dólares en el lavado del carro desde Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Efectivo",
+      "amount": 104,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0133",
+    "hard": false,
+    "utterance": "registra un gasto de 187 bs en el lavado del carro",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 187,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0134",
+    "hard": false,
+    "utterance": "me cobraron 1124.02 bs por las pastillas de freno",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 1124.02,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0135",
+    "hard": false,
+    "utterance": "se me fueron $68 en las pastillas de freno con Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "account": "Zelle",
+      "amount": 68,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0136",
+    "hard": false,
+    "utterance": "anota 142$ de el gimnasio por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Zelle",
+      "amount": 142,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0137",
+    "hard": false,
+    "utterance": "hoy pague la mensualidad del gym 746 Bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 746,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0138",
+    "hard": false,
+    "utterance": "gaste 324 tether en las clases de crossfit",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 324,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0139",
+    "hard": false,
+    "utterance": "compré el gimnasio por 352 usdt con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Binance",
+      "amount": 352,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0140",
+    "hard": false,
+    "utterance": "gaste $8.24 en la mensualidad del gym",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 8.24,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0141",
+    "hard": false,
+    "utterance": "anota 240 dólares de las clases de crossfit",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 240,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0142",
+    "hard": false,
+    "utterance": "me cobraron 311 tether por la mensualidad del gym",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 311,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0143",
+    "hard": false,
+    "utterance": "140.35 usdt de la mensualidad del gym con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Binance",
+      "amount": 140.35,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0144",
+    "hard": false,
+    "utterance": "me cobraron 145.55 USDT por la mensualidad del gym",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 145.55,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0145",
+    "hard": false,
+    "utterance": "72 dolares de las clases de crossfit",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 72,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0146",
+    "hard": false,
+    "utterance": "registra un gasto de 240.57 dolares en el gimnasio",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 240.57,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0147",
+    "hard": false,
+    "utterance": "registra un gasto de 219 tether en la mensualidad del gym con Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Binance",
+      "amount": 219,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0148",
+    "hard": false,
+    "utterance": "gasté 19.352,45bs en las clases de crossfit con Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Mercantil",
+      "amount": 19352.45,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0149",
+    "hard": false,
+    "utterance": "gasté 141 dolares en la mensualidad del gym por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Zelle",
+      "amount": 141,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0150",
+    "hard": false,
+    "utterance": "compré la mensualidad del gym por 160 verdes por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "account": "Zelle",
+      "amount": 160,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0151",
+    "hard": false,
+    "utterance": "se me fueron 9.556 Bs en comida para el perro",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 9556,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0152",
+    "hard": false,
+    "utterance": "se me fueron 9451 bolos en la vacuna del perro",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 9451,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0153",
+    "hard": false,
+    "utterance": "se me fueron 179 dólares en el veterinario",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 179,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0154",
+    "hard": false,
+    "utterance": "6 dolares de el veterinario por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Zelle",
+      "amount": 6,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0155",
+    "hard": false,
+    "utterance": "compré comida para el perro por 12.735,33 bolívares desde Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Mercantil",
+      "amount": 12735.33,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0156",
+    "hard": false,
+    "utterance": "compré arena del gato por 203.87 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 203.87,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0157",
+    "hard": false,
+    "utterance": "pagué comida para el perro, 37 verdes",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 37,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0158",
+    "hard": false,
+    "utterance": "compré comida para el perro por 13.268bs desde Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Mercantil",
+      "amount": 13268,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0159",
+    "hard": false,
+    "utterance": "anota 146$ de el veterinario con Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Efectivo",
+      "amount": 146,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0160",
+    "hard": false,
+    "utterance": "387 usdt de el veterinario desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Binance",
+      "amount": 387,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0161",
+    "hard": false,
+    "utterance": "15.756 Bs de comida para el perro por Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Banesco",
+      "amount": 15756,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0162",
+    "hard": false,
+    "utterance": "hoy pague arena del gato 55 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 55,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0163",
+    "hard": false,
+    "utterance": "pagué la vacuna del perro, 117 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 117,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0164",
+    "hard": false,
+    "utterance": "pagué comida para el perro, 125 dolares desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Zelle",
+      "amount": 125,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0165",
+    "hard": false,
+    "utterance": "anota 117$ de el veterinario por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "account": "Zelle",
+      "amount": 117,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0166",
+    "hard": false,
+    "utterance": "gaste 222 dolares en la comisión del banco con Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Zelle",
+      "amount": 222,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0167",
+    "hard": false,
+    "utterance": "gasté 137.04 tether en una multa",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 137.04,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0168",
+    "hard": false,
+    "utterance": "compré una multa por 50.6$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 50.6,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0169",
+    "hard": false,
+    "utterance": "se me fueron 170 verdes en una donación",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 170,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0170",
+    "hard": false,
+    "utterance": "anota 190 usdt de una multa desde Binance",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Binance",
+      "amount": 190,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0171",
+    "hard": false,
+    "utterance": "gasté 574 bolos en la comisión del banco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 574,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0172",
+    "hard": false,
+    "utterance": "pagué una multa, Bs. 12604",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 12604,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0173",
+    "hard": false,
+    "utterance": "hoy pague la comisión del banco 140$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 140,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0174",
+    "hard": false,
+    "utterance": "compré la comisión del banco por 19.030 bolívares por Mercantil",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Mercantil",
+      "amount": 19030,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0175",
+    "hard": false,
+    "utterance": "anota 226$ de la comisión del banco por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Efectivo",
+      "amount": 226,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0176",
+    "hard": false,
+    "utterance": "se me fueron 210$ en una donación",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 210,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0177",
+    "hard": false,
+    "utterance": "hoy pague una donación 239$ desde Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Zelle",
+      "amount": 239,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0178",
+    "hard": false,
+    "utterance": "anota 246 tether de una multa",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 246,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0179",
+    "hard": false,
+    "utterance": "compré la comisión del banco por 38.61$ por Zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Zelle",
+      "amount": 38.61,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0180",
+    "hard": false,
+    "utterance": "registra un gasto de 91 dolares en la comisión del banco por Efectivo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "account": "Efectivo",
+      "amount": 91,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0181",
+    "hard": false,
+    "utterance": "me cayó la quincena, 651 verdes por Efectivo",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Efectivo",
+      "amount": 651,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0182",
+    "hard": false,
+    "utterance": "registra un ingreso de 351 dolares por la quincena en Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Zelle",
+      "amount": 351,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0183",
+    "hard": false,
+    "utterance": "me pagaron 771 tether por el salario del mes por Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Binance",
+      "amount": 771,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0184",
+    "hard": false,
+    "utterance": "cobré $582 de la quincena",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 582,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0185",
+    "hard": false,
+    "utterance": "me cayó el sueldo, 63 usdt",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 63,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0186",
+    "hard": false,
+    "utterance": "cobré 681 USDT de el salario del mes en Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Binance",
+      "amount": 681,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0187",
+    "hard": false,
+    "utterance": "recibí 48108 bolos por la quincena",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 48108,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0188",
+    "hard": false,
+    "utterance": "registra un ingreso de 12.306 Bs por la quincena",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 12306,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0189",
+    "hard": false,
+    "utterance": "cobré 837 usdt de la nómina",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 837,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0190",
+    "hard": false,
+    "utterance": "me entraron 63570 bolos de la quincena",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 63570,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0191",
+    "hard": false,
+    "utterance": "me cayó la nómina, $156.6 a Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Zelle",
+      "amount": 156.6,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0192",
+    "hard": false,
+    "utterance": "cobré 17.214bs de la quincena por Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "account": "Mercantil",
+      "amount": 17214,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0193",
+    "hard": false,
+    "utterance": "cobré 617bs de unas clases particulares en Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Banesco",
+      "amount": 617,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0194",
+    "hard": false,
+    "utterance": "me pagaron 173 dolares por un proyecto freelance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 173,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0195",
+    "hard": false,
+    "utterance": "registra un ingreso de 275 USDT por una página web que hice en Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Binance",
+      "amount": 275,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0196",
+    "hard": false,
+    "utterance": "me cayó una página web que hice, 10.203bs",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 10203,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0197",
+    "hard": false,
+    "utterance": "me pagaron 4.206,71 bs por un diseño para un cliente a Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Mercantil",
+      "amount": 4206.71,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0198",
+    "hard": false,
+    "utterance": "recibí 176 USDT por un proyecto freelance a Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Binance",
+      "amount": 176,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0199",
+    "hard": false,
+    "utterance": "recibí $199 por un diseño para un cliente",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 199,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0200",
+    "hard": false,
+    "utterance": "me entraron 100 USDT de unas clases particulares por Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Binance",
+      "amount": 100,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0201",
+    "hard": false,
+    "utterance": "registra un ingreso de 236 tether por un diseño para un cliente",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 236,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0202",
+    "hard": false,
+    "utterance": "recibí 335.96 tether por un diseño para un cliente a Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Binance",
+      "amount": 335.96,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0203",
+    "hard": false,
+    "utterance": "me pagaron 11.117 bs por un diseño para un cliente",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 11117,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0204",
+    "hard": false,
+    "utterance": "me cayó un diseño para un cliente, 5712 bolívares en Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "account": "Banesco",
+      "amount": 5712,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0205",
+    "hard": false,
+    "utterance": "me pagaron 181$ por la ganancia de Binance a Efectivo",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Efectivo",
+      "amount": 181,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0206",
+    "hard": false,
+    "utterance": "registra un ingreso de 153$ por los dividendos por Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Zelle",
+      "amount": 153,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0207",
+    "hard": false,
+    "utterance": "me entraron 21708 Bs de los dividendos por Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Banesco",
+      "amount": 21708,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0208",
+    "hard": false,
+    "utterance": "me pagaron 20827 bolívares por los dividendos a Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Banesco",
+      "amount": 20827,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0209",
+    "hard": false,
+    "utterance": "me cayó los dividendos, 18.348 bs a Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Banesco",
+      "amount": 18348,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0210",
+    "hard": false,
+    "utterance": "me cayó la ganancia de Binance, 192 USDT por Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Binance",
+      "amount": 192,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0211",
+    "hard": false,
+    "utterance": "me entraron 185.84$ de los intereses del plazo fijo a Efectivo",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Efectivo",
+      "amount": 185.84,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0212",
+    "hard": false,
+    "utterance": "me entraron 87 dolares de la ganancia de Binance en Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Zelle",
+      "amount": 87,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0213",
+    "hard": false,
+    "utterance": "me entraron 5.493 bolos de los intereses del plazo fijo por Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Mercantil",
+      "amount": 5493,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0214",
+    "hard": false,
+    "utterance": "registra un ingreso de 5.417 bs por la ganancia de Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "amount": 5417,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0215",
+    "hard": false,
+    "utterance": "registra un ingreso de Bs. 19.945,47 por los dividendos en Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "account": "Banesco",
+      "amount": 19945.47,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0216",
+    "hard": false,
+    "utterance": "recibí 9.825 bs por los dividendos",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "amount": 9825,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0217",
+    "hard": false,
+    "utterance": "recibí 268 tether por la remesa que mandó mi mamá a Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Binance",
+      "amount": 268,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0218",
+    "hard": false,
+    "utterance": "me entraron 34 usdt de la remesa que mandó mi mamá",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 34,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0219",
+    "hard": false,
+    "utterance": "me cayó una ayuda familiar desde España, 16812.87bs en Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Banesco",
+      "amount": 16812.87,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0220",
+    "hard": false,
+    "utterance": "me cayó lo que me mandó mi hermano de afuera, 21 dolares",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 21,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0221",
+    "hard": false,
+    "utterance": "cobré 115.12 dolares de la remesa que mandó mi mamá por Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Zelle",
+      "amount": 115.12,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0222",
+    "hard": false,
+    "utterance": "cobré Bs. 22889 de la remesa que mandó mi mamá",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 22889,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0223",
+    "hard": false,
+    "utterance": "cobré 86 USDT de una ayuda familiar desde España a Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Binance",
+      "amount": 86,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0224",
+    "hard": false,
+    "utterance": "me pagaron 22553 bolívares por una ayuda familiar desde España por Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Mercantil",
+      "amount": 22553,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0225",
+    "hard": false,
+    "utterance": "me pagaron 198 dolares por la remesa que mandó mi mamá a Efectivo",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Efectivo",
+      "amount": 198,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0226",
+    "hard": false,
+    "utterance": "recibí 302 usdt por una ayuda familiar desde España en Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Binance",
+      "amount": 302,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0227",
+    "hard": false,
+    "utterance": "me cayó lo que me mandó mi hermano de afuera, 22739.81 bolos a Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "account": "Banesco",
+      "amount": 22739.81,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0228",
+    "hard": false,
+    "utterance": "me entraron 5.829bs de una ayuda familiar desde España",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 5829,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0229",
+    "hard": false,
+    "utterance": "me entraron 21975 bolos de la bici que vendí por Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Mercantil",
+      "amount": 21975,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0230",
+    "hard": false,
+    "utterance": "me pagaron Bs. 21.911,60 por un préstamo que me devolvieron",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 21911.6,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0231",
+    "hard": false,
+    "utterance": "me pagaron 3.094 bolívares por la bici que vendí por Mercantil",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Mercantil",
+      "amount": 3094,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0232",
+    "hard": false,
+    "utterance": "recibí 330 usdt por un premio de una rifa a Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Binance",
+      "amount": 330,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0233",
+    "hard": false,
+    "utterance": "me cayó la bici que vendí, 135 tether",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 135,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0234",
+    "hard": false,
+    "utterance": "recibí 363 tether por un préstamo que me devolvieron por Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Binance",
+      "amount": 363,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0235",
+    "hard": false,
+    "utterance": "cobré 306 usdt de la bici que vendí en Binance",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Binance",
+      "amount": 306,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0236",
+    "hard": false,
+    "utterance": "me pagaron 223 dólares por un premio de una rifa",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 223,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0237",
+    "hard": false,
+    "utterance": "recibí Bs. 10925 por un préstamo que me devolvieron por Banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Banesco",
+      "amount": 10925,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0238",
+    "hard": false,
+    "utterance": "recibí 74 dolares por un préstamo que me devolvieron a Zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Zelle",
+      "amount": 74,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0239",
+    "hard": false,
+    "utterance": "cobré 244 dólares de un premio de una rifa a Efectivo",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "account": "Efectivo",
+      "amount": 244,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0240",
+    "hard": false,
+    "utterance": "cobré 387 tether de la bici que vendí",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 387,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0241",
+    "hard": false,
+    "utterance": "pasa 106 verdes de Zelle a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 106,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0242",
+    "hard": false,
+    "utterance": "hice una transferencia de 218.54 USDT de Binance a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Efectivo",
+      "amount": 218.54,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0243",
+    "hard": false,
+    "utterance": "pasé 2870bs de mi cuenta Banesco a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Zelle",
+      "amount": 2870,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0244",
+    "hard": false,
+    "utterance": "transfiere 29 USDT de Binance a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Banesco",
+      "amount": 29,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0245",
+    "hard": false,
+    "utterance": "mueve 197 dolares desde Efectivo hacia Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Zelle",
+      "amount": 197,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0246",
+    "hard": false,
+    "utterance": "pasa 233 USDT de Binance a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Zelle",
+      "amount": 233,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0247",
+    "hard": false,
+    "utterance": "mueve 195 tether desde Binance hacia Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Banesco",
+      "amount": 195,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0248",
+    "hard": false,
+    "utterance": "pasa 205 dolares de Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 205,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0249",
+    "hard": false,
+    "utterance": "me transferí $103.07 de Efectivo a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Mercantil",
+      "amount": 103.07,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0250",
+    "hard": false,
+    "utterance": "hice una transferencia de 326.41 tether de Binance a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Banesco",
+      "amount": 326.41,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0251",
+    "hard": false,
+    "utterance": "pasé 688 bs de mi cuenta Banesco a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Zelle",
+      "amount": 688,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0252",
+    "hard": false,
+    "utterance": "me transferí 21361.86 Bs de Mercantil a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 21361.86,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0253",
+    "hard": false,
+    "utterance": "hice una transferencia de 9190.36 bolos de Banesco a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Efectivo",
+      "amount": 9190.36,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0254",
+    "hard": false,
+    "utterance": "pasa 22635.29 bs de Mercantil a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Binance",
+      "amount": 22635.29,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0255",
+    "hard": false,
+    "utterance": "mueve 22 dolares desde Efectivo hacia Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Banesco",
+      "amount": 22,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0256",
+    "hard": false,
+    "utterance": "transfiere 76 dólares de Zelle a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 76,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0257",
+    "hard": false,
+    "utterance": "mueve $231 desde Efectivo hacia Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Mercantil",
+      "amount": 231,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0258",
+    "hard": false,
+    "utterance": "mueve $61.91 desde Zelle hacia Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 61.91,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0259",
+    "hard": false,
+    "utterance": "hice una transferencia de 13698 bs de Mercantil a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 13698,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0260",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de 11.756bs desde Banesco a mi Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Zelle",
+      "amount": 11756,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0261",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de 14709 bolos desde Banesco a mi Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Efectivo",
+      "amount": 14709,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0262",
+    "hard": false,
+    "utterance": "pasé 218.55 dólares de mi cuenta Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 218.55,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0263",
+    "hard": false,
+    "utterance": "mueve $138 desde Efectivo hacia Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Banesco",
+      "amount": 138,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0264",
+    "hard": false,
+    "utterance": "mueve 16757 bolívares desde Banesco hacia Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Zelle",
+      "amount": 16757,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0265",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de 15.024bs desde Mercantil a mi Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Efectivo",
+      "amount": 15024,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0266",
+    "hard": false,
+    "utterance": "me transferí 240 verdes de Zelle a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Efectivo",
+      "amount": 240,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0267",
+    "hard": false,
+    "utterance": "pasa 22971 bolos de Banesco a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Mercantil",
+      "amount": 22971,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0268",
+    "hard": false,
+    "utterance": "hice una transferencia de 45 dolares de Efectivo a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Binance",
+      "amount": 45,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0269",
+    "hard": false,
+    "utterance": "mueve 10628.53 bs desde Mercantil hacia Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Zelle",
+      "amount": 10628.53,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0270",
+    "hard": false,
+    "utterance": "transfiere 113.91$ de Zelle a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Banesco",
+      "amount": 113.91,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0271",
+    "hard": false,
+    "utterance": "mueve 20.505,13bs desde Mercantil hacia Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Binance",
+      "amount": 20505.13,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0272",
+    "hard": false,
+    "utterance": "me transferí 16990bs de Mercantil a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Zelle",
+      "amount": 16990,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0273",
+    "hard": false,
+    "utterance": "hice una transferencia de 2605 bs de Mercantil a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Efectivo",
+      "amount": 2605,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0274",
+    "hard": false,
+    "utterance": "hice una transferencia de 191 verdes de Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 191,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0275",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de 9.222,18bs desde Banesco a mi Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Efectivo",
+      "amount": 9222.18,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0276",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de 1070 bs desde Mercantil a mi Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 1070,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0277",
+    "hard": false,
+    "utterance": "pasa 249 dólares de Zelle a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Banesco",
+      "amount": 249,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0278",
+    "hard": false,
+    "utterance": "pasa 3.787 bolívares de Banesco a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Mercantil",
+      "amount": 3787,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0279",
+    "hard": false,
+    "utterance": "quiero hacer una transferencia de Bs. 1999 desde Mercantil a mi Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 1999,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0280",
+    "hard": false,
+    "utterance": "transfiere 44.37 dólares de Zelle a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Banesco",
+      "amount": 44.37,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0281",
+    "hard": false,
+    "utterance": "mueve 60 verdes desde Zelle hacia Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 60,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0282",
+    "hard": false,
+    "utterance": "transfiere $235.63 de Efectivo a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Binance",
+      "amount": 235.63,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0283",
+    "hard": false,
+    "utterance": "mueve 13144 Bs desde Mercantil hacia Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Efectivo",
+      "amount": 13144,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0284",
+    "hard": false,
+    "utterance": "transfiere 92 verdes de Efectivo a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Binance",
+      "amount": 92,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0285",
+    "hard": false,
+    "utterance": "pasa 182.35 USDT de Binance a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Zelle",
+      "amount": 182.35,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0286",
+    "hard": false,
+    "utterance": "mueve $190.46 desde Efectivo hacia Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Binance",
+      "amount": 190.46,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0287",
+    "hard": false,
+    "utterance": "hice una transferencia de 374.11 USDT de Binance a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Zelle",
+      "amount": 374.11,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0288",
+    "hard": false,
+    "utterance": "transfiere 15231 bolívares de Banesco a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Binance",
+      "amount": 15231,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0289",
+    "hard": false,
+    "utterance": "pasa 142.91 verdes de Efectivo a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Binance",
+      "amount": 142.91,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0290",
+    "hard": false,
+    "utterance": "mueve $150 desde Efectivo hacia Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Zelle",
+      "amount": 150,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0291",
+    "hard": false,
+    "utterance": "me transferí 81 dólares de Zelle a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Efectivo",
+      "amount": 81,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0292",
+    "hard": false,
+    "utterance": "me transferí 263 tether de Binance a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Efectivo",
+      "amount": 263,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0293",
+    "hard": false,
+    "utterance": "me transferí 387 tether de Binance a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Mercantil",
+      "amount": 387,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0294",
+    "hard": false,
+    "utterance": "pasé $194.71 de mi cuenta Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 194.71,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0295",
+    "hard": false,
+    "utterance": "pasé 17.925 bolívares de mi cuenta Mercantil a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Binance",
+      "amount": 17925,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0296",
+    "hard": false,
+    "utterance": "mueve 239.08 USDT desde Binance hacia Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Zelle",
+      "amount": 239.08,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0297",
+    "hard": false,
+    "utterance": "pasé Bs. 21532 de mi cuenta Banesco a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Binance",
+      "amount": 21532,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0298",
+    "hard": false,
+    "utterance": "pasé 226.26 verdes de mi cuenta Efectivo a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Mercantil",
+      "amount": 226.26,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0299",
+    "hard": false,
+    "utterance": "pasé 7173.04 bolos de mi cuenta Banesco a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Zelle",
+      "amount": 7173.04,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0300",
+    "hard": false,
+    "utterance": "pasé 190.8 verdes de mi cuenta Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 190.8,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0301",
+    "hard": false,
+    "utterance": "mueve $164.2 desde Efectivo hacia Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Banesco",
+      "amount": 164.2,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0302",
+    "hard": false,
+    "utterance": "mueve $35.43 desde Zelle hacia Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Banesco",
+      "amount": 35.43,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0303",
+    "hard": false,
+    "utterance": "transfiere 209 verdes de Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 209,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0304",
+    "hard": false,
+    "utterance": "transfiere 35.43 usdt de Binance a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Zelle",
+      "amount": 35.43,
+      "currency": "USDT"
+    }
+  },
+  {
+    "id": "gen-0305",
+    "hard": false,
+    "utterance": "pasa 18106 Bs de Mercantil a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Efectivo",
+      "amount": 18106,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0306",
+    "hard": false,
+    "utterance": "pasé 236$ de mi cuenta Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 236,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0307",
+    "hard": false,
+    "utterance": "pasé 7.600 Bs de mi cuenta Mercantil a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Binance",
+      "amount": 7600,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0308",
+    "hard": false,
+    "utterance": "transfiere 93.58$ de Zelle a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 93.58,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0309",
+    "hard": false,
+    "utterance": "pasa 177 dólares de Zelle a Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Mercantil",
+      "amount": 177,
+      "currency": "USD"
+    }
+  },
+  {
+    "id": "gen-0310",
+    "hard": false,
+    "utterance": "pasa 7193.93 bs de Mercantil a Efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Efectivo",
+      "amount": 7193.93,
+      "currency": "VES"
+    }
+  },
+  {
+    "id": "gen-0311",
+    "hard": false,
+    "utterance": "anota tres compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0312",
+    "hard": false,
+    "utterance": "tengo 4 facturas que registrar",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    }
+  },
+  {
+    "id": "gen-0313",
+    "hard": false,
+    "utterance": "hice 5 gastos hoy, ahorita te paso los tickets",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    }
+  },
+  {
+    "id": "gen-0314",
+    "hard": false,
+    "utterance": "hoy pagué 3 cosas, después te mando las fotos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0315",
+    "hard": false,
+    "utterance": "hoy pagué tres cosas, después te mando las fotos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0316",
+    "hard": false,
+    "utterance": "registra tres gastos, no me acuerdo los montos, te paso los recibos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0317",
+    "hard": false,
+    "utterance": "hice tres gastos hoy, ahorita te paso los tickets",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0318",
+    "hard": false,
+    "utterance": "registra 3 gastos, no me acuerdo los montos, te paso los recibos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    }
+  },
+  {
+    "id": "gen-0319",
+    "hard": false,
+    "utterance": "tengo dos facturas que registrar",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 2
+    }
+  },
+  {
+    "id": "gen-0320",
+    "hard": false,
+    "utterance": "anota 2 compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 2
+    }
+  },
+  {
+    "id": "gen-0321",
+    "hard": false,
+    "utterance": "anota cuatro compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    }
+  },
+  {
+    "id": "gen-0322",
+    "hard": false,
+    "utterance": "registra dos gastos, no me acuerdo los montos, te paso los recibos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 2
+    }
+  },
+  {
+    "id": "gen-0323",
+    "hard": false,
+    "utterance": "anota 4 compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    }
+  },
+  {
+    "id": "gen-0324",
+    "hard": false,
+    "utterance": "anota seis compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 6
+    }
+  },
+  {
+    "id": "gen-0325",
+    "hard": false,
+    "utterance": "tengo cuatro facturas que registrar",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    }
+  },
+  {
+    "id": "gen-0326",
+    "hard": false,
+    "utterance": "anota cinco compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    }
+  },
+  {
+    "id": "gen-0327",
+    "hard": false,
+    "utterance": "hoy pagué 5 cosas, después te mando las fotos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    }
+  },
+  {
+    "id": "gen-0328",
+    "hard": false,
+    "utterance": "hice 4 gastos hoy, ahorita te paso los tickets",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    }
+  },
+  {
+    "id": "gen-0329",
+    "hard": false,
+    "utterance": "hoy pagué 6 cosas, después te mando las fotos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 6
+    }
+  },
+  {
+    "id": "gen-0330",
+    "hard": false,
+    "utterance": "anota 5 compras de esta semana, te subo las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    }
+  },
+  {
+    "id": "gen-0331",
+    "hard": false,
+    "utterance": "tengo cinco facturas que registrar",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    }
+  },
+  {
+    "id": "gen-0332",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en alimentación",
+    "intent": "query",
+    "expected": {
+      "category": "Alimentación"
+    }
+  },
+  {
+    "id": "gen-0333",
+    "hard": false,
+    "utterance": "dame el total de alimentación de abril",
+    "intent": "query",
+    "expected": {
+      "category": "Alimentación"
+    }
+  },
+  {
+    "id": "gen-0334",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en transporte este año",
+    "intent": "query",
+    "expected": {
+      "category": "Transporte"
+    }
+  },
+  {
+    "id": "gen-0335",
+    "hard": false,
+    "utterance": "dame el total de transporte de febrero",
+    "intent": "query",
+    "expected": {
+      "category": "Transporte"
+    }
+  },
+  {
+    "id": "gen-0336",
+    "hard": false,
+    "utterance": "cuánto gasté en vivienda este mes",
+    "intent": "query",
+    "expected": {
+      "category": "Vivienda"
+    }
+  },
+  {
+    "id": "gen-0337",
+    "hard": false,
+    "utterance": "dame el total de vivienda de octubre",
+    "intent": "query",
+    "expected": {
+      "category": "Vivienda"
+    }
+  },
+  {
+    "id": "gen-0338",
+    "hard": false,
+    "utterance": "dame el total de servicios de febrero",
+    "intent": "query",
+    "expected": {
+      "category": "Servicios"
+    }
+  },
+  {
+    "id": "gen-0339",
+    "hard": false,
+    "utterance": "dame el total de servicios de julio",
+    "intent": "query",
+    "expected": {
+      "category": "Servicios"
+    }
+  },
+  {
+    "id": "gen-0340",
+    "hard": false,
+    "utterance": "cuánto gasté en entretenimiento este mes",
+    "intent": "query",
+    "expected": {
+      "category": "Entretenimiento"
+    }
+  },
+  {
+    "id": "gen-0341",
+    "hard": false,
+    "utterance": "dame el total de salud de septiembre",
+    "intent": "query",
+    "expected": {
+      "category": "Salud"
+    }
+  },
+  {
+    "id": "gen-0342",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en salud",
+    "intent": "query",
+    "expected": {
+      "category": "Salud"
+    }
+  },
+  {
+    "id": "gen-0343",
+    "hard": false,
+    "utterance": "dame el total de educación de enero",
+    "intent": "query",
+    "expected": {
+      "category": "Educación"
+    }
+  },
+  {
+    "id": "gen-0344",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en educación",
+    "intent": "query",
+    "expected": {
+      "category": "Educación"
+    }
+  },
+  {
+    "id": "gen-0345",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en compras este año",
+    "intent": "query",
+    "expected": {
+      "category": "Compras"
+    }
+  },
+  {
+    "id": "gen-0346",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en compras",
+    "intent": "query",
+    "expected": {
+      "category": "Compras"
+    }
+  },
+  {
+    "id": "gen-0347",
+    "hard": false,
+    "utterance": "dame el total de carros de enero",
+    "intent": "query",
+    "expected": {
+      "category": "Carros"
+    }
+  },
+  {
+    "id": "gen-0348",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en carros este año",
+    "intent": "query",
+    "expected": {
+      "category": "Carros"
+    }
+  },
+  {
+    "id": "gen-0349",
+    "hard": false,
+    "utterance": "dame el total de gimnasio de mayo",
+    "intent": "query",
+    "expected": {
+      "category": "Gimnasio"
+    }
+  },
+  {
+    "id": "gen-0350",
+    "hard": false,
+    "utterance": "dame el total de gimnasio de marzo",
+    "intent": "query",
+    "expected": {
+      "category": "Gimnasio"
+    }
+  },
+  {
+    "id": "gen-0351",
+    "hard": false,
+    "utterance": "cuánto gasté en mascotas este mes",
+    "intent": "query",
+    "expected": {
+      "category": "Mascotas"
+    }
+  },
+  {
+    "id": "gen-0352",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en mascotas",
+    "intent": "query",
+    "expected": {
+      "category": "Mascotas"
+    }
+  },
+  {
+    "id": "gen-0353",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en otros gastos",
+    "intent": "query",
+    "expected": {
+      "category": "Otros Gastos"
+    }
+  },
+  {
+    "id": "gen-0354",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en salario este año",
+    "intent": "query",
+    "expected": {
+      "category": "Salario"
+    }
+  },
+  {
+    "id": "gen-0355",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en salario",
+    "intent": "query",
+    "expected": {
+      "category": "Salario"
+    }
+  },
+  {
+    "id": "gen-0356",
+    "hard": false,
+    "utterance": "dame el total de freelance de septiembre",
+    "intent": "query",
+    "expected": {
+      "category": "Freelance"
+    }
+  },
+  {
+    "id": "gen-0357",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en freelance",
+    "intent": "query",
+    "expected": {
+      "category": "Freelance"
+    }
+  },
+  {
+    "id": "gen-0358",
+    "hard": false,
+    "utterance": "dame el total de inversiones de marzo",
+    "intent": "query",
+    "expected": {
+      "category": "Inversiones"
+    }
+  },
+  {
+    "id": "gen-0359",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en inversiones",
+    "intent": "query",
+    "expected": {
+      "category": "Inversiones"
+    }
+  },
+  {
+    "id": "gen-0360",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en remesas este año",
+    "intent": "query",
+    "expected": {
+      "category": "Remesas"
+    }
+  },
+  {
+    "id": "gen-0361",
+    "hard": false,
+    "utterance": "cuanto llevo gastado en remesas",
+    "intent": "query",
+    "expected": {
+      "category": "Remesas"
+    }
+  },
+  {
+    "id": "gen-0362",
+    "hard": false,
+    "utterance": "dame el total de otros ingresos de febrero",
+    "intent": "query",
+    "expected": {
+      "category": "Otros Ingresos"
+    }
+  },
+  {
+    "id": "gen-0363",
+    "hard": false,
+    "utterance": "cuánta plata se me ha ido en otros ingresos este año",
+    "intent": "query",
+    "expected": {
+      "category": "Otros Ingresos"
+    }
+  },
+  {
+    "id": "gen-0364",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en Farmatodo",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0365",
+    "hard": false,
+    "utterance": "muéstrame las compras de Spotify",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0366",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en Corpoelec",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0367",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en Ridery",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0368",
+    "hard": false,
+    "utterance": "busca mis pagos de Spotify",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0369",
+    "hard": false,
+    "utterance": "dónde está lo de Farmatodo",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0370",
+    "hard": false,
+    "utterance": "dónde está lo de el Central Madeirense",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0371",
+    "hard": false,
+    "utterance": "dónde está lo de el Sambil",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0372",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en el Sambil",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0373",
+    "hard": false,
+    "utterance": "busca mis pagos de Netflix",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0374",
+    "hard": false,
+    "utterance": "busca mis pagos de Corpoelec",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0375",
+    "hard": false,
+    "utterance": "dónde está lo de Ridery",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0376",
+    "hard": false,
+    "utterance": "busca mis pagos de el Sambil",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0377",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en los cauchos",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0378",
+    "hard": false,
+    "utterance": "encuentra lo que pagué en Netflix",
+    "intent": "search",
+    "expected": {}
+  },
+  {
+    "id": "gen-0379",
+    "hard": false,
+    "utterance": "cuánto dinero tengo en total",
+    "intent": "balance",
+    "expected": {}
+  },
+  {
+    "id": "gen-0380",
+    "hard": false,
+    "utterance": "dame mis saldos",
+    "intent": "balance",
+    "expected": {}
+  },
+  {
+    "id": "gen-0381",
+    "hard": false,
+    "utterance": "cuál es el saldo de Zelle",
+    "intent": "balance",
+    "expected": {
+      "account": "Zelle"
+    }
+  },
+  {
+    "id": "gen-0382",
+    "hard": false,
+    "utterance": "cuánto tengo en Binance",
+    "intent": "balance",
+    "expected": {
+      "account": "Binance"
+    }
+  },
+  {
+    "id": "gen-0383",
+    "hard": false,
+    "utterance": "cuánta plata me queda en Banesco",
+    "intent": "balance",
+    "expected": {
+      "account": "Banesco"
+    }
+  },
+  {
+    "id": "gen-0384",
+    "hard": false,
+    "utterance": "cuánto tengo en Zelle",
+    "intent": "balance",
+    "expected": {
+      "account": "Zelle"
+    }
+  },
+  {
+    "id": "gen-0385",
+    "hard": false,
+    "utterance": "cuánto tengo en Banesco",
+    "intent": "balance",
+    "expected": {
+      "account": "Banesco"
+    }
+  },
+  {
+    "id": "gen-0386",
+    "hard": false,
+    "utterance": "cuánta plata me queda en Binance",
+    "intent": "balance",
+    "expected": {
+      "account": "Binance"
+    }
+  },
+  {
+    "id": "gen-0387",
+    "hard": false,
+    "utterance": "cuál es el saldo de Binance",
+    "intent": "balance",
+    "expected": {
+      "account": "Binance"
+    }
+  },
+  {
+    "id": "gen-0388",
+    "hard": false,
+    "utterance": "cuánto tengo en Mercantil",
+    "intent": "balance",
+    "expected": {
+      "account": "Mercantil"
+    }
+  },
+  {
+    "utterance": "quiero hacer una transferencia de 7000 dólares de Zelle a Binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 7000,
+      "currency": "USD"
+    },
+    "id": "hard-001",
+    "hard": true
+  },
+  {
+    "utterance": "pasa siete mil dolares de zelle pa binance",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 7000,
+      "currency": "USD"
+    },
+    "id": "hard-002",
+    "hard": true
+  },
+  {
+    "utterance": "me transferi 100 de banesco a mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Mercantil",
+      "amount": 100,
+      "currency": "VES"
+    },
+    "id": "hard-003",
+    "hard": true
+  },
+  {
+    "utterance": "mueve 250$ del efectivo a zelle que lo deposité",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Zelle",
+      "amount": 250,
+      "currency": "USD"
+    },
+    "id": "hard-004",
+    "hard": true
+  },
+  {
+    "utterance": "saqué 40 dólares de Zelle en efectivo",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Efectivo",
+      "amount": 40,
+      "currency": "USD"
+    },
+    "id": "hard-005",
+    "hard": true
+  },
+  {
+    "utterance": "vendí 100 usdt de binance y me cayeron en banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Binance",
+      "toAccount": "Banesco",
+      "amount": 100,
+      "currency": "USDT"
+    },
+    "id": "hard-006",
+    "hard": true
+  },
+  {
+    "utterance": "eh pasé como quinientos bolos de mercantil a banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 500,
+      "currency": "VES"
+    },
+    "id": "hard-007",
+    "hard": true
+  },
+  {
+    "utterance": "hice un pago móvil de 3.000 Bs de Banesco a mi Mercantil",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Banesco",
+      "toAccount": "Mercantil",
+      "amount": 3000,
+      "currency": "VES"
+    },
+    "id": "hard-008",
+    "hard": true
+  },
+  {
+    "utterance": "envié 50$ a mi cuenta de Binance desde Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 50,
+      "currency": "USD"
+    },
+    "id": "hard-009",
+    "hard": true
+  },
+  {
+    "utterance": "recarga binance con 80 dolares del zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Zelle",
+      "toAccount": "Binance",
+      "amount": 80,
+      "currency": "USD"
+    },
+    "id": "hard-010",
+    "hard": true
+  },
+  {
+    "utterance": "transfiere 1.250,50 Bs de Mercantil a Banesco",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Mercantil",
+      "toAccount": "Banesco",
+      "amount": 1250.5,
+      "currency": "VES"
+    },
+    "id": "hard-011",
+    "hard": true
+  },
+  {
+    "utterance": "deposité 300 dólares en efectivo a Zelle",
+    "intent": "create_transfer",
+    "expected": {
+      "account": "Efectivo",
+      "toAccount": "Zelle",
+      "amount": 300,
+      "currency": "USD"
+    },
+    "id": "hard-012",
+    "hard": true
+  },
+  {
+    "utterance": "le transferí 30$ a mi hermano que le debía",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 30,
+      "currency": "USD"
+    },
+    "id": "hard-013",
+    "hard": true
+  },
+  {
+    "utterance": "pago movil de 500bs a la señora de las empanadas",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 500,
+      "currency": "VES"
+    },
+    "id": "hard-014",
+    "hard": true
+  },
+  {
+    "utterance": "le hice un zelle de 60 al mecánico por los frenos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 60,
+      "currency": "USD",
+      "account": "Zelle"
+    },
+    "id": "hard-015",
+    "hard": true
+  },
+  {
+    "utterance": "transferí 120 dólares al dueño del apartamento por el alquiler",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 120,
+      "currency": "USD"
+    },
+    "id": "hard-016",
+    "hard": true
+  },
+  {
+    "utterance": "le pasé 15 usdt al pana del gym por la mensualidad",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Gimnasio",
+      "amount": 15,
+      "currency": "USDT",
+      "account": "Binance"
+    },
+    "id": "hard-017",
+    "hard": true
+  },
+  {
+    "utterance": "pago móvil de 2.300 Bs al veterinario",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 2300,
+      "currency": "VES"
+    },
+    "id": "hard-018",
+    "hard": true
+  },
+  {
+    "utterance": "gasté 12 dólares en almuerzo",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 12,
+      "currency": "USD"
+    },
+    "id": "hard-019",
+    "hard": true
+  },
+  {
+    "utterance": "gaste 15 en almuerso",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 15,
+      "currency": "USD"
+    },
+    "id": "hard-020",
+    "hard": true
+  },
+  {
+    "utterance": "compre medicinas en farmatodo 22$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 22,
+      "currency": "USD"
+    },
+    "id": "hard-021",
+    "hard": true
+  },
+  {
+    "utterance": "pague la luz 300 bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 300,
+      "currency": "VES"
+    },
+    "id": "hard-022",
+    "hard": true
+  },
+  {
+    "utterance": "netflix 7.99",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 7.99,
+      "currency": "USD"
+    },
+    "id": "hard-023",
+    "hard": true
+  },
+  {
+    "utterance": "se me fueron 45 lucas en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 45,
+      "currency": "USD"
+    },
+    "id": "hard-024",
+    "hard": true
+  },
+  {
+    "utterance": "mensualidad del colegio de la niña 80 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 80,
+      "currency": "USD"
+    },
+    "id": "hard-025",
+    "hard": true
+  },
+  {
+    "utterance": "unos tenis en el sambil 65$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 65,
+      "currency": "USD"
+    },
+    "id": "hard-026",
+    "hard": true
+  },
+  {
+    "utterance": "le eché gasolina al carro, 10 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 10,
+      "currency": "USD"
+    },
+    "id": "hard-027",
+    "hard": true
+  },
+  {
+    "utterance": "cambio de aceite 35$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 35,
+      "currency": "USD"
+    },
+    "id": "hard-028",
+    "hard": true
+  },
+  {
+    "utterance": "los cauchos nuevos me salieron en 280 dólares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Carros",
+      "amount": 280,
+      "currency": "USD"
+    },
+    "id": "hard-029",
+    "hard": true
+  },
+  {
+    "utterance": "pagué el condominio, 40 verdes",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Vivienda",
+      "amount": 40,
+      "currency": "USD"
+    },
+    "id": "hard-030",
+    "hard": true
+  },
+  {
+    "utterance": "la recarga de movistar 200 bolos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 200,
+      "currency": "VES"
+    },
+    "id": "hard-031",
+    "hard": true
+  },
+  {
+    "utterance": "el internet 25$ con zelle",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 25,
+      "currency": "USD",
+      "account": "Zelle"
+    },
+    "id": "hard-032",
+    "hard": true
+  },
+  {
+    "utterance": "fuimos al cine y gastamos 18 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Entretenimiento",
+      "amount": 18,
+      "currency": "USD"
+    },
+    "id": "hard-033",
+    "hard": true
+  },
+  {
+    "utterance": "consulta con el pediatra 40$",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 40,
+      "currency": "USD"
+    },
+    "id": "hard-034",
+    "hard": true
+  },
+  {
+    "utterance": "perrarina 30 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Mascotas",
+      "amount": 30,
+      "currency": "USD"
+    },
+    "id": "hard-035",
+    "hard": true
+  },
+  {
+    "utterance": "un yummy de 4 dolares",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 4,
+      "currency": "USD"
+    },
+    "id": "hard-036",
+    "hard": true
+  },
+  {
+    "utterance": "el curso de inglés me costó 60 usdt",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Educación",
+      "amount": 60,
+      "currency": "USDT",
+      "account": "Binance"
+    },
+    "id": "hard-037",
+    "hard": true
+  },
+  {
+    "utterance": "comision del banco 50 bs",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Otros Gastos",
+      "amount": 50,
+      "currency": "VES"
+    },
+    "id": "hard-038",
+    "hard": true
+  },
+  {
+    "utterance": "pagué 1.500 Bs de estacionamiento con Banesco",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 1500,
+      "currency": "VES",
+      "account": "Banesco"
+    },
+    "id": "hard-039",
+    "hard": true
+  },
+  {
+    "utterance": "eh gasté como veinte dólares en la farmacia",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Salud",
+      "amount": 20,
+      "currency": "USD"
+    },
+    "id": "hard-040",
+    "hard": true
+  },
+  {
+    "utterance": "este... pagué treinta dólares de mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 30,
+      "currency": "USD"
+    },
+    "id": "hard-041",
+    "hard": true
+  },
+  {
+    "utterance": "o sea me cobraron cien bolívares por el pasaje",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Transporte",
+      "amount": 100,
+      "currency": "VES"
+    },
+    "id": "hard-042",
+    "hard": true
+  },
+  {
+    "utterance": "mira anota que gasté cincuenta en ropa",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Compras",
+      "amount": 50,
+      "currency": "USD"
+    },
+    "id": "hard-043",
+    "hard": true
+  },
+  {
+    "utterance": "ehhh la luz salió en mil doscientos bolos",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Servicios",
+      "amount": 1200,
+      "currency": "VES"
+    },
+    "id": "hard-044",
+    "hard": true
+  },
+  {
+    "utterance": "mira me pagaron la quincena trescientos dólares",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 300,
+      "currency": "USD"
+    },
+    "id": "hard-045",
+    "hard": true
+  },
+  {
+    "utterance": "me cayó la nómina, dos mil quinientos bolívares en banesco",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 2500,
+      "currency": "VES",
+      "account": "Banesco"
+    },
+    "id": "hard-046",
+    "hard": true
+  },
+  {
+    "utterance": "me pagaron 200$ por un diseño",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 200,
+      "currency": "USD"
+    },
+    "id": "hard-047",
+    "hard": true
+  },
+  {
+    "utterance": "me hicieron un pago móvil de 1200 bs por un diseño",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 1200,
+      "currency": "VES"
+    },
+    "id": "hard-048",
+    "hard": true
+  },
+  {
+    "utterance": "mi mamá me mandó 100 dólares",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 100,
+      "currency": "USD"
+    },
+    "id": "hard-049",
+    "hard": true
+  },
+  {
+    "utterance": "me devolvieron 20 dólares que le presté a un pana",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 20,
+      "currency": "USD"
+    },
+    "id": "hard-050",
+    "hard": true
+  },
+  {
+    "utterance": "vendí la bici en 90$",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 90,
+      "currency": "USD"
+    },
+    "id": "hard-051",
+    "hard": true
+  },
+  {
+    "utterance": "cobré 450 dólares de sueldo por zelle",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 450,
+      "currency": "USD",
+      "account": "Zelle"
+    },
+    "id": "hard-052",
+    "hard": true
+  },
+  {
+    "utterance": "gané 35 usdt en binance con el staking",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Inversiones",
+      "amount": 35,
+      "currency": "USDT",
+      "account": "Binance"
+    },
+    "id": "hard-053",
+    "hard": true
+  },
+  {
+    "utterance": "un cliente me pagó 150 usdt por una página web",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 150,
+      "currency": "USDT",
+      "account": "Binance"
+    },
+    "id": "hard-054",
+    "hard": true
+  },
+  {
+    "utterance": "me entró la remesa de mi hermano, 80$",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Remesas",
+      "amount": 80,
+      "currency": "USD"
+    },
+    "id": "hard-055",
+    "hard": true
+  },
+  {
+    "utterance": "ingreso de 5.000 Bs por clases particulares",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Freelance",
+      "amount": 5000,
+      "currency": "VES"
+    },
+    "id": "hard-056",
+    "hard": true
+  },
+  {
+    "utterance": "me pagaron el bono de fin de año, 600 dólares",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Salario",
+      "amount": 600,
+      "currency": "USD"
+    },
+    "id": "hard-057",
+    "hard": true
+  },
+  {
+    "utterance": "recibí 40 dólares de regalo de cumpleaños",
+    "intent": "create_income",
+    "expected": {
+      "type": "INCOME",
+      "category": "Otros Ingresos",
+      "amount": 40,
+      "currency": "USD"
+    },
+    "id": "hard-058",
+    "hard": true
+  },
+  {
+    "utterance": "hice tres gastos hoy pero no me acuerdo cuánto, te paso los tickets",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    },
+    "id": "hard-059",
+    "hard": true
+  },
+  {
+    "utterance": "fui al mercado y a la farmacia, después te mando las facturas",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 2
+    },
+    "id": "hard-060",
+    "hard": true
+  },
+  {
+    "utterance": "registra 4 gastos y te subo las fotos de los recibos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    },
+    "id": "hard-061",
+    "hard": true
+  },
+  {
+    "utterance": "tengo un montón de facturas, son como cinco, te las paso",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 5
+    },
+    "id": "hard-062",
+    "hard": true
+  },
+  {
+    "utterance": "pagué el gas, la luz y el agua, te mando los comprobantes",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 3
+    },
+    "id": "hard-063",
+    "hard": true
+  },
+  {
+    "utterance": "hice dos compras en el sambil, ahí te van los tickets",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 2
+    },
+    "id": "hard-064",
+    "hard": true
+  },
+  {
+    "utterance": "mira hice tantos gastos, como seis, ahorita te paso las fotos",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 6
+    },
+    "id": "hard-065",
+    "hard": true
+  },
+  {
+    "utterance": "anota los gastos del viaje, te mando las facturas, fueron cuatro",
+    "intent": "deferred_expenses",
+    "expected": {
+      "type": "EXPENSE",
+      "count": 4
+    },
+    "id": "hard-066",
+    "hard": true
+  },
+  {
+    "utterance": "gasté plata",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-067",
+    "hard": true
+  },
+  {
+    "utterance": "pagué eso",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-068",
+    "hard": true
+  },
+  {
+    "utterance": "registra un gasto",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-069",
+    "hard": true
+  },
+  {
+    "utterance": "transfiere 50",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-070",
+    "hard": true
+  },
+  {
+    "utterance": "anota 20",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-071",
+    "hard": true
+  },
+  {
+    "utterance": "pasa 100 a banesco",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-072",
+    "hard": true
+  },
+  {
+    "utterance": "registra lo de ayer",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-073",
+    "hard": true
+  },
+  {
+    "utterance": "me cobraron",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-074",
+    "hard": true
+  },
+  {
+    "utterance": "pon un ingreso",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-075",
+    "hard": true
+  },
+  {
+    "utterance": "haz una transferencia",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-076",
+    "hard": true
+  },
+  {
+    "utterance": "gasté 30",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-077",
+    "hard": true
+  },
+  {
+    "utterance": "mueve la plata",
+    "intent": "ambiguous_needs_clarification",
+    "expected": {},
+    "id": "hard-078",
+    "hard": true
+  },
+  {
+    "utterance": "en qué se me va más la plata",
+    "intent": "query",
+    "expected": {},
+    "id": "hard-079",
+    "hard": true
+  },
+  {
+    "utterance": "cuánto me entró este mes",
+    "intent": "query",
+    "expected": {
+      "type": "INCOME"
+    },
+    "id": "hard-080",
+    "hard": true
+  },
+  {
+    "utterance": "cuánto gasté la semana pasada en total",
+    "intent": "query",
+    "expected": {
+      "type": "EXPENSE"
+    },
+    "id": "hard-081",
+    "hard": true
+  },
+  {
+    "utterance": "cuanto e gastado en el carro este año",
+    "intent": "query",
+    "expected": {
+      "category": "Carros"
+    },
+    "id": "hard-082",
+    "hard": true
+  },
+  {
+    "utterance": "búscame lo que pagué en farmatodo",
+    "intent": "search",
+    "expected": {},
+    "id": "hard-083",
+    "hard": true
+  },
+  {
+    "utterance": "dónde quedó el pago del mecánico",
+    "intent": "search",
+    "expected": {},
+    "id": "hard-084",
+    "hard": true
+  },
+  {
+    "utterance": "cuánta plata me queda",
+    "intent": "balance",
+    "expected": {},
+    "id": "hard-086",
+    "hard": true
+  },
+  {
+    "utterance": "cuanto hay en zelle",
+    "intent": "balance",
+    "expected": {
+      "account": "Zelle"
+    },
+    "id": "hard-087",
+    "hard": true
+  }
+]

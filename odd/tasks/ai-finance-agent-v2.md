@@ -30,10 +30,10 @@ receipt matching and a redesigned chat.
 
 ## Tasks
 
-- T1 [S1] #113 inline — category resolution fix + categories in the system prompt — commit: pending
+- T1 [S1] #113 inline — category resolution fix + categories in the system prompt — done, commit: 05495755
 - T2 [S2,S3] #114 — createTransfer tool, intent routing, reclassify expense as transfer — commit: pending
 - T3 [S4] #115 — architecture v2, shared resolver, embeddings kNN layer — commit: pending
-- T4 [S5] #116 — evaluation dataset and runner — commit: pending
+- T4 [S5] #116 — evaluation dataset and runner — done (474 cases, keyword resolver alone 46.2%)
 - T5 [S6] #117 — deferred expenses and receipt matching — commit: pending
 - T6 [S7] #118 — chat redesign — commit: pending
 
@@ -59,3 +59,7 @@ receipt matching and a redesigned chat.
   `userCategories[0]`; kind is ignored. Root cause of S2: the chat has no transfer tool.
 - L4 (decision): tool-calling agent (AI SDK) over a graph framework; production data is not edited
   directly, S3 is delivered as an in-app conversion action.
+- L5 (evidence, T4): deterministic eval on 474 cases: the keyword resolver alone (no model hint)
+  is right in 46.2% of 286 create cases, asks in 62 and guesses wrong in ~92 (e.g. "la compra del
+  abasto" -> Compras). T3 must make the fallback ask rather than guess wrong; live mode measures the
+  real agent (`npm run eval:agent:live`).
