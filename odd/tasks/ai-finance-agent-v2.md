@@ -31,7 +31,7 @@ receipt matching and a redesigned chat.
 ## Tasks
 
 - T1 [S1] #113 inline — category resolution fix + categories in the system prompt — done, commit: 05495755
-- T2 [S2,S3] #114 — createTransfer tool, intent routing, reclassify expense as transfer — commit: pending
+- T2 [S2,S3] #114 — createTransfer tool, intent routing, reclassify expense as transfer — done, commits: 6992b985, 0a9aeec1, review fixes (see L6-L7)
 - T3 [S4] #115 — architecture v2, shared resolver, embeddings kNN layer — commit: pending
 - T4 [S5] #116 — evaluation dataset and runner — done (474 cases, keyword resolver alone 46.2%)
 - T5 [S6] #117 — deferred expenses and receipt matching — commit: pending
@@ -63,3 +63,16 @@ receipt matching and a redesigned chat.
   is right in 46.2% of 286 create cases, asks in 62 and guesses wrong in ~92 (e.g. "la compra del
   abasto" -> Compras). T3 must make the fallback ask rather than guess wrong; live mode measures the
   real agent (`npm run eval:agent:live`).
+- L6 (evidence, T2): scratch Postgres (baseline + all migrations, role authenticated): foreign
+  user, income, foreign destination (rollback, expense kept), owner 7000 USD conversion (source
+  unchanged, destination +700000, TRANSFER_OUT/IN with original date), double conversion and anon
+  all behave as specified. Independent verify then found: debt-linked expenses convertible and
+  delete cascade over debt:<id> rows (could delete >1 row), cross-currency RPC default rate 1,
+  candidate search limited to 200 rows, BTC/ETH decimal mismatch inherited from create_transfer.
+  Fixed: RPC rejects debt-linked/debt-parent expenses, requires a rate across currencies, blocks
+  BTC/ETH; resolver paginates all expenses and skips debt-linked rows. Reproduced RED then GREEN
+  on the scratch DB and in unit tests. Found #119 (transfer delete RPC argument name).
+- L7 (evidence, live eval on the real model, quota-limited sample): transfers 10/10 correct and
+  never recorded as expenses; expense category 7/8; income accountName dropped 3/5; "anota 20" /
+  "gasté 30" filed under Otros Gastos instead of asking; Yummy filed as food. Prompt rules added
+  for all three; re-measure when the provider quota resets (most runs failed with quota errors).

@@ -1,62 +1,65 @@
 export interface AutonomyPolicy {
-    [actionType: string]: {
-        autoApprove: boolean | ((context: any) => boolean);
-        requireApproval?: (context: any) => boolean;
-        riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
-    };
+  [actionType: string]: {
+    autoApprove: boolean | ((context: any) => boolean);
+    requireApproval?: (context: any) => boolean;
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
 }
 
 export const DEFAULT_AUTONOMY_POLICY: AutonomyPolicy = {
-    createTransaction: {
-        autoApprove: (ctx: any) => Math.abs(ctx.amount) < 100, // Auto-approve small transactions
-        requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
-        riskLevel: 'MEDIUM'
-    },
-    createTransfer: {
-        autoApprove: (ctx: any) => Math.abs(ctx.amount) < 100,
-        requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
-        riskLevel: 'MEDIUM'
-    },
-    reclassifyExpenseAsTransfer: {
-        autoApprove: false, // Rewrites an existing movement: always confirm
-        riskLevel: 'HIGH'
-    },
-    createGoal: {
-        autoApprove: false, // Always require human approval
-        riskLevel: 'HIGH'
-    },
-    queryTransactions: {
-        autoApprove: true, // Read-only, safe
-        riskLevel: 'LOW'
-    },
-    searchTransactions: {
-        autoApprove: true, // Read-only, safe
-        riskLevel: 'LOW'
-    },
-    getAccountBalance: {
-        autoApprove: true,
-        riskLevel: 'LOW'
-    }
+  createTransaction: {
+    autoApprove: (ctx: any) => Math.abs(ctx.amount) < 100, // Auto-approve small transactions
+    requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
+    riskLevel: 'MEDIUM',
+  },
+  createTransfer: {
+    autoApprove: (ctx: any) => Math.abs(ctx.amount) < 100,
+    requireApproval: (ctx: any) => Math.abs(ctx.amount) >= 100,
+    riskLevel: 'MEDIUM',
+  },
+  reclassifyExpenseAsTransfer: {
+    autoApprove: false, // Rewrites an existing movement: always confirm
+    riskLevel: 'HIGH',
+  },
+  createGoal: {
+    autoApprove: false, // Always require human approval
+    riskLevel: 'HIGH',
+  },
+  queryTransactions: {
+    autoApprove: true, // Read-only, safe
+    riskLevel: 'LOW',
+  },
+  searchTransactions: {
+    autoApprove: true, // Read-only, safe
+    riskLevel: 'LOW',
+  },
+  getAccountBalance: {
+    autoApprove: true,
+    riskLevel: 'LOW',
+  },
 };
 
 export function shouldRequestApproval(
-    actionType: string,
-    context: any,
-    policy: AutonomyPolicy = DEFAULT_AUTONOMY_POLICY
+  actionType: string,
+  context: any,
+  policy: AutonomyPolicy = DEFAULT_AUTONOMY_POLICY
 ): boolean {
-    const rule = policy[actionType];
+  const rule = policy[actionType];
 
-    if (!rule) return false; // Unknown action, default to allow/pass (or deny depending on security stance, here allow for UX)
+  if (!rule) return false; // Unknown action, default to allow/pass (or deny depending on security stance, here allow for UX)
 
-    // Explicit approval required
-    if (typeof rule.requireApproval === 'function' && rule.requireApproval(context)) {
-        return true;
-    }
+  // Explicit approval required
+  if (
+    typeof rule.requireApproval === 'function' &&
+    rule.requireApproval(context)
+  ) {
+    return true;
+  }
 
-    // Check auto-approve
-    if (typeof rule.autoApprove === 'function') {
-        return !rule.autoApprove(context);
-    }
+  // Check auto-approve
+  if (typeof rule.autoApprove === 'function') {
+    return !rule.autoApprove(context);
+  }
 
-    return !rule.autoApprove;
+  return !rule.autoApprove;
 }

@@ -1,7 +1,6 @@
 import * as schemas from './schemas';
 import {
   formatGoalCreated,
-  formatTransactionCreated,
   formatQueryResult,
   formatSearchResults,
   type QueryTransactionsRow,
@@ -9,7 +8,7 @@ import {
 } from './formatters';
 import type { AppRepository } from '@/repositories/contracts';
 import { TransactionType } from '@/types/domain';
-import type { Account } from '@/types/domain';
+import type { Account, Transaction } from '@/types/domain';
 import { embedText } from '../rag/embeddings';
 import {
   normalizeName,
@@ -220,6 +219,40 @@ export async function createTransfer(
   }
 }
 
+const EXPENSE_PAGE_SIZE = 200;
+const MAX_EXPENSE_PAGES = 50;
+
+/** Every expense of the account (optionally on one date), across all pages. */
+async function findAllExpenses(
+  ctx: ToolContext,
+  accountId: string,
+  date?: string
+): Promise<Transaction[]> {
+  const rows: Transaction[] = [];
+  for (let page = 1; page <= MAX_EXPENSE_PAGES; page++) {
+    const result = await ctx.repository.transactions.findByFilters(
+      {
+        accountIds: [accountId],
+        types: [TransactionType.EXPENSE],
+        ...(date ? { dateFrom: date, dateTo: date } : {}),
+      },
+      { page, limit: EXPENSE_PAGE_SIZE, sortBy: 'date', sortOrder: 'desc' }
+    );
+    rows.push(...result.data);
+    if (page >= result.totalPages || result.data.length < EXPENSE_PAGE_SIZE) {
+      break;
+    }
+  }
+  return rows;
+}
+
+/** Debt deductions carry debt-linked / debt:<id> tags and must stay expenses. */
+function isDebtLinked(transaction: Transaction): boolean {
+  return (transaction.tags ?? []).some(
+    (tag) => tag === 'debt-linked' || tag.startsWith('debt:')
+  );
+}
+
 /**
  * Repairs an own-account transfer that was recorded as an expense: finds the
  * expense on the source account by amount (and date when given) and converts
@@ -242,22 +275,21 @@ export async function reclassifyExpenseAsTransfer(
     }
 
     const amountMinor = toMinorUnits(args.amount, from.currencyCode);
-    const { data } = await ctx.repository.transactions.findByFilters(
-      {
-        accountIds: [from.id],
-        types: [TransactionType.EXPENSE],
-        ...(args.date ? { dateFrom: args.date, dateTo: args.date } : {}),
-      },
-      { page: 1, limit: 200, sortBy: 'date', sortOrder: 'desc' }
+    const candidates = (
+      await findAllExpenses(ctx, from.id, args.date)
+    ).filter(
+      (t) =>
+        t.amountMinor === amountMinor &&
+        !t.transferId &&
+        !t.isDebt &&
+        !isDebtLinked(t)
     );
-    const candidates = data.filter(
-      (t) => t.amountMinor === amountMinor && !t.transferId && !t.isDebt
-    );
-    const target = args.transactionId
-      ? candidates.find((t) => t.id === args.transactionId)
-      : candidates.length === 1
-        ? candidates[0]
-        : undefined;
+    let target: Transaction | undefined;
+    if (args.transactionId) {
+      target = candidates.find((t) => t.id === args.transactionId);
+    } else if (candidates.length === 1) {
+      target = candidates[0];
+    }
 
     if (!target) {
       return {
@@ -623,7 +655,7 @@ export async function createGoal(
       baseCurrencyCode,
     });
 
-    const goal = await goalsRepo.create({
+    await goalsRepo.create({
       name: args.name,
       targetBaseMinor,
       currentBaseMinor: 0,

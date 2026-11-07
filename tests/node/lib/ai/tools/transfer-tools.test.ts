@@ -39,32 +39,32 @@ function makeRepository(expenses: unknown[] = []) {
     accounts: { findByUserId: jest.fn().mockResolvedValue(ACCOUNTS) },
     transactions: {
       create: jest.fn(),
-      findByFilters: jest
-        .fn()
-        .mockResolvedValue({
-          data: expenses,
-          total: expenses.length,
-          page: 1,
-          limit: 50,
-          totalPages: 1,
-        }),
+      // Paginates like the real repository: `limit` rows per page.
+      findByFilters: jest.fn(
+        async (_filters: unknown, pagination: { page: number; limit: number }) => {
+          const start = (pagination.page - 1) * pagination.limit;
+          return {
+            data: expenses.slice(start, start + pagination.limit),
+            total: expenses.length,
+            page: pagination.page,
+            limit: pagination.limit,
+            totalPages: Math.max(1, Math.ceil(expenses.length / pagination.limit)),
+          };
+        }
+      ),
     },
     transfers: {
-      create: jest
-        .fn()
-        .mockResolvedValue({
-          transferId: 'tr-1',
-          fromAmount: 700000,
-          toAmount: 700000,
-          fromCurrency: 'USD',
-          toCurrency: 'USD',
-        }),
-      convertExpenseToTransfer: jest
-        .fn()
-        .mockResolvedValue({
-          transferId: 'tr-2',
-          convertedTransactionId: 'tx-7000',
-        }),
+      create: jest.fn().mockResolvedValue({
+        transferId: 'tr-1',
+        fromAmount: 700000,
+        toAmount: 700000,
+        fromCurrency: 'USD',
+        toCurrency: 'USD',
+      }),
+      convertExpenseToTransfer: jest.fn().mockResolvedValue({
+        transferId: 'tr-2',
+        convertedTransactionId: 'tx-7000',
+      }),
     },
   };
 }
@@ -294,6 +294,44 @@ describe('reclassifyExpenseAsTransfer (#114)', () => {
     expect(
       repository.transfers.convertExpenseToTransfer
     ).not.toHaveBeenCalled();
+  });
+});
+
+describe('reclassifyExpenseAsTransfer safety (#114 review)', () => {
+  it('never offers expenses linked to a debt', async () => {
+    const repository = makeRepository([
+      { ...expense('tx-debt', 700000, '2026-11-01', 'Abono deuda'), tags: ['debt-linked', 'debt:d-1'] },
+    ]);
+
+    const result = await reclassifyExpenseAsTransfer(
+      { fromAccountName: 'Zelle', toAccountName: 'Binance', amount: 7000 } as any,
+      ctx(repository)
+    );
+
+    expect(result).toMatchObject({ status: 'needs_clarification', field: 'transaction', options: [] });
+    expect(repository.transfers.convertExpenseToTransfer).not.toHaveBeenCalled();
+  });
+
+  it('sees matching expenses beyond the first page, so an older duplicate makes it ambiguous', async () => {
+    const filler = Array.from({ length: 250 }, (_, i) =>
+      expense(`tx-f${i}`, 100 + i, '2026-10-20', `Gasto ${i}`)
+    );
+    const repository = makeRepository([
+      expense('tx-new', 700000, '2026-11-01', 'Nuevo'),
+      ...filler,
+      expense('tx-old', 700000, '2026-01-05', 'Viejo'),
+    ]);
+
+    const result = await reclassifyExpenseAsTransfer(
+      { fromAccountName: 'Zelle', toAccountName: 'Binance', amount: 7000 } as any,
+      ctx(repository)
+    );
+
+    expect(result).toMatchObject({
+      status: 'needs_clarification',
+      options: ['2026-11-01 · Nuevo [id: tx-new]', '2026-01-05 · Viejo [id: tx-old]'],
+    });
+    expect(repository.transfers.convertExpenseToTransfer).not.toHaveBeenCalled();
   });
 });
 
