@@ -32,4 +32,4 @@ user message
 ## Measuring changes
 
 - `npm run eval:agent`: deterministic, CI-safe. Dataset integrity and the fallback resolver's safety (`wrong` must stay 0).
-- `npm run eval:agent:live -- --intent=create_transfer --limit=25`: the real model with recording tools (no writes). Needs AI provider keys.
+- `npm run eval:agent:live -- --intent=create_transfer --limit=25`: the real model with recording tools (no writes). Needs AI provider keys. Cases skipped for provider quota are reported as unmeasured, not as failures.
