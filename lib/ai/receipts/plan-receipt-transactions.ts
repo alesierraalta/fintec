@@ -7,6 +7,11 @@ import {
   type PendingReceiptSlot,
 } from './match-pending';
 
+export function receiptCurrenciesMatch(left: string, right: string): boolean {
+  const normalize = (currency: string) => currency === 'USDT' ? 'USD' : currency;
+  return normalize(left) === normalize(right);
+}
+
 export interface PlannedReceiptTransaction {
   pendingId: string;
   transaction: CreateTransactionDTO;
@@ -24,9 +29,12 @@ export function planReceiptTransactions(params: {
   accounts: Array<{ id: string; currencyCode: string }>;
   /** Accounts the user picked per pending id. */
   accountOverrides: Record<string, string>;
-}): { ready: PlannedReceiptTransaction[]; needsAccount: string[] } {
+  baseCurrency: string;
+  usdVesRate?: number;
+}): { ready: PlannedReceiptTransaction[]; needsAccount: string[]; needsRate: string[] } {
   const ready: PlannedReceiptTransaction[] = [];
   const needsAccount: string[] = [];
+  const needsRate: string[] = [];
 
   for (const assignment of params.assignments) {
     const pending = params.pending.find((p) => p.id === assignment.pendingId);
@@ -37,8 +45,18 @@ export function planReceiptTransactions(params: {
     const accountId =
       params.accountOverrides[pending.id] ?? result.suggestedAccountId;
     const account = params.accounts.find((a) => a.id === accountId);
-    if (!account || account.currencyCode !== result.currency) {
+    if (!account || !receiptCurrenciesMatch(account.currencyCode, result.currency)) {
       needsAccount.push(pending.id);
+      continue;
+    }
+
+    const needsConversion = !receiptCurrenciesMatch(account.currencyCode, params.baseCurrency);
+    const rate = params.usdVesRate;
+    const supportedPair =
+      (receiptCurrenciesMatch(account.currencyCode, 'VES') && receiptCurrenciesMatch(params.baseCurrency, 'USD')) ||
+      (receiptCurrenciesMatch(account.currencyCode, 'USD') && receiptCurrenciesMatch(params.baseCurrency, 'VES'));
+    if (needsConversion && (!supportedPair || rate === undefined || !Number.isFinite(rate) || rate <= 0)) {
+      needsRate.push(pending.id);
       continue;
     }
 
@@ -50,6 +68,7 @@ export function planReceiptTransactions(params: {
         categoryId: result.suggestedCategoryId,
         currencyCode: account.currencyCode,
         amountMinor: toMinorUnits(result.amount, account.currencyCode),
+        ...(needsConversion ? { exchangeRate: rate } : {}),
         date: result.date.slice(0, 10),
         description: isGenericPendingName(pending.name)
           ? result.suggestedDescription
@@ -59,5 +78,5 @@ export function planReceiptTransactions(params: {
     });
   }
 
-  return { ready, needsAccount };
+  return { ready, needsAccount, needsRate };
 }

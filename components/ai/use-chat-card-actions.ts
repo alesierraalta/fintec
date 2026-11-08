@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRepository } from '@/providers';
 import { useAuth } from '@/hooks/use-auth';
 import { compressImage } from '@/hooks/use-receipt-scanner';
+import { useActiveUsdVesRate } from '@/lib/rates';
 import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import { logger } from '@/lib/utils/logger';
 import type { ScanReceiptResponse } from '@/lib/ai/receipt-scanner/types';
@@ -18,7 +19,8 @@ const MONEY_DOMAINS = ['transactions', 'accounts', 'budgets'] as const;
  */
 export function useChatCardActions(reply: (text: string) => void): ChatActions {
   const repository = useRepository();
-  const { user } = useAuth();
+  const { user, baseCurrency } = useAuth();
+  const usdVesRate = useActiveUsdVesRate();
   const userId = user?.id;
   const [categories, setCategories] = useState<ChatActions['categories']>([]);
   const [accounts, setAccounts] = useState<ChatActions['accounts']>([]);
@@ -67,6 +69,8 @@ export function useChatCardActions(reply: (text: string) => void): ChatActions {
       reply,
       categories,
       accounts,
+      baseCurrency,
+      usdVesRate,
       undoTransaction: async (transactionId) => {
         await runFinancialMutation({
           userId,
@@ -113,6 +117,6 @@ export function useChatCardActions(reply: (text: string) => void): ChatActions {
         });
       },
     }),
-    [reply, categories, accounts, repository, userId]
+    [reply, categories, accounts, baseCurrency, usdVesRate, repository, userId]
   );
 }

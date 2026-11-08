@@ -26,6 +26,8 @@ function makeActions(over: Partial<ChatActions> = {}): ChatActions {
       { id: 'acc-zelle', name: 'Zelle', currencyCode: 'USD' },
       { id: 'acc-banesco', name: 'Banesco', currencyCode: 'VES' },
     ],
+    baseCurrency: 'USD',
+    usdVesRate: 40,
     scanReceipt: jest.fn(),
     settlePendingReceipt: jest.fn().mockResolvedValue(undefined),
     ...over,
@@ -218,6 +220,36 @@ describe('PendingReceiptsCard', () => {
     expect(await screen.findAllByText('Registrado')).toHaveLength(2);
     // The third expense keeps waiting for its photo.
     expect(screen.getByText('Sin foto todavía')).toBeInTheDocument();
+  });
+
+  it('refuses to register a VES receipt when no exchange rate is available', async () => {
+    const actions = makeActions({
+      usdVesRate: undefined,
+      scanReceipt: jest.fn().mockResolvedValue(
+        receipt({
+          currency: 'VES',
+          amount: 300,
+          suggestedAccountId: undefined,
+          suggestedDescription: 'Panadería',
+        })
+      ),
+    });
+    withActions(
+      <PendingReceiptsCard pending={[{ id: 'p-1', name: 'Gasto 1' }]} />,
+      actions
+    );
+
+    await userEvent.upload(
+      screen.getByLabelText('Fotos de los tickets'),
+      new File(['a'], 't.jpg', { type: 'image/jpeg' })
+    );
+
+    // No suggested account, so the account is asked first, then the rate.
+    await userEvent.selectOptions(await screen.findByRole('combobox'), 'acc-banesco');
+
+    expect(await screen.findByText(/Tasa de cambio no disponible/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Registrar/ })).not.toBeInTheDocument();
+    expect(actions.settlePendingReceipt).not.toHaveBeenCalled();
   });
 
   it('asks for the account when the receipt currency has no matching suggestion', async () => {

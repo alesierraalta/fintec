@@ -15,6 +15,10 @@ export interface ChatActions {
   changeCategory: (transactionId: string, categoryId: string) => Promise<void>;
   categories: Array<{ id: string; name: string; kind: 'INCOME' | 'EXPENSE' }>;
   accounts: Array<{ id: string; name: string; currencyCode: string }>;
+  /** Currency the user reports in; a receipt in another currency needs a rate. */
+  baseCurrency: string;
+  /** Active USD/VES rate, undefined when it could not be loaded. */
+  usdVesRate?: number;
   scanReceipt: (file: File) => Promise<ScannedReceiptResult>;
   /** Creates the expense and closes the pending item it settles. */
   settlePendingReceipt: (
