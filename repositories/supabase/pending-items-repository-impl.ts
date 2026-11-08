@@ -9,6 +9,7 @@ import type { PendingItemsRepository } from '@/repositories/contracts/pending-it
 import { supabase } from './client';
 import type { Database } from './types';
 import type { RequestContext } from '@/lib/cache/request-context';
+import type { CreateTransactionDTO } from '@/types/domain';
 
 const PENDING_ITEM_PROJECTION =
   'id, user_id, kind, name, amount_base_minor, done, done_at, converted_transaction_id, created_at';
@@ -118,6 +119,37 @@ export class SupabasePendingItemsRepository implements PendingItemsRepository {
       throw new Error(error.message || 'Failed to update pending item');
     }
     return toDomain(row);
+  }
+
+  async settle(id: string, transaction: CreateTransactionDTO): Promise<string> {
+    await this.requireUserId();
+    if (!Number.isInteger(transaction.amountMinor) || transaction.amountMinor <= 0) {
+      throw new Error('Transaction amount must be a positive integer in minor units');
+    }
+    const exchangeRate = transaction.currencyCode === 'VES' ? transaction.exchangeRate || 1 : 1;
+    const amountBaseMinor = transaction.currencyCode === 'VES'
+      ? Math.round(transaction.amountMinor / exchangeRate)
+      : transaction.amountMinor;
+
+    const { data, error } = await (this.client as SupabaseClient).rpc(
+      'settle_pending_expense',
+      {
+        p_pending_id: id,
+        p_account_id: transaction.accountId,
+        p_category_id: transaction.categoryId ?? null,
+        p_type: transaction.type,
+        p_currency_code: transaction.currencyCode,
+        p_amount_minor: transaction.amountMinor,
+        p_amount_base_minor: amountBaseMinor,
+        p_exchange_rate: exchangeRate,
+        p_date: transaction.date,
+        p_description: transaction.description ?? null,
+        p_note: transaction.note ?? null,
+      }
+    );
+    if (error) throw new Error(error.message || 'Failed to settle pending item');
+    if (!data || typeof data !== 'string') throw new Error('Failed to settle pending item: missing transaction id');
+    return data;
   }
 
   async delete(id: string): Promise<void> {
