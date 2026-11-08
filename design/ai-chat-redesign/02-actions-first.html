@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat FinTec — Acciones primero</title>
+<style>
+  :root {
+    --background: 240 5% 96%; --foreground: 0 0% 0%; --card: 0 0% 100%;
+    --primary: 211 100% 42%; --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 92%; --muted: 0 0% 85%; --muted-foreground: 0 0% 40%;
+    --border: 0 0% 80%; --ring: 211 100% 50%;
+    --success: 142 70% 45%; --error: 354 84% 60%; --warning: 38 92% 50%;
+    --radius: 0.75rem;
+    --shadow-soft: 0 2px 15px -3px rgba(0,0,0,.07), 0 10px 20px -2px rgba(0,0,0,.04);
+    --shadow-ios-lg: 0 18px 40px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: hsl(var(--background)); color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  .app { position: relative; width: 390px; height: 844px; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; }
+  header { padding: 18px 16px 10px; }
+  header h1 { font-size: 2rem; line-height: 1.2; letter-spacing: -.01em; margin: 0; }
+  header p { margin: 2px 0 0; color: hsl(var(--muted-foreground)); font-size: .875rem; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 6px 16px 12px; }
+  .quick button { display: grid; gap: 6px; justify-items: center; padding: 12px 4px; border-radius: var(--radius); background: hsl(var(--card)); box-shadow: var(--shadow-soft); font-size: .75rem; font-weight: 600; }
+  .quick .ic { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-size: 1rem; }
+  button { font: inherit; border: 0; cursor: pointer; color: inherit; }
+  button:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+  .log { flex: 1; padding: 0 16px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+  .day { font-size: .75rem; color: hsl(var(--muted-foreground)); text-transform: uppercase; letter-spacing: .04em; margin: 6px 0 2px; }
+  .entry { background: hsl(var(--card)); border-radius: var(--radius); padding: 10px 12px; box-shadow: var(--shadow-soft); }
+  .said { font-size: .8125rem; color: hsl(var(--muted-foreground)); margin: 0 0 4px; }
+  .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .9375rem; }
+  .exp { color: hsl(var(--error)); font-weight: 700; } .inc { color: hsl(var(--success)); font-weight: 700; } .trf { color: hsl(var(--primary)); font-weight: 700; }
+  .tag { font-size: .75rem; padding: 2px 8px; border-radius: 999px; background: hsl(var(--secondary)); }
+  .needs { border: 1.5px solid hsl(var(--warning)); }
+  .composer { display: flex; gap: 8px; padding: 10px 12px 14px; background: hsl(var(--card)); border-top: 1px solid hsl(var(--border)); }
+  .field { flex: 1; border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 10px 14px; color: hsl(var(--muted-foreground)); font-size: .9375rem; }
+  .round { width: 42px; height: 42px; border-radius: 50%; background: hsl(var(--primary)); color: #fff; }
+  .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+  .sheet { position: absolute; left: 0; right: 0; bottom: 0; background: hsl(var(--card)); border-radius: 20px 20px 0 0; box-shadow: var(--shadow-ios-lg); padding: 10px 18px 22px; }
+  .grab { width: 40px; height: 5px; border-radius: 3px; background: hsl(var(--muted)); margin: 0 auto 12px; }
+  .sheet h2 { font-size: 1.125rem; margin: 0 0 2px; }
+  .sheet .hint { font-size: .8125rem; color: hsl(var(--muted-foreground)); margin: 0 0 12px; }
+  .tabs { display: flex; gap: 6px; background: hsl(var(--secondary)); padding: 4px; border-radius: 10px; margin-bottom: 12px; }
+  .tabs button { flex: 1; padding: 6px; border-radius: 8px; font-size: .8125rem; font-weight: 600; }
+  .tabs [aria-selected="true"] { background: hsl(var(--card)); box-shadow: var(--shadow-soft); }
+  .match { display: grid; grid-template-columns: 52px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid hsl(var(--secondary)); }
+  .photo { width: 52px; height: 64px; border-radius: 8px; background: repeating-linear-gradient(0deg, hsl(var(--card)) 0 4px, hsl(var(--secondary)) 4px 6px); border: 1px solid hsl(var(--border)); }
+  .match b { display: block; font-size: .9375rem; }
+  .match small { color: hsl(var(--muted-foreground)); font-size: .8125rem; }
+  .select { font-size: .8125rem; padding: 6px 10px; border-radius: 8px; background: hsl(var(--secondary)); }
+  .cta { width: 100%; margin-top: 14px; padding: 12px; border-radius: var(--radius); background: hsl(var(--primary)); color: #fff; font-weight: 700; }
+  @media (prefers-reduced-motion: no-preference) { .sheet { animation: rise .32s cubic-bezier(.32,.72,0,1) both; } @keyframes rise { from { transform: translateY(40px); opacity: .6; } } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Registrar</h1>
+    <p>Elige una acción o escríbela como hablas</p>
+  </header>
+
+  <nav class="quick" aria-label="Acciones rápidas">
+    <button type="button"><span class="ic" style="background:hsl(var(--error))">−</span>Gasto</button>
+    <button type="button"><span class="ic" style="background:hsl(var(--success))">+</span>Ingreso</button>
+    <button type="button"><span class="ic" style="background:hsl(var(--primary))">⇄</span>Transferir</button>
+    <button type="button"><span class="ic" style="background:hsl(var(--warning))">🧾</span>Tickets</button>
+  </nav>
+
+  <main class="log" aria-label="Lo que registraste hoy">
+    <p class="day">Hoy</p>
+    <article class="entry">
+      <p class="said">“pasa 7000 de Zelle a Binance”</p>
+      <div class="row"><span>Zelle → Binance <span class="tag">Transferencia</span></span><span class="trf">7.000,00 $</span></div>
+    </article>
+    <article class="entry">
+      <p class="said">“gasté 12 en almuerzo”</p>
+      <div class="row"><span>Almuerzo <span class="tag">Alimentación · Zelle</span></span><span class="exp">−12,00 $</span></div>
+    </article>
+    <article class="entry needs">
+      <p class="said">“anota 20”</p>
+      <div class="row"><span>¿En qué fueron 20 $?</span><button class="tag" type="button">Responder</button></div>
+    </article>
+  </main>
+
+  <div class="composer">
+    <div class="field">“hice 3 gastos hoy, te paso los tickets”</div>
+    <button class="round" type="button" aria-label="Dictar por voz">🎙️</button>
+  </div>
+
+  <div class="scrim" aria-hidden="true"></div>
+  <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+    <div class="grab" aria-hidden="true"></div>
+    <h2 id="sheet-title">3 gastos sin monto</h2>
+    <p class="hint">Sube las fotos: detecto cuál ticket es de cuál gasto.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" type="button">Emparejar (2/3)</button>
+      <button role="tab" aria-selected="false" type="button">Subir fotos</button>
+    </div>
+    <div class="match"><div class="photo" aria-hidden="true"></div><div><b>Farmacia</b><small>Farmatodo · 18,40 $ · Salud</small></div><button class="select" type="button">Cambiar</button></div>
+    <div class="match"><div class="photo" aria-hidden="true"></div><div><b>Mercado</b><small>Central Madeirense · 46,10 $ · Alimentación</small></div><button class="select" type="button">Cambiar</button></div>
+    <div class="match"><div class="photo" style="border-style:dashed;background:none" aria-hidden="true"></div><div><b>Gasto 3</b><small>Esperando su foto</small></div><button class="select" type="button">Subir</button></div>
+    <button class="cta" type="button">Registrar 2 gastos (64,50 $)</button>
+  </section>
+</div>
+</body>
+</html>

@@ -13,7 +13,9 @@ import {
 import { ChatMessage } from './chat-message';
 import { ChatInput } from './chat-input';
 import { ApprovalListener } from './approval';
-import { useEffect, useRef, useState } from 'react';
+import { ChatActionsContext } from './chat-actions';
+import { useChatCardActions } from './use-chat-card-actions';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -37,6 +39,13 @@ export function ChatInterface() {
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
+  const reply = useCallback(
+    (text: string) => {
+      sendMessage({ parts: [{ type: 'text', text }] });
+    },
+    [sendMessage]
+  );
+  const cardActions = useChatCardActions(reply);
 
   // Track proximity to the bottom of the scroll owner (the only scroll
   // listener; passive so it never blocks the scroll itself).
@@ -102,188 +111,190 @@ export function ChatInterface() {
   ];
 
   return (
-    <div className="flex h-full flex-col bg-background">
-      <ApprovalListener />
-      {/* Messages Container */}
-      <div
-        ref={scrollRef}
-        data-testid="chat-scroll-container"
-        className="flex-1 overflow-y-auto"
-      >
-        <div className="mx-auto flex h-full max-w-3xl flex-col px-3 py-4 sm:px-4 sm:py-6">
-          {messages.length === 0 ? (
-            // Empty State - Welcome Screen (Adaptive for Mobile & Desktop)
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
-              className="flex flex-1 flex-col items-center justify-center text-center"
-            >
-              <div className="relative mb-3 sm:mb-6">
-                <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl sm:blur-2xl" />
-                <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-ios sm:h-16 sm:w-16 sm:rounded-2xl">
-                  <MessageSquare
-                    className="h-6 w-6 text-white sm:h-8 sm:w-8"
-                    aria-hidden="true"
-                  />
+    <ChatActionsContext.Provider value={cardActions}>
+      <div className="flex h-full flex-col bg-background">
+        <ApprovalListener />
+        {/* Messages Container */}
+        <div
+          ref={scrollRef}
+          data-testid="chat-scroll-container"
+          className="flex-1 overflow-y-auto"
+        >
+          <div className="mx-auto flex h-full max-w-3xl flex-col px-3 py-4 sm:px-4 sm:py-6">
+            {messages.length === 0 ? (
+              // Empty State - Welcome Screen (Adaptive for Mobile & Desktop)
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.28, ease: 'easeOut' }}
+                className="flex flex-1 flex-col items-center justify-center text-center"
+              >
+                <div className="relative mb-3 sm:mb-6">
+                  <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl sm:blur-2xl" />
+                  <div className="relative flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/60 shadow-ios sm:h-16 sm:w-16 sm:rounded-2xl">
+                    <MessageSquare
+                      className="h-6 w-6 text-white sm:h-8 sm:w-8"
+                      aria-hidden="true"
+                    />
+                  </div>
                 </div>
-              </div>
-              <h2 className="text-lg font-bold tracking-tight sm:text-2xl">
-                ¿En qué te ayudo hoy?
-              </h2>
-              <p className="mt-1 max-w-xs text-xs text-muted-foreground sm:mt-2 sm:max-w-sm sm:text-sm">
-                Consulta tu balance, registra gastos o crea metas de ahorro
-                conversando.
-              </p>
+                <h2 className="text-lg font-bold tracking-tight sm:text-2xl">
+                  ¿En qué te ayudo hoy?
+                </h2>
+                <p className="mt-1 max-w-xs text-xs text-muted-foreground sm:mt-2 sm:max-w-sm sm:text-sm">
+                  Consulta tu balance, registra gastos o crea metas de ahorro
+                  conversando.
+                </p>
 
-              {/* Quick Actions - Mobile Grid (Compact 2x2) */}
-              <div className="mt-4 grid w-full grid-cols-2 gap-2 sm:hidden">
-                {quickActions.map((action) => (
-                  <button
-                    type="button"
-                    key={action.label}
-                    onClick={() => {
-                      setInput(action.query);
-                    }}
-                    className={cn(
-                      'group flex items-center gap-2 rounded-xl border border-border bg-secondary/60 p-2.5 text-left',
-                      'transition-ios hover:border-primary/50 hover:bg-secondary active:scale-95',
-                      'focus-ring min-h-[44px]'
-                    )}
-                  >
-                    <span
+                {/* Quick Actions - Mobile Grid (Compact 2x2) */}
+                <div className="mt-4 grid w-full grid-cols-2 gap-2 sm:hidden">
+                  {quickActions.map((action) => (
+                    <button
+                      type="button"
+                      key={action.label}
+                      onClick={() => {
+                        setInput(action.query);
+                      }}
                       className={cn(
-                        'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
-                        action.iconClass
+                        'group flex items-center gap-2 rounded-xl border border-border bg-secondary/60 p-2.5 text-left',
+                        'transition-ios hover:border-primary/50 hover:bg-secondary active:scale-95',
+                        'focus-ring min-h-[44px]'
                       )}
                     >
-                      <action.icon className="h-4 w-4" aria-hidden="true" />
-                    </span>
-                    <span className="line-clamp-2 text-xs font-medium leading-tight text-foreground/90 group-hover:text-foreground">
-                      {action.label}
-                    </span>
-                  </button>
-                ))}
-              </div>
+                      <span
+                        className={cn(
+                          'flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg',
+                          action.iconClass
+                        )}
+                      >
+                        <action.icon className="h-4 w-4" aria-hidden="true" />
+                      </span>
+                      <span className="line-clamp-2 text-xs font-medium leading-tight text-foreground/90 group-hover:text-foreground">
+                        {action.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
 
-              {/* Quick Actions - Desktop Grid (Spacious 2x2) */}
-              <div className="mt-8 hidden w-full max-w-lg grid-cols-2 gap-3 sm:grid">
-                {quickActions.map((action) => (
-                  <button
-                    type="button"
-                    key={action.label}
-                    onClick={() => {
-                      setInput(action.query);
-                    }}
-                    className={cn(
-                      'group flex items-center gap-3 rounded-2xl border border-border bg-secondary/60 p-4 text-left',
-                      'transition-ios hover:border-primary/50 hover:bg-secondary',
-                      'focus-ring min-h-[44px]',
-                      'hover-lift micro-bounce'
-                    )}
-                  >
-                    <span
+                {/* Quick Actions - Desktop Grid (Spacious 2x2) */}
+                <div className="mt-8 hidden w-full max-w-lg grid-cols-2 gap-3 sm:grid">
+                  {quickActions.map((action) => (
+                    <button
+                      type="button"
+                      key={action.label}
+                      onClick={() => {
+                        setInput(action.query);
+                      }}
                       className={cn(
-                        'transition-ios flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
-                        action.iconClass
+                        'group flex items-center gap-3 rounded-2xl border border-border bg-secondary/60 p-4 text-left',
+                        'transition-ios hover:border-primary/50 hover:bg-secondary',
+                        'focus-ring min-h-[44px]',
+                        'hover-lift micro-bounce'
                       )}
                     >
-                      <action.icon className="h-5 w-5" aria-hidden="true" />
-                    </span>
-                    <span className="text-sm font-medium leading-snug text-foreground/90 group-hover:text-foreground">
-                      {action.label}
-                    </span>
-                  </button>
+                      <span
+                        className={cn(
+                          'transition-ios flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl',
+                          action.iconClass
+                        )}
+                      >
+                        <action.icon className="h-5 w-5" aria-hidden="true" />
+                      </span>
+                      <span className="text-sm font-medium leading-snug text-foreground/90 group-hover:text-foreground">
+                        {action.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              // Message List
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <ChatMessage key={message.id} message={message} />
                 ))}
+
+                {/* Loading Indicator with Animated Spring Bounce Wave */}
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-end gap-2.5"
+                    >
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
+                        <MessageSquare
+                          className="h-4 w-4 text-white"
+                          aria-hidden="true"
+                        />
+                      </div>
+                      <div className="flex items-center gap-1.5 rounded-[18px] rounded-bl-md bg-card px-4 py-3.5 shadow-soft">
+                        <motion.div
+                          className="h-1.5 w-1.5 rounded-full bg-primary"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                            delay: 0,
+                          }}
+                        />
+                        <motion.div
+                          className="h-1.5 w-1.5 rounded-full bg-primary"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                            delay: 0.15,
+                          }}
+                        />
+                        <motion.div
+                          className="h-1.5 w-1.5 rounded-full bg-primary"
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{
+                            duration: 0.6,
+                            repeat: Infinity,
+                            ease: 'easeInOut',
+                            delay: 0.3,
+                          }}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
-          ) : (
-            // Message List
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <ChatMessage key={message.id} message={message} />
-              ))}
-
-              {/* Loading Indicator with Animated Spring Bounce Wave */}
-              <AnimatePresence>
-                {isLoading && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-end gap-2.5"
-                  >
-                    <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 shadow-ios-sm">
-                      <MessageSquare
-                        className="h-4 w-4 text-white"
-                        aria-hidden="true"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-2xl rounded-bl-md border border-border bg-secondary/60 px-4 py-3.5 shadow-ios-sm">
-                      <motion.div
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{
-                          duration: 0.6,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                          delay: 0,
-                        }}
-                      />
-                      <motion.div
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{
-                          duration: 0.6,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                          delay: 0.15,
-                        }}
-                      />
-                      <motion.div
-                        className="h-1.5 w-1.5 rounded-full bg-primary"
-                        animate={{ y: [0, -5, 0] }}
-                        transition={{
-                          duration: 0.6,
-                          repeat: Infinity,
-                          ease: 'easeInOut',
-                          delay: 0.3,
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="px-4 pb-2">
-          <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5">
-            <AlertTriangle
-              className="h-4 w-4 flex-shrink-0 text-destructive"
-              aria-hidden="true"
-            />
-            <p className="text-sm text-destructive">{error.message}</p>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Input Container - Sticky Bottom with clean spacing */}
-      <div className="bg-gradient-to-t from-background via-background/95 to-transparent px-3 py-2 sm:px-4 sm:pb-4">
-        <div className="mx-auto max-w-3xl">
-          <ChatInput
-            input={input}
-            setInput={setInput}
-            handleSubmit={handleSubmit}
-            isLoading={isLoading}
-          />
+        {/* Error Display */}
+        {error && (
+          <div className="px-4 pb-2">
+            <div className="mx-auto flex max-w-3xl items-center gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2.5">
+              <AlertTriangle
+                className="h-4 w-4 flex-shrink-0 text-destructive"
+                aria-hidden="true"
+              />
+              <p className="text-sm text-destructive">{error.message}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Input Container - Sticky Bottom with clean spacing */}
+        <div className="bg-gradient-to-t from-background via-background/95 to-transparent px-3 py-2 sm:px-4 sm:pb-4">
+          <div className="mx-auto max-w-3xl">
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              handleSubmit={handleSubmit}
+              isLoading={isLoading}
+            />
+          </div>
         </div>
       </div>
-    </div>
+    </ChatActionsContext.Provider>
   );
 }

@@ -35,7 +35,7 @@ receipt matching and a redesigned chat.
 - T3 [S4] #115 — architecture v2: history conventions in the chat prompt, model-hint-only fallback, receipt kind validation, docs/ai-agent-architecture.md — branch feat/115-agent-architecture-v2
 - T4 [S5] #116 — evaluation dataset and runner — done (474 cases, keyword resolver alone 46.2%)
 - T5 [S6] #117 — deferred expenses and receipt matching — data + agent done on feat/117-deferred-receipts; in-chat upload panel ships with T6
-- T6 [S7] #118 — chat redesign — commit: pending
+- T6 [S7] #118 — chat redesign (design 01) + in-chat receipt panel — branch feat/118-chat-redesign
 
 ## Log
 
@@ -87,3 +87,13 @@ receipt matching and a redesigned chat.
   createPendingExpenses stores N named or "Gasto N" placeholders; matchReceiptsToPending pairs
   receipts to named items by word similarity (trigram >= 0.6, greedy, never twice) and fills
   placeholders in upload order; /pending shows a "Gastos sin ticket" section only when needed.
+- L10 (design, T6): design system synced to design/system.md + design/system.html from
+  app/globals.css and tailwind.config.ts. Chat directions in design/ai-chat-redesign/:
+  01-conversation-cards, 02-actions-first, 03-pending-tray (390x844), awaiting the user's choice.
+- L11 (user decision, T6): chose design/ai-chat-redesign/01-conversation-cards.html ("Conversación
+  con tarjetas"); 02-actions-first and 03-pending-tray remain alternatives.
+- L12 (evidence, T6): design 01 implemented in components/ai: standalone cards (TransactionCard with
+  Deshacer / Cambiar categoría, TransferCard, ClarificationCard one-tap answers, PendingReceiptsCard
+  upload/paste -> scan -> match -> pick account if needed -> record). Tests caught two real panel
+  bugs (recorded rows showed "Sin foto todavía"; consumed photos re-matched to placeholders), both
+  fixed. Not visually verified in a running app (needs auth + Supabase); behavior covered by RTL.

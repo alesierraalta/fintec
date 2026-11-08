@@ -25,6 +25,11 @@ const chatMock = jest.requireMock('@ai-sdk/react') as {
 
 // ApprovalListener subscribes to Supabase realtime; stub the client so the
 // interface renders without network or open handles.
+// Card actions need the user's repository; scrolling/streaming does not.
+jest.mock('@/components/ai/use-chat-card-actions', () => ({
+  useChatCardActions: () => null,
+}));
+
 jest.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
     channel: () => ({

@@ -44,7 +44,7 @@ describe('Chat Page - Dynamic Import', () => {
 
     expect(screen.getByText('Asistente Financiero')).toBeInTheDocument();
     expect(
-      screen.getByText('Pregúntame sobre tus finanzas')
+      screen.getByText('Registra gastos, ingresos y transferencias hablando')
     ).toBeInTheDocument();
   });
 

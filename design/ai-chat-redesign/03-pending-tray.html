@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chat FinTec — Bandeja de pendientes</title>
+<style>
+  :root {
+    --background: 240 5% 96%; --foreground: 0 0% 0%; --card: 0 0% 100%;
+    --primary: 211 100% 42%; --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 92%; --muted: 0 0% 85%; --muted-foreground: 0 0% 40%;
+    --border: 0 0% 80%; --ring: 211 100% 50%;
+    --success: 142 70% 45%; --error: 354 84% 60%; --warning: 38 92% 50%;
+    --radius: 0.75rem;
+    --shadow-soft: 0 2px 15px -3px rgba(0,0,0,.07), 0 10px 20px -2px rgba(0,0,0,.04);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: hsl(var(--background)); color: hsl(var(--foreground));
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.5; }
+  .app { width: 390px; height: 844px; margin: 0 auto; display: flex; flex-direction: column; }
+  header { padding: 12px 16px; background: hsl(var(--card)); display: flex; justify-content: space-between; align-items: center; }
+  header h1 { margin: 0; font-size: 1.125rem; }
+  .bal { font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+  .tray { background: hsl(var(--card)); border-bottom: 1px solid hsl(var(--border)); padding: 0 16px 12px; }
+  .tray h2 { font-size: .75rem; letter-spacing: .04em; text-transform: uppercase; color: hsl(var(--muted-foreground)); margin: 4px 0 8px; font-weight: 600; }
+  .lane { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+  .chip { flex: 0 0 auto; min-width: 150px; border-radius: var(--radius); padding: 10px; background: hsl(var(--background)); border: 1.5px solid transparent; }
+  .chip.warn { border-color: hsl(var(--warning)); }
+  .chip.blue { border-color: hsl(var(--primary)); }
+  .chip b { display: block; font-size: .875rem; }
+  .chip small { font-size: .75rem; color: hsl(var(--muted-foreground)); }
+  .chip button { margin-top: 8px; width: 100%; }
+  button { font: inherit; border: 0; border-radius: 10px; padding: 7px 10px; font-weight: 600; font-size: .8125rem; cursor: pointer; }
+  button:focus-visible { outline: 3px solid hsl(var(--ring)); outline-offset: 2px; }
+  .primary { background: hsl(var(--primary)); color: #fff; }
+  .soft { background: hsl(var(--secondary)); color: hsl(var(--foreground)); }
+  .thread { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .me { align-self: flex-end; max-width: 80%; background: hsl(var(--secondary)); padding: 9px 13px; border-radius: 16px 16px 4px 16px; font-size: .9375rem; }
+  .ans { align-self: stretch; display: grid; grid-template-columns: 28px 1fr; gap: 10px; }
+  .dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: .8125rem; font-weight: 700; }
+  .ans p { margin: 0; font-size: .9375rem; }
+  .receipt { margin-top: 6px; background: hsl(var(--card)); border-radius: var(--radius); box-shadow: var(--shadow-soft); padding: 10px 12px; display: flex; justify-content: space-between; font-size: .875rem; }
+  .exp { color: hsl(var(--error)); font-weight: 700; } .trf { color: hsl(var(--primary)); font-weight: 700; }
+  .undo { color: hsl(var(--primary)); font-weight: 600; font-size: .8125rem; background: none; padding: 0; }
+  footer { background: hsl(var(--card)); border-top: 1px solid hsl(var(--border)); padding: 10px 12px 14px; }
+  .suggest { display: flex; gap: 6px; margin-bottom: 8px; overflow-x: auto; }
+  .suggest button { background: hsl(var(--secondary)); border-radius: 999px; font-weight: 500; white-space: nowrap; }
+  .bar { display: flex; gap: 8px; align-items: center; }
+  .field { flex: 1; border: 1px solid hsl(var(--border)); border-radius: 999px; padding: 10px 14px; color: hsl(var(--muted-foreground)); font-size: .9375rem; }
+  .ic { width: 40px; height: 40px; border-radius: 50%; padding: 0; background: hsl(var(--secondary)); }
+  .send { background: hsl(var(--primary)); color: #fff; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Asistente</h1>
+    <span class="bal">Saldo total 12.480,15 $</span>
+  </header>
+
+  <section class="tray" aria-labelledby="tray-title">
+    <h2 id="tray-title">Por resolver (3)</h2>
+    <div class="lane">
+      <div class="chip blue"><b>Transferir 7.000 $</b><small>Zelle → Binance</small><button class="primary" type="button">Confirmar</button></div>
+      <div class="chip warn"><b>3 gastos sin ticket</b><small>Farmacia, Mercado, Gasto 3</small><button class="primary" type="button">Subir fotos</button></div>
+      <div class="chip warn"><b>20 $ sin motivo</b><small>“anota 20”</small><button class="soft" type="button">Elegir categoría</button></div>
+    </div>
+  </section>
+
+  <main class="thread" aria-live="polite">
+    <p class="me">pasa 7000 de Zelle a Binance</p>
+    <div class="ans"><span class="dot" style="background:hsl(var(--primary))">⇄</span>
+      <div><p>Es una transferencia entre tus cuentas, no un gasto. Quedó en la bandeja para que la confirmes.</p></div></div>
+
+    <p class="me">gasté 12 en almuerzo</p>
+    <div class="ans"><span class="dot" style="background:hsl(var(--success))">✓</span>
+      <div><p>Listo, lo registré en Alimentación.</p>
+        <div class="receipt"><span>Almuerzo · Zelle</span><span class="exp">−12,00 $</span></div>
+        <button class="undo" type="button">Deshacer</button></div></div>
+
+    <p class="me">hice 3 gastos hoy, te paso los tickets</p>
+    <div class="ans"><span class="dot" style="background:hsl(var(--warning))">🧾</span>
+      <div><p>Guardé 3 gastos sin monto. Cuando quieras, sube las fotos desde la bandeja y yo detecto cuál es cuál.</p></div></div>
+  </main>
+
+  <footer>
+    <div class="suggest" aria-label="Sugerencias">
+      <button type="button">¿Cuánto gasté esta semana?</button>
+      <button type="button">Saldo de Binance</button>
+      <button type="button">Eso fue una transferencia</button>
+    </div>
+    <div class="bar">
+      <button class="ic" type="button" aria-label="Adjuntar ticket">📎</button>
+      <div class="field">Escribe o dicta…</div>
+      <button class="ic send" type="button" aria-label="Enviar">↑</button>
+    </div>
+  </footer>
+</div>
+</body>
+</html>
