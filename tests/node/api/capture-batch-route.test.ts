@@ -99,10 +99,20 @@ describe('POST /api/ai/capture-batch', () => {
     expect(mockExtract).not.toHaveBeenCalled();
   });
 
-  it('requires at least one screenshot', async () => {
+  it('requires at least one screenshot or audio', async () => {
     const res = await POST(request({ note: ['todo es del cine'] }));
     expect(res.status).toBe(400);
     expect(mockExtract).not.toHaveBeenCalled();
+  });
+
+  it('accepts audio without screenshots', async () => {
+    const res = await POST(request({ audio: [image('n.webm', 'audio/webm')] }));
+    expect(res.status).toBe(200);
+    await expect(res.json()).resolves.toEqual({ success: true, data: [{ amount: 5 }] });
+    expect(mockExtract).toHaveBeenCalledWith(expect.objectContaining({
+      images: [],
+      audio: expect.objectContaining({ mediaType: 'audio/webm' }),
+    }));
   });
 
   it('rejects more than 10 screenshots', async () => {
@@ -134,10 +144,13 @@ describe('POST /api/ai/capture-batch', () => {
     const bigAudio = await POST(
       request({
         images: [image()],
-        audio: [image('n.webm', 'audio/webm', 15 * 1024 * 1024 + 1)],
+        audio: [image('n.webm', 'audio/webm', 4 * 1024 * 1024 + 1)],
       })
     );
     expect([bigImage.status, bigAudio.status]).toEqual([413, 413]);
+    const audioError = (await bigAudio.json()).error;
+    expect(audioError).toContain('4 MiB');
+    expect(audioError).toContain('4194305');
     expect(mockExtract).not.toHaveBeenCalled();
   });
 

@@ -150,6 +150,12 @@ export function ChatInput({
         )}
       </AnimatePresence>
 
+      {!isSupported && (
+        <p className="mb-2 text-xs text-muted-foreground">
+          El dictado no está disponible en este navegador.
+        </p>
+      )}
+
       <div className="relative">
         <textarea
           ref={textareaRef}
