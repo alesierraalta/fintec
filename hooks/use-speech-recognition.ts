@@ -136,11 +136,6 @@ export function useSpeechRecognition({
 
       recognition.onerror = (event: any) => {
         const errorCode = event.error || 'unknown';
-        // 'no-speech' is non-fatal if user pauses
-        if (errorCode === 'no-speech') {
-          return;
-        }
-
         const friendlyMessage =
           ERROR_MESSAGES[errorCode] ||
           `Error en el reconocimiento de voz (${errorCode}).`;

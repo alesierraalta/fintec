@@ -18,6 +18,8 @@ import {
 
 type Row = CapturedTransaction & { selected?: boolean };
 
+const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
+
 // Downscale screenshots before upload: serverless request bodies are small.
 async function toUploadImage(file: File): Promise<File> {
   try {
@@ -182,7 +184,9 @@ export function VoiceCaptureModal({
     setRows((previous) =>
       previous!.map((row, i) => (i === index ? { ...row, ...patch } : row))
     );
+  const audioTooLarge = !!audio && audio.size > MAX_AUDIO_BYTES;
   const analyze = async () => {
+    if (audioTooLarge) return;
     setLoading(true);
     setError('');
     const current = generation.current;
@@ -247,7 +251,9 @@ export function VoiceCaptureModal({
           </Button>
         ) : (
           <Button
-            disabled={!images.length || loading || recording}
+            disabled={
+              (!images.length && !audio) || audioTooLarge || loading || recording
+            }
             onClick={() => void analyze()}
           >
             {loading ? 'Analizando…' : 'Analizar'}
@@ -256,6 +262,11 @@ export function VoiceCaptureModal({
       }
     >
       {error && <p role="alert">{error}</p>}
+      {audioTooLarge && (
+        <p role="alert">
+          El audio supera el límite de 4 MiB. Elige o graba uno más corto.
+        </p>
+      )}
       <fieldset disabled={loading || saving} className="space-y-4">
         {!rows ? (
           <>
@@ -318,6 +329,9 @@ export function VoiceCaptureModal({
                 }}
               />
             </label>
+            <p className="text-sm text-muted-foreground">
+              Límite de audio: 4 MiB.
+            </p>
             {audioUrl && (
               <div>
                 <audio controls src={audioUrl} />

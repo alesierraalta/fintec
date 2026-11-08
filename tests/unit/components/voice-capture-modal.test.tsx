@@ -83,9 +83,32 @@ async function analyze() {
   fireEvent.click(screen.getByRole('button', { name: 'Analizar' }));
   await screen.findByLabelText('Seleccionar movimiento 1');
 }
-it('disables analysis without an image', () => {
+it('disables analysis without an image or audio', () => {
   render(<VoiceCaptureModal {...base} />);
   expect(screen.getByRole('button', { name: 'Analizar' })).toBeDisabled();
+});
+it('enables analysis and uploads audio without screenshots', async () => {
+  render(<VoiceCaptureModal {...base} />);
+  const audio = new File(['audio'], 'nota.ogg', { type: 'audio/ogg' });
+  fireEvent.change(screen.getByLabelText('Subir audio'), { target: { files: [audio] } });
+  const button = screen.getByRole('button', { name: 'Analizar' });
+  expect(button).toBeEnabled();
+  fireEvent.click(button);
+  await screen.findByLabelText('Seleccionar movimiento 1');
+  const form = mockFetch.mock.calls[0][1].body as FormData;
+  expect(form.get('audio')).toBe(audio);
+  expect(form.getAll('images')).toHaveLength(0);
+});
+it('blocks oversized audio before uploading and allows replacing it', () => {
+  render(<VoiceCaptureModal {...base} />);
+  const upload = screen.getByLabelText('Subir audio');
+  fireEvent.change(upload, { target: { files: [new File([new Uint8Array(4 * 1024 * 1024 + 1)], 'big.ogg', { type: 'audio/ogg' })] } });
+  expect(screen.getByRole('alert')).toHaveTextContent('límite de 4 MiB');
+  expect(screen.getByRole('button', { name: 'Analizar' })).toBeDisabled();
+  expect(mockFetch).not.toHaveBeenCalled();
+  fireEvent.change(upload, { target: { files: [new File(['audio'], 'small.ogg', { type: 'audio/ogg' })] } });
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Analizar' })).toBeEnabled();
 });
 it('leaves history duplicates unchecked and saves only reviewed rows in account minor units', async () => {
   mockFetch.mockResolvedValue({

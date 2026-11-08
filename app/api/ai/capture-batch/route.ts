@@ -21,7 +21,7 @@ export const ANALYSIS_TIMEOUT_MS = 280_000;
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
+const MAX_AUDIO_BYTES = 4 * 1024 * 1024;
 const MAX_NOTE_LENGTH = 4000;
 
 function fail(status: number, error: string) {
@@ -74,8 +74,8 @@ export async function POST(req: Request) {
         ? noteEntry.slice(0, MAX_NOTE_LENGTH)
         : undefined;
 
-    if (images.length === 0) {
-      return fail(400, 'Sube al menos una captura.');
+    if (images.length === 0 && !audio) {
+      return fail(400, 'Sube al menos una captura o un audio.');
     }
     if (images.length > MAX_IMAGES) {
       return fail(400, `Máximo ${MAX_IMAGES} capturas por análisis.`);
@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       return fail(400, 'La explicación debe ser un archivo de audio.');
     }
     if (audio && audio.size > MAX_AUDIO_BYTES) {
-      return fail(413, 'El audio debe pesar menos de 15MB.');
+      return fail(413, `El audio supera el límite de 4 MiB (${audio.size} bytes).`);
     }
     if (audio && !isAudioCaptureAvailable()) {
       return fail(
