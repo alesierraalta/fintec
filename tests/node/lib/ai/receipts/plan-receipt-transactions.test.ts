@@ -46,6 +46,8 @@ describe('planReceiptTransactions', () => {
         { scanIndex: 0, pendingId: 'p-farm', reason: 'description' },
         { scanIndex: 1, pendingId: 'p-1', reason: 'order' },
       ],
+      baseCurrency: 'USD',
+      usdVesRate: 40,
       accounts,
       accountOverrides: {},
     });
@@ -72,6 +74,7 @@ describe('planReceiptTransactions', () => {
           categoryId: undefined,
           currencyCode: 'VES',
           amountMinor: 125050,
+          exchangeRate: 40,
           date: '2026-11-07',
           // A generic placeholder takes the receipt's own description.
           description: 'Panadería',
@@ -99,12 +102,42 @@ describe('planReceiptTransactions', () => {
         { scanIndex: 0, pendingId: 'p-a', reason: 'description' },
         { scanIndex: 1, pendingId: 'p-b', reason: 'description' },
       ],
+      baseCurrency: 'USD',
+      usdVesRate: 40,
       accounts,
       accountOverrides: {},
     });
 
     expect(plan.ready).toEqual([]);
     expect(plan.needsAccount).toEqual(['p-a', 'p-b']);
+  });
+
+  it.each([undefined, 0, -1, NaN, Infinity])('blocks VES without a valid rate (%s)', (usdVesRate) => {
+    const plan = planReceiptTransactions({
+      pending: [{ id: 'p-a', name: 'Mercado' }],
+      scans: [{ index: 0, result: scan({ currency: 'VES', suggestedAccountId: 'acc-banesco' }) }],
+      assignments: [{ scanIndex: 0, pendingId: 'p-a', reason: 'description' }],
+      accounts,
+      accountOverrides: {},
+      baseCurrency: 'USD',
+      usdVesRate,
+    });
+    expect(plan.ready).toEqual([]);
+    expect(plan.needsRate).toEqual(['p-a']);
+  });
+
+  it('settles USDT into a USD account without requiring a rate', () => {
+    const plan = planReceiptTransactions({
+      pending: [{ id: 'p-a', name: 'Mercado' }],
+      scans: [{ index: 0, result: scan({ currency: 'USDT' }) }],
+      assignments: [{ scanIndex: 0, pendingId: 'p-a', reason: 'description' }],
+      accounts,
+      accountOverrides: {},
+      baseCurrency: 'USD',
+    });
+    expect(plan.ready[0].transaction).toMatchObject({ currencyCode: 'USD', amountMinor: 1840 });
+    expect(plan.ready[0].transaction.exchangeRate).toBeUndefined();
+    expect(plan.needsRate).toEqual([]);
   });
 
   it('uses the account the user picked for a pending expense', () => {
@@ -122,9 +155,13 @@ describe('planReceiptTransactions', () => {
       ],
       assignments: [{ scanIndex: 0, pendingId: 'p-a', reason: 'description' }],
       accounts,
+      baseCurrency: 'USD',
+      usdVesRate: 40,
       accountOverrides: { 'p-a': 'acc-banesco' },
     });
 
+    expect(plan.ready[0].transaction.exchangeRate).toBe(40);
+    expect(Math.round(plan.ready[0].transaction.amountMinor / plan.ready[0].transaction.exchangeRate!)).toBe(750);
     expect(
       plan.ready.map((r) => [
         r.pendingId,

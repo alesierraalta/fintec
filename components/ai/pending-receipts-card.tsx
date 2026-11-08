@@ -5,7 +5,7 @@ import { ImagePlus, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/ai/tools/formatters';
 import { toMinorUnits } from '@/lib/money';
 import { matchReceiptsToPending } from '@/lib/ai/receipts/match-pending';
-import { planReceiptTransactions } from '@/lib/ai/receipts/plan-receipt-transactions';
+import { planReceiptTransactions, receiptCurrenciesMatch } from '@/lib/ai/receipts/plan-receipt-transactions';
 import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 import { useChatActions } from './chat-actions';
 import { ChatCard, ChatCardActions, ChatCardButton } from './chat-card';
@@ -75,6 +75,8 @@ export function PendingReceiptsCard({
     assignments: match.assignments,
     accounts: actions?.accounts ?? [],
     accountOverrides,
+    baseCurrency: actions?.baseCurrency ?? 'USD',
+    usdVesRate: actions?.usdVesRate,
   });
 
   const addFiles = (files: File[]) => {
@@ -157,6 +159,7 @@ export function PendingReceiptsCard({
             : undefined;
           const isSettled = p.id in settled;
           const needsAccount = plan.needsAccount.includes(p.id);
+          const needsRate = plan.needsRate.includes(p.id);
           return (
             <li
               key={p.id}
@@ -171,6 +174,11 @@ export function PendingReceiptsCard({
                       ? summarize(result)
                       : 'Sin foto todavía'}
                 </p>
+                {needsRate && (
+                  <p className="mt-1 text-[13px] text-muted-foreground">
+                    Tasa de cambio no disponible. Inténtalo de nuevo más tarde.
+                  </p>
+                )}
                 {needsAccount && actions && (
                   <label className="mt-1 flex items-center gap-2 text-[13px]">
                     <span className="text-muted-foreground">Cuenta</span>
@@ -189,7 +197,7 @@ export function PendingReceiptsCard({
                       </option>
                       {actions.accounts
                         .filter(
-                          (a) => !result || a.currencyCode === result.currency
+                          (a) => !result || receiptCurrenciesMatch(a.currencyCode, result.currency)
                         )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
@@ -202,14 +210,14 @@ export function PendingReceiptsCard({
               </div>
               <span
                 className={
-                  isSettled || (result && !needsAccount)
+                  isSettled || (result && !needsAccount && !needsRate)
                     ? 'text-[13px] font-semibold text-success'
                     : 'text-[13px] text-muted-foreground'
                 }
               >
                 {isSettled
                   ? 'Registrado'
-                  : result && !needsAccount
+                  : result && !needsAccount && !needsRate
                     ? 'Listo'
                     : 'Pendiente'}
               </span>
