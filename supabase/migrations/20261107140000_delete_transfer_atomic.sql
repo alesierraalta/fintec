@@ -25,6 +25,8 @@ DECLARE
   v_from_account_id uuid;
   v_fee bigint;
   v_legs integer := 0;
+  v_from_leg uuid;
+  v_to_leg uuid;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Unauthorized: authentication required';
@@ -32,6 +34,23 @@ BEGIN
 
   SELECT COALESCE(fee_minor, 0) INTO v_fee FROM public.transfers WHERE id = p_transfer_id;
   v_fee := COALESCE(v_fee, 0);
+
+  -- Both legs recorded on the transfer row must belong to the caller.
+  -- Under RLS the caller cannot see another user's leg, so the transfer row
+  -- (not a scan of visible legs) is the source of truth: deleting only the
+  -- caller's leg would leave a half transfer behind.
+  SELECT from_transaction_id, to_transaction_id INTO v_from_leg, v_to_leg
+  FROM public.transfers WHERE id = p_transfer_id;
+  IF FOUND AND EXISTS (
+    SELECT 1 FROM unnest(ARRAY[v_from_leg, v_to_leg]) AS leg(id)
+    WHERE leg.id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM public.transactions t
+      JOIN public.accounts a ON a.id = t.account_id
+      WHERE t.id = leg.id AND a.user_id = v_user_id
+    )
+  ) THEN
+    RAISE EXCEPTION 'Transfer not found';
+  END IF;
 
   FOR v_leg IN
     SELECT t.* FROM public.transactions t

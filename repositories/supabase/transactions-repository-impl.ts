@@ -731,12 +731,18 @@ export class SupabaseTransactionsRepository implements TransactionsRepository {
       throw new Error(`Transaction with id ${id} not found`);
     }
 
-    const { error } = await (this.client as any).rpc(
-      'delete_transaction_and_adjust_balance',
-      {
-        transaction_id: id,
-      }
-    );
+    // A transfer leg never goes alone: deleting one leg removes the whole
+    // transfer atomically so the other account is not left unbalanced.
+    const { error } = existingTransaction.transferId
+      ? await (this.client as any).rpc('delete_transfer', {
+          p_transfer_id: existingTransaction.transferId,
+        })
+      : await (this.client as any).rpc(
+          'delete_transaction_and_adjust_balance',
+          {
+            transaction_id: id,
+          }
+        );
 
     if (error) {
       throw new Error(`Failed to delete transaction: ${error.message}`);
