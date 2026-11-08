@@ -101,6 +101,8 @@ export interface DeterministicReport {
     scored: number;
     correct: number;
     askedInsteadOfGuessing: number;
+    /** Silent wrong categories; must stay 0 (asking beats misfiling money). */
+    wrongGuesses: number;
     byCategory: Record<string, Tally>;
     failures: Array<{
       id: string;
@@ -156,6 +158,7 @@ export function runDeterministic(cases: AgentEvalCase[]): DeterministicReport {
       scored,
       correct,
       askedInsteadOfGuessing: asked,
+      wrongGuesses: scored - correct - asked,
       byCategory,
       failures,
     },
@@ -175,7 +178,7 @@ function deterministicMarkdown(r: DeterministicReport): string {
     '| --- | --- |',
     ...Object.entries(r.byIntent).map(([k, v]) => `| ${k} | ${v} |`),
     '',
-    `Keyword resolver alone (no model hint): ${pct({ total: r.resolver.scored, correct: r.resolver.correct })} of ${r.resolver.scored}; asked instead of guessing: ${r.resolver.askedInsteadOfGuessing}.`,
+    `Fallback resolver without a model hint: correct ${r.resolver.correct}, asked ${r.resolver.askedInsteadOfGuessing}, wrong ${r.resolver.wrongGuesses} of ${r.resolver.scored}.`,
     '',
     '| Category | Accuracy | Cases |',
     '| --- | --- | --- |',

@@ -5,7 +5,10 @@ import {
   isAudioCaptureAvailable,
   type CaptureMedia,
 } from '@/lib/ai/voice-capture/capture-service';
-import { buildHistoryHints } from '@/lib/ai/voice-capture/history-hints';
+import {
+  buildHistoryHints,
+  HISTORY_LOOKBACK,
+} from '@/lib/ai/voice-capture/history-hints';
 import { createServerAppRepository } from '@/repositories/factory';
 import { logger } from '@/lib/utils/logger';
 
@@ -15,9 +18,6 @@ export const maxDuration = 300;
 // Stop the model ourselves before the platform kills the function, so the
 // client gets a readable error instead of an opaque gateway timeout.
 export const ANALYSIS_TIMEOUT_MS = 280_000;
-// Recent transactions scanned for the user's own categorization convention.
-// Evals: history in the prompt fixed 6/6 personal-convention cases vs 0/6.
-export const HISTORY_LOOKBACK = 1000;
 
 const MAX_IMAGES = 10;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;

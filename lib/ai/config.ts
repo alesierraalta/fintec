@@ -27,12 +27,22 @@ export const AI_CONFIG = {
   temperature: 0.7,
 } as const;
 
+import {
+  formatHistoryHints,
+  type CaptureHistoryHint,
+} from '@/lib/ai/voice-capture/history-hints';
+
 export interface UserContext {
   userId: string;
   accounts: Array<{
     name: string;
     currencyCode: string;
   }>;
+  /**
+   * The user's own "description -> category" conventions from past
+   * transactions (lib/ai/voice-capture/history-hints.ts).
+   */
+  history?: CaptureHistoryHint[];
   /** Default and user categories the transaction tools may resolve to. */
   categories?: Array<{
     id: string;
@@ -62,6 +72,7 @@ export function buildSystemPrompt(context: UserContext): string {
     context.accounts.length > 0
       ? context.accounts.map((a) => `${a.name} (${a.currencyCode})`).join(', ')
       : 'None';
+  const history = formatHistoryHints(context.history);
 
   return `You are a specialized financial AI assistant for the FinTec platform.
 
@@ -71,7 +82,7 @@ User Context:
 - Active Accounts: ${accountsList}
 - Expense Categories: ${formatCategories(context.categories, 'EXPENSE')}
 - Income Categories: ${formatCategories(context.categories, 'INCOME')}
-
+${history ? `\n${history}\n` : ''}
 Capabilities:
 - You can create transactions (expenses/income)
 - You can check account balances

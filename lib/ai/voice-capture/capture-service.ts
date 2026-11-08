@@ -10,6 +10,7 @@ import {
   normalizeCapturedTransactions,
   type CapturedTransaction,
 } from './normalize';
+import { formatHistoryHints, type CaptureHistoryHint } from './history-hints';
 
 export interface CaptureMedia {
   data: Uint8Array;
@@ -80,28 +81,11 @@ export function isAudioCaptureAvailable(): boolean {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY);
 }
 
-/** A past transaction of the user and the category they chose for it. */
-export interface CaptureHistoryHint {
-  description: string;
-  category: string;
-}
-
-export const MAX_HISTORY_HINTS = 300;
-export const MAX_HINT_CHARS = 80;
-
-/**
- * History text is user data (imported statements, earlier captures): it is
- * flattened to one line, capped, and JSON-quoted so it can never add prompt
- * lines or forge another "description -> category" mapping.
- */
-function hintText(text: string): string {
-  const flat = text.replace(/\s+/g, ' ').trim();
-  return JSON.stringify(
-    flat.length > MAX_HINT_CHARS
-      ? `${flat.slice(0, MAX_HINT_CHARS - 1)}…`
-      : flat
-  );
-}
+export {
+  MAX_HISTORY_HINTS,
+  MAX_HINT_CHARS,
+  type CaptureHistoryHint,
+} from './history-hints';
 
 export function buildPrompt(params: {
   today: string;
@@ -131,19 +115,8 @@ export function buildPrompt(params: {
         .map((c) => `- id=${c.id} name="${c.name}" kind=${c.kind}`)
         .join('\n')
   );
-  const hints = [
-    ...new Set(
-      (params.history ?? []).map(
-        (h) => `${hintText(h.description)} -> ${hintText(h.category)}`
-      )
-    ),
-  ].slice(0, MAX_HISTORY_HINTS);
-  if (hints.length > 0) {
-    lines.push(
-      "The user's past transactions and the category they chose. When a movement matches one of them, follow the user's convention over a generic category:\n" +
-        hints.map((hint) => `- ${hint}`).join('\n')
-    );
-  }
+  const hints = formatHistoryHints(params.history);
+  if (hints) lines.push(hints);
   return lines.join('\n\n');
 }
 

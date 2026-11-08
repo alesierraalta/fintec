@@ -1,9 +1,9 @@
 import {
   ANALYSIS_TIMEOUT_MS,
-  HISTORY_LOOKBACK,
   POST,
   maxDuration,
 } from '@/app/api/ai/capture-batch/route';
+import { HISTORY_LOOKBACK } from '@/lib/ai/voice-capture/history-hints';
 import { createClient } from '@/lib/supabase/server';
 import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import {

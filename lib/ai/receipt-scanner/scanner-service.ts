@@ -438,11 +438,7 @@ export async function scanReceiptWithAI(params: {
     // a TRANSFER from a plain Venezuelan bank wire receipt. Downgrade to EXPENSE
     // with LOW confidence so the user is prompted to confirm.
     // This closes the gap where the Zod schema allows TRANSFER without targetCurrency.
-    if (
-      raw.type === 'TRANSFER' &&
-      !raw.targetCurrency &&
-      !raw.targetAmount
-    ) {
+    if (raw.type === 'TRANSFER' && !raw.targetCurrency && !raw.targetAmount) {
       logger.warn(
         '[ReceiptScanner] TRANSFER classified without cross-currency evidence ' +
           '(no targetCurrency, no targetAmount). Downgrading to EXPENSE with LOW confidence.',
@@ -457,7 +453,6 @@ export async function scanReceiptWithAI(params: {
     if (!exchangeRate && raw.amount && raw.targetAmount && raw.amount > 0) {
       exchangeRate = Number((raw.targetAmount / raw.amount).toFixed(6));
     }
-
 
     // Run smart account matching algorithm
     const match = matchReceiptAccounts(
@@ -498,13 +493,17 @@ export async function scanReceiptWithAI(params: {
         ? 'Las transferencias no requieren categoría'
         : categoryMatch.reason;
 
+    // A model-picked id is trusted only when its kind matches the movement.
+    const receiptKind = raw.type === 'INCOME' ? 'INCOME' : 'EXPENSE';
     if (
       raw.type !== 'TRANSFER' &&
       raw.suggestedCategoryId &&
-      categories.some((c) => c.id === raw.suggestedCategoryId)
+      categories.some(
+        (c) => c.id === raw.suggestedCategoryId && c.kind === receiptKind
+      )
     ) {
       const directCategory = categories.find(
-        (c) => c.id === raw.suggestedCategoryId
+        (c) => c.id === raw.suggestedCategoryId && c.kind === receiptKind
       );
       if (directCategory) {
         finalCategoryId = directCategory.id;

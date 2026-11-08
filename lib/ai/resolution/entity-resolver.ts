@@ -61,16 +61,20 @@ export function resolveCategory(params: {
     : undefined;
   if (byId) return { status: 'resolved', value: byId };
 
-  const match = matchReceiptCategory(
-    {
-      transactionType: params.kind,
-      suggestedCategoryName: params.categoryName,
-      suggestedMotive: params.description,
-    },
-    candidates.map((c) => ({ id: c.id, name: c.name, kind: c.kind }))
-  );
+  // Only the model's category name is matched. Keyword scoring over the
+  // description alone guessed wrong 92 of 286 times on the agent v2 eval
+  // (evals/agent-v2), so a description-only signal asks instead.
+  const match = params.categoryName
+    ? matchReceiptCategory(
+        {
+          transactionType: params.kind,
+          suggestedCategoryName: params.categoryName,
+        },
+        candidates.map((c) => ({ id: c.id, name: c.name, kind: c.kind }))
+      )
+    : undefined;
   const matched =
-    match.suggestedCategoryId &&
+    match?.suggestedCategoryId &&
     (match.confidence === 'HIGH' || match.confidence === 'MEDIUM')
       ? candidates.find((c) => c.id === match.suggestedCategoryId)
       : undefined;
