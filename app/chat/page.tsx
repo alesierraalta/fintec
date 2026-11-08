@@ -39,7 +39,7 @@ export default async function ChatPage() {
                 Asistente Financiero
               </h1>
               <p className="truncate text-[11px] text-muted-foreground sm:text-xs">
-                Pregúntame sobre tus finanzas
+                Registra gastos, ingresos y transferencias hablando
               </p>
             </div>
           </div>

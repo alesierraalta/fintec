@@ -1,16 +1,20 @@
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Wallet,
-  CheckCircle2,
-} from 'lucide-react';
-import { motion } from 'framer-motion';
+'use client';
+
+import { useState } from 'react';
+import { Wallet, CalendarDays } from 'lucide-react';
 import {
   formatCurrency,
   formatDate,
   getCategoryEmoji,
 } from '@/lib/ai/tools/formatters';
 import { cn } from '@/lib/utils';
+import { useChatActions } from './chat-actions';
+import {
+  ChatCard,
+  ChatCardActions,
+  ChatCardButton,
+  ChatChip,
+} from './chat-card';
 
 export interface TransactionCardProps {
   transaction: {
@@ -25,87 +29,134 @@ export interface TransactionCardProps {
   };
 }
 
+type CardState = 'idle' | 'busy' | 'undone' | 'failed';
+
 /**
- * Elegant card displaying a confirmed financial transaction in the AI chat.
- * FinTec aesthetic with sharp contrast, clear badge indicators, and tabular-nums.
+ * A movement the agent just recorded. With chat actions available it offers
+ * "Cambiar categoría" (same-kind categories) and "Deshacer".
  */
 export function TransactionCard({ transaction }: TransactionCardProps) {
+  const actions = useChatActions();
   const isIncome = transaction.type === 'INCOME';
-  const categoryEmoji = getCategoryEmoji(transaction.categoryName || 'other');
+  const [state, setState] = useState<CardState>('idle');
+  const [categoryName, setCategoryName] = useState(transaction.categoryName);
+  const [picking, setPicking] = useState(false);
   const formattedAmount = formatCurrency(
     transaction.amountMinor,
     transaction.currencyCode
   );
+  const canAct = Boolean(actions && transaction.id) && state !== 'undone';
+  const sameKind = (actions?.categories ?? []).filter(
+    (c) => c.kind === transaction.type
+  );
+
+  const run = async (task: () => Promise<void>, next: CardState) => {
+    setState('busy');
+    try {
+      await task();
+      setState(next);
+    } catch {
+      setState('failed');
+    }
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className="mt-2.5 w-full min-w-0 overflow-hidden rounded-2xl border border-border/60 bg-card/90 p-4 shadow-ios-sm"
+    <ChatCard
+      label={isIncome ? 'Ingreso registrado' : 'Gasto registrado'}
+      muted={state === 'undone'}
     >
-      {/* Header status */}
-      <div className="flex items-center justify-between border-b border-border/40 pb-2.5">
-        <div className="flex items-center gap-1.5">
-          <span
-            className={cn(
-              'flex h-6 w-6 items-center justify-center rounded-full',
-              isIncome
-                ? 'bg-success/15 text-success'
-                : 'bg-primary/15 text-primary'
-            )}
-          >
-            {isIncome ? (
-              <ArrowDownLeft className="h-3.5 w-3.5" aria-hidden="true" />
-            ) : (
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            )}
-          </span>
-          <span className="text-xs font-semibold tracking-tight text-foreground">
-            {isIncome ? 'Ingreso registrado' : 'Gasto registrado'}
-          </span>
-        </div>
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-          <CheckCircle2 className="h-3 w-3 text-success" aria-hidden="true" />
-          <span>{formatDate(transaction.date)}</span>
-        </div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate text-base text-foreground">
+          {transaction.description}
+        </p>
+        <span
+          className={cn(
+            'flex-shrink-0 text-2xl font-bold tabular-nums tracking-tight',
+            isIncome ? 'text-success' : 'text-error',
+            state === 'undone' && 'line-through'
+          )}
+        >
+          {isIncome ? `+${formattedAmount}` : `-${formattedAmount}`}
+        </span>
       </div>
 
-      {/* Main transaction info */}
-      <div className="mt-3 flex items-baseline justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-base font-semibold leading-tight text-foreground">
-            {transaction.description}
-          </p>
-        </div>
-        <div className="flex-shrink-0 text-right">
-          <span
-            className={cn(
-              'text-lg font-bold tabular-nums tracking-tight',
-              isIncome ? 'text-success' : 'text-foreground'
-            )}
-          >
-            {isIncome ? `+${formattedAmount}` : `-${formattedAmount}`}
-          </span>
-        </div>
-      </div>
-
-      {/* Metadata pills (Account & Category) */}
-      <div className="mt-3 flex flex-wrap items-center gap-2 pt-1 text-xs text-muted-foreground">
-        {transaction.categoryName && (
-          <span className="inline-flex items-center gap-1 rounded-lg border border-border/50 bg-secondary/60 px-2 py-1 font-medium text-foreground/90">
-            <span aria-hidden="true">{categoryEmoji}</span>
-            <span>{transaction.categoryName}</span>
-          </span>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {categoryName && (
+          <ChatChip>
+            <span aria-hidden="true">{getCategoryEmoji(categoryName)}</span>
+            <span>{categoryName}</span>
+          </ChatChip>
         )}
-
         {transaction.accountName && (
-          <span className="inline-flex items-center gap-1.5 rounded-lg border border-border/50 bg-secondary/60 px-2 py-1 font-medium text-foreground/90">
+          <ChatChip>
             <Wallet className="h-3 w-3 text-primary" aria-hidden="true" />
             <span>{transaction.accountName}</span>
-          </span>
+          </ChatChip>
         )}
+        <ChatChip>
+          <CalendarDays className="h-3 w-3" aria-hidden="true" />
+          <span>{formatDate(transaction.date)}</span>
+        </ChatChip>
       </div>
-    </motion.div>
+
+      {state === 'undone' && (
+        <p className="mt-3 text-sm text-muted-foreground">
+          Movimiento deshecho.
+        </p>
+      )}
+      {state === 'failed' && (
+        <p role="alert" className="mt-3 text-sm text-destructive">
+          No se pudo completar la acción. Inténtalo de nuevo.
+        </p>
+      )}
+
+      {picking && canAct && (
+        <div
+          className="mt-3 flex flex-wrap gap-1.5"
+          role="group"
+          aria-label="Elegir categoría"
+        >
+          {sameKind.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              disabled={state === 'busy'}
+              onClick={() =>
+                run(async () => {
+                  await actions!.changeCategory(transaction.id!, c.id);
+                  setCategoryName(c.name);
+                  setPicking(false);
+                }, 'idle')
+              }
+              className="focus-ring rounded-full bg-secondary px-3 py-1.5 text-sm font-medium hover:bg-muted"
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {canAct && (
+        <ChatCardActions>
+          <ChatCardButton
+            variant="secondary"
+            disabled={state === 'busy'}
+            onClick={() => setPicking((open) => !open)}
+            aria-expanded={picking}
+          >
+            Cambiar categoría
+          </ChatCardButton>
+          <ChatCardButton
+            variant="secondary"
+            disabled={state === 'busy'}
+            onClick={() =>
+              run(() => actions!.undoTransaction(transaction.id!), 'undone')
+            }
+          >
+            Deshacer
+          </ChatCardButton>
+        </ChatCardActions>
+      )}
+    </ChatCard>
   );
 }
