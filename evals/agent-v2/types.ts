@@ -27,6 +27,8 @@ export interface AgentEvalCase {
   intent: AgentIntent;
   /** Hand-written hard case (true) or template-generated (false). */
   hard: boolean;
+  /** Accepted categories, beginning with the preferred expected.category. */
+  acceptedCategories?: string[];
   expected: {
     type?: 'INCOME' | 'EXPENSE';
     category?: string;

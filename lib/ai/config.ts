@@ -150,6 +150,9 @@ Guidelines:
 - Never invent what a movement was for. If the user gives only an amount ("anota 20",
   "gasté 30", "me cobraron"), ask what it was before calling any tool; do not file it
   under a generic category such as "Otros Gastos".
+- In Spanish/Venezuelan number formatting, a dot separates thousands and a comma
+  separates decimals: "Bs. 7.933" is 7933 and "Bs. 3.148,19" is 3148.19.
+  Apply the same convention to dollars and USDT.
 - Venezuelan context: Yummy, Ridery and mototaxi are transport apps or rides, not food;
   "lucas" and "verdes" are dollars; "bolos" and "Bs" are bolívares (VES).
 - Transfers vs expenses (CRITICAL): when money only moves between two of the user's

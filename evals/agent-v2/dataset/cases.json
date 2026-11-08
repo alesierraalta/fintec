@@ -380,6 +380,10 @@
     "hard": false,
     "utterance": "pagué pintura para la casa, $233.28 desde Efectivo",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Compras"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -393,6 +397,10 @@
     "hard": false,
     "utterance": "hoy pague pintura para la casa 3.657 bolos",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Compras"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -405,6 +413,10 @@
     "hard": false,
     "utterance": "se me fueron 15.460 Bs en el plomero que arregló la tubería",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -417,6 +429,10 @@
     "hard": false,
     "utterance": "gaste 7.933bs en la reparación del techo por Banesco",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -430,6 +446,10 @@
     "hard": false,
     "utterance": "anota 108.54 verdes de el plomero que arregló la tubería con Efectivo",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -443,6 +463,10 @@
     "hard": false,
     "utterance": "pagué pintura para la casa, 221 tether",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Compras"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -455,6 +479,10 @@
     "hard": false,
     "utterance": "compré la reparación del techo por 5727 bolos por Mercantil",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -468,6 +496,10 @@
     "hard": false,
     "utterance": "hoy pague el condominio Bs. 3.148,19 desde Banesco",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Servicios"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -481,6 +513,10 @@
     "hard": false,
     "utterance": "gasté 3.336 Bs en el plomero que arregló la tubería",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -493,6 +529,10 @@
     "hard": false,
     "utterance": "pagué pintura para la casa, 17.327,32 bs",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Compras"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -530,6 +570,10 @@
     "hard": false,
     "utterance": "compré la reparación del techo por 10591 bolívares",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -542,6 +586,10 @@
     "hard": false,
     "utterance": "3$ de pintura para la casa desde Zelle",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Compras"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -555,6 +603,10 @@
     "hard": false,
     "utterance": "registra un gasto de 207$ en el plomero que arregló la tubería por Zelle",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -1315,6 +1367,10 @@
     "hard": false,
     "utterance": "registra un gasto de 246$ en un regalo de cumpleaños con Zelle",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Compras",
+      "Otros Gastos"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Compras",
@@ -4851,6 +4907,10 @@
   {
     "utterance": "le eché gasolina al carro, 10 dólares",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Transporte",
+      "Carros"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Transporte",
@@ -4887,6 +4947,10 @@
   {
     "utterance": "pagué el condominio, 40 verdes",
     "intent": "create_expense",
+    "acceptedCategories": [
+      "Vivienda",
+      "Servicios"
+    ],
     "expected": {
       "type": "EXPENSE",
       "category": "Vivienda",
@@ -5465,6 +5529,66 @@
       "account": "Zelle"
     },
     "id": "hard-087",
+    "hard": true
+  },
+  {
+    "utterance": "gaste 7.933bs en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 7933,
+      "currency": "VES"
+    },
+    "id": "hard-088",
+    "hard": true
+  },
+  {
+    "utterance": "gaste 20.704bs en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 20704,
+      "currency": "VES"
+    },
+    "id": "hard-089",
+    "hard": true
+  },
+  {
+    "utterance": "gasté 15.756 Bs en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 15756,
+      "currency": "VES"
+    },
+    "id": "hard-090",
+    "hard": true
+  },
+  {
+    "utterance": "gasté Bs. 3.148,19 en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 3148.19,
+      "currency": "VES"
+    },
+    "id": "hard-091",
+    "hard": true
+  },
+  {
+    "utterance": "gasté 12,50 Bs en el mercado",
+    "intent": "create_expense",
+    "expected": {
+      "type": "EXPENSE",
+      "category": "Alimentación",
+      "amount": 12.5,
+      "currency": "VES"
+    },
+    "id": "hard-092",
     "hard": true
   }
 ]

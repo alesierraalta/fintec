@@ -5,6 +5,7 @@ import {
   validateDataset,
 } from '@/evals/agent-v2/run';
 import { AGENT_INTENTS, type AgentEvalCase } from '@/evals/agent-v2/types';
+import { FIXTURE_CATEGORIES } from '@/evals/agent-v2/fixture';
 
 describe('agent v2 evaluation dataset (#116)', () => {
   const cases = loadCases();
@@ -39,6 +40,70 @@ describe('agent v2 evaluation dataset (#116)', () => {
       'x1: unknown category Inexistente',
       'x2: category Carros is EXPENSE, case is INCOME',
     ]);
+  });
+
+  it('keeps preferred and same-kind fixture categories in accepted lists', () => {
+    const annotated = cases.filter((c) => c.acceptedCategories);
+    expect(annotated.length).toBeGreaterThan(0);
+    for (const c of annotated) {
+      expect(c.acceptedCategories![0]).toBe(c.expected.category);
+      const primary = FIXTURE_CATEGORIES.find(
+        (category) => category.name === c.expected.category
+      );
+      expect(primary).toBeDefined();
+      for (const name of c.acceptedCategories!) {
+        const category = FIXTURE_CATEGORIES.find(
+          (entry) => entry.name === name
+        );
+        expect(category).toBeDefined();
+        expect(category!.kind).toBe(primary!.kind);
+      }
+    }
+    const invalid = {
+      ...annotated[0],
+      acceptedCategories: ['Inexistente', 'Salario'],
+    };
+    expect(validateDataset([invalid])).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining('preferred category'),
+        expect.stringContaining('unknown accepted category'),
+        expect.stringContaining('mismatched kind'),
+      ])
+    );
+  });
+
+  it('scores alternatives only when all other checks pass', () => {
+    const c = cases.find((entry) => entry.id === 'hard-027')!;
+    const args = {
+      type: 'EXPENSE',
+      amount: c.expected.amount,
+      category: 'Carros',
+    };
+    const score = (override: Record<string, unknown>) =>
+      scoreLiveCase(c, [
+        { toolName: 'createTransaction', args: { ...args, ...override } },
+      ]);
+    expect(score({})).toMatchObject({
+      passed: true,
+      passedByAlternative: true,
+    });
+    expect(score({ category: 'Transporte' })).toMatchObject({
+      passed: true,
+      passedByAlternative: false,
+    });
+    expect(score({ category: 'Compras' })).toMatchObject({
+      passed: false,
+      passedByAlternative: false,
+    });
+    expect(score({ amount: 999 })).toMatchObject({
+      passed: false,
+      passedByAlternative: false,
+    });
+    expect(
+      scoreLiveCase({ ...c, acceptedCategories: undefined }, [
+        { toolName: 'createTransaction', args },
+      ]).passed
+    ).toBe(false);
   });
 
   it('reports resolver accuracy per category in deterministic mode', () => {

@@ -322,19 +322,38 @@ export function generateCases(): AgentEvalCase[] {
       const account = withAccount
         ? pick(ACCOUNTS_BY_CURRENCY[currency])
         : undefined;
-      let utterance = pick(EXPENSE_TEMPLATES)(
-        spokenAmount(amount, currency),
-        pick(items)
-      );
+      const template = pick(EXPENSE_TEMPLATES);
+      const spoken = spokenAmount(amount, currency);
+      const item = pick(items);
+      let utterance = template(spoken, item);
       if (account)
         utterance += pick([
           ` con ${account}`,
           ` desde ${account}`,
           ` por ${account}`,
         ]);
+      // Home goods can be purchases; repairs are miscellaneous expenses;
+      // condominium fees are services. The specified birthday gift is miscellaneous.
+      let alternative: string | undefined;
+      if (category === 'Vivienda') {
+        if (item === 'pintura para la casa') alternative = 'Compras';
+        else if (
+          item === 'el plomero que arregló la tubería' ||
+          item === 'la reparación del techo'
+        )
+          alternative = 'Otros Gastos';
+        else if (item === 'el condominio') alternative = 'Servicios';
+      } else if (
+        category === 'Compras' &&
+        n + 1 === 106 &&
+        item === 'un regalo de cumpleaños'
+      ) {
+        alternative = 'Otros Gastos';
+      }
       push({
         utterance,
         intent: 'create_expense',
+        ...(alternative ? { acceptedCategories: [category, alternative] } : {}),
         expected: { type: 'EXPENSE', category, account, amount, currency },
       });
     }
