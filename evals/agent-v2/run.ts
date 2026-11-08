@@ -206,8 +206,22 @@ interface LiveResult {
   utterance: string;
   calls: RecordedCall[];
   checks: Record<string, boolean>;
-  passed: boolean;
+  passed?: boolean;
+  unmeasured?: boolean;
   error?: string;
+}
+
+export function isQuotaError(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null) {
+    const e = error as {
+      status?: unknown;
+      statusCode?: unknown;
+      message?: unknown;
+    };
+    if (e.status === 429 || e.statusCode === 429) return true;
+    if (typeof e.message === 'string' && /quota/i.test(e.message)) return true;
+  }
+  return typeof error === 'string' && /quota/i.test(error);
 }
 
 const norm = (v: unknown) =>
@@ -355,8 +369,10 @@ async function runLive(
   const results: LiveResult[] = [];
   const pace = createPacer(rpm);
   let cursor = 0;
+  let consecutiveQuotaErrors = 0;
+  let quotaExhausted = false;
   const worker = async () => {
-    while (cursor < cases.length) {
+    while (cursor < cases.length && !quotaExhausted) {
       const c = cases[cursor++];
       await pace();
       const calls: RecordedCall[] = [];
@@ -382,6 +398,7 @@ async function runLive(
           stopWhen: stepCountIs(2),
           temperature: 0,
         });
+        consecutiveQuotaErrors = 0;
         results.push({
           id: c.id,
           intent: c.intent,
@@ -390,34 +407,53 @@ async function runLive(
           ...scoreLiveCase(c, calls),
         });
       } catch (error) {
+        const quota = isQuotaError(error);
+        consecutiveQuotaErrors = quota ? consecutiveQuotaErrors + 1 : 0;
+        if (consecutiveQuotaErrors >= 5 && !quotaExhausted) {
+          quotaExhausted = true;
+          console.log('Run stopped because the provider quota is exhausted.');
+        }
         results.push({
           id: c.id,
           intent: c.intent,
           utterance: c.utterance,
           calls,
           checks: {},
-          passed: false,
+          ...(quota ? { unmeasured: true } : { passed: false }),
           error: error instanceof Error ? error.message : String(error),
         });
       }
     }
   };
   await Promise.all(Array.from({ length: concurrency }, worker));
+  for (const c of cases.slice(cursor)) {
+    results.push({
+      id: c.id,
+      intent: c.intent,
+      utterance: c.utterance,
+      calls: [],
+      checks: {},
+      unmeasured: true,
+    });
+  }
   return results;
 }
 
-function liveMarkdown(results: LiveResult[]): string {
+export function liveMarkdown(results: LiveResult[]): string {
   const byIntent: Record<string, Tally> = {};
   const byCheck: Record<string, Tally> = {};
-  for (const r of results) {
-    bump(byIntent, r.intent, r.passed);
+  const measured = results.filter((r) => !r.unmeasured);
+  const unmeasured = results.length - measured.length;
+  for (const r of measured) {
+    bump(byIntent, r.intent, Boolean(r.passed));
     for (const [k, v] of Object.entries(r.checks)) bump(byCheck, k, v);
   }
-  const failures = results.filter((r) => !r.passed);
+  const failures = measured.filter((r) => !r.passed);
+  const passed = measured.length - failures.length;
   return [
     '# Agent v2 eval — live',
     '',
-    `Cases: ${results.length}. Passed: ${results.length - failures.length}.`,
+    `Cases: ${results.length}. Measured: ${measured.length}. Passed: ${passed}. Unmeasured: ${unmeasured}. Pass rate: ${pct({ total: measured.length, correct: passed })}.`,
     '',
     '| Intent | Pass rate | Cases |',
     '| --- | --- | --- |',
@@ -432,6 +468,8 @@ function liveMarkdown(results: LiveResult[]): string {
     ),
     '',
     '## Failures',
+    '',
+    `${unmeasured} cases were not measured.`,
     '',
     ...failures.map((r) => {
       const calls = r.calls

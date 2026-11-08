@@ -32,5 +32,5 @@ user message
 ## Measuring changes
 
 - `npm run eval:agent`: deterministic, CI-safe. Dataset integrity and the fallback resolver's safety (`wrong` must stay 0).
-- `npm run eval:agent:live -- --intent=create_transfer --limit=25`: the real model with recording tools (no writes). Needs AI provider keys.
-- Add `--rpm=7` to stay under a 15-requests/minute free tier: a case makes up to two model calls, so without pacing the run dies on quota instead of measuring the model.
+- `npm run eval:agent:live -- --intent=create_transfer --limit=25`: the real model with recording tools (no writes). Needs AI provider keys. Cases skipped for provider quota are reported as unmeasured, not as failures.
+- Add `--rpm=7` to stay under a 15-requests/minute free tier: a case makes up to two model calls, so without pacing the run dies on quota instead of measuring the model. The free tier also caps requests per day, so a full run may need several days.
