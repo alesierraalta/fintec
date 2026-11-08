@@ -105,15 +105,11 @@ export function useChatCardActions(reply: (text: string) => void): ChatActions {
         return body.data;
       },
       settlePendingReceipt: async (pendingId, transaction) => {
-        const created = await runFinancialMutation({
+        await runFinancialMutation({
           userId,
           repository,
           domains: [...MONEY_DOMAINS],
-          mutation: () => repository.transactions.create(transaction),
-        });
-        await repository.pendingItems.update(pendingId, {
-          done: true,
-          convertedTransactionId: created.id,
+          mutation: () => repository.pendingItems.settle(pendingId, transaction),
         });
       },
     }),

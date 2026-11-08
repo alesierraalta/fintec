@@ -5,11 +5,14 @@ import type {
   UpdatePendingItemDTO,
 } from '@/types/pending-item';
 
+import type { CreateTransactionDTO } from '@/types/domain';
+
 export interface PendingItemsRepository {
   /** All pending items for the user, ordered by creation date. */
   findByUser(userId: string): Promise<PendingItem[]>;
   create(userId: string, data: CreatePendingItemDTO): Promise<PendingItem>;
   update(id: string, data: UpdatePendingItemDTO): Promise<PendingItem>;
+  settle(id: string, transaction: CreateTransactionDTO): Promise<string>;
   delete(id: string): Promise<void>;
   /**
    * Removes every completed item for the user. When `kind` is given,

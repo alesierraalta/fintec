@@ -6,6 +6,8 @@ import type {
 } from '@/types/pending-item';
 import type { PendingItemsRepository } from '@/repositories/contracts/pending-items-repository';
 import { db } from './db';
+import { LocalTransactionsRepository } from './transactions-repository-impl';
+import type { CreateTransactionDTO } from '@/types/domain';
 
 export class LocalPendingItemsRepository implements PendingItemsRepository {
   async findByUser(userId: string): Promise<PendingItem[]> {
@@ -52,6 +54,42 @@ export class LocalPendingItemsRepository implements PendingItemsRepository {
     };
     await db.pendingItems.put(updated);
     return updated;
+  }
+
+  async settle(id: string, transaction: CreateTransactionDTO): Promise<string> {
+    return db.transaction(
+      'rw',
+      [db.pendingItems, db.transactions, db.accounts],
+      async () => {
+        const pending = await db.pendingItems.get(id);
+        if (!pending) throw new Error('Pending item not found');
+        if (pending.done || pending.convertedTransactionId) {
+          if (!pending.convertedTransactionId) {
+            throw new Error(
+              'Pending item is already completed without a transaction'
+            );
+          }
+          return pending.convertedTransactionId;
+        }
+        if (
+          !Number.isInteger(transaction.amountMinor) ||
+          transaction.amountMinor <= 0
+        ) {
+          throw new Error(
+            'Transaction amount must be a positive integer in minor units'
+          );
+        }
+        const created = await new LocalTransactionsRepository().create(
+          transaction
+        );
+        await db.pendingItems.update(id, {
+          done: true,
+          doneAt: new Date().toISOString(),
+          convertedTransactionId: created.id,
+        });
+        return created.id;
+      }
+    );
   }
 
   async delete(id: string): Promise<void> {
