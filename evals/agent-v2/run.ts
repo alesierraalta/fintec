@@ -2,7 +2,11 @@
  * Agent v2 evaluation runner.
  *
  *   npx tsx evals/agent-v2/run.ts                 # deterministic, no network
- *   npx tsx --env-file=.env.local evals/agent-v2/run.ts --live [--limit=50] [--intent=create_transfer] [--concurrency=4]
+ *   npx tsx --env-file=.env.local evals/agent-v2/run.ts --live [--limit=50] [--intent=create_transfer] [--concurrency=4] [--rpm=7]
+ *
+ * `--rpm=N` spaces case starts so at most N cases begin per minute. A case makes
+ * up to two model calls, so the free tier (15 requests/minute) needs about 7.
+ * Without it, cases start as fast as the workers free up.
  *
  * Deterministic mode validates the dataset and scores the keyword resolver
  * layer alone (no model hint). Live mode drives the real model with the chat
@@ -267,9 +271,26 @@ export function scoreLiveCase(
   return { checks, passed: Object.values(checks).every(Boolean) };
 }
 
+/**
+ * Spaces case starts to at most `rpm` per minute. Every worker awaits its own
+ * turn, so the model never sees a burst that would trip a per-minute quota.
+ */
+function createPacer(rpm: number): () => Promise<void> {
+  if (rpm <= 0) return async () => {};
+  const intervalMs = 60_000 / rpm;
+  let nextStart = 0;
+  return async () => {
+    const now = Date.now();
+    const start = Math.max(now, nextStart);
+    nextStart = start + intervalMs;
+    if (start > now) await new Promise((r) => setTimeout(r, start - now));
+  };
+}
+
 async function runLive(
   cases: AgentEvalCase[],
-  concurrency: number
+  concurrency: number,
+  rpm = 0
 ): Promise<LiveResult[]> {
   const { generateText, stepCountIs, tool } = await import('ai');
   const { z } = await import('zod');
@@ -332,10 +353,12 @@ async function runLive(
   });
 
   const results: LiveResult[] = [];
+  const pace = createPacer(rpm);
   let cursor = 0;
   const worker = async () => {
     while (cursor < cases.length) {
       const c = cases[cursor++];
+      await pace();
       const calls: RecordedCall[] = [];
       const tools = Object.fromEntries(
         Object.entries(definitions).map(([name, d]) => [
@@ -459,7 +482,11 @@ async function main() {
   if (intent) cases = cases.filter((c) => c.intent === intent);
   const limit = Number(arg('limit') ?? 0);
   if (limit > 0) cases = cases.slice(0, limit);
-  const results = await runLive(cases, Number(arg('concurrency') ?? 4));
+  const results = await runLive(
+    cases,
+    Number(arg('concurrency') ?? 4),
+    Number(arg('rpm') ?? 0)
+  );
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   fs.writeFileSync(
     path.join(REPORTS, `live-${stamp}.json`),
