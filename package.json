@@ -61,7 +61,9 @@
     "spellcheck": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\" || true",
     "spellcheck:strict": "cspell --config cspell.config.cjs --no-progress --no-summary \"{hooks,lib,repositories,tests}/**/*.{ts,tsx,js,jsx}\"",
     "secretlint": "secretlint \"{app,components,hooks,lib,repositories,tests,docs}/**/*\" --secretlintignore .secretlintignore",
-    "prepush:verify": "npm run prepush:supabase && npm run type-check && npm run lint && npm run test:ci && npm run build"
+    "prepush:verify": "npm run prepush:supabase && npm run type-check && npm run lint && npm run test:ci && npm run build",
+    "eval:agent": "tsx evals/agent-v2/run.ts",
+    "eval:agent:live": "tsx --env-file=.env.local evals/agent-v2/run.ts --live"
   },
   "overrides": {
     "@stryker-mutator/core": {

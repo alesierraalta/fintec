@@ -1,6 +1,7 @@
 import type { RequestContext } from '@/lib/cache/request-context';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
+  ConvertExpenseToTransferResult,
   CreateTransferInput,
   CreateTransferResult,
   TransferFilters,
@@ -279,6 +280,30 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       exchangeRate: data.exchangeRate || data.exchange_rate,
       commissionMinor: data.commissionMinor ?? data.commission_minor ?? data.feeMinor ?? data.fee_minor ?? commissionMinor ?? undefined,
       totalDebitMinor: data.totalDebitMinor ?? data.total_debit_minor ?? undefined,
+    };
+  }
+
+  async convertExpenseToTransfer(
+    transactionId: string,
+    toAccountId: string,
+    exchangeRate?: number
+  ): Promise<ConvertExpenseToTransferResult> {
+    const { data, error } = await (this.client as any).rpc(
+      'convert_expense_to_transfer',
+      {
+        p_transaction_id: transactionId,
+        p_to_account_id: toAccountId,
+        p_exchange_rate: exchangeRate ?? null,
+      }
+    );
+
+    if (error) {
+      throw new Error(`Failed to convert expense: ${error.message}`);
+    }
+
+    return {
+      transferId: data?.transfer?.transferId,
+      convertedTransactionId: data?.convertedTransactionId ?? transactionId,
     };
   }
 

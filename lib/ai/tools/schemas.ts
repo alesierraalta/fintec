@@ -12,7 +12,17 @@ export const createTransactionSchema = z.object({
     .positive()
     .describe('Amount in major currency units (e.g., 50.00 for $50)'),
   description: z.string().min(1).describe('Transaction description'),
-  category: z.string().describe('Category name (e.g., Food, Transport)'),
+  category: z
+    .string()
+    .describe(
+      'Category name, copied from the user categories listed in the system prompt for this type'
+    ),
+  categoryId: z
+    .string()
+    .optional()
+    .describe(
+      'Id of the chosen category from the system prompt list. Must belong to the same type (INCOME or EXPENSE).'
+    ),
   accountName: z
     .string()
     .optional()
@@ -27,6 +37,17 @@ export const createTransactionSchema = z.object({
     .describe(
       'ISO date string (YYYY-MM-DD). Defaults to today if not specified.'
     ),
+});
+
+/**
+ * Shared result when a tool needs the user to choose before writing
+ * anything (unknown category/account, missing rate, ambiguous expense).
+ */
+export const clarificationResultSchema = z.object({
+  status: z.literal('needs_clarification'),
+  field: z.enum(['category', 'account', 'exchangeRate', 'transaction']),
+  message: z.string(),
+  options: z.array(z.string()),
 });
 
 /**
@@ -46,11 +67,117 @@ export const createTransactionResultSchema = z.discriminatedUnion('status', [
       date: z.string(),
     }),
   }),
+  clarificationResultSchema,
   z.object({ status: z.literal('error'), message: z.string() }),
 ]);
 
 export type CreateTransactionResult = z.infer<
   typeof createTransactionResultSchema
+>;
+
+/**
+ * Schema for moving money between two of the user's OWN accounts (#114).
+ * Paying a third party is an expense, not a transfer.
+ *
+ * @example
+ * { fromAccountName: "Zelle", toAccountName: "Binance", amount: 7000 }
+ */
+export const createTransferSchema = z.object({
+  fromAccountName: z.string().min(1).describe('Own account the money leaves'),
+  toAccountName: z.string().min(1).describe('Own account the money enters'),
+  amount: z
+    .number()
+    .positive()
+    .describe('Amount in major units of the SOURCE account currency'),
+  exchangeRate: z
+    .number()
+    .positive()
+    .optional()
+    .describe(
+      'Destination units per source unit. Required only when the two accounts have different currencies.'
+    ),
+  description: z.string().optional().describe('Optional transfer description'),
+  date: z
+    .string()
+    .optional()
+    .describe('ISO date (YYYY-MM-DD). Defaults to today.'),
+});
+
+export const createTransferResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('success'),
+    transfer: z.object({
+      id: z.string(),
+      fromAccountName: z.string(),
+      toAccountName: z.string(),
+      fromAmountMinor: z.number().int().optional(),
+      toAmountMinor: z.number().int().optional(),
+      fromCurrency: z.string().optional(),
+      toCurrency: z.string().optional(),
+    }),
+  }),
+  clarificationResultSchema,
+  z.object({ status: z.literal('error'), message: z.string() }),
+]);
+
+export type CreateTransferResult = z.infer<typeof createTransferResultSchema>;
+
+/**
+ * Schema for repairing an own-account transfer that was recorded as an
+ * expense: the expense on `fromAccountName` becomes a transfer to
+ * `toAccountName` and both balances are corrected atomically.
+ */
+export const reclassifyExpenseAsTransferSchema = z.object({
+  fromAccountName: z
+    .string()
+    .min(1)
+    .describe('Account where the expense was recorded'),
+  toAccountName: z
+    .string()
+    .min(1)
+    .describe('Own account that should have received the money'),
+  amount: z
+    .number()
+    .positive()
+    .describe('Amount of the mis-recorded expense in major units'),
+  date: z
+    .string()
+    .optional()
+    .describe('Date of the expense (YYYY-MM-DD) if known'),
+  transactionId: z
+    .string()
+    .optional()
+    .describe('Exact expense id, only when a previous clarification listed it'),
+  exchangeRate: z
+    .number()
+    .positive()
+    .optional()
+    .describe('Required only when the two accounts have different currencies'),
+});
+
+export const reclassifyExpenseAsTransferResultSchema = z.discriminatedUnion(
+  'status',
+  [
+    z.object({
+      status: z.literal('success'),
+      converted: z.object({
+        transactionId: z.string(),
+        transferId: z.string().optional(),
+        description: z.string().optional(),
+        date: z.string(),
+        amountMinor: z.number().int(),
+        currencyCode: z.string(),
+        fromAccountName: z.string(),
+        toAccountName: z.string(),
+      }),
+    }),
+    clarificationResultSchema,
+    z.object({ status: z.literal('error'), message: z.string() }),
+  ]
+);
+
+export type ReclassifyExpenseAsTransferResult = z.infer<
+  typeof reclassifyExpenseAsTransferResultSchema
 >;
 
 /**

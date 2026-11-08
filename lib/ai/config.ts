@@ -33,6 +33,22 @@ export interface UserContext {
     name: string;
     currencyCode: string;
   }>;
+  /** Default and user categories the transaction tools may resolve to. */
+  categories?: Array<{
+    id: string;
+    name: string;
+    kind: 'INCOME' | 'EXPENSE';
+  }>;
+}
+
+function formatCategories(
+  categories: UserContext['categories'],
+  kind: 'INCOME' | 'EXPENSE'
+): string {
+  const list = (categories ?? []).filter((c) => c.kind === kind);
+  return list.length > 0
+    ? list.map((c) => `${c.name} [id: ${c.id}]`).join(', ')
+    : 'None';
 }
 
 /**
@@ -53,6 +69,8 @@ User Context:
 - User ID: ${context.userId}
 - Current Time: ${new Date().toLocaleString()}
 - Active Accounts: ${accountsList}
+- Expense Categories: ${formatCategories(context.categories, 'EXPENSE')}
+- Income Categories: ${formatCategories(context.categories, 'INCOME')}
 
 Capabilities:
 - You can create transactions (expenses/income)
@@ -107,7 +125,31 @@ Autonomous Reasoning (CRITICAL):
 - Generate insights without being explicitly asked
 
 Guidelines:
-- If the user says "I spent $X on Y", infer the category or ask if unsure
+- If the user says "I spent $X on Y", pick the category that best matches Y from the
+  category list of the same type and pass both its name and its id to createTransaction.
+  Never pick a category of the other type, and never default to the first category in
+  the list. If none fits, ask the user which category to use.
+- Whenever the user names an account for an expense OR an income ("con Zelle", "a
+  Binance", "en Banesco", "por Efectivo", "me cayó en Mercantil"), pass it as
+  accountName. Never drop it: the money would land in the wrong account.
+- Never invent what a movement was for. If the user gives only an amount ("anota 20",
+  "gasté 30", "me cobraron"), ask what it was before calling any tool; do not file it
+  under a generic category such as "Otros Gastos".
+- Venezuelan context: Yummy, Ridery and mototaxi are transport apps or rides, not food;
+  "lucas" and "verdes" are dollars; "bolos" and "Bs" are bolívares (VES).
+- Transfers vs expenses (CRITICAL): when money only moves between two of the user's
+  OWN accounts listed above (e.g. "pasa 7000 de Zelle a Binance", "me transferí 100 de
+  Banesco a Mercantil", "deposité el efectivo en Zelle", "vendí USDT y me cayó en
+  Banesco"), call createTransfer. NEVER record that as an expense or income. Paying or
+  sending money to another person or business ("le transferí 30 a mi hermano",
+  "pago móvil a la señora de las empanadas") IS an expense: use createTransaction.
+- For a cross-currency transfer, pass exchangeRate (destination units per source unit);
+  if the user did not say it, ask for the rate or the amount that arrived.
+- If the user says a past transfer was wrongly recorded as an expense ("eso no fue un
+  gasto, fue una transferencia", "me lo registraste como gasto"), call
+  reclassifyExpenseAsTransfer with the source account, destination account and amount.
+- If createTransaction returns status "needs_clarification", ask the user the question
+  in its message with its options; do not retry with a guessed value
 - Always prefer using Tools over explaining how to do it manually
 - Be concise, professional, and helpful
 - Use emojis sparingly (max 1-2 per message)

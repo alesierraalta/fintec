@@ -80,6 +80,9 @@ jest.mock('@/repositories/factory', () => ({
     accounts: {
       findByUserId: jest.fn().mockResolvedValue([]),
     },
+    categories: {
+      findAll: jest.fn().mockResolvedValue([]),
+    },
   })),
 }));
 
@@ -285,6 +288,45 @@ describe('chat route', () => {
       accounts: {
         findByUserId: mockFindByUserId,
       },
+      categories: {
+        findAll: jest.fn().mockResolvedValue([
+          {
+            id: 'def-food',
+            name: 'Alimentación',
+            kind: 'EXPENSE',
+            userId: null,
+            active: true,
+          },
+          {
+            id: 'usr-cars',
+            name: 'Carros',
+            kind: 'EXPENSE',
+            userId: 'user-1',
+            active: true,
+          },
+          {
+            id: 'def-salary',
+            name: 'Salario',
+            kind: 'INCOME',
+            userId: null,
+            active: true,
+          },
+          {
+            id: 'old',
+            name: 'Archivada',
+            kind: 'EXPENSE',
+            userId: 'user-1',
+            active: false,
+          },
+          {
+            id: 'foreign',
+            name: 'Ajena',
+            kind: 'EXPENSE',
+            userId: 'user-2',
+            active: true,
+          },
+        ]),
+      },
     } as any);
     mockStreamText.mockReturnValue({
       toUIMessageStreamResponse: jest.fn(() =>
@@ -315,6 +357,17 @@ describe('chat route', () => {
       expect.objectContaining({
         system: 'system',
         messages: [{ role: 'user', content: 'How much do I have?' }],
+      })
+    );
+    // The model sees default and own active categories, never other users'.
+    const { buildSystemPrompt } = jest.requireMock('@/lib/ai/config');
+    expect(buildSystemPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        categories: [
+          { id: 'def-food', name: 'Alimentación', kind: 'EXPENSE' },
+          { id: 'usr-cars', name: 'Carros', kind: 'EXPENSE' },
+          { id: 'def-salary', name: 'Salario', kind: 'INCOME' },
+        ],
       })
     );
   });

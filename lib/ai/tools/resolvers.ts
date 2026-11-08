@@ -1,7 +1,6 @@
 import * as schemas from './schemas';
 import {
   formatGoalCreated,
-  formatTransactionCreated,
   formatQueryResult,
   formatSearchResults,
   type QueryTransactionsRow,
@@ -9,8 +8,14 @@ import {
 } from './formatters';
 import type { AppRepository } from '@/repositories/contracts';
 import { TransactionType } from '@/types/domain';
-import type { Account } from '@/types/domain';
+import type { Account, Transaction } from '@/types/domain';
 import { embedText } from '../rag/embeddings';
+import {
+  normalizeName,
+  resolveAccount,
+  resolveCategory,
+  type Resolution,
+} from '../resolution/entity-resolver';
 import { rerankCandidates, type RerankCandidate } from '../rag/reranker';
 import { toMinorUnits, toBaseMinor } from '@/lib/money';
 import type { z } from 'zod';
@@ -23,6 +28,10 @@ type GetAccountBalanceArgs = z.infer<typeof schemas.getAccountBalanceSchema>;
 type CreateGoalArgs = z.infer<typeof schemas.createGoalSchema>;
 type QueryTransactionsArgs = z.infer<typeof schemas.queryTransactionsSchema>;
 type SearchTransactionsArgs = z.infer<typeof schemas.searchTransactionsSchema>;
+type CreateTransferArgs = z.infer<typeof schemas.createTransferSchema>;
+type ReclassifyExpenseAsTransferArgs = z.infer<
+  typeof schemas.reclassifyExpenseAsTransferSchema
+>;
 
 interface ToolContext {
   userId: string;
@@ -68,46 +77,26 @@ export async function createTransaction(
       };
     }
 
-    let account = accounts.find(
-      (a) => a.name.toLowerCase() === args.accountName?.toLowerCase()
-    );
-
-    if (!account) {
-      account = accounts[0];
-      console.log(`[AI] Defaulting to account: ${accounts[0].name}`);
-    }
+    const accountResolution = resolveAccount({
+      accounts,
+      accountName: args.accountName,
+    });
+    if (accountResolution.status !== 'resolved') return accountResolution;
+    const account = accountResolution.value;
     const accountId = account.id;
 
-    // 2. Resolve Category
-    const categories = await categoriesRepo.findAll();
-    const userCategories = categories.filter((c) => c.userId === ctx.userId);
-
-    let category = userCategories.find(
-      (c) => c.name.toLowerCase() === args.category?.toLowerCase()
-    );
-
-    if (!category) {
-      const fallback = userCategories.find(
-        (c) => c.name === 'General' || c.name === 'Uncategorized'
-      );
-      category = fallback || userCategories[0];
-
-      if (!category) {
-        const allCats = await categoriesRepo.findAll();
-        const globalFallback = allCats.find(
-          (c) => c.name === 'General' || c.name === 'Uncategorized'
-        );
-        category = globalFallback;
-      }
-    }
-
-    const categoryId = category?.id;
-    if (!categoryId) {
-      return {
-        status: 'error',
-        message: 'No categories found. Please create a category first.',
-      };
-    }
+    // 2. Resolve Category among defaults and user categories of the same kind
+    const categoryResolution = resolveCategory({
+      categories: await categoriesRepo.findAll(),
+      userId: ctx.userId,
+      kind: args.type,
+      categoryId: args.categoryId,
+      categoryName: args.category,
+      description: args.description,
+    });
+    if (categoryResolution.status !== 'resolved') return categoryResolution;
+    const category = categoryResolution.value;
+    const categoryId = category.id;
 
     // 3. Create Transaction
     const currencyCode = account.currencyCode || 'USD';
@@ -131,7 +120,7 @@ export async function createTransaction(
         amountMinor: newTransaction.amountMinor,
         currencyCode: newTransaction.currencyCode,
         type: args.type,
-        categoryName: category?.name || 'General',
+        categoryName: category.name,
         accountName: account.name,
         date: newTransaction.date,
       },
@@ -140,6 +129,206 @@ export async function createTransaction(
     return {
       status: 'error',
       message: `Failed to create transaction: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+type AccountPair =
+  | { status: 'resolved'; from: Account; to: Account }
+  | Exclude<Resolution<Account>, { status: 'resolved' }>;
+
+async function resolveOwnAccountPair(
+  ctx: ToolContext,
+  fromAccountName: string,
+  toAccountName: string
+): Promise<AccountPair> {
+  const accounts = await ctx.repository.accounts.findByUserId(ctx.userId);
+  const from = resolveAccount({ accounts, accountName: fromAccountName });
+  if (from.status !== 'resolved') return from;
+  const to = resolveAccount({ accounts, accountName: toAccountName });
+  if (to.status !== 'resolved') return to;
+  if (from.value.id === to.value.id) {
+    return {
+      status: 'needs_clarification',
+      field: 'account',
+      message: `El origen y el destino son la misma cuenta (${from.value.name}). ¿A cuál cuenta va el dinero?`,
+      options: accounts
+        .filter((a) => a.id !== from.value.id)
+        .map((a) => a.name),
+    };
+  }
+  return { status: 'resolved', from: from.value, to: to.value };
+}
+
+function missingRate(from: Account, to: Account) {
+  return {
+    status: 'needs_clarification' as const,
+    field: 'exchangeRate' as const,
+    message: `${from.name} está en ${from.currencyCode} y ${to.name} en ${to.currencyCode}. ¿A qué tasa se hizo el cambio (o cuánto llegó a ${to.name})?`,
+    options: [],
+  };
+}
+
+/**
+ * Moves money between two of the user's own accounts through the atomic
+ * `create_transfer` RPC. Never records an expense (#114).
+ */
+export async function createTransfer(
+  args: CreateTransferArgs,
+  ctx: ToolContext
+): Promise<schemas.CreateTransferResult> {
+  try {
+    const pair = await resolveOwnAccountPair(
+      ctx,
+      args.fromAccountName,
+      args.toAccountName
+    );
+    if (pair.status !== 'resolved') return pair;
+    const { from, to } = pair;
+    if (from.currencyCode !== to.currencyCode && !args.exchangeRate) {
+      return missingRate(from, to);
+    }
+
+    const result = await ctx.repository.transfers.create(ctx.userId, {
+      fromAccountId: from.id,
+      toAccountId: to.id,
+      amountMajor: args.amount,
+      description:
+        args.description ?? `Transferencia de ${from.name} a ${to.name}`,
+      date: args.date,
+      exchangeRate: args.exchangeRate,
+    });
+
+    return {
+      status: 'success',
+      transfer: {
+        id: result.transferId,
+        fromAccountName: from.name,
+        toAccountName: to.name,
+        fromAmountMinor: result.fromAmount,
+        toAmountMinor: result.toAmount,
+        fromCurrency: result.fromCurrency,
+        toCurrency: result.toCurrency,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: `Failed to create transfer: ${error instanceof Error ? error.message : 'Unknown error'}`,
+    };
+  }
+}
+
+const EXPENSE_PAGE_SIZE = 200;
+const MAX_EXPENSE_PAGES = 50;
+
+/** Every expense of the account (optionally on one date), across all pages. */
+async function findAllExpenses(
+  ctx: ToolContext,
+  accountId: string,
+  date?: string
+): Promise<Transaction[]> {
+  const rows: Transaction[] = [];
+  for (let page = 1; page <= MAX_EXPENSE_PAGES; page++) {
+    const result = await ctx.repository.transactions.findByFilters(
+      {
+        accountIds: [accountId],
+        types: [TransactionType.EXPENSE],
+        ...(date ? { dateFrom: date, dateTo: date } : {}),
+      },
+      { page, limit: EXPENSE_PAGE_SIZE, sortBy: 'date', sortOrder: 'desc' }
+    );
+    rows.push(...result.data);
+    if (page >= result.totalPages || result.data.length < EXPENSE_PAGE_SIZE) {
+      break;
+    }
+  }
+  return rows;
+}
+
+/** Debt deductions carry debt-linked / debt:<id> tags and must stay expenses. */
+function isDebtLinked(transaction: Transaction): boolean {
+  return (transaction.tags ?? []).some(
+    (tag) => tag === 'debt-linked' || tag.startsWith('debt:')
+  );
+}
+
+/**
+ * Repairs an own-account transfer that was recorded as an expense: finds the
+ * expense on the source account by amount (and date when given) and converts
+ * it atomically into a transfer (`convert_expense_to_transfer` RPC).
+ */
+export async function reclassifyExpenseAsTransfer(
+  args: ReclassifyExpenseAsTransferArgs,
+  ctx: ToolContext
+): Promise<schemas.ReclassifyExpenseAsTransferResult> {
+  try {
+    const pair = await resolveOwnAccountPair(
+      ctx,
+      args.fromAccountName,
+      args.toAccountName
+    );
+    if (pair.status !== 'resolved') return pair;
+    const { from, to } = pair;
+    if (from.currencyCode !== to.currencyCode && !args.exchangeRate) {
+      return missingRate(from, to);
+    }
+
+    const amountMinor = toMinorUnits(args.amount, from.currencyCode);
+    const candidates = (
+      await findAllExpenses(ctx, from.id, args.date)
+    ).filter(
+      (t) =>
+        t.amountMinor === amountMinor &&
+        !t.transferId &&
+        !t.isDebt &&
+        !isDebtLinked(t)
+    );
+    let target: Transaction | undefined;
+    if (args.transactionId) {
+      target = candidates.find((t) => t.id === args.transactionId);
+    } else if (candidates.length === 1) {
+      target = candidates[0];
+    }
+
+    if (!target) {
+      return {
+        status: 'needs_clarification',
+        field: 'transaction',
+        message:
+          candidates.length === 0
+            ? `No encontré un gasto de ${args.amount} ${from.currencyCode} en ${from.name}${args.date ? ` el ${args.date}` : ''}. ¿De qué fecha o monto exacto era?`
+            : `Encontré ${candidates.length} gastos de ${args.amount} ${from.currencyCode} en ${from.name}. ¿Cuál convierto en transferencia?`,
+        options: candidates.map(
+          (t) =>
+            `${t.date} · ${t.description ?? 'Sin descripción'} [id: ${t.id}]`
+        ),
+      };
+    }
+
+    const result = await ctx.repository.transfers.convertExpenseToTransfer(
+      target.id,
+      to.id,
+      args.exchangeRate
+    );
+
+    return {
+      status: 'success',
+      converted: {
+        transactionId: target.id,
+        transferId: result.transferId,
+        description: target.description,
+        date: target.date,
+        amountMinor: target.amountMinor,
+        currencyCode: from.currencyCode,
+        fromAccountName: from.name,
+        toAccountName: to.name,
+      },
+    };
+  } catch (error) {
+    return {
+      status: 'error',
+      message: `Failed to convert expense: ${error instanceof Error ? error.message : 'Unknown error'}`,
     };
   }
 }
@@ -161,11 +350,11 @@ export async function queryTransactions(
     let categoryId: string | null = null;
     if (args.category) {
       const categories = await ctx.repository.categories.findAll();
-      const normalized = args.category.trim().toLowerCase();
+      const normalized = normalizeName(args.category);
       const match = categories.find(
         (c) =>
-          (c as { userId?: string }).userId === ctx.userId &&
-          c.name.trim().toLowerCase() === normalized
+          (c.userId === null || c.userId === ctx.userId) &&
+          normalizeName(c.name) === normalized
       );
       categoryId = match?.id ?? null;
     }
@@ -466,7 +655,7 @@ export async function createGoal(
       baseCurrencyCode,
     });
 
-    const goal = await goalsRepo.create({
+    await goalsRepo.create({
       name: args.name,
       targetBaseMinor,
       currentBaseMinor: 0,
@@ -492,6 +681,8 @@ export async function createGoal(
  */
 export const toolsResolvers = {
   createTransaction,
+  createTransfer,
+  reclassifyExpenseAsTransfer,
   queryTransactions,
   searchTransactions,
   getAccountBalance,

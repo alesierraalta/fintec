@@ -100,6 +100,71 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
               : output.message,
       }),
     }),
+    createTransfer: tool({
+      description:
+        "Move money between two of the user's OWN accounts (e.g. Zelle to Binance, Banesco to Mercantil, cash deposit into a bank). Use this, NEVER createTransaction, whenever money only changes account. Paying a third party is an expense, not a transfer.",
+      inputSchema: schemas.createTransferSchema,
+      outputSchema: schemas.createTransferResultSchema,
+      execute: async (args: any) => {
+        if (shouldRequestApproval('createTransfer', args)) {
+          const requestId = await approvals.requestApproval({
+            userId,
+            threadId,
+            actionType: 'createTransfer',
+            actionData: args,
+            riskLevel: 'MEDIUM',
+            message: `Transferir ${args.amount} de ${args.fromAccountName} a ${args.toAccountName}?`,
+          });
+          const { approved } = await approvals.waitForApproval(
+            requestId,
+            45000
+          );
+          if (!approved) throw new Error('Transfer rejected by user.');
+        }
+        return toolsResolvers.createTransfer(args, { userId, repository });
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value:
+          output.status === 'success'
+            ? `Transfer created: ${output.transfer.fromAccountName} -> ${output.transfer.toAccountName} (${output.transfer.fromAmountMinor ?? ''} ${output.transfer.fromCurrency ?? ''} minor units). No expense was recorded.`
+            : output.message,
+      }),
+    }),
+    reclassifyExpenseAsTransfer: tool({
+      description:
+        'Repair a transfer between own accounts that was recorded as an expense: converts that expense into a transfer so both balances become correct without a manual reconciliation.',
+      inputSchema: schemas.reclassifyExpenseAsTransferSchema,
+      outputSchema: schemas.reclassifyExpenseAsTransferResultSchema,
+      execute: async (args: any) => {
+        if (shouldRequestApproval('reclassifyExpenseAsTransfer', args)) {
+          const requestId = await approvals.requestApproval({
+            userId,
+            threadId,
+            actionType: 'reclassifyExpenseAsTransfer',
+            actionData: args,
+            riskLevel: 'HIGH',
+            message: `Convertir el gasto de ${args.amount} en ${args.fromAccountName} en una transferencia a ${args.toAccountName}?`,
+          });
+          const { approved } = await approvals.waitForApproval(
+            requestId,
+            45000
+          );
+          if (!approved) throw new Error('Conversion rejected by user.');
+        }
+        return toolsResolvers.reclassifyExpenseAsTransfer(args, {
+          userId,
+          repository,
+        });
+      },
+      toModelOutput: ({ output }) => ({
+        type: 'text',
+        value:
+          output.status === 'success'
+            ? `Expense ${output.converted.transactionId} (${output.converted.date}) converted into a transfer ${output.converted.fromAccountName} -> ${output.converted.toAccountName}. Both balances are now correct.`
+            : output.message,
+      }),
+    }),
     queryTransactions: tool({
       description:
         'Filter and aggregate transactions by date range, amount range, category, or account (sum, count, average, or group-by breakdown). Use this for questions like "how much did I spend on X" or "break down my spending by category" — NOT for fuzzy/typo-tolerant lookups.',
