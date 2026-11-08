@@ -20,6 +20,7 @@ describe('quota reporting', () => {
         calls: [],
         checks: { tool: true },
         passed: true,
+        passedByAlternative: true,
       },
       {
         id: 'failed',
@@ -36,11 +37,15 @@ describe('quota reporting', () => {
         calls: [],
         checks: { tool: false },
         unmeasured: true,
+        passedByAlternative: true,
       },
     ]);
 
     expect(report).toContain(
       'Cases: 3. Measured: 2. Passed: 1. Unmeasured: 1. Pass rate: 50.0%.'
+    );
+    expect(report).toContain(
+      'Casos aprobados por categoría alternativa aceptada: 1.'
     );
     expect(report).toContain('| query | 50.0% | 2 |');
     expect(report).toContain('| tool | 50.0% | 2 |');

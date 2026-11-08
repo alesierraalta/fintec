@@ -7,10 +7,12 @@ const expense = (
   category: string,
   amount: number,
   currency: 'USD' | 'VES' | 'USDT',
-  account?: string
+  account?: string,
+  acceptedCategories?: string[]
 ): HardCase => ({
   utterance,
   intent: 'create_expense',
+  ...(acceptedCategories ? { acceptedCategories } : {}),
   expected: { type: 'EXPENSE', category, amount, currency, account },
 });
 
@@ -191,7 +193,15 @@ export const HARD_CASES: HardCase[] = [
     'USD'
   ),
   expense('unos tenis en el sambil 65$', 'Compras', 65, 'USD'),
-  expense('le eché gasolina al carro, 10 dólares', 'Transporte', 10, 'USD'),
+  // Fuel can also be filed under the user's vehicle category.
+  expense(
+    'le eché gasolina al carro, 10 dólares',
+    'Transporte',
+    10,
+    'USD',
+    undefined,
+    ['Transporte', 'Carros']
+  ),
   expense('cambio de aceite 35$', 'Carros', 35, 'USD'),
   expense(
     'los cauchos nuevos me salieron en 280 dólares',
@@ -199,7 +209,11 @@ export const HARD_CASES: HardCase[] = [
     280,
     'USD'
   ),
-  expense('pagué el condominio, 40 verdes', 'Vivienda', 40, 'USD'),
+  // Condominium fees can also be classified as services.
+  expense('pagué el condominio, 40 verdes', 'Vivienda', 40, 'USD', undefined, [
+    'Vivienda',
+    'Servicios',
+  ]),
   expense('la recarga de movistar 200 bolos', 'Servicios', 200, 'VES'),
   expense('el internet 25$ con zelle', 'Servicios', 25, 'USD', 'Zelle'),
   expense('fuimos al cine y gastamos 18 dolares', 'Entretenimiento', 18, 'USD'),
@@ -382,4 +396,10 @@ export const HARD_CASES: HardCase[] = [
     intent: 'balance',
     expected: { account: 'Zelle' },
   },
+  // Venezuelan thousands grouping and decimal comma, including an ungrouped control.
+  expense('gaste 7.933bs en el mercado', 'Alimentación', 7933, 'VES'),
+  expense('gaste 20.704bs en el mercado', 'Alimentación', 20704, 'VES'),
+  expense('gasté 15.756 Bs en el mercado', 'Alimentación', 15756, 'VES'),
+  expense('gasté Bs. 3.148,19 en el mercado', 'Alimentación', 3148.19, 'VES'),
+  expense('gasté 12,50 Bs en el mercado', 'Alimentación', 12.5, 'VES'),
 ];

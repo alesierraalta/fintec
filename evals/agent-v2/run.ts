@@ -62,6 +62,18 @@ export function validateDataset(cases: AgentEvalCase[]): string[] {
           `${c.id}: category ${e.category} is ${kind}, case is ${e.type}`
         );
     }
+    if (c.acceptedCategories) {
+      if (!e.category || c.acceptedCategories[0] !== e.category)
+        errors.push(
+          `${c.id}: preferred category must be first in accepted categories`
+        );
+      for (const name of c.acceptedCategories) {
+        const kind = categoryKind(name);
+        if (!kind) errors.push(`${c.id}: unknown accepted category ${name}`);
+        else if (kind !== categoryKind(e.category ?? ''))
+          errors.push(`${c.id}: accepted category ${name} has mismatched kind`);
+      }
+    }
     for (const name of [e.account, e.toAccount]) {
       if (name && !accounts.has(name))
         errors.push(`${c.id}: unknown account ${name}`);
@@ -207,6 +219,7 @@ interface LiveResult {
   calls: RecordedCall[];
   checks: Record<string, boolean>;
   passed?: boolean;
+  passedByAlternative?: boolean;
   unmeasured?: boolean;
   error?: string;
 }
@@ -234,7 +247,7 @@ const norm = (v: unknown) =>
 export function scoreLiveCase(
   c: AgentEvalCase,
   calls: RecordedCall[]
-): Pick<LiveResult, 'checks' | 'passed'> {
+): Pick<LiveResult, 'checks' | 'passed' | 'passedByAlternative'> {
   const expectedTool = EXPECTED_TOOL[c.intent];
   const writeTools = [
     'createTransaction',
@@ -257,6 +270,7 @@ export function scoreLiveCase(
   }
   const e = c.expected;
   const a = call?.args ?? {};
+  let matchedAlternative = false;
   const categoryName = (id: unknown) =>
     FIXTURE_CATEGORIES.find((cat) => cat.id === id)?.name;
   if (
@@ -265,9 +279,16 @@ export function scoreLiveCase(
     c.intent !== 'create_transfer'
   ) {
     if (e.type) checks.type = a.type === e.type;
-    if (e.category)
-      checks.category =
-        norm(categoryName(a.categoryId) ?? a.category) === norm(e.category);
+    if (e.category) {
+      const actual = norm(categoryName(a.categoryId) ?? a.category);
+      const primary = actual === norm(e.category);
+      matchedAlternative =
+        !primary &&
+        (c.acceptedCategories ?? []).some(
+          (category) => actual === norm(category)
+        );
+      checks.category = primary || matchedAlternative;
+    }
     if (e.amount !== undefined) checks.amount = Number(a.amount) === e.amount;
     if (e.account) checks.account = norm(a.accountName) === norm(e.account);
   }
@@ -282,7 +303,8 @@ export function scoreLiveCase(
   if (call && c.intent === 'query' && e.category) {
     checks.category = norm(a.category) === norm(e.category);
   }
-  return { checks, passed: Object.values(checks).every(Boolean) };
+  const passed = Object.values(checks).every(Boolean);
+  return { checks, passed, passedByAlternative: passed && matchedAlternative };
 }
 
 /**
@@ -454,6 +476,7 @@ export function liveMarkdown(results: LiveResult[]): string {
     '# Agent v2 eval — live',
     '',
     `Cases: ${results.length}. Measured: ${measured.length}. Passed: ${passed}. Unmeasured: ${unmeasured}. Pass rate: ${pct({ total: measured.length, correct: passed })}.`,
+    `Casos aprobados por categoría alternativa aceptada: ${measured.filter((r) => r.passed && r.passedByAlternative).length}.`,
     '',
     '| Intent | Pass rate | Cases |',
     '| --- | --- | --- |',
