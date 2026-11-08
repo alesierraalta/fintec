@@ -180,7 +180,7 @@ export type SupabaseFeedback = {
 export type SupabasePendingItem = {
   id: string;
   user_id: string;
-  kind: 'purchase' | 'payment';
+  kind: 'purchase' | 'payment' | 'receipt';
   name: string;
   amount_base_minor: number | null;
   done: boolean;
@@ -304,7 +304,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          kind: 'purchase' | 'payment';
+          kind: 'purchase' | 'payment' | 'receipt';
           name: string;
           amount_base_minor?: number | null;
           done?: boolean;
@@ -315,7 +315,7 @@ export interface Database {
         Update: {
           id?: string;
           user_id?: string;
-          kind?: 'purchase' | 'payment';
+          kind?: 'purchase' | 'payment' | 'receipt';
           name?: string;
           amount_base_minor?: number | null;
           done?: boolean;

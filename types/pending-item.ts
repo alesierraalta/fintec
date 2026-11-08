@@ -2,7 +2,8 @@
 // "payments I know are coming". No dates, no recurrence — just a name
 // and an optional approximate amount in the user's base currency.
 
-export type PendingItemKind = 'purchase' | 'payment';
+// 'receipt': already spent, amount unknown, waiting for its receipt photo (#117).
+export type PendingItemKind = 'purchase' | 'payment' | 'receipt';
 
 export interface PendingItem {
   id: string;
