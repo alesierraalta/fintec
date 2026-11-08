@@ -302,19 +302,15 @@ export class SupabaseTransfersRepository implements TransfersRepository {
       throw new Error('Transfer not found');
     }
 
-    for (const transaction of data as any[]) {
-      const { error: deleteError } = await (this.client as any).rpc(
-        'delete_transaction_and_adjust_balance',
-        {
-          transaction_id_input: transaction.id,
-        }
-      );
+    // One atomic RPC reverses both legs, returns the commission and removes
+    // the transfer row (supabase/migrations/20261107140000_delete_transfer_atomic.sql).
+    const { error: deleteError } = await (this.client as any).rpc(
+      'delete_transfer',
+      { p_transfer_id: transferId }
+    );
 
-      if (deleteError) {
-        throw new Error(
-          `Failed to delete transfer transaction: ${deleteError.message}`
-        );
-      }
+    if (deleteError) {
+      throw new Error(`Failed to delete transfer: ${deleteError.message}`);
     }
   }
 }
