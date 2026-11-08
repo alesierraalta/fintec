@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   render,
   screen,
@@ -16,6 +15,7 @@ import {
 } from '@/components/receipts/batch-receipt-uploader-modal';
 import type { BatchReceiptItem } from '@/components/receipts/batch-receipt-uploader-modal';
 import { toast } from 'sonner';
+import { compressImage } from '@/hooks/use-receipt-scanner';
 import { runFinancialMutation } from '@/lib/finance/financial-data-sync';
 import type { Account, Category, Transaction } from '@/types';
 import { AccountType, CategoryKind, TransactionType } from '@/types';
@@ -514,7 +514,7 @@ describe('BatchReceiptUploaderModal Component', () => {
     );
   });
 
-  it('rejects non-image files with an error toast', () => {
+  it('accepts PDFs for scanning while rejecting unsupported files', async () => {
     render(
       <BatchReceiptUploaderModal
         isOpen={true}
@@ -531,11 +531,53 @@ describe('BatchReceiptUploaderModal Component', () => {
     const pdfFile = new File(['pdf-data'], 'document.pdf', {
       type: 'application/pdf',
     });
-    fireEvent.change(input, { target: { files: [pdfFile] } });
+    const textFile = new File(['text'], 'document.txt', { type: 'text/plain' });
+    (compressImage as jest.Mock).mockResolvedValueOnce(
+      'data:application/pdf;base64,cGRm'
+    );
+    fireEvent.change(input, { target: { files: [pdfFile, textFile] } });
 
     expect(toast.error).toHaveBeenCalledWith(
-      'Solo se permiten archivos de imagen (JPG, PNG, WEBP).'
+      'Formato no admitido. Usa JPG, PNG, WEBP o PDF.'
     );
+    await waitFor(() => expect(compressImage).toHaveBeenCalledWith(pdfFile));
+    await waitFor(() =>
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/ai/scan-receipt',
+        expect.objectContaining({
+          body: expect.stringContaining('data:application/pdf;base64,cGRm'),
+        })
+      )
+    );
+    expect(
+      (compressImage as jest.Mock).mock.calls.some(
+        ([file]) => file === textFile
+      )
+    ).toBe(false);
+  });
+
+  it('does not send an undecodable HEIC to the scan endpoint', async () => {
+    const message =
+      'No se pudo abrir el archivo HEIC. Conviértelo a JPG o PNG e inténtalo de nuevo.';
+    (compressImage as jest.Mock).mockRejectedValueOnce(new Error(message));
+    render(
+      <BatchReceiptUploaderModal
+        isOpen={true}
+        onClose={jest.fn()}
+        accounts={mockAccounts}
+        categories={mockCategories}
+      />
+    );
+    const file = new File(['heic'], 'receipt.heic', { type: 'image/heic' });
+    fireEvent.change(screen.getByLabelText('Seleccionar imágenes'), {
+      target: { files: [file] },
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByText((text) => text.includes(message))
+      ).toBeInTheDocument()
+    );
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('processes uploaded images via /api/ai/scan-receipt with bounded concurrency and pre-fills fast-fill fields', async () => {

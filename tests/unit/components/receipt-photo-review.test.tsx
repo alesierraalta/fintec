@@ -14,6 +14,7 @@ import {
 } from '@/components/receipts/batch-receipt-uploader-modal';
 import { ReceiptScannerDropzone } from '@/components/receipts/receipt-scanner-dropzone';
 import { toast } from 'sonner';
+import { compressImage } from '@/hooks/use-receipt-scanner';
 import type { Account, Category } from '@/types';
 import { AccountType, CategoryKind, TransactionType } from '@/types';
 import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
@@ -289,7 +290,24 @@ describe('Receipt Photo Review & Lifecycle Suite', () => {
   });
 
   describe('BatchReceiptUploaderModal - File Validation & Memory Cleanliness', () => {
-    it('rejects non-image files and displays warning toast without creating preview URLs', async () => {
+    it('scans PDFs and rejects unsupported files without creating their preview URLs', async () => {
+      (compressImage as jest.Mock).mockResolvedValueOnce(
+        'data:application/pdf;base64,cGRm'
+      );
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          data: {
+            type: 'EXPENSE',
+            amount: 5,
+            currency: 'USD',
+            date: '2026-10-17',
+            suggestedDescription: 'PDF',
+          },
+        }),
+      });
       render(
         <BatchReceiptUploaderModal
           isOpen={true}
@@ -314,9 +332,22 @@ describe('Receipt Photo Review & Lifecycle Suite', () => {
       });
 
       expect(toast.error).toHaveBeenCalledWith(
-        'Solo se permiten archivos de imagen (JPG, PNG, WEBP).'
+        'Formato no admitido. Usa JPG, PNG, WEBP o PDF.'
       );
-      expect(createObjectURLMock).not.toHaveBeenCalled();
+      expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+      expect(createObjectURLMock).toHaveBeenCalledWith(pdfFile);
+      expect(
+        createObjectURLMock.mock.calls.some(([file]) => file === txtFile)
+      ).toBe(false);
+      await waitFor(() => expect(compressImage).toHaveBeenCalledWith(pdfFile));
+      await waitFor(() =>
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/ai/scan-receipt',
+          expect.objectContaining({
+            body: expect.stringContaining('data:application/pdf;base64,cGRm'),
+          })
+        )
+      );
     });
 
     it('enforces MAX_BATCH_RECEIPTS (20) and slices excess photos with toast notification', async () => {

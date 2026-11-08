@@ -129,6 +129,49 @@ describe('/api/ai/scan-receipt Multipart Form-Data Route Suite', () => {
     );
   });
 
+  it('passes a PDF receipt to the scanner and returns the movement', async () => {
+    const formData = new FormData();
+    formData.append(
+      'file',
+      new Blob(['%PDF-receipt'], { type: 'application/pdf' }),
+      'receipt.pdf'
+    );
+    const res = await POST(
+      new Request('http://localhost/api/ai/scan-receipt', {
+        method: 'POST',
+        body: formData,
+      })
+    );
+    expect(res.status).toBe(200);
+    expect((await res.json()).data).toEqual(validScannedResult);
+    expect(mockScanReceiptWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({
+        image: expect.stringMatching(/^data:application\/pdf;base64,/),
+      })
+    );
+  });
+
+  it('rejects a PDF over 10 MiB with its actual size', async () => {
+    const size = 10 * 1024 * 1024 + 1;
+    const formData = new FormData();
+    formData.append(
+      'file',
+      new Blob([Buffer.alloc(size)], { type: 'application/pdf' }),
+      'large.pdf'
+    );
+    const res = await POST(
+      new Request('http://localhost/api/ai/scan-receipt', {
+        method: 'POST',
+        body: formData,
+      })
+    );
+    expect(res.status).toBe(413);
+    expect((await res.json()).error).toContain(
+      `10 MiB (tamaño actual: ${size} bytes)`
+    );
+    expect(mockScanReceiptWithAI).not.toHaveBeenCalled();
+  });
+
   it('returns 400 when multipart form data is missing the file field', async () => {
     const formData = new FormData();
     formData.append('expectedType', 'EXPENSE');
@@ -164,7 +207,7 @@ describe('/api/ai/scan-receipt Multipart Form-Data Route Suite', () => {
     const json = await res.json();
     expect(json.success).toBe(false);
     expect(json.error).toBe(
-      'El archivo debe ser una imagen válida (PNG, JPG, WEBP)'
+      'El archivo debe ser una imagen válida (PNG, JPG, WEBP) o un PDF'
     );
   });
 

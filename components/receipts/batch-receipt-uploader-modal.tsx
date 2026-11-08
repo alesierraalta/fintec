@@ -443,12 +443,7 @@ export function BatchReceiptUploaderModal({
   const scanSingleItem = useCallback(
     async (item: BatchReceiptItem) => {
       try {
-        let compressedBase64: string;
-        try {
-          compressedBase64 = await compressImage(item.file);
-        } catch {
-          compressedBase64 = item.previewUrl;
-        }
+        const compressedBase64 = await compressImage(item.file);
 
         const accountCandidates: AccountCandidate[] = accounts.map((a) => ({
           id: a.id,
@@ -576,12 +571,13 @@ export function BatchReceiptUploaderModal({
       if (fileArray.length === 0) return;
 
       // Filter images only
-      const imageFiles = fileArray.filter((file) =>
-        file.type.startsWith('image/')
+      const imageFiles = fileArray.filter(
+        (file) =>
+          file.type.startsWith('image/') || file.type === 'application/pdf'
       );
 
       if (imageFiles.length < fileArray.length) {
-        toast.error('Solo se permiten archivos de imagen (JPG, PNG, WEBP).');
+        toast.error('Formato no admitido. Usa JPG, PNG, WEBP o PDF.');
       }
 
       if (imageFiles.length === 0) return;
@@ -1136,7 +1132,7 @@ export function BatchReceiptUploaderModal({
               id={fileInputId}
               type="file"
               multiple
-              accept="image/png,image/jpeg,image/webp,image/*"
+              accept="image/png,image/jpeg,image/webp,image/*,application/pdf"
               aria-label="Seleccionar imágenes"
               className="sr-only"
               onChange={(e) => {
@@ -1219,8 +1215,8 @@ export function BatchReceiptUploaderModal({
                     Arrastra hasta 20 comprobantes aquí
                   </h3>
                   <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                    Formatos soportados: PNG, JPG, WEBP. Analizaremos tus pagos
-                    móviles, transferencias o recibos simultáneamente.
+                    Formatos soportados: PNG, JPG, WEBP y PDF. Analizaremos tus
+                    pagos móviles, transferencias o recibos simultáneamente.
                   </p>
                   <div className="mt-5">
                     <span className="ios-button-primary inline-flex items-center gap-2 text-sm font-medium">

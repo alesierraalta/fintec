@@ -31,8 +31,23 @@ export async function compressImage(
     const reader = new FileReader();
     reader.onload = (e) => {
       const rawBase64 = e.target?.result as string;
-      if (typeof window === 'undefined' || typeof Image === 'undefined') {
+      if (file.type === 'application/pdf') {
         resolve(rawBase64);
+        return;
+      }
+      const isHeic =
+        /^(image\/hei[cf])$/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
+      const fallback = () => {
+        if (isHeic)
+          reject(
+            new Error(
+              'No se pudo abrir el archivo HEIC. Conviértelo a JPG o PNG e inténtalo de nuevo.'
+            )
+          );
+        else resolve(rawBase64);
+      };
+      if (typeof window === 'undefined' || typeof Image === 'undefined') {
+        fallback();
         return;
       }
 
@@ -60,7 +75,7 @@ export async function compressImage(
             const ctx = canvas.getContext('2d');
             if (!ctx) {
               // Fallback to raw base64 if canvas is unavailable
-              resolve(rawBase64);
+              fallback();
               return;
             }
 
@@ -70,16 +85,13 @@ export async function compressImage(
             resolve(dataUrl);
           } catch {
             // Fallback to raw base64 on canvas processing failure
-            resolve(rawBase64);
+            fallback();
           }
         };
-        img.onerror = () => {
-          // Fallback to raw base64 instead of failing
-          resolve(rawBase64);
-        };
+        img.onerror = fallback;
         img.src = rawBase64;
       } catch {
-        resolve(rawBase64);
+        fallback();
       }
     };
     reader.onerror = () => reject(new Error('Failed to read file'));
@@ -99,8 +111,9 @@ export function useReceiptScanner(options: UseReceiptScannerOptions = {}) {
 
   const scanFile = useCallback(
     async (file: File) => {
-      if (!file.type.startsWith('image/')) {
-        const errMsg = 'El archivo debe ser una imagen (JPG, PNG, WEBP, etc.)';
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        const errMsg =
+          'El archivo debe ser una imagen (JPG, PNG, WEBP) o un PDF.';
         setError(errMsg);
         toast.error(errMsg);
         return;
