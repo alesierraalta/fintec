@@ -112,6 +112,122 @@ describe('buildChatTools — returns the same five wrapped tools', () => {
   });
 });
 
+describe('createTransaction exchange rate', () => {
+  const args = {
+    amount: 20000,
+    description: 'Mercado',
+    category: 'Food',
+    type: 'EXPENSE',
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockShouldRequestApproval.mockReturnValue(false);
+    (toolsResolvers.createTransaction as jest.Mock).mockImplementation(
+      jest.requireActual('@/lib/ai/tools/resolvers').createTransaction
+    );
+  });
+
+  afterEach(() => {
+    (toolsResolvers.createTransaction as jest.Mock)
+      .mockReset()
+      .mockResolvedValue('tx created');
+  });
+
+  function setup(
+    currencyCode: string,
+    usdVesRate?: number,
+    baseCurrencyCode = 'USD'
+  ) {
+    const repository = {
+      accounts: {
+        findByUserId: jest
+          .fn()
+          .mockResolvedValue([{ id: 'a', name: 'Wallet', currencyCode }]),
+      },
+      categories: {
+        findAll: jest
+          .fn()
+          .mockResolvedValue([
+            { id: 'c', name: 'Food', kind: 'EXPENSE', userId: 'user-1' },
+          ]),
+      },
+      transactions: { create: jest.fn().mockResolvedValue({ id: 't' }) },
+    };
+    const tool = buildChatTools(
+      makeDeps({ repository, usdVesRate, baseCurrencyCode })
+    ).createTransaction as any;
+    return { tool, repository };
+  }
+
+  it('passes the active rate for a VES expense', async () => {
+    const { tool, repository } = setup('VES', 500);
+    expect((await tool.execute(args)).status).toBe('success');
+    expect(repository.transactions.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        currencyCode: 'VES',
+        exchangeRate: 500,
+        amountMinor: 2000000,
+      })
+    );
+  });
+
+  it.each([undefined, 0, -1, NaN, Infinity])(
+    'does not write with an unusable rate: %s',
+    async (rate) => {
+      const { tool, repository } = setup('VES', rate);
+      expect(await tool.execute(args)).toEqual({
+        status: 'needs_clarification',
+        field: 'exchangeRate',
+        message:
+          'La tasa de cambio no está disponible. No se registró ningún movimiento.',
+        options: [],
+      });
+      expect(repository.transactions.create).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each([
+    ['EUR', 'EUR'],
+    ['BTC', 'BTC'],
+    ['VES', 'VES'],
+    ['USDT', 'USD'],
+  ])('writes %s on a %s base without a rate', async (currency, base) => {
+    const { tool, repository } = setup(currency, undefined, base);
+    expect((await tool.execute(args)).status).toBe('success');
+    expect(repository.transactions.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ exchangeRate: expect.anything() })
+    );
+  });
+
+  it.each([
+    ['USD', 'VES'],
+    ['EUR', 'USD'],
+    ['BTC', 'USD'],
+  ])(
+    'does not write %s on a %s base even with a USD/VES rate',
+    async (currency, base) => {
+      const { tool, repository } = setup(currency, 500, base);
+      expect(await tool.execute(args)).toEqual({
+        status: 'needs_clarification',
+        field: 'exchangeRate',
+        message:
+          'La tasa de cambio no está disponible. No se registró ningún movimiento.',
+        options: [],
+      });
+      expect(repository.transactions.create).not.toHaveBeenCalled();
+    }
+  );
+
+  it('leaves USD expenses unchanged without a rate', async () => {
+    const { tool, repository } = setup('USD');
+    expect((await tool.execute(args)).status).toBe('success');
+    expect(repository.transactions.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ exchangeRate: expect.anything() })
+    );
+  });
+});
+
 describe('buildChatTools — approvals port', () => {
   beforeEach(() => {
     jest.clearAllMocks();

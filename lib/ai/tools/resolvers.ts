@@ -51,11 +51,10 @@ interface ToolContext {
   /**
    * The user's base currency (profile `base_currency`, default 'USD' — see
    * contexts/auth-context.tsx:93,117-122). Used for base-currency-relative
-   * amounts: `queryTransactions`'s filter bounds (compared against
-   * `amount_base_minor`) and `createGoal`'s target amount. NOT used for
-   * `createTransaction`, which converts against the account's own currency.
+   * amounts: transaction conversion, query filters, and goal targets.
    */
   baseCurrencyCode?: string;
+  usdVesRate?: number;
 }
 
 /**
@@ -103,6 +102,26 @@ export async function createTransaction(
 
     // 3. Create Transaction
     const currencyCode = account.currencyCode || 'USD';
+    const baseCurrencyCode = ctx.baseCurrencyCode || 'USD';
+    // In order: same currency needs no rate; VES/USD needs the active rate;
+    // USD or USDT/USD needs no rate; any pair whose currency differs from the
+    // base and is not covered by the preceding cases cannot be priced here.
+    const sameCurrency = currencyCode === baseCurrencyCode;
+    const requiresRate = currencyCode === 'VES' && baseCurrencyCode === 'USD';
+    const usdPeg = currencyCode === 'USDT' && baseCurrencyCode === 'USD';
+    const rate = ctx.usdVesRate;
+    if (
+      (!sameCurrency && !requiresRate && !usdPeg) ||
+      (requiresRate && (!Number.isFinite(rate) || !rate || rate <= 0))
+    ) {
+      return {
+        status: 'needs_clarification',
+        field: 'exchangeRate',
+        message:
+          'La tasa de cambio no está disponible. No se registró ningún movimiento.',
+        options: [],
+      };
+    }
     const newTransaction = {
       amountMinor: toMinorUnits(args.amount, currencyCode),
       description: args.description,
@@ -111,6 +130,7 @@ export async function createTransaction(
       date: args.date || new Date().toISOString().split('T')[0],
       type: args.type as TransactionType,
       currencyCode,
+      ...(requiresRate ? { exchangeRate: rate } : {}),
     };
 
     const transaction = await transactionsRepo.create(newTransaction);

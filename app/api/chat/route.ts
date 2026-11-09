@@ -23,6 +23,7 @@ import {
 } from '@/lib/ai/config';
 import { logger } from '@/lib/utils/logger';
 import { createServerAppRepository } from '@/repositories/factory';
+import { isFallbackSource } from '@/lib/services/rates-fallback';
 
 // Priority 1 Components
 import { CircuitBreaker } from '@/lib/ai/recovery/circuit-breaker';
@@ -100,7 +101,11 @@ export async function POST(req: Request) {
     }
 
     // 3. Parse request & Initialize State
-    const { messages, threadId: reqThreadId } = await req.json();
+    const {
+      messages,
+      threadId: reqThreadId,
+      rateSource = 'binance',
+    } = await req.json();
     threadId = reqThreadId || `thread_${user.id}_${Date.now()}`;
     const recentMessages = trimMessageHistory(messages as UIMessage[], 10);
 
@@ -127,29 +132,61 @@ export async function POST(req: Request) {
       }
     };
 
-    const [checkpoint, accounts, categories, pastTransactions, profileResult] =
-      await Promise.all([
-        checkpointer.load(threadId, user.id).catch((err) => {
-          logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
-          return null;
-        }),
-        repository.accounts.findByUserId(user.id).catch((err) => {
-          logger.warn('[AI Chat] Accounts lookup failed', err);
+    const fetchActiveRate = async (): Promise<number | undefined> => {
+      const table =
+        rateSource === 'binance'
+          ? 'binance_rate_history'
+          : rateSource === 'bcv_usd' || rateSource === 'bcv_eur'
+            ? 'bcv_rate_history'
+            : undefined;
+      if (!table || typeof supabase?.from !== 'function') return undefined;
+      try {
+        const { data, error } = await supabase
+          .from(table)
+          .select('usd, source')
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error || !data || !data.source || isFallbackSource(data.source))
+          return undefined;
+        const rate = Number(data.usd);
+        return Number.isFinite(rate) && rate > 0 ? rate : undefined;
+      } catch (error) {
+        logger.warn('[AI Chat] Exchange rate lookup failed', error);
+        return undefined;
+      }
+    };
+
+    const [
+      checkpoint,
+      accounts,
+      categories,
+      pastTransactions,
+      profileResult,
+      usdVesRate,
+    ] = await Promise.all([
+      checkpointer.load(threadId, user.id).catch((err) => {
+        logger.warn('[AI Chat] Checkpoint load failed; continuing', err);
+        return null;
+      }),
+      repository.accounts.findByUserId(user.id).catch((err) => {
+        logger.warn('[AI Chat] Accounts lookup failed', err);
+        return [];
+      }),
+      repository.categories.findAll().catch((err) => {
+        logger.warn('[AI Chat] Categories lookup failed', err);
+        return [];
+      }),
+      // History only improves categories: a failure must not block the chat.
+      Promise.resolve()
+        .then(() => repository.transactions.findAll(HISTORY_LOOKBACK))
+        .catch((err) => {
+          logger.warn('[AI Chat] History lookup failed', err);
           return [];
         }),
-        repository.categories.findAll().catch((err) => {
-          logger.warn('[AI Chat] Categories lookup failed', err);
-          return [];
-        }),
-        // History only improves categories: a failure must not block the chat.
-        Promise.resolve()
-          .then(() => repository.transactions.findAll(HISTORY_LOOKBACK))
-          .catch((err) => {
-            logger.warn('[AI Chat] History lookup failed', err);
-            return [];
-          }),
-        fetchBaseCurrency(),
-      ]);
+      fetchBaseCurrency(),
+      fetchActiveRate(),
+    ]);
 
     if (checkpoint) {
       logger.info('[AI Chat] Resuming from checkpoint', checkpoint.stepNumber);
@@ -195,6 +232,7 @@ export async function POST(req: Request) {
       supabase,
       baseCurrencyCode,
       accounts,
+      usdVesRate,
     });
 
     // 6. Execute with Recovery & State

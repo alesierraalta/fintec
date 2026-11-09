@@ -422,6 +422,55 @@ describe('chat route', () => {
     );
   });
 
+  describe('authoritative active rate', () => {
+    it.each([
+      ['binance', 'binance_rate_history', 'Binance P2P', 500],
+      ['bcv_eur', 'bcv_rate_history', 'BCV', 400],
+      ['bcv_usd', 'bcv_rate_history', 'BCV (fallback - default)', undefined],
+    ])(
+      'loads %s from %s and rejects fallback sources',
+      async (rateSource, table, source, expected) => {
+        const client = buildSupabaseClientMock({
+          data: { base_currency: 'USD' },
+          error: null,
+        });
+        const originalFrom = client.from;
+        const maybeSingle = jest
+          .fn()
+          .mockResolvedValue({
+            data: { usd: rateSource === 'binance' ? 500 : 400, source },
+            error: null,
+          });
+        client.from = jest.fn((name: string) =>
+          name === 'users'
+            ? originalFrom()
+            : {
+                select: jest.fn(() => ({
+                  order: jest.fn(() => ({
+                    limit: jest.fn(() => ({ maybeSingle })),
+                  })),
+                })),
+              }
+        ) as any;
+        mockCreateClient.mockResolvedValue(client as any);
+        mockStreamText.mockReturnValue({
+          toUIMessageStreamResponse: () => Response.json({ ok: true }),
+        } as any);
+        const { POST } = await import('@/app/api/chat/route');
+        await POST(
+          new Request('http://localhost/api/chat', {
+            method: 'POST',
+            body: JSON.stringify({ messages: [], rateSource, usdVesRate: 999 }),
+          })
+        );
+        expect(client.from).toHaveBeenCalledWith(table);
+        expect(mockBuildChatTools).toHaveBeenCalledWith(
+          expect.objectContaining({ usdVesRate: expected })
+        );
+      }
+    );
+  });
+
   describe('base currency resolution', () => {
     const okStreamResponse = () =>
       ({

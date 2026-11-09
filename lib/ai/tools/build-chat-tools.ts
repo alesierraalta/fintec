@@ -30,6 +30,7 @@ export interface BuildChatToolsDeps {
   repository: AppRepository;
   supabase: SupabaseClient;
   baseCurrencyCode: string;
+  usdVesRate?: number;
   /** Accounts preloaded by the chat route; injected to avoid a duplicate query. */
   accounts?: Account[];
   /**
@@ -81,6 +82,8 @@ export function buildChatTools(deps: BuildChatToolsDeps) {
         return toolsResolvers.createTransaction(args, {
           userId,
           repository,
+          baseCurrencyCode,
+          usdVesRate: deps.usdVesRate,
         });
       },
       toModelOutput: ({ output }) => ({
