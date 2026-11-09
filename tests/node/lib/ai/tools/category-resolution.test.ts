@@ -246,7 +246,7 @@ describe('createTransaction category resolution (#113)', () => {
         accountName: 'mercantil',
         type: 'EXPENSE',
       } as any,
-      ctx(repository)
+      { ...ctx(repository), baseCurrencyCode: 'USD', usdVesRate: 500 }
     );
 
     expect(repository.transactions.create).toHaveBeenCalledWith(

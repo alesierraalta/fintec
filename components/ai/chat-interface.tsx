@@ -18,6 +18,7 @@ import { useChatCardActions } from './use-chat-card-actions';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useAppStore } from '@/lib/store';
 
 /**
  * Follow streamed content only while the scroll owner is within this band
@@ -35,7 +36,10 @@ export function ChatInterface() {
   const [input, setInput] = useState('');
 
   const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({ api: '/api/chat' }),
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: () => ({ rateSource: useAppStore.getState().selectedRateSource }),
+    }),
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';

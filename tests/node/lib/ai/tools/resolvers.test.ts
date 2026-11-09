@@ -78,7 +78,11 @@ describe('lib/ai/tools/resolvers — createTransaction (money conversion)', () =
         category: 'Food',
         type: 'EXPENSE',
       } as any,
-      { userId: 'user-1', repository: repository as any }
+      {
+        userId: 'user-1',
+        repository: repository as any,
+        baseCurrencyCode: 'COP',
+      }
     );
 
     expect(repository.transactions.create).toHaveBeenCalledWith(
@@ -142,7 +146,7 @@ describe('lib/ai/tools/resolvers — queryTransactions amount bounds use the cal
     );
   });
 
-  it('proves the SAME conversion function is used with DIFFERENT currency arguments at the two call sites: queryTransactions bounds convert against the BASE currency (COP) while createTransaction converts against the ACCOUNT currency (USD)', async () => {
+  it('converts query bounds in COP but refuses an unsupported USD transaction on a COP base', async () => {
     const rpc = jest.fn().mockResolvedValue({
       data: [{ group_key: null, result_value: 0, row_count: 0 }],
       error: null,
@@ -166,7 +170,7 @@ describe('lib/ai/tools/resolvers — queryTransactions amount bounds use the cal
     );
 
     const txRepository = makeRepository(); // account currency defaults to USD
-    await createTransaction(
+    const result = await createTransaction(
       {
         amount: 1500,
         description: 'Rent',
@@ -180,13 +184,14 @@ describe('lib/ai/tools/resolvers — queryTransactions amount bounds use the cal
       } as any
     );
 
-    // Account-currency (USD, 2 decimals) amount: 1500 major -> 150000 minor.
-    // Same 1500 input, DIFFERENT output magnitude, because the currency
-    // argument differs (account currency vs. base currency) through the
-    // SAME toMinorUnits/toBaseMinor function.
-    expect(txRepository.transactions.create).toHaveBeenCalledWith(
-      expect.objectContaining({ amountMinor: 150000, currencyCode: 'USD' })
-    );
+    expect(result).toEqual({
+      status: 'needs_clarification',
+      field: 'exchangeRate',
+      message:
+        'La tasa de cambio no está disponible. No se registró ningún movimiento.',
+      options: [],
+    });
+    expect(txRepository.transactions.create).not.toHaveBeenCalled();
   });
 });
 
