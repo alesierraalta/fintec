@@ -103,7 +103,10 @@ export function ReceiptScannerDropzone({
       if (!items) return;
 
       for (let i = 0; i < items.length; i++) {
-        if (items[i].type.startsWith('image/')) {
+        if (
+          items[i].type.startsWith('image/') ||
+          items[i].type === 'application/pdf'
+        ) {
           const file = items[i].getAsFile();
           if (file) {
             scanFile(file);
@@ -209,7 +212,7 @@ export function ReceiptScannerDropzone({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/heic,image/*"
+        accept="image/png,image/jpeg,image/webp,image/heic,image/*,application/pdf"
         onChange={handleFileChange}
         className="sr-only"
         id={inputId}
@@ -576,7 +579,7 @@ export function ReceiptScannerDropzone({
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Pago Móvil, Binance P2P, recibos o transferencias
+                  Formatos: JPG, PNG, WEBP, HEIC o PDF
                 </p>
               </div>
             </div>

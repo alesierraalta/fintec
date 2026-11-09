@@ -9,6 +9,8 @@ import type {
 import { createServerAppRepository } from '@/repositories/factory';
 import { logger } from '@/lib/utils/logger';
 
+const MAX_SIZE_BYTES = 10 * 1024 * 1024;
+
 export const maxDuration = 45; // Allow ample time for multimodal AI processing
 
 export async function POST(req: Request) {
@@ -63,19 +65,31 @@ export async function POST(req: Request) {
       }
 
       // Validate file type
-      if (!file.type || !file.type.startsWith('image/')) {
+      if (
+        !file.type ||
+        (!file.type.startsWith('image/') && file.type !== 'application/pdf')
+      ) {
         return Response.json(
           {
             success: false,
-            error: 'El archivo debe ser una imagen válida (PNG, JPG, WEBP)',
+            error:
+              'El archivo debe ser una imagen válida (PNG, JPG, WEBP) o un PDF',
           },
           { status: 400 }
         );
       }
 
       // Max size limit: 10MB
-      const MAX_SIZE_BYTES = 10 * 1024 * 1024;
       if (file.size > MAX_SIZE_BYTES) {
+        if (file.type === 'application/pdf') {
+          return Response.json(
+            {
+              success: false,
+              error: `El PDF excede el límite de 10 MiB (tamaño actual: ${file.size} bytes)`,
+            },
+            { status: 413 }
+          );
+        }
         return Response.json(
           {
             success: false,
@@ -132,6 +146,20 @@ export async function POST(req: Request) {
       );
     }
 
+    const pdfPrefix = 'data:application/pdf;base64,';
+    if (image.startsWith(pdfPrefix)) {
+      const size = Buffer.byteLength(image.slice(pdfPrefix.length), 'base64');
+      if (size > MAX_SIZE_BYTES) {
+        return Response.json(
+          {
+            success: false,
+            error: `El PDF excede el límite de 10 MiB (tamaño actual: ${size} bytes)`,
+          },
+          { status: 413 }
+        );
+      }
+    }
+
     // Enforce 10MB size limit (base64 is ~1.37x binary, ~14MB max string length)
     const MAX_BASE64_LENGTH = 14 * 1024 * 1024;
     if (image.length > MAX_BASE64_LENGTH) {
@@ -147,6 +175,7 @@ export async function POST(req: Request) {
     // Validate image format (data URL or http/https URL)
     if (
       !image.startsWith('data:image/') &&
+      !image.startsWith(pdfPrefix) &&
       !image.startsWith('http://') &&
       !image.startsWith('https://')
     ) {

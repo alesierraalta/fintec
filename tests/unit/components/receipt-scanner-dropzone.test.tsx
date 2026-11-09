@@ -1,6 +1,8 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ReceiptScannerDropzone } from '@/components/receipts/receipt-scanner-dropzone';
+import { PendingReceiptsCard } from '@/components/ai/pending-receipts-card';
+import { ChatActionsContext } from '@/components/ai/chat-actions';
 
 const mockToast = {
   error: jest.fn(),
@@ -31,6 +33,35 @@ let mockHookState = {
 jest.mock('@/hooks/use-receipt-scanner', () => ({
   useReceiptScanner: () => mockHookState,
 }));
+
+describe('Pending receipts uploads', () => {
+  it('sends a PDF selected in chat to scanReceipt', async () => {
+    const scanReceipt = jest
+      .fn()
+      .mockResolvedValue({
+        type: 'EXPENSE',
+        amount: 1,
+        currency: 'USD',
+        suggestedDescription: 'Ticket',
+      });
+    const actions = {
+      scanReceipt,
+      accounts: [],
+      categories: [],
+      baseCurrency: 'USD',
+    } as any;
+    render(
+      <ChatActionsContext.Provider value={actions}>
+        <PendingReceiptsCard pending={[{ id: '1', name: 'Ticket' }]} />
+      </ChatActionsContext.Provider>
+    );
+    const file = new File(['pdf'], 'receipt.pdf', { type: 'application/pdf' });
+    fireEvent.change(screen.getByLabelText('Fotos de los tickets'), {
+      target: { files: [file] },
+    });
+    await waitFor(() => expect(scanReceipt).toHaveBeenCalledWith(file));
+  });
+});
 
 describe('ReceiptScannerDropzone', () => {
   beforeEach(() => {

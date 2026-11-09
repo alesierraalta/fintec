@@ -421,10 +421,13 @@ export async function scanReceiptWithAI(params: {
               type: 'text',
               text: userPrompt,
             },
-            {
-              type: 'image',
-              image: image,
-            },
+            image.startsWith('data:application/pdf;base64,')
+              ? {
+                  type: 'file',
+                  data: image.slice('data:application/pdf;base64,'.length),
+                  mediaType: 'application/pdf',
+                }
+              : { type: 'image', image },
           ],
         },
       ],

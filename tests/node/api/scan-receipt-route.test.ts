@@ -4,6 +4,16 @@ import { checkRateLimit } from '@/lib/ai/rate-limiter';
 import { scanReceiptWithAI } from '@/lib/ai/receipt-scanner/scanner-service';
 import { createServerAppRepository } from '@/repositories/factory';
 
+jest.mock('ai', () => ({ generateObject: jest.fn() }));
+jest.mock('@/lib/ai/recovery/circuit-breaker', () => ({
+  CircuitBreaker: class {
+    execute(fn: () => unknown) {
+      return fn();
+    }
+  },
+}));
+jest.mock('@/lib/ai/config', () => ({ getVisionModel: jest.fn(() => ({})) }));
+
 jest.mock('@/lib/supabase/server', () => ({
   createClient: jest.fn(),
 }));
@@ -121,6 +131,42 @@ describe('/api/ai/scan-receipt API Route', () => {
         ]),
       },
     } as any);
+  });
+
+  it('sends PDF file parts and image parts to the model', async () => {
+    const { generateObject } = require('ai');
+    generateObject.mockResolvedValue({ object: validScannedResult });
+    const { scanReceiptWithAI: actualScan } = jest.requireActual<
+      typeof import('@/lib/ai/receipt-scanner/scanner-service')
+    >('@/lib/ai/receipt-scanner/scanner-service');
+    await actualScan({ image: 'data:application/pdf;base64,cGRm' });
+    expect(generateObject.mock.calls[0][0].messages[0].content[1]).toEqual({
+      type: 'file',
+      data: 'cGRm',
+      mediaType: 'application/pdf',
+    });
+    await actualScan({ image: 'data:image/png;base64,cG5n' });
+    expect(generateObject.mock.calls[1][0].messages[0].content[1]).toEqual({
+      type: 'image',
+      image: 'data:image/png;base64,cG5n',
+    });
+  });
+
+  it('rejects oversized JSON PDF with actual size and limit', async () => {
+    const size = 10 * 1024 * 1024 + 1;
+    const image = `data:application/pdf;base64,${Buffer.alloc(size).toString('base64')}`;
+    const res = await POST(
+      new Request('http://localhost/api/ai/scan-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image }),
+      })
+    );
+    expect(res.status).toBe(413);
+    expect((await res.json()).error).toContain(
+      `10 MiB (tamaño actual: ${size} bytes)`
+    );
+    expect(mockScanReceiptWithAI).not.toHaveBeenCalled();
   });
 
   it('returns 401 Unauthorized when user is not authenticated', async () => {

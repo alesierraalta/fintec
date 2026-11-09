@@ -1,11 +1,15 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { compressImage } from '@/hooks/use-receipt-scanner';
 import { ImagePlus, Loader2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/ai/tools/formatters';
 import { toMinorUnits } from '@/lib/money';
 import { matchReceiptsToPending } from '@/lib/ai/receipts/match-pending';
-import { planReceiptTransactions, receiptCurrenciesMatch } from '@/lib/ai/receipts/plan-receipt-transactions';
+import {
+  planReceiptTransactions,
+  receiptCurrenciesMatch,
+} from '@/lib/ai/receipts/plan-receipt-transactions';
 import type { ScannedReceiptResult } from '@/lib/ai/receipt-scanner/types';
 import { useChatActions } from './chat-actions';
 import { ChatCard, ChatCardActions, ChatCardButton } from './chat-card';
@@ -81,7 +85,14 @@ export function PendingReceiptsCard({
 
   const addFiles = (files: File[]) => {
     if (!actions) return;
-    const images = files.filter((f) => f.type.startsWith('image/'));
+    const images = files.filter(
+      (f) => f.type.startsWith('image/') || f.type === 'application/pdf'
+    );
+    setError(
+      images.length < files.length
+        ? 'Formato no admitido. Usa JPG, PNG, WEBP o PDF.'
+        : null
+    );
     const start = scans.length;
     setScans((prev) => [
       ...prev,
@@ -92,8 +103,21 @@ export function PendingReceiptsCard({
       })),
     ]);
     images.forEach((file, i) => {
-      actions
-        .scanReceipt(file)
+      (async () => {
+        if (
+          /^image\/hei[cf]$/i.test(file.type) ||
+          /\.hei[cf]$/i.test(file.name)
+        ) {
+          const dataUrl = await compressImage(file);
+          const bytes = Uint8Array.from(atob(dataUrl.split(',')[1]), (c) =>
+            c.charCodeAt(0)
+          );
+          return actions.scanReceipt(
+            new File([bytes], 'comprobante.jpg', { type: 'image/jpeg' })
+          );
+        }
+        return actions.scanReceipt(file);
+      })()
         .then((result) =>
           setScans((prev) =>
             prev.map((s) =>
@@ -101,13 +125,18 @@ export function PendingReceiptsCard({
             )
           )
         )
-        .catch(() =>
+        .catch((err) => {
+          setError(
+            err instanceof Error
+              ? err.message
+              : 'No se pudo leer el comprobante.'
+          );
           setScans((prev) =>
             prev.map((s) =>
               s.index === start + i ? { ...s, status: 'error' } : s
             )
-          )
-        );
+          );
+        });
     });
   };
 
@@ -197,7 +226,12 @@ export function PendingReceiptsCard({
                       </option>
                       {actions.accounts
                         .filter(
-                          (a) => !result || receiptCurrenciesMatch(a.currencyCode, result.currency)
+                          (a) =>
+                            !result ||
+                            receiptCurrenciesMatch(
+                              a.currencyCode,
+                              result.currency
+                            )
                         )
                         .map((a) => (
                           <option key={a.id} value={a.id}>
@@ -239,12 +273,12 @@ export function PendingReceiptsCard({
             className="focus-ring mt-2.5 flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary p-3 text-sm font-semibold text-primary"
           >
             <ImagePlus className="h-4 w-4" aria-hidden="true" />
-            Pega o sube las fotos de los tickets
+            Pega o sube tickets (JPG, PNG, WEBP o PDF)
           </div>
           <input
             ref={inputRef}
             type="file"
-            accept="image/*"
+            accept="image/*,application/pdf"
             multiple
             hidden
             aria-label="Fotos de los tickets"
